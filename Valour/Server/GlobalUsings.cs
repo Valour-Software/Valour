@@ -14,3 +14,4 @@ global using Valour.Server.Services;
 global using Valour.Database.Context;
 global using Valour.Database.Extensions;
 global using Valour.Shared.Utilities;
+global using Valour.Shared.Hosting;

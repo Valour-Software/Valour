@@ -466,7 +466,7 @@ public class ThemeService
     /// </summary>
     private static string GetThemeAssetUrl(long themeId, long assetId, string cdnExt)
     {
-        return $"https://public-cdn.valour.gg/valour-public/themeAssets/{themeId}/{assetId}/original.{cdnExt ?? "webp"}";
+        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/themeAssets/{themeId}/{assetId}/original.{cdnExt ?? "webp"}";
     }
 
     public async Task<List<ThemeAssetInfo>> GetThemeAssetsAsync(long themeId)

@@ -42,19 +42,7 @@
     <link id="bundled-css" href="/_content/Valour.Client/css/bundled.min.css" rel="stylesheet"/>
     <link href="/_content/Valour.Client/css/public-threads.css" rel="stylesheet"/>
 
-    <script>
-        // Logged-in users (token in localStorage, same origin as the app)
-        // get sent into the full app instead of the static page.
-        // Append ?static to stay on this page.
-        (function () {
-            try {
-                if (new URLSearchParams(window.location.search).has('static')) return;
-                if (window.localStorage.getItem('token')) {
-                    window.location.replace('@Model.AppLink');
-                }
-            } catch (e) { /* storage unavailable */ }
-        })();
-    </script>
+    <link rel="canonical" href="@Model.RequestUrl"/>
 </head>
 <body>
 <div class="pt-page">
@@ -86,7 +74,7 @@
     else if (Model.Thread is not null)
     {
         <main class="pt-main">
-            <a class="pt-planet-link" href="/threads/@Model.PlanetId">
+            <a class="pt-planet-link" href="/@Model.PlanetId">
                 <img src="@Model.PlanetIcon" alt="@planetName"/>
                 <span>@planetName</span>
             </a>

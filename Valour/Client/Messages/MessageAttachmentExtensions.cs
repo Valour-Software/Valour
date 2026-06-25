@@ -37,6 +37,7 @@ public static class MessageAttachmentExtensions
         typeof(SoundCloudAttachmentComponent),  // 23: SoundCloud
         typeof(GitHubAttachmentComponent),      // 24: GitHub
         typeof(EmbedAttachmentComponent),       // 25: Embed
+        typeof(ValourThreadAttachmentComponent),// 26: ValourThread
     };
 
     public static Type GetComponentType(this MessageAttachment attachment)

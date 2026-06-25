@@ -42,6 +42,6 @@ public class CdnProxyItem
     /// The url for the proxied item
     /// </summary>
     [JsonIgnore]
-    public string Url => $"https://cdn.valour.gg/proxy/{Id}";
+    public string Url => $"{ValourHosts.ContentCdnBaseUrl}/proxy/{Id}";
 }
 

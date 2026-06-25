@@ -1001,7 +1001,7 @@ public class ThreadService
         if (!Uri.TryCreate(location, UriKind.Absolute, out var uri))
             return null;
 
-        if (!uri.Host.Equals("cdn.valour.gg", StringComparison.OrdinalIgnoreCase))
+        if (!uri.Host.Equals(ValourHosts.ContentCdnHost, StringComparison.OrdinalIgnoreCase))
             return null;
 
         var segments = uri.AbsolutePath

@@ -1,0 +1,22 @@
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+
+<a href="@Url" class="valour-link" @onclick="OnClick" @onclick:preventDefault="true">@Url</a>
+
+@code {
+    /// <summary>
+    /// The Valour app link (absolute URL or relative route) to open in-app.
+    /// </summary>
+    [Parameter]
+    public string Url { get; set; }
+
+    private async Task OnClick()
+    {
+        // If the link can't be resolved in-app for any reason, don't leave the
+        // user stranded - fall back to opening it the normal way.
+        if (!await DeepLinkRouter.TryNavigateAsync(Url, Client))
+        {
+            await JsRuntime.InvokeVoidAsync("open", Url, "_blank");
+        }
+    }
+}

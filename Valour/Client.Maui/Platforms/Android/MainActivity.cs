@@ -5,21 +5,34 @@ using Android.OS;
 using Android.Views;
 using AndroidX.Activity;
 using AndroidX.Core.View;
+using Plugin.Firebase.CloudMessaging;
+using Plugin.Firebase.CloudMessaging.EventArgs;
+using Valour.Client;
 using Valour.Client.Device;
 
 namespace Valour.Client.Maui;
 
-[Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true,
+// SingleTop ensures a notification tap reuses the running activity (delivering the
+// payload to OnNewIntent) instead of stacking a second instance.
+[Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop,
     ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode |
                            ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
+    private static bool _notificationTapHooked;
+
     protected override void OnCreate(Bundle savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
 
         CreateNotificationChannel();
         _ = RequestNotificationPermissionAsync();
+
+        HookNotificationTaps();
+
+        // Hand the launch intent to the FCM plugin so a cold-start notification
+        // tap fires NotificationTapped once Firebase is initialized.
+        FirebaseCloudMessagingImplementation.OnNewIntent(Intent);
 
         // Back should dismiss the topmost modal/menu/sidebar in the app,
         // and never destroy the activity - just background it when there
@@ -44,10 +57,40 @@ public class MainActivity : MauiAppCompatActivity
         }
     }
 
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+
+        // Foreground/background notification taps arrive here. Forwarding to the
+        // plugin lets it resolve the payload and fire NotificationTapped.
+        FirebaseCloudMessagingImplementation.OnNewIntent(intent);
+    }
+
     protected override void OnResume()
     {
         base.OnResume();
         AppLifecycle.NotifyResumed();
+    }
+
+    private static void HookNotificationTaps()
+    {
+        // Survives activity recreation within a process - subscribe only once.
+        if (_notificationTapHooked)
+            return;
+
+        _notificationTapHooked = true;
+        CrossFirebaseCloudMessaging.Current.NotificationTapped += OnNotificationTapped;
+    }
+
+    private static void OnNotificationTapped(object? sender, FCMNotificationTappedEventArgs e)
+    {
+        // The server packs the in-app route under the "url" data key.
+        if (e?.Notification?.Data is not null &&
+            e.Notification.Data.TryGetValue("url", out var url) &&
+            !string.IsNullOrWhiteSpace(url))
+        {
+            DeepLinkBridge.Open(url);
+        }
     }
 
     protected override void OnPause()

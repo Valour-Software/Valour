@@ -38,7 +38,7 @@ public class MediaUriHelper
 
         var host = NormalizeHost(uri.Host);
 
-        if (host is "cdn.valour.gg" or "media.tenor.com" or "app.valour.gg")
+        if (host == ValourHosts.ContentCdnHost || host is "media.tenor.com" or "app.valour.gg")
             return true;
 
         if (CdnUtils.VirtualAttachmentMap.TryGetValue(host, out var mappedType) &&

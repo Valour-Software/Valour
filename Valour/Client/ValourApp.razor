@@ -70,6 +70,17 @@ else
         var uriData = await BrowserUtils.GetUriData();
         Logger.Log("App", $"Origin is {uriData.Origin}", "magenta");
 
+        try
+        {
+            var threadsOrigin = await JsRuntime.InvokeAsync<string>("getValourThreadsOrigin");
+            if (!string.IsNullOrWhiteSpace(threadsOrigin))
+                ClientHosts.ThreadsBaseUrl = threadsOrigin.TrimEnd('/');
+        }
+        catch
+        {
+            // Host page does not expose a threads origin override.
+        }
+
         var hostMode = "web";
         try
         {

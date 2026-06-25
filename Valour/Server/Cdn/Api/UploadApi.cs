@@ -216,7 +216,7 @@ public class UploadApi
         
         var resultPath = result.Message;
 
-        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
 
         var animated = result.Data;
         
@@ -286,7 +286,7 @@ public class UploadApi
         await db.SaveChangesAsync();
         
         var resultPath = result.Message;
-        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
         
         return ValourResult.Ok(fullPath);
     }
@@ -458,7 +458,7 @@ public class UploadApi
 
         var resultPath = result.Message;
 
-        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
 
         // Update the profile's background image in the database
         var profile = await db.UserProfiles.FindAsync(authToken.UserId);
@@ -518,7 +518,7 @@ public class UploadApi
         
         var resultPath = result.Message;
         
-        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
         
         // Update on database
         await db.Planets.Where(x => x.Id == planetId)
@@ -579,7 +579,7 @@ public class UploadApi
         
         var resultPath = result.Message;
         
-        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
         
         var planet = await valourDb.Planets.FindAsync(planetId);
         planet!.HasCustomIcon = true;
@@ -722,7 +722,7 @@ public class UploadApi
         
         var resultPath = result.Message;
         
-        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
 
         return ValourResult.Ok(fullPath);
     }

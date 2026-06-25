@@ -1,0 +1,48 @@
+@inherits AttachmentComponent
+@inject ValourClient Client
+@using Valour.Client.Components.Windows.ThreadWindows
+@using Valour.Shared.Utilities
+
+@if (_thread is not null)
+{
+    <div class="valour-thread-preview">
+        <ThreadCard Thread="@_thread" Preview="true" Clickable="true" ShowPlanet="false" ShowPresence="false" />
+    </div>
+}
+
+@code {
+    private PlanetThread _thread;
+    private long? _loadedThreadId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ValourRouteParser.TryParse(Attachment?.Location, out var route) ||
+            route.PlanetId is null || route.ThreadId is null)
+        {
+            _thread = null;
+            return;
+        }
+
+        // Only preview threads from the planet this message lives in - keeps
+        // cross-planet links as plain links and avoids leaking other planets.
+        if (Message?.PlanetId is null || Message.PlanetId != route.PlanetId)
+        {
+            _thread = null;
+            return;
+        }
+
+        if (_thread is not null && _loadedThreadId == route.ThreadId)
+            return;
+
+        try
+        {
+            _thread = await Client.ThreadService.FetchThreadAsync(route.PlanetId.Value, route.ThreadId.Value);
+            _loadedThreadId = route.ThreadId;
+        }
+        catch (Exception e)
+        {
+            Client.Logger?.Log("ValourThreadAttachment", "Failed to load thread preview: " + e.Message, "yellow");
+            _thread = null;
+        }
+    }
+}
