@@ -117,7 +117,7 @@ public class CoreHub : Hub
         }
         
         var groupId = $"p-{planetId}";
-        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
+        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context, member.Id);
         _onlineQueue.Enqueue(authToken.UserId, planetIds: new[] { planetId });
 
         // Add to planet group
@@ -161,7 +161,8 @@ public class CoreHub : Hub
         var groupId = $"c-{channelId}";
 
         await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
-        _onlineQueue.Enqueue(authToken.UserId, planetIds: new[] { planetId });
+        if (channel.PlanetId is not null)
+            _onlineQueue.Enqueue(authToken.UserId, planetIds: new[] { channel.PlanetId.Value });
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
         
         var updatedState = await _unreadService.UpdateReadState(
