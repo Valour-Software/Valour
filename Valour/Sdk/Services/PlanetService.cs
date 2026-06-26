@@ -456,7 +456,10 @@ public class PlanetService : ServiceBase
 
     public async Task<TaskResult<PlanetMember>> JoinPlanetAsync(long planetId)
     {
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planetId}/discover");
+        // Route the join to the node that hosts the planet so its in-memory member cache stays
+        // authoritative. Fall back to the primary node only if the host can't be resolved.
+        var node = await _client.NodeService.GetNodeForPlanetAsync(planetId) ?? _client.PrimaryNode;
+        var result = await node.PostAsyncWithResponse<PlanetMember>($"api/planets/{planetId}/discover");
 
         if (result.Success)
         {
@@ -477,7 +480,9 @@ public class PlanetService : ServiceBase
 
     public async Task<TaskResult<PlanetMember>> JoinPlanetAsync(long planetId, string inviteCode)
     {
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<PlanetMember>(
+        // Route the join to the planet's hosting node (see JoinPlanetAsync above).
+        var node = await _client.NodeService.GetNodeForPlanetAsync(planetId) ?? _client.PrimaryNode;
+        var result = await node.PostAsyncWithResponse<PlanetMember>(
             $"api/planets/{planetId}/join?inviteCode={inviteCode}");
 
         if (result.Success)

@@ -388,6 +388,7 @@ public partial class Program
 
         services.AddSingleton<CdnMemoryCache>();
         services.AddSingleton<ModelCacheService>();
+        services.AddSingleton<UserCacheService>();
         services.AddSingleton<RealtimeKitService>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
@@ -455,6 +456,7 @@ public partial class Program
         services.AddHostedService<SubscriptionWorker>();
         services.AddHostedService<StripeReconciliationWorker>();
         services.AddHostedService<VoiceStateCleanupWorker>();
+        services.AddHostedService<HostedPlanetCleanupWorker>();
         services.AddHostedService<NotificationCleanupWorker>();
         services.AddHostedService<MigrationWorker>();
         services.AddEndpointsApiExplorer();

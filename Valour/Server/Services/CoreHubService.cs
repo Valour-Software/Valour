@@ -28,6 +28,7 @@ public class CoreHubService
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
     private readonly ChannelWatchingService _channelWatchingService;
+    private readonly UserCacheService _userCache;
     private readonly ILogger<CoreHubService> _logger;
 
     public CoreHubService(
@@ -37,6 +38,7 @@ public class CoreHubService
         IConnectionMultiplexer redis,
         SignalRConnectionService connectionTracker,
         ChannelWatchingService channelWatchingService,
+        UserCacheService userCache,
         ILogger<CoreHubService> logger)
     {
         _db = db;
@@ -45,6 +47,7 @@ public class CoreHubService
         _redis = redis;
         _connectionTracker = connectionTracker;
         _channelWatchingService = channelWatchingService;
+        _userCache = userCache;
         _logger = logger;
     }
     
@@ -330,6 +333,10 @@ public class CoreHubService
     
     public async Task NotifyUserChange(User user, int flags = 0)
     {
+        // Write-through: keep the node-global user cache fresh so member reads compose up-to-date
+        // user data without re-querying.
+        _userCache.Set(user);
+
         // TODO: Get all locally loaded planets and check if user is member; if so, send update
         // we can probably manage this *without* a database call
 
@@ -351,6 +358,8 @@ public class CoreHubService
 
     public async Task NotifyUserDelete(User user)
     {
+        _userCache.Remove(user.Id);
+
         var members = await _db.PlanetMembers.Where(x => x.UserId == user.Id).ToListAsync();
 
         foreach (var m in members)

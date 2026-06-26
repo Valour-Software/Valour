@@ -26,6 +26,7 @@ public class CoreHub : Hub
     private readonly SignalRConnectionService _connectionTracker;
     private readonly UserOnlineQueueService _onlineQueue;
     private readonly ChannelWatchingService _channelWatchingService;
+    private readonly HostedPlanetService _hostedPlanetService;
 
     public CoreHub(
         ValourDb db, 
@@ -36,7 +37,8 @@ public class CoreHub : Hub
         IConnectionMultiplexer redis, 
         SignalRConnectionService connectionTracker,
         UserOnlineQueueService onlineQueue,
-        ChannelWatchingService channelWatchingService)
+        ChannelWatchingService channelWatchingService,
+        HostedPlanetService hostedPlanetService)
     {
         _db = db;
         _hubService = hubService;
@@ -47,6 +49,7 @@ public class CoreHub : Hub
         _tokenService = tokenService;
         _onlineQueue = onlineQueue;
         _channelWatchingService = channelWatchingService;
+        _hostedPlanetService = hostedPlanetService;
     }
 
     public async Task<TaskResult> Authorize(string token)
@@ -115,6 +118,10 @@ public class CoreHub : Hub
         var authToken = _connectionTracker.GetToken(Context.ConnectionId);
         if (authToken == null) return new TaskResult(false, "Failed to connect to Planet: SignalR was not authenticated.");
 
+        var hosted = await _hostedPlanetService.TryGetAsync(planetId);
+        if (hosted.HostedPlanet is null)
+            return new TaskResult(false, $"Failed to connect to Planet: Planet is hosted on {hosted.CorrectNode}.");
+
         PlanetMember member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
 
         // If the user is not a member, cancel
@@ -156,6 +163,10 @@ public class CoreHub : Hub
         PlanetMember member = null;
         if (channel.PlanetId is not null)
         {
+            var hosted = await _hostedPlanetService.TryGetAsync(channel.PlanetId.Value);
+            if (hosted.HostedPlanet is null)
+                return new TaskResult(false, $"Failed to connect to Channel: Planet is hosted on {hosted.CorrectNode}.");
+
             member = await _memberService.GetByUserAsync(authToken.UserId, channel.PlanetId.Value);
 
             if (member is null && ISharedChannel.PlanetChannelTypes.Contains(channel.ChannelType))

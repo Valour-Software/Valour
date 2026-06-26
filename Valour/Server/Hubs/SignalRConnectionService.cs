@@ -366,6 +366,13 @@ public class SignalRConnectionService : IDisposable
         GetGroupMembers($"p-{planetId}");
     
     /// <summary>
+    /// Gets the ids of all authenticated users with a currently tracked connection on this node.
+    /// Used to keep their cached user data alive during cache sweeps.
+    /// </summary>
+    public long[] GetAllConnectedUserIds() =>
+        ConnectionIdentities.Values.Select(x => x.UserId).Distinct().ToArray();
+
+    /// <summary>
     /// Gets all groups a connection is member of
     /// </summary>
     public string[] GetConnectionGroups(string connectionId)
