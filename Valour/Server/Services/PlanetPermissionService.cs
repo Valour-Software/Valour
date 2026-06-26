@@ -1,6 +1,7 @@
 #nullable enable
 
 using Microsoft.Extensions.ObjectPool;
+using Valour.Server.Hubs;
 using Valour.Server.Utilities;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -25,15 +26,18 @@ public class PlanetPermissionService
     private readonly ValourDb _db;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly CoreHubService _coreHub;
+    private readonly SignalRConnectionService _connectionTracker;
     private readonly ILogger<PlanetPermissionService> _logger;
 
     public PlanetPermissionService(ValourDb db, HostedPlanetService hostedPlanetService,
-        ILogger<PlanetPermissionService> logger, CoreHubService coreHub)
+        ILogger<PlanetPermissionService> logger, CoreHubService coreHub,
+        SignalRConnectionService connectionTracker)
     {
         _db = db;
         _hostedPlanetService = hostedPlanetService;
         _logger = logger;
         _coreHub = coreHub;
+        _connectionTracker = connectionTracker;
     }
 
     /// <summary>
@@ -142,13 +146,21 @@ public class PlanetPermissionService
 
     /// <summary>
     /// When a permissions node changes (for a given channel) clear all per–(role,channel) caches
-    /// and the inverse mapping for that channel, including channels that inherit from it.
+    /// and the inverse mapping for that channel, including channels that inherit from it. Then,
+    /// for the target channel and its inheritors, tell connected clients whose access just
+    /// changed — evicting/hiding the channel for anyone who lost view access, and pushing it to
+    /// anyone who just gained it. A permission change doesn't otherwise affect an already-joined
+    /// group, or update clients who never had reason to know about the channel.
     /// </summary>
     public async Task HandleNodeChange(PermissionsNode node)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(node.PlanetId);
+
+        // Invalidate caches so subsequent access checks reflect the new permission state.
+        // Cache clearing runs unconditionally (independent of who is connected) so reads
+        // are correct even when no clients are currently online.
         var roleCombos = hostedPlanet.PermissionCache.GetCombosForRole(node.RoleId);
-        if (roleCombos != null)
+        if (roleCombos is not null)
         {
             foreach (var roleKey in roleCombos)
                 hostedPlanet.PermissionCache.ClearCacheForComboAndChannel(roleKey, node.TargetId);
@@ -166,6 +178,134 @@ public class PlanetPermissionService
                 hostedPlanet.PermissionCache.ClearCacheForChannel(inheritorId);
                 hostedPlanet.PermissionCache.ClearChannelAccessRoleComboCache(inheritorId);
             }
+        }
+
+        // Only members who actually hold the edited role can have an access change from this
+        // specific node. Scope the live push to currently-connected members (the only ones who
+        // could receive it) who carry that role - resolved straight from the connection tracker,
+        // so no full member scan and no dependence on lazily-populated combo caches.
+        var role = hostedPlanet.GetRoleById(node.RoleId);
+        if (role is null)
+            return;
+
+        var affected = GetConnectedMembersWithRole(hostedPlanet, role.FlagBitIndex);
+        if (affected.Count == 0)
+            return;
+
+        // Caches are cleared above, so the access checks below reflect the new permission state.
+        await NotifyChannelAccessChangeAsync(hostedPlanet, node.TargetId, affected);
+        if (inheritors is not null)
+        {
+            foreach (var inheritorId in inheritors)
+                await NotifyChannelAccessChangeAsync(hostedPlanet, inheritorId, affected);
+        }
+    }
+
+    /// <summary>
+    /// Tells each member in the given (connected, role-filtered) list whether the channel
+    /// exists for them now: members with access get a channel update (harmless no-op if they
+    /// already had it), members without get evicted from its live group and told it's gone.
+    /// </summary>
+    private async Task NotifyChannelAccessChangeAsync(HostedPlanet hostedPlanet, long channelId,
+        IReadOnlyList<PlanetMember> members)
+    {
+        var channel = hostedPlanet.GetChannel(channelId);
+        if (channel is null)
+            return;
+
+        List<long>? gained = null;
+        List<long>? lost = null;
+
+        for (int i = 0; i < members.Count; i++)
+        {
+            var access = await GetChannelAccessForMemberAsync(ToStub(members[i]));
+            if (access is not null && access.Contains(channelId))
+                (gained ??= new List<long>()).Add(members[i].UserId);
+            else
+                (lost ??= new List<long>()).Add(members[i].UserId);
+        }
+
+        if (lost is not null)
+        {
+            await _coreHub.EvictUsersFromChannelGroupAsync(channelId, lost);
+            _coreHub.NotifyChannelDelete(channel, lost);
+        }
+
+        if (gained is not null)
+            _coreHub.NotifyChannelChange(channel, gained);
+    }
+
+    /// <summary>
+    /// When a member's role membership changes, compare their old and new channel access and push
+    /// only the channels that changed to that member's live connection. This covers role assignment
+    /// and removal, where the permission nodes themselves did not change.
+    /// </summary>
+    public async Task NotifyMemberRoleMembershipChangeAsync(
+        HostedPlanet hostedPlanet,
+        PlanetMember oldMember,
+        PlanetMember newMember)
+    {
+        if (oldMember is null || newMember is null)
+            return;
+
+        if (oldMember.RoleMembership == newMember.RoleMembership)
+            return;
+
+        // Only live planet connections can receive channel visibility updates.
+        var connected = _connectionTracker.GetConnectedPlanetMembers(hostedPlanet.Id);
+        var isConnected = false;
+        for (int i = 0; i < connected.Length; i++)
+        {
+            if (connected[i].MemberId == newMember.Id)
+            {
+                isConnected = true;
+                break;
+            }
+        }
+
+        if (!isConnected)
+            return;
+
+        var oldAccess = await GetChannelAccessForMemberAsync(ToStub(oldMember));
+        var newAccess = await GetChannelAccessForMemberAsync(ToStub(newMember));
+
+        if (oldAccess is null || newAccess is null)
+            return;
+
+        List<long>? lostChannelIds = null;
+        List<Channel>? gainedChannels = null;
+
+        foreach (var channel in oldAccess.List)
+        {
+            if (!newAccess.Contains(channel.Id))
+                (lostChannelIds ??= new List<long>()).Add(channel.Id);
+        }
+
+        foreach (var channel in newAccess.List)
+        {
+            if (!oldAccess.Contains(channel.Id))
+                (gainedChannels ??= new List<Channel>()).Add(channel);
+        }
+
+        if (lostChannelIds is not null)
+        {
+            var recipient = new[] { newMember.UserId };
+            for (int i = 0; i < lostChannelIds.Count; i++)
+            {
+                var channel = hostedPlanet.GetChannel(lostChannelIds[i]);
+                if (channel is null)
+                    continue;
+
+                await _coreHub.EvictUsersFromChannelGroupAsync(channel.Id, recipient);
+                _coreHub.NotifyChannelDelete(channel, recipient);
+            }
+        }
+
+        if (gainedChannels is not null)
+        {
+            var recipient = new[] { newMember.UserId };
+            for (int i = 0; i < gainedChannels.Count; i++)
+                _coreHub.NotifyChannelChange(gainedChannels[i], recipient);
         }
     }
 
@@ -212,6 +352,91 @@ public class PlanetPermissionService
         return access != null && access.Contains(channelId);
     }
 
+    /// <summary>
+    /// For each requested channel, returns the user ids of currently-connected planet members
+    /// who can view it. Used to scope channel create/update/delete notifications so they only
+    /// reach members who actually have access (and are online to receive them).
+    /// </summary>
+    public async Task<List<long>[]> GetChannelViewerUserIdsAsync(HostedPlanet hostedPlanet, IReadOnlyList<long> channelIds)
+    {
+        var result = new List<long>[channelIds.Count];
+        for (int c = 0; c < channelIds.Count; c++)
+            result[c] = new List<long>();
+
+        var members = GetConnectedMembers(hostedPlanet);
+        if (members.Count == 0)
+            return result;
+
+        // Compute each member's access set once, then test it against every channel, rather
+        // than recomputing access per (member, channel) pair.
+        for (int i = 0; i < members.Count; i++)
+        {
+            var access = await GetChannelAccessForMemberAsync(ToStub(members[i]));
+            if (access is null)
+                continue;
+
+            for (int c = 0; c < channelIds.Count; c++)
+            {
+                if (access.Contains(channelIds[c]))
+                    result[c].Add(members[i].UserId);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns the members currently present in the planet's SignalR group, resolved entirely
+    /// from in-memory caches: member ids come from the connection tracker and the member state
+    /// comes from the hosted planet's member cache - no database round-trip.
+    /// </summary>
+    private List<PlanetMember> GetConnectedMembers(HostedPlanet hostedPlanet)
+    {
+        var connected = _connectionTracker.GetConnectedPlanetMembers(hostedPlanet.Id);
+        if (connected.Length == 0)
+            return new List<PlanetMember>();
+
+        var result = new List<PlanetMember>(connected.Length);
+        for (int i = 0; i < connected.Length; i++)
+        {
+            if (hostedPlanet.TryGetMember(connected[i].MemberId, out var member))
+                result.Add(member);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns the connected planet members whose role membership includes the given role.
+    /// </summary>
+    private List<PlanetMember> GetConnectedMembersWithRole(HostedPlanet hostedPlanet, int roleFlagBitIndex)
+    {
+        var members = GetConnectedMembers(hostedPlanet);
+        if (members.Count == 0)
+            return members;
+
+        var withRole = new List<PlanetMember>(members.Count);
+        for (int i = 0; i < members.Count; i++)
+        {
+            if (members[i].RoleMembership.HasRole(roleFlagBitIndex))
+                withRole.Add(members[i]);
+        }
+
+        return withRole;
+    }
+
+    /// <summary>
+    /// Builds a minimal database member stub from a cached core member for permission computation.
+    /// Only the identity and role membership are needed by the access calculation.
+    /// </summary>
+    private static Valour.Database.PlanetMember ToStub(PlanetMember member) => new()
+    {
+        Id = member.Id,
+        UserId = member.UserId,
+        PlanetId = member.PlanetId,
+        RoleMembership = member.RoleMembership
+    };
+
     public async ValueTask<uint> GetAuthorityAsync(PlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
@@ -246,6 +471,19 @@ public class PlanetPermissionService
         if (member is null)
             return null;
 
+        return await GetChannelAccessForMemberAsync(member);
+    }
+
+    /// <summary>
+    /// Computes channel access for an already-resolved member. The member may be a tracked
+    /// database entity or a lightweight stub built from the in-memory member cache; only
+    /// <see cref="Valour.Database.PlanetMember.Id"/>, <c>UserId</c>, <c>PlanetId</c> and
+    /// <c>RoleMembership</c> are read. This lets hot paths (connected viewers, permission-change
+    /// notifications) avoid a per-member database lookup.
+    /// </summary>
+    private async ValueTask<ModelListSnapshot<Channel, long>?> GetChannelAccessForMemberAsync(
+        Valour.Database.PlanetMember member)
+    {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
         if (member.UserId == hostedPlanet.Planet.OwnerId)
         {
@@ -279,7 +517,7 @@ public class PlanetPermissionService
 
             _logger.LogWarning(
                 "Detected stale channel-access cache for member {MemberId} in planet {PlanetId}; rebuilding.",
-                memberId,
+                member.Id,
                 member.PlanetId
             );
 

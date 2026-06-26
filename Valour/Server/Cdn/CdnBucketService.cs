@@ -101,7 +101,7 @@ public class CdnBucketService
                 {
                     // Purge the cache for this object
                     var purgeResult =
-                        await _cloudflare.Zones.PurgeFilesAsync(_zone, [$"https://public-cdn.valour.gg/{path}"]);
+                        await _cloudflare.Zones.PurgeFilesAsync(_zone, [$"{ValourHosts.PublicCdnBaseUrl}/{path}"]);
 
                     if (!purgeResult.Success)
                     {
@@ -115,7 +115,7 @@ public class CdnBucketService
                 
                 _logger.LogInformation("Successfully PUT object into bucket: {Path}", path);
 
-                return new TaskResult(true, $"https://public-cdn.valour.gg/{path}");
+                return new TaskResult(true, $"{ValourHosts.PublicCdnBaseUrl}/{path}");
             }
             else
             {
@@ -160,7 +160,7 @@ public class CdnBucketService
                 return new TaskResult(false, "This upload is not available.");
             }
 
-            return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
+            return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
         }
 
         // We need a bucket record no matter what at this point
@@ -206,7 +206,7 @@ public class CdnBucketService
                     entry.State = EntityState.Detached;
 
                 if (await db.CdnBucketItems.AnyAsync(x => x.Id == id))
-                    return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
+                    return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
 
                 _logger.LogError("DbUpdateException when adding new route to existing bucket item, and row still not found for {Id}", id);
                 return new TaskResult(false, "Critical error when adding new route to existing bucket item.");
@@ -217,7 +217,7 @@ public class CdnBucketService
                 return new TaskResult(false, "Critical error when adding new route to existing bucket item.");
             }
 
-            return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
+            return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
         }
 
         var uploadResult = await UploadPrivateObjectDedupedAsync(data, hash, mime);
@@ -240,7 +240,7 @@ public class CdnBucketService
                 entry.State = EntityState.Detached;
 
             if (await db.CdnBucketItems.AnyAsync(x => x.Id == id))
-                return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
+                return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
 
             _logger.LogError("DbUpdateException when adding route to new bucket item, and row still not found for {Id}", id);
             return new TaskResult(false, "Critical error when adding route to new bucket item.");
@@ -251,7 +251,7 @@ public class CdnBucketService
             return new TaskResult(false, "Critical error when adding route to new bucket item.");
         }
 
-        return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
+        return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
     }
 
     public async Task<TaskResult> DeletePrivateObjectIfUnusedAsync(string hash, ValourDb db)

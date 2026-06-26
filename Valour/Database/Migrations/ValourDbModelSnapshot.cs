@@ -1398,6 +1398,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("planet_id");
 
+                    b.Property<DateTime>("TimeLastConnected")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("time_last_connected");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
@@ -1425,7 +1429,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlanetId");
+                    b.HasIndex("PlanetId", "TimeLastConnected");
 
                     b.HasIndex("UserId", "PlanetId")
                         .IsUnique();

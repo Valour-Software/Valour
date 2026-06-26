@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Valour.Client.Components.Threads.Display;
+using Valour.Config.Configs;
 using Valour.Server.Cdn;
 using Valour.Server.Database;
 using Valour.Server.Services;
@@ -49,8 +50,9 @@ public class ThreadViewModel : PageModel
     public List<StaticCommentData> Comments { get; } = new();
     public int TotalComments { get; set; }
 
-    public string RequestUrl => $"{Request.Scheme}://{Request.Host}{Request.Path}";
-    public string AppLink => $"/planetthreads/{PlanetId}/{ThreadId}";
+    public string RequestUrl => $"{HostingConfig.Current.ThreadsBaseUrl}/{PlanetId}/{ThreadId}";
+    public string AppLink => $"{HostingConfig.Current.AppBaseUrl}/planetthreads/{PlanetId}/{ThreadId}";
+    public string PlanetLink => $"{HostingConfig.Current.ThreadsBaseUrl}/{PlanetId}";
 
     public async Task<IActionResult> OnGetAsync()
     {

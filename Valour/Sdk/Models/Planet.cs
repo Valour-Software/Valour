@@ -786,7 +786,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public ValueTask<PlanetRule> FetchRuleAsync(long id, bool skipCache = false) =>
         Client.PlanetService.FetchRuleAsync(id, this, skipCache);
 
-    public Task<int> FetchMemberCountAsync() =>
+    public Task<int?> FetchMemberCountAsync() =>
         Client.PlanetService.FetchMemberCountAsync(this);
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>

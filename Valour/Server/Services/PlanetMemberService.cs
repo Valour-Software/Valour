@@ -10,12 +10,15 @@ namespace Valour.Server.Services;
 
 public class PlanetMemberService
 {
+    public static readonly TimeSpan OneDayConnectionWindow = TimeSpan.FromDays(1);
+
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly PlanetPermissionService _permissionService;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly AutomodService _automodService;
+    private readonly UserCacheService _userCache;
     private readonly ILogger<PlanetMemberService> _logger;
     
     private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
@@ -33,7 +36,8 @@ public class PlanetMemberService
         ILogger<PlanetMemberService> logger,
         PlanetPermissionService permissionService,
         HostedPlanetService hostedPlanetService,
-        AutomodService automodService)
+        AutomodService automodService,
+        UserCacheService userCache)
     {
         _db = db;
         _coreHub = coreHub;
@@ -42,6 +46,37 @@ public class PlanetMemberService
         _permissionService = permissionService;
         _hostedPlanetService = hostedPlanetService;
         _automodService = automodService;
+        _userCache = userCache;
+    }
+
+    /// <summary>
+    /// Resolves a user model for composition into a member, preferring the node-global user cache
+    /// and falling back to the database (warming the cache) on a miss.
+    /// </summary>
+    private async ValueTask<User> ResolveUserAsync(long userId)
+    {
+        if (_userCache.TryGet(userId, out var cached))
+            return cached;
+
+        var user = (await _db.Users.FindAsync(userId)).ToModel();
+        if (user is not null)
+            _userCache.Set(user);
+
+        return user;
+    }
+
+    /// <summary>
+    /// Maps a database member to the public service model, ensuring the User field is populated
+    /// from the node-global user cache when the EF entity was loaded without Include(x => x.User).
+    /// </summary>
+    private async ValueTask<PlanetMember> ToFullModelAsync(Valour.Database.PlanetMember member)
+    {
+        if (member is null)
+            return null;
+
+        var model = member.ToModel();
+        model.User ??= await ResolveUserAsync(member.UserId);
+        return model;
     }
 
     /// <summary>
@@ -49,11 +84,15 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetAsync(long id)
     {
+        // Existence/role state stays database-authoritative (FirstOrDefault applies the
+        // soft-delete query filter); only the user is composed from the cache to drop the join.
         var member = await _db.PlanetMembers
-            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.Id == id);
 
-        return member.ToModel();
+        if (member is null)
+            return null;
+
+        return await ToFullModelAsync(member);
     }
 
     /// <summary>
@@ -104,27 +143,55 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetByUserAsync(long userId, long planetId)
     {
+        // Fast path: if the planet is hosted on this node its member set is fully loaded and
+        // authoritative, so resolve membership from memory and compose the user from the cache.
+        var hosted = _hostedPlanetService.GetCached(planetId);
+        if (hosted is not null && hosted.MembersLoaded)
+        {
+            if (hosted.TryGetMemberByUser(userId, out var cachedMember))
+            {
+                var user = await ResolveUserAsync(userId);
+                return cachedMember.CopyWithUser(user);
+            }
+
+            // Cache miss: confirm against the database in case the member was added on a node that
+            // doesn't host this planet (e.g. onboarding). Soft-deleted members are excluded by the
+            // query filter, so a kicked member still resolves to null. Heal the cache on a hit.
+            var confirmed = await _db.PlanetMembers
+                .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+            if (confirmed is null)
+                return null;
+
+            var confirmedModel = await ToFullModelAsync(confirmed);
+            hosted.UpsertMember(confirmedModel);
+            return confirmedModel;
+        }
+
+        // Fallback: planet not hosted here. Keep membership database-authoritative, composing the
+        // user from the cache to avoid the user join.
         if (MemberIdLookup.TryGetValue((userId, planetId), out var memberId))
         {
             var member = await _db.PlanetMembers
-                .Include(x => x.User)
                 .FirstOrDefaultAsync(x => x.Id == memberId);
 
             if (member is not null)
-                return member.ToModel();
+            {
+                return await ToFullModelAsync(member);
+            }
 
             // Self-heal stale cache entries so future lookups can recover.
             MemberIdLookup.TryRemove((userId, planetId), out _);
         }
 
         var byUser = await _db.PlanetMembers
-            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
-        
-        if (byUser is not null)
-            MemberIdLookup[(userId, planetId)] = byUser.Id;
-        
-        return byUser.ToModel();
+
+        if (byUser is null)
+            return null;
+
+        MemberIdLookup[(userId, planetId)] = byUser.Id;
+
+        return await ToFullModelAsync(byUser);
     }
 
 
@@ -334,6 +401,7 @@ public class PlanetMemberService
                 PlanetId = planet.Id,
                 UserId = user.Id,
                 User = user,
+                TimeLastConnected = DateTime.UtcNow,
                 RoleMembership = new PlanetRoleMembership(0x01) // First bit (position 0) is the default role
             };
         }
@@ -347,6 +415,7 @@ public class PlanetMemberService
             if (rejoin)
             {
                 member.IsDeleted = false;
+                member.TimeLastConnected = DateTime.UtcNow;
                 
                 // Reset roles
                 member.RoleMembership = new PlanetRoleMembership(0x01);
@@ -379,7 +448,12 @@ public class PlanetMemberService
 
         await trans.CommitAsync();
 
-        var model = member.ToModel();
+        var model = await ToFullModelAsync(member);
+
+        // Keep the hosting node's caches in sync: register the (re)joined member and warm the
+        // joining user so member reads don't immediately fall back to the database.
+        _hostedPlanetService.GetCached(planetId)?.UpsertMember(model);
+        _userCache.Set(user.ToModel());
 
         _coreHub.NotifyPlanetItemChange(model);
 
@@ -427,7 +501,8 @@ public class PlanetMemberService
             return new TaskResult<PlanetMember>(false, "An unexpected error occurred.");
         }
 
-        var updated = old.ToModel();
+        var updated = await ToFullModelAsync(old);
+        _hostedPlanetService.GetCached(old.PlanetId)?.UpsertMember(updated);
         _coreHub.NotifyPlanetItemChange(updated);
 
         return new TaskResult<PlanetMember>(true, "Success", updated);
@@ -443,6 +518,9 @@ public class PlanetMemberService
 
         // Use atomic database update to prevent race conditions
         var roleIndex = role.FlagBitIndex;
+        var oldMember = await _db.PlanetMembers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == memberId && x.PlanetId == planetId);
         int updated;
 
         try
@@ -482,10 +560,17 @@ public class PlanetMemberService
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is not null)
         {
-            // The member's new role combo may collide with another member's already-cached
-            // combo, which would otherwise keep serving stale access/permissions for it.
-            hostedPlanet.PermissionCache.ClearCacheForCombo(member.RoleMembership);
-            _coreHub.NotifyPlanetItemChange(member.ToModel());
+            var model = await ToFullModelAsync(member);
+            var cachedPlanet = _hostedPlanetService.GetCached(planetId);
+            cachedPlanet?.UpsertMember(model);
+            (cachedPlanet ?? hostedPlanet).PermissionCache.ClearCacheForCombo(model.RoleMembership);
+            _coreHub.NotifyPlanetItemChange(model);
+
+            if (oldMember is not null)
+                await _permissionService.NotifyMemberRoleMembershipChangeAsync(
+                    cachedPlanet ?? hostedPlanet,
+                    oldMember.ToModel(),
+                    model);
         }
 
         return new TaskResult(true, "Success");
@@ -504,6 +589,9 @@ public class PlanetMemberService
 
         // Use atomic database update to prevent race conditions
         var roleIndex = role.FlagBitIndex;
+        var oldMember = await _db.PlanetMembers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == memberId && x.PlanetId == planetId);
         int updated;
 
         try
@@ -543,10 +631,17 @@ public class PlanetMemberService
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is not null)
         {
-            // The member's new role combo may collide with another member's already-cached
-            // combo, which would otherwise keep serving stale access/permissions for it.
-            hostedPlanet.PermissionCache.ClearCacheForCombo(member.RoleMembership);
-            _coreHub.NotifyPlanetItemChange(member.ToModel());
+            var model = await ToFullModelAsync(member);
+            var cachedPlanet = _hostedPlanetService.GetCached(planetId);
+            cachedPlanet?.UpsertMember(model);
+            (cachedPlanet ?? hostedPlanet).PermissionCache.ClearCacheForCombo(model.RoleMembership);
+            _coreHub.NotifyPlanetItemChange(model);
+
+            if (oldMember is not null)
+                await _permissionService.NotifyMemberRoleMembershipChangeAsync(
+                    cachedPlanet ?? hostedPlanet,
+                    oldMember.ToModel(),
+                    model);
         }
 
         return TaskResult.SuccessResult;
@@ -598,8 +693,9 @@ public class PlanetMemberService
         }
 
         MemberIdLookup.Remove((dbMember.UserId, dbMember.PlanetId), out _);
+        _hostedPlanetService.GetCached(dbMember.PlanetId)?.RemoveMember(memberId);
 
-        _coreHub.NotifyPlanetItemDelete(dbMember.ToModel());
+        _coreHub.NotifyPlanetItemDelete(await ToFullModelAsync(dbMember));
 
         return TaskResult.SuccessResult;
     }

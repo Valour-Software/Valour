@@ -19,7 +19,7 @@
 @code {
     
     [Parameter]
-    public StartScreenData StartData { get; set; }
+    public string StartRoute { get; set; }
     
     public ValourClient Client { get; private set; }
     
@@ -109,101 +109,47 @@
         }
 
         await TryOpenStartTargetAsync();
+
+        // The main dock owns deep-link routing: it's the surface that opens
+        // channels/threads. Registering here also drains any link that arrived
+        // before the app was ready (e.g. a cold start from a notification tap).
+        if (WindowService.MainDock == this && _deepLinkHandler is null)
+        {
+            _deepLinkHandler = HandleDeepLinkAsync;
+            DeepLinkBridge.SetHandler(_deepLinkHandler);
+        }
     }
 
+    private Func<string, Task> _deepLinkHandler;
+
+    private Task HandleDeepLinkAsync(string url) =>
+        InvokeAsync(() => DeepLinkRouter.TryNavigateAsync(url, Client));
+
     /// <summary>
-    /// Honors deep links (/planetchannels/..., /directchannels/..., and /planetthreads/...)
-    /// by opening the target channel or thread, optionally focused on a specific message.
+    /// Honors the launch deep link (/planetchannels/..., /directchannels/...,
+    /// and /planetthreads/...) by opening the target as the initial tab. Route
+    /// resolution is shared with runtime deep links via <see cref="DeepLinkRouter"/>.
     /// </summary>
     private async Task TryOpenStartTargetAsync()
     {
-        if (StartData?.Start is null)
+        if (string.IsNullOrWhiteSpace(StartRoute))
             return;
 
-        if (StartData.Start == StartScreen.PlanetThread)
-        {
-            await TryOpenStartThreadAsync();
-            return;
-        }
-
-        if (StartData.StartChannelId is null)
+        if (!ValourRouteParser.TryParse(StartRoute, out var route))
             return;
 
         try
         {
-            Channel channel = null;
-
-            switch (StartData.Start)
-            {
-                case StartScreen.PlanetChannel:
-                {
-                    if (StartData.StartPlanetId is null)
-                        return;
-
-                    var planet = await Client.PlanetService.FetchPlanetAsync(StartData.StartPlanetId.Value);
-                    if (planet is null)
-                        return;
-
-                    channel = await Client.ChannelService.FetchPlanetChannelAsync(StartData.StartChannelId.Value, planet);
-                    break;
-                }
-                case StartScreen.DirectChannel:
-                {
-                    channel = await Client.ChannelService.FetchDirectChannelAsync(StartData.StartChannelId.Value);
-                    break;
-                }
-            }
-
-            if (channel is null)
+            var content = await DeepLinkRouter.BuildContentForRouteAsync(route, Client);
+            if (content is null)
                 return;
-
-            var content = await ChatWindowComponent.GetDefaultContent(channel);
-
-            if (StartData.StartMessageId is not null && StartData.StartMessageId.Value != 0)
-                content.TargetMessageId = StartData.StartMessageId;
 
             await Layout.AddTab(content);
             await NotifyLayoutChanged();
         }
         catch (Exception e)
         {
-            Console.WriteLine("Failed to open deep-linked channel: " + e.Message);
-        }
-    }
-
-    private async Task TryOpenStartThreadAsync()
-    {
-        if (StartData.StartPlanetId is null)
-            return;
-
-        try
-        {
-            // No thread id means the link targets the planet's thread feed
-            if (StartData.StartThreadId is null)
-            {
-                var planet = await Client.PlanetService.FetchPlanetAsync(StartData.StartPlanetId.Value);
-                if (planet is null)
-                    return;
-
-                await Layout.AddTab(ThreadsWindowComponent.GetDefaultContent(planet));
-                await NotifyLayoutChanged();
-                return;
-            }
-
-            var thread = await Client.ThreadService.FetchThreadAsync(
-                StartData.StartPlanetId.Value,
-                StartData.StartThreadId.Value);
-
-            if (thread is null)
-                return;
-
-            var content = ThreadWindowComponent.GetDefaultContent(thread);
-            await Layout.AddTab(content);
-            await NotifyLayoutChanged();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("Failed to open deep-linked thread: " + e.Message);
+            Console.WriteLine("Failed to open deep-linked target: " + e.Message);
         }
     }
 
@@ -366,6 +312,9 @@
     
     public async ValueTask DisposeAsync()
     {
+        if (_deepLinkHandler is not null)
+            DeepLinkBridge.ClearHandler(_deepLinkHandler);
+
         if (_resizeObserver is not null)
             await _resizeObserver.DisposeAsync();
     }

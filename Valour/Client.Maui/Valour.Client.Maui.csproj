@@ -5,8 +5,15 @@
         <JavaSdkDirectory Condition="$([MSBuild]::IsOSPlatform('osx'))">/Applications/Android Studio.app/Contents/jbr/Contents/Home</JavaSdkDirectory>
         <AcceptAndroidSDKLicenses>true</AcceptAndroidSDKLicenses>
         <TargetFrameworks>net11.0-android</TargetFrameworks>
-        <!-- iOS/macCatalyst require Xcode 26.x; uncomment when available -->
-        <!--<TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net11.0-ios;net11.0-maccatalyst</TargetFrameworks>-->
+        <_AppleSdkRoot Condition="'$(_AppleSdkRoot)' == '' and '$(MD_APPLE_SDK_ROOT)' != ''">$(MD_APPLE_SDK_ROOT)</_AppleSdkRoot>
+        <_AppleSdkRoot Condition="'$(_AppleSdkRoot)' == '' and '$(DEVELOPER_DIR)' != ''">$(DEVELOPER_DIR)</_AppleSdkRoot>
+        <_AppleSdkRoot Condition="'$(_AppleSdkRoot)' == '' and Exists('/var/db/xcode_select_link/Platforms/MacOSX.platform')">/var/db/xcode_select_link</_AppleSdkRoot>
+        <_AppleSdkRoot Condition="'$(_AppleSdkRoot)' == '' and Exists('/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform')">/Applications/Xcode.app/Contents/Developer</_AppleSdkRoot>
+        <_AppleSdkRoot Condition="'$(_AppleSdkRoot)' == '' and Exists('/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform')">/Applications/Xcode-beta.app/Contents/Developer</_AppleSdkRoot>
+        <_HasFullXcode Condition="$([MSBuild]::IsOSPlatform('osx')) and '$(_AppleSdkRoot)' != '' and (Exists('$(_AppleSdkRoot)/Platforms/MacOSX.platform') or Exists('$(_AppleSdkRoot)/Contents/Developer/Platforms/MacOSX.platform'))">true</_HasFullXcode>
+        <EnableAppleTargetFrameworks Condition="'$(EnableAppleTargetFrameworks)' == '' and '$(_HasFullXcode)' == 'true'">true</EnableAppleTargetFrameworks>
+        <EnableAppleTargetFrameworks Condition="'$(EnableAppleTargetFrameworks)' == ''">false</EnableAppleTargetFrameworks>
+        <TargetFrameworks Condition="'$(EnableAppleTargetFrameworks)' == 'true'">$(TargetFrameworks);net11.0-ios;net11.0-maccatalyst</TargetFrameworks>
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net11.0-windows10.0.19041.0</TargetFrameworks>
 
         <!-- Note for MacCatalyst:
@@ -39,14 +46,14 @@
         <ApplicationId>gg.valour.app</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.6.7</ApplicationDisplayVersion>
-        <ApplicationVersion>69</ApplicationVersion>
+        <ApplicationDisplayVersion>0.6.8</ApplicationDisplayVersion>
+        <ApplicationVersion>70</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
 
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">17.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">17.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
@@ -105,5 +112,12 @@
     <ItemGroup>
         <ProjectReference Include="..\Client\Valour.Client.csproj" />
     </ItemGroup>
+
+    <Target Name="ShowAppleTargetFrameworkSkipMessage"
+            BeforeTargets="Build"
+            Condition="'$(TargetFramework)' == '' and '$(EnableAppleTargetFrameworks)' != 'true'">
+        <Message Importance="high"
+                 Text="Skipping iOS/MacCatalyst target frameworks for Valour.Client.Maui: full Xcode was not detected. Select Xcode or set MD_APPLE_SDK_ROOT/DEVELOPER_DIR, then build with -p:EnableAppleTargetFrameworks=true or an explicit -f net11.0-maccatalyst target." />
+    </Target>
 
 </Project>

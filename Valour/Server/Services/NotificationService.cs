@@ -17,6 +17,7 @@ public class NotificationService
     private readonly ILogger<NotificationService> _logger;
     private readonly PushNotificationWorker _pushNotificationWorker;
     private readonly HostedPlanetService _hostedService;
+    private readonly ChannelWatchingService _channelWatchingService;
     
     public NotificationService(
         ValourDb db, 
@@ -24,7 +25,8 @@ public class NotificationService
         NodeLifecycleService nodeLifecycleService,
         ILogger<NotificationService> logger, 
         PushNotificationWorker pushNotificationWorker, 
-        HostedPlanetService hostedService)
+        HostedPlanetService hostedService,
+        ChannelWatchingService channelWatchingService)
     {
         _db = db;
         _coreHub = coreHub;
@@ -32,6 +34,7 @@ public class NotificationService
         _logger = logger;
         _pushNotificationWorker = pushNotificationWorker;
         _hostedService = hostedService;
+        _channelWatchingService = channelWatchingService;
     }
     
     public async Task<Models.Notification> GetNotificationAsync(Guid id)
@@ -140,18 +143,21 @@ public class NotificationService
         await _db.SaveChangesAsync();
         
         _coreHub.RelayNotification(notification, _nodeLifecycleService);
-        
-        await _pushNotificationWorker.QueueNotificationAction(new SendUserPushNotification()
+
+        if (await ShouldSendPushNotificationAsync(userId, notification))
         {
-            Content = new NotificationContent()
+            await _pushNotificationWorker.QueueNotificationAction(new SendUserPushNotification()
             {
-                Title = notification.Title,
-                Message = notification.Body,
-                IconUrl = notification.ImageUrl,
-                Url = notification.ClickUrl,
-            },
-            UserId = userId
-        });
+                Content = new NotificationContent()
+                {
+                    Title = notification.Title,
+                    Message = notification.Body,
+                    IconUrl = notification.ImageUrl,
+                    Url = notification.ClickUrl,
+                },
+                UserId = userId
+            });
+        }
     }
     
     public async Task SendRoleNotificationsAsync(long roleId, Models.Notification baseNotification)
@@ -253,15 +259,20 @@ public class NotificationService
             _coreHub.RelayNotification(notification, _nodeLifecycleService);
         }
 
-        await _pushNotificationWorker.QueueNotificationAction(new SendUsersPushNotification()
+        var pushUserIds = await FilterPushRecipientsAsync(filteredUserIds, baseNotification.ChannelId);
+        if (pushUserIds.Length > 0)
         {
-            UserIds = filteredUserIds,
-            Content = pushContent
-        });
+            await _pushNotificationWorker.QueueNotificationAction(new SendUsersPushNotification()
+            {
+                UserIds = pushUserIds,
+                Content = pushContent
+            });
+        }
 
         _logger.LogInformation(
-            "Queued role mention notifications for {RecipientCount} users on role {RoleId}",
+            "Queued role mention notifications for {RecipientCount} users and push notifications for {PushRecipientCount} users on role {RoleId}",
             filteredUserIds.Length,
+            pushUserIds.Length,
             roleId
         );
     }
@@ -618,5 +629,44 @@ public class NotificationService
             return true;
 
         return NotificationPreferences.IsSourceEnabled(enabledMask.Value, source);
+    }
+
+    private async Task<bool> ShouldSendPushNotificationAsync(long userId, Models.Notification notification)
+    {
+        if (notification.ChannelId is null)
+            return true;
+
+        try
+        {
+            return !await _channelWatchingService.IsUserViewingChannelAsync(userId, notification.ChannelId.Value);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed checking active channel view state for user {UserId} in channel {ChannelId}",
+                userId,
+                notification.ChannelId.Value);
+            return true;
+        }
+    }
+
+    private async Task<long[]> FilterPushRecipientsAsync(long[] userIds, long? channelId)
+    {
+        if (channelId is null || userIds.Length == 0)
+            return userIds;
+
+        try
+        {
+            return await _channelWatchingService.FilterUsersNotViewingChannelAsync(channelId.Value, userIds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed filtering active channel viewers for channel {ChannelId}",
+                channelId.Value);
+            return userIds;
+        }
     }
 }

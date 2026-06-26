@@ -43,6 +43,11 @@ public partial class Program
         // Load configs
         ConfigLoader.LoadConfigs();
 
+        // Propagate configured CDN hosts to the shared source of truth used by
+        // shared models and the database layer.
+        ValourHosts.ContentCdnHost = HostingConfig.Current.ContentCdnHost;
+        ValourHosts.PublicCdnHost = HostingConfig.Current.PublicCdnHost;
+
         // Initialize Stripe
         if (StripeConfig.Current?.SecretKey is not null)
             Stripe.StripeConfiguration.ApiKey = StripeConfig.Current.SecretKey;
@@ -225,7 +230,25 @@ public partial class Program
 
         app.UseBlazorFrameworkFiles();
         app.MapStaticAssets();
-        
+
+        // Clean URLs on the threads subdomain (threads.valour.gg/{planetId}/{threadId})
+        // are rewritten to the underlying /threads/... Razor pages.
+        var threadsHost = HostingConfig.Current.ThreadsHost;
+        app.Use(async (context, next) =>
+        {
+            if (string.Equals(context.Request.Host.Host, threadsHost, StringComparison.OrdinalIgnoreCase) &&
+                !context.Request.Path.StartsWithSegments("/threads", StringComparison.OrdinalIgnoreCase))
+            {
+                var segments = context.Request.Path.Value?
+                    .Split('/', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+
+                if (segments.Length is 1 or 2 && segments.All(s => long.TryParse(s, out _)))
+                    context.Request.Path = "/threads/" + string.Join('/', segments);
+            }
+
+            await next();
+        });
+
         app.UseRouting();
 
         app.UseAuthentication();
@@ -365,6 +388,7 @@ public partial class Program
 
         services.AddSingleton<CdnMemoryCache>();
         services.AddSingleton<ModelCacheService>();
+        services.AddSingleton<UserCacheService>();
         services.AddSingleton<RealtimeKitService>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
@@ -372,6 +396,7 @@ public partial class Program
 
         services.AddScoped<UserOnlineService>();
         services.AddScoped<CoreHubService>();
+        services.AddScoped<ChannelWatchingService>();
         services.AddScoped<CurrentlyTypingService>();
         services.AddScoped<OauthAppService>();
         services.AddScoped<PermissionsNodeService>();
@@ -431,6 +456,7 @@ public partial class Program
         services.AddHostedService<SubscriptionWorker>();
         services.AddHostedService<StripeReconciliationWorker>();
         services.AddHostedService<VoiceStateCleanupWorker>();
+        services.AddHostedService<HostedPlanetCleanupWorker>();
         services.AddHostedService<NotificationCleanupWorker>();
         services.AddHostedService<MigrationWorker>();
         services.AddEndpointsApiExplorer();

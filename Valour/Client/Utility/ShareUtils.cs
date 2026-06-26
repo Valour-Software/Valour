@@ -14,22 +14,22 @@ public static class ShareUtils
     {
         var uri = new Uri(nav.BaseUri);
         if (uri.Host is "0.0.0.0" or "0.0.0.1")
-            return "https://app.valour.gg/";
+            return ClientHosts.AppBaseUrl;
 
         return nav.BaseUri;
     }
 
     /// <summary>
-    /// Builds the best link for a thread: the public server-rendered page when the
-    /// planet exposes threads publicly, otherwise the in-app deep link.
+    /// Builds the best link for a thread: the public server-rendered page on the
+    /// threads subdomain when the planet exposes threads publicly, otherwise the
+    /// in-app deep link.
     /// </summary>
     public static string GetThreadShareUrl(NavigationManager nav, Planet planet, ISharedPlanetThread thread)
     {
-        var baseUri = GetPublicBaseUri(nav).TrimEnd('/');
-
         if (planet is not null && planet.EnableThreads && planet.PublicThreads)
-            return $"{baseUri}/threads/{thread.PlanetId}/{thread.Id}";
+            return $"{ClientHosts.ThreadsBaseUrl.TrimEnd('/')}/{thread.PlanetId}/{thread.Id}";
 
+        var baseUri = GetPublicBaseUri(nav).TrimEnd('/');
         return $"{baseUri}/planetthreads/{thread.PlanetId}/{thread.Id}";
     }
 }

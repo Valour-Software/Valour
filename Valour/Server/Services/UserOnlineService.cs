@@ -6,6 +6,7 @@ public class UserOnlineService
 {
     private static readonly ConcurrentDictionary<long, DateTime?> UserTimeCache = new();
     private const int BatchSize = 256;
+    private static readonly TimeSpan PlanetConnectionRefreshInterval = TimeSpan.FromMinutes(5);
 
     private readonly ValourDb _db;
     private readonly CoreHubService _hubService;
@@ -41,7 +42,7 @@ public class UserOnlineService
     }
 
     public async Task UpdateOnlineStatesBatchAsync(
-        IReadOnlyCollection<(long UserId, bool IsMobile)> updates,
+        IReadOnlyCollection<UserOnlineUpdate> updates,
         CancellationToken cancellationToken = default)
     {
         if (updates is null || updates.Count == 0)
@@ -50,51 +51,79 @@ public class UserOnlineService
         var now = DateTime.UtcNow;
         var dueUsers = new Dictionary<long, bool>();
 
-        foreach (var (userId, isMobile) in updates)
+        foreach (var update in updates)
         {
-            UserTimeCache.TryGetValue(userId, out var lastActiveCached);
+            UserTimeCache.TryGetValue(update.UserId, out var lastActiveCached);
             var lastActive = lastActiveCached ?? DateTime.MinValue;
 
             if (lastActive.AddSeconds(30) >= now)
                 continue;
 
-            if (dueUsers.TryGetValue(userId, out var existingMobile))
-                dueUsers[userId] = existingMobile || isMobile;
+            if (dueUsers.TryGetValue(update.UserId, out var existingMobile))
+                dueUsers[update.UserId] = existingMobile || update.IsMobile;
             else
-                dueUsers[userId] = isMobile;
+                dueUsers[update.UserId] = update.IsMobile;
         }
 
-        if (dueUsers.Count == 0)
-            return;
-
-        var changedUsers = new List<Valour.Database.User>();
-        var dueIds = dueUsers.Keys.ToArray();
-
-        foreach (var batch in dueIds.Chunk(BatchSize))
+        if (dueUsers.Count > 0)
         {
-            var ids = batch.ToArray();
-            var users = await _db.Users
-                .Where(x => ids.Contains(x.Id))
-                .ToListAsync(cancellationToken);
+            var changedUsers = new List<Valour.Database.User>();
+            var dueIds = dueUsers.Keys.ToArray();
 
-            foreach (var user in users)
+            foreach (var batch in dueIds.Chunk(BatchSize))
             {
-                user.TimeLastActive = now;
-                user.IsMobile = dueUsers[user.Id];
-                UserTimeCache[user.Id] = now;
+                var ids = batch.ToArray();
+                var users = await _db.Users
+                    .Where(x => ids.Contains(x.Id))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var user in users)
+                {
+                    user.TimeLastActive = now;
+                    user.IsMobile = dueUsers[user.Id];
+                    UserTimeCache[user.Id] = now;
+                }
+
+                changedUsers.AddRange(users);
             }
 
-            changedUsers.AddRange(users);
+            if (changedUsers.Count > 0)
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+
+                foreach (var user in changedUsers)
+                {
+                    await _hubService.NotifyUserChange(user.ToModel());
+                }
+            }
         }
 
-        if (changedUsers.Count == 0)
-            return;
+        await UpdatePlanetConnectionTimesAsync(updates, now, cancellationToken);
+    }
 
-        await _db.SaveChangesAsync(cancellationToken);
+    private async Task UpdatePlanetConnectionTimesAsync(
+        IReadOnlyCollection<UserOnlineUpdate> updates,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var refreshCutoff = now - PlanetConnectionRefreshInterval;
 
-        foreach (var user in changedUsers)
+        foreach (var update in updates)
         {
-            await _hubService.NotifyUserChange(user.ToModel());
+            if (update.PlanetIds is null || update.PlanetIds.Length == 0)
+                continue;
+
+            foreach (var batch in update.PlanetIds.Distinct().Chunk(BatchSize))
+            {
+                var planetIds = batch.ToArray();
+                await _db.PlanetMembers
+                    .Where(x => x.UserId == update.UserId &&
+                                planetIds.Contains(x.PlanetId) &&
+                                x.TimeLastConnected < refreshCutoff)
+                    .ExecuteUpdateAsync(x => x.SetProperty(
+                        p => p.TimeLastConnected,
+                        now), cancellationToken);
+            }
         }
     }
 }

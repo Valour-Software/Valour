@@ -27,6 +27,8 @@ public class CoreHubService
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
+    private readonly ChannelWatchingService _channelWatchingService;
+    private readonly UserCacheService _userCache;
     private readonly ILogger<CoreHubService> _logger;
 
     public CoreHubService(
@@ -35,6 +37,8 @@ public class CoreHubService
         IHubContext<CoreHub> hub,
         IConnectionMultiplexer redis,
         SignalRConnectionService connectionTracker,
+        ChannelWatchingService channelWatchingService,
+        UserCacheService userCache,
         ILogger<CoreHubService> logger)
     {
         _db = db;
@@ -42,6 +46,8 @@ public class CoreHubService
         _serviceProvider = serviceProvider;
         _redis = redis;
         _connectionTracker = connectionTracker;
+        _channelWatchingService = channelWatchingService;
+        _userCache = userCache;
         _logger = logger;
     }
     
@@ -59,10 +65,9 @@ public class CoreHubService
         // Fire-and-forget channel state update with its own scope to avoid
         // blocking the message pipeline. Uses a separate DbContext so the
         // long-lived worker DbContext is never accessed concurrently.
-        var viewingIds = _connectionTracker.GetGroupUserIds(groupId);
-        if (viewingIds.Length > 0 && ShouldScheduleChannelViewUpdate(message.ChannelId))
+        if (ShouldScheduleChannelViewUpdate(message.ChannelId))
         {
-            _ = UpdateChannelViewStatesAsync(viewingIds, message.ChannelId);
+            _ = UpdateActiveChannelViewStatesAsync(message.ChannelId);
         }
     }
 
@@ -114,6 +119,22 @@ public class CoreHubService
         finally
         {
             ChannelViewUpdateSemaphore.Release();
+        }
+    }
+
+    private async Task UpdateActiveChannelViewStatesAsync(long channelId)
+    {
+        try
+        {
+            var viewingIds = await _channelWatchingService.GetActiveViewingUserIdsAsync(channelId);
+            if (viewingIds.Count == 0)
+                return;
+
+            await UpdateChannelViewStatesAsync(viewingIds.ToArray(), channelId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get active channel viewers for channel {ChannelId}", channelId);
         }
     }
     
@@ -225,6 +246,70 @@ public class CoreHubService
     public void NotifyPlanetItemDelete<T>(long planetId, T model) =>
         _ = _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Delete", model);
 
+    public void NotifyChannelChange(Channel channel, IReadOnlyList<long> recipientUserIds, int flags = 0)
+    {
+        if (recipientUserIds.Count == 0)
+            return;
+        
+        var groups = new string[recipientUserIds.Count];
+        for (int i = 0; i < recipientUserIds.Count; i++)
+            groups[i] = $"u-{recipientUserIds[i]}";
+
+        _ = _hub.Clients.Groups(groups).SendAsync($"{nameof(Channel)}-Update", channel, flags);
+    }
+
+    public void NotifyChannelDelete(Channel channel, IReadOnlyList<long> recipientUserIds)
+    {
+        if (recipientUserIds.Count == 0)
+            return;
+
+        var groups = new string[recipientUserIds.Count];
+        for (int i = 0; i < recipientUserIds.Count; i++)
+            groups[i] = $"u-{recipientUserIds[i]}";
+
+        _ = _hub.Clients.Groups(groups).SendAsync($"{nameof(Channel)}-Delete", channel);
+    }
+
+    /// <summary>
+    /// Removes any currently-connected clients belonging to the given users from a channel's
+    /// real-time message group, so they stop receiving live messages for a channel they've just
+    /// lost view access to. A permission change doesn't otherwise affect an already-joined group.
+    /// </summary>
+    public async Task EvictUsersFromChannelGroupAsync(long channelId, IReadOnlyList<long> userIds)
+    {
+        if (userIds.Count == 0)
+            return;
+        
+        var groupId = $"c-{channelId}";
+        var connections = _connectionTracker.GetGroupConnections(groupId);
+        if (connections.Length == 0)
+            return;
+        
+        for (int i = 0; i < connections.Length; i++)
+        {
+            var connectionId = connections[i];
+            var token = _connectionTracker.GetToken(connectionId);
+            if (token is null)
+                continue;
+            
+            bool isRevoked = false;
+            for (int j = 0; j < userIds.Count; j++)
+            {
+                if (userIds[j] == token.UserId)
+                {
+                    isRevoked = true;
+                    break;
+                }
+            }
+
+            if (!isRevoked)
+                continue;
+
+            await _hub.Groups.RemoveFromGroupAsync(connectionId, groupId);
+            await _connectionTracker.UntrackGroupMembershipAsync(groupId, connectionId: connectionId);
+        }
+    }
+
     public void NotifyPlanetChange(Planet item, int flags = 0) =>
         _ = _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Update", item, flags);
 
@@ -248,10 +333,19 @@ public class CoreHubService
     
     public async Task NotifyUserChange(User user, int flags = 0)
     {
+        // Write-through: keep the node-global user cache fresh so member reads compose up-to-date
+        // user data without re-querying.
+        _userCache.Set(user);
+
         // TODO: Get all locally loaded planets and check if user is member; if so, send update
         // we can probably manage this *without* a database call
+
+        var cutoff = DateTime.UtcNow - PlanetMemberService.OneDayConnectionWindow;
         
-        var planetIds = await _db.PlanetMembers.Where(x => x.UserId == user.Id)
+        var planetIds = await _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => x.UserId == user.Id &&
+                        x.TimeLastConnected > cutoff)
             .Select(x => x.PlanetId)
             .ToListAsync();
 
@@ -264,6 +358,8 @@ public class CoreHubService
 
     public async Task NotifyUserDelete(User user)
     {
+        _userCache.Remove(user.Id);
+
         var members = await _db.PlanetMembers.Where(x => x.UserId == user.Id).ToListAsync();
 
         foreach (var m in members)
@@ -289,54 +385,32 @@ public class CoreHubService
     
     public async Task UpdateChannelsWatching()
     {
-        // Find all groups that start with 'c-' (channel groups)
-        Dictionary<string, long[]> channelGroups = new Dictionary<string, long[]>();
-        
-        // For each group in the registry
         foreach (var groupId in _connectionTracker.GetAllGroups())
         {
-            // Only process channel groups
-            if (!groupId.StartsWith("c-"))
+            if (!TryGetChannelGroupId(groupId, out var channelId))
                 continue;
-                
-            // Get the channel ID from the group name
-            // var channelId = long.Parse(groupId.Substring(2));
-            
-            // Get all user IDs in this group
-            var userIds = _connectionTracker.GetGroupUserIds(groupId);
-            
-            // If there are no users, skip
-            if (userIds.Length == 0)
-                continue;
-                
-            channelGroups[groupId] = userIds;
-        }
-        
-        // Process each channel group
-        foreach (var pair in channelGroups)
-        {
-            var groupId = pair.Key;
-            var userIds = pair.Value;
-            
-            // Get channel ID from group name
-            if (!long.TryParse(groupId.Substring(2), out var channelId))
-            {
-                continue;
-            }
             
             var planetId = await GetPlanetIdForChannel(channelId);
             
             if (!planetId.HasValue)
                 continue;
+
+            var activeUserIds = await _channelWatchingService.GetActiveViewingUserIdsAsync(channelId);
                 
-            // Send the watching update
             _ = _hub.Clients.Group(groupId).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate
             {
                 PlanetId = planetId,
                 ChannelId = channelId,
-                UserIds = userIds.Distinct().ToList()
+                UserIds = activeUserIds.OrderBy(x => x).ToList()
             });
         }
+    }
+
+    private static bool TryGetChannelGroupId(string groupId, out long channelId)
+    {
+        channelId = 0;
+        return groupId?.StartsWith("c-") == true &&
+               long.TryParse(groupId.AsSpan(2), out channelId);
     }
 
     public async Task NotifyCurrentlyTyping(long channelId, long userId)

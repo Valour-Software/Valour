@@ -138,7 +138,7 @@ public class PlanetService
         HasCustomIcon = x.HasCustomIcon,
         HasAnimatedIcon = x.HasAnimatedIcon,
         HasCustomBackground = x.HasCustomBackground,
-        MemberCount = x.Members.Count(),
+        MemberCount = x.Members.Count(m => !m.IsDeleted),
         Version = x.Version,
         Tags = x.Tags.Select(t => new PlanetTag
         {
@@ -339,11 +339,14 @@ public class PlanetService
     /// </summary>
     public async Task<PlanetMemberInfo> GetMemberInfoAsync(long planetId, int page = 0)
     {
+        var cutoff = DateTime.UtcNow - PlanetMemberService.OneDayConnectionWindow;
+
         // Constructing base query
         var baseQuery = _db.PlanetMembers
             .Include(x => x.User)
             .AsNoTracking()
-            .Where(x => x.PlanetId == planetId);
+            .Where(x => x.PlanetId == planetId &&
+                        x.TimeLastConnected > cutoff);
         
         var totalCount = await baseQuery.CountAsync();
         var data = await baseQuery
@@ -364,7 +367,8 @@ public class PlanetService
     {
         return await _db.PlanetMembers
             .AsNoTracking()
-            .Where(x => x.PlanetId == planetId)
+            .IgnoreQueryFilters()
+            .Where(x => x.PlanetId == planetId && !x.IsDeleted)
             .CountAsync();
     }
 
@@ -379,6 +383,7 @@ public class PlanetService
         var activeQuery = _db.PlanetMembers
             .AsNoTracking()
             .Where(x => x.PlanetId == planetId &&
+                        x.TimeLastConnected > cutoff &&
                         x.User.TimeLastActive > cutoff &&
                         x.User.UserStateCode != 1); // Respect explicit offline/invisible
 

@@ -29,7 +29,7 @@ public class CdnBucketItem
     /// The url for the bucket item
     /// </summary>
     [JsonIgnore]
-    public string Url => $"https://vmps.valour.gg/content/{Category}/{UserId}/{Hash}";
+    public string Url => $"{ValourHosts.ContentCdnBaseUrl}/content/{Category}/{UserId}/{Hash}";
     
     public static void SetupDbModel(ModelBuilder builder)
     {

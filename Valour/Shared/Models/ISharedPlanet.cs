@@ -154,7 +154,7 @@ public interface ISharedPlanet : ISharedModel<long>
         }
         
         var formatStr = BackgroundFormatMap[format];
-        return $"https://public-cdn.valour.gg/valour-public/planetbgs/{planetId}/{formatStr}?v={version}";
+        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/planetbgs/{planetId}/{formatStr}?v={version}";
     }
     
     public static string GetIconUrl(ISharedPlanet planet, IconFormat format)
@@ -174,7 +174,7 @@ public interface ISharedPlanet : ISharedModel<long>
         }
         
         string formatStr = IconFormatMap[format];
-        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}?v={planet.Version}";
+        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/planets/{planet.Id}/{formatStr}?v={planet.Version}";
     }
     
     public static string GetIconUrl(ISharedPlanetListInfo planet, IconFormat format)
@@ -194,7 +194,7 @@ public interface ISharedPlanet : ISharedModel<long>
         }
         
         string formatStr = IconFormatMap[format];
-        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.PlanetId}/{formatStr}?v={planet.Version}";
+        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/planets/{planet.PlanetId}/{formatStr}?v={planet.Version}";
     }
     
 

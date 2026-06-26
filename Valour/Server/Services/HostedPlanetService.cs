@@ -84,11 +84,28 @@ public class HostedPlanetService
             .ToListAsync();
         
         var hostedPlanet = new HostedPlanet(planet, channels, roles, emojis, rules);
-        
+
+        // Load the full (non-deleted) member set into memory. Since every planet-scoped mutation
+        // is routed to the hosting node, this cache stays authoritative for membership and role
+        // state for as long as the planet is hosted here.
+        var members = await _db.PlanetMembers
+            .AsNoTracking()
+            .Where(m => m.PlanetId == planetId && !m.IsDeleted)
+            .ToListAsync();
+
+        hostedPlanet.SetMembers(members.Select(m => m.ToModel()));
+
         _cache.HostedPlanets.Set(hostedPlanet);
         
         return hostedPlanet;
     }
+
+    /// <summary>
+    /// Returns the hosted planet if it is currently cached on this node, otherwise null.
+    /// Does not trigger hosting or redirect; callers use this for best-effort, non-throwing reads.
+    /// </summary>
+    public HostedPlanet GetCached(long id) =>
+        _cache.HostedPlanets.Get(id);
     
     /// <summary>
     /// Returns the hosted planet if it is hosted on this node, or the correct node if it is not.

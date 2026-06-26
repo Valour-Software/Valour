@@ -45,6 +45,10 @@ public static class MarkdownManager
         Renderer.ObjectRenderers.Add(new MentionRenderer());
         Renderer.ObjectRenderers.Add(new StockRenderer());
         Renderer.ObjectRenderers.Add(new ValourEmojiRenderer());
+
+        // Must be inserted ahead of the package's built-in LinkInlineRenderer so
+        // Valour links get in-app navigation instead of opening a new tab.
+        Renderer.ObjectRenderers.Insert(0, new ValourLinkRenderer());
     }
 
     public static string GetHtml(string content)

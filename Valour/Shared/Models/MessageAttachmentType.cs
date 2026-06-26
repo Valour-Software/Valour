@@ -42,4 +42,7 @@ public enum MessageAttachmentType : long
 
     // Valour-native structured attachment
     Embed,
+
+    // Inline preview of a Valour thread linked in chat
+    ValourThread,
 }
