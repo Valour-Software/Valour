@@ -598,10 +598,17 @@ public class PlanetService : ServiceBase
         return rule?.Sync(_client);
     }
 
-    public async Task<int> FetchMemberCountAsync(Planet planet)
+    public async Task<int?> FetchMemberCountAsync(Planet planet)
     {
         var response = await planet.Node.GetJsonAsync<int>($"{planet.IdRoute}/members/count");
-        return response.Success ? response.Data : 0;
+        if (response.Success)
+            return response.Data;
+
+        var info = await FetchPlanetInfoAsync(planet.Id);
+        if (info.Success && info.Data is not null)
+            return info.Data.MemberCount;
+
+        return null;
     }
 
     private static readonly TimeSpan PresenceCacheTime = TimeSpan.FromSeconds(60);

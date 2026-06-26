@@ -29,10 +29,10 @@ else
             {
                 _planet.Updated += OnPlanetUpdated;
                 _planet.Members.Changed += OnMembersChanged;
-                _memberCount = Math.Max(_memberCount, _planet.Members.Count);
 
                 var fetchedCount = await _planet.FetchMemberCountAsync();
-                _memberCount = Math.Max(fetchedCount, _planet.Members.Count);
+                if (fetchedCount is not null)
+                    _memberCount = fetchedCount.Value;
                 BuildPlanetInfo();
             }
         }
@@ -46,7 +46,6 @@ else
 
     private Task OnMembersChanged(IModelEvent<PlanetMember> eventData)
     {
-        _memberCount = Math.Max(_memberCount, _planet?.Members.Count ?? 0);
         BuildPlanetInfo();
         return InvokeAsync(StateHasChanged);
     }
