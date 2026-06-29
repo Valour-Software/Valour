@@ -6,6 +6,7 @@ using System.Web;
 using Valour.Database;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 using Valour.Server.Utilities;
 using MessageAttachment = Valour.Sdk.Models.MessageAttachment;
 
@@ -159,10 +160,32 @@ public class ProxyHandler
             case MessageAttachmentType.Bluesky:
                 return await HandleBluesky(url, attachment);
 
+            case MessageAttachmentType.ValourThread:
+                return HandleValourThread(url, attachment);
+
             default:
                 return null;
         }
     }
+
+    #region Valour Thread
+
+    private MessageAttachment HandleValourThread(string url, MessageAttachment attachment)
+    {
+        // Only thread links produce a preview; other Valour links fall through.
+        if (!ValourRouteParser.TryParse(url, out var route) ||
+            route.Type != ValourRouteType.PlanetThread ||
+            route.PlanetId is null || route.ThreadId is null)
+        {
+            return null;
+        }
+
+        // Store a canonical in-app link the client parses back into ids.
+        attachment.Location = $"https://app.valour.gg/planetthreads/{route.PlanetId}/{route.ThreadId}";
+        return attachment;
+    }
+
+    #endregion
 
     #region YouTube
 
@@ -775,7 +798,7 @@ public class ProxyHandler
                 await db.AddAsync(item);
                 await db.SaveChangesAsync();
 
-                attachment.Location = $"https://cdn.valour.gg/proxy/{hash}{ext}";
+                attachment.Location = $"{ValourHosts.ContentCdnBaseUrl}/proxy/{hash}{ext}";
             }
             else
             {

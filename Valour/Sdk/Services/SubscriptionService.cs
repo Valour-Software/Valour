@@ -13,7 +13,7 @@ public class SubscriptionService
     }
     
     /// <summary>
-    /// Subscribe to Valour Plus! (...or Premium? What are we even calling it???)
+    /// Subscribe to Stargazer Plus! (...or Premium? What are we even calling it???)
     /// </summary>
     public async Task<TaskResult> SubscribeAsync(string type)
     {

@@ -198,7 +198,7 @@
     {
         if (Data.Bot.HasCustomAvatar)
         {
-            return $"https://public-cdn.valour.gg/valour-public/avatars/{Data.Bot.Id}/256.webp";
+            return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/avatars/{Data.Bot.Id}/256.webp";
         }
         var variant = (int)(Data.Bot.Id % 5);
         return $"_content/Valour.Client/media/user-icons/icon-{variant}.webp";

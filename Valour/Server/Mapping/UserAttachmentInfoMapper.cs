@@ -19,7 +19,7 @@ public static class UserAttachmentInfoMapper
             Category = item.Category,
             SizeBytes = item.SizeBytes,
             CreatedAt = item.CreatedAt,
-            Url = $"https://cdn.valour.gg/content/{item.Id}",
+            Url = $"{ValourHosts.ContentCdnBaseUrl}/content/{item.Id}",
             SafetyHashMatchState = item.SafetyHashMatchState,
             SafetyHashMatchedAt = item.SafetyHashMatchedAt
         };

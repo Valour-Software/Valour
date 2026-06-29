@@ -212,7 +212,7 @@ public class OauthAppApi
 
         context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
 
-        return ValourResult.Ok($"{model.RedirectUri}?code={model.Code}&state={model.State}&node={NodeConfig.Instance.Name}");
+        return ValourResult.Json($"{model.RedirectUri}?code={model.Code}&state={model.State}&node={NodeConfig.Instance.Name}");
     }
 
     [ValourRoute(HttpVerbs.Post, "api/oauth/token")]

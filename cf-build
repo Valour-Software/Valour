@@ -95,13 +95,18 @@ cp -R Valour/Client/wwwroot/. "$OUTPUT_DIR"/_content/Valour.Client/
 API_ORIGIN="${VALOUR_API_ORIGIN-https://api.valour.gg/}"
 echo "Using VALOUR_API_ORIGIN=${API_ORIGIN}"
 
+# Origin serving the static public thread pages.
+# Set VALOUR_THREADS_ORIGIN to override, or empty string for the built-in default.
+THREADS_ORIGIN="${VALOUR_THREADS_ORIGIN-https://threads.valour.gg}"
+echo "Using VALOUR_THREADS_ORIGIN=${THREADS_ORIGIN}"
+
 # The Blazor host page currently lives in the shared Valour.Client project, not Client.Blazor/wwwroot.
 # Ensure Cloudflare Pages has a root index.html to serve.
 cp Valour/Client/wwwroot/index.html "$OUTPUT_DIR"/index.html
 
 # Override runtime config at the site root (not under _content) so it is not covered by the
 # Blazor service-worker SRI manifest generated during publish.
-printf 'window.valourRuntimeConfig = window.valourRuntimeConfig || {};\nwindow.valourRuntimeConfig.apiOrigin = "%s";\n' "$API_ORIGIN" > "$OUTPUT_DIR"/valour-runtime-config.override.js
+printf 'window.valourRuntimeConfig = window.valourRuntimeConfig || {};\nwindow.valourRuntimeConfig.apiOrigin = "%s";\nwindow.valourRuntimeConfig.threadsOrigin = "%s";\n' "$API_ORIGIN" "$THREADS_ORIGIN" > "$OUTPUT_DIR"/valour-runtime-config.override.js
 perl -0pi -e 's#(<script src="_content/Valour\.Client/js/valour-runtime-config\.js[^"]*"></script>)#$1\n<script src="valour-runtime-config.override.js?version=$ENV{VALOUR_SHORT_HASH}"></script>#' "$OUTPUT_DIR"/index.html
 
 # Fail the build if the output is incomplete; otherwise Pages will serve index.html

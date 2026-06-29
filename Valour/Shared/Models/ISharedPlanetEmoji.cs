@@ -23,7 +23,7 @@ public interface ISharedPlanetEmoji : ISharedPlanetModel<long>
 
     public static string GetCdnUrl(long planetId, long emojiId, PlanetEmojiFormat format = PlanetEmojiFormat.Webp128)
     {
-        return $"https://public-cdn.valour.gg/valour-public/{GetCdnPath(planetId, emojiId, format)}";
+        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{GetCdnPath(planetId, emojiId, format)}";
     }
 
     public static string GetCdnUrl(ISharedPlanetEmoji emoji, PlanetEmojiFormat format = PlanetEmojiFormat.Webp128)

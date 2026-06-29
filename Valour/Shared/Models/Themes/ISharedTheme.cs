@@ -164,6 +164,6 @@ public interface ISharedTheme : ISharedThemeMeta
         }
 
         string formatStr = BannerFormatMap[format];
-        return $"https://public-cdn.valour.gg/valour-public/themeBanners/{theme.Id}/{formatStr}";
+        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/themeBanners/{theme.Id}/{formatStr}";
     }
 }

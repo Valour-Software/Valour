@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Valour.Client.Components.Threads.Display;
+using Valour.Config.Configs;
 using Valour.Server.Database;
 using Valour.Server.Services;
 using Valour.Shared.Models;
@@ -40,8 +41,13 @@ public class PlanetThreadsModel : PageModel
     public bool HasNextPage => P * PageSize < TotalCount;
     public bool HasPrevPage => P > 1;
 
-    public string RequestUrl => $"{Request.Scheme}://{Request.Host}{Request.Path}";
-    public string AppLink => $"/planetthreads/{PlanetId}";
+    public string RequestUrl => $"{HostingConfig.Current.ThreadsBaseUrl}/{PlanetId}";
+    public string AppLink => $"{HostingConfig.Current.AppBaseUrl}/planetthreads/{PlanetId}";
+
+    /// <summary>
+    /// Clean public thread URL on the threads subdomain for a given thread id.
+    /// </summary>
+    public string ThreadLink(long threadId) => $"{HostingConfig.Current.ThreadsBaseUrl}/{PlanetId}/{threadId}";
 
     public class ThreadListItem
     {

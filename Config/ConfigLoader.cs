@@ -29,6 +29,7 @@ public static class ConfigLoader
         config.GetSection("Stripe").Get<StripeConfig>();
         config.GetSection("Cloudflare").Get<CloudflareConfig>();
         config.GetSection("MediaSafety").Get<MediaSafetyConfig>();
+        config.GetSection("Hosting").Get<HostingConfig>();
 
         // Override with Kubernetes node details
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
@@ -68,6 +69,11 @@ public static class ConfigLoader
         if (MediaSafetyConfig.Current is null)
         {
             new MediaSafetyConfig();
+        }
+
+        if (HostingConfig.Current is null)
+        {
+            new HostingConfig();
         }
     }
 

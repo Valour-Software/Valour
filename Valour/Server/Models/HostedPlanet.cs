@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using Valour.Server.Utilities;
 using Valour.Shared.Extensions;
+using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
 namespace Valour.Server.Models;
@@ -281,9 +282,100 @@ public class HostedPlanet : ServerModel<long>
         _rules.Remove(id);
     }
 
+    // Members //
+
+    // The full set of (non-deleted) members for this planet, keyed by member id, with a
+    // secondary user-id -> member-id index. Because every planet-scoped mutation is routed to
+    // the hosting node, this cache is authoritative for membership and role state while loaded.
+    //
+    // INVARIANT: cached members are "cores" whose User is intentionally null - user data lives in
+    // the node-global UserCacheService and is composed on read. These instances must never be
+    // handed to external callers; expose only copies (see PlanetMemberMapper.CopyWithUser).
+    private readonly ConcurrentDictionary<long, PlanetMember> _members = new();
+    private readonly ConcurrentDictionary<long, long> _userIdToMemberId = new();
+    private volatile bool _membersLoaded;
+
+    /// <summary>
+    /// True once the member set has been loaded from the database. While false, callers should
+    /// fall back to the database rather than treating a cache miss as "not a member".
+    /// </summary>
+    public bool MembersLoaded => _membersLoaded;
+
+    public int MemberCount => _members.Count;
+
+    public void SetMembers(IEnumerable<PlanetMember> members)
+    {
+        _members.Clear();
+        _userIdToMemberId.Clear();
+        foreach (var member in members)
+            StoreCore(member);
+        _membersLoaded = true;
+    }
+
+    /// <summary>
+    /// Returns the cached core member (User is null). Read-only: callers must not mutate the
+    /// returned instance, and must copy it (attaching a user) before exposing it externally.
+    /// </summary>
+    public bool TryGetMember(long memberId, out PlanetMember member) =>
+        _members.TryGetValue(memberId, out member);
+
+    /// <summary>
+    /// Returns the cached core member for a user (User is null). Same read-only contract as
+    /// <see cref="TryGetMember"/>.
+    /// </summary>
+    public bool TryGetMemberByUser(long userId, out PlanetMember member)
+    {
+        member = null;
+        return _userIdToMemberId.TryGetValue(userId, out var memberId) &&
+               _members.TryGetValue(memberId, out member);
+    }
+
+    public void UpsertMember(PlanetMember member)
+    {
+        if (member is null)
+            return;
+
+        StoreCore(member);
+    }
+
+    // Enforces the "core" invariant at the cache boundary: the stored instance never carries a user.
+    // Store a copy so callers can safely pass a full member model without having its User nulled.
+    private void StoreCore(PlanetMember member)
+    {
+        var core = member.CopyWithUser(null);
+        _members[core.Id] = core;
+        _userIdToMemberId[member.UserId] = member.Id;
+    }
+
+    public void RemoveMember(long memberId)
+    {
+        if (_members.TryRemove(memberId, out var removed))
+            _userIdToMemberId.TryRemove(removed.UserId, out _);
+    }
+
+    /// <summary>
+    /// Returns the user ids of all members currently held in the cache. Used to keep referenced
+    /// users alive in the node-global user cache.
+    /// </summary>
+    public long[] GetMemberUserIds() => _userIdToMemberId.Keys.ToArray();
+
     // Voice Participants //
 
     private readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _voiceParticipants = new();
+
+    /// <summary>
+    /// True if any voice channel on this planet currently has participants. Used to avoid
+    /// unloading a planet that still has active voice sessions.
+    /// </summary>
+    public bool HasActiveVoiceParticipants()
+    {
+        foreach (var set in _voiceParticipants.Values)
+        {
+            if (set.Count > 0)
+                return true;
+        }
+        return false;
+    }
 
     public void AddVoiceParticipant(long channelId, long userId)
     {

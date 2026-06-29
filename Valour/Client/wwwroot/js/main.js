@@ -121,6 +121,14 @@ window.getValourApiOrigin = function() {
     return config.apiOrigin.trim();
 };
 
+window.getValourThreadsOrigin = function() {
+    const config = window["valourRuntimeConfig"];
+    if (!config || typeof config.threadsOrigin !== "string")
+        return "";
+
+    return config.threadsOrigin.trim();
+};
+
 function Log(message, color) {
     console.log("%c" + message, 'color: ' + color);
 }

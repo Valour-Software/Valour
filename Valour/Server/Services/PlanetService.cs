@@ -138,7 +138,7 @@ public class PlanetService
         HasCustomIcon = x.HasCustomIcon,
         HasAnimatedIcon = x.HasAnimatedIcon,
         HasCustomBackground = x.HasCustomBackground,
-        MemberCount = x.Members.Count(),
+        MemberCount = x.Members.Count(m => !m.IsDeleted),
         Version = x.Version,
         Tags = x.Tags.Select(t => new PlanetTag
         {
@@ -367,7 +367,8 @@ public class PlanetService
     {
         return await _db.PlanetMembers
             .AsNoTracking()
-            .Where(x => x.PlanetId == planetId)
+            .IgnoreQueryFilters()
+            .Where(x => x.PlanetId == planetId && !x.IsDeleted)
             .CountAsync();
     }
 

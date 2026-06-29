@@ -53,6 +53,11 @@ namespace Valour.Shared.Cdn
             // Developer platforms
             { "github.com", MessageAttachmentType.GitHub },
             { "gist.github.com", MessageAttachmentType.GitHub },
+
+            // Valour thread links get an inline preview card
+            { "valour.gg", MessageAttachmentType.ValourThread },
+            { "app.valour.gg", MessageAttachmentType.ValourThread },
+            { "threads.valour.gg", MessageAttachmentType.ValourThread },
         };
 
         public static bool IsVirtualAttachmentType(MessageAttachmentType type) =>
@@ -69,7 +74,7 @@ namespace Valour.Shared.Cdn
             "tenor.com",
             "i.imgur.com",
             "youtu.be",
-            "cdn.valour.gg",
+            ValourHosts.ContentCdnHost,
             "valour.gg",
             "pbs.twimg.com",
         };
