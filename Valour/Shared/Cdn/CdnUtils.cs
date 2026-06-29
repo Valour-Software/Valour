@@ -147,6 +147,12 @@ namespace Valour.Shared.Cdn
             {".rmp", "audio/x-pn-realaudio-plugin"},
             {".au", "audio/basic"},
             {".wav", "audio/x-wav"},
+
+            // Fonts
+            {".woff2", "font/woff2"},
+            {".woff", "font/woff"},
+            {".ttf", "font/ttf"},
+            {".otf", "font/otf"},
             
             // Images
             {".gif", "image/gif"},

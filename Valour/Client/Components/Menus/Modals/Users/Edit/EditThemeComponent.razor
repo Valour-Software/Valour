@@ -8,340 +8,425 @@
 @using Valour.Sdk.ModelLogic.QueryEngines
 @using Valour.Shared.Models.Themes
 
-@* Editing page *@
 @if (_editingTheme is not null)
 {
-    <style>
-        .pickr-button {
-            position: absolute;
-            right: 0px;
-            transition: none 0s ease 0s;
-            background-color: var(--pcr-color);
-            height: 100%;
-            width: 50px;
-            border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-        }
-    </style>
-    
-    <h4 class="title">Theme Editor</h4>
-    <h5 class="subtitle">Build your own theme!</h5>
-    <br />
-    @if (_blobUrl is not null)
-    {
-        <div class="theme-img theme-img-@_editingTheme.Id" style="background-image: url(@_blobUrl)" onclick="document.getElementById('banner-upload').click()"></div>
-    }
-    else if (_editingTheme.HasCustomBanner)
-    {
-        if (_editingTheme.HasAnimatedBanner)
-        {
-            <style>
-                .theme-img-@_editingTheme.Id:hover {
-                    background-image: url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp) !important;
-                }
-            </style>
-        }
-        
-        <div class="theme-img theme-img-@_editingTheme.Id" style="background-image: url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)" onclick="document.getElementById('banner-upload').click()"></div>
-    }
-    else
-    {
-        <div class="theme-img" style="text-align: center; background-color: @_editingTheme.MainColor1" onclick="document.getElementById('banner-upload').click()"> 
-            <Victor Style="max-height: 80%; padding: 5px; padding-top: 10px;" Color="@_editingTheme.PastelCyan" />
+    <div class="settings-page wide theme-editor-page">
+        <div class="editor-section theme-editor-hero">
+            <h3 class="editor-section-title">
+                <i class="bi bi-palette"></i>
+                Theme Editor
+            </h3>
+            <p class="helper-text">Preview changes live while you tune surfaces, semantic colors, fonts, assets, and custom CSS.</p>
         </div>
-    }
-    <br />
-    <p>Suggested image size: 600x300px</p>
-    
-    
-    <div style="display:none">
-        <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif,.webp" id="banner-upload"></InputFile>
-    </div>
-    
-    <br />
-    <br />
-                                                                                                                                   
-    <div class="form-group">
-        <label>Name</label>
-        <input class="form-control" @bind-value="@_editingTheme.Name" />
-    </div>
-    <br />
-    <div class="form-group">
-        <label>Description</label>
-        <InputTextArea @bind-Value="@_editingTheme.Description" class="form-control">
-        </InputTextArea>
-    </div>
-    <br />
-    <div class="form-group">
-        <label>App Font</label>
-        <input class="form-control" value="@_editingTheme.FontFamily" @oninput="@OnChangeFontFamily" />
-    </div>
-    <br />
-    <div class="form-group">
-        <label>Rounding</label>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: var(--space-2);">
-            <input class="form-control" value="@_editingTheme.RadiusXs" @oninput="@OnChangeRadiusXs" placeholder="xs" />
-            <input class="form-control" value="@_editingTheme.RadiusSm" @oninput="@OnChangeRadiusSm" placeholder="sm" />
-            <input class="form-control" value="@_editingTheme.RadiusMd" @oninput="@OnChangeRadiusMd" placeholder="md" />
-            <input class="form-control" value="@_editingTheme.RadiusLg" @oninput="@OnChangeRadiusLg" placeholder="lg" />
-            <input class="form-control" value="@_editingTheme.RadiusXl" @oninput="@OnChangeRadiusXl" placeholder="xl" />
-            <input class="form-control" value="@_editingTheme.RadiusFull" @oninput="@OnChangeRadiusFull" placeholder="full" />
-        </div>
-    </div>
-    <br />
-    <div class="form-group">
-        <label>Publishing</label>
-        @if (_editingTheme.Published)
-        {
-            <button class="btn v-btn danger" @onclick="@(() => SetPublished(false))">
-                Switch to Unpublished
-            </button>
-        }
-        else
-        {
-            <button class="btn v-btn primary" @onclick="@(() => SetPublished(true))">
-                Switch to Published
-            </button>
-        }
-    </div>
-    <br />
-    <label>Color Swatch</label>
-    <section class="color-section">
-        <div class="color-pill">
-            <span>Font Color</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.FontColor" OnColorChange="@OnChangeFontColor"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>Alt Font Color</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.FontAltColor" OnColorChange="@OnChangeFontAltColor"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>Link Color</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.LinkColor" OnColorChange="@OnChangeLinkColor"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>BG Color 1</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor1" OnColorChange="@OnChangeMainColor1"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>BG Color 2</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor2" OnColorChange="@OnChangeMainColor2"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>BG Color 3</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor3" OnColorChange="@OnChangeMainColor3"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>BG Color 4</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor4" OnColorChange="@OnChangeMainColor4"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>BG Color 5</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor5" OnColorChange="@OnChangeMainColor5"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>Tint Color</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.TintColor" OnColorChange="@OnChangeTintColor"/>
-        </div>
-        <br/>
 
-        <div class="color-pill">
-            <span>Vibrant 1</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantPurple" OnColorChange="@OnChangeVibrantColor1"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>Vibrant 2</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantBlue" OnColorChange="@OnChangeVibrantColor2"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>Vibrant 3</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantCyan" OnColorChange="@OnChangeVibrantColor3"/>
-        </div>
-        <br/>
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-image"></i>
+                Banner
+            </h3>
 
-        <div class="color-pill">
-            <span>Pastel 1</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelCyan" OnColorChange="@OnChangePastelColor1"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>Pastel 2</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelCyanPurple" OnColorChange="@OnChangePastelColor2"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>Pastel 3</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelPurple" OnColorChange="@OnChangePastelColor3"/>
-        </div>
-        <br/>
-        <div class="color-pill">
-            <span>Pastel Danger</span>
-            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelRed" OnColorChange="@OnChangePastelColorDanger"/>
-        </div>
-        <br/>
-        <br/>
-    </section>
-    
-    <div class="form-group">
-        <label>Custom CSS</label>
-        <InputTextArea @bind-Value="@_editingTheme.CustomCss" class="form-control">
-        </InputTextArea>
-        <button class="btn v-btn tertiary mt-2" @onclick="@OnCssChange">Apply CSS to Theme</button>
-    </div>
-
-    <br />
-
-    <div class="form-group">
-        <label>Theme Assets</label>
-        <p class="hint" style="color: var(--font-alt-color); font-size: var(--font-size-sm);">Upload images or fonts. Images: use <code>var(--theme-asset-name)</code>. Fonts: set App Font to <code>"theme-font-name"</code>.</p>
-
-        @if (_themeAssets?.Any() == true)
-        {
-            @foreach (var asset in _themeAssets)
+            @if (_editingTheme.HasCustomBanner && _editingTheme.HasAnimatedBanner && _blobUrl is null)
             {
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    @if (asset.AssetType == "font")
+                <style>
+                    .theme-img-@_editingTheme.Id:hover {
+                        background-image: url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp) !important;
+                    }
+                </style>
+            }
+
+            <div class="theme-banner-row">
+                @if (_blobUrl is not null)
+                {
+                    <label class="theme-img theme-img-@_editingTheme.Id" for="banner-upload" style="background-image: url(@_blobUrl)"></label>
+                }
+                else if (_editingTheme.HasCustomBanner)
+                {
+                    <label class="theme-img theme-img-@_editingTheme.Id" for="banner-upload" style="background-image: url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)"></label>
+                }
+                else
+                {
+                    <label class="theme-img victor-placeholder" for="banner-upload" style="background-color: @_editingTheme.MainColor1">
+                        <Victor Style="max-height: 80%; padding: 5px; padding-top: 10px;" Color="@_editingTheme.PastelCyan" />
+                    </label>
+                }
+
+                <div class="theme-banner-copy">
+                    <label for="banner-upload" class="v-btn secondary">
+                        <i class="bi bi-upload"></i>
+                        Upload Banner
+                    </label>
+                    <p class="helper-text">PNG, JPG, GIF, or WEBP. Suggested size: 600x300px.</p>
+                </div>
+            </div>
+
+            <div class="hidden-input">
+                <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif,.webp" id="banner-upload"></InputFile>
+            </div>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-card-text"></i>
+                Details
+            </h3>
+
+            <div class="form-group">
+                <label>Name</label>
+                <input class="v-input" @bind-value="@_editingTheme.Name" />
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <InputTextArea @bind-Value="@_editingTheme.Description" class="v-input" rows="4"></InputTextArea>
+            </div>
+
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Publishing</span>
+                    <span class="@GetPublishedBadgeClass()">@(_editingTheme.Published ? "Published" : "Private")</span>
+                </div>
+                <p class="toggle-description">Published themes are visible to other users in the theme browser.</p>
+                <div class="actions">
+                    @if (_editingTheme.Published)
                     {
-                        <i class="bi bi-fonts" style="font-size: var(--font-size-4xl); width: 48px; text-align: center;"></i>
-                        <code>font-family: "theme-font-@asset.Name"</code>
+                        <VButton Variant="danger" OnClick="@(() => SetPublished(false))">Switch to Private</VButton>
                     }
                     else
                     {
-                        <img src="@asset.Url" style="width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover;" />
-                        <code>var(--theme-asset-@asset.Name)</code>
+                        <VButton Variant="primary" OnClick="@(() => SetPublished(true))">Publish Theme</VButton>
                     }
-                    <button class="btn v-btn danger" style="padding: 4px 8px; font-size: var(--font-size-sm);" @onclick="() => DeleteAssetAsync(asset)">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-fonts"></i>
+                Typography & Radius
+            </h3>
+
+            <div class="form-group">
+                <label>App Font</label>
+                <input class="v-input" value="@_editingTheme.FontFamily" @oninput="@OnChangeFontFamily" />
+                <p class="helper-text">Use a normal CSS font stack, or choose an uploaded font below.</p>
+            </div>
+
+            @if (FontAssets.Any())
+            {
+                <div class="form-group">
+                    <label>Uploaded Fonts</label>
+                    <select class="v-input" @onchange="@OnFontAssetSelected">
+                        <option value="">Choose uploaded font...</option>
+                        @foreach (var asset in FontAssets)
+                        {
+                            <option value="@asset.Name">@($"theme-font-{asset.Name}")</option>
+                        }
+                    </select>
                 </div>
             }
-        }
 
-        @if (_editingTheme.Id != 0)
-        {
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
-                <input class="form-control" style="max-width: 200px;" @bind="_newAssetName" placeholder="Asset name (e.g. background)" />
-                <button type="button" class="btn v-btn secondary" @onclick="@OpenAssetPickerAsync">Choose File</button>
-                <span style="color: var(--font-alt-color); font-size: var(--font-size-sm);" title="@(_assetFileName ?? "No file selected")">@(_assetFileName ?? "No file selected")</span>
-                <input id="@_assetUploadInputId" type="file" style="display: none;" accept=".png,.jpg,.jpeg,.webp,.gif,.woff2,.woff,.ttf,.otf" />
+            <div class="form-group">
+                <label>Rounding Scale</label>
+                <div class="radius-grid">
+                    <input class="v-input" value="@_editingTheme.RadiusXs" @oninput="@OnChangeRadiusXs" placeholder="xs" />
+                    <input class="v-input" value="@_editingTheme.RadiusSm" @oninput="@OnChangeRadiusSm" placeholder="sm" />
+                    <input class="v-input" value="@_editingTheme.RadiusMd" @oninput="@OnChangeRadiusMd" placeholder="md" />
+                    <input class="v-input" value="@_editingTheme.RadiusLg" @oninput="@OnChangeRadiusLg" placeholder="lg" />
+                    <input class="v-input" value="@_editingTheme.RadiusXl" @oninput="@OnChangeRadiusXl" placeholder="xl" />
+                    <input class="v-input" value="@_editingTheme.RadiusFull" @oninput="@OnChangeRadiusFull" placeholder="full" />
+                </div>
             </div>
-            <button class="btn v-btn tertiary mt-2" style="width: fit-content;" disabled="@_uploadingAsset" @onclick="@UploadAssetAsync">
-                @(_uploadingAsset ? "Uploading..." : "Upload Asset")
-            </button>
-            @if (!string.IsNullOrEmpty(_assetError))
-            {
-                <p style="color: var(--color-danger); font-size: var(--font-size-sm); margin-top: 4px;">@_assetError</p>
-            }
-        }
-        else
-        {
-            <p style="color: var(--font-alt-color); font-size: var(--font-size-sm);">Save the theme first to upload assets.</p>
-        }
-    </div>
+        </div>
 
-    <br />
-    
-    <div class="button-row">
-        <button class="btn v-btn large danger" @onclick="@CancelEdit">Cancel Changes</button>
-        <button class="btn v-btn large tertiary" @onclick="@ConfirmChangesAsync">Confirm Changes</button>
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-droplet-half"></i>
+                Text Colors
+            </h3>
+
+            <section class="color-section">
+                <div class="color-pill">
+                    <span>Text</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.FontColor" OnColorChange="@OnChangeFontColor"/>
+                </div>
+                <div class="color-pill">
+                    <span>Muted Text</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.FontAltColor" OnColorChange="@OnChangeFontAltColor"/>
+                </div>
+                <div class="color-pill">
+                    <span>Links</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.LinkColor" OnColorChange="@OnChangeLinkColor"/>
+                </div>
+            </section>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-layers"></i>
+                Surfaces
+            </h3>
+            <p class="helper-text">These drive <code>--main-1</code> through <code>--main-5</code>, including the new fifth surface slot.</p>
+
+            <section class="color-section">
+                <div class="color-pill">
+                    <span>Surface 1</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor1" OnColorChange="@OnChangeMainColor1"/>
+                </div>
+                <div class="color-pill">
+                    <span>Surface 2</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor2" OnColorChange="@OnChangeMainColor2"/>
+                </div>
+                <div class="color-pill">
+                    <span>Surface 3</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor3" OnColorChange="@OnChangeMainColor3"/>
+                </div>
+                <div class="color-pill">
+                    <span>Surface 4</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor4" OnColorChange="@OnChangeMainColor4"/>
+                </div>
+                <div class="color-pill">
+                    <span>Surface 5</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor5" OnColorChange="@OnChangeMainColor5"/>
+                </div>
+                <div class="color-pill">
+                    <span>Tint</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.TintColor" OnColorChange="@OnChangeTintColor"/>
+                </div>
+            </section>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-stars"></i>
+                Semantic Colors
+            </h3>
+            <p class="helper-text">These map to the newer app tokens: primary, secondary, accent, danger, staff, and bot colors.</p>
+
+            <section class="color-section">
+                <div class="color-pill">
+                    <span>Primary</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantCyan" OnColorChange="@OnChangeVibrantColor3"/>
+                </div>
+                <div class="color-pill">
+                    <span>Secondary</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantPurple" OnColorChange="@OnChangeVibrantColor1"/>
+                </div>
+                <div class="color-pill">
+                    <span>Accent</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelCyanPurple" OnColorChange="@OnChangePastelColor2"/>
+                </div>
+                <div class="color-pill">
+                    <span>Danger</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelRed" OnColorChange="@OnChangePastelColorDanger"/>
+                </div>
+                <div class="color-pill">
+                    <span>Staff</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantCyan" OnColorChange="@OnChangeVibrantColor3"/>
+                </div>
+                <div class="color-pill">
+                    <span>Bot</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantPurple" OnColorChange="@OnChangeVibrantColor1"/>
+                </div>
+            </section>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-palette2"></i>
+                Legacy Palette Aliases
+            </h3>
+            <p class="helper-text">These keep older <code>--v-*</code> and <code>--p-*</code> theme variables editable.</p>
+
+            <section class="color-section">
+                <div class="color-pill">
+                    <span>Vibrant Blue</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantBlue" OnColorChange="@OnChangeVibrantColor2"/>
+                </div>
+                <div class="color-pill">
+                    <span>Pastel Cyan</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelCyan" OnColorChange="@OnChangePastelColor1"/>
+                </div>
+                <div class="color-pill">
+                    <span>Pastel Purple</span>
+                    <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelPurple" OnColorChange="@OnChangePastelColor3"/>
+                </div>
+            </section>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-filetype-css"></i>
+                Custom CSS
+            </h3>
+
+            <div class="form-group">
+                <InputTextArea @bind-Value="@_editingTheme.CustomCss" class="v-input custom-css-input" rows="8"></InputTextArea>
+                <p class="helper-text">Custom CSS is sanitized before preview and save. Use uploaded assets with the generated CSS variables below.</p>
+                <div class="actions">
+                    <VButton Variant="secondary" OnClick="@OnCssChange">Apply CSS to Preview</VButton>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-folder2-open"></i>
+                Theme Assets
+            </h3>
+            <p class="helper-text">Upload images or fonts. Images expose <code>var(--theme-asset-name)</code>; fonts expose <code>"theme-font-name"</code>.</p>
+
+            @if (_themeAssets?.Any() == true)
+            {
+                <div class="assets-list">
+                    @foreach (var asset in _themeAssets)
+                    {
+                        <div class="asset-row">
+                            @if (asset.AssetType == "font")
+                            {
+                                <div class="asset-icon">
+                                    <i class="bi bi-fonts"></i>
+                                </div>
+                                <div class="asset-info">
+                                    <strong>@asset.Name</strong>
+                                    <code>font-family: "theme-font-@asset.Name"</code>
+                                </div>
+                                <VButton Variant="secondary" Size="sm" OnClick="@(() => UseFontAsset(asset))">Use Font</VButton>
+                            }
+                            else
+                            {
+                                <img src="@asset.Url" alt="@asset.Name" class="asset-preview" />
+                                <div class="asset-info">
+                                    <strong>@asset.Name</strong>
+                                    <code>var(--theme-asset-@asset.Name)</code>
+                                </div>
+                            }
+                            <VButton Variant="danger" Size="sm" Icon="trash" Title="Delete asset" OnClick="@(() => DeleteAssetAsync(asset))" />
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="helper-text">No assets uploaded yet.</p>
+            }
+
+            @if (_editingTheme.Id != 0)
+            {
+                <div class="asset-upload-row">
+                    <input class="v-input asset-name-input" @bind="_newAssetName" placeholder="Asset name, e.g. background" />
+                    <VButton Variant="secondary" OnClick="@OpenAssetPickerAsync">Choose File</VButton>
+                    <span class="selected-file" title="@(_assetFileName ?? "No file selected")">@(_assetFileName ?? "No file selected")</span>
+                    <input id="@_assetUploadInputId" type="file" class="hidden-native-input" accept=".png,.jpg,.jpeg,.webp,.gif,.woff2,.woff,.ttf,.otf" />
+                </div>
+                <div class="actions">
+                    <VButton Variant="primary" Disabled="@_uploadingAsset" OnClick="@UploadAssetAsync">
+                        @(_uploadingAsset ? "Uploading..." : "Upload Asset")
+                    </VButton>
+                </div>
+                @if (!string.IsNullOrEmpty(_assetError))
+                {
+                    <p class="helper-text error-text">@_assetError</p>
+                }
+            }
+            else
+            {
+                <p class="helper-text">Save the theme first to upload assets.</p>
+            }
+        </div>
+
+        <div class="editor-section">
+            <div class="actions editor-actions">
+                <VButton Variant="danger" Size="lg" OnClick="@CancelEdit">Cancel Changes</VButton>
+                <VButton Variant="primary" Size="lg" OnClick="@ConfirmChangesAsync">Save Theme</VButton>
+            </div>
+            <ResultLabel Result="@_editingResult"/>
+        </div>
     </div>
-    
-    <br />
-    
-    <ResultLabel Result="@_editingResult"/>
-    
-    <br />
 }
-@* Home page *@
 else
 {
-    <h5>Current Theme:</h5>
-    <br/>
-    
-    <div class="current-theme-section">
-        <ThemeCard Theme="@ThemeComponent.Instance.CurrentTheme.ToMeta()" />
-        <div class="create-theme-card" @onclick="@EnterEditorNewTheme">
-            <div class="create-theme-content">
-                <div class="create-theme-icon">
-                    <i class="bi bi-plus-circle"></i>
-                </div>
-                <h4 class="create-theme-title">Create New Theme</h4>
-                <p class="create-theme-description">Start building your own custom theme</p>
-                <button class="create-theme-btn">
-                    <i class="bi bi-palette"></i>
-                    Get Started
+    <div class="settings-page wide theme-home-page">
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-stars"></i>
+                Current Theme
+            </h3>
+
+            <div class="current-theme-section">
+                <ThemeCard Theme="@ThemeComponent.Instance.CurrentTheme.ToMeta()" />
+                <button type="button" class="create-theme-card" @onclick="@EnterEditorNewTheme">
+                    <span class="create-theme-icon">
+                        <i class="bi bi-plus-circle"></i>
+                    </span>
+                    <span class="create-theme-title">Create New Theme</span>
+                    <span class="create-theme-description">Start from your current theme and preview changes live.</span>
+                    <span class="create-theme-btn">
+                        <i class="bi bi-palette"></i>
+                        Open Editor
+                    </span>
                 </button>
+            </div>
+
+            @if (ThemeComponent.Instance.CurrentTheme != Theme.Default)
+            {
+                <div class="actions">
+                    <VButton Variant="secondary" OnClick="@RevertThemeAsync">Revert to Default Theme</VButton>
+                </div>
+            }
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-compass"></i>
+                Popular Themes
+            </h3>
+            <LargeSearch Placeholder="Search themes..."
+                         DebounceMs="300"
+                         OnSearchChanged="@OnSearchChangeAsync"
+                         OnSearchCleared="@OnSearchCleared" />
+            <div class="carousel-section">
+                <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
+                          @ref="_popularCarousel"
+                          Items="@_popularThemesList"
+                          Breakpoints="@_themeBreakpoints"
+                          GapPx="16"
+                          TransitionMs="300"
+                          MinItemWidth="200"
+                          MaxItemWidth="300"
+                          ItemPadding="8"
+                          IsLoading="@_isLoadingPopular"
+                          EmptyMessage="No popular themes found">
+                    <ItemTemplate>
+                        <ThemeCard Theme="@context" Editor="@this" />
+                    </ItemTemplate>
+                </Carousel>
+            </div>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-person-workspace"></i>
+                My Themes
+            </h3>
+            <div class="carousel-section">
+                <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
+                          @ref="@_myCarousel"
+                          Items="@_myThemes"
+                          Breakpoints="@_themeBreakpoints"
+                          GapPx="16"
+                          TransitionMs="300"
+                          MinItemWidth="200"
+                          MaxItemWidth="300"
+                          ItemPadding="8"
+                          IsLoading="@_isLoadingMy"
+                          EmptyMessage="You haven't created any themes yet">
+                    <ItemTemplate>
+                        <ThemeCard Theme="@context" Editor="@this" />
+                    </ItemTemplate>
+                </Carousel>
             </div>
         </div>
     </div>
-    
-    @if (ThemeComponent.Instance.CurrentTheme != Theme.Default)
-    {
-        <div class="form-group">
-            <button class="btn v-btn tertiary mt-2" @onclick="@RevertThemeAsync">Revert to Default Theme</button>
-        </div>
-    }
-
-    <br/>
-    <br />
-    
-    <div class="theme-section">
-        <h5>Popular Themes</h5>
-        <LargeSearch Placeholder="Search themes..."
-                     DebounceMs="300"
-                     OnSearchChanged="@OnSearchChangeAsync"
-                     OnSearchCleared="@OnSearchCleared" />
-        <div class="carousel-section">
-            <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
-                      @ref="_popularCarousel"
-                      Items="@_popularThemesList"
-                      Breakpoints="@_themeBreakpoints"
-                      GapPx="16"
-                      TransitionMs="300"
-                      MinItemWidth="200"
-                      MaxItemWidth="300"
-                      ItemPadding="8"
-                      IsLoading="@_isLoadingPopular"
-                      EmptyMessage="No popular themes found">
-                <ItemTemplate>
-                    <ThemeCard Theme="@context" Editor="@this" />
-                </ItemTemplate>
-            </Carousel>
-        </div>
-    </div>
-    
-    <div class="theme-section">
-        <h5>My Themes</h5>
-        <div class="carousel-section">
-            <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
-                      @ref="@_myCarousel"
-                      Items="@_myThemes"
-                      Breakpoints="@_themeBreakpoints"
-                      GapPx="16"
-                      TransitionMs="300"
-                      MinItemWidth="200"
-                      MaxItemWidth="300"
-                      ItemPadding="8"
-                      IsLoading="@_isLoadingMy"
-                      EmptyMessage="You haven't created any themes yet">
-                <ItemTemplate>
-                    <ThemeCard Theme="@context" Editor="@this" />
-                </ItemTemplate>
-            </Carousel>
-        </div>
-    </div>
-
-    <br />
-    
 }
 
 @code {
@@ -381,6 +466,11 @@ else
     private string _assetError;
     private bool _uploadingAsset;
     private readonly string _assetUploadInputId = $"theme-asset-upload-{System.Guid.NewGuid():N}";
+    private IEnumerable<ThemeAssetInfo> FontAssets =>
+        _themeAssets?.Where(asset => asset.AssetType == "font") ?? Enumerable.Empty<ThemeAssetInfo>();
+
+    private string GetPublishedBadgeClass() =>
+        _editingTheme?.Published == true ? "status-badge enabled" : "status-badge";
 
     protected override async Task OnInitializedAsync()
     {
@@ -543,12 +633,18 @@ else
         _assetError = null;
 
         ThemeComponent.Instance.CurrentTheme = theme;
-        ThemeComponent.Instance.Refresh();
 
         Client.Logger.Log<EditThemeComponent>($"Entering editor for theme: {theme.Name}", "cyan");
 
         if (theme.Id != 0)
+        {
             await LoadThemeAssetsAsync(theme.Id);
+        }
+        else
+        {
+            _themeAssets = theme.Assets ?? new();
+            SyncThemeAssetsToPreview();
+        }
 
         StateHasChanged();
     }
@@ -566,8 +662,10 @@ else
         _editingTheme.Description = "A new theme!";
         _editingTheme.FontFamily = ISharedTheme.NormalizeFontFamily(_editingTheme.FontFamily);
         NormalizeEditingThemeRadii();
+        _themeAssets = new();
         
         ThemeComponent.Instance.CurrentTheme = _editingTheme;
+        SyncThemeAssetsToPreview();
         
         Client.Logger.Log<EditThemeComponent>("Entering editor for new theme.", "cyan");
         
@@ -800,7 +898,48 @@ else
             _themeAssets = response.Data ?? new();
         else
             _themeAssets = new();
+
+        SyncThemeAssetsToPreview();
     }
+
+    private void SyncThemeAssetsToPreview()
+    {
+        if (_editingTheme is null)
+            return;
+
+        _editingTheme.Assets = _themeAssets?.ToList() ?? new();
+
+        if (ReferenceEquals(ThemeComponent.Instance.CurrentTheme, _editingTheme) ||
+            ThemeComponent.Instance.CurrentTheme?.Id == _editingTheme.Id)
+        {
+            ThemeComponent.Instance.CurrentTheme.Assets = _editingTheme.Assets;
+            ThemeComponent.Instance.Refresh();
+        }
+    }
+
+    private void OnFontAssetSelected(ChangeEventArgs e)
+    {
+        var assetName = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(assetName))
+            return;
+
+        var asset = FontAssets.FirstOrDefault(x => x.Name == assetName);
+        if (asset is not null)
+            UseFontAsset(asset);
+    }
+
+    private void UseFontAsset(ThemeAssetInfo asset)
+    {
+        if (_editingTheme is null || asset is null || asset.AssetType != "font")
+            return;
+
+        _editingTheme.FontFamily = GetFontFamilyForAsset(asset);
+        ThemeComponent.Instance.Refresh();
+        StateHasChanged();
+    }
+
+    private static string GetFontFamilyForAsset(ThemeAssetInfo asset) =>
+        $"\"theme-font-{asset.Name}\", {ISharedTheme.DefaultFontFamily}";
 
     private async Task UploadAssetAsync()
     {
@@ -847,7 +986,7 @@ else
             }
             catch
             {
-                _assetError = "Failed to read the selected image file.";
+                _assetError = "Failed to read the selected asset file.";
                 return;
             }
 
@@ -876,6 +1015,7 @@ else
                 return;
             }
 
+            var uploadedAsset = result.Data;
             _newAssetName = null;
             _assetFileName = null;
             try
@@ -887,6 +1027,12 @@ else
                 // Safe to ignore; this is only for clearing local picker state.
             }
             await LoadThemeAssetsAsync(_editingTheme.Id);
+
+            if (uploadedAsset?.AssetType == "font")
+            {
+                var fontAsset = _themeAssets.FirstOrDefault(x => x.Id == uploadedAsset.Id) ?? uploadedAsset;
+                UseFontAsset(fontAsset);
+            }
         }
         finally
         {
@@ -909,6 +1055,11 @@ else
         if (result.Success)
         {
             await LoadThemeAssetsAsync(_editingTheme.Id);
+            StateHasChanged();
+        }
+        else
+        {
+            _assetError = result.Message ?? "Failed to delete asset.";
             StateHasChanged();
         }
     }

@@ -88,7 +88,8 @@
     --main-1: #040d14;
     --main-2: #0b151d;
     --main-3: #121e27;
-    --main-4: #212f3a;
+    --main-4: #182631;
+    --main-5: #212f3a;
 
     --modal-main: #040d1455;
     --modal-medium: #040d14aa;
@@ -146,16 +147,21 @@
     --color-bot: #bf06fd;
     --color-bot-contrast: #ffffff;
 
+    --pastel-cyan: #37a4ce;
+    --pastel-cyan-purple: #6278cd;
+    --pastel-purple: #8457cd;
+    --pastel-red: #cd5e5e;
+
     /* Legacy palette aliases. New component CSS should use the semantic colors above. */
     --v-purple: var(--color-bot);
     --v-blue:   #0c06fd;
     --v-cyan:   var(--color-staff);
 
-    --p-cyan:        var(--color-primary);
+    --p-cyan:        var(--pastel-cyan);
     --p-cyan-rgb:    55, 164, 206;
-    --p-cyan-purple: var(--color-accent);
-    --p-purple:      var(--color-secondary);
-    --p-red:         var(--color-danger);
+    --p-cyan-purple: var(--pastel-cyan-purple);
+    --p-purple:      var(--pastel-purple);
+    --p-red:         var(--pastel-red);
     --p-red-rgb:     205, 94, 94;
     --p-green:       var(--color-success);
     --p-green-rgb:   88, 196, 139;
@@ -183,9 +189,18 @@
 }
 
 :root.force-gpu-acceleration .chat-holder,
+:root.force-gpu-acceleration .full-channel-list,
+:root.force-gpu-acceleration .dm-container .list,
+:root.force-gpu-acceleration .friend-container .list,
+:root.force-gpu-acceleration .role-list,
+:root.force-gpu-acceleration .notifications-container .item-wrapper,
+:root.force-gpu-acceleration .tab-scroll,
 :root.force-gpu-acceleration .v-menu-content-body,
+:root.force-gpu-acceleration .v-menu-sidebar-content,
 :root.force-gpu-acceleration .hover-scrollbar {
-    will-change: scroll-position;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform, scroll-position;
 }
 
 /* Migrated legacy app globals. Keep this before the shared globals below to preserve cascade order. */

@@ -301,6 +301,20 @@ public class UploadApi
         "application/font-woff2",
     };
 
+    private static readonly HashSet<string> FontExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".woff2",
+        ".woff",
+        ".ttf",
+        ".otf",
+    };
+
+    private static bool IsFontUpload(IFormFile file)
+    {
+        var extension = Path.GetExtension(file.FileName);
+        return FontContentTypes.Contains(file.ContentType) || FontExtensions.Contains(extension);
+    }
+
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(20_971_520)] // 20 MB
     private static async Task<IResult> ThemeAssetRoute(
@@ -326,7 +340,7 @@ public class UploadApi
         if (file is null)
             return Results.BadRequest("Please attach a file");
 
-        var isFont = FontContentTypes.Contains(file.ContentType);
+        var isFont = IsFontUpload(file);
 
         if (!isFont && !CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");

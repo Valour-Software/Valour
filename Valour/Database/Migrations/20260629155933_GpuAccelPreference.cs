@@ -15,7 +15,7 @@ namespace Valour.Database.Migrations
                 table: "user_preferences",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: true);
         }
 
         /// <inheritdoc />

@@ -14,13 +14,15 @@
 
             --font-color: @CurrentTheme.FontColor;
             --font-alt-color: @CurrentTheme.FontAltColor;
+            --font-color-muted: var(--font-alt-color);
+            --font-color-mid: color-mix(in srgb, var(--font-color) 60%, var(--font-alt-color));
             --link-color: @CurrentTheme.LinkColor;
 
             --main-1: @CurrentTheme.MainColor1;
             --main-2: @CurrentTheme.MainColor2;
             --main-3: @CurrentTheme.MainColor3;
             --main-4: @CurrentTheme.MainColor4;
-            --main-4: @CurrentTheme.MainColor5;
+            --main-5: @CurrentTheme.MainColor5;
 
             --modal-main: @(CurrentTheme.MainColor1 + "55");
             --modal-medium: @(CurrentTheme.MainColor1 + "aa");
@@ -42,7 +44,7 @@
             --color-secondary-border: color-mix(in srgb, var(--color-secondary) 35%, transparent);
             --color-secondary-dimmed: color-mix(in srgb, var(--color-secondary) 75%, transparent);
 
-            --color-accent: @CurrentTheme.VibrantBlue;
+            --color-accent: @CurrentTheme.PastelCyanPurple;
             --color-accent-contrast: #ffffff;
             --color-accent-soft: color-mix(in srgb, var(--color-accent) 15%, transparent);
             --color-accent-border: color-mix(in srgb, var(--color-accent) 35%, transparent);
@@ -77,15 +79,20 @@
             --color-bot: @CurrentTheme.VibrantPurple;
             --color-bot-contrast: #ffffff;
 
+            --pastel-cyan: @CurrentTheme.PastelCyan;
+            --pastel-cyan-purple: @CurrentTheme.PastelCyanPurple;
+            --pastel-purple: @CurrentTheme.PastelPurple;
+            --pastel-red: @CurrentTheme.PastelRed;
+
             /* Legacy palette aliases. New component CSS should use the semantic colors above. */
             --v-purple: var(--color-bot);
             --v-blue:   @CurrentTheme.VibrantBlue;
             --v-cyan:   var(--color-staff);
 
-            --p-cyan:        var(--color-primary);
-            --p-cyan-purple: var(--color-accent);
-            --p-purple:      var(--color-secondary);
-            --p-red:         var(--color-danger);
+            --p-cyan:        var(--pastel-cyan);
+            --p-cyan-purple: var(--pastel-cyan-purple);
+            --p-purple:      var(--pastel-purple);
+            --p-red:         var(--pastel-red);
             --p-green:       var(--color-success);
             --p-orange:      var(--color-warning);
 
