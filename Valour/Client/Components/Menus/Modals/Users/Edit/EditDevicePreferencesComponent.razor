@@ -1,6 +1,7 @@
 @inject IAppStorage LocalStorage
 @inject ValourClient Client
 @inject RealtimeKitDeviceService RealtimeKitDeviceService
+@inject IJSRuntime JsRuntime
 
 <div class="settings-page">
 
@@ -31,6 +32,25 @@
                 </label>
             </div>
             <p class="toggle-description">Share anonymous error reports to help improve Valour.</p>
+        </div>
+    </div>
+
+    @* ===== Performance ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-gpu-card"></i>
+            Performance
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Force GPU Acceleration</span>
+                <label class="switch">
+                    <input type="checkbox" @onclick="OnForceGpuAccelerationClick" checked="@_forceGpuAcceleration">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Promotes animation-heavy and scrolling surfaces to GPU layers for smoother rendering.</p>
         </div>
     </div>
 
@@ -147,6 +167,7 @@
     private bool _isInitializingDeviceLists;
     private int _initialDeviceLoadAttempts;
     private bool _errorReportingEnabled = DevicePreferences.ErrorReportingEnabled;
+    private bool _forceGpuAcceleration = DevicePreferences.ForceGpuAcceleration;
     private const int MaxInitialDeviceLoadAttempts = 20;
     private const string WebViewContextUnavailableMessage = "Cannot invoke JavaScript outside of a WebView context";
 
@@ -438,7 +459,10 @@
         if (response.Success && response.Data is not null)
         {
             _errorReportingEnabled = response.Data.ErrorReportingState == ErrorReportingState.All;
+            _forceGpuAcceleration = response.Data.ForceGpuAcceleration;
             await DevicePreferences.SetErrorReportingEnabled(_errorReportingEnabled, LocalStorage);
+            await DevicePreferences.SetForceGpuAccelerationEnabled(_forceGpuAcceleration, LocalStorage);
+            await DevicePreferences.ApplyForceGpuAccelerationAsync(JsRuntime);
         }
     }
 
@@ -448,6 +472,15 @@
         var state = _errorReportingEnabled ? ErrorReportingState.All : ErrorReportingState.None;
         await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)state}", null);
         await DevicePreferences.SetErrorReportingEnabled(_errorReportingEnabled, LocalStorage);
+        StateHasChanged();
+    }
+
+    private async Task OnForceGpuAccelerationClick()
+    {
+        _forceGpuAcceleration = !_forceGpuAcceleration;
+        await Client.PrimaryNode.PostAsync($"api/users/me/preferences/forceGpuAcceleration/{_forceGpuAcceleration.ToString().ToLowerInvariant()}", null);
+        await DevicePreferences.SetForceGpuAccelerationEnabled(_forceGpuAcceleration, LocalStorage);
+        await DevicePreferences.ApplyForceGpuAccelerationAsync(JsRuntime);
         StateHasChanged();
     }
 }

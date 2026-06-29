@@ -162,6 +162,32 @@
     --p-orange:      var(--color-warning);
 }
 
+:root.force-gpu-acceleration .gpu-accelerated,
+:root.force-gpu-acceleration .fade-wrap,
+:root.force-gpu-acceleration .modal-bg,
+:root.force-gpu-acceleration .window-dock,
+:root.force-gpu-acceleration .window-wrapper,
+:root.force-gpu-acceleration .window-split,
+:root.force-gpu-acceleration .reaction-selector-wrapper,
+:root.force-gpu-acceleration .context-btn,
+:root.force-gpu-acceleration .tooltip-root {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+:root.force-gpu-acceleration .window-wrapper.docked,
+:root.force-gpu-acceleration .window-split,
+:root.force-gpu-acceleration .scroll-to-bottom-button,
+:root.force-gpu-acceleration .app-recede {
+    will-change: transform, opacity;
+}
+
+:root.force-gpu-acceleration .chat-holder,
+:root.force-gpu-acceleration .v-menu-content-body,
+:root.force-gpu-acceleration .hover-scrollbar {
+    will-change: scroll-position;
+}
+
 /* Migrated legacy app globals. Keep this before the shared globals below to preserve cascade order. */
 /************************************/
 /* Replacements for Bootstrap stuff */

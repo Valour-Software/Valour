@@ -1,12 +1,14 @@
 using Valour.Client.Messages;
 using Valour.Client.Storage;
 using Valour.Client;
+using Microsoft.JSInterop;
 
 namespace Valour.Client.Device;
 
 public static class DevicePreferences
 {
     public const string ErrorReportingEnabledStorageKey = "ErrorReportingEnabled";
+    public const string ForceGpuAccelerationStorageKey = "ForceGpuAcceleration";
 
     public static event Func<string?, Task>? OnMicrophoneDeviceIdChanged;
     public static event Func<string?, Task>? OnCameraDeviceIdChanged;
@@ -20,6 +22,7 @@ public static class DevicePreferences
     public static string? MicrophoneDeviceId { get; set; }
     public static string? CameraDeviceId { get; set; }
     public static bool ErrorReportingEnabled { get; private set; }
+    public static bool ForceGpuAcceleration { get; private set; } = true;
 
     public static async Task SetMicrophoneDeviceId(string? deviceId, IAppStorage localStorage)
     {
@@ -44,6 +47,17 @@ public static class DevicePreferences
         ErrorReportingEnabled = isEnabled;
         SentryGate.IsEnabled = isEnabled;
         await localStorage.SetAsync(ErrorReportingEnabledStorageKey, isEnabled);
+    }
+
+    public static async Task SetForceGpuAccelerationEnabled(bool isEnabled, IAppStorage localStorage)
+    {
+        ForceGpuAcceleration = isEnabled;
+        await localStorage.SetAsync(ForceGpuAccelerationStorageKey, isEnabled);
+    }
+
+    public static async Task ApplyForceGpuAccelerationAsync(IJSRuntime jsRuntime)
+    {
+        await jsRuntime.InvokeVoidAsync("valourGpuAcceleration.setEnabled", ForceGpuAcceleration);
     }
 
     public static async Task LoadPreferences(IAppStorage localStorage)
@@ -71,6 +85,9 @@ public static class DevicePreferences
         {
             ErrorReportingEnabled = false;
         }
+
+        ForceGpuAcceleration = !await localStorage.ContainsKeyAsync(ForceGpuAccelerationStorageKey)
+            || await localStorage.GetAsync<bool>(ForceGpuAccelerationStorageKey);
 
         SentryGate.IsEnabled = ErrorReportingEnabled;
 

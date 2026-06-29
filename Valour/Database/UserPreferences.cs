@@ -25,4 +25,7 @@ public class UserPreferences : ISharedUserPreferences
 
     [Column("dm_policy")]
     public DmPolicy DmPolicy { get; set; } = DmPolicy.Everyone;
+
+    [Column("force_gpu_acceleration")]
+    public bool ForceGpuAcceleration { get; set; } = true;
 }

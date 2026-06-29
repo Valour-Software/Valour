@@ -67,6 +67,8 @@ else
     // Runs when page is initialized
     private async Task ReadyAsync()
     {
+        await DevicePreferences.ApplyForceGpuAccelerationAsync(JsRuntime);
+
         var uriData = await BrowserUtils.GetUriData();
         Logger.Log("App", $"Origin is {uriData.Origin}", "magenta");
 
@@ -263,6 +265,8 @@ else
 
             var prefs = response.Data;
             SoundManager.SetNotificationVolume(prefs.NotificationVolume);
+            await DevicePreferences.SetForceGpuAccelerationEnabled(prefs.ForceGpuAcceleration, LocalStorage);
+            await DevicePreferences.ApplyForceGpuAccelerationAsync(JsRuntime);
 
             if (prefs.ErrorReportingState == ErrorReportingState.All)
             {

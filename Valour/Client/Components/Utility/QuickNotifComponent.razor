@@ -24,16 +24,16 @@
 </div>
 
 @code {
-    
+
     const string FailedImageUrl = "_content/Valour.Client/media/logo/logo-128.webp";
-    
+
     private class QuickNotif
     {
         public Notification Notification { get; set; }
         public bool Animating { get; set; }
         public string ImageUrl { get; set; }
     }
-    
+
     private List<QuickNotif> _showing = new List<QuickNotif>();
 
     protected override void OnInitialized()
@@ -53,7 +53,7 @@
         NotificationService.NotificationReceived -= NotificationHandler;
         NotificationService.NotificationsCleared -= NotificationsClearedHandler;
     }
-    
+
     private Task NotificationsClearedHandler()
     {
         return InvokeAsync(() =>
@@ -69,7 +69,8 @@
         {
             bool render = false;
 
-            if (notification.TimeRead is null)
+            if (notification.TimeRead is null &&
+                !NotificationDisplayGate.ShouldSuppressLocalNotification(notification))
             {
                 _showing.Add(new QuickNotif()
                 {
