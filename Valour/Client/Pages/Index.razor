@@ -98,9 +98,9 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		await EmojiTrieBuilder.SetupTrieAsync(Client);
-
 		_startRoute = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+
+		await EmojiTrieBuilder.SetupTrieAsync(Client);
 
 		await base.OnInitializedAsync();
 

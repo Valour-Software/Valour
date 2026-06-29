@@ -43,6 +43,11 @@ public class PlanetListInfo : ServerModel<long>, ISharedPlanetListInfo
     /// True if the planet is marked as NSFW
     /// </summary>
     public bool Nsfw { get; set; }
+
+    /// <summary>
+    /// True if the planet is discoverable (shows up in planet discovery)
+    /// </summary>
+    public bool Discoverable { get; set; }
     
     /// <summary>
     /// The number of members in the planet

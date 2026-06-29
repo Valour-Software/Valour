@@ -138,6 +138,7 @@ public class PlanetService
         HasCustomIcon = x.HasCustomIcon,
         HasAnimatedIcon = x.HasAnimatedIcon,
         HasCustomBackground = x.HasCustomBackground,
+        Discoverable = x.Discoverable,
         MemberCount = x.Members.Count(m => !m.IsDeleted),
         Version = x.Version,
         Tags = x.Tags.Select(t => new PlanetTag
