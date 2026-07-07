@@ -6,10 +6,10 @@
         @if (_canChangeUsername)
         {
             <div class="form-group">
-                <label class="m-2">Password</label>
-                <input id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password"/>
                 <label class="m-2">New Username</label>
                 <input id="new-username-input" type="text" autocomplete="off" class="form-control" @bind-value="@_newUsername"/>
+                <label class="m-2">Password</label>
+                <PasswordInput id="password-input" autocomplete="current-password" @bind-Value="@_password"/>
             </div>
         }
         else
