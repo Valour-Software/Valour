@@ -39,21 +39,122 @@
                 </span>
             </TooltipContent>
         </TooltipTrigger>
+        <TooltipTrigger Position="left">
+            <ChildContent>
+                <div @onclick="@OnClickSettings" type="button" tabindex="0" class="settings-btn">
+                    <i class="bi bi-gear-fill"></i>
+                </div>
+            </ChildContent>
+            <TooltipContent>
+                <span>
+                    Settings
+                </span>
+            </TooltipContent>
+        </TooltipTrigger>
+        @if (_settingsVisible)
+        {
+            <div @onclick="@CloseSettings" class="search-backdrop"></div>
+            <div class="settings-results glassy-modal">
+                <div class="settings-header">Chat Settings</div>
+
+                <div class="channel-setting" @onclick="@OnClickGhostTyping">
+                    <div class="setting-icon"><i class="bi @(ClientFlags.GhostTyping ? "bi-eye-slash-fill" : "bi-eye-fill")"></i></div>
+                    <div class="setting-text">
+                        <span class="setting-title">Ghost Typing</span>
+                        <span class="setting-subtitle">Hide that you're typing from others</span>
+                    </div>
+                    <div class="toggle-switch @(ClientFlags.GhostTyping ? "on" : "")">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="channel-setting" @onclick="@OnClickShowDeletedMessages">
+                    <div class="setting-icon"><i class="bi bi-trash3-fill"></i></div>
+                    <div class="setting-text">
+                        <span class="setting-title">Show Deleted Messages</span>
+                        <span class="setting-subtitle">Keep deleted messages visible, marked in red</span>
+                    </div>
+                    <div class="toggle-switch @(ClientFlags.ShowDeletedMessages ? "on" : "")">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="channel-setting" @onclick="@OnClickShowEditHistory">
+                    <div class="setting-icon"><i class="bi bi-clock-history"></i></div>
+                    <div class="setting-text">
+                        <span class="setting-title">Show Edit History</span>
+                        <span class="setting-subtitle">Display previous versions of edited messages</span>
+                    </div>
+                    <div class="toggle-switch @(ClientFlags.ShowEditHistory ? "on" : "")">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
 @code {
     private bool _searchVisible = false;
-    
+    private bool _settingsVisible = false;
+
     [Parameter]
     public Channel Channel { get; set; }
-    
+
     [Parameter]
     public ChatWindowComponent ChatComponent { get; set; }
+
+    [Inject]
+    public IAppStorage LocalStorage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await LocalStorage.ContainsKeyAsync("ghost-typing"))
+            ClientFlags.GhostTyping = await LocalStorage.GetAsync<bool>("ghost-typing");
+
+        if (await LocalStorage.ContainsKeyAsync("show-deleted-messages"))
+            ClientFlags.ShowDeletedMessages = await LocalStorage.GetAsync<bool>("show-deleted-messages");
+
+        if (await LocalStorage.ContainsKeyAsync("show-edit-history"))
+            ClientFlags.ShowEditHistory = await LocalStorage.GetAsync<bool>("show-edit-history");
+    }
 
     private void OnClickMembers()
     {
         ChatComponent.ToggleMembersList();
+    }
+
+    private void OnClickSettings()
+    {
+        _settingsVisible = !_settingsVisible;
+        StateHasChanged();
+    }
+
+    private void CloseSettings()
+    {
+        _settingsVisible = false;
+        StateHasChanged();
+    }
+
+    private async Task OnClickGhostTyping()
+    {
+        ClientFlags.GhostTyping = !ClientFlags.GhostTyping;
+        await LocalStorage.SetAsync("ghost-typing", ClientFlags.GhostTyping);
+        StateHasChanged();
+    }
+
+    private async Task OnClickShowDeletedMessages()
+    {
+        ClientFlags.ShowDeletedMessages = !ClientFlags.ShowDeletedMessages;
+        await LocalStorage.SetAsync("show-deleted-messages", ClientFlags.ShowDeletedMessages);
+        StateHasChanged();
+    }
+
+    private async Task OnClickShowEditHistory()
+    {
+        ClientFlags.ShowEditHistory = !ClientFlags.ShowEditHistory;
+        await LocalStorage.SetAsync("show-edit-history", ClientFlags.ShowEditHistory);
+        StateHasChanged();
     }
     
     private void OnClickSearch()

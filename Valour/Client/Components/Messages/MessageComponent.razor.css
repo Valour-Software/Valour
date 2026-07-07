@@ -299,6 +299,22 @@
     font-size: var(--font-size-xs);
 }
 
+.deleted-flag {
+    color: var(--color-danger);
+    margin: 0;
+    font-size: var(--font-size-xs);
+}
+
+/* Deleted messages stay in place but show in red */
+.message.deleted .content {
+    color: var(--color-danger) !important;
+}
+
+.message.deleted .attachment-wrapper,
+.message.deleted .reactions {
+    display: none;
+}
+
 .preview-message .message .reply:hover {
     cursor: pointer;
 }

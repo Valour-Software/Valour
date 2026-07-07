@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+    <title>Valour</title>
+    <base href="/" />
+    <link rel="apple-touch-icon" sizes="180x180" href="_content/Valour.Client/media/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="_content/Valour.Client/media/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="_content/Valour.Client/media/favicon/favicon-16x16.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <link rel="preload" href="_content/Valour.Client/css/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="_content/Valour.Client/css/fonts/bootstrap-icons.woff2" as="font" type="font/woff2" crossorigin>
+    
+    <meta name="msapplication-TileColor" content="#040d14">
+    <meta name="description" content="Valour is a community social platform based on privacy and transparency.">
+    <meta name="keywords" content="Chat, Communication, Gaming, Privacy">
+    <meta property="og:site_name" content="Valour">
+    <meta name="twitter:image:alt" content="The Valour logo">
+    <meta name="theme-color" content="#040d14">
+    <link href="_content/Valour.Client/css/bundled.min.css?version=$(SHORTHASH)" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+</head>
+
+<body style="max-width:100vw; height:100dvh; touch-action: manipulation;">
+    <app>
+        <div class='loading-container'>
+            <div class='loading-center'>
+                <img alt="Valour logo" src='_content/Valour.Client/media/logo/logo-256.webp' class='loading-logo color-shift'>
+                <p class="loading-title">Valour</p>
+            </div>
+        </div>
+    </app>
+</body>
+
+</html>
+
+<script src="_content/Valour.Client/js/valour-runtime-config.js?version=$(SHORTHASH)"></script>
+<script src="_content/Valour.Client/js/main.js?version=$(SHORTHASH)"></script>
+<script async src="_content/Valour.Client/js/channel.js?version=$(SHORTHASH)"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+<script async src="_framework/blazor.webassembly.js?version=$(SHORTHASH)"></script>
+<script async src="https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/dist/browser.js?v=5.6.0"></script>
+<script async src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+<script async src="_content/Valour.Client/js/twemoji.min.js"></script>
+<script async src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script async type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<script async src="_content/Valour.Client/js/realtimekit.js"></script>
+<script>
+    const registerRes = navigator.serviceWorker.register('/service-worker.js');
+
+    window.updateAvailable = new Promise(function (resolve, reject) {
+        if ('serviceWorker' in navigator) {
+            registerRes.then(function (registration) {
+                console.log('Registration successful, scope is:', registration.scope);
+                    registration.onupdatefound = () => {
+                        const installingWorker = registration.installing;
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed') {
+                                resolve(!!navigator.serviceWorker.controller);
+                            }
+                        };
+                    };
+                })
+                .catch(error =>
+                    console.log('Service worker registration failed, error:', error));
+        }
+    });
+</script>

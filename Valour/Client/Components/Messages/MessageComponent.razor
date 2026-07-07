@@ -73,6 +73,11 @@ else
         }
 
         <div class="content">
+            @if (ClientFlags.ShowEditHistory && _message.EditHistory is not null && _message.EditHistory.Count > 0 && !_isInnerReply)
+            {
+                @RenderEditHistory
+            }
+
             @if (_message.Attachments != null)
             {
                 @for (var i = 0; i < _message.Attachments.Count; i++)
@@ -118,9 +123,14 @@ else
                 }
             }
             
-            @if (_message.EditedTime != null)
+            @if (_message.EditedTime != null && !_message.IsDeleted)
             {
                 <p class="edited-flag"> (Edited)</p>
+            }
+
+            @if (_message.IsDeleted)
+            {
+                <p class="deleted-flag"> (Deleted)</p>
             }
         </div>
     </div>
@@ -219,7 +229,39 @@ else
 
         builder.CloseElement();
     };
-    
+
+    private RenderFragment RenderEditHistory => builder =>
+    {
+        if (_message.EditHistory is null)
+            return;
+
+        var seq = 0;
+
+        foreach (var previous in _message.EditHistory)
+        {
+            if (string.IsNullOrWhiteSpace(previous))
+                continue;
+
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "fragments previous-content");
+            try
+            {
+                Markdown.RenderToFragment(
+                    previous,
+                    builder,
+                    MarkdownManager.Pipeline,
+                    MarkdownManager.Renderer,
+                    this);
+            } catch (Exception e)
+            {
+                Client.Logger.Log("Message", "Error rendering previous message content: " + e.Message, "red");
+                builder.AddContent(seq++, previous);
+            }
+
+            builder.CloseElement();
+        }
+    };
+
     private RenderFragment RenderReply => builder =>
     {
         var messageParams = new Params()
@@ -569,6 +611,9 @@ else
 
         if (_ghost)
             newClass += " ghost";
+
+        if (_message.IsDeleted)
+            newClass += " deleted";
 
         if (_animateIn)
             newClass += " message-enter";

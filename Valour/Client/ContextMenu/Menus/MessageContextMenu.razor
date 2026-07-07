@@ -75,7 +75,14 @@
     </Content>
 </ContextSubMenu>
 
-@if (_deletePermission == PermissionState.True)
+@if (Data.Message.IsDeleted)
+{
+    <ContextMenuItem OnClickAsync="@OnClickHide" Color="red">
+        <Label>Hide</Label>
+        <Icon><i class="bi bi-trash-fill"></i></Icon>
+    </ContextMenuItem>
+}
+else if (_deletePermission == PermissionState.True)
 {
     <ContextMenuItem OnClickAsync="@OnClickDelete" Color="red">
         <Label>Delete</Label>
@@ -239,6 +246,14 @@
         };
 
         ModalRoot.OpenModal<ConfirmModalComponent>(data);
+    }
+
+    private async Task OnClickHide()
+    {
+        await CloseAsync();
+
+        var chatComponent = Data.MessageComponent.ParamData.ChatComponent;
+        await chatComponent.RemoveMessageFromView(Data.Message);
     }
 
     private async Task OnClickReport()

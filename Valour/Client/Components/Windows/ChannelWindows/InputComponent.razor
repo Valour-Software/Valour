@@ -997,7 +997,9 @@
         }
 
         await ChatComponent.ScrollToBottom();
-        await ChatComponent.Channel.SendIsTyping();
+
+        if (!ClientFlags.GhostTyping)
+            await ChatComponent.Channel.SendIsTyping();
 
         Refresh();
     }
@@ -1065,6 +1067,14 @@
 
         var postMessage = PreviewMessage;
         InsertInviteAttachments(postMessage);
+
+        if (EditingMessageComponent is not null
+            && !string.IsNullOrEmpty(EditingOriginalText)
+            && EditingOriginalText != postMessage.Content)
+        {
+            postMessage.EditHistory ??= new List<string>();
+            postMessage.EditHistory.Add(EditingOriginalText);
+        }
 
         // Queue ghost message BEFORE clearing the preview so both changes
         // are batched into the same render frame (no layout shift gap).
