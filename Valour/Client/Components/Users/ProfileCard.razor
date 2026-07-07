@@ -51,6 +51,13 @@
                                 @if (HasBadges)
                                 {
                                     <div class="badge-cluster">
+                                        @if (ModdedPresenceService.OnlineUserIds.Contains(User.Id))
+                                        {
+                                            <div class="badge-chip modded-client">
+                                                <i class="bi bi-joystick"></i>
+                                                <span>Modded Client</span>
+                                            </div>
+                                        }
                                         @if (User.HasStargazer)
                                         {
                                             <div class="badge-chip stargazer">
@@ -211,7 +218,8 @@
     }
 
     private bool HasAnimatedBorder => Profile?.AnimatedBorder == true;
-    private bool HasBadges => User?.HasStargazer == true || User?.Bot == true || User?.ValourStaff == true;
+    private bool HasBadges => User?.HasStargazer == true || User?.Bot == true || User?.ValourStaff == true ||
+                               (User is not null && ModdedPresenceService.OnlineUserIds.Contains(User.Id));
     private bool HasHeadline => !string.IsNullOrWhiteSpace(Profile?.Headline);
     private bool ShowActions => User is not null && Client.Me is not null && User.Id != Client.Me.Id;
     private string StatusText => string.IsNullOrWhiteSpace(_status) ? "No status set." : _status;

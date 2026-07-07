@@ -89,6 +89,17 @@
                         <div class="toggle-knob"></div>
                     </div>
                 </div>
+
+                <div class="channel-setting" @onclick="@OnClickShowModdedBadge">
+                    <div class="setting-icon"><i class="bi bi-joystick"></i></div>
+                    <div class="setting-text">
+                        <span class="setting-title">Modded Client Badge</span>
+                        <span class="setting-subtitle">Let other modded client users see that you're one too</span>
+                    </div>
+                    <div class="toggle-switch @(ClientFlags.ShowModdedBadge ? "on" : "")">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
             </div>
         }
     </div>
@@ -107,6 +118,12 @@
     [Inject]
     public IAppStorage LocalStorage { get; set; }
 
+    [Inject]
+    public ValourClient Client { get; set; }
+
+    [Inject]
+    public IJSRuntime JsRuntime { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         if (await LocalStorage.ContainsKeyAsync("ghost-typing"))
@@ -117,6 +134,16 @@
 
         if (await LocalStorage.ContainsKeyAsync("show-edit-history"))
             ClientFlags.ShowEditHistory = await LocalStorage.GetAsync<bool>("show-edit-history");
+
+        if (await LocalStorage.ContainsKeyAsync("show-modded-badge"))
+            ClientFlags.ShowModdedBadge = await LocalStorage.GetAsync<bool>("show-modded-badge");
+
+        // Always fetch the online list so everyone can see others' badges,
+        // regardless of whether this user opts in to reporting their own.
+        ModdedPresenceService.StartListRefresh(JsRuntime);
+
+        if (ClientFlags.ShowModdedBadge && Client.Me is not null)
+            ModdedPresenceService.StartReporting(Client.Me.Id, Client.Me.Name);
     }
 
     private void OnClickMembers()
@@ -154,6 +181,23 @@
     {
         ClientFlags.ShowEditHistory = !ClientFlags.ShowEditHistory;
         await LocalStorage.SetAsync("show-edit-history", ClientFlags.ShowEditHistory);
+        StateHasChanged();
+    }
+
+    private async Task OnClickShowModdedBadge()
+    {
+        ClientFlags.ShowModdedBadge = !ClientFlags.ShowModdedBadge;
+        await LocalStorage.SetAsync("show-modded-badge", ClientFlags.ShowModdedBadge);
+
+        if (ClientFlags.ShowModdedBadge && Client.Me is not null)
+        {
+            ModdedPresenceService.StartReporting(Client.Me.Id, Client.Me.Name);
+        }
+        else
+        {
+            ModdedPresenceService.StopReporting();
+        }
+
         StateHasChanged();
     }
     
