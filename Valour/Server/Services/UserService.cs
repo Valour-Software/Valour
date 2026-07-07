@@ -558,6 +558,7 @@ public class UserService
 
             // Evict after commit to avoid re-cache race
             _tokenService.RemoveFromQuickCache(tokenId);
+            _coreHub.ForceLogoutToken(tokenId);
 
             return new TaskResult(true, "Token revoked successfully");
         }
@@ -586,6 +587,7 @@ public class UserService
             foreach (var token in tokens)
             {
                 _tokenService.RemoveFromQuickCache(token.Id);
+                _coreHub.ForceLogoutToken(token.Id);
             }
 
             return new TaskResult(true, $"Revoked {tokens.Count} tokens");

@@ -6,5 +6,6 @@ public class AuthResult {
     public AuthToken? Token { get; set; }
     public bool RequiresMultiAuth { get; set; } = false;
     public bool RequiresEmailVerification { get; set; } = false;
+    public bool Disabled { get; set; } = false;
     public int Code { get; set; }
 }

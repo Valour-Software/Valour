@@ -496,9 +496,10 @@ public class Node : ServiceBase // each node acts like a service
                 response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Client.AuthService.Token);
                 authorized = response.Success;
 
-                // Token invalid or expired. Clear 
+                // Token invalid or expired — clear local auth state and surface the event.
                 if (response.Code == 401)
                 {
+                    Client.AuthService.HandleTokenInvalidated();
                     return response;
                 }
             }
@@ -605,6 +606,7 @@ public class Node : ServiceBase // each node acts like a service
         HubConnection.On<Notification>("RelayNotification", Client.NotificationService.OnNotificationReceived);
         HubConnection.On("RelayNotificationsCleared", Client.NotificationService.OnNotificationsCleared);
         HubConnection.On<FriendEventData>("RelayFriendEvent", Client.FriendService.OnFriendEventReceived);
+        HubConnection.On<string>("ForceLogout", reason => Client.AuthService.HandleTokenInvalidated(reason));
 
 
         Log("Item Events hooked.");
@@ -961,6 +963,8 @@ public class Node : ServiceBase // each node acts like a service
                 return await TryDeserializeResponse<T>(response, uri);
             }
 
+            NotifyIfUnauthorized(response);
+
             // Handle 404 if allowed
             if (response.StatusCode == HttpStatusCode.NotFound && allow404)
             {
@@ -1014,6 +1018,8 @@ public class Node : ServiceBase // each node acts like a service
             if (response.IsSuccessStatusCode)
                 return TaskResult<string>.FromData(msg);
 
+            NotifyIfUnauthorized(response);
+
             // Handle 404 if allowed
             if (response.StatusCode == HttpStatusCode.NotFound && allow404)
             {
@@ -1066,6 +1072,8 @@ public class Node : ServiceBase // each node acts like a service
             if (response.IsSuccessStatusCode)
                 return await TryDeserializeResponse<T>(response, uri);
 
+            NotifyIfUnauthorized(response);
+
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
             {
@@ -1113,6 +1121,8 @@ public class Node : ServiceBase // each node acts like a service
             if (response.IsSuccessStatusCode)
                 return await TryDeserializeResponse<T>(response, uri);
 
+            NotifyIfUnauthorized(response);
+
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
             {
@@ -1125,12 +1135,12 @@ public class Node : ServiceBase // each node acts like a service
 
             var msg = await response.Content.ReadAsStringAsync();
             LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
-            
+
             // if it's a 400, we can use the msg as the error message
             var s = (int)response.StatusCode;
             if (s > 399 && s < 500)
                 return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
-            
+
             return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
         }
         catch (HttpRequestException ex)
@@ -1158,6 +1168,8 @@ public class Node : ServiceBase // each node acts like a service
             if (response.IsSuccessStatusCode)
                 return await TryDeserializeResponse<T>(response, uri);
 
+            NotifyIfUnauthorized(response);
+
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
             {
@@ -1170,7 +1182,7 @@ public class Node : ServiceBase // each node acts like a service
 
             var msg = await response.Content.ReadAsStringAsync();
             LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
-            
+
             // if it's a 400, we can use the msg as the error message
             var s = (int)response.StatusCode;
             if (s > 399 && s < 500)
@@ -1215,6 +1227,8 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
                 return await TryDeserializeResponse<T>(response, uri);
             }
         }
+
+        NotifyIfUnauthorized(response);
 
         // Wrong node! it returned the correct node name so we can actually forward this.
         if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
@@ -1265,6 +1279,8 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             if (response.IsSuccessStatusCode)
                 return TaskResult.FromSuccess(msg);
 
+            NotifyIfUnauthorized(response);
+
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
             {
@@ -1311,6 +1327,8 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
             if (response.IsSuccessStatusCode)
                 return TaskResult.FromSuccess(msg);
+
+            NotifyIfUnauthorized(response);
 
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
@@ -1360,6 +1378,8 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             if (response.IsSuccessStatusCode)
                 return TaskResult.FromSuccess(msg);
 
+            NotifyIfUnauthorized(response);
+
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
             {
@@ -1399,6 +1419,8 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             if (response.IsSuccessStatusCode)
                 return TaskResult.FromSuccess(msg);
 
+            NotifyIfUnauthorized(response);
+
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
             {
@@ -1417,6 +1439,12 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             LogError($"Critical HTTP Failure - DELETE {uri}:", ex);
             return TaskResult.FromFailure(ex);
         }
+    }
+
+    private void NotifyIfUnauthorized(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            Client.AuthService.HandleTokenInvalidated();
     }
 
     /// <summary>

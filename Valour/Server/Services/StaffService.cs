@@ -11,13 +11,15 @@ public class StaffService
     private readonly ValourDb _db;
     private readonly UserService _userService;
     private readonly TokenService _tokenService;
+    private readonly CoreHubService _coreHub;
     private readonly ILogger<StaffService> _logger;
 
-    public StaffService(ValourDb db, UserService userService, TokenService tokenService, ILogger<StaffService> logger)
+    public StaffService(ValourDb db, UserService userService, TokenService tokenService, CoreHubService coreHub, ILogger<StaffService> logger)
     {
         _db = db;
         _userService = userService;
         _tokenService = tokenService;
+        _coreHub = coreHub;
         _logger = logger;
     }
 
@@ -120,6 +122,8 @@ public class StaffService
 
         foreach (var token in tokens)
             _tokenService.RemoveFromQuickCache(token.Id);
+
+        _coreHub.ForceLogoutUser(userId);
 
         return TaskResult.SuccessResult;
     }
