@@ -1,4 +1,13 @@
+using Valour.Shared.Utilities;
+
 namespace Valour.Client.Utility;
+
+public enum TimestampFormat
+{
+    TwelveHour,
+    TwentyFourHour,
+    Relative
+}
 
 public static class ClientFlags
 {
@@ -6,4 +15,15 @@ public static class ClientFlags
     public static bool ShowDeletedMessages { get; set; } = true;
     public static bool ShowEditHistory { get; set; } = true;
     public static bool ShowModdedBadge { get; set; } = false;
+    public static bool AlwaysShowTimestamps { get; set; } = false;
+    public static TimestampFormat TimestampFormat { get; set; } = TimestampFormat.TwelveHour;
+
+    /// <summary>
+    /// Fired when a flag affecting already-rendered messages changes, so
+    /// mounted MessageComponents can recompute and re-render immediately
+    /// instead of waiting for their next natural render.
+    /// </summary>
+    public static HybridEvent Changed;
+
+    public static void NotifyChanged() => Changed?.Invoke();
 }

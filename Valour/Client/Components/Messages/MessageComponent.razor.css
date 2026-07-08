@@ -274,11 +274,13 @@
     line-height: calc(var(--font-size-md) * var(--line-height-base));
 }
 
-.message:hover > .content-holder > .name-role-holder > .time {
+.message:hover > .content-holder > .name-role-holder > .time,
+.message.force-time > .content-holder > .name-role-holder > .time {
     display: block;
 }
 
-.message.minimal:hover > .left-info > .time-container > .time {
+.message.minimal:hover > .left-info > .time-container > .time,
+.message.minimal.force-time > .left-info > .time-container > .time {
     display: block;
 }
 

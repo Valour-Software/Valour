@@ -621,6 +621,9 @@ else
         if (_message.ReplyTo is not null)
             newClass += " hasreply";
 
+        if (ClientFlags.AlwaysShowTimestamps)
+            newClass += " force-time";
+
         _class = newClass;
     }
 
@@ -629,24 +632,49 @@ else
         var hoursAgo = (DateTime.UtcNow - _message.TimeSent).TotalHours;
         var localTime = _message.TimeSent.ToLocalTime();
 
+        // The tooltip always shows the full absolute date/time, regardless of the
+        // display format chosen below.
+        _timeTitle = hoursAgo is >= 24 and <= 48
+            ? $"Yesterday at {localTime.ToShortTimeString()}"
+            : localTime.ToShortDateString().Replace("00", "") + " " + localTime.ToShortTimeString();
+
+        _timeText = ClientFlags.TimestampFormat switch
+        {
+            TimestampFormat.TwentyFourHour => BuildAbsoluteTimeText(localTime, hoursAgo, localTime.ToString("HH:mm")),
+            TimestampFormat.Relative => BuildRelativeTimeText(hoursAgo, localTime),
+            _ => BuildAbsoluteTimeText(localTime, hoursAgo, localTime.ToShortTimeString().Replace(' ', '\0'))
+        };
+    }
+
+    private static string BuildAbsoluteTimeText(DateTime localTime, double hoursAgo, string timeString)
+    {
         if (hoursAgo >= 24)
         {
-            if (hoursAgo <= 48)
-            {
-                _timeTitle = $"Yesterday at {localTime.ToShortTimeString()}";
-                _timeText = "Yesterday";
-            }
-            else
-            {
-                _timeTitle = localTime.ToShortDateString().Replace("00", "") + " " + localTime.ToShortTimeString();
-                _timeText = $"{localTime.ToShortDateString().Replace("00", "")}";
-            }
+            return hoursAgo <= 48
+                ? "Yesterday"
+                : localTime.ToShortDateString().Replace("00", "");
         }
-        else
-        {
-            _timeTitle = localTime.ToShortDateString().Replace("00", "") + " " + localTime.ToShortTimeString();
-            _timeText = localTime.ToShortTimeString().Replace(' ', '\0');
-        }
+
+        return timeString;
+    }
+
+    private static string BuildRelativeTimeText(double hoursAgo, DateTime localTime)
+    {
+        var minutesAgo = hoursAgo * 60;
+
+        if (minutesAgo < 1)
+            return "just now";
+
+        if (minutesAgo < 60)
+            return $"{(int)minutesAgo}m ago";
+
+        if (hoursAgo < 24)
+            return $"{(int)hoursAgo}h ago";
+
+        var daysAgo = (int)(hoursAgo / 24);
+        return daysAgo < 7
+            ? $"{daysAgo}d ago"
+            : localTime.ToShortDateString().Replace("00", "");
     }
 
     private Task OnClickName(MouseEventArgs e)
@@ -870,7 +898,8 @@ else
         _animateIn = ParamData.AnimateIn && !_isInnerReply;
         
         KeyboardListener.KeyDown += OnKeyDown;
-        
+        ClientFlags.Changed += OnClientFlagsChanged;
+
         if (_message is null)
         {
             Client.Logger.Log("Message", "MessageData is null", "red");
@@ -1008,6 +1037,13 @@ else
         }
     }
 
+    private async void OnClientFlagsChanged()
+    {
+        CalculateTime();
+        CalculateClassAndStyles();
+        await ReRender();
+    }
+
     public void OnUserUpdated(ModelUpdatedEvent<User> eventData)
     {
         bool render = false;
@@ -1125,6 +1161,7 @@ else
         }
 
         KeyboardListener.KeyDown -= OnKeyDown;
+        ClientFlags.Changed -= OnClientFlagsChanged;
     }
 
     /// <summary>

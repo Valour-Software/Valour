@@ -32,6 +32,31 @@
             </div>
             <p class="toggle-description">Share anonymous error reports to help improve Valour.</p>
         </div>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Always Show Timestamps</span>
+                <label class="switch">
+                    <input type="checkbox" @onclick="OnClickAlwaysShowTimestamps" checked="@ClientFlags.AlwaysShowTimestamps">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Show message times without needing to hover over them.</p>
+        </div>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Timestamp Format</span>
+            </div>
+            <p class="toggle-description">Choose how message times are displayed.</p>
+            <div class="form-group">
+                <select class="form-select" value="@ClientFlags.TimestampFormat" @onchange="@OnTimestampFormatChanged">
+                    <option value="@TimestampFormat.TwelveHour">12-hour (e.g. 3:45 PM)</option>
+                    <option value="@TimestampFormat.TwentyFourHour">24-hour (e.g. 15:45)</option>
+                    <option value="@TimestampFormat.Relative">Relative (e.g. 5m ago)</option>
+                </select>
+            </div>
+        </div>
     </div>
 
     @* ===== Microphone ===== *@
@@ -168,6 +193,12 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadErrorReportingStateAsync();
+
+        if (await LocalStorage.ContainsKeyAsync("always-show-timestamps"))
+            ClientFlags.AlwaysShowTimestamps = await LocalStorage.GetAsync<bool>("always-show-timestamps");
+
+        if (await LocalStorage.ContainsKeyAsync("timestamp-format"))
+            ClientFlags.TimestampFormat = await LocalStorage.GetAsync<TimestampFormat>("timestamp-format");
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -396,6 +427,23 @@
         DevicePreferences.AutoEmoji = !DevicePreferences.AutoEmoji;
         await LocalStorage.SetAsync("AutoEmoji", DevicePreferences.AutoEmoji);
         MarkdownManager.RegenPipeline();
+    }
+
+    private async Task OnClickAlwaysShowTimestamps()
+    {
+        ClientFlags.AlwaysShowTimestamps = !ClientFlags.AlwaysShowTimestamps;
+        await LocalStorage.SetAsync("always-show-timestamps", ClientFlags.AlwaysShowTimestamps);
+        ClientFlags.NotifyChanged();
+    }
+
+    private async Task OnTimestampFormatChanged(ChangeEventArgs e)
+    {
+        if (!Enum.TryParse<TimestampFormat>(e.Value?.ToString(), out var format))
+            return;
+
+        ClientFlags.TimestampFormat = format;
+        await LocalStorage.SetAsync("timestamp-format", ClientFlags.TimestampFormat);
+        ClientFlags.NotifyChanged();
     }
 
     private string GetMicPermissionDescription()

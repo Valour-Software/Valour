@@ -181,6 +181,7 @@
     {
         ClientFlags.ShowEditHistory = !ClientFlags.ShowEditHistory;
         await LocalStorage.SetAsync("show-edit-history", ClientFlags.ShowEditHistory);
+        ClientFlags.NotifyChanged();
         StateHasChanged();
     }
 
@@ -200,7 +201,7 @@
 
         StateHasChanged();
     }
-    
+
     private void OnClickSearch()
     {
         _searchVisible = !_searchVisible;
