@@ -7,11 +7,18 @@
 @using Valour.TenorTwo.Responses
 
 <div style="display: @(_visible ? "absolute" : "none")" id="tenor-bg-@ChannelWindow.WindowCtx.Id" class="tenor-bg">
-    <input @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchChange" class="form-control mb-2" placeholder="Search Tenor..." />
+    <div class="tenor-toolbar">
+        <input @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchChange" class="form-control mb-2" placeholder="Search Klipy..." />
+        <button type="button" class="v-btn secondary favorites-shortcut" @onclick="OnClickFavoritesShortcut">❤️ Favorites</button>
+    </div>
     <div class="masonry-scroller">
         <div id="masonry-root-@ChannelWindow.WindowCtx.Id" class="masonry-root">
             @if (SearchResults?.Results is not null)
             {
+                // Built once per render instead of doing a linear Any() scan (with a
+                // fresh closure allocation) for every single cell below.
+                var favoriteIds = new HashSet<string>(TenorService.TenorFavorites.Select(x => x.TenorId));
+
                 foreach (var result in SearchResults.Results)
                 {
                     var media = result.GetFormat(MediaFormatType.tinygif);
@@ -19,8 +26,8 @@
                         return;
 
                     var addGif = result;
-                    <div @key="@("cell-" + result.Id)" class="masonry-cell" @onclick="async () => await OnClickGif(result)">
-                        @if (TenorService.TenorFavorites.Any(x => x.TenorId == result.Id))
+                    <div @key="@result.Id" class="masonry-cell" @onclick="async () => await OnClickGif(result)">
+                        @if (favoriteIds.Contains(result.Id))
                         {
                             <h3 class="favorite" @onclick="() => OnClickUnfavorite(addGif)" @onclick:stopPropagation="true">❤️</h3>
                         }
@@ -32,23 +39,22 @@
                     </div>
                 }
             }
-            else if (CategoryResults is not null)
+            else if (_categoryTiles is not null)
             {
-                <div class="masonry-cell">
-                    <h2>Favorites ❤️</h2>
-                    <img data-natwidth="210" data-natheight="180" class="item" src="./_content/Valour.Client/media/Spookvooper.jpg" alt="Favorites" @onclick='() => OnClickCategory(":favorites:")'/>
-                </div>
-                
-                foreach (var category in CategoryResults.Categories)
+                foreach (var tile in _categoryTiles)
                 {
-                    <div class="masonry-cell">
-                        <h2>@category.Name</h2>
-                        <img data-natwidth="210" data-natheight="180" class="item" src="@category.Image" alt="@category.Name" @onclick="() => OnClickCategory(category.SearchTerm)"/>
+                    <div @key="@tile.SearchTerm" class="masonry-cell" @onclick="() => OnClickCategoryTile(tile.SearchTerm)">
+                        <h2>@tile.Name</h2>
+                        @if (tile.ThumbnailUrl is not null)
+                        {
+                            <img data-natwidth="210" data-natheight="180" class="item" src="@tile.ThumbnailUrl" alt="@tile.Name"/>
+                        }
                     </div>
                 }
             }
         </div>
     </div>
+    <div class="powered-by">Powered by KLIPY</div>
 </div>
 
 @code {
@@ -66,9 +72,33 @@
     private DotNetObjectReference<TenorMenuComponent> _thisRef;
     
     private MediaResponse SearchResults { get; set; }
-    
-    private CategoriesResponse CategoryResults { get; set; }
-    
+
+    private List<CategoryTile> _categoryTiles;
+    private bool _loadingCategoryTiles;
+
+    private static readonly (string Name, string SearchTerm)[] CategoryDefinitions =
+    {
+        ("Happy", "happy"),
+        ("Sad", "sad"),
+        ("Love", "love"),
+        ("Excited", "excited"),
+        ("Angry", "angry"),
+        ("Surprised", "surprised"),
+        ("Laughing", "laughing"),
+        ("Dance", "dance"),
+        ("Yes", "yes"),
+        ("No", "no"),
+        ("Ok", "ok"),
+        ("Hello", "hello"),
+    };
+
+    private class CategoryTile
+    {
+        public string Name { get; init; }
+        public string SearchTerm { get; init; }
+        public string ThumbnailUrl { get; set; }
+    }
+
     private string _searchTerm;
 
     private bool _visible = false;
@@ -114,16 +144,19 @@
 
     private async Task OnClickGif(TenorTwo.Models.Media media)
     {
-        ChannelWindow.InputComponent.AddTenor(media);
         Hide();
-        
-        // Register share to make Tenor happy
+
+        await ChannelWindow.InputComponent.AddTenor(media);
+
+        // Register share to make Tenor (well, Klipy) happy
         await TenorService.Client.RegisterShare(media.Id, _searchTerm);
     }
 
     private async Task OnSearchChange()
     {
-        string term = new string(_searchTerm);
+        // Strings are immutable, so this plain assignment already snapshots the current
+        // value for the staleness check below - no need to copy the string.
+        var term = _searchTerm;
         _newestSearch = _searchTerm;
         
         // If we're currently loading a result, wait to send off another request.
@@ -135,6 +168,7 @@
         if (string.IsNullOrWhiteSpace(_searchTerm))
         {
             SearchResults = null;
+            await LoadCategoryTilesAsync();
             Refresh();
             return;
         }
@@ -147,18 +181,56 @@
         await FocusAndScroll();
 
         if (_searchTerm == ":favorites:")
-            SearchResults = await TenorService.Client
-                .Posts(TenorService.TenorFavorites.Select(x => x.TenorId).ToArray(), 100, formatFilter: TenorService.Formats);
+        {
+            if (!TenorService.TenorFavorites.Any())
+            {
+                SearchResults = null;
+                await LoadCategoryTilesAsync();
+                Refresh();
+                return;
+            }
+
+            SearchResults = await TenorService.GetFavoritePostsAsync();
+        }
         else
             SearchResults = await TenorService.Client.Search(_searchTerm, 50, formatFilter: TenorService.Formats);
-        
+
         Refresh();
     }
 
-    private async Task OnClickCategory(string term)
+    private async Task OnClickFavoritesShortcut()
+    {
+        _searchTerm = ":favorites:";
+        await OnSearchChange();
+    }
+
+    private async Task OnClickCategoryTile(string term)
     {
         _searchTerm = term;
         await OnSearchChange();
+    }
+
+    private async Task LoadCategoryTilesAsync()
+    {
+        if (_categoryTiles is not null || _loadingCategoryTiles)
+            return;
+
+        _loadingCategoryTiles = true;
+
+        var tiles = CategoryDefinitions
+            .Select(c => new CategoryTile { Name = c.Name, SearchTerm = c.SearchTerm })
+            .ToList();
+
+        await Task.WhenAll(tiles.Select(async tile =>
+        {
+            var response = await TenorService.Client.Search(tile.SearchTerm, 1, formatFilter: TenorService.Formats);
+            var thumb = response?.Results?.FirstOrDefault()?.GetFormat(MediaFormatType.tinygif);
+            if (thumb is not null)
+                tile.ThumbnailUrl = thumb.Url;
+        }));
+
+        _categoryTiles = tiles;
+        _loadingCategoryTiles = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -190,11 +262,11 @@
     {
         _visible = true;
 
-        if (CategoryResults is null)
+        if (SearchResults is null && string.IsNullOrWhiteSpace(_searchTerm))
         {
-            CategoryResults = await TenorService.Client.Categories();
+            await LoadCategoryTilesAsync();
         }
-        
+
         await FocusAndScroll();
         Refresh();
     }

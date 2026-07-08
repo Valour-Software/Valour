@@ -680,17 +680,60 @@
         AddMessageAttachment(attachment);
     }
     
-    public void AddTenor(Media media)
+    public async Task AddTenor(Media media)
     {
         var format = media.GetFormat(MediaFormatType.gif);
+        if (format is null)
+            return;
+
+        var fileName = $"{media.Title}.gif";
+
+        // The server only accepts attachments hosted on a small allow-list of known hosts
+        // (see MediaUriHelper.IsAllowedLocation) and the GIF provider isn't on it, so the
+        // GIF bytes get downloaded and re-uploaded through Valour's own CDN, the same way
+        // a normal file attachment would be.
+        byte[] bytes;
+        try
+        {
+            bytes = await Client.TenorService.GetHttpClient().GetByteArrayAsync(format.Url);
+        }
+        catch (Exception ex)
+        {
+            Client.Logger.Log<InputComponent>($"Failed to download GIF: {ex.Message}", "red");
+            ModalRoot.OpenModal<InfoModalComponent>(
+                new InfoModalComponent.ModalParams(
+                    "GIF failed to add",
+                    "We couldn't download that GIF. Please try another one.",
+                    "Okay",
+                    null));
+            return;
+        }
+
+        var content = new MultipartFormDataContent();
+        var byteContent = new ByteArrayContent(bytes);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("image/gif");
+        content.Add(byteContent, fileName, fileName);
+
+        var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>("upload/image", content);
+        if (!result.Success)
+        {
+            Client.Logger.Log<InputComponent>($"Failed to upload GIF: {result.Message}", "red");
+            ModalRoot.OpenModal<InfoModalComponent>(
+                new InfoModalComponent.ModalParams(
+                    "GIF failed to add",
+                    result.Message,
+                    "Okay",
+                    null));
+            return;
+        }
 
         AddMessageAttachment(new MessageAttachment(MessageAttachmentType.Image)
         {
-            Location = format.Url,
+            Location = result.Data,
             MimeType = "image/gif",
             Width = format.Dims[0],
             Height = format.Dims[1],
-            FileName = media.Title + ".gif"
+            FileName = fileName
         });
     }
 

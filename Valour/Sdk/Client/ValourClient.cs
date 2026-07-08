@@ -1,5 +1,6 @@
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Services;
+using Valour.Sdk.Services.Klipy;
 using Valour.Sdk.Utility;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -136,7 +137,8 @@ public class ValourClient
         AttachmentService = new AttachmentService(this);
         ThreadService = new ThreadService(this);
 
-        var tenorHttpClient = new HttpClient();
+        var klipyHandler = new KlipyTenorCompatHandler(TenorService.LegacyTenorKey, TenorService.KlipyApiKey, new HttpClientHandler());
+        var tenorHttpClient = new HttpClient(klipyHandler);
         tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
         TenorService = new TenorService(tenorHttpClient, this);
     }

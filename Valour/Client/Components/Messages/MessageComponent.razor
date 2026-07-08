@@ -632,17 +632,21 @@ else
         var hoursAgo = (DateTime.UtcNow - _message.TimeSent).TotalHours;
         var localTime = _message.TimeSent.ToLocalTime();
 
+        // Computed once and reused below instead of calling ToShortTimeString() twice
+        // for the same value (it allocates a new string each time it's called).
+        var shortTime = localTime.ToShortTimeString();
+
         // The tooltip always shows the full absolute date/time, regardless of the
         // display format chosen below.
         _timeTitle = hoursAgo is >= 24 and <= 48
-            ? $"Yesterday at {localTime.ToShortTimeString()}"
-            : localTime.ToShortDateString().Replace("00", "") + " " + localTime.ToShortTimeString();
+            ? $"Yesterday at {shortTime}"
+            : localTime.ToShortDateString().Replace("00", "") + " " + shortTime;
 
         _timeText = ClientFlags.TimestampFormat switch
         {
             TimestampFormat.TwentyFourHour => BuildAbsoluteTimeText(localTime, hoursAgo, localTime.ToString("HH:mm")),
             TimestampFormat.Relative => BuildRelativeTimeText(hoursAgo, localTime),
-            _ => BuildAbsoluteTimeText(localTime, hoursAgo, localTime.ToShortTimeString().Replace(' ', '\0'))
+            _ => BuildAbsoluteTimeText(localTime, hoursAgo, shortTime.Replace(' ', '\0'))
         };
     }
 
