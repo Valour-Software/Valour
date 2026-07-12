@@ -1169,6 +1169,10 @@ img.emoji {
     max-height: 900px !important;
 }
 
+.message .fragments.big-emoji {
+    font-size: var(--font-size-5xl);
+}
+
 .message .fragments a:not(.nohide) {
     font-size: 0;
 }

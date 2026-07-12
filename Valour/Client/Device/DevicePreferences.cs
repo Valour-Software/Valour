@@ -17,6 +17,12 @@ public static class DevicePreferences
     /// </summary>
     public static bool AutoEmoji { get; set; } = false; // Default it to off
 
+    /// <summary>
+    /// True if messages containing only a few emojis (and no other text) should
+    /// be rendered larger, the same size as a heading.
+    /// </summary>
+    public static bool BigEmojiMessages { get; set; } = true;
+
     public static string? MicrophoneDeviceId { get; set; }
     public static string? CameraDeviceId { get; set; }
     public static bool ErrorReportingEnabled { get; private set; }
@@ -46,11 +52,22 @@ public static class DevicePreferences
         await localStorage.SetAsync(ErrorReportingEnabledStorageKey, isEnabled);
     }
 
+    public static async Task SetBigEmojiMessages(bool isEnabled, IAppStorage localStorage)
+    {
+        BigEmojiMessages = isEnabled;
+        await localStorage.SetAsync("BigEmojiMessages", isEnabled);
+    }
+
     public static async Task LoadPreferences(IAppStorage localStorage)
     {
         if (await localStorage.ContainsKeyAsync("AutoEmoji"))
         {
             AutoEmoji = await localStorage.GetAsync<bool>("AutoEmoji");
+        }
+
+        if (await localStorage.ContainsKeyAsync("BigEmojiMessages"))
+        {
+            BigEmojiMessages = await localStorage.GetAsync<bool>("BigEmojiMessages");
         }
 
         if (await localStorage.ContainsKeyAsync("MicrophoneDeviceId"))
