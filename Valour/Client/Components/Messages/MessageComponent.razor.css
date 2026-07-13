@@ -307,6 +307,13 @@
     font-size: var(--font-size-xs);
 }
 
+.original-label {
+    font-size: var(--font-size-xs);
+    color: var(--font-color-mid);
+    font-style: italic;
+    margin-left: 0.35em;
+}
+
 /* Deleted messages stay in place but show in red */
 .message.deleted .content {
     color: var(--color-danger) !important;

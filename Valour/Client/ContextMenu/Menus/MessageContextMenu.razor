@@ -46,6 +46,14 @@
     </ContextMenuItem>
 }
 
+@if (!string.IsNullOrWhiteSpace(Data.Message.Content))
+{
+    <ContextMenuItem OnClickAsync="@OnClickTranslate">
+        <Label>@(Data.MessageComponent.IsTranslated ? "Show Original" : "Translate")</Label>
+        <Icon><i class="bi bi-translate"></i></Icon>
+    </ContextMenuItem>
+}
+
 @if (Data.Message.AuthorUserId == Client.Me.Id)
 {
     <ContextMenuItem OnClickAsync="@OnClickEdit">
@@ -280,6 +288,12 @@ else if (_deletePermission == PermissionState.True)
     {
         await CloseAsync();
         await Data.MessageComponent.OpenEditMode();
+    }
+
+    private async Task OnClickTranslate()
+    {
+        await CloseAsync();
+        await Data.MessageComponent.ToggleTranslationAsync();
     }
 
 	    private async Task OnClickCopyText(){

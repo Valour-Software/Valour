@@ -55,51 +55,84 @@
         {
             <div @onclick="@CloseSettings" class="search-backdrop"></div>
             <div class="settings-results glassy-modal">
-                <div class="settings-header">Chat Settings</div>
+                @if (_languagePickerVisible)
+                {
+                    <div class="settings-header language-picker-header" @onclick="@CloseLanguagePicker" @onclick:stopPropagation="true">
+                        <i class="bi bi-arrow-left"></i>
+                        Translate Language
+                    </div>
+                    <div class="language-list">
+                        @foreach (var lang in TranslateLanguages.All)
+                        {
+                            <div class="language-option @(ClientFlags.TranslateLanguage == lang.Code ? "selected" : "")"
+                                 @onclick="() => OnSelectLanguage(lang.Code)"
+                                 @onclick:stopPropagation="true">
+                                <span>@lang.Name</span>
+                                @if (ClientFlags.TranslateLanguage == lang.Code)
+                                {
+                                    <i class="bi bi-check-lg"></i>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="settings-header">Chat Settings</div>
 
-                <div class="channel-setting" @onclick="@OnClickGhostTyping">
-                    <div class="setting-icon"><i class="bi @(ClientFlags.GhostTyping ? "bi-eye-slash-fill" : "bi-eye-fill")"></i></div>
-                    <div class="setting-text">
-                        <span class="setting-title">Ghost Typing</span>
-                        <span class="setting-subtitle">Hide that you're typing from others</span>
+                    <div class="channel-setting" @onclick="@OnClickTranslateLanguage">
+                        <div class="setting-icon"><i class="bi bi-translate"></i></div>
+                        <div class="setting-text">
+                            <span class="setting-title">Translate Language</span>
+                            <span class="setting-subtitle">Language used for the message right-click Translate option</span>
+                        </div>
+                        <div class="setting-value">@TranslateLanguages.GetName(ClientFlags.TranslateLanguage)</div>
                     </div>
-                    <div class="toggle-switch @(ClientFlags.GhostTyping ? "on" : "")">
-                        <div class="toggle-knob"></div>
-                    </div>
-                </div>
 
-                <div class="channel-setting" @onclick="@OnClickShowDeletedMessages">
-                    <div class="setting-icon"><i class="bi bi-trash3-fill"></i></div>
-                    <div class="setting-text">
-                        <span class="setting-title">Show Deleted Messages</span>
-                        <span class="setting-subtitle">Keep deleted messages visible, marked in red</span>
+                    <div class="channel-setting" @onclick="@OnClickGhostTyping">
+                        <div class="setting-icon"><i class="bi @(ClientFlags.GhostTyping ? "bi-eye-slash-fill" : "bi-eye-fill")"></i></div>
+                        <div class="setting-text">
+                            <span class="setting-title">Ghost Typing</span>
+                            <span class="setting-subtitle">Hide that you're typing from others</span>
+                        </div>
+                        <div class="toggle-switch @(ClientFlags.GhostTyping ? "on" : "")">
+                            <div class="toggle-knob"></div>
+                        </div>
                     </div>
-                    <div class="toggle-switch @(ClientFlags.ShowDeletedMessages ? "on" : "")">
-                        <div class="toggle-knob"></div>
-                    </div>
-                </div>
 
-                <div class="channel-setting" @onclick="@OnClickShowEditHistory">
-                    <div class="setting-icon"><i class="bi bi-clock-history"></i></div>
-                    <div class="setting-text">
-                        <span class="setting-title">Show Edit History</span>
-                        <span class="setting-subtitle">Display previous versions of edited messages</span>
+                    <div class="channel-setting" @onclick="@OnClickShowDeletedMessages">
+                        <div class="setting-icon"><i class="bi bi-trash3-fill"></i></div>
+                        <div class="setting-text">
+                            <span class="setting-title">Show Deleted Messages</span>
+                            <span class="setting-subtitle">Keep deleted messages visible, marked in red</span>
+                        </div>
+                        <div class="toggle-switch @(ClientFlags.ShowDeletedMessages ? "on" : "")">
+                            <div class="toggle-knob"></div>
+                        </div>
                     </div>
-                    <div class="toggle-switch @(ClientFlags.ShowEditHistory ? "on" : "")">
-                        <div class="toggle-knob"></div>
-                    </div>
-                </div>
 
-                <div class="channel-setting" @onclick="@OnClickShowModdedBadge">
-                    <div class="setting-icon"><i class="bi bi-joystick"></i></div>
-                    <div class="setting-text">
-                        <span class="setting-title">Modded Client Badge</span>
-                        <span class="setting-subtitle">Let other modded client users see that you're one too</span>
+                    <div class="channel-setting" @onclick="@OnClickShowEditHistory">
+                        <div class="setting-icon"><i class="bi bi-clock-history"></i></div>
+                        <div class="setting-text">
+                            <span class="setting-title">Show Edit History</span>
+                            <span class="setting-subtitle">Display previous versions of edited messages</span>
+                        </div>
+                        <div class="toggle-switch @(ClientFlags.ShowEditHistory ? "on" : "")">
+                            <div class="toggle-knob"></div>
+                        </div>
                     </div>
-                    <div class="toggle-switch @(ClientFlags.ShowModdedBadge ? "on" : "")">
-                        <div class="toggle-knob"></div>
+
+                    <div class="channel-setting" @onclick="@OnClickShowModdedBadge">
+                        <div class="setting-icon"><i class="bi bi-joystick"></i></div>
+                        <div class="setting-text">
+                            <span class="setting-title">Modded Client Badge</span>
+                            <span class="setting-subtitle">Let other modded client users see that you're one too</span>
+                        </div>
+                        <div class="toggle-switch @(ClientFlags.ShowModdedBadge ? "on" : "")">
+                            <div class="toggle-knob"></div>
+                        </div>
                     </div>
-                </div>
+                }
             </div>
         }
     </div>
@@ -108,6 +141,7 @@
 @code {
     private bool _searchVisible = false;
     private bool _settingsVisible = false;
+    private bool _languagePickerVisible = false;
 
     [Parameter]
     public Channel Channel { get; set; }
@@ -138,6 +172,9 @@
         if (await LocalStorage.ContainsKeyAsync("show-modded-badge"))
             ClientFlags.ShowModdedBadge = await LocalStorage.GetAsync<bool>("show-modded-badge");
 
+        if (await LocalStorage.ContainsKeyAsync("translate-language"))
+            ClientFlags.TranslateLanguage = await LocalStorage.GetAsync<string>("translate-language");
+
         // Always fetch the online list so everyone can see others' badges,
         // regardless of whether this user opts in to reporting their own.
         ModdedPresenceService.StartListRefresh(JsRuntime);
@@ -160,6 +197,28 @@
     private void CloseSettings()
     {
         _settingsVisible = false;
+        _languagePickerVisible = false;
+        StateHasChanged();
+    }
+
+    private void OnClickTranslateLanguage()
+    {
+        _languagePickerVisible = true;
+        StateHasChanged();
+    }
+
+    private void CloseLanguagePicker()
+    {
+        _languagePickerVisible = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSelectLanguage(string code)
+    {
+        ClientFlags.TranslateLanguage = code;
+        await LocalStorage.SetAsync("translate-language", code);
+        ClientFlags.NotifyChanged();
+        _languagePickerVisible = false;
         StateHasChanged();
     }
 

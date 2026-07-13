@@ -54,6 +54,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(client.PlanetService);
         services.AddSingleton(client.ChannelService);
         services.AddSingleton(client.TenorService);
+        services.AddSingleton(client.TranslationService);
         services.AddSingleton(client.SubscriptionService);
         services.AddSingleton(client.NotificationService);
         services.AddSingleton(client.EcoService);

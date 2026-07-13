@@ -168,6 +168,52 @@
     line-height: 1.25;
 }
 
+.setting-value {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--font-color-mid);
+    max-width: 100px;
+    text-align: right;
+    white-space: normal;
+}
+
+.language-picker-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.language-picker-header:hover {
+    color: var(--font-color);
+}
+
+.language-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.language-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--font-color);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.language-option:hover {
+    background-color: var(--main-2);
+}
+
+.language-option.selected {
+    color: var(--color-primary);
+}
+
 .toggle-switch {
     flex-shrink: 0;
     width: 34px;

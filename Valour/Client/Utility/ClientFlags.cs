@@ -19,6 +19,11 @@ public static class ClientFlags
     public static TimestampFormat TimestampFormat { get; set; } = TimestampFormat.TwelveHour;
 
     /// <summary>
+    /// The language messages are translated into via the message right-click "Translate" option.
+    /// </summary>
+    public static string TranslateLanguage { get; set; } = "en";
+
+    /// <summary>
     /// Fired when a flag affecting already-rendered messages changes, so
     /// mounted MessageComponents can recompute and re-render immediately
     /// instead of waiting for their next natural render.

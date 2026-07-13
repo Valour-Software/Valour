@@ -43,6 +43,7 @@ public class ValourClient
     public readonly ChannelService  ChannelService;
     public readonly PermissionService PermissionService;
     public readonly TenorService TenorService;
+    public readonly TranslationService TranslationService;
     public readonly SubscriptionService SubscriptionService;
     public readonly NotificationService NotificationService;
     public readonly AutomodService AutomodService;
@@ -141,6 +142,8 @@ public class ValourClient
         var tenorHttpClient = new HttpClient(klipyHandler);
         tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
         TenorService = new TenorService(tenorHttpClient, this);
+
+        TranslationService = new TranslationService(new HttpClient(), this);
     }
     
     /// <summary>
