@@ -307,11 +307,10 @@
     font-size: var(--font-size-xs);
 }
 
-.original-label {
-    font-size: var(--font-size-xs);
+.translated-flag {
     color: var(--font-color-mid);
-    font-style: italic;
-    margin-left: 0.35em;
+    margin: 0;
+    font-size: var(--font-size-xs);
 }
 
 /* Deleted messages stay in place but show in red */

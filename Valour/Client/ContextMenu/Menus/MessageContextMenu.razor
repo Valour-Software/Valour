@@ -49,7 +49,7 @@
 @if (!string.IsNullOrWhiteSpace(Data.Message.Content))
 {
     <ContextMenuItem OnClickAsync="@OnClickTranslate">
-        <Label>@(Data.MessageComponent.IsTranslated ? "Show Original" : "Translate")</Label>
+        <Label>@(Data.MessageComponent.IsTranslated ? "Untranslate" : "Translate")</Label>
         <Icon><i class="bi bi-translate"></i></Icon>
     </ContextMenuItem>
 }

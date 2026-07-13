@@ -138,6 +138,11 @@ else
             {
                 <p class="deleted-flag"> (Deleted)</p>
             }
+
+            @if (_isTranslated)
+            {
+                <p class="translated-flag"> (Translated)</p>
+            }
         </div>
     </div>
     @if (_reactions is not null && _reactions.Count > 0)
@@ -258,11 +263,6 @@ else
             Client.Logger.Log("Message", "Error rendering original message content: " + e.Message, "red");
             builder.AddContent(2, _message.Content);
         }
-
-        builder.OpenElement(3, "span");
-        builder.AddAttribute(4, "class", "original-label");
-        builder.AddContent(5, " (original)");
-        builder.CloseElement();
 
         builder.CloseElement();
     };
