@@ -276,6 +276,11 @@
     background: var(--color-primary);
 }
 
+.badge-chip.modded-client {
+    background: linear-gradient(135deg, #7c3aed, #06b6d4);
+    color: #fff;
+}
+
 .meta-line {
     display: inline-flex;
     align-items: center;

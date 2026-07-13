@@ -1146,6 +1146,28 @@ img.emoji {
     color: var(--font-color);
 }
 
+.message.deleted .fragments,
+.message.deleted .fragments * {
+    color: var(--color-danger) !important;
+}
+
+/* Previous (pre-edit) message content shown above the current content */
+.message .fragments.previous-content,
+.message .fragments.previous-content * {
+    color: var(--font-color-mid) !important;
+}
+
+.message .fragments.previous-content {
+    margin-bottom: 0.15em;
+    opacity: 0.8;
+}
+
+/* When the message is deleted, the edit history stays red but dimmer */
+.message.deleted .fragments.previous-content,
+.message.deleted .fragments.previous-content * {
+    color: color-mix(in srgb, var(--color-danger) 60%, transparent) !important;
+}
+
 .message .fragments code {
     margin: 0;
     word-break: break-word;

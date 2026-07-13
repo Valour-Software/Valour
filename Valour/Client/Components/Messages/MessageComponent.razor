@@ -2,6 +2,7 @@
 @using Valour.Client.Emojis
 @inject ValourClient Client
 @inject ContextMenuService ContextMenuService
+@inject TranslationService TranslationService
 @implements IDisposable
 
 @if (_message == null || _message.IsEmpty() || !_isBuilt)
@@ -73,6 +74,11 @@ else
         }
 
         <div class="content">
+            @if (ClientFlags.ShowEditHistory && _message.EditHistory is not null && _message.EditHistory.Count > 0 && !_isInnerReply)
+            {
+                @RenderEditHistory
+            }
+
             @if (_message.Attachments != null)
             {
                 @for (var i = 0; i < _message.Attachments.Count; i++)
@@ -110,6 +116,11 @@ else
 
             @if (!_message.IsEmbed())
             {
+                @if (_isTranslated)
+                {
+                    @RenderTranslatedOriginal
+                }
+
                 @RenderContent
 
                 @if (Edit)
@@ -118,9 +129,19 @@ else
                 }
             }
             
-            @if (_message.EditedTime != null)
+            @if (_message.EditedTime != null && !_message.IsDeleted)
             {
                 <p class="edited-flag"> (Edited)</p>
+            }
+
+            @if (_message.IsDeleted)
+            {
+                <p class="deleted-flag"> (Deleted)</p>
+            }
+
+            @if (_isTranslated)
+            {
+                <p class="translated-flag"> (Translated)</p>
             }
         </div>
     </div>
@@ -198,13 +219,39 @@ else
 
     private RenderFragment RenderContent => builder =>
     {
-        if (string.IsNullOrWhiteSpace(_message.Content))
+        var content = _isTranslated ? _translatedContent : _message.Content;
+
+        if (string.IsNullOrWhiteSpace(content))
             return;
         
         var isBigEmoji = DevicePreferences.BigEmojiMessages && MarkdownManager.IsEmojiOnlyMessage(_message.Content);
 
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", isBigEmoji ? "fragments big-emoji" : "fragments");
+        try
+        {
+            Markdown.RenderToFragment(
+                content,
+                builder,
+                MarkdownManager.Pipeline,
+                MarkdownManager.Renderer,
+                this);
+        } catch (Exception e)
+        {
+            Client.Logger.Log("Message", "Error rendering message: " + e.Message, "red");
+            builder.AddContent(2, content);
+        }
+
+        builder.CloseElement();
+    };
+
+    private RenderFragment RenderTranslatedOriginal => builder =>
+    {
+        if (string.IsNullOrWhiteSpace(_message.Content))
+            return;
+
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "fragments previous-content translated-original");
         try
         {
             Markdown.RenderToFragment(
@@ -215,13 +262,45 @@ else
                 this);
         } catch (Exception e)
         {
-            Client.Logger.Log("Message", "Error rendering message: " + e.Message, "red");
+            Client.Logger.Log("Message", "Error rendering original message content: " + e.Message, "red");
             builder.AddContent(2, _message.Content);
         }
 
         builder.CloseElement();
     };
-    
+
+    private RenderFragment RenderEditHistory => builder =>
+    {
+        if (_message.EditHistory is null)
+            return;
+
+        var seq = 0;
+
+        foreach (var previous in _message.EditHistory)
+        {
+            if (string.IsNullOrWhiteSpace(previous))
+                continue;
+
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "fragments previous-content");
+            try
+            {
+                Markdown.RenderToFragment(
+                    previous,
+                    builder,
+                    MarkdownManager.Pipeline,
+                    MarkdownManager.Renderer,
+                    this);
+            } catch (Exception e)
+            {
+                Client.Logger.Log("Message", "Error rendering previous message content: " + e.Message, "red");
+                builder.AddContent(seq++, previous);
+            }
+
+            builder.CloseElement();
+        }
+    };
+
     private RenderFragment RenderReply => builder =>
     {
         var messageParams = new Params()
@@ -281,6 +360,14 @@ else
     private string _timeText = "";
 
     public bool Edit = false;
+
+    private bool _isTranslated = false;
+    private bool _translating = false;
+    private string _translatedContent;
+    private string _translatedFromContent;
+
+    public bool IsTranslated => _isTranslated;
+
     private bool _mentioned = false;
     private bool _isBuilt = false;
     private bool _animateIn = false;
@@ -572,11 +659,17 @@ else
         if (_ghost)
             newClass += " ghost";
 
+        if (_message.IsDeleted)
+            newClass += " deleted";
+
         if (_animateIn)
             newClass += " message-enter";
 
         if (_message.ReplyTo is not null)
             newClass += " hasreply";
+
+        if (ClientFlags.AlwaysShowTimestamps)
+            newClass += " force-time";
 
         _class = newClass;
     }
@@ -586,24 +679,53 @@ else
         var hoursAgo = (DateTime.UtcNow - _message.TimeSent).TotalHours;
         var localTime = _message.TimeSent.ToLocalTime();
 
+        // Computed once and reused below instead of calling ToShortTimeString() twice
+        // for the same value (it allocates a new string each time it's called).
+        var shortTime = localTime.ToShortTimeString();
+
+        // The tooltip always shows the full absolute date/time, regardless of the
+        // display format chosen below.
+        _timeTitle = hoursAgo is >= 24 and <= 48
+            ? $"Yesterday at {shortTime}"
+            : localTime.ToShortDateString().Replace("00", "") + " " + shortTime;
+
+        _timeText = ClientFlags.TimestampFormat switch
+        {
+            TimestampFormat.TwentyFourHour => BuildAbsoluteTimeText(localTime, hoursAgo, localTime.ToString("HH:mm")),
+            TimestampFormat.Relative => BuildRelativeTimeText(hoursAgo, localTime),
+            _ => BuildAbsoluteTimeText(localTime, hoursAgo, shortTime.Replace(' ', '\0'))
+        };
+    }
+
+    private static string BuildAbsoluteTimeText(DateTime localTime, double hoursAgo, string timeString)
+    {
         if (hoursAgo >= 24)
         {
-            if (hoursAgo <= 48)
-            {
-                _timeTitle = $"Yesterday at {localTime.ToShortTimeString()}";
-                _timeText = "Yesterday";
-            }
-            else
-            {
-                _timeTitle = localTime.ToShortDateString().Replace("00", "") + " " + localTime.ToShortTimeString();
-                _timeText = $"{localTime.ToShortDateString().Replace("00", "")}";
-            }
+            return hoursAgo <= 48
+                ? "Yesterday"
+                : localTime.ToShortDateString().Replace("00", "");
         }
-        else
-        {
-            _timeTitle = localTime.ToShortDateString().Replace("00", "") + " " + localTime.ToShortTimeString();
-            _timeText = localTime.ToShortTimeString().Replace(' ', '\0');
-        }
+
+        return timeString;
+    }
+
+    private static string BuildRelativeTimeText(double hoursAgo, DateTime localTime)
+    {
+        var minutesAgo = hoursAgo * 60;
+
+        if (minutesAgo < 1)
+            return "just now";
+
+        if (minutesAgo < 60)
+            return $"{(int)minutesAgo}m ago";
+
+        if (hoursAgo < 24)
+            return $"{(int)hoursAgo}h ago";
+
+        var daysAgo = (int)(hoursAgo / 24);
+        return daysAgo < 7
+            ? $"{daysAgo}d ago"
+            : localTime.ToShortDateString().Replace("00", "");
     }
 
     private Task OnClickName(MouseEventArgs e)
@@ -645,6 +767,7 @@ else
                 new MemberContextMenu.MemberContextParams()
                 {
                     Member = _member,
+                    Channel = _chat?.Channel,
                 }
             );
         }
@@ -758,6 +881,46 @@ else
         ReRender();
     }
 
+    public async Task ToggleTranslationAsync()
+    {
+        if (_isTranslated)
+        {
+            _isTranslated = false;
+            _translatedContent = null;
+            _translatedFromContent = null;
+            ReRender();
+            return;
+        }
+
+        if (_translating)
+            return;
+
+        _translating = true;
+
+        var result = await TranslationService.TranslateAsync(_message.Content, ClientFlags.TranslateLanguage);
+
+        _translating = false;
+
+        if (result is null || string.IsNullOrWhiteSpace(result.TranslatedText))
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Translation Failed", "Could not translate this message", ToastProgressState.Failure));
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(result.DetectedLanguage) &&
+            string.Equals(result.DetectedLanguage, ClientFlags.TranslateLanguage, StringComparison.OrdinalIgnoreCase))
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Already Translated", "This message is already in your set language", ToastProgressState.Success));
+            return;
+        }
+
+        _translatedContent = result.TranslatedText;
+        _translatedFromContent = _message.Content;
+        _isTranslated = true;
+
+        ReRender();
+    }
+
     public void SetMessage(Message message)
     {
         _message = message;
@@ -781,7 +944,16 @@ else
     {
         if (_message == null)
             return;
-        
+
+        // Invalidate a stale translation once the underlying content it was translated
+        // from has changed (e.g. the author edited the message).
+        if (_isTranslated && _message.Content != _translatedFromContent)
+        {
+            _isTranslated = false;
+            _translatedContent = null;
+            _translatedFromContent = null;
+        }
+
         CalculateReactions();
 
         // Check if we are a minimal message
@@ -827,7 +999,8 @@ else
         _animateIn = ParamData.AnimateIn && !_isInnerReply;
         
         KeyboardListener.KeyDown += OnKeyDown;
-        
+        ClientFlags.Changed += OnClientFlagsChanged;
+
         if (_message is null)
         {
             Client.Logger.Log("Message", "MessageData is null", "red");
@@ -965,6 +1138,13 @@ else
         }
     }
 
+    private async void OnClientFlagsChanged()
+    {
+        CalculateTime();
+        CalculateClassAndStyles();
+        await ReRender();
+    }
+
     public void OnUserUpdated(ModelUpdatedEvent<User> eventData)
     {
         bool render = false;
@@ -1082,6 +1262,7 @@ else
         }
 
         KeyboardListener.KeyDown -= OnKeyDown;
+        ClientFlags.Changed -= OnClientFlagsChanged;
     }
 
     /// <summary>

@@ -46,6 +46,14 @@
     </ContextMenuItem>
 }
 
+@if (!string.IsNullOrWhiteSpace(Data.Message.Content))
+{
+    <ContextMenuItem OnClickAsync="@OnClickTranslate">
+        <Label>@(Data.MessageComponent.IsTranslated ? "Untranslate" : "Translate")</Label>
+        <Icon><i class="bi bi-translate"></i></Icon>
+    </ContextMenuItem>
+}
+
 @if (Data.Message.AuthorUserId == Client.Me.Id)
 {
     <ContextMenuItem OnClickAsync="@OnClickEdit">
@@ -75,7 +83,14 @@
     </Content>
 </ContextSubMenu>
 
-@if (_deletePermission == PermissionState.True)
+@if (Data.Message.IsDeleted)
+{
+    <ContextMenuItem OnClickAsync="@OnClickHide" Color="red">
+        <Label>Hide</Label>
+        <Icon><i class="bi bi-trash-fill"></i></Icon>
+    </ContextMenuItem>
+}
+else if (_deletePermission == PermissionState.True)
 {
     <ContextMenuItem OnClickAsync="@OnClickDelete" Color="red">
         <Label>Delete</Label>
@@ -132,6 +147,7 @@
             _memberContextData = new()
             {
                 Member = _authorMember,
+                Channel = Data.WindowComponent?.Channel,
             };
         }
         else
@@ -241,6 +257,14 @@
         ModalRoot.OpenModal<ConfirmModalComponent>(data);
     }
 
+    private async Task OnClickHide()
+    {
+        await CloseAsync();
+
+        var chatComponent = Data.MessageComponent.ParamData.ChatComponent;
+        await chatComponent.RemoveMessageFromView(Data.Message);
+    }
+
     private async Task OnClickReport()
     {
         await CloseAsync();
@@ -265,6 +289,12 @@
     {
         await CloseAsync();
         await Data.MessageComponent.OpenEditMode();
+    }
+
+    private async Task OnClickTranslate()
+    {
+        await CloseAsync();
+        await Data.MessageComponent.ToggleTranslationAsync();
     }
 
 	    private async Task OnClickCopyText(){

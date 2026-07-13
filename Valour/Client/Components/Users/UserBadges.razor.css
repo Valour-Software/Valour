@@ -70,6 +70,13 @@
     color: transparent;
 }
 
+.user-badge-item.icon.modded-client i {
+    background: linear-gradient(135deg, var(--user-badge-star-start), var(--user-badge-star-end));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
 .user-badge-item.icon.bot {
     color: var(--color-bot);
 }

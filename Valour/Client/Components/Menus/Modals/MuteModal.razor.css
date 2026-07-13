@@ -1,0 +1,12 @@
+.glassy-modal {
+    max-width: 400px;
+}
+
+.duration-input {
+    display: flex;
+    gap: 0.5em;
+}
+
+.duration-input .form-control:first-child {
+    flex: 1;
+}

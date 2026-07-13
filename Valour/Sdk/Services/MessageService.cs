@@ -139,8 +139,18 @@ public class MessageService : ServiceBase
     /// </summary>
     private void OnPlanetMessageEdited(Message message)
     {
+        string oldContent = null;
+        if (_cache.Messages.TryGet(message.Id, out var existing))
+            oldContent = existing.Content;
+
         message = message.Sync(_client);
-        
+
+        if (!string.IsNullOrEmpty(oldContent) && oldContent != message.Content)
+        {
+            message.EditHistory ??= new List<string>();
+            message.EditHistory.Add(oldContent);
+        }
+
         Log($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         
         MessageEdited?.Invoke(message);
@@ -188,8 +198,18 @@ public class MessageService : ServiceBase
     /// </summary>
     private void OnDirectMessageEdited(Message message)
     {
+        string oldContent = null;
+        if (_cache.Messages.TryGet(message.Id, out var existing))
+            oldContent = existing.Content;
+
         message = message.Sync(_client);
-        
+
+        if (!string.IsNullOrEmpty(oldContent) && oldContent != message.Content)
+        {
+            message.EditHistory ??= new List<string>();
+            message.EditHistory.Add(oldContent);
+        }
+
         Log($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         
         MessageEdited?.Invoke(message);

@@ -274,11 +274,13 @@
     line-height: calc(var(--font-size-md) * var(--line-height-base));
 }
 
-.message:hover > .content-holder > .name-role-holder > .time {
+.message:hover > .content-holder > .name-role-holder > .time,
+.message.force-time > .content-holder > .name-role-holder > .time {
     display: block;
 }
 
-.message.minimal:hover > .left-info > .time-container > .time {
+.message.minimal:hover > .left-info > .time-container > .time,
+.message.minimal.force-time > .left-info > .time-container > .time {
     display: block;
 }
 
@@ -297,6 +299,28 @@
     color: var(--font-color-mid);
     margin: 0;
     font-size: var(--font-size-xs);
+}
+
+.deleted-flag {
+    color: var(--color-danger);
+    margin: 0;
+    font-size: var(--font-size-xs);
+}
+
+.translated-flag {
+    color: var(--font-color-mid);
+    margin: 0;
+    font-size: var(--font-size-xs);
+}
+
+/* Deleted messages stay in place but show in red */
+.message.deleted .content {
+    color: var(--color-danger) !important;
+}
+
+.message.deleted .attachment-wrapper,
+.message.deleted .reactions {
+    display: none;
 }
 
 .preview-message .message .reply:hover {

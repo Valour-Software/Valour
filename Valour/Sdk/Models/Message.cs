@@ -69,6 +69,21 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// </summary>
     public DateTime? EditedTime { get; set; }
 
+    /// <summary>
+    /// Client-side only flag. When true, this message has been deleted but is
+    /// kept in place (shown struck-through) so later messages keep their order.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsDeleted { get; set; }
+
+    /// <summary>
+    /// Client-side only. Holds the content of this message before each edit,
+    /// in chronological order, so the UI can display the edit history.
+    /// </summary>
+    [JsonIgnore]
+    [IgnoreRealtimeChanges]
+    public List<string> EditHistory { get; set; }
+
     public async ValueTask<IMessageAuthor> FetchAuthorAsync()
     {
         if (AuthorMemberId is not null)

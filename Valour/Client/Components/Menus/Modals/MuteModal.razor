@@ -1,0 +1,120 @@
+@inherits Modal<MuteModal.MuteModalProps>
+@inject ValourClient Client
+
+<BasicModalLayout Title="@Title" Icon="volume-mute" MaxWidth="500px">
+    <MainArea>
+        @if (_isSelf)
+        {
+            <p class="text-danger">You cannot mute yourself.</p>
+        }
+        else if (_channel is null)
+        {
+            <p class="text-danger">Open a chat channel to mute this member.</p>
+        }
+        else
+        {
+            <p>This will prevent them from sending messages for the given duration.</p>
+
+            <UserInfoComponent Member="@Data.Member"
+                               Style="
+                               background-color: var(--main-3);
+                               display: inline-block;
+                               border-radius: var(--radius-md);
+                               padding-right: 0.5em;
+                               scale: 1.5;
+                               margin-top: 1.5em;
+                               margin-bottom: 2em" />
+
+            <div class="form-group">
+                <label>Time (0 or Permanent for permanent)</label>
+                <div class="duration-input">
+                    <InputNumber class="form-control" TValue="@int" @bind-Value="@_durationAmount" disabled="@(_durationUnit == DurationUnit.Permanent)"></InputNumber>
+                    <InputSelect class="form-control" @bind-Value="@_durationUnit">
+                        @foreach (var unit in Enum.GetValues<DurationUnit>())
+                        {
+                            <option value="@unit">@unit</option>
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Reason (Optional)</label>
+                <input type="text" class="form-control" @bind-value="@_reason"/>
+            </div>
+
+            <ResultLabel Result="@_result" />
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            @if (!_isSelf && _channel is not null)
+            {
+                <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    private string Title => Data.Member.Nickname is null ? "Mute" : $"Mute {Data.Member.Nickname}";
+    private bool _isSelf;
+    private Channel _channel;
+
+    private string _reason;
+    private int _durationAmount = 10;
+    private DurationUnit _durationUnit = DurationUnit.Minutes;
+
+    private ITaskResult _result;
+
+    public class MuteModalProps
+    {
+        public PlanetMember Member;
+        public Channel Channel;
+    }
+
+    protected override void OnInitialized()
+    {
+        _isSelf = Data.Member.UserId == Client.Me.Id;
+        _channel = Data.Channel;
+    }
+
+    private async Task OnConfirm()
+    {
+        if (_isSelf || _channel is null)
+            return;
+
+        var content = $"/mute {Data.Member.Id}";
+        if (!_durationUnit.IsPermanent(_durationAmount))
+            content += $" {_durationAmount}{_durationUnit.ToCommandString(_durationAmount)}";
+        if (!string.IsNullOrWhiteSpace(_reason))
+            content += $" {_reason}";
+
+        var message = new Message(Client)
+        {
+            AuthorUserId = Client.Me.Id,
+            Content = content,
+            ChannelId = _channel.Id,
+            AuthorMemberId = _channel.Planet?.MyMember.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = null,
+            PlanetId = _channel.PlanetId,
+            Fingerprint = Guid.NewGuid().ToString(),
+        };
+
+        _result = await message.PostAsync();
+
+        if (_result.Success)
+        {
+            Close();
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnCancel()
+    {
+        Close();
+    }
+}

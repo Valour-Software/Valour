@@ -65,7 +65,12 @@
     // for role color and syncing
     [Parameter]
     public PlanetMember Member { get; set; }
-    
+
+    // The channel this component is being shown in, if any.
+    // Passed through to the member context menu so it can target the right channel for /mute.
+    [Parameter]
+    public Channel Channel { get; set; }
+
     [Parameter]
     public string Style { get; set; }
 
@@ -173,7 +178,8 @@
             ContextMenuService.Root.OpenMenu<MemberContextMenu>(e,
                 new MemberContextMenu.MemberContextParams
                 {
-                    Member = Member
+                    Member = Member,
+                    Channel = Channel
                 }
             );
         }

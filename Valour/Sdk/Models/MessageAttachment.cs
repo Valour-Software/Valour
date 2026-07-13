@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
+using Valour.Shared.Cdn;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -186,13 +187,18 @@ public class MessageAttachment : ISharedMessageAttachment
         
         var location = Location;
 
-        if (location.StartsWith("https://media.tenor.com"))
+        var uri = new Uri(location);
+
+        var host = uri.Host;
+        if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+            host = host[4..];
+
+        if (CdnUtils.MediaBypassList.Contains(host))
         {
-            // If the location is a Tenor URL, we don't need to fetch a signed URL
+            // Known-good external media sources (GIF providers, YouTube, etc.) bypass
+            // the Valour CDN entirely, so we don't need to fetch a signed URL for them.
             return location;
         }
-        
-        var uri = new Uri(location);
         
         // Strip the protocol and host from the location
         // This is because the CDN will return a signed URL that is relative to the base URL of the client

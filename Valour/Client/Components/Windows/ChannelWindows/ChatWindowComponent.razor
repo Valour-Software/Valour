@@ -1001,11 +1001,8 @@
     
     // Events
     
-    public async Task OnDeleteMessage(Message? message)
+    public async Task RemoveMessageFromView(Message message)
     {
-        if (_disposed || message is null)
-            return;
-
         await InvokeAsync(async () =>
         {
             DisplayedMessages.RemoveAll(x => x.Id == message.Id);
@@ -1022,6 +1019,33 @@
 
                 nextMessage.RefreshMessage();
                 await nextMessage.ReRender();
+            }
+
+            await ReRender();
+        });
+    }
+
+    public async Task OnDeleteMessage(Message? message)
+    {
+        if (_disposed || message is null)
+            return;
+
+        if (!ClientFlags.ShowDeletedMessages)
+        {
+            await RemoveMessageFromView(message);
+            return;
+        }
+
+        await InvokeAsync(async () =>
+        {
+            message.IsDeleted = true;
+
+            var deletedMessage = RenderedMessages.FirstOrDefault(x => x.ParamData.Message.Id == message.Id);
+            if (deletedMessage is not null)
+            {
+                deletedMessage.ParamData.Message.IsDeleted = true;
+                deletedMessage.RefreshMessage();
+                await deletedMessage.ReRender();
             }
 
             await ReRender();
