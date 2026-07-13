@@ -135,7 +135,10 @@
         _render = false;
     }
 
-    protected override bool ShouldRender() => _render;
+    // Keep reacting to parent state changes while open (e.g. an async
+    // permission check in the parent resolving after this was first shown),
+    // not just on the render that Refresh() explicitly triggers.
+    protected override bool ShouldRender() => _render || _show;
     
     public void Refresh()
     {

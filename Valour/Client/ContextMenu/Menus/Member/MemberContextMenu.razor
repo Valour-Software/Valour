@@ -31,18 +31,35 @@ else
 		<Icon>+<i class="bi bi-person-fill"></i></Icon>
 	</ContextMenuItem>
 }
-@if (_canKick && !_isSelf)
+@if ((_canKick || _canBan || _canMute) && !_isSelf)
 {
-	<ContextMenuItem OnClickAsync="@OnClickKick" Color="red">
-		<Label>Kick</Label>
+	<ContextSubMenu Color="red">
+		<Label>Moderation</Label>
 		<Icon><i class="bi bi-shield-fill-exclamation"></i></Icon>
-	</ContextMenuItem>
-}
-@if (_canBan && !_isSelf) {
-	<ContextMenuItem OnClickAsync="@OnClickBan" Color="red">
-		<Label>Ban</Label>
-		<Icon><i class="bi bi-hammer"></i></Icon>
-	</ContextMenuItem>
+		<Content>
+			@if (_canMute)
+			{
+				<ContextMenuItem OnClickAsync="@OnClickMute" Color="red">
+					<Label>Mute</Label>
+					<Icon><i class="bi bi-volume-mute-fill"></i></Icon>
+				</ContextMenuItem>
+			}
+			@if (_canKick)
+			{
+				<ContextMenuItem OnClickAsync="@OnClickKick" Color="red">
+					<Label>Kick</Label>
+					<Icon><i class="bi bi-door-open-fill"></i></Icon>
+				</ContextMenuItem>
+			}
+			@if (_canBan)
+			{
+				<ContextMenuItem OnClickAsync="@OnClickBan" Color="red">
+					<Label>Ban</Label>
+					<Icon><i class="bi bi-hammer"></i></Icon>
+				</ContextMenuItem>
+			}
+		</Content>
+	</ContextSubMenu>
 }
 @if (!_isSelf && _isBlocked)
 {
@@ -72,7 +89,7 @@ else if (!_isSelf)
 
 <ContextSubMenu>
 	<Label>Copy</Label>
-	<Icon><i class="bi bi-caret-right-fill"></i></Icon>
+	<Icon><i class="bi bi-clipboard2-fill"></i></Icon>
 	<Content>
 		<ContextMenuItem OnClickAsync="@OnClickCopyNickname">Nickname</ContextMenuItem>
         <ContextMenuItem OnClickAsync="@OnClickCopyUsername">Username</ContextMenuItem>
@@ -86,6 +103,10 @@ else if (!_isSelf)
 	public class MemberContextParams
 	{
 		public PlanetMember Member;
+
+		// The channel this menu was opened from/in, if any.
+		// Used to target the right channel when sending the /mute command.
+		public Channel Channel;
 	}
 
 	[CascadingParameter]
@@ -93,6 +114,7 @@ else if (!_isSelf)
 
 	private bool _canKick;
 	private bool _canBan;
+	private bool _canMute;
 	private bool _isFriend;
 	private bool _isFriendRequested;
 	private bool _isSelf;
@@ -127,7 +149,11 @@ else if (!_isSelf)
 		StateHasChanged();
 	}
 
-	protected override void OnInitialized()
+	// Reused menu instances only ever run OnInitialized once, but they
+	// receive fresh Data on every reopen — so this state must be (re)computed
+	// in OnParametersSet, not OnInitialized, or it goes stale across
+	// different members opened in the same menu instance.
+	protected override void OnParametersSet()
 	{
 		_isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == Data.Member.UserId);
 		_isFriend = FriendService.Friends.Any(x => x.Id == Data.Member.UserId);
@@ -136,6 +162,7 @@ else if (!_isSelf)
 
 		_canKick = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Kick);
 		_canBan = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Ban);
+		_canMute = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.ManageRoles);
 	}
 
 	private async Task OnClickMessage()
@@ -166,6 +193,19 @@ else if (!_isSelf)
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.UserId.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "User ID copied to clipboard", ToastProgressState.Success));
     }
+
+	private async Task OnClickMute()
+	{
+		await CloseAsync();
+
+		var data = new MuteModal.MuteModalProps()
+		{
+			Member = Data.Member,
+			Channel = Data.Channel
+		};
+
+		ModalRoot.OpenModal<MuteModal>(data);
+	}
 
 	private async Task OnClickKick()
 	{

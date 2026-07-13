@@ -147,6 +147,7 @@ else if (_deletePermission == PermissionState.True)
             _memberContextData = new()
             {
                 Member = _authorMember,
+                Channel = Data.WindowComponent?.Channel,
             };
         }
         else
