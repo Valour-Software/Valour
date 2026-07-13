@@ -793,6 +793,21 @@ public class UserApi
         return Results.Json(prefs.ToModel());
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/users/me/preferences/forceGpuAcceleration/{enabled}")]
+    [UserRequired]
+    public static async Task<IResult> SetForceGpuAccelerationAsync(
+        bool enabled,
+        UserService userService,
+        ValourDb db)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var prefs = await EnsurePreferencesAsync(userId, db);
+        prefs.ForceGpuAcceleration = enabled;
+
+        await db.SaveChangesAsync();
+        return Results.Json(prefs.ToModel());
+    }
+
     private static async Task<DbUserPreferences> EnsurePreferencesAsync(long userId, ValourDb db)
     {
         var prefs = await db.UserPreferences.FindAsync(userId);
@@ -827,7 +842,8 @@ public class UserApi
             ErrorReportingState = ErrorReportingState.Unset,
             NotificationVolume = NotificationPreferences.DefaultNotificationVolume,
             EnabledNotificationSources = NotificationPreferences.AllNotificationSourcesMask,
-            DmPolicy = dmPolicy
+            DmPolicy = dmPolicy,
+            ForceGpuAcceleration = true
         };
     }
 }

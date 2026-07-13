@@ -442,3 +442,395 @@
 .theme-row {
 
 }
+
+.theme-editor-page,
+.theme-home-page {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.theme-editor-page *,
+.theme-home-page * {
+    box-sizing: border-box;
+}
+
+.theme-editor-hero {
+    padding-bottom: 1.25rem;
+}
+
+.theme-editor-hero .helper-text {
+    max-width: 640px;
+}
+
+.theme-banner-row {
+    display: grid;
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: center;
+}
+
+.theme-banner-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.theme-banner-copy .v-btn {
+    cursor: pointer;
+    margin: 0;
+}
+
+.hidden-input,
+.hidden-native-input {
+    display: none;
+}
+
+.theme-img {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: var(--main-3);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--slight-tint);
+    box-shadow: none;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        transform var(--duration-fast) var(--ease-standard);
+}
+
+.theme-img::before {
+    display: none;
+}
+
+.theme-img:hover {
+    border-color: var(--medium-tint);
+    transform: translateY(-1px);
+    box-shadow: none;
+}
+
+.victor-placeholder {
+    text-align: center;
+}
+
+.radius-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 96px), 1fr));
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.radius-grid .v-input,
+.theme-editor-page .v-input {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.color-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+    margin-bottom: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.color-pill {
+    position: relative;
+    min-height: 48px;
+    min-width: 0;
+    width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 3.75rem 0.75rem 0.9rem;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    box-shadow: none;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.color-pill:hover {
+    transform: none;
+    border-color: var(--medium-tint);
+    box-shadow: none;
+}
+
+.color-pill span {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--font-color);
+    text-shadow: none;
+}
+
+::deep .pickr-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 48px;
+    height: 100%;
+    background-color: var(--pcr-color);
+    border-left: 1px solid var(--slight-tint);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    transition: none;
+}
+
+.custom-css-input {
+    min-height: 160px;
+    resize: vertical;
+    font-family: var(--font-family-mono);
+}
+
+.assets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.asset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+}
+
+.asset-preview,
+.asset-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--slight-tint);
+    background: var(--main-4);
+}
+
+.asset-preview {
+    object-fit: cover;
+}
+
+.asset-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--font-color);
+    font-size: var(--font-size-2xl);
+}
+
+.asset-info {
+    min-width: 0;
+    flex: 1 1 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.asset-row .v-button {
+    flex: 0 0 auto;
+}
+
+.asset-info strong,
+.asset-info code {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.asset-info strong {
+    font-size: var(--font-size-sm);
+}
+
+.asset-info code {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+}
+
+.asset-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    min-width: 0;
+}
+
+.asset-name-input {
+    flex: 1 1 180px;
+    max-width: 240px;
+    margin-bottom: 0;
+}
+
+.selected-file {
+    min-width: 120px;
+    max-width: 100%;
+    flex: 1 1 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+.error-text {
+    color: var(--color-danger);
+}
+
+.editor-actions {
+    justify-content: flex-end;
+}
+
+.current-theme-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 300px));
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.create-theme-card {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+    height: auto;
+    min-height: 300px;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    background: var(--main-3);
+    color: var(--font-color);
+    border: 1px dashed var(--medium-tint);
+    border-radius: var(--radius-lg);
+    box-shadow: none;
+    cursor: pointer;
+    text-align: center;
+    font-family: var(--font-family-app);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard),
+        transform var(--duration-fast) var(--ease-standard);
+}
+
+.create-theme-card::before {
+    display: none;
+}
+
+.create-theme-card:hover {
+    transform: translateY(-1px);
+    background: var(--main-4);
+    border-color: var(--color-primary);
+    box-shadow: none;
+}
+
+.create-theme-icon {
+    color: var(--color-primary);
+    font-size: var(--font-size-4xl);
+    margin: 0;
+}
+
+.create-theme-title {
+    margin: 0;
+    color: var(--font-color);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-base);
+    text-shadow: none;
+}
+
+.create-theme-description {
+    margin: 0;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-base);
+    text-shadow: none;
+}
+
+.create-theme-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    padding: 0.55rem 0.9rem;
+    color: var(--font-color);
+    background: var(--color-primary-soft);
+    border: 1px solid var(--color-primary-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: normal;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.create-theme-btn::before {
+    display: none;
+}
+
+.create-theme-card:hover .create-theme-btn,
+.create-theme-btn:hover,
+.create-theme-btn:focus {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary-border);
+    transform: none;
+    box-shadow: none;
+}
+
+.theme-section,
+.search-title,
+.button-row,
+.theme-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .theme-banner-row,
+    .current-theme-section {
+        grid-template-columns: 1fr;
+    }
+
+    .editor-actions {
+        justify-content: stretch;
+    }
+}
+
+@media (max-width: 420px) {
+    .color-section,
+    .radius-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .asset-name-input,
+    .selected-file,
+    .asset-upload-row .v-button,
+    .editor-actions .v-button {
+        flex-basis: 100%;
+        max-width: 100%;
+    }
+}

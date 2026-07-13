@@ -1,6 +1,7 @@
 #if WINDOWS
 using Microsoft.Toolkit.Uwp.Notifications;
 using Valour.Client;
+using Valour.Client.Utility;
 using Valour.Sdk.Models;
 using Valour.Sdk.Services;
 
@@ -69,11 +70,15 @@ public class WindowsToastService : IDisposable
         if (notification.TimeRead is not null)
             return;
 
+        if (NotificationDisplayGate.ShouldSuppressLocalNotification(notification))
+            return;
+
         try
         {
             var builder = new ToastContentBuilder()
                 .AddText(notification.Title ?? "Valour")
-                .AddText(notification.Body ?? string.Empty);
+                .AddText(notification.Body ?? string.Empty)
+                .AddAudio(new ToastAudio { Silent = true });
 
             // Carries the in-app route so OnToastActivated can deep link on click.
             if (!string.IsNullOrWhiteSpace(notification.ClickUrl))
