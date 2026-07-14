@@ -549,6 +549,34 @@ label {
     cursor: not-allowed;
 }
 
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+}
+
+.password-input-wrapper .form-control {
+    padding-right: 2.5rem;
+}
+
+.password-input-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--font-alt-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-md);
+}
+
+.password-input-toggle:hover {
+    color: var(--font-color);
+}
+
 .form-select {
     background-color: var(--main-3);
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");

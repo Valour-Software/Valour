@@ -36,7 +36,7 @@
             </div>
             <div class="form-group mt-2">
                 <label>Password</label>
-                <input @ref="@PasswordInput" id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" @onkeyup="@OnPasswordKey"/>
+                <PasswordInput @ref="@PasswordInput" id="password-input" autocomplete="current-password" @bind-Value="@_password" OnKeyUp="@OnPasswordKey"/>
                 <span id="password-span" class="text-danger">@_passwordSpan</span>
             </div>
             <span id="result-span" class="text-info">@_resultSpan</span>
@@ -82,7 +82,7 @@
 
 @code {
     
-    private ElementReference PasswordInput { get; set; }
+    private PasswordInput PasswordInput { get; set; }
     
     [Parameter]
     public bool FromVerified { get; set; }

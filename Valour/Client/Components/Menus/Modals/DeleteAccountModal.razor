@@ -8,7 +8,7 @@
         
         <div class="form-group">
             <label>Password</label>
-            <input id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" />
+            <PasswordInput id="password-input" autocomplete="current-password" @bind-Value="@_password" />
         </div>
         
         @if (!string.IsNullOrWhiteSpace(_errorSpan))
