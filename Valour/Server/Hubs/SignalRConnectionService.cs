@@ -20,6 +20,9 @@ public class SignalRConnectionService : IDisposable
     
     // Authentication data
     private static readonly ConcurrentDictionary<string, AuthToken> ConnectionIdentities = new();
+
+    // Reverse lookup: tokenId -> connectionId for O(1) ForceLogoutToken
+    private static readonly ConcurrentDictionary<string, string> TokenToConnection = new();
     
     // Primary user connections
     private static readonly ConcurrentDictionary<string, Valour.Database.PrimaryNodeConnection> PrimaryConnections = new();
@@ -125,16 +128,18 @@ public class SignalRConnectionService : IDisposable
     {
         if (string.IsNullOrEmpty(connectionId) || token == null)
             return;
-                
+
         ConnectionIdentities.AddOrUpdate(connectionId, token, (key, oldToken) => token);
+        TokenToConnection[token.Id] = connectionId;
     }
-        
+
     public void RemoveConnectionIdentity(string connectionId)
     {
         if (string.IsNullOrEmpty(connectionId))
             return;
-                
-        ConnectionIdentities.TryRemove(connectionId, out _);
+
+        if (ConnectionIdentities.TryRemove(connectionId, out var token) && token is not null)
+            TokenToConnection.TryRemove(token.Id, out _);
     }
     
     /// <summary>
@@ -152,7 +157,7 @@ public class SignalRConnectionService : IDisposable
     {
         if (string.IsNullOrEmpty(connectionId) || token == null)
             return;
-            
+
         ConnectionIdentities[connectionId] = token;
     }
     
@@ -314,7 +319,8 @@ public class SignalRConnectionService : IDisposable
         }
         
         // Remove identity
-        ConnectionIdentities.TryRemove(connectionId, out _);
+        if (ConnectionIdentities.TryRemove(connectionId, out var removedToken) && removedToken is not null)
+            TokenToConnection.TryRemove(removedToken.Id, out _);
         
         _logger?.LogTrace($"Removed all memberships for connection {connectionId}");
     }
@@ -371,6 +377,12 @@ public class SignalRConnectionService : IDisposable
     /// </summary>
     public long[] GetAllConnectedUserIds() =>
         ConnectionIdentities.Values.Select(x => x.UserId).Distinct().ToArray();
+
+    /// <summary>
+    /// Returns the connection ID whose auth token matches the given token ID, or null if not found.
+    /// </summary>
+    public string GetConnectionByTokenId(string tokenId) =>
+        TokenToConnection.GetValueOrDefault(tokenId);
 
     /// <summary>
     /// Gets all groups a connection is member of
@@ -552,6 +564,7 @@ public class SignalRConnectionService : IDisposable
     public static void Cleanup()
     {
         ConnectionIdentities.Clear();
+        TokenToConnection.Clear();
         GroupRegistry.Clear();
         ConnectionToGroups.Clear();
         UserToGroups.Clear();

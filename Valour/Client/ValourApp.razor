@@ -62,6 +62,14 @@ else
         Logger.AddColorLogger(Log);
         await DevicePreferences.LoadPreferences(LocalStorage);
         Logger.Log("App", "Loaded user preferences", "magenta");
+        Client.AuthService.LoggedOut += OnTokenInvalidatedAsync;
+    }
+
+    private async Task OnTokenInvalidatedAsync(string reason)
+    {
+        await LocalStorage.RemoveAsync("token");
+        await LocalStorage.SetStringAsync("logout-reason", reason ?? "expired");
+        await JsRuntime.InvokeVoidAsync("location.reload");
     }
 
     // Runs when page is initialized

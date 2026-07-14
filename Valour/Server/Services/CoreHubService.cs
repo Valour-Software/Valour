@@ -225,6 +225,16 @@ public class CoreHubService
     public void NotifyRoleOrderChange(RoleOrderEvent eventData) =>
         _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("RoleOrder-Update", eventData);
 
+    public void ForceLogoutUser(long userId) =>
+        _ = _hub.Clients.Group($"u-{userId}").SendAsync("ForceLogout", "disabled");
+
+    public void ForceLogoutToken(string tokenId)
+    {
+        var connectionId = _connectionTracker.GetConnectionByTokenId(tokenId);
+        if (connectionId is not null)
+            _ = _hub.Clients.Client(connectionId).SendAsync("ForceLogout", "revoked");
+    }
+
     public void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
         _ = _hub.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
 

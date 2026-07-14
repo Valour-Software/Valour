@@ -16,6 +16,11 @@ public class AuthService : ServiceBase
     /// Run when the user logs in
     /// </summary>
     public HybridEvent<User> LoggedIn;
+
+    /// <summary>
+    /// Run when the user is forcibly logged out (token expired or revoked)
+    /// </summary>
+    public HybridEvent<string> LoggedOut;
     
     /// <summary>
     /// The token for this client instance
@@ -226,6 +231,19 @@ public class AuthService : ServiceBase
         };
         
         return await _client.PrimaryNode.PostAsync("api/users/me/multiAuth/remove", request);
+    }
+
+    internal void HandleTokenInvalidated(string reason = null)
+    {
+        if (_token is null)
+            return;
+
+        _token = null;
+
+        if (_client.Http.DefaultRequestHeaders.Contains("authorization"))
+            _client.Http.DefaultRequestHeaders.Remove("authorization");
+
+        LoggedOut?.Invoke(reason);
     }
 
     #region Token Management
