@@ -281,7 +281,7 @@ public class UserApi
         // Keep credential failures indistinguishable from account state failures.
         if (!validResult.Success || validResult.Data is null)
         {
-            var disabled = validResult.Message == "This account has been disabled";
+            var disabled = validResult.Code == UserService.AccountDisabledCode;
             return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage, Disabled = disabled });
         }
 

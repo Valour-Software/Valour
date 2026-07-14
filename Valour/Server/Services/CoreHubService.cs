@@ -230,9 +230,11 @@ public class CoreHubService
 
     public void ForceLogoutToken(string tokenId)
     {
-        var connectionId = _connectionTracker.GetConnectionByTokenId(tokenId);
-        if (connectionId is not null)
-            _ = _hub.Clients.Client(connectionId).SendAsync("ForceLogout", "revoked");
+        var connectionIds = _connectionTracker.GetConnectionsByTokenId(tokenId);
+        if (connectionIds.Length == 0)
+            return;
+
+        _ = _hub.Clients.Clients(connectionIds).SendAsync("ForceLogout", "revoked");
     }
 
     public void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>

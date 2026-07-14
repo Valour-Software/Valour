@@ -65,11 +65,16 @@ else
         Client.AuthService.LoggedOut += OnTokenInvalidatedAsync;
     }
 
-    private async Task OnTokenInvalidatedAsync(string reason)
+    private Task OnTokenInvalidatedAsync(string reason)
     {
-        await LocalStorage.RemoveAsync("token");
-        await LocalStorage.SetStringAsync("logout-reason", reason ?? "expired");
-        await JsRuntime.InvokeVoidAsync("location.reload");
+        // LoggedOut can be raised from a SignalR callback thread, so marshal the
+        // storage writes and JS interop onto the renderer's dispatcher.
+        return InvokeAsync(async () =>
+        {
+            await LocalStorage.RemoveAsync("token");
+            await LocalStorage.SetStringAsync("logout-reason", reason ?? "expired");
+            await JsRuntime.InvokeVoidAsync("location.reload");
+        });
     }
 
     // Runs when page is initialized
