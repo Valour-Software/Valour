@@ -22,6 +22,13 @@ namespace Valour.Server.Services;
 
 public class UserService
 {
+    /// <summary>
+    /// Set on <see cref="TaskResult{T}.Code"/> by <see cref="ValidateCredentialAsync"/> when the
+    /// credentials were correct but the account is disabled. Lets callers distinguish a disabled
+    /// account from a bad credential without matching on the human-readable message.
+    /// </summary>
+    public const int AccountDisabledCode = 1001;
+
     private const int EmailTimeoutSeconds = 20;
     private static readonly TimeSpan PasswordRecoveryCodeLifetime = TimeSpan.FromMinutes(10);
 
@@ -558,6 +565,7 @@ public class UserService
 
             // Evict after commit to avoid re-cache race
             _tokenService.RemoveFromQuickCache(tokenId);
+            _coreHub.ForceLogoutToken(tokenId);
 
             return new TaskResult(true, "Token revoked successfully");
         }
@@ -586,6 +594,7 @@ public class UserService
             foreach (var token in tokens)
             {
                 _tokenService.RemoveFromQuickCache(token.Id);
+                _coreHub.ForceLogoutToken(token.Id);
             }
 
             return new TaskResult(true, $"Revoked {tokens.Count} tokens");
@@ -699,7 +708,7 @@ public class UserService
 
         if (user.Disabled)
         {
-            return new TaskResult<User>(false, "This account has been disabled", null);
+            return new TaskResult<User>(false, "This account has been disabled", null, code: AccountDisabledCode);
         }
 
         return new TaskResult<User>(true, "Succeeded", user);

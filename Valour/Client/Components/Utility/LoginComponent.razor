@@ -23,6 +23,10 @@
                 {
                     <h4 style="color:var(--color-primary)">You have registered!</h4>
                 }
+                else if (!string.IsNullOrWhiteSpace(_logoutNotice))
+                {
+                    <h4 style="color:var(@_logoutNoticeColor)">@_logoutNotice</h4>
+                }
                 else
                 {
                     <h4>Welcome back!</h4>
@@ -38,6 +42,10 @@
                 <label>Password</label>
                 <PasswordInput @ref="@PasswordInput" id="password-input" autocomplete="current-password" @bind-Value="@_password" OnKeyUp="@OnPasswordKey"/>
                 <span id="password-span" class="text-danger">@_passwordSpan</span>
+                @if (_loginDisabled)
+                {
+                    <p class="appeal-notice">Contact <a href="mailto:appeals@valour.gg">appeals@valour.gg</a> if you believe this is a mistake.</p>
+                }
             </div>
             <span id="result-span" class="text-info">@_resultSpan</span>
             <div class="v-btn-wrapper mt-4">
@@ -93,6 +101,30 @@
     private string _emailSpan;
     private string _passwordSpan;
     private string _resultSpan;
+    private string _logoutNotice;
+    private string _logoutNoticeColor;
+    private bool _loginDisabled;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var reason = await LocalStorage.GetStringAsync("logout-reason");
+        if (string.IsNullOrWhiteSpace(reason))
+            return;
+
+        await LocalStorage.RemoveAsync("logout-reason");
+
+        (_logoutNotice, _logoutNoticeColor) = reason switch
+        {
+            "disabled" => ("Your account has been disabled.", "--color-danger"),
+            "revoked"  => ("Your session was revoked. Please log in again.", "--color-warning"),
+            _          => ("Your session has expired. Please log in again.", "--color-warning"),
+        };
+
+        StateHasChanged();
+    }
 
     private bool _showMultiFactorAuth = false;
     private string _multiFactorCode;
@@ -217,18 +249,17 @@
         if (!tokenResult.Success)
         {
             Client.Logger.Log<LoginComponent>($"Failed to request user token. Code: {tokenResult.Code}", "salmon");
-            
+
+            _loginDisabled = tokenResult.Disabled;
+
             if (tokenResult.Code == 429)
-            {
                 _passwordSpan = "Too many requests. Please try again later.";
-            }
+            else if (tokenResult.Disabled)
+                _passwordSpan = "Your account has been disabled.";
             else
-            {
                 _passwordSpan = "Incorrect email or password. Are you using your username instead?";
-            }
-            
+
             StateHasChanged();
-            
             return;
         }
 

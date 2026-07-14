@@ -280,7 +280,10 @@ public class UserApi
 
         // Keep credential failures indistinguishable from account state failures.
         if (!validResult.Success || validResult.Data is null)
-            return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage });
+        {
+            var disabled = validResult.Code == UserService.AccountDisabledCode;
+            return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage, Disabled = disabled });
+        }
 
         var user = validResult.Data;
         var userPrivateInfo = await userService.GetUserPrivateInfoAsync(tokenRequest.Email);

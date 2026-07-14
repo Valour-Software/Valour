@@ -137,3 +137,15 @@
     width: 100%;
     padding: 10px;
 }
+
+.appeal-notice {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-mid);
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+.appeal-notice a {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
