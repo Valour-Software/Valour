@@ -1,0 +1,61 @@
+.invite-card {
+    padding: 20px;
+    max-width: 90vw;
+    background-color: var(--main-2);
+    width: 450px;
+    z-index: 2;
+    box-shadow: rgb(0, 0, 0) 0px 0px 15px;
+    border-radius: var(--radius-xl);
+    border-color: rgb(128, 128, 128);
+    margin: auto;
+}
+
+.invite-planet-preview {
+    margin-bottom: 1.5rem;
+}
+
+.invite-prompt {
+    margin: 1rem 0;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-md);
+}
+
+.invite-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.join-btn {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    color: white;
+    font-size: var(--font-size-lg);
+    padding: 0.85rem 1.5rem;
+    border: none;
+    font-weight: var(--font-weight-semibold);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.join-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.login-btn {
+    background: transparent;
+    color: var(--font-alt-color);
+    border: 1px solid var(--font-alt-color);
+    padding: 0.7rem 1.5rem;
+}
+
+.login-btn:hover {
+    background: var(--main-3);
+    color: white;
+}
+
+.already-joined-text {
+    color: var(--color-success);
+    margin: 1rem 0;
+    font-weight: var(--font-weight-medium);
+}

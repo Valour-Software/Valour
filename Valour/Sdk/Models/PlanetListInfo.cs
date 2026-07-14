@@ -46,6 +46,11 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
     /// True if the planet is marked as NSFW
     /// </summary>
     public bool Nsfw { get; set; }
+
+    /// <summary>
+    /// True if the planet is discoverable (shows up in planet discovery)
+    /// </summary>
+    public bool Discoverable { get; set; }
     
     /// <summary>
     /// The number of members in the planet
@@ -89,6 +94,7 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
             HasAnimatedIcon = planet.HasAnimatedIcon,
             HasCustomBackground = planet.HasCustomBackground,
             Nsfw = planet.Nsfw,
+            Discoverable = planet.Discoverable,
             Version = planet.Version,
             TagIds = new List<long>() // Tags are not included in this model
         };

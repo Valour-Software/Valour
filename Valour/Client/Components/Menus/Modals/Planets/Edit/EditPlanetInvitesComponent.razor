@@ -40,6 +40,12 @@
             </div>
             <p class="toggle-description">Allow this planet to appear in discovery</p>
             <ResultLabel Result="@discoverableResult" />
+            @if (discoverableValue)
+            {
+                <button class="v-btn small mt-2" title="Copy discoverable link" @onclick="CopyDiscoverableLink">
+                    <i class="bi bi-clipboard"></i> Copy Discoverable Link
+                </button>
+            }
         </div>
 
         <div class="toggle-item">
@@ -191,6 +197,13 @@
         var link = NavManager.BaseUri.TrimEnd('/') + "/I/" + invite.Id;
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", link);
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Invite link copied to clipboard", ToastProgressState.Success));
+    }
+
+    private async Task CopyDiscoverableLink()
+    {
+        var link = NavManager.BaseUri.TrimEnd('/') + "/D/" + Planet.Id;
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", link);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Discoverable link copied to clipboard", ToastProgressState.Success));
     }
 
     private async Task DeleteInvite(PlanetInvite invite)

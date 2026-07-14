@@ -40,6 +40,11 @@ public interface ISharedPlanetListInfo : ISharedModel<long>
     /// True if the planet is marked as NSFW
     /// </summary>
     bool Nsfw { get; set; }
+
+    /// <summary>
+    /// True if the planet is discoverable (shows up in planet discovery)
+    /// </summary>
+    bool Discoverable { get; set; }
     
     /// <summary>
     /// The number of members in the planet
