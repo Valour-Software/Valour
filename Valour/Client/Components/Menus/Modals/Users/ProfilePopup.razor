@@ -28,6 +28,7 @@
     private string _corner = "bottomLeft";
 
     private bool _needsPositioning = false;
+    private bool _needsDetailLoad = false;
 
     protected override void OnInitialized()
     {
@@ -37,55 +38,70 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_needsPositioning && !_hidden)
+        if (_hidden || _profileCard is null)
+            return;
+
+        // The ProfileCard is captured via @ref, so it only exists once the
+        // render triggered by OpenAsync has actually run. Loading details and
+        // positioning must happen here, not inline in OpenAsync, otherwise
+        // _profileCard is still null on the first open.
+        if (_needsDetailLoad)
         {
-            await JsRuntime.InvokeVoidAsync("positionRelativeTo", _profileCard.Id, _posX, _posY, _corner);
+            _needsDetailLoad = false;
+            await _profileCard.LoadDetailsAsync();
+        }
+
+        if (_needsPositioning)
+        {
             _needsPositioning = false;
+            await JsRuntime.InvokeVoidAsync("positionRelativeTo", _profileCard.Id, _posX, _posY, _corner);
         }
     }
 
     public async Task OpenAsync(User user, int x, int y, string corner = "bottomLeft")
     {
+        if (user is null)
+            return;
+
         _posX = x;
         _posY = y;
         _corner = corner;
-        
+
         _member = null;
         _user = user;
-        
+
         _profile = await _user.FetchProfileAsync();
         if (_profile is null)
             return;
 
         _hidden = false;
-
         _needsPositioning = true;
+        _needsDetailLoad = true;
 
         StateHasChanged();
-
-        await _profileCard.LoadDetailsAsync();
     }
 
     public async Task OpenAsync(PlanetMember member, int x, int y, string corner = "bottomLeft")
     {
+        if (member?.User is null)
+            return;
+
         _posX = x;
         _posY = y;
         _corner = corner;
-        
+
         _member = member;
-        _user = null;
-        _hidden = false;
         _user = member.User;
-        
+
         _profile =  await _user.FetchProfileAsync();
         if (_profile is null)
             return;
 
+        _hidden = false;
         _needsPositioning = true;
+        _needsDetailLoad = true;
 
         StateHasChanged();
-        
-        await _profileCard.LoadDetailsAsync();
     }
 
     
