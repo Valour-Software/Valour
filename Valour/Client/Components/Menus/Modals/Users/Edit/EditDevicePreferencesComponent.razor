@@ -25,6 +25,17 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
+                <span class="toggle-title">Big Emojis</span>
+                <label class="switch">
+                    <input type="checkbox" @onclick="SwitchBigEmojiMessages" checked="@DevicePreferences.BigEmojiMessages">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">When enabled, messages containing only a few emojis (5 or less) are shown larger.</p>
+        </div>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
                 <span class="toggle-title">Error Reporting</span>
                 <label class="switch">
                     <input type="checkbox" @onclick="OnErrorReportingClick" checked="@_errorReportingEnabled">
@@ -417,6 +428,11 @@
         DevicePreferences.AutoEmoji = !DevicePreferences.AutoEmoji;
         await LocalStorage.SetAsync("AutoEmoji", DevicePreferences.AutoEmoji);
         MarkdownManager.RegenPipeline();
+    }
+
+    private async Task SwitchBigEmojiMessages()
+    {
+        await DevicePreferences.SetBigEmojiMessages(!DevicePreferences.BigEmojiMessages, LocalStorage);
     }
 
     private string GetMicPermissionDescription()

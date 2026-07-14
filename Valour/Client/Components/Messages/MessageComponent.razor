@@ -201,8 +201,10 @@ else
         if (string.IsNullOrWhiteSpace(_message.Content))
             return;
         
+        var isBigEmoji = DevicePreferences.BigEmojiMessages && MarkdownManager.IsEmojiOnlyMessage(_message.Content);
+
         builder.OpenElement(0, "div");
-        builder.AddAttribute(1, "class", "fragments");
+        builder.AddAttribute(1, "class", isBigEmoji ? "fragments big-emoji" : "fragments");
         try
         {
             Markdown.RenderToFragment(
