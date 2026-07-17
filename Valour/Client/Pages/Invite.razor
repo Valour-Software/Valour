@@ -1,69 +1,19 @@
-﻿@page "/I/{InviteCode}"
+@page "/I/{InviteCode}"
 
-@inject NavigationManager NavManager
 @inject ValourClient Client
 @inject PlanetService PlanetService
 
-<NebulaBackground ContentClasses="absolute-center">
-    <div class="invite-card">
-        <div class="col-md-12">
-            <section class="text-center">
-
-                @if (_inviteDataResult is null)
-                {
-                    <h2>Loading...</h2>
-                }
-                else if (!_inviteDataResult.Value.Success)
-                {
-                    <p class="invite-prompt text-danger">@(_inviteDataResult.Value.Message ?? "An error occurred.")</p>
-                    <button class="v-btn center mt-4" @onclick="OnClose">Back to Home</button>
-                }
-                else
-                {
-                    if (!Client.IsLoggedIn)
-                    {
-                        <div class="invite-planet-preview">
-                            <DiscoveryPlanetCard PlanetInfo="@_inviteDataResult.Value.Data" HideActions="true"/>
-                        </div>
-                        <p class="invite-prompt">Create an account or log in to join this planet</p>
-                        <div class="invite-actions">
-                            <button class="v-btn mt-2 join-btn" @onclick="OnClickRegister">Join Valour</button>
-                            <button class="v-btn mt-2 login-btn" @onclick="OnClickLogin">Log In</button>
-                        </div>
-                    }
-                    else if (_alreadyJoined)
-                    {
-                        <DiscoveryPlanetCard PlanetInfo="@_inviteDataResult.Value.Data" HideActions="true"/>
-                        <p class="already-joined-text">You're already a member of this planet!</p>
-                        <button class="v-btn mt-2" @onclick="OnClose">Go to Home</button>
-                    }
-                    else
-                    {
-                        <DiscoveryPlanetCard PlanetInfo="@_inviteDataResult.Value.Data" OnJoin="OnJoinPlanet"/>
-                        @if (_joining)
-                        {
-                            <p class="invite-prompt">Joining planet...</p>
-                        }
-                        else if (_joinError is not null)
-                        {
-                            <p class="invite-prompt text-danger">@_joinError</p>
-                        }
-                    }
-                }
-            </section>
-        </div>
-    </div>
-</NebulaBackground>
+<PlanetJoinLanding Result="@_inviteDataResult"
+                   JoinAsync="@JoinAsync"
+                   LoginReturnPath="@($"/I/{InviteCode}")"
+                   RegisterUrl="@($"/register/i/{InviteCode}")" />
 
 @code {
 
     [Parameter]
-    public string InviteCode {get; set;}
-    
+    public string InviteCode { get; set; }
+
     private TaskResult<PlanetListInfo>? _inviteDataResult;
-    private bool _alreadyJoined = false;
-    private string _joinError;
-    private bool _joining;
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,96 +21,8 @@
         var joinedPlanetsTask = Client.IsLoggedIn ? PlanetService.FetchJoinedPlanetsAsync() : Task.CompletedTask;
         await joinedPlanetsTask;
         _inviteDataResult = await inviteDataTask;
-
-        // Already joined
-        if (_inviteDataResult.HasValue &&
-            _inviteDataResult.Value.Data is not null &&
-            IsAlreadyJoined(_inviteDataResult.Value.Data.PlanetId))
-        {
-            _alreadyJoined = true;
-        }
-
     }
 
-    private bool IsAlreadyJoined(long planetId)
-    {
-        var planets = PlanetService.JoinedPlanets;
-        for (var i = 0; i < planets.Count; i++)
-        {
-            if (planets[i].Id == planetId)
-                return true;
-        }
-        return false;
-    }
-
-    public async Task OnClose()
-    {
-        await PlanetService.FetchJoinedPlanetsAsync();
-        NavManager.NavigateTo("/");
-    }
-
-    private void OnClickLogin()
-    {
-        NavManager.NavigateTo($"/?redirect=/i/{InviteCode}", true);
-    }
-
-    private void OnClickRegister()
-    {
-        NavManager.NavigateTo($"/register/i/{InviteCode}", true);
-    }
-
-    private async Task OnJoinPlanet(PlanetListInfo planetInfo)
-    {
-        if (_joining)
-            return;
-
-        _joinError = null;
-        _joining = true;
-        StateHasChanged();
-
-        TaskResult<PlanetMember> result;
-        try
-        {
-            result = await PlanetService.JoinPlanetAsync(planetInfo.PlanetId, InviteCode);
-        }
-        finally
-        {
-            _joining = false;
-        }
-
-        if (result.Success)
-        {
-            _alreadyJoined = true;
-            await GoToPlanetAsync(planetInfo.PlanetId);
-            return;
-        }
-
-        await PlanetService.FetchJoinedPlanetsAsync();
-        if (IsAlreadyJoined(planetInfo.PlanetId))
-        {
-            _alreadyJoined = true;
-            await GoToPlanetAsync(planetInfo.PlanetId);
-            return;
-        }
-
-        _joinError = result.Message ?? "Failed to join planet.";
-    }
-
-    private async Task GoToPlanetAsync(long planetId)
-    {
-        var planet = await PlanetService.FetchPlanetAsync(planetId);
-        if (planet is not null)
-        {
-            await planet.FetchInitialDataAsync();
-            var channel = planet.PrimaryChatChannel;
-            if (channel is not null)
-            {
-                NavManager.NavigateTo($"/planetchannels/{planetId}/{channel.Id}/0", true);
-                return;
-            }
-        }
-
-        await PlanetService.FetchJoinedPlanetsAsync();
-        NavManager.NavigateTo("/", true);
-    }
+    private Task<TaskResult<PlanetMember>> JoinAsync(long planetId) =>
+        PlanetService.JoinPlanetAsync(planetId, InviteCode);
 }

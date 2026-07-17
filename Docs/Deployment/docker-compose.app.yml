@@ -1,0 +1,25 @@
+# Valour app service — instantiated once per color by deploy-if-new.sh:
+#   VALOUR_IMAGE=ghcr.io/valour-software/valour@sha256:... VALOUR_COLOR=blue \
+#     docker compose -f docker-compose.app.yml -p valour-blue up -d
+services:
+  dotnetapp:
+    image: ${VALOUR_IMAGE}
+    container_name: valour-node-${VALOUR_COLOR}
+    expose:
+      - "5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - Notifications__FirebaseCredentialPath=/app/firebase-credentials.json
+    volumes:
+      - ./dotnet/appsettings.json:/app/appsettings.json:ro
+      - ./dotnet/firebase-credentials.json:/app/firebase-credentials.json:ro
+    networks:
+      valour-network:
+        aliases:
+          - valour-${VALOUR_COLOR}
+    restart: unless-stopped
+
+networks:
+  valour-network:
+    external: true

@@ -1,0 +1,8 @@
+[Unit]
+Description=Valour auto deploy
+
+[Service]
+Type=oneshot
+# Adjust to where the deploy files live on your server
+WorkingDirectory=/home/azureuser/valour
+ExecStart=/home/azureuser/valour/deploy-if-new.sh

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Valour auto deploy periodically
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=120s
+RandomizedDelaySec=15s
+
+[Install]
+WantedBy=timers.target

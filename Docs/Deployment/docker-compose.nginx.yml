@@ -1,0 +1,21 @@
+# nginx reverse proxy — long-lived; deploy-if-new.sh hot-reloads it on cutover.
+# Requires the external network to exist: docker network create valour-network
+services:
+  nginx:
+    image: nginx:latest
+    container_name: valour-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/upstream.conf:/etc/nginx/conf.d/00-upstream.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl/valour.crt:/etc/nginx/ssl/valour.crt:ro
+      - ./nginx/ssl/valour.key:/etc/nginx/ssl/valour.key:ro
+    networks:
+      - valour-network
+    restart: unless-stopped
+
+networks:
+  valour-network:
+    external: true
