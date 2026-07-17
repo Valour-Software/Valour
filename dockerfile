@@ -41,6 +41,9 @@ FROM dotnet-restore AS build
 # Build the app
 RUN dotnet publish Valour/Server/Valour.Server.csproj -c Release -o out
 
+# Staging dir for the media mount point (see COPY --chown below)
+RUN mkdir -p /staging/media
+
 # Start with a smaller runtime image for the final image
 FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-preview.3-resolute-chiseled-extra AS final
 
@@ -49,6 +52,11 @@ WORKDIR /app
 
 # Copy the app's output files from the build-env image
 COPY --from=build /app/out .
+
+# Media storage mount point, owned by the non-root app user (uid 1654 in
+# chiseled images) so named volumes inherit writable ownership on first use.
+# Chiseled images have no shell, so this must be a COPY, not RUN mkdir.
+COPY --from=build --chown=1654:1654 /staging/media /app/media
 
 # Expose the app's port (if needed)
 EXPOSE 80

@@ -1,5 +1,6 @@
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
+using Valour.Server.Cdn.Storage;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Cdn;
@@ -16,6 +17,7 @@ public class UserAttachmentService
     private readonly ValourDb _db;
     private readonly CdnBucketService _bucketService;
     private readonly CdnMemoryCache _cdnCache;
+    private readonly CdnStorageProvider _cdnStorage;
     private readonly ChatCacheService _chatCacheService;
     private readonly CoreHubService _coreHubService;
     private readonly NodeLifecycleService _nodeLifecycleService;
@@ -25,6 +27,7 @@ public class UserAttachmentService
         ValourDb db,
         CdnBucketService bucketService,
         CdnMemoryCache cdnCache,
+        CdnStorageProvider cdnStorage,
         ChatCacheService chatCacheService,
         CoreHubService coreHubService,
         NodeLifecycleService nodeLifecycleService,
@@ -33,6 +36,7 @@ public class UserAttachmentService
         _db = db;
         _bucketService = bucketService;
         _cdnCache = cdnCache;
+        _cdnStorage = cdnStorage;
         _chatCacheService = chatCacheService;
         _coreHubService = coreHubService;
         _nodeLifecycleService = nodeLifecycleService;
@@ -86,7 +90,7 @@ public class UserAttachmentService
         var byId = items.ToDictionary(x => x.Id);
         var signedUrls = await Task.WhenAll(dbItems.Select(async dbItem =>
         {
-            var signedUrl = await ContentApi.GetSignedUrlAsync(_cdnCache, dbItem);
+            var signedUrl = await ContentApi.GetSignedUrlAsync(_cdnCache, _cdnStorage, dbItem);
             return (dbItem.Id, signedUrl);
         }));
 

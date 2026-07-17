@@ -674,7 +674,7 @@
     {
         var attachment = new MessageAttachment(MessageAttachmentType.ValourReceipt)
         {
-            Location = $"https://app.valour.gg/api/eco/transactions/{transactionId}",
+            Location = $"{ClientHosts.AppBaseUrl}/api/eco/transactions/{transactionId}",
         };
 
         AddMessageAttachment(attachment);
@@ -712,7 +712,7 @@
             var code = match.Groups[1].Value;
             attachments.Add(new MessageAttachment(MessageAttachmentType.ValourInvite)
             {
-                Location = $"https://app.valour.gg/i/{code}",
+                Location = $"{ClientHosts.AppBaseUrl}/i/{code}",
                 Inline = false
             });
         }

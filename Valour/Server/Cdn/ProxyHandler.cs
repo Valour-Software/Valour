@@ -107,7 +107,7 @@ public class ProxyHandler
 
         // Determine if this is a 'virtual' attachment. Like YouTube!
         // these attachments do not have an actual file - usually they use an iframe.
-        var isVirtual = CdnUtils.VirtualAttachmentMap.TryGetValue(normalizedHost, out var virtualType);
+        var isVirtual = CdnUtils.TryGetVirtualAttachmentType(normalizedHost, out var virtualType);
         if (isVirtual)
         {
             return await HandleVirtualAttachment(canonicalUrl, uri, virtualType);
@@ -181,7 +181,7 @@ public class ProxyHandler
         }
 
         // Store a canonical in-app link the client parses back into ids.
-        attachment.Location = $"https://app.valour.gg/planetthreads/{route.PlanetId}/{route.ThreadId}";
+        attachment.Location = $"{ValourHosts.AppBaseUrl}/planetthreads/{route.PlanetId}/{route.ThreadId}";
         return attachment;
     }
 
@@ -298,19 +298,19 @@ public class ProxyHandler
         if (path.StartsWith("/clip/"))
         {
             var clipId = path.Replace("/clip/", "").TrimEnd('/');
-            attachment.Location = $"https://clips.twitch.tv/embed?clip={clipId}&parent=valour.gg";
+            attachment.Location = $"https://clips.twitch.tv/embed?clip={clipId}&parent={ValourHosts.RootDomain}";
         }
         // Video
         else if (path.StartsWith("/videos/"))
         {
             var videoId = path.Replace("/videos/", "").TrimEnd('/');
-            attachment.Location = $"https://player.twitch.tv/?video={videoId}&parent=valour.gg";
+            attachment.Location = $"https://player.twitch.tv/?video={videoId}&parent={ValourHosts.RootDomain}";
         }
         // Collection
         else if (path.StartsWith("/collections/"))
         {
             var collectionId = path.Replace("/collections/", "").TrimEnd('/');
-            attachment.Location = $"https://player.twitch.tv/?collection={collectionId}&parent=valour.gg";
+            attachment.Location = $"https://player.twitch.tv/?collection={collectionId}&parent={ValourHosts.RootDomain}";
         }
         // Channel (live stream)
         else
@@ -318,7 +318,7 @@ public class ProxyHandler
             var channel = path.TrimStart('/').Split('/')[0];
             if (string.IsNullOrEmpty(channel))
                 return null;
-            attachment.Location = $"https://player.twitch.tv/?channel={channel}&parent=valour.gg";
+            attachment.Location = $"https://player.twitch.tv/?channel={channel}&parent={ValourHosts.RootDomain}";
         }
 
         return attachment;
@@ -746,7 +746,7 @@ public class ProxyHandler
 
         // Bypass our own CDN for known good sources
         var normalizedHost = NormalizeHost(uri.Host);
-        if (CdnUtils.MediaBypassList.Contains(normalizedHost))
+        if (CdnUtils.IsMediaBypassHost(normalizedHost))
         {
             return new MessageAttachment(type)
             {

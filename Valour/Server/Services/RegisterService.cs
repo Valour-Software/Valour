@@ -154,7 +154,7 @@ public class RegisterService
             UserPrivateInfo userPrivateInfo = new()
             {
                 Email = request.Email,
-                Verified = skipEmail || (EmailConfig.Instance.ApiKey == "fake-value"),
+                Verified = skipEmail || !EmailConfig.IsEnabled,
                 UserId = user.Id,
                 BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
                 JoinInviteCode = request.InviteCode,
@@ -202,7 +202,7 @@ public class RegisterService
             await _db.SaveChangesAsync();
             
             // Helper for dev environment
-            if (!skipEmail && EmailConfig.Instance.ApiKey != "fake-value")
+            if (!skipEmail && EmailConfig.IsEnabled)
             {
                 var emailCode = Guid.NewGuid().ToString();
                 var createdAt = DateTime.UtcNow;

@@ -10,32 +10,41 @@
             Push Notifications
         </h3>
 
-        <div class="toggle-item">
-            <div class="toggle-header">
-                <span class="toggle-title">Enable Push Notifications</span>
-                @if (_notificationsBlocked)
-                {
-                    <VButton Variant="secondary" Size="sm" OnClick="@OnOpenSettingsClick">Go to Settings</VButton>
-                }
-                else
-                {
-                    <label class="switch" @key="@_toggleRenderKey">
-                        <input type="checkbox" @onclick="OnNotificationsClick" checked="@_notificationsEnabled">
-                        <span class="slider round"></span>
-                    </label>
-                }
+        @if (Client.InstanceManifest is not null && !Client.InstanceManifest.Capabilities.PushNotifications)
+        {
+            <div class="toggle-item">
+                <p class="toggle-description">Push notifications are not available on this instance.</p>
             </div>
-            <p class="toggle-description">
-                @if (_notificationsBlocked)
-                {
-                    <span>Notifications are blocked. Tap "Go to Settings" to enable them.</span>
-                }
-                else
-                {
-                    <span>This will allow your device to receive push notifications.</span>
-                }
-            </p>
-        </div>
+        }
+        else
+        {
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Enable Push Notifications</span>
+                    @if (_notificationsBlocked)
+                    {
+                        <VButton Variant="secondary" Size="sm" OnClick="@OnOpenSettingsClick">Go to Settings</VButton>
+                    }
+                    else
+                    {
+                        <label class="switch" @key="@_toggleRenderKey">
+                            <input type="checkbox" @onclick="OnNotificationsClick" checked="@_notificationsEnabled">
+                            <span class="slider round"></span>
+                        </label>
+                    }
+                </div>
+                <p class="toggle-description">
+                    @if (_notificationsBlocked)
+                    {
+                        <span>Notifications are blocked. Tap "Go to Settings" to enable them.</span>
+                    }
+                    else
+                    {
+                        <span>This will allow your device to receive push notifications.</span>
+                    }
+                </p>
+            </div>
+        }
 
         <div class="toggle-item">
             <div class="toggle-header">

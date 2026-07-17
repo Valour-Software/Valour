@@ -1,8 +1,6 @@
-﻿using Amazon.S3;
-using Amazon.S3.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Net;
+using Valour.Server.Cdn.Storage;
 using Valour.Shared.Cdn;
 
 namespace Valour.Server.Cdn.Api;
@@ -14,8 +12,8 @@ public class ContentApi : Controller
         app.MapGet("/content/{category}/{userId}/{hash}", GetRoute);
         app.MapGet("/content/{category}/{userId}/{hash}/signed", GetSignedUrlRoute);
     }
-    
-    private static async Task<IResult> GetSignedUrlRoute(CdnMemoryCache cache, ValourDb db, ContentCategory category, string hash, ulong userId)
+
+    private static async Task<IResult> GetSignedUrlRoute(CdnMemoryCache cache, ValourDb db, CdnStorageProvider storage, ContentCategory category, string hash, ulong userId)
     {
         if (string.IsNullOrWhiteSpace(hash))
             return Results.BadRequest("Include id.");
@@ -32,37 +30,32 @@ public class ContentApi : Controller
         if (IsUnavailable(bucketItem))
             return Results.NotFound();
 
-        var url = await GetSignedUrlAsync(cache, bucketItem);
+        var url = await GetSignedUrlAsync(cache, storage, bucketItem);
         if (string.IsNullOrWhiteSpace(url))
             return Results.BadRequest("Failed to generate pre-signed URL.");
 
         return ValourResult.Ok(url);
     }
 
-    public static async Task<string> GetSignedUrlAsync(CdnMemoryCache cache, Valour.Database.CdnBucketItem bucketItem)
+    public static async Task<string> GetSignedUrlAsync(CdnMemoryCache cache, CdnStorageProvider storage, Valour.Database.CdnBucketItem bucketItem)
     {
         if (bucketItem is null || IsUnavailable(bucketItem))
             return null;
+
+        // Backends without signing (filesystem mode) fall back to the direct
+        // content route, which streams through the server with auth-free access
+        // identical to what a signed URL would grant.
+        if (!storage.Private.SupportsSignedUrls)
+            return $"{ValourHosts.ContentCdnBaseUrl}/content/{bucketItem.Id}";
 
         var cacheKey = $"signed:{bucketItem.Id}:{bucketItem.MimeType}:{bucketItem.FileName}";
 
         if (cache.Cache.TryGetValue(cacheKey, out string cachedUrl))
             return cachedUrl;
 
-        var request = new GetPreSignedUrlRequest()
-        {
-            Key = bucketItem.Hash,
-            BucketName = "valourmps",
-            Expires = DateTime.UtcNow.AddHours(1),
-            Verb = HttpVerb.GET,
-            ResponseHeaderOverrides = new ResponseHeaderOverrides
-            {
-                ContentType = bucketItem.MimeType,
-                ContentDisposition = $"inline; filename=\"{bucketItem.FileName}\""
-            }
-        };
+        var url = await storage.Private.GetSignedUrlAsync(
+            bucketItem.Hash, bucketItem.MimeType, bucketItem.FileName, TimeSpan.FromHours(1));
 
-        var url = await CdnBucketService.Client.GetPreSignedURLAsync(request);
         if (string.IsNullOrWhiteSpace(url))
             return null;
 
@@ -77,7 +70,7 @@ public class ContentApi : Controller
         return url;
     }
 
-    private static async Task<IResult> GetRoute(CdnMemoryCache cache, ValourDb db,
+    private static async Task<IResult> GetRoute(CdnMemoryCache cache, ValourDb db, CdnStorageProvider storage,
          ContentCategory category, string hash, ulong userId)
     {
         if (string.IsNullOrWhiteSpace(hash))
@@ -99,27 +92,22 @@ public class ContentApi : Controller
 
         if (!cache.Cache.TryGetValue(hash, out data))
         {
-            var request = new GetObjectRequest()
+            var download = await storage.Private.GetAsync(hash);
+            if (download is null)
+                return Results.NotFound();
+
+            await using (download)
             {
-                Key = hash,
-                BucketName = "valourmps",
-            };
+                MemoryStream ms = new MemoryStream();
+                await download.Stream.CopyToAsync(ms);
+                data = ms.ToArray();
+            }
 
-            var response = await CdnBucketService.Client.GetObjectAsync(request);
-
-            if (!CdnUtils.IsSuccessStatusCode(response.HttpStatusCode))
-                return Results.BadRequest("Failed to get object from bucket.");
-
-            MemoryStream ms = new MemoryStream();
-            await response.ResponseStream.CopyToAsync(ms);
-
-            data = ms.ToArray();
-
-            cache.Cache.Set(hash, data, 
-                new MemoryCacheEntryOptions() 
-                { 
-                    Size = data.Length, 
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1) 
+            cache.Cache.Set(hash, data,
+                new MemoryCacheEntryOptions()
+                {
+                    Size = data.Length,
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
                 }
              );
         }

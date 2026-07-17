@@ -1,3 +1,4 @@
+using Valour.Config.Configs;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -80,5 +81,50 @@ public class StartupService
         {
             _logger.LogInformation("Valour Central already exists");
         }
+    }
+
+    /// <summary>
+    /// Creates a verified staff account on first run when bootstrap admin
+    /// credentials are configured and no staff account exists yet.
+    /// Intended for self-hosted instances (see Bootstrap config section).
+    /// </summary>
+    public async Task EnsureBootstrapAdminAsync()
+    {
+        var config = BootstrapConfig.Current;
+        if (string.IsNullOrWhiteSpace(config?.AdminEmail) ||
+            string.IsNullOrWhiteSpace(config?.AdminPassword))
+            return;
+
+        if (await _db.Users.AnyAsync(x => x.ValourStaff))
+        {
+            _logger.LogInformation("Staff account already exists; skipping bootstrap admin");
+            return;
+        }
+
+        _logger.LogInformation("Creating bootstrap admin account {Username}", config.AdminUsername);
+
+        var result = await _registerService.RegisterUserAsync(new RegisterUserRequest()
+        {
+            Email = config.AdminEmail,
+            Password = config.AdminPassword,
+            Username = config.AdminUsername,
+            DateOfBirth = new DateTime(1990, 1, 1),
+            Source = "bootstrap",
+        }, null, skipEmail: true);
+
+        if (!result.Success || result.Data is null)
+        {
+            _logger.LogError("Failed to create bootstrap admin: {Error}", result.Message);
+            return;
+        }
+
+        var user = await _db.Users.FindAsync(result.Data.Id);
+        if (user is not null)
+        {
+            user.ValourStaff = true;
+            await _db.SaveChangesAsync();
+        }
+
+        _logger.LogInformation("Bootstrap admin created and granted staff");
     }
 }

@@ -9,14 +9,17 @@
         <Label>Add Channel</Label>
         <Icon><i class="bi bi-chat-left"></i></Icon>
     </ContextMenuItem>
-    <ContextMenuItem OnClick='@OpenCreateVoiceChannel'>
-        <Label>Add Voice Channel</Label>
-        <Icon><i class="bi bi-music-note-beamed"></i></Icon>
-    </ContextMenuItem>
-    <ContextMenuItem OnClick='@OpenCreateVideoChannel'>
-        <Label>Add Video Channel</Label>
-        <Icon><i class="bi bi-camera-video"></i></Icon>
-    </ContextMenuItem>
+    @if (VoiceAvailable)
+    {
+        <ContextMenuItem OnClick='@OpenCreateVoiceChannel'>
+            <Label>Add Voice Channel</Label>
+            <Icon><i class="bi bi-music-note-beamed"></i></Icon>
+        </ContextMenuItem>
+        <ContextMenuItem OnClick='@OpenCreateVideoChannel'>
+            <Label>Add Video Channel</Label>
+            <Icon><i class="bi bi-camera-video"></i></Icon>
+        </ContextMenuItem>
+    }
     <ContextMenuItem OnClick='@OpenCreateCategory'>
         <Label>Add Category</Label>
         <Icon><i class="bi bi-folder"></i></Icon>
@@ -40,6 +43,8 @@
 }
 
 @code {
+    private bool VoiceAvailable => Client.InstanceManifest?.Capabilities?.Voice != false;
+
 
     public class PlanetContextParams
     {

@@ -30,21 +30,12 @@ public readonly struct ValourRoute
 /// </summary>
 public static class ValourRouteParser
 {
-    private const string ThreadsHost = "threads.valour.gg";
-
-    private static readonly HashSet<string> ValourHosts = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "valour.gg",
-        "www.valour.gg",
-        "app.valour.gg",
-        ThreadsHost,
-    };
-
     /// <summary>
-    /// True if the host belongs to Valour's web app.
+    /// True if the host belongs to this deployment's web app
+    /// (see Hosting.ValourHosts for the configured hosts).
     /// </summary>
     public static bool IsValourHost(string? host) =>
-        !string.IsNullOrWhiteSpace(host) && ValourHosts.Contains(host);
+        !string.IsNullOrWhiteSpace(host) && Hosting.ValourHosts.IsSelfHost(host);
 
     /// <summary>
     /// True if the given value is a Valour app link (an absolute Valour URL or a
@@ -72,7 +63,7 @@ public static class ValourRouteParser
             if (!IsValourHost(absolute.Host))
                 return false;
 
-            isThreadsHost = absolute.Host.Equals(ThreadsHost, StringComparison.OrdinalIgnoreCase);
+            isThreadsHost = absolute.Host.Equals(Hosting.ValourHosts.ThreadsHost, StringComparison.OrdinalIgnoreCase);
             path = absolute.AbsolutePath;
         }
         else

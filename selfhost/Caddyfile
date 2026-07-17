@@ -1,0 +1,13 @@
+# Caddy config for self-hosted Valour.
+# TLS certificates are obtained and renewed automatically for VALOUR_DOMAIN.
+# WebSockets (the SignalR hub at /hubs/core) are proxied automatically.
+{$VALOUR_DOMAIN} {
+	encode gzip
+
+	request_body {
+		# Must cover the largest upload tier (250 MB)
+		max_size 250MB
+	}
+
+	reverse_proxy valour:5000
+}

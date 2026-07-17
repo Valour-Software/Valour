@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Valour.Config.Configs;
 using Valour.Server.Email;
 using DbUserPreferences = Valour.Database.UserPreferences;
 
@@ -112,7 +113,7 @@ public class UnsubscribeApi
 </head>
 <body style='font-family: Outfit, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>
     <div style='max-width: 600px; margin: 40px auto; background-color: #fff; padding: 30px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); text-align: center;'>
-        <img src='https://valour.gg/media/logo/logo-64.png' alt='Valour Logo' style='max-width: 64px; height: auto; display: block; margin: 0 auto 20px;'>
+        <img src='{EmailConfig.Instance?.LogoUrl ?? "https://valour.gg/media/logo/logo-64.png"}' alt='Valour Logo' style='max-width: 64px; height: auto; display: block; margin: 0 auto 20px;'>
         <h1 style='color: #333;'>{title}</h1>
         <p style='color: #666;'>{message}</p>
     </div>

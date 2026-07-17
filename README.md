@@ -40,13 +40,33 @@ Planets can deploy a currency and economic system in two clicks. Why? Don't both
 
 Valour Nodes are designed to be able to run independently of any central server or service. One node failing has no effect on other nodes, allowing Valour to scale safely and efficiently. Our logical-server based system, rather than depending on cloud services, also allows us to be provider-agnostic, hosting Valour across different providers and giving us the ability to dedicate resources to large communities that need it.
 
+## Self-hosting
+
+Run your own Valour instance with Docker Compose — Postgres, Redis, local-disk
+media storage, and automatic HTTPS via Caddy, all on a single domain:
+
+```sh
+cp .env.example .env   # set your domain, passwords, and admin account
+docker compose up -d
+```
+
+Point your domain's DNS at the machine and open `https://your-domain`. Media
+is stored on the `media` volume by default; any S3-compatible storage (R2,
+MinIO, Garage, B2) works via the `CDN__*` environment variables, and an
+optional bundled MinIO is available with `docker compose --profile minio up`.
+Optional services (Stripe payments, SendGrid email, Cloudflare RealtimeKit
+voice, push notifications) activate when configured and the UI adapts
+automatically — see [Config/appsettings.helper.json](Config/appsettings.helper.json)
+for every section. Production-cluster deployment (blue/green, nginx) is
+documented in [Docs/Deployment/](Docs/Deployment/README.md).
+
 ## Contribute
 
 To contribute to Valour, set up a local server + client environment first.
 
 ### 1) Prerequisites
 
-1. Install .NET SDK 10 (the repo is pinned to `10.0.100` in `global.json`): [https://dotnet.microsoft.com/en-us/download/dotnet/10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+1. Install the .NET 11 preview SDK (the repo is pinned to `11.0.100-preview.3` in `global.json`): [https://dotnet.microsoft.com/en-us/download/dotnet/11.0](https://dotnet.microsoft.com/en-us/download/dotnet/11.0)
 2. Use any IDE/editor with modern .NET support (Rider, Visual Studio, VS Code, etc.)
 3. Install PostgreSQL: [https://www.postgresql.org/](https://www.postgresql.org/)
 4. Install Redis: [https://redis.com/](https://redis.com/)

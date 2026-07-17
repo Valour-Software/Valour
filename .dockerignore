@@ -1,0 +1,14 @@
+# Never bake local secrets into images — config comes from bind mounts or
+# environment variables at runtime (see docker-compose.yml / Docs/Deployment).
+**/appsettings.json
+**/appsettings.*.json
+!Config/appsettings.helper.json
+**/firebase-credentials.json
+.env
+
+# Build noise — shrinks context and avoids stale-artifact leaks
+**/bin/
+**/obj/
+.git/
+.claude/
+media-storage/

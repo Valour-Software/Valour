@@ -1,7 +1,9 @@
+using System.Net.Http.Json;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Services;
 using Valour.Sdk.Utility;
 using Valour.Shared;
+using Valour.Shared.Hosting;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Client;
@@ -157,6 +159,53 @@ public class ValourClient
         }
 
         _httpClient.BaseAddress = new Uri(BaseAddress);
+    }
+
+    /// <summary>
+    /// The instance manifest fetched from the server, if available.
+    /// Describes the instance's hosts and configured capabilities.
+    /// </summary>
+    public InstanceManifest InstanceManifest { get; private set; }
+
+    /// <summary>
+    /// Fetches the instance manifest from the connected server and applies its
+    /// hosts to the shared ValourHosts source of truth so links, CDN URLs, and
+    /// route parsing point at the right domains for this instance. Safe to call
+    /// against older servers — returns null when the endpoint is missing.
+    /// </summary>
+    public async Task<InstanceManifest> FetchInstanceManifestAsync()
+    {
+        try
+        {
+            var response = await Http.GetAsync(".well-known/valour-instance");
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var manifest = await response.Content.ReadFromJsonAsync<InstanceManifest>();
+            if (manifest?.Hosts is null)
+                return manifest;
+
+            InstanceManifest = manifest;
+
+            var hosts = manifest.Hosts;
+            if (!string.IsNullOrWhiteSpace(hosts.RootDomain))
+                ValourHosts.RootDomain = hosts.RootDomain;
+            if (!string.IsNullOrWhiteSpace(hosts.App))
+                ValourHosts.AppHost = hosts.App;
+            if (!string.IsNullOrWhiteSpace(hosts.Threads))
+                ValourHosts.ThreadsHost = hosts.Threads;
+            if (!string.IsNullOrWhiteSpace(hosts.ContentCdn))
+                ValourHosts.ContentCdnHost = hosts.ContentCdn;
+            if (!string.IsNullOrWhiteSpace(hosts.PublicCdn))
+                ValourHosts.PublicCdnHost = hosts.PublicCdn;
+
+            return manifest;
+        }
+        catch
+        {
+            // Older servers don't serve a manifest; defaults remain in place.
+            return null;
+        }
     }
 
     /// <summary>

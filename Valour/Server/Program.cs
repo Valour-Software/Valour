@@ -1,16 +1,14 @@
 ﻿using System.Net;
-using Amazon.Runtime;
-using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using System.Text.Json;
-using Amazon;
 using CloudFlare.Client;
 using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
 using Valour.Server.Cdn.Extensions;
+using Valour.Server.Cdn.Storage;
 using Valour.Server.Email;
 using Valour.Server.Redis;
 using Valour.Server.Workers;
@@ -43,8 +41,11 @@ public partial class Program
         // Load configs
         ConfigLoader.LoadConfigs();
 
-        // Propagate configured CDN hosts to the shared source of truth used by
+        // Propagate configured hosts to the shared source of truth used by
         // shared models and the database layer.
+        ValourHosts.RootDomain = HostingConfig.Current.RootDomain;
+        ValourHosts.AppHost = HostingConfig.Current.AppHost;
+        ValourHosts.ThreadsHost = HostingConfig.Current.ThreadsHost;
         ValourHosts.ContentCdnHost = HostingConfig.Current.ContentCdnHost;
         ValourHosts.PublicCdnHost = HostingConfig.Current.PublicCdnHost;
 
@@ -110,43 +111,21 @@ public partial class Program
         UploadApi.AddRoutes(app);
         ProxyApi.AddRoutes(app);
 
+        // In filesystem storage mode the server itself serves public assets
+        // (avatars, icons, emoji) under /valour-public/; in s3 mode an external
+        // public CDN host serves them.
+        if (app.Services.GetRequiredService<CdnStorageProvider>().Mode == CdnStorageMode.FileSystem)
+        {
+            PublicContentApi.AddRoutes(app);
+        }
+
         // Add API routes
         BaseAPI.AddRoutes(app);
+        InstanceApi.AddRoutes(app);
         EmbedAPI.AddRoutes(app);
         OauthAppApi.StartCodeCleanupTask();
         VoiceSignallingApi.AddRoutes(app);
         
-        // s3 (r2) setup
-        
-        //AWSConfigsS3.UseSignatureVersion4 = true;
-
-        if (CdnConfig.Current is not null)
-        {
-            // private bucket
-            BasicAWSCredentials cred = new(CdnConfig.Current.S3Access, CdnConfig.Current.S3Secret);
-            var config = new AmazonS3Config()
-            {
-                ServiceURL = CdnConfig.Current.S3Endpoint
-            };
-
-            AmazonS3Client client = new(cred, config);
-            CdnBucketService.Client = client;
-            
-            // public bucket
-            BasicAWSCredentials publicCred = new(CdnConfig.Current.PublicS3Access, CdnConfig.Current.PublicS3Secret);
-            var publicConfig = new AmazonS3Config()
-            {
-                ServiceURL = CdnConfig.Current.PublicS3Endpoint
-            };
-            
-            AmazonS3Client publicClient = new(publicCred, publicConfig);
-            CdnBucketService.PublicClient = publicClient;
-        }
-        else
-        {
-            Console.WriteLine("Missing CDN config - file uploads will not function properly");
-        }
-
         DynamicApis = new()
         {
             new DynamicAPI<UserApi>().RegisterRoutes(app),
@@ -272,6 +251,34 @@ public partial class Program
         });
     }
 
+    /// <summary>
+    /// CORS origins derived from the configured hosting domains, plus fixed
+    /// dev and third-party entries. Note: the policy also sets
+    /// SetIsOriginAllowed(_ => true), which currently supersedes this list.
+    /// </summary>
+    private static string[] BuildCorsOrigins()
+    {
+        var hosting = HostingConfig.Current;
+        return
+        [
+            $"https://{hosting.AppHost}",
+            $"http://{hosting.AppHost}",
+            $"https://www.{hosting.RootDomain}",
+            $"http://www.{hosting.RootDomain}",
+            $"https://{hosting.RootDomain}",
+            $"http://{hosting.RootDomain}",
+            $"https://{hosting.ApiHost}",
+            $"http://{hosting.ApiHost}",
+            "https://tenor.googleapis.com",
+            "http://localhost:3000",
+            "https://localhost:3000",
+            "http://localhost:3001",
+            "https://localhost:3001",
+            "http://localhost:5000",
+            "http://localhost:5001",
+        ];
+    }
+
     public static void ConfigureServices(WebApplicationBuilder builder)
     {
         var services = builder.Services;
@@ -285,22 +292,7 @@ public partial class Program
                     .AllowAnyHeader()
                     .SetIsOriginAllowed(_ => true)
                     .AllowCredentials()
-                    .WithOrigins(
-                        "https://app.valour.gg",
-                        "http://app.valour.gg",
-                        "https://www.valour.gg",
-                        "https://tenor.googleapis.com",
-                        "http://www.valour.gg",
-                        "https://valour.gg",
-                        "http://valour.gg",
-                        "https://api.valour.gg",
-                        "http://api.valour.gg",
-                        "http://localhost:3000",
-                        "https://localhost:3000",
-                        "http://localhost:3001",
-                        "http://localhost:5001",
-                        "http://localhost:5000",
-                        "https://localhost:3001");
+                    .WithOrigins(BuildCorsOrigins());
             });
         });
         
@@ -352,12 +344,16 @@ public partial class Program
         services.AddRazorPages();
         services.AddServerSideBlazor();
 
-        //if (!string.IsNullOrEmpty(CloudflareConfig.Instance?.ApiKey))
-        //{
-            services.AddSingleton<ICloudFlareClient>(provider =>
-                new CloudFlareClient(CloudflareConfig.Instance?.ApiKey ?? string.Empty));
-        //}
+        // CloudFlareClient throws on an empty token, but the client must always
+        // be registered (CdnBucketService depends on it). When no key is
+        // configured we pass a placeholder — cache purges are skipped when no
+        // zone is configured, so the placeholder client is never actually used.
+        services.AddSingleton<ICloudFlareClient>(provider =>
+            new CloudFlareClient(string.IsNullOrWhiteSpace(CloudflareConfig.Instance?.ApiKey)
+                ? "unconfigured"
+                : CloudflareConfig.Instance.ApiKey));
 
+        services.AddSingleton<CdnStorageProvider>();
         services.AddSingleton<CdnBucketService>();
 
         services.AddHttpClient<ProxyHandler>(client =>

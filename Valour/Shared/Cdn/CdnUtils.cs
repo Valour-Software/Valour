@@ -53,18 +53,31 @@ namespace Valour.Shared.Cdn
             // Developer platforms
             { "github.com", MessageAttachmentType.GitHub },
             { "gist.github.com", MessageAttachmentType.GitHub },
-
-            // Valour thread links get an inline preview card
-            { "valour.gg", MessageAttachmentType.ValourThread },
-            { "app.valour.gg", MessageAttachmentType.ValourThread },
-            { "threads.valour.gg", MessageAttachmentType.ValourThread },
         };
+
+        /// <summary>
+        /// Resolves the virtual attachment type for a host. This deployment's
+        /// own hosts (from ValourHosts) get an inline thread preview card.
+        /// </summary>
+        public static bool TryGetVirtualAttachmentType(string host, out MessageAttachmentType type)
+        {
+            if (VirtualAttachmentMap.TryGetValue(host, out type))
+                return true;
+
+            if (ValourHosts.IsSelfHost(host))
+            {
+                type = MessageAttachmentType.ValourThread;
+                return true;
+            }
+
+            return false;
+        }
 
         public static bool IsVirtualAttachmentType(MessageAttachmentType type) =>
             VirtualAttachmentMap.ContainsValue(type);
 
         /// <summary>
-        /// Set for attachment sources that bypass Valour CDN
+        /// Third-party attachment sources that bypass Valour CDN
         /// </summary>
         public static HashSet<string> MediaBypassList = new()
         {
@@ -74,10 +87,23 @@ namespace Valour.Shared.Cdn
             "tenor.com",
             "i.imgur.com",
             "youtu.be",
-            ValourHosts.ContentCdnHost,
-            "valour.gg",
             "pbs.twimg.com",
         };
+
+        /// <summary>
+        /// True if media from this host bypasses the Valour CDN proxy — either
+        /// a trusted third-party source or this deployment's own hosts.
+        /// Evaluated at call time so it respects configured hosts.
+        /// </summary>
+        public static bool IsMediaBypassHost(string host)
+        {
+            if (string.IsNullOrWhiteSpace(host))
+                return false;
+
+            return MediaBypassList.Contains(host) ||
+                   host.Equals(ValourHosts.ContentCdnHost, StringComparison.OrdinalIgnoreCase) ||
+                   ValourHosts.IsSelfHost(host);
+        }
         
         public static readonly Dictionary<string, string> ExtensionToMimeType = new(StringComparer.OrdinalIgnoreCase)
         {

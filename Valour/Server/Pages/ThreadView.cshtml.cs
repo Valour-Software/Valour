@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Valour.Client.Components.Threads.Display;
 using Valour.Config.Configs;
 using Valour.Server.Cdn;
+using Valour.Server.Cdn.Storage;
 using Valour.Server.Database;
 using Valour.Server.Services;
 using Valour.Shared.Models;
@@ -19,12 +20,14 @@ public class ThreadViewModel : PageModel
     private readonly ValourDb _db;
     private readonly ThreadService _threadService;
     private readonly CdnMemoryCache _cdnCache;
+    private readonly CdnStorageProvider _cdnStorage;
 
-    public ThreadViewModel(ValourDb db, ThreadService threadService, CdnMemoryCache cdnCache)
+    public ThreadViewModel(ValourDb db, ThreadService threadService, CdnMemoryCache cdnCache, CdnStorageProvider cdnStorage)
     {
         _db = db;
         _threadService = threadService;
         _cdnCache = cdnCache;
+        _cdnStorage = cdnStorage;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -112,7 +115,7 @@ public class ThreadViewModel : PageModel
             if (attachment?.Location is null)
                 continue;
 
-            var url = await PublicThreadPageHelpers.TryGetSignedUrlAsync(_db, _cdnCache, attachment.Location);
+            var url = await PublicThreadPageHelpers.TryGetSignedUrlAsync(_db, _cdnCache, _cdnStorage, attachment.Location);
             if (url is null)
                 continue;
 

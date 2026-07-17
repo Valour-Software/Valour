@@ -5,6 +5,7 @@ using Markdig;
 using Microsoft.EntityFrameworkCore;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
+using Valour.Server.Cdn.Storage;
 using Valour.Server.Database;
 
 namespace Valour.Server.Pages;
@@ -130,7 +131,7 @@ public static partial class PublicThreadPageHelpers
     /// Resolves a CDN attachment location to a directly-loadable URL.
     /// Bucket content gets a pre-signed URL; proxy/Tenor URLs pass through.
     /// </summary>
-    public static async Task<string?> TryGetSignedUrlAsync(ValourDb db, CdnMemoryCache cache, string? location)
+    public static async Task<string?> TryGetSignedUrlAsync(ValourDb db, CdnMemoryCache cache, CdnStorageProvider storage, string? location)
     {
         if (string.IsNullOrWhiteSpace(location))
             return null;
@@ -154,7 +155,7 @@ public static partial class PublicThreadPageHelpers
             if (bucketItem is null)
                 return null;
 
-            return await ContentApi.GetSignedUrlAsync(cache, bucketItem);
+            return await ContentApi.GetSignedUrlAsync(cache, storage, bucketItem);
         }
         catch
         {

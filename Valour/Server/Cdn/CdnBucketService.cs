@@ -1,13 +1,11 @@
-using Amazon.S3;
-using Amazon.S3.Model;
 using System.Collections.Concurrent;
-using System.Net;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using CloudFlare.Client;
 using CloudFlare.Client.Api.Zones;
 using Valour.Config.Configs;
 using Valour.Database;
+using Valour.Server.Cdn.Storage;
 using Valour.Shared;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
@@ -16,26 +14,20 @@ namespace Valour.Server.Cdn;
 
 public class CdnBucketService
 {
-    public static AmazonS3Client Client { get; set; }
-    public static AmazonS3Client PublicClient { get; set; }
-    private static readonly TimeSpan[] RetryDelays =
-    {
-        TimeSpan.FromMilliseconds(250),
-        TimeSpan.FromMilliseconds(750),
-        TimeSpan.FromMilliseconds(1500)
-    };
     private static readonly ConcurrentDictionary<string, Task<TaskResult>> PublicUploadsInFlight = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, Task<TaskResult>> PrivateUploadsInFlight = new(StringComparer.Ordinal);
 
     private readonly ILogger<CdnBucketService> _logger;
     private readonly ICloudFlareClient _cloudflare;
+    private readonly CdnStorageProvider _storage;
     private readonly string _zone;
-    
-    public CdnBucketService(ICloudFlareClient cloudflare, ILogger<CdnBucketService> logger)
+
+    public CdnBucketService(ICloudFlareClient cloudflare, CdnStorageProvider storage, ILogger<CdnBucketService> logger)
     {
         _cloudflare = cloudflare;
+        _storage = storage;
         _logger = logger;
-        _zone = CloudflareConfig.Instance.ZoneId;
+        _zone = CloudflareConfig.Instance?.ZoneId;
     }
 
     public async Task<TaskResult> UploadPublicImage(Stream data, string path)
@@ -82,52 +74,33 @@ public class CdnBucketService
         CdnUtils.ExtensionToMimeType.TryGetValue(extension, out var mimeType);
         mimeType ??= "application/octet-stream";
 
-        PutObjectRequest request = new()
+        var putResult = await _storage.Public.PutAsync(path, data, mimeType);
+        if (!putResult.Success)
         {
-            Key = path,
-            InputStream = data,
-            BucketName = "valour-public",
-            DisablePayloadSigning = true,
-            ContentType = mimeType
-        };
-        
-        try
+            _logger.LogError("Failed to PUT public object: {Path} ({Message})", path, putResult.Message);
+            return putResult;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_zone))
         {
-            var response = await PutObjectWithRetryAsync(PublicClient, request, path);
-            
-            if (response.HttpStatusCode == HttpStatusCode.OK)
+            // Purge the cache for this object. Public URLs live under the
+            // fixed /valour-public/ namespace on the public CDN host.
+            var publicUrl = $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{path}";
+            var purgeResult = await _cloudflare.Zones.PurgeFilesAsync(_zone, [publicUrl]);
+
+            if (!purgeResult.Success)
             {
-                if (!string.IsNullOrWhiteSpace(_zone))
-                {
-                    // Purge the cache for this object
-                    var purgeResult =
-                        await _cloudflare.Zones.PurgeFilesAsync(_zone, [$"{ValourHosts.PublicCdnBaseUrl}/{path}"]);
-
-                    if (!purgeResult.Success)
-                    {
-                        _logger.LogError("Failed to purge cache for {Path}: {Error}", path, purgeResult.Errors);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Successfully purged cache for {Path}", path);
-                    }
-                }
-                
-                _logger.LogInformation("Successfully PUT object into bucket: {Path}", path);
-
-                return new TaskResult(true, $"{ValourHosts.PublicCdnBaseUrl}/{path}");
+                _logger.LogError("Failed to purge cache for {Path}: {Error}", path, purgeResult.Errors);
             }
             else
             {
-                _logger.LogError("Failed to PUT object into bucket: {Path} ({StatusCode})", path, response.HttpStatusCode);
-                return new TaskResult(false, $"Failed to PUT object into bucket. ({response.HttpStatusCode})");
+                _logger.LogInformation("Successfully purged cache for {Path}", path);
             }
         }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Failed to upload public image to {Path}", path);
-            return new TaskResult(false, "Failed to upload public image.");
-        }
+
+        _logger.LogInformation("Successfully PUT public object: {Path}", path);
+
+        return new TaskResult(true, $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{path}");
     }
 
     public async Task<TaskResult> Upload(
@@ -259,25 +232,7 @@ public class CdnBucketService
         if (await db.CdnBucketItems.AsNoTracking().AnyAsync(x => x.Hash == hash))
             return TaskResult.SuccessResult;
 
-        try
-        {
-            var request = new DeleteObjectRequest()
-            {
-                Key = hash,
-                BucketName = "valourmps",
-            };
-
-            var response = await Client.DeleteObjectAsync(request);
-            if (CdnUtils.IsSuccessStatusCode(response.HttpStatusCode))
-                return TaskResult.SuccessResult;
-
-            return TaskResult.FromFailure($"Failed to delete object from bucket. ({response.HttpStatusCode})");
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Failed to delete private CDN object {Hash}", hash);
-            return TaskResult.FromFailure("Failed to delete private CDN object.");
-        }
+        return await _storage.Private.DeleteAsync(hash);
     }
 
     private static void ApplySafetyHashMatch(CdnBucketItem item, MediaSafetyHashMatchResult safetyHashMatch)
@@ -334,84 +289,7 @@ public class CdnBucketService
 
     private async Task<TaskResult> UploadPrivateObjectCoreAsync(MemoryStream data, string hash, string mime)
     {
-        // This object is unique and has to be posted to the bucket
-        PutObjectRequest request = new()
-        {
-            Key = hash,
-            // ChecksumAlgorithm = ChecksumAlgorithm.SHA256,
-            InputStream = data,
-            BucketName = "valourmps",
-            DisablePayloadSigning = true,
-            ContentType = mime
-        };
-
-        PutObjectResponse response;
-        try
-        {
-            response = await PutObjectWithRetryAsync(Client, request, hash);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Failed to upload object to bucket: {Hash}", hash);
-            return new TaskResult(false, "Failed to upload object to bucket.");
-        }
-
-        if (!CdnUtils.IsSuccessStatusCode(response.HttpStatusCode))
-        {
-            return new TaskResult(false, $"Failed to PUT object into bucket. ({response.HttpStatusCode})");
-        }
-
-        return TaskResult.SuccessResult;
-    }
-
-    private async Task<PutObjectResponse> PutObjectWithRetryAsync(
-        AmazonS3Client client,
-        PutObjectRequest request,
-        string key)
-    {
-        for (int attempt = 0; ; attempt++)
-        {
-            try
-            {
-                if (request.InputStream.CanSeek)
-                {
-                    request.InputStream.Position = 0;
-                }
-
-                return await client.PutObjectAsync(request);
-            }
-            catch (Exception ex) when (ShouldRetryPut(ex) && attempt < RetryDelays.Length)
-            {
-                var delay = RetryDelays[attempt];
-                _logger.LogWarning(
-                    ex,
-                    "Transient S3 upload error for {Key}. Retrying in {DelayMs}ms (attempt {Attempt}/{MaxAttempts})",
-                    key,
-                    (int)delay.TotalMilliseconds,
-                    attempt + 1,
-                    RetryDelays.Length + 1);
-
-                await Task.Delay(delay);
-            }
-        }
-    }
-
-    private static bool ShouldRetryPut(Exception ex)
-    {
-        if (ex is AmazonS3Exception s3Ex)
-        {
-            if (s3Ex.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.InternalServerError)
-                return true;
-
-            if (string.Equals(s3Ex.ErrorCode, "SlowDown", StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        var message = ex.Message;
-        if (string.IsNullOrWhiteSpace(message))
-            return false;
-
-        return message.Contains("Reduce your concurrent request rate for the same object", StringComparison.OrdinalIgnoreCase) ||
-               message.Contains("Slow Down", StringComparison.OrdinalIgnoreCase);
+        // This object is unique and has to be posted to storage
+        return await _storage.Private.PutAsync(hash, data, mime);
     }
 }

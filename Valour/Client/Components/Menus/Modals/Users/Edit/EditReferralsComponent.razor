@@ -68,7 +68,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _link = "https://app.valour.gg/register/referral/" + HttpUtility.UrlEncode(Client.Me.NameAndTag);
+        _link = $"{ClientHosts.AppBaseUrl}/register/referral/" + HttpUtility.UrlEncode(Client.Me.NameAndTag);
         var result = await Client.GetMyReferralsAsync();
         _referrals = result.Data;
         StateHasChanged();

@@ -30,6 +30,7 @@ public static class ConfigLoader
         config.GetSection("Cloudflare").Get<CloudflareConfig>();
         config.GetSection("MediaSafety").Get<MediaSafetyConfig>();
         config.GetSection("Hosting").Get<HostingConfig>();
+        config.GetSection("Bootstrap").Get<BootstrapConfig>();
 
         // Override with Kubernetes node details
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
@@ -74,6 +75,34 @@ public static class ConfigLoader
         if (HostingConfig.Current is null)
         {
             new HostingConfig();
+        }
+
+        // Ensure every config singleton exists even when its section is absent
+        // (self-hosted instances configure only what they use). Consumers can
+        // rely on empty values instead of null instances.
+        if (CdnConfig.Current is null)
+        {
+            new CdnConfig();
+        }
+
+        if (CloudflareConfig.Instance is null)
+        {
+            new CloudflareConfig();
+        }
+
+        if (StripeConfig.Current is null)
+        {
+            new StripeConfig();
+        }
+
+        if (BootstrapConfig.Current is null)
+        {
+            new BootstrapConfig();
+        }
+
+        if (NodeConfig.Instance is null)
+        {
+            new NodeConfig();
         }
     }
 

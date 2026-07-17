@@ -49,7 +49,7 @@ public class StripeApi
                         ProductData = new SessionLineItemPriceDataProductDataOptions
                         {
                             Name = product.Name,
-                            Description = $"{product.Name}, for use on valour.gg",
+                            Description = $"{product.Name}, for use on {ValourHosts.RootDomain}",
                         }
                     },
                     Quantity = 1,
@@ -137,7 +137,7 @@ public class StripeApi
                         ProductData = new SessionLineItemPriceDataProductDataOptions
                         {
                             Name = $"Valour {subTypeObj.Name} Subscription",
-                            Description = $"Monthly {subTypeObj.Name} subscription on valour.gg",
+                            Description = $"Monthly {subTypeObj.Name} subscription on {ValourHosts.RootDomain}",
                         }
                     },
                     Quantity = 1,

@@ -1,0 +1,100 @@
+# Self-hosted Valour — one domain, batteries included.
+#   1. cp .env.example .env   (edit values)
+#   2. docker compose up -d
+#   3. open https://$VALOUR_DOMAIN
+#
+# Media is stored on local disk (the "media" volume). To use S3-compatible
+# storage instead, set CDN__StorageMode=s3 and the CDN__S3* variables, or
+# enable the optional minio profile: docker compose --profile minio up -d
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: valour
+      POSTGRES_USER: valour
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U valour -d valour"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  valour:
+    image: ghcr.io/valour-software/valour:main-latest
+    # To run from local source instead of the published image:
+    # build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - Database__Host=postgres
+      - Database__Database=valour
+      - Database__Username=valour
+      - Database__Password=${POSTGRES_PASSWORD}
+      - Redis__ConnectionString=redis:6379
+      - Node__Name=main
+      - Node__Location=https://${VALOUR_DOMAIN:?set VALOUR_DOMAIN in .env}
+      # Single-domain mode: app, api, cdn, and threads all served from
+      # VALOUR_DOMAIN (empty subdomains collapse to the root domain).
+      - Hosting__InstanceName=${VALOUR_INSTANCE_NAME:-Valour}
+      - Hosting__RootDomain=${VALOUR_DOMAIN}
+      - Hosting__AppSubdomain=
+      - Hosting__ApiSubdomain=
+      - Hosting__ThreadsSubdomain=
+      - Hosting__ContentCdnSubdomain=
+      - Hosting__PublicCdnSubdomain=
+      # Local-disk media storage (default for self-hosting)
+      - CDN__StorageMode=filesystem
+      - CDN__FileSystemPath=/app/media
+      # First-run staff account (created only if no staff account exists)
+      - Bootstrap__AdminEmail=${VALOUR_ADMIN_EMAIL:-}
+      - Bootstrap__AdminPassword=${VALOUR_ADMIN_PASSWORD:-}
+    volumes:
+      - media:/app/media
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - VALOUR_DOMAIN=${VALOUR_DOMAIN}
+    volumes:
+      - ./selfhost/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - valour
+    restart: unless-stopped
+
+  # Optional S3-compatible storage. Enable with: docker compose --profile minio up -d
+  # Then point the server at it: CDN__StorageMode=s3, CDN__S3Endpoint=http://minio:9000, etc.
+  minio:
+    image: minio/minio:latest
+    profiles: ["minio"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-valour}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-${POSTGRES_PASSWORD}}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  media:
+  caddy_data:
+  caddy_config:
+  minio_data:

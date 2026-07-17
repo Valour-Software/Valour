@@ -32,7 +32,7 @@ public static class EmailTemplateHelper
 </head>
 <body style='font-family: Outfit, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>
     <div style='max-width: 600px; margin: 20px auto; background-color: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);'>
-        <img src='https://valour.gg/media/logo/logo-64.png' alt='Valour Logo' style='max-width: 100%; height: auto; display: block; margin: 0 auto;'>
+        <img src='{EmailConfig.Instance?.LogoUrl ?? "https://valour.gg/media/logo/logo-64.png"}' alt='Valour Logo' style='max-width: 100%; height: auto; display: block; margin: 0 auto;'>
         {bodyContent}
         <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0 15px 0;'>
         <p style='color: #999; font-size: 12px;'>{address}</p>{unsubscribeFooter}

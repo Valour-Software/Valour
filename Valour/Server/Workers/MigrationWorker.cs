@@ -30,6 +30,7 @@ public class MigrationWorker : IHostedService
         // Perform startup tasks
         var startupService = scope.ServiceProvider.GetRequiredService<StartupService>();
         await startupService.EnsureVictorAndValourCentralReady();
+        await startupService.EnsureBootstrapAdminAsync();
         
         // Ensure all default roles are positioned correctly
         var defRowsUpdated = await db.PlanetRoles.Where(x => x.IsDefault)

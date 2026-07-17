@@ -2,7 +2,12 @@
 @inject NavigationManager NavManager
 @inject ValourClient Client
 
-@if (_page == SubPage.Redirecting)
+@if (Client.InstanceManifest is not null && !Client.InstanceManifest.Capabilities.Payments)
+{
+    <h4 class="title">Subscriptions</h4>
+    <p class="mt-4">Subscriptions are not available on this instance.</p>
+}
+else if (_page == SubPage.Redirecting)
 {
     <h4 class="title">Subscriptions</h4>
     <h5 class="subtitle">@_redirectingMessage</h5>

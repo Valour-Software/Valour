@@ -411,3 +411,5 @@ dotnet-install.sh
 
 # Firebase credentials
 google-services.json
+# Self-host compose secrets
+.env

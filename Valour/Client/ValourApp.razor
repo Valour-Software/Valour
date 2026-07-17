@@ -142,6 +142,13 @@ else
             Logger.Log("App", $"Using native/default API origin (hostMode={hostMode}, hostname={uriData.Hostname})", "magenta");
         }
 
+        // Learn this instance's hosts and capabilities. Applies configured
+        // domains to link building, CDN URLs, and route parsing; the UI uses
+        // the capability map to hide unavailable features.
+        var manifest = await Client.FetchInstanceManifestAsync();
+        if (manifest is not null)
+            Logger.Log("App", $"Connected to instance '{manifest.Name}' v{manifest.Version}", "magenta");
+
         _ = JsRuntime.InvokeAsync<object>(
             "blazorFuncs.registerClient",
             DotNetObjectReference.Create(this)

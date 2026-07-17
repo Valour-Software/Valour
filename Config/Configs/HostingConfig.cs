@@ -15,6 +15,11 @@ public class HostingConfig
     }
 
     /// <summary>
+    /// Display name of this instance, shown to clients.
+    /// </summary>
+    public string InstanceName { get; set; } = "Valour";
+
+    /// <summary>
     /// The root domain, e.g. "valour.gg".
     /// </summary>
     public string RootDomain { get; set; } = "valour.gg";

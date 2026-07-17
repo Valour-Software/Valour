@@ -36,7 +36,7 @@ public class EmailManager
         }
 
         // Sender and recipient
-        EmailAddress from = new EmailAddress("automated@valour.gg", "Valour");
+        EmailAddress from = new EmailAddress(EmailConfig.Instance.FromAddress, EmailConfig.Instance.FromName);
         EmailAddress to = new EmailAddress(address);
 
         // Log to console
@@ -63,7 +63,7 @@ public class EmailManager
         string unsubscribeUrl,
         CancellationToken cancellationToken = default)
     {
-        EmailAddress from = new EmailAddress("automated@valour.gg", "Valour");
+        EmailAddress from = new EmailAddress(EmailConfig.Instance.FromAddress, EmailConfig.Instance.FromName);
         EmailAddress to = new EmailAddress(address);
 
         Console.WriteLine($"Sending marketing email to {address}.");
@@ -74,7 +74,7 @@ public class EmailManager
         email.SetClickTracking(false, false);
 
         // RFC 8058 List-Unsubscribe headers
-        email.AddHeader("List-Unsubscribe", $"<{unsubscribeUrl}>, <mailto:unsubscribe@valour.gg>");
+        email.AddHeader("List-Unsubscribe", $"<{unsubscribeUrl}>, <mailto:{EmailConfig.Instance.UnsubscribeAddress}>");
         email.AddHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
 
         return await client.SendEmailAsync(email, cancellationToken);

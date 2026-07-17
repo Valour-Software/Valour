@@ -38,10 +38,12 @@ public class MediaUriHelper
 
         var host = NormalizeHost(uri.Host);
 
-        if (host == ValourHosts.ContentCdnHost || host is "media.tenor.com" or "app.valour.gg")
+        if (host.Equals(ValourHosts.ContentCdnHost, StringComparison.OrdinalIgnoreCase) ||
+            host.Equals(ValourHosts.AppHost, StringComparison.OrdinalIgnoreCase) ||
+            host == "media.tenor.com")
             return true;
 
-        if (CdnUtils.VirtualAttachmentMap.TryGetValue(host, out var mappedType) &&
+        if (CdnUtils.TryGetVirtualAttachmentType(host, out var mappedType) &&
             mappedType == attachment.Type)
         {
             return true;

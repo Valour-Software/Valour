@@ -41,6 +41,10 @@
     /// </summary>
     private async Task TryRenewSubscriptionAsync()
     {
+        // Instance has no push backend configured — nothing to renew against
+        if (Client.InstanceManifest is not null && !Client.InstanceManifest.Capabilities.PushNotifications)
+            return;
+
         if (DateTime.UtcNow - _lastRenewalAttempt < RenewInterval)
             return;
 
