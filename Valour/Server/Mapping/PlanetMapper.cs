@@ -23,6 +23,8 @@ public static class PlanetMapper
             Public = planet.Public,
             Discoverable = planet.Discoverable,
             Nsfw = planet.Nsfw,
+            SelfHostedMedia = planet.SelfHostedMedia,
+            LockedForMigration = planet.LockedForMigration,
             Version = planet.Version,
             HasCustomBackground = planet.HasCustomBackground,
             EnableThreads = planet.EnableThreads,

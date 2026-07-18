@@ -39,7 +39,9 @@ public static class MessageAttachmentMapper
             Inline = attachment.Inline,
             Missing = attachment.Missing,
             Data = attachment.Data,
-            OpenGraph = openGraph
+            OpenGraph = openGraph,
+            PlanetHosted = attachment.PlanetHosted,
+            ReportedSha256 = attachment.ReportedSha256
         };
     }
 
@@ -66,7 +68,9 @@ public static class MessageAttachmentMapper
             Inline = attachment.Inline,
             Missing = attachment.Missing,
             Data = attachment.Data,
-            OpenGraphData = attachment.OpenGraph is null ? null : JsonSerializer.Serialize(attachment.OpenGraph)
+            OpenGraphData = attachment.OpenGraph is null ? null : JsonSerializer.Serialize(attachment.OpenGraph),
+            PlanetHosted = attachment.PlanetHosted,
+            ReportedSha256 = attachment.ReportedSha256
         };
     }
 }

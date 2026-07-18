@@ -45,6 +45,8 @@ public class PlanetRoleService
     public async Task<TaskResult<PlanetRole>> CreateAsync(PlanetRole role)
     {
         var hostedPlanet = await _hostedService.GetRequiredAsync(role.PlanetId);
+        if (hostedPlanet.Planet.LockedForMigration)
+            return new TaskResult<PlanetRole>(false, MigrationLock.Message);
         
         if (string.IsNullOrWhiteSpace(role.Color))
             role.Color = "#ffffff";
@@ -124,6 +126,8 @@ public class PlanetRoleService
     public async Task<TaskResult<PlanetRole>> UpdateAsync(PlanetRole updatedRole)
     {
         var hostedPlanet = await _hostedService.GetRequiredAsync(updatedRole.PlanetId);
+        if (hostedPlanet.Planet.LockedForMigration)
+            return new TaskResult<PlanetRole>(false, MigrationLock.Message);
         
         var oldRole = await _db.PlanetRoles.FindAsync(updatedRole.Id);
         if (oldRole is null) return new(false, $"PlanetRole not found");
@@ -192,6 +196,8 @@ public class PlanetRoleService
     public async Task<TaskResult> DeleteAsync(long planetId, long roleId)
     {
         var hostedPlanet = await _hostedService.GetRequiredAsync(planetId);
+        if (hostedPlanet.Planet.LockedForMigration)
+            return TaskResult.FromFailure(MigrationLock.Message);
         var role = hostedPlanet.GetRoleById(roleId);
         if (role is null) return new(false, "Role not found in hosted planet");
             

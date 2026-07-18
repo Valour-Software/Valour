@@ -1,6 +1,7 @@
 @inject NavigationManager NavManager
 @inject ValourClient Client
 @inject PlanetService PlanetService
+@using Valour.Sdk.Nodes
 
 @* Shared landing UI + join flow for the invite (/I/{code}) and discoverable
    (/D/{id}) pages. The pages differ only in how they load the planet info and
@@ -39,9 +40,48 @@
                         <p class="already-joined-text">You're already a member of this planet!</p>
                         <button class="v-btn mt-2" @onclick="OnClose">Go to Home</button>
                     }
+                    else if (!string.IsNullOrWhiteSpace(Result.Value.Data.NodeDomain))
+                    {
+                        @* Community-hosted planet: first-contact warning before joining. *@
+                        <DiscoveryPlanetCard PlanetInfo="@Result.Value.Data" HideActions="true"/>
+                        <div class="custom-media-warning mt-2">
+                            <i class="bi bi-hdd-network-fill"></i>
+                            <span>
+                                This planet is hosted by <b>@Result.Value.Data.NodeDomain</b> — a community server,
+                                not Valour. Messages and media you post there are stored on their servers and visible
+                                to their operator. Valour's moderation and data-deletion guarantees don't fully apply,
+                                and your IP address is visible to this server.
+                            </span>
+                        </div>
+                        @if (_joining)
+                        {
+                            <p class="invite-prompt">Joining...</p>
+                        }
+                        else
+                        {
+                            <button class="v-btn mt-3 join-btn" @onclick="@(() => OnJoinFederated(Result.Value.Data))">
+                                I understand — join @Result.Value.Data.NodeDomain
+                            </button>
+                        }
+                        @if (_joinError is not null)
+                        {
+                            <p class="invite-prompt text-danger">@_joinError</p>
+                        }
+                    }
                     else
                     {
                         <DiscoveryPlanetCard PlanetInfo="@Result.Value.Data" OnJoin="OnJoinPlanet"/>
+                        @if (Result.Value.Data.SelfHostedMedia)
+                        {
+                            <div class="custom-media-warning mt-2">
+                                <i class="bi bi-hdd-network-fill"></i>
+                                <span>
+                                    This planet stores its media on infrastructure controlled by the planet's owner,
+                                    not by Valour. Files shared here are not scanned by Valour, and the planet's
+                                    media host can see your IP address when you view or upload media.
+                                </span>
+                            </div>
+                        }
                         @if (_joining)
                         {
                             <p class="invite-prompt">Joining planet...</p>
@@ -157,6 +197,63 @@
         }
 
         _joinError = result.Message ?? "Failed to join planet.";
+    }
+
+    /// <summary>
+    /// Join flow for a community-hosted planet: accept the node's domain
+    /// (first-contact warning was shown above), record the membership at the
+    /// hub, then hand off to the node connection.
+    /// </summary>
+    private async Task OnJoinFederated(PlanetListInfo info)
+    {
+        if (_joining)
+            return;
+
+        _joinError = null;
+        _joining = true;
+        StateHasChanged();
+
+        try
+        {
+            var accept = await PlanetService.AcceptFederationDomainAsync(info.NodeDomain);
+            if (!accept.Success)
+            {
+                _joinError = accept.Message ?? "Could not accept the domain.";
+                return;
+            }
+
+            var join = await PlanetService.JoinFederatedPlanetAsync(info.PlanetId);
+            if (!join.Success)
+            {
+                _joinError = join.Message ?? "Could not join the community planet.";
+                return;
+            }
+
+            // Membership is recorded at the hub. Connecting to the community
+            // node (opening its realtime session and rendering the planet) is
+            // handled by the multi-origin node layer.
+            _alreadyJoined = true;
+            await ConnectToFederatedPlanetAsync(info.PlanetId, info.NodeDomain);
+        }
+        finally
+        {
+            _joining = false;
+        }
+    }
+
+    private async Task ConnectToFederatedPlanetAsync(long planetId, string nodeDomain)
+    {
+        // Bring up a connection to the community node (HTTP + realtime on its
+        // own origin, authenticated by a federation-exchanged token).
+        var node = await Client.NodeService.ConnectToFederatedNodeAsync(nodeDomain);
+        if (node is null)
+        {
+            _joinError = $"Joined, but couldn't reach {nodeDomain}. It may be offline.";
+            return;
+        }
+
+        await PlanetService.FetchJoinedPlanetsAsync();
+        NavManager.NavigateTo("/", true);
     }
 
     private async Task GoToPlanetAsync(long planetId)

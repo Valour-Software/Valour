@@ -17,6 +17,11 @@
                 <p class="planet-name">
                     @Planet.Name
                 </p>
+                @if (Planet.SelfHostedMedia)
+                {
+                    <i class="bi bi-hdd-network-fill custom-media-icon"
+                       title="This planet stores media on its owner's own infrastructure, not on Valour"></i>
+                }
             </div>
             <div class="right">
                 @if (_notifications > 0)

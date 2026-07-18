@@ -78,6 +78,13 @@
         public string UploadUrl { get; set; }
         public string AuthToken { get; set; }
         public Action<string> OnUploadSuccess { get; set; }
+
+        /// <summary>
+        /// When set, replaces the default POST — used for direct-to-bucket
+        /// uploads (bring-your-own-storage). Receives the modal's UploadService
+        /// so progress and cancellation flow through the same UI.
+        /// </summary>
+        public Func<UploadService, byte[], Action<UploadProgressInfo>, CancellationToken, Task<UploadResult>> CustomUploader { get; set; }
     }
 
     private DotNetObjectReference<FileUploadComponent> _thisRef;
@@ -142,7 +149,7 @@
         if (_isUploading) return;
         
         // New path: use UploadService for real progress
-        if (!string.IsNullOrEmpty(Data.UploadUrl))
+        if (Data.CustomUploader is not null || !string.IsNullOrEmpty(Data.UploadUrl))
         {
             _isUploading = true;
             _progress = null;
@@ -150,18 +157,22 @@
             _uploadCts = new CancellationTokenSource();
             StateHasChanged();
 
-            var result = await UploadSvc.UploadAsync(
-                Data.UploadUrl,
-                Data.Bytes,
-                Data.Attachment.MimeType,
-                Data.Attachment.FileName,
-                Data.AuthToken,
-                onProgress: p =>
-                {
-                    _progress = p;
-                    InvokeAsync(StateHasChanged);
-                },
-                cancellationToken: _uploadCts.Token);
+            Action<UploadProgressInfo> onProgress = p =>
+            {
+                _progress = p;
+                InvokeAsync(StateHasChanged);
+            };
+
+            var result = Data.CustomUploader is not null
+                ? await Data.CustomUploader(UploadSvc, Data.Bytes, onProgress, _uploadCts.Token)
+                : await UploadSvc.UploadAsync(
+                    Data.UploadUrl,
+                    Data.Bytes,
+                    Data.Attachment.MimeType,
+                    Data.Attachment.FileName,
+                    Data.AuthToken,
+                    onProgress: onProgress,
+                    cancellationToken: _uploadCts.Token);
 
             _isUploading = false;
             _uploadCts.Dispose();

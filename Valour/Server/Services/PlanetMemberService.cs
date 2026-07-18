@@ -344,6 +344,8 @@ public class PlanetMemberService
         var planet = await _db.Planets.FindAsync(planetId);
         if (planet is null)
             return new TaskResult<PlanetMember>(false, "Planet not found.");
+        if (planet.LockedForMigration)
+            return new TaskResult<PlanetMember>(false, MigrationLock.Message);
 
         var user = await _db.Users.FindAsync(userId);
         if (user is null)
@@ -511,6 +513,8 @@ public class PlanetMemberService
     public async Task<TaskResult> AddRoleAsync(long planetId, long memberId, long roleId)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        if (hostedPlanet.Planet.LockedForMigration)
+            return TaskResult.FromFailure(MigrationLock.Message);
 
         var role = hostedPlanet.GetRoleById(roleId);
         if (role is null)
@@ -579,6 +583,8 @@ public class PlanetMemberService
     public async Task<TaskResult> RemoveRoleAsync(long planetId, long memberId, long roleId)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        if (hostedPlanet.Planet.LockedForMigration)
+            return TaskResult.FromFailure(MigrationLock.Message);
 
         var role = hostedPlanet.GetRoleById(roleId);
         if (role is null)

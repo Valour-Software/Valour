@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
@@ -126,6 +127,54 @@ public class NodeService : ServiceBase
         }
 
         return node;
+    }
+
+    /// <summary>
+    /// Connects to a community (federated) node: gets a hub-minted federation
+    /// token for the domain, exchanges it on the node for a node-local session,
+    /// and brings up an external Node (HTTP + SignalR to the node's own origin).
+    /// Returns the connected node, or null on failure.
+    /// </summary>
+    public async Task<Node> ConnectToFederatedNodeAsync(string domain, bool insecure = false)
+    {
+        if (string.IsNullOrWhiteSpace(domain))
+            return null;
+
+        if (_nameToNode.TryGetValue(domain, out var existing))
+            return existing;
+
+        // 1. Hub mints a federation token for this domain.
+        var tokenResult = await _client.PrimaryNode.PostAsyncWithResponse<Valour.Shared.Models.FederationTokenResponse>(
+            "api/federation/token", new Valour.Shared.Models.FederationTokenRequest { Domain = domain });
+        if (!tokenResult.Success || tokenResult.Data?.Token is null)
+            return null;
+
+        // 2. Exchange it on the node's origin for a node-local session token.
+        var scheme = insecure ? "http" : "https";
+        string nodeLocalToken;
+        try
+        {
+            using var http = new HttpClient();
+            var resp = await http.PostAsJsonAsync(
+                $"{scheme}://{domain}/api/federation/exchange",
+                new Valour.Shared.Models.FederationExchangeRequest { HubToken = tokenResult.Data.Token });
+            if (!resp.IsSuccessStatusCode)
+                return null;
+            var authToken = await resp.Content.ReadFromJsonAsync<Valour.Sdk.Models.AuthToken>();
+            nodeLocalToken = authToken?.Id;
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(nodeLocalToken))
+            return null;
+
+        // 3. Bring up the external node (HTTP + realtime to the node origin).
+        var node = new Node(_client);
+        var init = await node.InitializeExternalAsync(domain, nodeLocalToken, insecure);
+        return init.Success ? node : null;
     }
 
     public void RegisterNode(Node node)

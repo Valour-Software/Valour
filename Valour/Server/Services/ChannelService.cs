@@ -260,6 +260,8 @@ public class ChannelService
     public async Task<TaskResult> DeletePlanetChannelAsync(long planetId, long channelId)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        if (hostedPlanet.Planet.LockedForMigration)
+            return TaskResult.FromFailure(MigrationLock.Message);
 
         var isAssociatedChat = await _db.Channels
             .AnyAsync(x => x.AssociatedChatChannelId == channelId && !x.IsDeleted);
@@ -344,6 +346,8 @@ public class ChannelService
         if (channel.PlanetId is not null)
         {
             hostedPlanet = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
+            if (hostedPlanet.Planet.LockedForMigration)
+                return new TaskResult<Channel>(false, MigrationLock.Message);
             
             // Handle bundled permissions
             if (nodes is not null && nodes.Count > 0)
@@ -514,6 +518,8 @@ public class ChannelService
         if (updated.PlanetId is not null)
         {
             hostedPlanet = await _hostedPlanetService.GetRequiredAsync(updated.PlanetId.Value);
+            if (hostedPlanet.Planet.LockedForMigration)
+                return new TaskResult<Channel>(false, MigrationLock.Message);
         }
 
         var trans = await _db.Database.BeginTransactionAsync();

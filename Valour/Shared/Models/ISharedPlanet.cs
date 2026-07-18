@@ -64,6 +64,12 @@ public interface ISharedPlanet : ISharedModel<long>
     /// True if you probably shouldn't be on this server at work owo
     /// </summary>
     bool Nsfw { get; set; }
+
+    /// <summary>
+    /// True when this planet stores media on its own infrastructure
+    /// (bring-your-own-storage) rather than Valour's CDN
+    /// </summary>
+    bool SelfHostedMedia { get; set; }
     
     /// <summary>
     /// The version of the planet. Used for cache busting.

@@ -31,6 +31,18 @@ public class MessageAttachment
     public string Data { get; set; }
     public string OpenGraphData { get; set; }
 
+    /// <summary>
+    /// True when the file lives on the planet's own storage (bring-your-own-S3)
+    /// rather than Valour's CDN. Valour never stored or served these bytes.
+    /// </summary>
+    public bool PlanetHosted { get; set; }
+
+    /// <summary>
+    /// Client-reported SHA-256 of the uploaded bytes (planet-hosted only).
+    /// Unverified — recorded for abuse reports and forensics.
+    /// </summary>
+    public string ReportedSha256 { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<MessageAttachment>(e =>
@@ -88,6 +100,14 @@ public class MessageAttachment
 
             e.Property(x => x.OpenGraphData)
                 .HasColumnName("open_graph_data");
+
+            e.Property(x => x.PlanetHosted)
+                .HasColumnName("planet_hosted")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            e.Property(x => x.ReportedSha256)
+                .HasColumnName("reported_sha256");
 
             e.HasOne(x => x.Message)
                 .WithMany(x => x.Attachments)

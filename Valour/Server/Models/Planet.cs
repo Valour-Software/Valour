@@ -48,7 +48,18 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// True if you probably shouldn't be on this server at work owo
     /// </summary>
     public bool Nsfw { get; set; }
-    
+
+    /// <summary>
+    /// True when this planet stores media on its own infrastructure
+    /// (bring-your-own-storage) rather than Valour's CDN
+    /// </summary>
+    public bool SelfHostedMedia { get; set; }
+
+    /// <summary>
+    /// True while a migration is in progress — the planet is read-only.
+    /// </summary>
+    public bool LockedForMigration { get; set; }
+
     /// <summary>
     /// The version of the planet. Used for cache busting.
     /// </summary>

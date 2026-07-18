@@ -38,6 +38,15 @@ public class CdnConfig
     public string PublicS3Endpoint { get; set; }
 
     /// <summary>
+    /// Allows planet bring-your-own-storage endpoints on plain HTTP and
+    /// private/LAN addresses. Intended for self-hosted instances whose
+    /// communities run storage on the same network (e.g. a homelab MinIO).
+    /// Leave false on public deployments — it disables SSRF protections
+    /// for planet storage endpoints.
+    /// </summary>
+    public bool AllowInsecurePlanetStorage { get; set; }
+
+    /// <summary>
     /// Bucket for private content (message/file uploads), s3 mode only.
     /// </summary>
     public string PrivateBucket { get; set; } = "valourmps";

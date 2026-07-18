@@ -24,6 +24,7 @@ public class MessageService
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly AutomodService _automodService;
     private readonly ProxyHandler _proxyHandler;
+    private readonly PlanetStorageService _planetStorageService;
 
     public MessageService(
         ILogger<MessageService> logger,
@@ -35,7 +36,8 @@ public class MessageService
         ChatCacheService chatCacheService,
         HostedPlanetService hostedPlanetService,
         AutomodService automodService,
-        ProxyHandler proxyHandler)
+        ProxyHandler proxyHandler,
+        PlanetStorageService planetStorageService)
     {
         _logger = logger;
         _db = db;
@@ -47,6 +49,7 @@ public class MessageService
         _hostedPlanetService = hostedPlanetService;
         _automodService = automodService;
         _proxyHandler = proxyHandler;
+        _planetStorageService = planetStorageService;
     }
     
     /// <summary>
@@ -119,6 +122,11 @@ public class MessageService
             
             hostedPlanet = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
             planet = hostedPlanet.Planet;
+
+            // Planet is read-only while a migration copies it — reject writes so
+            // nothing is lost between the snapshot and the handoff.
+            if (planet.LockedForMigration)
+                return TaskResult<Message>.FromFailure("This planet is being migrated and is temporarily read-only.");
 
             if (!ISharedChannel.PlanetChannelTypes.Contains(channel.ChannelType))
                 return TaskResult<Message>.FromFailure("Only planet channel messages can have a planet id.");
@@ -825,6 +833,13 @@ public class MessageService
             return TaskResult.SuccessResult;
         }
 
+        // Planet-hosted (bring-your-own-storage) attachments are only valid
+        // when the planet has storage enabled, and only under its registered
+        // public media base.
+        string planetMediaBase = null;
+        if (message.PlanetId is not null && attachments.Any(x => x.PlanetHosted))
+            planetMediaBase = await _planetStorageService.GetEnabledPublicBaseUrlAsync(message.PlanetId.Value);
+
         for (var i = 0; i < attachments.Count; i++)
         {
             var attachment = attachments[i];
@@ -842,6 +857,12 @@ public class MessageService
                 attachment.Location = Valour.Sdk.Models.MessageAttachment.EmbedLocation;
                 attachment.MimeType = "application/vnd.valour.embed+json";
                 attachment.FileName ??= "Embed";
+            }
+            else if (attachment.PlanetHosted)
+            {
+                var planetHostedResult = ValidatePlanetHostedAttachment(attachment, planetMediaBase);
+                if (!planetHostedResult.Success)
+                    return planetHostedResult;
             }
             else
             {
@@ -862,6 +883,37 @@ public class MessageService
         }
 
         message.Attachments = attachments;
+        return TaskResult.SuccessResult;
+    }
+
+    private static TaskResult ValidatePlanetHostedAttachment(
+        Valour.Sdk.Models.MessageAttachment attachment,
+        string planetMediaBase)
+    {
+        if (planetMediaBase is null)
+            return TaskResult.FromFailure("This planet does not have its own storage enabled.");
+
+        // Only real file types — virtual/embed types never come from planet storage
+        if (attachment.Type is not (MessageAttachmentType.Image
+            or MessageAttachmentType.Video
+            or MessageAttachmentType.Audio
+            or MessageAttachmentType.File))
+        {
+            return TaskResult.FromFailure("Invalid planet-hosted attachment type.");
+        }
+
+        if (string.IsNullOrWhiteSpace(attachment.Location) ||
+            MediaUriHelper.AttachmentRejectRegex.IsMatch(attachment.Location))
+            return TaskResult.FromFailure("Invalid attachment location.");
+
+        var allowInsecure = Valour.Config.Configs.CdnConfig.Current?.AllowInsecurePlanetStorage == true;
+        if (!Uri.TryCreate(attachment.Location, UriKind.Absolute, out var uri) ||
+            (!allowInsecure && !uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+            return TaskResult.FromFailure("Planet-hosted attachments must be HTTPS.");
+
+        if (!attachment.Location.StartsWith(planetMediaBase + "/", StringComparison.OrdinalIgnoreCase))
+            return TaskResult.FromFailure("Planet-hosted attachments must live under the planet's media host.");
+
         return TaskResult.SuccessResult;
     }
 

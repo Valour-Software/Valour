@@ -59,3 +59,21 @@
     margin: 1rem 0;
     font-weight: var(--font-weight-medium);
 }
+
+.custom-media-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-warning, #e0a030);
+    background-color: rgba(224, 160, 48, 0.08);
+    font-size: 0.85em;
+    color: var(--font-color, #eee);
+}
+
+.custom-media-warning i {
+    color: var(--color-warning, #e0a030);
+    margin-top: 2px;
+}

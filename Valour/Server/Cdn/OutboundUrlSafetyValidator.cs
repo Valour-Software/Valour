@@ -66,6 +66,13 @@ public static class OutboundUrlSafetyValidator
         return false;
     }
 
+    /// <summary>
+    /// True when the address is safe to connect to (public, routable). The
+    /// inverse of the private/reserved check — exposed so a connect-time
+    /// callback can pin to a validated IP and close the DNS-rebinding window.
+    /// </summary>
+    public static bool IsPublicAddress(IPAddress ip) => !IsPrivateOrReservedAddress(ip);
+
     private static bool IsPrivateOrReservedAddress(IPAddress ip)
     {
         if (ip.IsIPv4MappedToIPv6)

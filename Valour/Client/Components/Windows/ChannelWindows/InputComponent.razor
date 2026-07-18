@@ -1,6 +1,7 @@
 @inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @inject ValourClient Client
+@inject Valour.Client.Storage.IAppStorage BrowserStorage
 
 @using System.Net.Http.Headers
 @using System.Text.RegularExpressions
@@ -604,6 +605,21 @@
         var uploadUrl = Client.BaseAddress + $"upload/{path}";
         var authToken = Client.AuthService.Token;
 
+        // Bring-your-own-storage: uploads go directly to the planet owner's
+        // bucket, so Valour never sees the bytes. Metadata stripping must
+        // therefore happen here, client-side, before anything leaves the device.
+        var storagePlanet = ChatComponent?.Channel?.Planet;
+        var usePlanetStorage = storagePlanet is not null && storagePlanet.SelfHostedMedia;
+
+        if (usePlanetStorage)
+        {
+            if (!await EnsurePlanetMediaConsentAsync(storagePlanet))
+                return;
+
+            if (mime is "image/jpeg" or "image/jpg")
+                bytes = JpegMetadataStripper.Strip(bytes);
+        }
+
         var modalData = new FileUploadComponent.ModalParams()
         {
             Bytes = bytes,
@@ -643,9 +659,75 @@
             }
         };
         
-        Console.WriteLine($"[Upload] Opening FileUploadComponent modal, bytes={bytes.Length}, url={uploadUrl}");
+        if (usePlanetStorage)
+        {
+            var grantChannelId = ChatComponent.Channel.Id;
+            modalData.CustomUploader = async (uploadSvc, uploadBytes, onProgress, ct) =>
+            {
+                var sha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(uploadBytes)).ToLowerInvariant();
+
+                var grantResult = await storagePlanet.CreateMediaUploadGrantAsync(new PlanetMediaUploadRequest
+                {
+                    ChannelId = grantChannelId,
+                    FileName = name,
+                    MimeType = mime,
+                    SizeBytes = uploadBytes.Length,
+                    Sha256 = sha,
+                });
+
+                if (!grantResult.Success || grantResult.Data is null)
+                    return new UploadResult(false, null, grantResult.Message);
+
+                var putResult = await uploadSvc.UploadPutAsync(
+                    grantResult.Data.UploadUrl, uploadBytes, grantResult.Data.ContentType, onProgress, ct);
+
+                if (!putResult.Success)
+                    return putResult;
+
+                newAttachment.PlanetHosted = true;
+                newAttachment.ReportedSha256 = sha;
+                return new UploadResult(true, grantResult.Data.PublicUrl, null);
+            };
+        }
+
+        Console.WriteLine($"[Upload] Opening FileUploadComponent modal, bytes={bytes.Length}, url={uploadUrl}, planetStorage={usePlanetStorage}");
         ModalRoot.OpenModal<FileUploadComponent>(modalData);
         Console.WriteLine($"[Upload] Modal open called");
+    }
+
+    /// <summary>
+    /// One-time (per device, per planet) warning before uploading to a planet
+    /// that stores media on its own infrastructure. Returns true to proceed.
+    /// </summary>
+    private async Task<bool> EnsurePlanetMediaConsentAsync(Planet planet)
+    {
+        var storageKey = $"planet-media-consent-{planet.Id}";
+        var existing = await BrowserStorage.GetStringAsync(storageKey);
+        if (existing == "1")
+            return true;
+
+        var tcs = new TaskCompletionSource<bool>();
+
+        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams(
+            "This planet hosts its own media",
+            $"Files you upload in {planet.Name} are stored on infrastructure controlled by the planet's owner — not by Valour. " +
+            "Valour never receives a copy, cannot scan it, and cannot recover or delete it for you. " +
+            "Your IP address is visible to the planet's media host when uploading and viewing.",
+            "Upload anyway",
+            "Cancel",
+            async () =>
+            {
+                await BrowserStorage.SetStringAsync(storageKey, "1");
+                tcs.TrySetResult(true);
+            },
+            () =>
+            {
+                tcs.TrySetResult(false);
+                return Task.CompletedTask;
+            }
+        ));
+
+        return await tcs.Task;
     }
 
     public void RemoveAttachment(int id)

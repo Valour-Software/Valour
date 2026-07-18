@@ -1287,6 +1287,19 @@ public class UserService
             await tran.CommitAsync();
             _logger.LogInformation("Hard deleted user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
 
+            // Record a federation purge tombstone (hub mode) so community nodes
+            // remove this user's shadow data when they next pull purges.
+            if (Valour.Config.Configs.FederationConfig.Current?.HubEnabled == true)
+            {
+                _db.FederatedPurges.Add(new Valour.Database.FederatedPurge
+                {
+                    Id = Valour.Server.Database.IdManager.Generate(),
+                    SubjectUserId = dbUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                });
+                await _db.SaveChangesAsync();
+            }
+
             return TaskResult.SuccessResult;
         }
         catch(System.Exception e)

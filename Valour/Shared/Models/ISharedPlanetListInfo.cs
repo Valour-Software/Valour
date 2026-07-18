@@ -42,6 +42,16 @@ public interface ISharedPlanetListInfo : ISharedModel<long>
     bool Nsfw { get; set; }
 
     /// <summary>
+    /// True when this planet stores media on its own infrastructure
+    /// </summary>
+    bool SelfHostedMedia { get; set; }
+
+    /// <summary>
+    /// The community node domain hosting this planet, or null when official.
+    /// </summary>
+    string NodeDomain { get; set; }
+
+    /// <summary>
     /// True if the planet is discoverable (shows up in planet discovery)
     /// </summary>
     bool Discoverable { get; set; }

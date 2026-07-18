@@ -23,6 +23,25 @@ namespace Valour.Database.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys");
+                });
+
             modelBuilder.Entity("Valour.Database.AuthToken", b =>
                 {
                     b.Property<string>("Id")
@@ -652,6 +671,240 @@ namespace Valour.Database.Migrations
                     b.ToTable("email_confirm_codes");
                 });
 
+            modelBuilder.Entity("Valour.Database.FederatedAcceptedDomain", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Domain")
+                        .HasColumnType("text")
+                        .HasColumnName("domain");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.HasKey("UserId", "Domain");
+
+                    b.ToTable("federated_accepted_domains", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.FederatedMembership", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at");
+
+                    b.Property<string>("NodeDomain")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("node_domain");
+
+                    b.HasKey("UserId", "PlanetId");
+
+                    b.HasIndex("NodeDomain");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("federated_memberships", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.FederatedMigration", b =>
+                {
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TargetDomain")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("target_domain");
+
+                    b.HasKey("PlanetId");
+
+                    b.ToTable("federated_migrations", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.FederatedNode", b =>
+                {
+                    b.Property<string>("Domain")
+                        .HasColumnType("text")
+                        .HasColumnName("domain");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("NodePublicJwk")
+                        .HasColumnType("text")
+                        .HasColumnName("node_public_jwk");
+
+                    b.Property<long>("OwnerId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("ReportedVersion")
+                        .HasColumnType("text")
+                        .HasColumnName("reported_version");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("VerificationChallenge")
+                        .HasColumnType("text")
+                        .HasColumnName("verification_challenge");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
+
+                    b.HasKey("Domain");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("federated_nodes", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.FederatedPlanetStub", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("Discoverable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("discoverable");
+
+                    b.Property<int>("MemberCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("member_count");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NodeDomain")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("node_domain");
+
+                    b.Property<bool>("Nsfw")
+                        .HasColumnType("boolean")
+                        .HasColumnName("nsfw");
+
+                    b.Property<long>("OwnerId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Discoverable");
+
+                    b.HasIndex("NodeDomain");
+
+                    b.ToTable("federated_planet_stubs", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.FederatedPurge", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("SubjectUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("subject_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("federated_purges", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.FederationKey", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<string>("Algorithm")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("algorithm");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("PrivateKeyProtected")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("private_key_protected");
+
+                    b.Property<string>("PublicJwk")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("public_jwk");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("hub")
+                        .HasColumnName("purpose");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("federation_keys", (string)null);
+                });
+
             modelBuilder.Entity("Valour.Database.Message", b =>
                 {
                     b.Property<long>("Id")
@@ -757,6 +1010,16 @@ namespace Valour.Database.Migrations
                     b.Property<string>("OpenGraphData")
                         .HasColumnType("text")
                         .HasColumnName("open_graph_data");
+
+                    b.Property<bool>("PlanetHosted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("planet_hosted");
+
+                    b.Property<string>("ReportedSha256")
+                        .HasColumnType("text")
+                        .HasColumnName("reported_sha256");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer")
@@ -1220,6 +1483,12 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
+                    b.Property<bool>("LockedForMigration")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("locked_for_migration");
+
                     b.Property<string>("Name")
                         .HasColumnType("text")
                         .HasColumnName("name");
@@ -1247,6 +1516,12 @@ namespace Valour.Database.Migrations
                     b.Property<bool>("PublicThreads")
                         .HasColumnType("boolean")
                         .HasColumnName("public_threads");
+
+                    b.Property<bool>("SelfHostedMedia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("self_hosted_media");
 
                     b.Property<int>("Version")
                         .HasColumnType("integer")
@@ -1663,6 +1938,62 @@ namespace Valour.Database.Migrations
                     b.HasIndex("PlanetId", "Position");
 
                     b.ToTable("planet_rules", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetStorageConfig", b =>
+                {
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<string>("AccessKeyEncrypted")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("access_key_encrypted");
+
+                    b.Property<string>("Bucket")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bucket");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("endpoint");
+
+                    b.Property<string>("PublicBaseUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("public_base_url");
+
+                    b.Property<string>("Region")
+                        .HasColumnType("text")
+                        .HasColumnName("region");
+
+                    b.Property<string>("SecretKeyEncrypted")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("secret_key_encrypted");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
+
+                    b.HasKey("PlanetId");
+
+                    b.ToTable("planet_storage_configs", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetTag", b =>
@@ -2581,6 +2912,12 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("custom_avatar");
 
+                    b.Property<bool>("IsFederated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_federated");
+
                     b.Property<bool>("IsMobile")
                         .HasColumnType("boolean")
                         .HasColumnName("is_mobile");
@@ -3088,6 +3425,28 @@ namespace Valour.Database.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Valour.Database.FederatedNode", b =>
+                {
+                    b.HasOne("Valour.Database.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Valour.Database.FederatedPlanetStub", b =>
+                {
+                    b.HasOne("Valour.Database.FederatedNode", "Node")
+                        .WithMany()
+                        .HasForeignKey("NodeDomain")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Node");
+                });
+
             modelBuilder.Entity("Valour.Database.Message", b =>
                 {
                     b.HasOne("Valour.Database.PlanetMember", "AuthorMember")
@@ -3344,6 +3703,17 @@ namespace Valour.Database.Migrations
                     b.HasOne("Valour.Database.Planet", "Planet")
                         .WithMany("Rules")
                         .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetStorageConfig", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithOne()
+                        .HasForeignKey("Valour.Database.PlanetStorageConfig", "PlanetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

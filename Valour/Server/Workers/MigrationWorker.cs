@@ -31,6 +31,10 @@ public class MigrationWorker : IHostedService
         var startupService = scope.ServiceProvider.GetRequiredService<StartupService>();
         await startupService.EnsureVictorAndValourCentralReady();
         await startupService.EnsureBootstrapAdminAsync();
+
+        // Generate the federation signing key on first run (hub mode)
+        var federationKeys = scope.ServiceProvider.GetRequiredService<FederationKeyService>();
+        await federationKeys.EnsureKeysAsync();
         
         // Ensure all default roles are positioned correctly
         var defRowsUpdated = await db.PlanetRoles.Where(x => x.IsDefault)

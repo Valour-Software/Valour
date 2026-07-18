@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -139,7 +140,37 @@ public class Planet : ISharedPlanet
     [Column("pinned_thread_id")]
     public long? PinnedThreadId { get; set; }
 
+    /// <summary>
+    /// True when this planet stores media on its own infrastructure
+    /// (bring-your-own-storage). Surfaces the "self-hosted media" warning
+    /// and icon to users, including pre-join. Mapped fluently in SetupDbModel.
+    /// </summary>
+    public bool SelfHostedMedia { get; set; }
+
+    /// <summary>
+    /// True while a migration is in progress — the planet is read-only during
+    /// the snapshot→handoff window so no writes are lost. Cleared on completion
+    /// (the planet is deleted) or abort. Server-internal (not on the wire).
+    /// </summary>
+    public bool LockedForMigration { get; set; }
+
     // Only to fulfill contract
     [NotMapped]
     public new string NodeName { get; set; }
+
+    public static void SetupDbModel(ModelBuilder builder)
+    {
+        builder.Entity<Planet>(e =>
+        {
+            e.Property(x => x.SelfHostedMedia)
+                .HasColumnName("self_hosted_media")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            e.Property(x => x.LockedForMigration)
+                .HasColumnName("locked_for_migration")
+                .HasDefaultValue(false)
+                .IsRequired();
+        });
+    }
 }

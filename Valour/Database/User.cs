@@ -122,6 +122,13 @@ namespace Valour.Database
         public bool ValourStaff { get; set; }
 
         /// <summary>
+        /// True for shadow accounts created on a community node from a
+        /// hub-minted federation token. Federated users have no local
+        /// credentials; their identity lives at the hub.
+        /// </summary>
+        public bool IsFederated { get; set; }
+
+        /// <summary>
         /// The user's currently set status - this could represent how they feel, 
         /// their disdain for the political climate of the modern world, their love for their mother's cooking,
         /// or their hate for lazy programmers.
@@ -255,6 +262,10 @@ namespace Valour.Database
                 
                 e.Property(x => x.ValourStaff)
                     .HasColumnName("valour_staff");
+
+                e.Property(x => x.IsFederated)
+                    .HasColumnName("is_federated")
+                    .HasDefaultValue(false);
                 
                 e.Property(x => x.Status)
                     .HasColumnName("status");

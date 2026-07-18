@@ -1,4 +1,5 @@
 ﻿using EntityFramework.Exceptions.PostgreSQL;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -30,7 +31,7 @@ internal class ValourDbDesignTimeContext : IDesignTimeDbContextFactory<ValourDb>
     }
 }
 
-public partial class ValourDb : DbContext
+public partial class ValourDb : DbContext, IDataProtectionKeyContext
 {
     public static readonly string ConnectionString = $"Host={DbConfig.Instance.Host};Database={DbConfig.Instance.Database};Username={DbConfig.Instance.Username};Password={DbConfig.Instance.Password};SslMode=Prefer;";
 
@@ -237,6 +238,21 @@ public partial class ValourDb : DbContext
     ////////////////
     
     public DbSet<CdnBucketItem> CdnBucketItems { get; set; }
+    public DbSet<PlanetStorageConfig> PlanetStorageConfigs { get; set; }
+    public DbSet<FederationKey> FederationKeys { get; set; }
+    public DbSet<FederatedNode> FederatedNodes { get; set; }
+    public DbSet<FederatedPlanetStub> FederatedPlanetStubs { get; set; }
+    public DbSet<FederatedMigration> FederatedMigrations { get; set; }
+    public DbSet<FederatedPurge> FederatedPurges { get; set; }
+    public DbSet<FederatedAcceptedDomain> FederatedAcceptedDomains { get; set; }
+    public DbSet<FederatedMembership> FederatedMemberships { get; set; }
+
+    /// <summary>
+    /// ASP.NET Data Protection key ring, persisted in the shared database so
+    /// every node (and container restarts) can decrypt protected payloads
+    /// such as planet storage credentials.
+    /// </summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
     public DbSet<CdnProxyItem> CdnProxyItems { get; set; }
     
     ////////////
@@ -322,6 +338,15 @@ public partial class ValourDb : DbContext
         OldPlanetRoleMember.SetupDbModel(modelBuilder);
         
         CdnBucketItem.SetupDbModel(modelBuilder);
+        PlanetStorageConfig.SetupDbModel(modelBuilder);
+        Planet.SetupDbModel(modelBuilder);
+        FederationKey.SetupDbModel(modelBuilder);
+        FederatedNode.SetupDbModel(modelBuilder);
+        FederatedPlanetStub.SetupDbModel(modelBuilder);
+        FederatedMigration.SetupDbModel(modelBuilder);
+        FederatedPurge.SetupDbModel(modelBuilder);
+        FederatedAcceptedDomain.SetupDbModel(modelBuilder);
+        FederatedMembership.SetupDbModel(modelBuilder);
         Transaction.SetupDbModel(modelBuilder);
     }
 }

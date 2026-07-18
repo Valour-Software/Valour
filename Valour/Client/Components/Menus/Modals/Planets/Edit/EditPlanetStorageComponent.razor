@@ -1,0 +1,207 @@
+@inject ValourClient Client
+
+<div class="settings-page">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-hdd-network"></i>
+            Bring Your Own Storage
+        </h3>
+
+        <p class="toggle-description">
+            Store this planet's media on your own S3-compatible storage (R2, MinIO, Backblaze, and others).
+            Uploads go directly from members to your bucket and are served from your public URL —
+            Valour never receives, stores, scans, or serves the files. You are fully responsible for
+            hosting, moderation, retention, and availability of this media.
+        </p>
+        <p class="toggle-description">
+            <b>Requirements:</b> your bucket must allow public reads under the public base URL, and its
+            CORS policy must allow <code>PUT</code> requests from this app's origin so members can upload
+            from their browsers. Members see a warning before their first upload here.
+        </p>
+
+        @if (_loading)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <div class="form-group mt-2 new-input-style">
+                <label>S3 Endpoint (https)</label>
+                <input class="form-control" placeholder="https://s3.example.com" @bind-value="_endpoint" />
+            </div>
+            <div class="form-group mt-2 new-input-style">
+                <label>Bucket</label>
+                <input class="form-control" placeholder="my-planet-media" @bind-value="_bucket" />
+            </div>
+            <div class="form-group mt-2 new-input-style">
+                <label>Region (optional)</label>
+                <input class="form-control" placeholder="auto" @bind-value="_region" />
+            </div>
+            <div class="form-group mt-2 new-input-style">
+                <label>Public Base URL (https)</label>
+                <input class="form-control" placeholder="https://media.example.com" @bind-value="_publicBaseUrl" />
+            </div>
+            <div class="form-group mt-2 new-input-style">
+                <label>Access Key @(_hasExisting ? "(leave blank to keep current)" : "")</label>
+                <input class="form-control" type="password" autocomplete="off" @bind-value="_accessKey" />
+            </div>
+            <div class="form-group mt-2 new-input-style">
+                <label>Secret Key @(_hasExisting ? "(leave blank to keep current)" : "")</label>
+                <input class="form-control" type="password" autocomplete="off" @bind-value="_secretKey" />
+            </div>
+
+            <div style="margin-top: 16px;">
+                <div class="perm-list-name mb-1" style="display: inline-block;">Enabled</div>
+                <div type="button" style="float: right">
+                    <label class="switch">
+                        <input type="checkbox" @bind="_enabled">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="v-btn" @onclick="OnSaveAsync" disabled="@_busy">Save</button>
+                <button class="v-btn" @onclick="OnProbeAsync" disabled="@(_busy || !_hasExisting)">Test Connection</button>
+                @if (_hasExisting)
+                {
+                    <button class="v-btn danger" @onclick="OnClearAsync" disabled="@_busy">Remove</button>
+                }
+            </div>
+
+            @if (_hasExisting)
+            {
+                <p class="toggle-description mt-2">
+                    Status:
+                    @if (_verifiedAt is not null)
+                    {
+                        <span style="color: var(--p-cyan);">verified @_verifiedAt?.ToLocalTime().ToString("g")</span>
+                    }
+                    else
+                    {
+                        <span class="v-text-red">not verified — run Test Connection</span>
+                    }
+                </p>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_resultMessage))
+            {
+                <p class="mt-2 @(_resultSuccess ? "" : "v-text-red")">@_resultMessage</p>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _loading = true;
+    private bool _busy;
+    private bool _hasExisting;
+
+    private string _endpoint;
+    private string _bucket;
+    private string _region;
+    private string _publicBaseUrl;
+    private string _accessKey;
+    private string _secretKey;
+    private bool _enabled;
+    private DateTime? _verifiedAt;
+
+    private string _resultMessage;
+    private bool _resultSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Planet.FetchStorageInfoAsync();
+        if (result.Success && result.Data is not null)
+        {
+            var info = result.Data;
+            _hasExisting = true;
+            _endpoint = info.Endpoint;
+            _bucket = info.Bucket;
+            _region = info.Region;
+            _publicBaseUrl = info.PublicBaseUrl;
+            _enabled = info.Enabled;
+            _verifiedAt = info.VerifiedAt;
+        }
+
+        _loading = false;
+    }
+
+    private async Task OnSaveAsync()
+    {
+        _busy = true;
+        _resultMessage = null;
+
+        var result = await Planet.SetStorageConfigAsync(new PlanetStorageConfigRequest
+        {
+            Endpoint = _endpoint,
+            Bucket = _bucket,
+            Region = _region,
+            PublicBaseUrl = _publicBaseUrl,
+            AccessKey = _accessKey,
+            SecretKey = _secretKey,
+            Enabled = _enabled,
+        });
+
+        _resultSuccess = result.Success;
+        if (result.Success)
+        {
+            _hasExisting = true;
+            _verifiedAt = result.Data?.VerifiedAt;
+            _accessKey = null;
+            _secretKey = null;
+            Planet.SelfHostedMedia = _enabled;
+            _resultMessage = "Saved. Run Test Connection to verify the bucket.";
+        }
+        else
+        {
+            _resultMessage = result.Message;
+        }
+
+        _busy = false;
+    }
+
+    private async Task OnProbeAsync()
+    {
+        _busy = true;
+        _resultMessage = null;
+        StateHasChanged();
+
+        var result = await Planet.ProbeStorageAsync();
+
+        _resultSuccess = result.Success && result.Data.Success;
+        _resultMessage = result.Success ? result.Data.Message : result.Message;
+
+        if (_resultSuccess)
+            _verifiedAt = DateTime.UtcNow;
+
+        _busy = false;
+    }
+
+    private async Task OnClearAsync()
+    {
+        _busy = true;
+
+        var result = await Planet.ClearStorageConfigAsync();
+        if (result.Success)
+        {
+            _hasExisting = false;
+            _endpoint = _bucket = _region = _publicBaseUrl = _accessKey = _secretKey = null;
+            _enabled = false;
+            _verifiedAt = null;
+            Planet.SelfHostedMedia = false;
+            _resultSuccess = true;
+            _resultMessage = "Storage config removed. Media reverts to Valour's CDN for new uploads.";
+        }
+        else
+        {
+            _resultSuccess = false;
+            _resultMessage = result.Message;
+        }
+
+        _busy = false;
+    }
+}

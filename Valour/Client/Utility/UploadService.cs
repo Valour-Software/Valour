@@ -75,6 +75,51 @@ public class UploadService : IAsyncDisposable
     }
 
     /// <summary>
+    /// Direct-to-bucket PUT against a presigned URL (bring-your-own-storage).
+    /// No auth header — authorization is in the signed URL. Content type must
+    /// match the grant exactly.
+    /// </summary>
+    public async Task<UploadResult> UploadPutAsync(
+        string url,
+        byte[] data,
+        string mimeType,
+        Action<UploadProgressInfo>? onProgress = null,
+        CancellationToken cancellationToken = default)
+    {
+        _module ??= await _js.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ts/UploadService.js");
+
+        CancelCurrent();
+
+        var tcs = new TaskCompletionSource<UploadResult>();
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        var callbacks = new UploadCallbacks(tcs, onProgress);
+        _currentDotnetRef = DotNetObjectReference.Create(callbacks);
+
+        _currentUpload = await _module.InvokeAsync<IJSObjectReference>(
+            "startPut",
+            url,
+            data,
+            mimeType,
+            _currentDotnetRef);
+
+        _cts.Token.Register(() =>
+        {
+            CancelCurrent();
+            if (!tcs.Task.IsCompleted)
+                tcs.TrySetResult(new UploadResult(false, null, "Upload cancelled"));
+        });
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            CancelCurrent();
+            return new UploadResult(false, null, "Upload cancelled");
+        }
+
+        return await tcs.Task;
+    }
+
+    /// <summary>
     /// Cancel whatever upload is currently in flight.
     /// </summary>
     public void CancelCurrent()

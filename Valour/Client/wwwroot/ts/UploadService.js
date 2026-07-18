@@ -58,3 +58,47 @@ export function start(url, byteArray, mimeType, fileName, dotnetRef, authToken) 
 
     return handle;
 }
+
+/**
+ * Raw-body PUT for direct-to-bucket uploads (presigned URLs).
+ * No auth header — authorization is in the signed URL. The Content-Type
+ * must match what was signed into the grant.
+ * @returns {object} Upload handle with an abort() method
+ */
+export function startPut(url, byteArray, mimeType, dotnetRef) {
+    const xhr = new XMLHttpRequest();
+
+    const handle = {
+        abort: () => xhr.abort()
+    };
+
+    xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+            dotnetRef.invokeMethodAsync('NotifyUploadProgress', e.loaded, e.total);
+        }
+    });
+
+    xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            dotnetRef.invokeMethodAsync('NotifyUploadComplete', xhr.responseText);
+        } else {
+            dotnetRef.invokeMethodAsync('NotifyUploadError', `${xhr.status}: ${xhr.responseText}`);
+        }
+    });
+
+    xhr.addEventListener('error', () => {
+        dotnetRef.invokeMethodAsync('NotifyUploadError',
+            'Network error during upload. The storage host may be unreachable or missing CORS configuration.');
+    });
+
+    xhr.addEventListener('abort', () => {
+        dotnetRef.invokeMethodAsync('NotifyUploadCancelled');
+    });
+
+    xhr.open('PUT', url);
+    xhr.setRequestHeader('Content-Type', mimeType || 'application/octet-stream');
+
+    xhr.send(new Blob([byteArray], { type: mimeType || 'application/octet-stream' }));
+
+    return handle;
+}

@@ -32,6 +32,12 @@
             <ValourPill Variant="solid" Tone="neutral" Class="member-count-tag">
                 <strong>@PlanetInfo.MemberCount Members</strong>
             </ValourPill>
+            @if (!string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain))
+            {
+                <ValourPill Variant="soft" Tone="warning"
+                            Text="COMMUNITY-HOSTED"
+                            title="@($"Hosted by {PlanetInfo.NodeDomain}, not by Valour")" />
+            }
             @if (_tagSlugs.Count > 0)
             {
                 @foreach (var tag in _tagSlugs)

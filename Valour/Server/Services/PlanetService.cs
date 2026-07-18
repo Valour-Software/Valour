@@ -112,13 +112,47 @@ public class PlanetService
 
     public async Task<List<PlanetListInfo>> GetDiscoveryPlanetsAsync()
     {
-        return await _db.Planets.AsNoTracking()
+        var official = await _db.Planets.AsNoTracking()
             .Where(x => x.Discoverable && x.Public
                                        && (!x.Nsfw)) // do not allow weirdos in discovery
             .Select(PlanetListInfoSelector)
             .OrderByDescending(x => x.MemberCount)
             .Take(30)
             .ToListAsync();
+
+        var federated = await GetFederatedDiscoveryAsync(30);
+
+        return official.Concat(federated)
+            .OrderByDescending(x => x.MemberCount)
+            .Take(30)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Discoverable planets hosted on active community nodes (hub mode only).
+    /// Projected into PlanetListInfo with NodeDomain set so the client badges
+    /// them and routes joins to the node.
+    /// </summary>
+    private async Task<List<PlanetListInfo>> GetFederatedDiscoveryAsync(int take)
+    {
+        if (Valour.Config.Configs.FederationConfig.Current?.HubEnabled != true)
+            return new List<PlanetListInfo>();
+
+        return await (from stub in _db.FederatedPlanetStubs.AsNoTracking()
+                      join node in _db.FederatedNodes.AsNoTracking() on stub.NodeDomain equals node.Domain
+                      where stub.Discoverable && !stub.Nsfw
+                            && node.Status == Valour.Database.FederatedNodeStatus.Active
+                      orderby stub.MemberCount descending
+                      select new PlanetListInfo
+                      {
+                          Id = stub.Id,
+                          PlanetId = stub.Id,
+                          Name = stub.Name,
+                          Description = stub.Description,
+                          MemberCount = stub.MemberCount,
+                          Discoverable = true,
+                          NodeDomain = stub.NodeDomain,
+                      }).Take(take).ToListAsync();
     }
     
     public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId)
@@ -136,6 +170,7 @@ public class PlanetService
         Name = x.Name,
         Description = x.Description,
         HasCustomIcon = x.HasCustomIcon,
+        SelfHostedMedia = x.SelfHostedMedia,
         HasAnimatedIcon = x.HasAnimatedIcon,
         HasCustomBackground = x.HasCustomBackground,
         Discoverable = x.Discoverable,
@@ -205,6 +240,28 @@ public class PlanetService
             .Take(take)
             .Select(PlanetListInfoSelector)
             .ToListAsync();
+
+        // Surface community-hosted planets alongside official ones. They live in
+        // a separate stub table, so (for now) they're merged onto the first
+        // page rather than interleaved across pagination.
+        if (skip == 0)
+        {
+            var federated = await GetFederatedDiscoveryAsync(50);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowered = search.ToLower();
+                federated = federated
+                    .Where(f => (f.Name ?? "").ToLower().Contains(lowered)
+                                || (f.Description ?? "").ToLower().Contains(lowered))
+                    .ToList();
+            }
+
+            if (federated.Count > 0)
+            {
+                items = items.Concat(federated).ToList();
+                totalCount += federated.Count;
+            }
+        }
 
         return new QueryResponse<PlanetListInfo>
         {

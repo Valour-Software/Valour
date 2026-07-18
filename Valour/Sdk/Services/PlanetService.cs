@@ -454,6 +454,35 @@ public class PlanetService : ServiceBase
         JoinedPlanetsUpdated?.Invoke();
     }
 
+    // ================= Federation (community-hosted planets) =================
+
+    /// <summary>
+    /// Resolves where a community-hosted planet lives and whether the user has
+    /// accepted its node's domain. Null when it's an official planet.
+    /// </summary>
+    public async Task<FederatedPlanetLocation> FetchFederatedLocationAsync(long planetId)
+    {
+        var result = await _client.PrimaryNode.GetJsonAsync<FederatedPlanetLocation>(
+            $"api/federation/planets/{planetId}/location", allow404: true);
+        return result.Success ? result.Data : null;
+    }
+
+    /// <summary>Adds a community node's domain to the user's accepted list.</summary>
+    public Task<TaskResult> AcceptFederationDomainAsync(string domain) =>
+        _client.PrimaryNode.PostAsync("api/federation/accepted-domains", new AcceptDomainRequest { Domain = domain });
+
+    /// <summary>Records a join of a community-hosted planet (domain must be accepted first).</summary>
+    public Task<TaskResult<FederatedPlanetLocation>> JoinFederatedPlanetAsync(long planetId) =>
+        _client.PrimaryNode.PostAsyncWithResponse<FederatedPlanetLocation>(
+            $"api/federation/planets/{planetId}/join", null);
+
+    /// <summary>The user's community-hosted memberships ("planets on other servers").</summary>
+    public async Task<List<FederatedMembershipInfo>> FetchFederatedMembershipsAsync()
+    {
+        var result = await _client.PrimaryNode.GetJsonAsync<List<FederatedMembershipInfo>>("api/federation/memberships");
+        return result.Success ? result.Data : new List<FederatedMembershipInfo>();
+    }
+
     public async Task<TaskResult<PlanetMember>> JoinPlanetAsync(long planetId)
     {
         // Route the join to the node that hosts the planet so its in-memory member cache stays

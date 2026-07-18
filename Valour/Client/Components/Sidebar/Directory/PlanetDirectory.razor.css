@@ -182,3 +182,11 @@
     padding-right: 2px;
     padding-bottom: 10px;
 }
+
+.custom-media-icon {
+    font-size: 0.7em;
+    color: var(--color-warning, #e0a030);
+    opacity: 0.8;
+    margin-left: 4px;
+    align-self: center;
+}

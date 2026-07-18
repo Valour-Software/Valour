@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
 using System.Text.Json;
 using CloudFlare.Client;
@@ -130,6 +131,8 @@ public partial class Program
         {
             new DynamicAPI<UserApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetApi>().RegisterRoutes(app),
+            new DynamicAPI<PlanetStorageApi>().RegisterRoutes(app),
+            new DynamicAPI<FederationApi>().RegisterRoutes(app),
             new DynamicAPI<ChannelApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetMemberApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetRoleApi>().RegisterRoutes(app),
@@ -353,6 +356,13 @@ public partial class Program
                 ? "unconfigured"
                 : CloudflareConfig.Instance.ApiKey));
 
+        // Data Protection keys live in the shared DB so every node (and
+        // container restarts) can decrypt protected payloads such as planet
+        // storage credentials.
+        services.AddDataProtection()
+            .SetApplicationName("Valour")
+            .PersistKeysToDbContext<ValourDb>();
+
         services.AddSingleton<CdnStorageProvider>();
         services.AddSingleton<CdnBucketService>();
 
@@ -403,6 +413,32 @@ public partial class Program
         services.AddScoped<ChatCacheService>();
         services.AddScoped<ChannelService>();
         services.AddScoped<MessageService>();
+        services.AddScoped<PlanetStorageService>();
+        services.AddScoped<FederationKeyService>();
+        services.AddScoped<FederationHubService>();
+        services.AddScoped<FederationNodeService>();
+        services.AddScoped<FederationPlanetRegistryService>();
+        services.AddScoped<FederationNodeClient>();
+        services.AddScoped<PlanetSnapshotService>();
+        services.AddScoped<FederationMigrationService>();
+        services.AddScoped<FederationPurgeService>();
+        services.AddScoped<FederationJoinService>();
+
+        // Federation S2S/JWKS fetches. Insecure mode (dev/LAN clone networks)
+        // accepts self-signed certificates.
+        // Federation S2S/JWKS fetches to attacker-influenced node domains.
+        // The connect callback resolves and connects to a validated public IP,
+        // closing the DNS-rebinding window (the fetch cannot re-resolve to an
+        // internal address after a name-based check). Insecure mode (dev/LAN
+        // clone networks) allows private targets and self-signed certificates.
+        var federationInsecure = FederationConfig.Current?.AllowInsecure == true;
+        services.AddHttpClient("federation", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        }).ConfigurePrimaryHttpMessageHandler(() =>
+            SsrfSafeConnect.CreateHandler(
+                allowPrivate: federationInsecure,
+                acceptAnyCertificate: federationInsecure));
         services.AddScoped<UserAttachmentService>();
         services.AddScoped<MediaSafetyService>();
         services.AddScoped<PlanetInviteService>();
@@ -447,6 +483,7 @@ public partial class Program
         services.AddHostedService<PlanetMessageWorker>();
         services.AddHostedService<StatWorker>();
         services.AddHostedService<ChannelWatchingWorker>();
+        services.AddHostedService<FederationPurgeWorker>();
         services.AddHostedService<UserOnlineWorker>();
         services.AddHostedService<NodeStateWorker>();
         services.AddHostedService<SubscriptionWorker>();

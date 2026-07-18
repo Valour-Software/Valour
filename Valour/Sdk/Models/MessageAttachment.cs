@@ -52,6 +52,17 @@ public class MessageAttachment : ISharedMessageAttachment
     /// </summary>
     public OpenGraphData OpenGraph { get; set; }
 
+    /// <summary>
+    /// True when the file lives on the planet's own storage
+    /// (bring-your-own-S3) rather than Valour's CDN.
+    /// </summary>
+    public bool PlanetHosted { get; set; }
+
+    /// <summary>
+    /// Client-computed SHA-256 (hex) of the uploaded bytes, planet-hosted only.
+    /// </summary>
+    public string ReportedSha256 { get; set; }
+
     public MessageAttachment()
     {
     }

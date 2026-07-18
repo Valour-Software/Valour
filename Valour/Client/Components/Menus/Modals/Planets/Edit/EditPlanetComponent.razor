@@ -38,6 +38,7 @@
     private RenderFragment ModerationContent => @<EditPlanetModerationComponent Planet="@Data.Planet" />;
     private RenderFragment AuditLogContent => @<EditPlanetAuditLogComponent Planet="@Data.Planet" />;
     private RenderFragment EconomyContent => @<EditPlanetEconomyComponent Planet="@Data.Planet" />;
+    private RenderFragment StorageContent => @<EditPlanetStorageComponent Planet="@Data.Planet" />;
     private RenderFragment DeleteContent => @<div></div>;
 
     protected override void OnInitialized()
@@ -146,6 +147,13 @@
                         Icon = "rocket-takeoff-fill",
                         Description = "Manage planet economy",
                         Content = EconomyContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Storage",
+                        Icon = "hdd-network-fill",
+                        Description = "Bring your own media storage",
+                        Content = StorageContent
                     },
                     new MainMenu.MenuItem()
                     {

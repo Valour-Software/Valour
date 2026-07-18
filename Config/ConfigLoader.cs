@@ -31,6 +31,7 @@ public static class ConfigLoader
         config.GetSection("MediaSafety").Get<MediaSafetyConfig>();
         config.GetSection("Hosting").Get<HostingConfig>();
         config.GetSection("Bootstrap").Get<BootstrapConfig>();
+        config.GetSection("Federation").Get<FederationConfig>();
 
         // Override with Kubernetes node details
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
@@ -98,6 +99,11 @@ public static class ConfigLoader
         if (BootstrapConfig.Current is null)
         {
             new BootstrapConfig();
+        }
+
+        if (FederationConfig.Current is null)
+        {
+            new FederationConfig();
         }
 
         if (NodeConfig.Instance is null)
