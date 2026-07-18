@@ -38,6 +38,34 @@
 
     <div class="editor-section">
         <h3 class="editor-section-title">
+            <i class="bi bi-link-45deg"></i>
+            Vanity URL
+        </h3>
+
+        <p class="toggle-description">
+            Claim a unique name that identifies this planet in public links — the planet page,
+            the wiki, and more. Lowercase letters, numbers, and dashes; 3-@ISharedPlanet.MaxVanityLength characters.
+        </p>
+
+        <div class="vanity-row">
+            <input class="v-input vanity-input" maxlength="@ISharedPlanet.MaxVanityLength"
+                   placeholder="my-community" spellcheck="false"
+                   value="@_vanityValue" @oninput="OnVanityInput"/>
+            <button class="v-btn primary" disabled="@(!_vanityCanSave)" @onclick="SaveVanityAsync">Save</button>
+            @if (!string.IsNullOrWhiteSpace(Planet.Vanity))
+            {
+                <button class="v-btn" @onclick="ClearVanityAsync">Clear</button>
+            }
+        </div>
+
+        @if (_vanityStatus is not null)
+        {
+            <p class="vanity-status @(_vanityAvailable ? "ok" : "bad")">@_vanityStatus</p>
+        }
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
             <i class="bi bi-rocket-takeoff-fill"></i>
             Threads
         </h3>
@@ -131,10 +159,101 @@
         _nameValue = Planet.Name;
         _chatChannels = Planet.Channels.Where(c => c.ChannelType == ChannelTypeEnum.PlanetChat).ToList();
         _selectedPrimaryChannel = Planet.PrimaryChatChannel;
+        _vanityValue = Planet.Vanity ?? string.Empty;
         _enableThreadsValue = Planet.EnableThreads;
         _publicThreadsValue = Planet.PublicThreads;
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    private string _vanityValue = string.Empty;
+    private bool _vanityAvailable;
+    private bool _vanityCanSave;
+    private string _vanityStatus;
+    private CancellationTokenSource _vanityCts;
+
+    private void OnVanityInput(ChangeEventArgs e)
+    {
+        _vanityValue = (e.Value?.ToString() ?? string.Empty).ToLowerInvariant();
+        _vanityCanSave = false;
+        _ = DebounceVanityCheckAsync();
+    }
+
+    private async Task DebounceVanityCheckAsync()
+    {
+        _vanityCts?.Cancel();
+        _vanityCts = new CancellationTokenSource();
+        var token = _vanityCts.Token;
+
+        if (string.IsNullOrWhiteSpace(_vanityValue) || _vanityValue == Planet.Vanity)
+        {
+            _vanityStatus = null;
+            return;
+        }
+
+        // Cheap local validation before hitting the server
+        var localCheck = VanityUtils.ValidateVanity(_vanityValue);
+        if (!localCheck.Success)
+        {
+            _vanityAvailable = false;
+            _vanityStatus = localCheck.Message;
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(400, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        var result = await Client.PlanetService.CheckVanityAvailableAsync(Planet, _vanityValue);
+        if (token.IsCancellationRequested)
+            return;
+
+        _vanityAvailable = result.Success;
+        _vanityCanSave = result.Success;
+        _vanityStatus = result.Success ? "Available!" : result.Message;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveVanityAsync()
+    {
+        var result = await Client.PlanetService.SetVanityAsync(Planet, _vanityValue);
+        if (!result.Success)
+        {
+            _vanityAvailable = false;
+            _vanityStatus = result.Message;
+            StateHasChanged();
+            return;
+        }
+
+        Planet.Vanity = _vanityValue;
+        _vanityCanSave = false;
+        _vanityStatus = "Saved!";
+        _vanityAvailable = true;
+        StateHasChanged();
+    }
+
+    private async Task ClearVanityAsync()
+    {
+        var result = await Client.PlanetService.SetVanityAsync(Planet, null);
+        if (!result.Success)
+        {
+            _vanityStatus = result.Message;
+            _vanityAvailable = false;
+            StateHasChanged();
+            return;
+        }
+
+        Planet.Vanity = null;
+        _vanityValue = string.Empty;
+        _vanityStatus = null;
+        _vanityCanSave = false;
+        StateHasChanged();
     }
 
     private async Task OnCheckEnableThreads()

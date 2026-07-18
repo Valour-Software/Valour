@@ -1,0 +1,75 @@
+@inject ContextMenuService ContextMenuService
+@using Valour.Sdk.Models.Wiki
+
+@{
+    var doc = Node.Doc;
+    var isSelected = Window.Planet is not null && doc.Id == WindowSelectedId;
+}
+
+@if (doc.IsFolder)
+{
+    var expanded = Window.IsExpanded(doc.Id);
+
+    <div class="dti-node">
+        <div class="dti-row dti-folder @(isSelected ? "selected" : "")"
+             @onclick="OnClickFolder"
+             @oncontextpress="OnContextMenu"
+             @oncontextpress:stopPropagation="true">
+            <i class="bi bi-chevron-right dti-chevron @(expanded ? "open" : "")"></i>
+            <span class="dti-title">@doc.Title</span>
+        </div>
+
+        @if (expanded && Node.Children.Count > 0)
+        {
+            <div class="dti-children">
+                @foreach (var child in Node.Children)
+                {
+                    <WikiTreeItem @key="@child.Doc.Id" Window="@Window" Node="@child"/>
+                }
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="dti-row dti-page @(isSelected ? "selected" : "") @(doc.IsPublished ? "" : "draft")"
+         @onclick="OnClickPage"
+         @oncontextpress="OnContextMenu"
+         @oncontextpress:stopPropagation="true">
+        <i class="bi bi-file-text dti-icon"></i>
+        <span class="dti-title">@doc.Title</span>
+        @if (!doc.IsPublished)
+        {
+            <span class="dti-draft-tag">draft</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public WikiWindowComponent Window { get; set; }
+
+    [Parameter]
+    public WikiTreeNode Node { get; set; }
+
+    private long? WindowSelectedId => Window?.Data?.SelectedPageId;
+
+    private void OnClickFolder()
+    {
+        Window.ToggleFolder(Node.Doc.Id);
+    }
+
+    private async Task OnClickPage()
+    {
+        await Window.SelectPageRequestAsync(Node.Doc);
+    }
+
+    private void OnContextMenu(ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<WikiContextMenu>(e, new WikiContextMenu.DocContextParams
+        {
+            Doc = Node.Doc,
+            Window = Window,
+        });
+    }
+}

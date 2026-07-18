@@ -1,0 +1,66 @@
+@* Pure display tree shared by the app and the public server-rendered docs
+   pages. Everything is plain data — no SDK, no injected services. Folders use
+   native <details>/<summary> so expand/collapse works with zero JS when
+   rendered statically. *@
+
+@if (IsRoot)
+{
+    <nav class="docs-tree" aria-label="Wiki navigation">
+        @RenderNodes
+    </nav>
+}
+else
+{
+    @RenderNodes
+}
+
+@code {
+    [Parameter]
+    public List<WikiTreeNodeData> Nodes { get; set; } = new();
+
+    /// <summary>
+    /// Optional in-app click interception. When unset (public pages), page
+    /// rows are plain anchors.
+    /// </summary>
+    [Parameter]
+    public EventCallback<WikiTreeNodeData> OnNodeClick { get; set; }
+
+    [Parameter]
+    public bool IsRoot { get; set; } = true;
+
+    private RenderFragment RenderNodes => __builder =>
+    {
+        foreach (var node in Nodes)
+        {
+            @if (node.IsFolder)
+            {
+                <details class="dt-folder" @key="@node.Id" open="@node.IsExpanded">
+                    <summary class="dt-row dt-folder-row">
+                        <i class="bi bi-chevron-right dt-chevron" aria-hidden="true"></i>
+                        <span class="dt-title">@node.Title</span>
+                    </summary>
+                    @if (node.Children.Count > 0)
+                    {
+                        <div class="dt-children">
+                            <WikiTreeDisplay Nodes="@node.Children" OnNodeClick="@OnNodeClick" IsRoot="@false"/>
+                        </div>
+                    }
+                </details>
+            }
+            else
+            {
+                <a class="dt-row dt-page @(node.IsActive ? "active" : "")"
+                   @key="@node.Id"
+                   href="@(node.Href ?? "#")"
+                   @onclick="@(() => HandleClickAsync(node))"
+                   @onclick:preventDefault="@OnNodeClick.HasDelegate">
+                    <i class="bi bi-file-text dt-icon" aria-hidden="true"></i>
+                    <span class="dt-title">@node.Title</span>
+                </a>
+            }
+        }
+    };
+
+    private Task HandleClickAsync(WikiTreeNodeData node) =>
+        OnNodeClick.HasDelegate ? OnNodeClick.InvokeAsync(node) : Task.CompletedTask;
+}

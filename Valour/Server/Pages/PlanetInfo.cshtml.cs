@@ -30,7 +30,13 @@ public class PlanetInfoModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
+        // Vanity names identify planets in public URLs too
         if (!long.TryParse(PlanetIdText, out var planetId))
+        {
+            planetId = await _planetService.ResolveVanityAsync(PlanetIdText) ?? 0;
+        }
+
+        if (planetId == 0)
         {
             ErrorMessage = "Invalid planet ID format.";
             return Page();

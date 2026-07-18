@@ -3,6 +3,8 @@
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
 @page "/planetthreads/{StartPlanetId:long}/{StartThreadId:long}"
 @page "/planetthreads/{StartPlanetId:long}"
+@page "/planetwiki/{StartPlanetId:long}/{StartPageId:long}"
+@page "/planetwiki/{StartPlanetId:long}"
 @using Valour.Client.Emojis
 @using Valour.Sdk.Services
 
@@ -91,6 +93,9 @@
 
 	[Parameter]
 	public long? StartThreadId { get; set; }
+
+	[Parameter]
+	public long? StartPageId { get; set; }
 
 	private string MobileClass => DeviceInfo.IsMobile ? "mobile" : "desktop";
 	

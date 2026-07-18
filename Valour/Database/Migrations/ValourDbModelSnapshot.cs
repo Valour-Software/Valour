@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 using Valour.Database.Context;
 
 #nullable disable
@@ -1467,6 +1468,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("enable_threads");
 
+                    b.Property<bool>("EnableWiki")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enable_wiki");
+
                     b.Property<bool>("HasAnimatedIcon")
                         .HasColumnType("boolean")
                         .HasColumnName("animated_icon");
@@ -1517,6 +1522,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("public_threads");
 
+                    b.Property<bool>("PublicWiki")
+                        .HasColumnType("boolean")
+                        .HasColumnName("public_wiki");
+
                     b.Property<bool>("SelfHostedMedia")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -1529,11 +1538,20 @@ namespace Valour.Database.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("self_hosted_voice");
 
+                    b.Property<string>("Vanity")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("vanity");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer")
                         .HasColumnName("version");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Vanity")
+                        .IsUnique()
+                        .HasFilter("vanity IS NOT NULL");
 
                     b.ToTable("planets");
                 });
@@ -2211,6 +2229,150 @@ namespace Valour.Database.Migrations
                     b.HasKey("PlanetId");
 
                     b.ToTable("planet_voice_configs", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetWikiPage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Content")
+                        .HasMaxLength(100000)
+                        .HasColumnType("character varying(100000)")
+                        .HasColumnName("content");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<bool>("IsFolder")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_folder");
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_published");
+
+                    b.Property<DateTime?>("LastEdited")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_edited");
+
+                    b.Property<long?>("LastEditedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_edited_by_user_id");
+
+                    b.Property<long?>("ParentId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("parent_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<long>("Position")
+                        .HasColumnType("bigint")
+                        .HasColumnName("position");
+
+                    b.Property<string>("PreviousSlug")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("previous_slug");
+
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasColumnName("search_vector")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "simple")
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "Content" });
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("slug");
+
+                    b.Property<DateTime>("TimeCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("time_created");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("title");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
+                    b.HasIndex("PlanetId", "PreviousSlug")
+                        .HasFilter("previous_slug IS NOT NULL");
+
+                    b.HasIndex("PlanetId", "Slug")
+                        .IsUnique()
+                        .HasFilter("slug IS NOT NULL");
+
+                    b.HasIndex("PlanetId", "ParentId", "Position");
+
+                    b.ToTable("planet_wiki_pages", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetWikiRevision", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<string>("Content")
+                        .HasMaxLength(100000)
+                        .HasColumnType("character varying(100000)")
+                        .HasColumnName("content");
+
+                    b.Property<long>("PageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("page_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<DateTime>("TimeCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("time_created");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("PageId", "TimeCreated");
+
+                    b.ToTable("planet_wiki_revisions", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.PushNotificationSubscription", b =>
@@ -3790,6 +3952,35 @@ namespace Valour.Database.Migrations
                     b.Navigation("Planet");
                 });
 
+            modelBuilder.Entity("Valour.Database.PlanetWikiPage", b =>
+                {
+                    b.HasOne("Valour.Database.PlanetWikiPage", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany("WikiPages")
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Parent");
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetWikiRevision", b =>
+                {
+                    b.HasOne("Valour.Database.PlanetWikiPage", "Doc")
+                        .WithMany("Revisions")
+                        .HasForeignKey("PageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doc");
+                });
+
             modelBuilder.Entity("Valour.Database.PushNotificationSubscription", b =>
                 {
                     b.HasOne("Valour.Database.User", "User")
@@ -4080,6 +4271,8 @@ namespace Valour.Database.Migrations
                     b.Navigation("Threads");
 
                     b.Navigation("UserChannelStates");
+
+                    b.Navigation("WikiPages");
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetMember", b =>
@@ -4107,6 +4300,13 @@ namespace Valour.Database.Migrations
                     b.Navigation("Boosts");
 
                     b.Navigation("Comments");
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetWikiPage", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Revisions");
                 });
 
             modelBuilder.Entity("Valour.Database.Themes.Theme", b =>

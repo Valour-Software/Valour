@@ -45,4 +45,7 @@ public enum MessageAttachmentType : long
 
     // Inline preview of a Valour thread linked in chat
     ValourThread,
+
+    // Inline preview of a Valour wiki page linked in chat
+    ValourWikiPage,
 }

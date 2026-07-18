@@ -1,0 +1,89 @@
+@inject IJSRuntime JsRuntime
+@using Valour.Sdk.Models.Wiki
+
+<article class="doc-page">
+    <header class="dp-header">
+        <h1 class="dp-title">@Title</h1>
+        @if (Doc is not null && Doc.LastEdited is not null)
+        {
+            <p class="dp-meta">
+                <i class="bi bi-clock-history"></i>
+                Last updated @Doc.LastEdited.Value.ToLocalTime().ToString("MMMM d, yyyy")
+            </p>
+        }
+        <div class="v-gradient-underline dp-underline"></div>
+    </header>
+
+    <div class="dp-content">
+        <RichText Content="@Content" PlanetId="@PlanetId"/>
+    </div>
+
+    @if (PrevPage is not null || NextPage is not null)
+    {
+        <nav class="dp-pager">
+            @if (PrevPage is not null)
+            {
+                <div class="dp-pager-link prev" @onclick="@(() => Window.SelectPageRequestAsync(PrevPage))">
+                    <i class="bi bi-arrow-left dp-pager-arrow"></i>
+                    <div class="dp-pager-text">
+                        <span class="dp-pager-label">Previous</span>
+                        <span class="dp-pager-title">@PrevPage.Title</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <span></span>
+            }
+            @if (NextPage is not null)
+            {
+                <div class="dp-pager-link next" @onclick="@(() => Window.SelectPageRequestAsync(NextPage))">
+                    <div class="dp-pager-text">
+                        <span class="dp-pager-label">Next</span>
+                        <span class="dp-pager-title">@NextPage.Title</span>
+                    </div>
+                    <i class="bi bi-arrow-right dp-pager-arrow"></i>
+                </div>
+            }
+        </nav>
+    }
+</article>
+
+@code {
+    [Parameter]
+    public WikiWindowComponent Window { get; set; }
+
+    [Parameter]
+    public PlanetWikiPage Doc { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Content { get; set; }
+
+    [Parameter]
+    public long PlanetId { get; set; }
+
+    [Parameter]
+    public PlanetWikiPage PrevPage { get; set; }
+
+    [Parameter]
+    public PlanetWikiPage NextPage { get; set; }
+
+    private string _highlightedContent;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Re-run highlighting whenever different content has been rendered
+        if (_highlightedContent != Content)
+        {
+            _highlightedContent = Content;
+            await JsRuntime.InvokeVoidAsync("wikiHighlightAll", Window.ContentContainerId);
+        }
+
+        // Idempotent, so run every render: Blazor patches can rebuild the
+        // pre elements and drop the injected buttons
+        await JsRuntime.InvokeVoidAsync("wikiEnhanceCodeBlocks", Window.ContentContainerId);
+    }
+}

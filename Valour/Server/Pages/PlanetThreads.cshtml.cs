@@ -71,7 +71,7 @@ public class PlanetThreadsModel : PageModel
             return Page();
         }
 
-        PlanetIcon = NormalizeUrl(ISharedPlanet.GetIconUrl(Planet, IconFormat.Webp128));
+        PlanetIcon = PublicThreadPageHelpers.NormalizeMediaUrl(ISharedPlanet.GetIconUrl(Planet, IconFormat.Webp128));
 
         if (!Planet.EnableThreads || !Planet.PublicThreads)
         {
@@ -132,7 +132,7 @@ public class PlanetThreadsModel : PageModel
                 {
                     Title = thread.Title,
                     AuthorName = name,
-                    AuthorAvatarUrl = NormalizeUrl(ISharedUser.GetAvatar(user, AvatarFormat.Webp64)),
+                    AuthorAvatarUrl = PublicThreadPageHelpers.NormalizeMediaUrl(ISharedUser.GetAvatar(user, AvatarFormat.Webp64)),
                     AuthorRoleName = roleName,
                     AuthorRoleColor = roleColor,
                     TimeCreated = thread.TimeCreated,
@@ -151,11 +151,4 @@ public class PlanetThreadsModel : PageModel
         return Page();
     }
 
-    private static string NormalizeUrl(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-            return url;
-
-        return url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? url : "/" + url.TrimStart('/');
-    }
 }

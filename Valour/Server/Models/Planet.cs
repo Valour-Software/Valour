@@ -90,7 +90,22 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// The id of the single thread pinned to the top of this planet's feed, if any
     /// </summary>
     public long? PinnedThreadId { get; set; }
-    
+
+    /// <summary>
+    /// True if the docs/wiki is enabled for this planet
+    /// </summary>
+    public bool EnableWiki { get; set; }
+
+    /// <summary>
+    /// True if this planet's docs can be read publicly without an account
+    /// </summary>
+    public bool PublicWiki { get; set; }
+
+    /// <summary>
+    /// The vanity name claimed for this planet's public docs site, if any
+    /// </summary>
+    public string Vanity { get; set; }
+
     public List<PlanetTag> Tags { get; set; } = new();
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>

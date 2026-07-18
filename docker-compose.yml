@@ -45,13 +45,14 @@ services:
       - Redis__ConnectionString=redis:6379
       - Node__Name=main
       - Node__Location=https://${VALOUR_DOMAIN:?set VALOUR_DOMAIN in .env}
-      # Single-domain mode: app, api, cdn, and threads all served from
+      # Single-domain mode: app, api, cdn, threads, and docs all served from
       # VALOUR_DOMAIN (empty subdomains collapse to the root domain).
       - Hosting__InstanceName=${VALOUR_INSTANCE_NAME:-Valour}
       - Hosting__RootDomain=${VALOUR_DOMAIN}
       - Hosting__AppSubdomain=
       - Hosting__ApiSubdomain=
       - Hosting__ThreadsSubdomain=
+      - Hosting__WikiSubdomain=
       - Hosting__ContentCdnSubdomain=
       - Hosting__PublicCdnSubdomain=
       # Local-disk media storage (default for self-hosting)

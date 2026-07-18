@@ -759,4 +759,79 @@ public class PlanetService
 
         return TaskResult.SuccessResult;
     }
+
+    ////////////
+    // Vanity //
+    ////////////
+
+    public async Task<TaskResult> CheckVanityAsync(long planetId, string name)
+    {
+        name = name?.Trim().ToLowerInvariant();
+
+        var validation = VanityUtils.ValidateVanity(name);
+        if (!validation.Success)
+            return validation;
+
+        var taken = await _db.Planets
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.Vanity == name && x.Id != planetId);
+
+        return taken
+            ? TaskResult.FromFailure("That name is already taken.")
+            : TaskResult.SuccessResult;
+    }
+
+    public async Task<TaskResult> SetVanityAsync(long planetId, string name)
+    {
+        var dbPlanet = await _db.Planets.FirstOrDefaultAsync(x => x.Id == planetId);
+        if (dbPlanet is null)
+            return TaskResult.FromFailure("Planet not found.");
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            dbPlanet.Vanity = null;
+        }
+        else
+        {
+            name = name.Trim().ToLowerInvariant();
+
+            var check = await CheckVanityAsync(planetId, name);
+            if (!check.Success)
+                return check;
+
+            dbPlanet.Vanity = name;
+        }
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // The unique index is the race arbiter
+            return TaskResult.FromFailure("That name was just taken.");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to set vanity for planet {PlanetId}", planetId);
+            return TaskResult.FromFailure("Failed to set vanity name.");
+        }
+
+        _coreHub.NotifyPlanetChange(dbPlanet.ToModel());
+
+        return TaskResult.SuccessResult;
+    }
+
+    public async Task<long?> ResolveVanityAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        name = name.Trim().ToLowerInvariant();
+
+        var planet = await _db.Planets.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Vanity == name);
+
+        return planet?.Id;
+    }
 }

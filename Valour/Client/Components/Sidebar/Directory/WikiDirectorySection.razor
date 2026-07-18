@@ -1,0 +1,47 @@
+@implements IDisposable
+@inject ValourClient Client
+@using Valour.Client.Components.Windows.WikiWindows
+
+<div class="channel planet-wiki @(_isOpen ? "open" : "")" @onclick="OnClickHeader">
+    <i class="bi bi-journal-text planet-pseudo-icon"></i>
+    <p class="name">Wiki</p>
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _isOpen;
+
+    protected override void OnInitialized()
+    {
+        WikiWindowComponent.SelectionsChanged += OnWikiWindowsChanged;
+        _isOpen = WikiWindowComponent.IsOpenForPlanet(Planet.Id);
+    }
+
+    /// <summary>
+    /// Lights the row up like an open channel while any wiki window for this
+    /// planet is open
+    /// </summary>
+    private void OnWikiWindowsChanged()
+    {
+        var open = WikiWindowComponent.IsOpenForPlanet(Planet.Id);
+        if (open == _isOpen)
+            return;
+
+        _isOpen = open;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnClickHeader()
+    {
+        var content = WikiWindowComponent.GetDefaultContent(Planet);
+        await WindowService.OpenWindowAtFocused(content);
+        await Sidebar.ToggleMobileSidebar();
+    }
+
+    public void Dispose()
+    {
+        WikiWindowComponent.SelectionsChanged -= OnWikiWindowsChanged;
+    }
+}

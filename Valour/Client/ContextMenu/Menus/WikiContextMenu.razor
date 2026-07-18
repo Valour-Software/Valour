@@ -1,0 +1,177 @@
+@inherits ContextMenu<WikiContextMenu.DocContextParams>
+@inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject NavigationManager NavManager
+@using Valour.Sdk.Models.Wiki
+@using Valour.Client.Components.Windows.WikiWindows
+
+<ContextMenuItem OnClickAsync="@OnClickOpen">
+    <Label>Open</Label>
+    <Icon><i class="bi bi-box-arrow-up-right"></i></Icon>
+</ContextMenuItem>
+
+<ContextSubMenu>
+    <Label>Copy</Label>
+    <Icon><i class="bi bi-caret-right-fill"></i></Icon>
+    <Content>
+        <ContextMenuItem OnClickAsync="@OnClickCopyLink">Link</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyId">Doc Id</ContextMenuItem>
+    </Content>
+</ContextSubMenu>
+
+@if (_canEditThis)
+{
+    <ContextMenuItem OnClickAsync="@OnClickRename">
+        <Label>@(Data.Doc.IsFolder ? "Rename" : "Edit")</Label>
+        <Icon><i class="bi bi-pen-fill"></i></Icon>
+    </ContextMenuItem>
+}
+
+@if (Data.Doc.IsFolder && _canEdit)
+{
+    <ContextMenuItem OnClickAsync="@OnClickNewPage">
+        <Label>New Page Here</Label>
+        <Icon><i class="bi bi-file-earmark-plus"></i></Icon>
+    </ContextMenuItem>
+}
+
+@if (Data.Doc.IsFolder && _canManage)
+{
+    <ContextMenuItem OnClickAsync="@OnClickNewFolder">
+        <Label>New Folder Here</Label>
+        <Icon><i class="bi bi-folder-plus"></i></Icon>
+    </ContextMenuItem>
+}
+
+@if (_canManage)
+{
+    <ContextMenuItem OnClickAsync="@OnClickMoveUp">
+        <Label>Move Up</Label>
+        <Icon><i class="bi bi-arrow-up"></i></Icon>
+    </ContextMenuItem>
+
+    <ContextMenuItem OnClickAsync="@OnClickMoveDown">
+        <Label>Move Down</Label>
+        <Icon><i class="bi bi-arrow-down"></i></Icon>
+    </ContextMenuItem>
+
+    <ContextSubMenu>
+        <Label>Move To</Label>
+        <Icon><i class="bi bi-caret-right-fill"></i></Icon>
+        <Content>
+            @if (Data.Doc.ParentId is not null)
+            {
+                <ContextMenuItem OnClickAsync="@(() => OnClickMoveTo(null))">Top Level</ContextMenuItem>
+            }
+            @foreach (var target in _moveTargets)
+            {
+                var folder = target.Folder;
+                <ContextMenuItem OnClickAsync="@(() => OnClickMoveTo(folder.Id))">
+                    @(new string(' ', target.Depth * 3))@folder.Title
+                </ContextMenuItem>
+            }
+        </Content>
+    </ContextSubMenu>
+
+    <ContextMenuItem OnClickAsync="@OnClickDelete" Color="red">
+        <Label>Delete</Label>
+        <Icon><i class="bi bi-trash-fill"></i></Icon>
+    </ContextMenuItem>
+}
+
+@code {
+
+    public class DocContextParams
+    {
+        public PlanetWikiPage Doc;
+        public WikiWindowComponent Window;
+    }
+
+    private bool _canEdit;
+    private bool _canManage;
+    private bool _canEditThis;
+    private List<(PlanetWikiPage Folder, int Depth)> _moveTargets = new();
+
+    protected override void OnInitialized()
+    {
+        _canEdit = Data.Window?.CanEdit ?? false;
+        _canManage = Data.Window?.CanManage ?? false;
+        _canEditThis = Data.Doc.IsFolder ? _canManage : _canEdit;
+
+        _moveTargets = _canManage
+            ? Data.Window?.GetMoveTargets(Data.Doc) ?? new()
+            : new();
+    }
+
+    private async Task OnClickOpen()
+    {
+        await CloseAsync();
+        await Data.Window.SelectPageRequestAsync(Data.Doc);
+    }
+
+    private async Task OnClickCopyLink()
+    {
+        await CloseAsync();
+
+        // Public docs URL when available, otherwise a current-origin deep link
+        var url = ShareUtils.GetWikiPageShareUrl(NavManager, Data.Window?.Planet, Data.Doc);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+    }
+
+    private async Task OnClickCopyId()
+    {
+        await CloseAsync();
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Doc.Id.ToString());
+    }
+
+    private async Task OnClickRename()
+    {
+        await CloseAsync();
+
+        if (Data.Doc.IsFolder)
+        {
+            Data.Window.OpenFolderRename(Data.Doc);
+        }
+        else
+        {
+            await Data.Window.SelectPageRequestAsync(Data.Doc);
+            await Data.Window.BeginEditSelectedAsync();
+        }
+    }
+
+    private async Task OnClickNewPage()
+    {
+        await CloseAsync();
+        await Data.Window.BeginCreatePageAsync(Data.Doc.Id);
+    }
+
+    private async Task OnClickNewFolder()
+    {
+        await CloseAsync();
+        Data.Window.OpenFolderForm(Data.Doc.Id);
+    }
+
+    private async Task OnClickMoveUp()
+    {
+        await CloseAsync();
+        await Data.Window.MoveUpAsync(Data.Doc);
+    }
+
+    private async Task OnClickMoveDown()
+    {
+        await CloseAsync();
+        await Data.Window.MoveDownAsync(Data.Doc);
+    }
+
+    private async Task OnClickMoveTo(long? folderId)
+    {
+        await CloseAsync();
+        await Data.Window.MoveToAsync(Data.Doc, folderId);
+    }
+
+    private async Task OnClickDelete()
+    {
+        await CloseAsync();
+        Data.Window.RequestDelete(Data.Doc);
+    }
+}

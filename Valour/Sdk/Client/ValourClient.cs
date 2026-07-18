@@ -58,6 +58,7 @@ public class ValourClient
     public readonly VoiceStateService VoiceStateService;
     public readonly AttachmentService AttachmentService;
     public readonly ThreadService ThreadService;
+    public readonly WikiService WikiService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -137,6 +138,7 @@ public class ValourClient
         VoiceStateService = new VoiceStateService(this);
         AttachmentService = new AttachmentService(this);
         ThreadService = new ThreadService(this);
+        WikiService = new WikiService(this);
 
         var tenorHttpClient = new HttpClient();
         tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
@@ -194,6 +196,8 @@ public class ValourClient
                 ValourHosts.AppHost = hosts.App;
             if (!string.IsNullOrWhiteSpace(hosts.Threads))
                 ValourHosts.ThreadsHost = hosts.Threads;
+            if (!string.IsNullOrWhiteSpace(hosts.Docs))
+                ValourHosts.WikiHost = hosts.Docs;
             if (!string.IsNullOrWhiteSpace(hosts.ContentCdn))
                 ValourHosts.ContentCdnHost = hosts.ContentCdn;
             if (!string.IsNullOrWhiteSpace(hosts.PublicCdn))

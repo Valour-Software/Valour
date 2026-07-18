@@ -1,0 +1,91 @@
+.settings-inner {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 640px;
+}
+
+.editor-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.editor-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 17px;
+}
+
+.toggle-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: var(--main-3);
+    border-radius: var(--radius-md);
+}
+
+.toggle-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.toggle-title {
+    font-weight: 600;
+    font-size: 14.5px;
+}
+
+.toggle-description {
+    margin: 0;
+    color: var(--font-alt-color);
+    font-size: 13px;
+}
+
+
+
+
+
+
+
+.public-url {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 12.5px;
+}
+
+.public-url-label {
+    color: var(--font-alt-color);
+    flex-shrink: 0;
+}
+
+.public-url code {
+    background: var(--main-1);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-family: var(--font-family-mono);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.icon-btn {
+    padding: 3px 8px;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.open-wiki {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+}

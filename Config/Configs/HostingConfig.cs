@@ -40,6 +40,11 @@ public class HostingConfig
     public string ThreadsSubdomain { get; set; } = "threads";
 
     /// <summary>
+    /// Subdomain serving the public server-rendered docs pages, e.g. "docs".
+    /// </summary>
+    public string WikiSubdomain { get; set; } = "wiki";
+
+    /// <summary>
     /// Subdomain serving proxied/authenticated content, e.g. "cdn".
     /// </summary>
     public string ContentCdnSubdomain { get; set; } = "cdn";
@@ -55,10 +60,12 @@ public class HostingConfig
     public string AppHost => Combine(AppSubdomain, RootDomain);
     public string ApiHost => Combine(ApiSubdomain, RootDomain);
     public string ThreadsHost => Combine(ThreadsSubdomain, RootDomain);
+    public string WikiHost => Combine(WikiSubdomain, RootDomain);
     public string ContentCdnHost => Combine(ContentCdnSubdomain, RootDomain);
     public string PublicCdnHost => Combine(PublicCdnSubdomain, RootDomain);
 
     public string AppBaseUrl => $"https://{AppHost}";
     public string ApiBaseUrl => $"https://{ApiHost}";
     public string ThreadsBaseUrl => $"https://{ThreadsHost}";
+    public string WikiBaseUrl => $"https://{WikiHost}";
 }

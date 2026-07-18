@@ -1,0 +1,123 @@
+@implements IDisposable
+@inject ValourClient Client
+@using Valour.Shared.Models.Wiki
+
+<div class="docs-search">
+    <i class="bi bi-search ds-icon"></i>
+    <input class="ds-input"
+           type="search"
+           placeholder="Search the wiki..."
+           maxlength="64"
+           value="@_query"
+           @oninput="OnInput"
+           @onfocus="@(() => _focused = true)"
+           @onblur="OnBlurAsync"/>
+
+    @if (_focused && _query.Length > 0)
+    {
+        <div class="ds-results">
+            @if (_searching)
+            {
+                <div class="ds-status">Searching...</div>
+            }
+            else if (_results.Count == 0)
+            {
+                <div class="ds-status">No results</div>
+            }
+            else
+            {
+                @foreach (var result in _results)
+                {
+                    var item = result;
+                    <div class="ds-result" @onmousedown="@(() => OnPickAsync(item))">
+                        <i class="bi bi-file-text"></i>
+                        <span>@item.Title</span>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public WikiWindowComponent Window { get; set; }
+
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private string _query = string.Empty;
+    private bool _focused;
+    private bool _searching;
+    private List<WikiSearchResult> _results = new();
+    private CancellationTokenSource _debounceCts;
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? string.Empty;
+        _ = DebounceSearchAsync();
+    }
+
+    private async Task DebounceSearchAsync()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        if (string.IsNullOrWhiteSpace(_query))
+        {
+            _results.Clear();
+            return;
+        }
+
+        _searching = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(300, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        var response = await Client.WikiService.SearchAsync(Planet, _query);
+        if (token.IsCancellationRequested)
+            return;
+
+        _results = response.Success ? response.Data ?? new() : new();
+        _searching = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnPickAsync(WikiSearchResult result)
+    {
+        _focused = false;
+        _query = string.Empty;
+        _results.Clear();
+
+        if (Planet.WikiPages.TryGet(result.PageId, out var doc))
+        {
+            await Window.SelectPageRequestAsync(doc);
+            return;
+        }
+
+        var fetched = await Client.WikiService.FetchWikiPageAsync(Planet.Id, result.PageId);
+        if (fetched is not null)
+            await Window.SelectPageRequestAsync(fetched);
+    }
+
+    private async Task OnBlurAsync()
+    {
+        // Give result mousedown a beat to fire before the dropdown closes
+        await Task.Delay(150);
+        _focused = false;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+    }
+}

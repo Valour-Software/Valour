@@ -36,7 +36,10 @@ public class Planet : ISharedPlanet
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetThread> Threads { get; set; }
-    
+
+    [InverseProperty("Planet")]
+    public virtual ICollection<PlanetWikiPage> WikiPages { get; set; }
+
     public virtual ICollection<Message> Messages { get; set; }
     
     public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
@@ -141,6 +144,26 @@ public class Planet : ISharedPlanet
     public long? PinnedThreadId { get; set; }
 
     /// <summary>
+    /// True if the docs/wiki is enabled for this planet
+    /// </summary>
+    [Column("enable_wiki")]
+    public bool EnableWiki { get; set; }
+
+    /// <summary>
+    /// True if this planet's docs can be read publicly without an account
+    /// </summary>
+    [Column("public_wiki")]
+    public bool PublicWiki { get; set; }
+
+    /// <summary>
+    /// The vanity name claimed for this planet's public docs site, if any.
+    /// Lowercase, unique across planets, never all digits. Length and index
+    /// configured in SetupDbModel.
+    /// </summary>
+    [Column("vanity")]
+    public string Vanity { get; set; }
+
+    /// <summary>
     /// True when this planet stores media on its own infrastructure
     /// (bring-your-own-storage). Surfaces the "self-hosted media" warning
     /// and icon to users, including pre-join. Mapped fluently in SetupDbModel.
@@ -183,6 +206,13 @@ public class Planet : ISharedPlanet
                 .HasColumnName("locked_for_migration")
                 .HasDefaultValue(false)
                 .IsRequired();
+
+            e.Property(x => x.Vanity)
+                .HasMaxLength(Shared.Models.ISharedPlanet.MaxVanityLength);
+
+            e.HasIndex(x => x.Vanity)
+                .IsUnique()
+                .HasFilter("vanity IS NOT NULL");
         });
     }
 }

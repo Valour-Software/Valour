@@ -1,0 +1,81 @@
+.docs-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: var(--font-size-sm, 14px);
+    user-select: none;
+}
+
+.dt-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: var(--radius-xs, 4px);
+    color: var(--font-color, #eee);
+    text-decoration: none;
+    cursor: pointer;
+    line-height: 1.3;
+    transition: background-color 0.12s ease;
+}
+
+.dt-row:hover {
+    background-color: var(--slight-tint, rgba(255, 255, 255, 0.05));
+}
+
+.dt-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dt-icon {
+    flex-shrink: 0;
+    opacity: 0.65;
+    font-size: 13px;
+}
+
+.dt-page.active {
+    background-color: var(--slight-tint, rgba(255, 255, 255, 0.05));
+    color: var(--color-primary, #00faff);
+    font-weight: 600;
+}
+
+.dt-page.active .dt-icon {
+    opacity: 1;
+    color: var(--color-primary, #00faff);
+}
+
+.dt-folder {
+    margin: 0;
+}
+
+.dt-folder-row {
+    font-weight: 600;
+    list-style: none;
+}
+
+.dt-folder-row::-webkit-details-marker {
+    display: none;
+}
+
+.dt-chevron {
+    flex-shrink: 0;
+    font-size: 11px;
+    opacity: 0.65;
+    transition: transform 0.15s ease;
+}
+
+.dt-folder[open] > .dt-folder-row .dt-chevron {
+    transform: rotate(90deg);
+}
+
+.dt-children {
+    margin-left: 12px;
+    padding-left: 8px;
+    border-left: 1px solid var(--medium-tint, rgba(255, 255, 255, 0.1));
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 2px;
+}

@@ -47,6 +47,7 @@ public partial class Program
         ValourHosts.RootDomain = HostingConfig.Current.RootDomain;
         ValourHosts.AppHost = HostingConfig.Current.AppHost;
         ValourHosts.ThreadsHost = HostingConfig.Current.ThreadsHost;
+        ValourHosts.WikiHost = HostingConfig.Current.WikiHost;
         ValourHosts.ContentCdnHost = HostingConfig.Current.ContentCdnHost;
         ValourHosts.PublicCdnHost = HostingConfig.Current.PublicCdnHost;
 
@@ -141,6 +142,7 @@ public partial class Program
             new DynamicAPI<PlanetRuleApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetReportApi>().RegisterRoutes(app),
             new DynamicAPI<ThreadApi>().RegisterRoutes(app),
+            new DynamicAPI<PlanetWikiApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetInviteApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetBanApi>().RegisterRoutes(app),
             new DynamicAPI<PermissionsNodeApi>().RegisterRoutes(app),
@@ -232,6 +234,42 @@ public partial class Program
             await next();
         });
 
+        // Clean URLs on the docs subdomain (wiki.valour.gg/{planetIdOrVanity}/{pageSlug})
+        // are rewritten to the underlying /docs/... Razor pages. Only active when
+        // the docs host is distinct — in single-domain self-host mode the docs
+        // pages stay at the /docs/... path so bare /{vanity} paths can never
+        // swallow app routes.
+        var wikiHost = HostingConfig.Current.WikiHost;
+        var wikiHostDistinct =
+            !string.Equals(wikiHost, HostingConfig.Current.AppHost, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(wikiHost, HostingConfig.Current.RootDomain, StringComparison.OrdinalIgnoreCase);
+        if (wikiHostDistinct)
+        {
+            app.Use(async (context, next) =>
+            {
+                if (string.Equals(context.Request.Host.Host, wikiHost, StringComparison.OrdinalIgnoreCase) &&
+                    !context.Request.Path.StartsWithSegments("/wiki", StringComparison.OrdinalIgnoreCase) &&
+                    !context.Request.Path.StartsWithSegments("/_content", StringComparison.OrdinalIgnoreCase) &&
+                    !context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (context.Request.Path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Response.ContentType = "text/plain";
+                        await context.Response.WriteAsync("User-agent: *\nAllow: /\n");
+                        return;
+                    }
+
+                    var segments = context.Request.Path.Value?
+                        .Split('/', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+
+                    if (segments.Length is 1 or 2 && segments.All(IsWikiRewriteSegment))
+                        context.Request.Path = "/wiki/" + string.Join('/', segments);
+                }
+
+                await next();
+            });
+        }
+
         app.UseRouting();
 
         app.UseAuthentication();
@@ -260,6 +298,27 @@ public partial class Program
     /// dev and third-party entries. Note: the policy also sets
     /// SetIsOriginAllowed(_ => true), which currently supersedes this list.
     /// </summary>
+    /// <summary>
+    /// True for docs clean-URL segments: planet ids, vanity names, page slugs
+    /// (letters/digits/dashes), or the literal sitemap.xml.
+    /// </summary>
+    private static bool IsWikiRewriteSegment(string segment)
+    {
+        if (string.Equals(segment, "sitemap.xml", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (string.IsNullOrEmpty(segment) || segment.Length > 64)
+            return false;
+
+        foreach (var c in segment)
+        {
+            if (!char.IsAsciiLetterOrDigit(c) && c != '-')
+                return false;
+        }
+
+        return true;
+    }
+
     private static string[] BuildCorsOrigins()
     {
         var hosting = HostingConfig.Current;
@@ -477,6 +536,7 @@ public partial class Program
         services.AddScoped<PlanetRuleService>();
         services.AddScoped<PlanetReportService>();
         services.AddScoped<ThreadService>();
+        services.AddScoped<PlanetWikiService>();
         services.AddScoped<PlanetService>();
         services.AddScoped<TenorFavoriteService>();
         services.AddScoped<AutomodService>();

@@ -785,4 +785,33 @@ public class PlanetService : ServiceBase
         node.HubConnection.On<RoleOrderEvent>("RoleOrder-Update", OnRoleOrderUpdate);
     }
 
+    ////////////
+    // Vanity //
+    ////////////
+
+    public async Task<TaskResult<long>> ResolveVanityAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return TaskResult<long>.FromFailure("Name is required.");
+
+        return await _client.PrimaryNode.GetJsonAsync<long>(
+            ISharedPlanet.GetVanityResolveRoute(name.Trim().ToLowerInvariant()));
+    }
+
+    public async Task<TaskResult> CheckVanityAvailableAsync(Planet planet, string name)
+    {
+        var route = $"{ISharedPlanet.GetVanityCheckRoute(planet.Id)}?name={Uri.EscapeDataString(name ?? string.Empty)}";
+        var response = await planet.Node.GetJsonAsync<TaskResult>(route);
+
+        return response.Success ? response.Data : TaskResult.FromFailure(response.Message);
+    }
+
+    public async Task<TaskResult> SetVanityAsync(Planet planet, string name)
+    {
+        var response = await planet.Node.PutAsyncWithResponse<TaskResult>(
+            ISharedPlanet.GetVanityRoute(planet.Id),
+            new PlanetVanityRequest { Name = name });
+
+        return response.Success ? response.Data : TaskResult.FromFailure(response.Message);
+    }
 }

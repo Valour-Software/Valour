@@ -1,0 +1,413 @@
+@implements IDisposable
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+@using System.Net.Http.Headers
+@using Valour.Sdk.Models.Wiki
+@using Valour.Shared.Models.Wiki
+
+<div class="doc-editor">
+    <div class="de-header">
+        <h2>@(_isNew ? "New page" : "Edit page")</h2>
+        <div class="de-header-actions">
+            <button class="v-pill" @onclick="OnCancelAsync" disabled="@_saving">Cancel</button>
+            <button class="v-pill accent" @onclick="SaveAsync"
+                    disabled="@(_saving || !CanSave)">
+                @(_saving ? "Saving..." : "Save")
+            </button>
+        </div>
+    </div>
+
+    @if (RemoteChanged && !_conflict)
+    {
+        <div class="de-banner warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            This page was just updated by someone else — saving will ask you to resolve.
+        </div>
+    }
+
+    @if (_conflict)
+    {
+        <div class="de-banner danger">
+            <i class="bi bi-exclamation-octagon"></i>
+            <span>This page changed since you started editing.</span>
+            <div class="de-banner-actions">
+                <button class="v-pill" @onclick="ReloadLatestAsync">Discard mine &amp; reload</button>
+                <button class="v-pill danger" @onclick="OverwriteAsync">Overwrite with mine</button>
+            </div>
+        </div>
+    }
+
+    @if (_error is not null)
+    {
+        <div class="de-banner danger">
+            <i class="bi bi-x-circle"></i>
+            @_error
+        </div>
+    }
+
+    <div class="de-fields">
+        <div class="de-field">
+            <label>Title</label>
+            <input class="v-input" maxlength="@ISharedPlanetWikiPage.MaxTitleLength"
+                   value="@_title" @oninput="OnTitleInput"/>
+        </div>
+        <div class="de-field">
+            <label>Slug</label>
+            <input class="v-input de-slug" maxlength="@ISharedPlanetWikiPage.MaxSlugLength"
+                   value="@_slug" @oninput="OnSlugInput" spellcheck="false"/>
+            @if (Planet.PublicWiki)
+            {
+                <span class="de-url-preview">@_publicUrlPreview</span>
+            }
+        </div>
+        <label class="de-publish">
+            <input type="checkbox" checked="@_published" @onchange="@(e => { _published = (bool)e.Value!; MarkDirty(); })"/>
+            <span>Published</span>
+            <span class="de-publish-hint">Unpublished pages are hidden from the public site and search</span>
+        </label>
+    </div>
+
+    <div class="de-toolbar">
+        <button class="v-pill icon-only" title="Insert image" @onclick="TriggerImagePick" disabled="@_uploading">
+            <i class="bi @(_uploading ? "bi-hourglass-split" : "bi-image")"></i>
+        </button>
+        @* Scoped CSS can't reach into the child component's input, so hide inline *@
+        <InputFile OnChange="OnImagePicked" accept="image/*" style="display: none" id="@_fileInputId" @key="@_filePickerKey"/>
+        <div class="v-pill-group de-tabs">
+            <button class="v-pill-tab @(_previewTab ? "" : "active")" @onclick="@(() => _previewTab = false)">Write</button>
+            <button class="v-pill-tab @(_previewTab ? "active" : "")" @onclick="@(() => _previewTab = true)">Preview</button>
+        </div>
+        <span class="de-counter @(_draft.Length > ISharedPlanetWikiPage.MaxContentLength * 0.9 ? "warn" : "")">
+            @_draft.Length.ToString("N0") / @ISharedPlanetWikiPage.MaxContentLength.ToString("N0")
+        </span>
+    </div>
+
+    <div class="de-split">
+        <textarea @ref="_textareaRef"
+                  class="de-textarea @(_previewTab ? "hidden-narrow" : "")"
+                  placeholder="Write your page in markdown..."
+                  value="@_draft"
+                  @oninput="OnDraftInput"
+                  spellcheck="true"></textarea>
+
+        <div class="de-preview @(_previewTab ? "" : "hidden-narrow")">
+            <RichText Content="@_previewContent" PlanetId="@Planet.Id"/>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public WikiWindowComponent Window { get; set; }
+
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    /// <summary>
+    /// The page being edited; null when creating a new page
+    /// </summary>
+    [Parameter]
+    public PlanetWikiPage Doc { get; set; }
+
+    [Parameter]
+    public long? ParentId { get; set; }
+
+    [Parameter]
+    public string InitialContent { get; set; }
+
+    [Parameter]
+    public long BaseVersion { get; set; }
+
+    /// <summary>
+    /// Set by the window when a remote update to this page arrived mid-edit
+    /// </summary>
+    [Parameter]
+    public bool RemoteChanged { get; set; }
+
+    private bool _isNew;
+    private string _title = string.Empty;
+    private string _slug = string.Empty;
+    private bool _slugTouched;
+    private bool _published = true;
+    private string _draft = string.Empty;
+    private string _previewContent = string.Empty;
+    private long _baseVersion;
+
+    private bool _dirty;
+    private bool _saving;
+    private bool _conflict;
+    private bool _uploading;
+    private bool _previewTab;
+    private string _error;
+    private int _filePickerKey;
+
+    private ElementReference _textareaRef;
+    private CancellationTokenSource _previewCts;
+    private readonly string _fileInputId = "de-file-" + Guid.NewGuid().ToString("N")[..8];
+
+    private bool CanSave => !string.IsNullOrWhiteSpace(_title) &&
+                            _draft.Length <= ISharedPlanetWikiPage.MaxContentLength &&
+                            !_conflict;
+
+    private string _publicUrlPreview =>
+        $"{WikiLinks.PublicWikiBase}/{(string.IsNullOrWhiteSpace(Planet.Vanity) ? Planet.Id.ToString() : Planet.Vanity)}/{(string.IsNullOrWhiteSpace(_slug) ? "..." : _slug)}";
+
+    protected override void OnInitialized()
+    {
+        _isNew = Doc is null;
+
+        if (!_isNew)
+        {
+            _title = Doc.Title;
+            _slug = Doc.Slug ?? string.Empty;
+            _slugTouched = true;
+            _published = Doc.IsPublished;
+            _draft = InitialContent ?? string.Empty;
+            _baseVersion = BaseVersion;
+        }
+        else
+        {
+            _draft = string.Empty;
+        }
+
+        _previewContent = _draft;
+    }
+
+    private void MarkDirty()
+    {
+        if (!_dirty)
+        {
+            _dirty = true;
+            Window.SetEditorDirty(true);
+        }
+    }
+
+    private void OnTitleInput(ChangeEventArgs e)
+    {
+        _title = e.Value?.ToString() ?? string.Empty;
+        if (!_slugTouched)
+            _slug = WikiSlugUtils.Slugify(_title);
+        MarkDirty();
+    }
+
+    private void OnSlugInput(ChangeEventArgs e)
+    {
+        _slug = (e.Value?.ToString() ?? string.Empty).ToLowerInvariant();
+        _slugTouched = true;
+        MarkDirty();
+    }
+
+    private void OnDraftInput(ChangeEventArgs e)
+    {
+        _draft = e.Value?.ToString() ?? string.Empty;
+        MarkDirty();
+        _ = DebouncePreviewAsync();
+    }
+
+    private async Task DebouncePreviewAsync()
+    {
+        _previewCts?.Cancel();
+        _previewCts = new CancellationTokenSource();
+        var token = _previewCts.Token;
+
+        try
+        {
+            await Task.Delay(300, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        _previewContent = _draft;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    //////////
+    // Save //
+    //////////
+
+    private async Task SaveAsync()
+    {
+        if (_saving || !CanSave)
+            return;
+
+        _saving = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            if (_isNew)
+            {
+                var result = await Client.WikiService.CreateWikiPageAsync(Planet, new WikiPageCreateRequest
+                {
+                    ParentId = ParentId,
+                    IsFolder = false,
+                    Title = _title.Trim(),
+                    Slug = string.IsNullOrWhiteSpace(_slug) ? null : _slug.Trim(),
+                    Content = _draft,
+                    IsPublished = _published,
+                });
+
+                if (!result.Success)
+                {
+                    _error = result.Message;
+                    return;
+                }
+
+                _dirty = false;
+                Window.SetEditorDirty(false);
+                await Window.OnEditorSavedAsync(result.Data);
+                return;
+            }
+
+            // Existing page: metadata first (if changed), then content
+            if (_title.Trim() != Doc.Title || _slug != (Doc.Slug ?? "") || _published != Doc.IsPublished)
+            {
+                var updated = new PlanetWikiPage(Client)
+                {
+                    Id = Doc.Id,
+                    PlanetId = Doc.PlanetId,
+                    ParentId = Doc.ParentId,
+                    IsFolder = Doc.IsFolder,
+                    Position = Doc.Position,
+                    Slug = _slug,
+                    Title = _title.Trim(),
+                    IsPublished = _published,
+                    Version = Doc.Version,
+                    TimeCreated = Doc.TimeCreated,
+                    CreatedByUserId = Doc.CreatedByUserId,
+                    LastEditedByUserId = Doc.LastEditedByUserId,
+                };
+
+                var metaResult = await Client.WikiService.UpdateWikiPageAsync(updated);
+                if (!metaResult.Success)
+                {
+                    _error = metaResult.Message;
+                    return;
+                }
+            }
+
+            var contentResult = await Client.WikiService.SaveContentAsync(Doc, _draft, _baseVersion);
+            if (!contentResult.Success)
+            {
+                if (contentResult.Code == WikiService.ConflictErrorCode)
+                {
+                    _conflict = true;
+                    return;
+                }
+
+                _error = contentResult.Message;
+                return;
+            }
+
+            _dirty = false;
+            Window.SetEditorDirty(false);
+            await Window.OnEditorSavedAsync(contentResult.Data ?? Doc);
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Conflict path: drop the local draft and reload the latest content
+    /// </summary>
+    private async Task ReloadLatestAsync()
+    {
+        var latest = await Client.WikiService.FetchContentAsync(Doc, skipCache: true);
+        if (latest.Success && latest.Data is not null)
+        {
+            _draft = latest.Data.Content;
+            _previewContent = _draft;
+            _baseVersion = latest.Data.Version;
+        }
+
+        _conflict = false;
+        _dirty = false;
+        Window.SetEditorDirty(false);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Conflict path: keep the local draft and save over the newer version
+    /// </summary>
+    private async Task OverwriteAsync()
+    {
+        var latest = await Client.WikiService.FetchContentAsync(Doc, skipCache: true);
+        if (latest.Success && latest.Data is not null)
+            _baseVersion = latest.Data.Version;
+
+        _conflict = false;
+        await SaveAsync();
+    }
+
+    private Task OnCancelAsync() => Window.OnEditorCancelAsync();
+
+    ////////////
+    // Images //
+    ////////////
+
+    private async Task TriggerImagePick()
+    {
+        // Forward the click to the hidden InputFile
+        await JsRuntime.InvokeVoidAsync("wikiClickElement", _fileInputId);
+    }
+
+    private async Task OnImagePicked(InputFileChangeEventArgs e)
+    {
+        const long maxBytes = 10 * 1024 * 1024;
+
+        var file = e.File;
+        if (file is null)
+            return;
+
+        if (file.Size > maxBytes)
+        {
+            _error = "Images must be under 10MB.";
+            return;
+        }
+
+        _uploading = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            await using var stream = file.OpenReadStream(maxBytes);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+
+            using var content = new MultipartFormDataContent();
+            var byteContent = new ByteArrayContent(ms.ToArray());
+            byteContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "image/png");
+            content.Add(byteContent, file.Name, file.Name);
+
+            var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>("upload/image", content);
+            if (!result.Success)
+            {
+                _error = $"Upload failed: {result.Message}";
+                return;
+            }
+
+            var markdown = $"![{file.Name}]({result.Data})";
+            _draft = await JsRuntime.InvokeAsync<string>("wikiInsertAtCursor", _textareaRef, markdown);
+            _previewContent = _draft;
+            MarkDirty();
+        }
+        finally
+        {
+            _uploading = false;
+            _filePickerKey++; // reset the InputFile so the same file can be picked again
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _previewCts?.Cancel();
+    }
+}

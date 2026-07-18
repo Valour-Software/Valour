@@ -60,6 +60,10 @@
                 {
                     <ThreadsDirectorySection Planet="@Planet"/>
                 }
+                @if (Planet.EnableWiki)
+                {
+                    <WikiDirectorySection Planet="@Planet"/>
+                }
 
                 @foreach (var root in RootChannels)
                 {

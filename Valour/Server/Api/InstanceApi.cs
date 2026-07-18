@@ -36,6 +36,7 @@ public class InstanceApi
                 App = hosting.AppHost,
                 Api = hosting.ApiHost,
                 Threads = hosting.ThreadsHost,
+                Docs = hosting.WikiHost,
                 ContentCdn = hosting.ContentCdnHost,
                 PublicCdn = hosting.PublicCdnHost,
             },

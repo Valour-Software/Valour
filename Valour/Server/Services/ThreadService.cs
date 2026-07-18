@@ -845,15 +845,7 @@ public class ThreadService
     /////////////
 
     private static string SanitizeMarkdown(string content)
-    {
-        if (string.IsNullOrEmpty(content))
-            return content ?? string.Empty;
-
-        // Same markdown-bypass protections applied to chat messages
-        content = content.Replace("[](", "[]\\(");
-        content = content.Replace("]()", "]\\()");
-        return content;
-    }
+        => Utilities.MarkdownProtections.Sanitize(content);
 
     private async Task<TaskResult> ScanWithAutomodAsync(long planetId, long contentId, string content, long authorUserId, PlanetMember member)
     {

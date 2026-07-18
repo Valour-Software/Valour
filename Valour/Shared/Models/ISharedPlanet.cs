@@ -14,6 +14,16 @@ namespace Valour.Shared.Models;
 public interface ISharedPlanet : ISharedModel<long>
 {
     const string BaseRoute = "api/planets";
+
+    public const int MaxVanityLength = 32;
+
+    public static string GetVanityRoute(long planetId) => $"{BaseRoute}/{planetId}/vanity";
+    public static string GetVanityCheckRoute(long planetId) => $"{GetVanityRoute(planetId)}/check";
+
+    /// <summary>
+    /// Resolves a claimed vanity name to its planet id
+    /// </summary>
+    public static string GetVanityResolveRoute(string name) => $"{BaseRoute}/vanity/{name}";
     
     /// <summary>
     /// The Id of Valour Central, used for some platform-wide features
@@ -102,6 +112,24 @@ public interface ISharedPlanet : ISharedModel<long>
     /// Members can dismiss it individually via <see cref="ISharedPlanetMember.DismissedPinThreadId"/>.
     /// </summary>
     long? PinnedThreadId { get; set; }
+
+    /// <summary>
+    /// True if the docs/wiki is enabled for this planet
+    /// </summary>
+    bool EnableWiki { get; set; }
+
+    /// <summary>
+    /// True if this planet's docs can be read publicly without an account
+    /// </summary>
+    bool PublicWiki { get; set; }
+
+    /// <summary>
+    /// The planet's claimed vanity name, if any — identifies the planet in
+    /// public URLs (wiki pages, the public planet page, and future surfaces
+    /// like invites). Lowercase, unique across planets, never all digits.
+    /// Set only via the vanity endpoint.
+    /// </summary>
+    string? Vanity { get; set; }
     
     private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
     {

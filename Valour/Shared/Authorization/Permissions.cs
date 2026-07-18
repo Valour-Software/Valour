@@ -519,6 +519,10 @@ public enum PlanetPermissionsEnum
     PostThreads,
     CommentOnThreads,
     ManageThreads,
+
+    // Docs Permissions
+    EditWiki,
+    ManageWiki,
 }
 
 /// <summary>
@@ -567,6 +571,10 @@ public static class PlanetPermissions
                 PostThreads,
                 CommentOnThreads,
                 ManageThreads,
+
+                // Docs Permissions
+                EditWiki,
+                ManageWiki,
         };
     }
 
@@ -597,6 +605,10 @@ public static class PlanetPermissions
     public static readonly PlanetPermission PostThreads = new PlanetPermission(0x10000, "Post Threads", "Allow members to post threads to the planet's feed.");
     public static readonly PlanetPermission CommentOnThreads = new PlanetPermission(0x20000, "Comment on Threads", "Allow members to comment on threads in the planet's feed.");
     public static readonly PlanetPermission ManageThreads = new PlanetPermission(0x40000, "Manage Threads", "Allow members to delete, lock, and pin threads and comments.");
+
+    // Docs Permissions
+    public static readonly PlanetPermission EditWiki = new PlanetPermission(0x80000, "Edit Wiki", "Allow members to create and edit pages in the planet's wiki.");
+    public static readonly PlanetPermission ManageWiki = new PlanetPermission(0x100000, "Manage Wiki", "Allow members to manage wiki folders, ordering, deletion, revisions, and wiki settings.");
 }
 
 public enum PermissionState

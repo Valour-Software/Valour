@@ -11,6 +11,7 @@ public static class ClientHosts
 {
     private static string _appBaseUrl;
     private static string _threadsBaseUrl;
+    private static string _docsBaseUrl;
 
     public static string AppBaseUrl
     {
@@ -22,5 +23,11 @@ public static class ClientHosts
     {
         get => _threadsBaseUrl ?? ValourHosts.ThreadsBaseUrl;
         set => _threadsBaseUrl = value;
+    }
+
+    public static string WikiBaseUrl
+    {
+        get => _docsBaseUrl ?? ValourHosts.WikiBaseUrl;
+        set => _docsBaseUrl = value;
     }
 }

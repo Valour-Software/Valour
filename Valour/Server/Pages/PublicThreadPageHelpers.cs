@@ -86,6 +86,23 @@ public static partial class PublicThreadPageHelpers
     }
 
     /// <summary>
+    /// Normalizes a media URL for use in server-rendered pages. Data URIs
+    /// (e.g. generated planet icon SVGs) and absolute URLs pass through;
+    /// bare asset paths get rooted.
+    /// </summary>
+    public static string NormalizeMediaUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return url ?? string.Empty;
+
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
+            url.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            return url;
+
+        return "/" + url.TrimStart('/');
+    }
+
+    /// <summary>
     /// Resolves each member's primary (highest) role, the same role chat
     /// uses for name colors and role tags.
     /// </summary>

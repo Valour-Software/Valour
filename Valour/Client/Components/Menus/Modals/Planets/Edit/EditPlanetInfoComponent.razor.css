@@ -18,3 +18,31 @@
 .appearance-split .card-preview {
     max-width: 300px;
 }
+/* Vanity URL section */
+
+.vanity-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vanity-input {
+    flex: 1;
+    min-width: 0;
+    max-width: 320px;
+    font-family: var(--font-family-mono);
+    font-size: 13.5px;
+}
+
+.vanity-status {
+    margin: 0;
+    font-size: 12.5px;
+}
+
+.vanity-status.ok {
+    color: var(--color-success, #63e6a3);
+}
+
+.vanity-status.bad {
+    color: var(--color-danger, #e66363);
+}

@@ -1,0 +1,107 @@
+@implements IDisposable
+@inject ValourClient Client
+@using Valour.Sdk.Models.Wiki
+@using Valour.Shared.Models.Wiki
+
+<div class="doc-history">
+    <div class="dh-header">
+        <h3><i class="bi bi-clock-history"></i> History</h3>
+        <button class="dh-close" title="Close" @onclick="@(() => OnClose.InvokeAsync())">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <p class="dh-status">Loading history...</p>
+    }
+    else if (_error is not null)
+    {
+        <p class="dh-status">@_error</p>
+    }
+    else if (_revisions.Count == 0)
+    {
+        <p class="dh-status">No history yet.</p>
+    }
+    else
+    {
+        <div class="dh-list">
+            @foreach (var revision in _revisions)
+            {
+                var rev = revision;
+                <div class="dh-item @(_openingId == rev.Id ? "loading" : "")" @onclick="@(() => OpenRevisionAsync(rev))">
+                    <span class="dh-item-title">@rev.Title</span>
+                    <span class="dh-item-meta">
+                        @(GetAuthorName(rev.AuthorUserId)) · @rev.TimeCreated.ToLocalTime().ToString("g")
+                    </span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public WikiWindowComponent Window { get; set; }
+
+    [Parameter]
+    public PlanetWikiPage Doc { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private List<PlanetWikiRevision> _revisions = new();
+    private readonly Dictionary<long, string> _authorNames = new();
+    private bool _loading = true;
+    private long? _openingId;
+    private string _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Client.WikiService.FetchRevisionsAsync(Doc);
+        if (!response.Success)
+        {
+            _error = response.Message;
+            _loading = false;
+            return;
+        }
+
+        _revisions = response.Data ?? new();
+
+        foreach (var authorId in _revisions.Select(x => x.AuthorUserId).Distinct())
+        {
+            var user = await Client.UserService.FetchUserAsync(authorId);
+            _authorNames[authorId] = user?.Name ?? "Unknown";
+        }
+
+        _loading = false;
+    }
+
+    private string GetAuthorName(long userId) =>
+        _authorNames.TryGetValue(userId, out var name) ? name : "Unknown";
+
+    private async Task OpenRevisionAsync(PlanetWikiRevision revision)
+    {
+        if (_openingId is not null)
+            return;
+
+        _openingId = revision.Id;
+        StateHasChanged();
+
+        var full = await Client.WikiService.FetchRevisionAsync(Doc, revision.Id);
+        _openingId = null;
+
+        if (!full.Success || full.Data is null)
+        {
+            _error = full.Message;
+            StateHasChanged();
+            return;
+        }
+
+        Window.ShowRevision(full.Data);
+    }
+
+    public void Dispose()
+    {
+    }
+}

@@ -99,18 +99,28 @@ public class ProxyHandler
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             return null;
 
-        if (!await OutboundUrlSafetyValidator.IsSafeAsync(uri, _logger))
-            return null;
-
         var normalizedHost = NormalizeHost(uri.Host);
         var canonicalUrl = uri.AbsoluteUri;
+
+        // Self-host links become inline previews and are never fetched, so
+        // they skip outbound safety validation — which does DNS resolution
+        // and would reject configured hosts that don't resolve yet (dev,
+        // self-host, or pre-DNS deployments).
+        if (ValourHosts.IsSelfHost(normalizedHost))
+        {
+            return await HandleValourLinkAsync(
+                canonicalUrl, new MessageAttachment(MessageAttachmentType.ValourThread), db);
+        }
+
+        if (!await OutboundUrlSafetyValidator.IsSafeAsync(uri, _logger))
+            return null;
 
         // Determine if this is a 'virtual' attachment. Like YouTube!
         // these attachments do not have an actual file - usually they use an iframe.
         var isVirtual = CdnUtils.TryGetVirtualAttachmentType(normalizedHost, out var virtualType);
         if (isVirtual)
         {
-            return await HandleVirtualAttachment(canonicalUrl, uri, virtualType);
+            return await HandleVirtualAttachment(canonicalUrl, uri, virtualType, db);
         }
         else
         {
@@ -121,7 +131,7 @@ public class ProxyHandler
     /// <summary>
     /// Handles virtual attachments (embeds from YouTube, Twitter, etc.)
     /// </summary>
-    private async Task<MessageAttachment> HandleVirtualAttachment(string url, Uri uri, MessageAttachmentType virtualType)
+    private async Task<MessageAttachment> HandleVirtualAttachment(string url, Uri uri, MessageAttachmentType virtualType, ValourDb db)
     {
         var attachment = new MessageAttachment(virtualType);
 
@@ -161,28 +171,77 @@ public class ProxyHandler
                 return await HandleBluesky(url, attachment);
 
             case MessageAttachmentType.ValourThread:
-                return HandleValourThread(url, attachment);
+                return await HandleValourLinkAsync(url, attachment, db);
 
             default:
                 return null;
         }
     }
 
-    #region Valour Thread
+    #region Valour Links
 
-    private MessageAttachment HandleValourThread(string url, MessageAttachment attachment)
+    /// <summary>
+    /// Every self-host URL arrives typed as ValourThread (see
+    /// CdnUtils.TryGetVirtualAttachmentType); the actual route decides which
+    /// inline preview it becomes. Thread and doc-page links produce cards;
+    /// other Valour links fall through to plain links.
+    /// </summary>
+    private async Task<MessageAttachment> HandleValourLinkAsync(string url, MessageAttachment attachment, ValourDb db)
     {
-        // Only thread links produce a preview; other Valour links fall through.
-        if (!ValourRouteParser.TryParse(url, out var route) ||
-            route.Type != ValourRouteType.PlanetThread ||
-            route.PlanetId is null || route.ThreadId is null)
-        {
+        if (!ValourRouteParser.TryParse(url, out var route))
             return null;
+
+        switch (route.Type)
+        {
+            case ValourRouteType.PlanetThread when route.PlanetId is not null && route.ThreadId is not null:
+                // Store a canonical in-app link the client parses back into ids.
+                attachment.Location = $"{ValourHosts.AppBaseUrl}/planetthreads/{route.PlanetId}/{route.ThreadId}";
+                return attachment;
+
+            case ValourRouteType.PlanetWikiPage:
+                return await HandleValourWikiPageAsync(route, db);
+
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>
+    /// Public docs URLs identify planets by vanity and pages by slug, so
+    /// resolve both to ids and store the canonical in-app link.
+    /// </summary>
+    private async Task<MessageAttachment> HandleValourWikiPageAsync(ValourRoute route, ValourDb db)
+    {
+        var planetId = route.PlanetId;
+        if (planetId is null && route.Vanity is not null)
+        {
+            planetId = await db.Planets.AsNoTracking()
+                .Where(x => x.Vanity == route.Vanity)
+                .Select(x => (long?)x.Id)
+                .FirstOrDefaultAsync();
         }
 
-        // Store a canonical in-app link the client parses back into ids.
-        attachment.Location = $"{ValourHosts.AppBaseUrl}/planetthreads/{route.PlanetId}/{route.ThreadId}";
-        return attachment;
+        if (planetId is null)
+            return null;
+
+        var pageId = route.PageId;
+        if (pageId is null && route.PageSlug is not null)
+        {
+            pageId = await db.PlanetWikiPages.AsNoTracking()
+                .Where(x => x.PlanetId == planetId &&
+                            (x.Slug == route.PageSlug || x.PreviousSlug == route.PageSlug))
+                .OrderBy(x => x.Slug == route.PageSlug ? 0 : 1)
+                .Select(x => (long?)x.Id)
+                .FirstOrDefaultAsync();
+        }
+
+        if (pageId is null)
+            return null;
+
+        return new MessageAttachment(MessageAttachmentType.ValourWikiPage)
+        {
+            Location = $"{ValourHosts.AppBaseUrl}/planetwiki/{planetId}/{pageId}",
+        };
     }
 
     #endregion

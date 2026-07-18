@@ -1,0 +1,482 @@
+.docs-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background-color: var(--main-2);
+    container-type: inline-size;
+    container-name: docs-window;
+}
+
+.dw-loading {
+    padding: 24px;
+    color: var(--font-alt-color);
+}
+
+/* Top bar — the app's signature gradient underline separates it from content */
+
+.dw-topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: color-mix(in srgb, var(--main-2) 92%, transparent);
+    backdrop-filter: blur(8px);
+    position: relative;
+    flex-shrink: 0;
+    min-width: 0;
+    z-index: 5;
+}
+
+.dw-topbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-image: linear-gradient(to right, var(--v-cyan), var(--v-purple));
+    opacity: 0.45;
+}
+
+.dw-drawer-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--font-color);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.dw-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    flex-shrink: 1;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.dw-crumb {
+    color: var(--font-alt-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.dw-crumb-link {
+    cursor: pointer;
+}
+
+.dw-crumb-link:hover {
+    color: var(--v-cyan);
+}
+
+.dw-crumb.current {
+    color: var(--font-color);
+    font-weight: var(--font-weight-medium);
+}
+
+.dw-crumb-sep {
+    font-size: 9px;
+    opacity: 0.4;
+    flex-shrink: 0;
+}
+
+/* Search and actions sit on the right; breadcrumbs stay anchored left */
+.dw-topbar ::deep .docs-search {
+    margin-left: auto;
+}
+
+.dw-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+
+
+/* Body: sidebar | main | toc */
+
+.dw-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}
+
+.dw-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--slight-tint);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 10px;
+    background: color-mix(in srgb, var(--main-1) 40%, var(--main-2));
+}
+
+.dw-tree {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.dw-tree-footer {
+    padding-top: 10px;
+    border-top: 1px solid var(--slight-tint);
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dw-tree-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    padding: 6px 10px;
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+
+.dw-tree-add:hover {
+    background: var(--main-3);
+    color: var(--font-color);
+}
+
+.dw-folder-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    margin-top: 6px;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+}
+
+.dw-folder-form .v-input {
+    font-size: var(--font-size-sm);
+}
+
+.dw-drawer-scrim {
+    display: none;
+}
+
+.dw-main {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+/* Centered reading column, Docusaurus-style */
+
+.dw-article-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 26px 36px 64px 36px;
+}
+
+/* Editor mode: full width with breathing room, filling the window height */
+.dw-editor-wrap {
+    height: 100%;
+    min-height: 0;
+    padding: 18px 24px 20px 24px;
+}
+
+/* TOC rail */
+
+.dw-toc {
+    width: 190px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding: 26px 14px 26px 0;
+    font-size: var(--font-size-xs);
+}
+
+.dw-toc-heading {
+    display: block;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10.5px;
+    color: var(--font-alt-color);
+    margin: 0 0 8px 12px;
+}
+
+.dw-toc-entry {
+    padding: 4px 12px;
+    border-left: 2px solid var(--medium-tint);
+    color: var(--font-alt-color);
+    cursor: pointer;
+    line-height: 1.45;
+    transition: color var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard);
+}
+
+.dw-toc-entry:hover {
+    color: var(--v-cyan);
+    border-left-color: var(--v-cyan);
+}
+
+.dw-toc-entry.level-3 {
+    padding-left: 26px;
+}
+
+/* Revision banner */
+
+.dw-revision-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    margin-bottom: 24px;
+    background: color-mix(in srgb, var(--color-warning, #e6c463) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-warning, #e6c463) 35%, transparent);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    flex-wrap: wrap;
+}
+
+.dw-revision-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+}
+
+/* Home / folder index */
+
+.dw-index-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.dw-index-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.dw-index-icon-folder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    color: var(--v-cyan);
+    font-size: 22px;
+}
+
+.dw-index-hero-text {
+    min-width: 0;
+}
+
+.dw-index-hero-text h1 {
+    margin: 0;
+    font-size: clamp(20px, 4cqw, 26px);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight, 1.2);
+    letter-spacing: -0.02em;
+}
+
+.dw-index-hero-text p {
+    margin: 3px 0 0 0;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+}
+
+.dw-index-underline {
+    margin: 14px 0 18px 0;
+    opacity: 0.5;
+}
+
+.dw-index-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.dw-index-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    min-width: 0;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard),
+                background var(--duration-fast) var(--ease-standard);
+}
+
+.dw-index-card:hover {
+    border-color: color-mix(in srgb, var(--v-cyan) 45%, transparent);
+    background: var(--main-4);
+    transform: translateY(-1px);
+}
+
+.dw-index-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-s);
+    background: color-mix(in srgb, var(--v-cyan) 10%, transparent);
+    color: var(--v-cyan);
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.dw-index-card-icon.folder {
+    background: color-mix(in srgb, var(--v-purple) 12%, transparent);
+    color: color-mix(in srgb, var(--v-purple) 60%, white);
+}
+
+.dw-index-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+}
+
+.dw-index-card-title {
+    color: var(--font-color);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dw-index-card-sub {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs, 12px);
+}
+
+.dw-index-card-arrow {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--font-alt-color);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
+}
+
+.dw-index-card:hover .dw-index-card-arrow {
+    opacity: 1;
+    transform: none;
+}
+
+/* Empty states */
+
+.dw-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    padding: 56px 16px;
+    color: var(--font-alt-color);
+}
+
+.dw-empty i {
+    font-size: 34px;
+    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0.9;
+}
+
+.dw-empty h3 {
+    margin: 4px 0 0 0;
+    color: var(--font-color);
+    font-size: var(--font-size-l, 18px);
+}
+
+.dw-empty p {
+    margin: 0 0 10px 0;
+    font-size: var(--font-size-sm);
+}
+
+/* Responsive: hide TOC on medium, drawer sidebar on narrow */
+
+@container docs-window (max-width: 900px) {
+    .dw-toc {
+        display: none;
+    }
+
+    .dw-article-wrap {
+        padding: 22px 24px 52px 24px;
+    }
+
+    .dw-editor-wrap {
+        padding: 14px 18px 16px 18px;
+    }
+}
+
+@container docs-window (max-width: 620px) {
+    .dw-drawer-btn {
+        display: block;
+    }
+
+    .dw-btn-label {
+        display: none;
+    }
+
+    .dw-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 20;
+        background: var(--main-1);
+        transform: translateX(-100%);
+        transition: transform 0.18s ease;
+        box-shadow: 4px 0 18px rgba(0, 0, 0, 0.4);
+    }
+
+    .dw-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .dw-drawer-scrim {
+        display: block;
+        position: absolute;
+        inset: 0;
+        z-index: 15;
+        background: rgba(0, 0, 0, 0.4);
+    }
+
+    .dw-article-wrap {
+        padding: 16px 14px 40px 14px;
+    }
+
+    .dw-editor-wrap {
+        padding: 10px 12px 12px 12px;
+    }
+}

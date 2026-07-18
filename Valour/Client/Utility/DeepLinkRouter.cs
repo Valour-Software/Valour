@@ -2,6 +2,7 @@ using Valour.Client.Components.DockWindows;
 using Valour.Client.Components.Menus.Modals;
 using Valour.Client.Components.Menus.Modals.Users.Edit;
 using Valour.Client.Components.Windows.ChannelWindows;
+using Valour.Client.Components.Windows.WikiWindows;
 using Valour.Client.Components.Windows.ThreadWindows;
 using Valour.Client.Toast;
 using Valour.Sdk.Client;
@@ -75,9 +76,40 @@ public static class DeepLinkRouter
             case ValourRouteType.PlanetThread:
             case ValourRouteType.PlanetThreadFeed:
                 return await BuildThreadContentAsync(route, client);
+            case ValourRouteType.PlanetWikiPage:
+            case ValourRouteType.PlanetWiki:
+                return await BuildDocsContentAsync(route, client);
             default:
                 return null;
         }
+    }
+
+    private static async Task<WindowContent> BuildDocsContentAsync(ValourRoute route, ValourClient client)
+    {
+        // Public docs URLs may identify the planet by vanity name
+        var planetId = route.PlanetId;
+        if (planetId is null && route.Vanity is not null)
+        {
+            var resolved = await client.PlanetService.ResolveVanityAsync(route.Vanity);
+            if (resolved.Success)
+                planetId = resolved.Data;
+        }
+
+        if (planetId is null)
+            return null;
+
+        var planet = await client.PlanetService.FetchPlanetAsync(planetId.Value);
+        if (planet is null)
+            return null;
+
+        long? pageId = route.PageId;
+        if (pageId is null && route.PageSlug is not null)
+        {
+            var doc = await client.WikiService.FetchWikiPageBySlugAsync(planet.Id, route.PageSlug);
+            pageId = doc?.Id;
+        }
+
+        return WikiWindowComponent.GetDefaultContent(planet, pageId);
     }
 
     private static async Task<WindowContent> BuildPlanetChannelContentAsync(ValourRoute route, ValourClient client)

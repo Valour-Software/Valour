@@ -1,0 +1,73 @@
+.valour-doc-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 420px;
+    padding: 10px 14px;
+    margin: 8px 0;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    min-width: 0;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                background var(--duration-fast) var(--ease-standard);
+}
+
+.valour-doc-preview:hover {
+    border-color: color-mix(in srgb, var(--v-cyan) 45%, transparent);
+    background: var(--main-4);
+}
+
+.vdp-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-s);
+    background: color-mix(in srgb, var(--v-cyan) 10%, transparent);
+    color: var(--v-cyan);
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.vdp-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+}
+
+.vdp-title {
+    color: var(--font-color);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vdp-sub {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vdp-arrow {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--font-alt-color);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
+}
+
+.valour-doc-preview:hover .vdp-arrow {
+    opacity: 1;
+    transform: none;
+}

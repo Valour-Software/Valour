@@ -1,0 +1,92 @@
+.doc-history {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: min(300px, 85%);
+    z-index: 25;
+    background: var(--main-1);
+    border-left: 1px solid var(--medium-tint);
+    box-shadow: -6px 0 22px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    animation: dh-slide-in 0.16s ease;
+}
+
+@keyframes dh-slide-in {
+    from { transform: translateX(30px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.dh-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--slight-tint);
+}
+
+.dh-header h3 {
+    margin: 0;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dh-close {
+    background: transparent;
+    border: none;
+    color: var(--font-alt-color);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+}
+
+.dh-close:hover {
+    color: var(--font-color);
+}
+
+.dh-status {
+    padding: 16px 14px;
+    color: var(--font-alt-color);
+    font-size: 13.5px;
+}
+
+.dh-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    gap: 2px;
+}
+
+.dh-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: var(--radius-s);
+    cursor: pointer;
+}
+
+.dh-item:hover {
+    background: var(--slight-tint);
+}
+
+.dh-item.loading {
+    opacity: 0.6;
+}
+
+.dh-item-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dh-item-meta {
+    font-size: 12px;
+    color: var(--font-alt-color);
+}

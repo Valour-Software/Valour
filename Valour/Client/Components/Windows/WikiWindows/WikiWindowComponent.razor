@@ -1,0 +1,994 @@
+@inherits WindowContentComponent<WikiWindowData>
+@implements IDisposable
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
+@using Valour.Sdk.Models.Wiki
+@using Valour.Shared.Models.Wiki
+
+<div class="docs-window">
+    @if (_planet is null)
+    {
+        <p class="dw-loading">Loading wiki...</p>
+    }
+    else if (!_planet.EnableWiki)
+    {
+        <div class="dw-empty">
+            <i class="bi bi-journal-x"></i>
+            <h3>The wiki is disabled</h3>
+            <p>This planet's wiki has been turned off.</p>
+        </div>
+    }
+    else
+    {
+        <div class="dw-topbar">
+            <button class="dw-drawer-btn" title="Toggle navigation" @onclick="ToggleDrawer">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <nav class="dw-breadcrumbs">
+                <span class="dw-crumb dw-crumb-link" @onclick="SelectHomeRequestAsync">Wiki</span>
+                @foreach (var ancestor in _breadcrumbs)
+                {
+                    var crumb = ancestor;
+                    <i class="bi bi-chevron-right dw-crumb-sep"></i>
+                    <span class="dw-crumb dw-crumb-link" @onclick="@(() => SelectPageRequestAsync(crumb))">@crumb.Title</span>
+                }
+                @if (_selected is not null)
+                {
+                    <i class="bi bi-chevron-right dw-crumb-sep"></i>
+                    <span class="dw-crumb current">@_selected.Title</span>
+                }
+            </nav>
+
+            <WikiSearchBox Window="@this" Planet="@_planet"/>
+
+            <div class="dw-actions">
+                @if (_mode == DocsMode.View && _selected is not null && !_selected.IsFolder && _viewingRevision is null)
+                {
+                    @if (CanEdit)
+                    {
+                        <button class="v-pill" title="Edit page" @onclick="BeginEditSelectedAsync">
+                            <i class="bi bi-pencil"></i><span class="dw-btn-label"> Edit</span>
+                        </button>
+                        <button class="v-pill icon-only" title="Page history" @onclick="ToggleHistory">
+                            <i class="bi bi-clock-history"></i>
+                        </button>
+                    }
+                    <button class="v-pill icon-only" title="Copy link" @onclick="ShareAsync">
+                        <i class="bi bi-share"></i>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="dw-body">
+            <aside class="dw-sidebar @(_drawerOpen ? "open" : "")">
+                <div class="dw-tree">
+                    @foreach (var root in _roots)
+                    {
+                        <WikiTreeItem @key="@root.Doc.Id" Window="@this" Node="@root"/>
+                    }
+                </div>
+
+                @if (CanEdit || CanManage)
+                {
+                    <div class="dw-tree-footer">
+                        @if (CanEdit)
+                        {
+                            <button class="dw-tree-add" @onclick="@(() => BeginCreatePageAsync(null))">
+                                <i class="bi bi-file-earmark-plus"></i> New page
+                            </button>
+                        }
+                        @if (CanManage)
+                        {
+                            <button class="dw-tree-add" @onclick="@(() => OpenFolderForm(null))">
+                                <i class="bi bi-folder-plus"></i> New folder
+                            </button>
+                        }
+                        @if (_folderFormOpen)
+                        {
+                            <div class="dw-folder-form">
+                                <input class="v-input" placeholder="Folder name" maxlength="@ISharedPlanetWikiPage.MaxTitleLength"
+                                       @bind="_folderName" @bind:event="oninput"/>
+                                <button class="v-pill accent" disabled="@(string.IsNullOrWhiteSpace(_folderName))"
+                                        @onclick="SubmitFolderFormAsync">
+                                    @(_renamingFolder is null ? "Create" : "Rename")
+                                </button>
+                                <button class="v-pill" @onclick="CancelFolderForm">Cancel</button>
+                            </div>
+                        }
+                    </div>
+                }
+            </aside>
+            @if (_drawerOpen)
+            {
+                <div class="dw-drawer-scrim" @onclick="CloseDrawer"></div>
+            }
+
+            <main class="dw-main" id="@ContentContainerId">
+                @if (_mode == DocsMode.Edit)
+                {
+                    // Full-width (not the centered article column): the editor
+                    // is a split pane that wants the whole window
+                    <div class="dw-editor-wrap">
+                        <WikiPageEditor Window="@this"
+                                       Planet="@_planet"
+                                       Doc="@(_editorCreating ? null : _selected)"
+                                       ParentId="@_editorParentId"
+                                       InitialContent="@(_editorCreating ? string.Empty : _content)"
+                                       BaseVersion="@_contentVersion"
+                                       RemoteChanged="@_remoteChangedDuringEdit"/>
+                    </div>
+                }
+                else if (_viewingRevision is not null)
+                {
+                    <div class="dw-article-wrap">
+                        <div class="dw-revision-banner">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Viewing revision from @_viewingRevision.TimeCreated.ToLocalTime().ToString("g")</span>
+                            <div class="dw-revision-actions">
+                                @if (CanManage)
+                                {
+                                    <button class="v-pill accent" @onclick="RestoreViewedRevisionAsync">Restore</button>
+                                }
+                                <button class="v-pill" @onclick="ExitRevisionView">Back to current</button>
+                            </div>
+                        </div>
+                        <WikiPageView Window="@this"
+                                     Title="@_viewingRevision.Title"
+                                     Content="@(_viewingRevision.Content ?? string.Empty)"
+                                     PlanetId="@_planet.Id"/>
+                    </div>
+                }
+                else if (_selected is not null && !_selected.IsFolder)
+                {
+                    <div class="dw-article-wrap">
+                        <WikiPageView Window="@this"
+                                     Doc="@_selected"
+                                     Title="@_selected.Title"
+                                     Content="@(_content ?? string.Empty)"
+                                     PlanetId="@_planet.Id"
+                                     PrevPage="@_prevPage"
+                                     NextPage="@_nextPage"/>
+                    </div>
+                }
+                else
+                {
+                    // Home or folder index
+                    var indexTitle = _selected?.Title ?? $"{_planet.Name} Wiki";
+                    var children = GetIndexChildren();
+
+                    <div class="dw-article-wrap">
+                        <div class="dw-index">
+                            <div class="dw-index-hero">
+                                @if (_selected is null)
+                                {
+                                    <img class="dw-index-icon" src="@_planet.GetIconUrl(IconFormat.Webp64)" alt="@_planet.Name"/>
+                                }
+                                else
+                                {
+                                    <div class="dw-index-icon dw-index-icon-folder">
+                                        <i class="bi bi-folder-fill"></i>
+                                    </div>
+                                }
+                                <div class="dw-index-hero-text">
+                                    <h1>@indexTitle</h1>
+                                    <p>@(_selected is null ? "Pages and guides for this community" : $"{children.Count} item{(children.Count == 1 ? "" : "s")} in this folder")</p>
+                                </div>
+                            </div>
+                            <div class="v-gradient-underline dw-index-underline"></div>
+
+                            @if (children.Count == 0)
+                            {
+                                @if (_planet.WikiPages.Count == 0 && CanEdit)
+                                {
+                                    <div class="dw-empty">
+                                        <i class="bi bi-journal-plus"></i>
+                                        <h3>Start your wiki</h3>
+                                        <p>Write your community's first wiki page.</p>
+                                        <button class="v-pill accent" @onclick="@(() => BeginCreatePageAsync(_selected?.Id))">
+                                            Write your first page
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="dw-empty">
+                                        <i class="bi bi-journal"></i>
+                                        <p>Nothing here yet.</p>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="dw-index-cards">
+                                    @foreach (var child in children)
+                                    {
+                                        var node = child;
+                                        var childCount = node.IsFolder ? _planet.WikiPages.Count(x => x.ParentId == node.Id) : 0;
+                                        <div class="dw-index-card" @onclick="@(() => SelectPageRequestAsync(node))">
+                                            <div class="dw-index-card-icon @(node.IsFolder ? "folder" : "")">
+                                                <i class="bi @(node.IsFolder ? "bi-folder-fill" : "bi-file-text")"></i>
+                                            </div>
+                                            <div class="dw-index-card-text">
+                                                <span class="dw-index-card-title">@node.Title</span>
+                                                <span class="dw-index-card-sub">
+                                                    @(node.IsFolder ? $"{childCount} item{(childCount == 1 ? "" : "s")}" : "Page")
+                                                </span>
+                                            </div>
+                                            <i class="bi bi-chevron-right dw-index-card-arrow"></i>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </main>
+
+            @if (_mode == DocsMode.View && _viewingRevision is null && _toc.Count > 0 &&
+                 _selected is not null && !_selected.IsFolder)
+            {
+                <aside class="dw-toc">
+                    <span class="dw-toc-heading">On this page</span>
+                    @for (var i = 0; i < _toc.Count; i++)
+                    {
+                        var index = i;
+                        var entry = _toc[i];
+                        <div class="dw-toc-entry level-@entry.Level" @onclick="@(() => ScrollToHeadingAsync(index))">
+                            @entry.Text
+                        </div>
+                    }
+                </aside>
+            }
+
+            @if (_historyOpen && _selected is not null && !_selected.IsFolder)
+            {
+                <WikiHistoryPanel Window="@this" Doc="@_selected" OnClose="@(() => _historyOpen = false)"/>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    public enum DocsMode
+    {
+        View,
+        Edit,
+    }
+
+    /////////////////////////////
+    // Open-selection registry //
+    /////////////////////////////
+
+    // Lets the channel list highlight the article currently open in a docs
+    // window. Blazor WASM is single-threaded, so a plain list is safe.
+    private static readonly List<WikiWindowComponent> Instances = new();
+
+    /// <summary>
+    /// Fired whenever any docs window changes its selected doc (or opens/closes)
+    /// </summary>
+    public static event Action SelectionsChanged;
+
+    /// <summary>
+    /// True while any wiki window for this planet is open — drives the
+    /// channel-list row's open highlight
+    /// </summary>
+    public static bool IsOpenForPlanet(long planetId)
+    {
+        foreach (var window in Instances)
+        {
+            if (window.Data?.PlanetId == planetId)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The page currently selected in the most recently navigated wiki window
+    /// for this planet, if any
+    /// </summary>
+    public static long? GetActiveWikiPageForPlanet(long planetId)
+    {
+        for (var i = Instances.Count - 1; i >= 0; i--)
+        {
+            var window = Instances[i];
+            if (window.Data?.PlanetId == planetId && window.Data.SelectedPageId is not null)
+                return window.Data.SelectedPageId;
+        }
+
+        return null;
+    }
+
+    private static void NotifySelectionsChanged(WikiWindowComponent source)
+    {
+        // Most recently navigated window wins GetActiveWikiPageForPlanet
+        if (Instances.Remove(source))
+            Instances.Add(source);
+
+        SelectionsChanged?.Invoke();
+    }
+
+    private Planet _planet;
+    private List<WikiTreeNode> _roots = new();
+    private List<PlanetWikiPage> _breadcrumbs = new();
+
+    private PlanetWikiPage _selected;
+    private string _content;
+    private long _contentVersion = -1;
+    private PlanetWikiPage _prevPage;
+    private PlanetWikiPage _nextPage;
+    private List<(int Level, string Text)> _toc = new();
+
+    private DocsMode _mode = DocsMode.View;
+    private bool _editorCreating;
+    private long? _editorParentId;
+    private bool _editorDirty;
+    private bool _remoteChangedDuringEdit;
+
+    private bool _drawerOpen;
+    private bool _historyOpen;
+    private PlanetWikiRevision _viewingRevision;
+
+    private bool _folderFormOpen;
+    private string _folderName;
+    private long? _folderParentId;
+    private PlanetWikiPage _renamingFolder;
+
+    public string ContentContainerId { get; } = "dw-content-" + Guid.NewGuid().ToString("N")[..8];
+
+    public Planet Planet => _planet;
+    public bool CanEdit => _planet?.MyMember?.HasPermission(PlanetPermissions.EditWiki) ?? false;
+    public bool CanManage => _planet?.MyMember?.HasPermission(PlanetPermissions.ManageWiki) ?? false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (Data is null)
+            return;
+
+        _planet = await Client.PlanetService.FetchPlanetAsync(Data.PlanetId);
+        if (_planet is null)
+            return;
+
+        Instances.Add(this);
+
+        _planet.WikiPages.Changed += OnDocsChanged;
+        _planet.Updated += OnPlanetUpdated;
+
+        if (_planet.WikiPages.Count == 0)
+            await _planet.LoadWikiAsync();
+
+        RebuildTree();
+
+        if (Data.SelectedPageId is not null && _planet.WikiPages.TryGet(Data.SelectedPageId.Value, out var startDoc))
+            await SelectAsync(startDoc);
+        else
+            NotifySelectionsChanged(this);
+    }
+
+    ////////////////
+    // Navigation //
+    ////////////////
+
+    /// <summary>
+    /// Navigation entry point used by the tree, search, breadcrumbs, and
+    /// index cards — guarded against losing unsaved editor changes.
+    /// </summary>
+    public Task SelectPageRequestAsync(PlanetWikiPage doc) =>
+        GuardNavigationAsync(() => SelectAsync(doc));
+
+    public Task SelectHomeRequestAsync() =>
+        GuardNavigationAsync(() => SelectAsync(null));
+
+    private async Task SelectAsync(PlanetWikiPage doc)
+    {
+        _mode = DocsMode.View;
+        _viewingRevision = null;
+        _historyOpen = false;
+        _editorDirty = false;
+        _remoteChangedDuringEdit = false;
+        _drawerOpen = false;
+
+        _selected = doc;
+        Data.SelectedPageId = doc?.Id;
+        NotifySelectionsChanged(this);
+
+        // Expand ancestors so the selection is visible in the tree
+        if (doc is not null)
+        {
+            foreach (var ancestor in WikiTree.GetAncestors(_planet, doc))
+                Data.CollapsedFolderIds.Remove(ancestor.Id);
+        }
+
+        _breadcrumbs = doc is null ? new List<PlanetWikiPage>() : WikiTree.GetAncestors(_planet, doc);
+
+        if (doc is not null && !doc.IsFolder)
+        {
+            await LoadContentAsync(doc);
+        }
+        else
+        {
+            _content = null;
+            _contentVersion = -1;
+            _toc.Clear();
+            _prevPage = null;
+            _nextPage = null;
+        }
+
+        _ = ReRender();
+    }
+
+    private async Task LoadContentAsync(PlanetWikiPage doc)
+    {
+        var response = await Client.WikiService.FetchContentAsync(doc);
+        if (response.Success && response.Data is not null)
+        {
+            _content = response.Data.Content;
+            _contentVersion = response.Data.Version;
+        }
+        else
+        {
+            _content = string.Empty;
+            _contentVersion = doc.Version;
+        }
+
+        _toc = ComputeToc(_content);
+        ComputePrevNext();
+    }
+
+    private void ComputePrevNext()
+    {
+        _prevPage = null;
+        _nextPage = null;
+
+        if (_selected is null || _selected.IsFolder)
+            return;
+
+        var pages = WikiTree.FlattenPages(_roots);
+        var index = pages.FindIndex(x => x.Id == _selected.Id);
+        if (index > 0)
+            _prevPage = pages[index - 1];
+        if (index >= 0 && index < pages.Count - 1)
+            _nextPage = pages[index + 1];
+    }
+
+    private List<PlanetWikiPage> GetIndexChildren()
+    {
+        var parentId = _selected?.Id;
+        return _planet.WikiPages.Where(x => x.ParentId == parentId).ToList();
+    }
+
+    private async Task GuardNavigationAsync(Func<Task> action)
+    {
+        if (_mode == DocsMode.Edit && _editorDirty)
+        {
+            ModalRoot.Instance.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams(
+                "Discard changes?",
+                "You have unsaved changes on this page. They will be lost.",
+                "Discard",
+                "Keep editing",
+                async () =>
+                {
+                    _mode = DocsMode.View;
+                    _editorDirty = false;
+                    await action();
+                    _ = ReRender();
+                },
+                () => Task.CompletedTask));
+            return;
+        }
+
+        await action();
+    }
+
+    //////////
+    // Tree //
+    //////////
+
+    private void RebuildTree()
+    {
+        _roots = WikiTree.Build(_planet.WikiPages);
+        ComputePrevNext();
+    }
+
+    public bool IsExpanded(long folderId) => !Data.CollapsedFolderIds.Contains(folderId);
+
+    public void ToggleFolder(long folderId)
+    {
+        if (!Data.CollapsedFolderIds.Remove(folderId))
+            Data.CollapsedFolderIds.Add(folderId);
+
+        _ = ReRender();
+    }
+
+    ////////////
+    // Editor //
+    ////////////
+
+    public void SetEditorDirty(bool dirty) => _editorDirty = dirty;
+
+    public async Task BeginEditSelectedAsync()
+    {
+        if (_selected is null || _selected.IsFolder || !CanEdit)
+            return;
+
+        // Make sure the editor starts from the latest content
+        await LoadContentAsync(_selected);
+
+        _editorCreating = false;
+        _editorParentId = _selected.ParentId;
+        _remoteChangedDuringEdit = false;
+        _mode = DocsMode.Edit;
+        _ = ReRender();
+    }
+
+    public Task BeginCreatePageAsync(long? parentId) =>
+        GuardNavigationAsync(() =>
+        {
+            _editorCreating = true;
+            _editorParentId = parentId;
+            _remoteChangedDuringEdit = false;
+            _viewingRevision = null;
+            _historyOpen = false;
+            _mode = DocsMode.Edit;
+            _ = ReRender();
+            return Task.CompletedTask;
+        });
+
+    public async Task OnEditorSavedAsync(PlanetWikiPage doc)
+    {
+        _mode = DocsMode.View;
+        _editorDirty = false;
+        _remoteChangedDuringEdit = false;
+        await SelectAsync(doc);
+    }
+
+    public Task OnEditorCancelAsync() =>
+        GuardNavigationAsync(() =>
+        {
+            _mode = DocsMode.View;
+            _ = ReRender();
+            return Task.CompletedTask;
+        });
+
+    /////////////
+    // Folders //
+    /////////////
+
+    public void OpenFolderForm(long? parentId)
+    {
+        _folderFormOpen = true;
+        _folderName = string.Empty;
+        _folderParentId = parentId;
+        _renamingFolder = null;
+        _ = ReRender();
+    }
+
+    public void OpenFolderRename(PlanetWikiPage folder)
+    {
+        _folderFormOpen = true;
+        _folderName = folder.Title;
+        _renamingFolder = folder;
+        _ = ReRender();
+    }
+
+    private async Task SubmitFolderFormAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_folderName))
+            return;
+
+        if (_renamingFolder is not null)
+        {
+            var renamed = new PlanetWikiPage(Client)
+            {
+                Id = _renamingFolder.Id,
+                PlanetId = _renamingFolder.PlanetId,
+                ParentId = _renamingFolder.ParentId,
+                IsFolder = true,
+                Position = _renamingFolder.Position,
+                Title = _folderName.Trim(),
+                IsPublished = _renamingFolder.IsPublished,
+                Version = _renamingFolder.Version,
+                TimeCreated = _renamingFolder.TimeCreated,
+                CreatedByUserId = _renamingFolder.CreatedByUserId,
+            };
+
+            var renameResult = await Client.WikiService.UpdateWikiPageAsync(renamed);
+            if (!renameResult.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Rename failed", renameResult.Message, ToastProgressState.Failure));
+                return;
+            }
+        }
+        else
+        {
+            var result = await Client.WikiService.CreateWikiPageAsync(_planet, new WikiPageCreateRequest
+            {
+                ParentId = _folderParentId,
+                IsFolder = true,
+                Title = _folderName.Trim(),
+            });
+
+            if (!result.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Failed to create folder", result.Message, ToastProgressState.Failure));
+                return;
+            }
+        }
+
+        _folderFormOpen = false;
+        _folderName = string.Empty;
+        _renamingFolder = null;
+        _ = ReRender();
+    }
+
+    ////////////////////
+    // Move + delete  //
+    ////////////////////
+
+    /// <summary>
+    /// Folders available as move destinations for the given doc — every
+    /// folder outside its own subtree, with depth for display indenting.
+    /// </summary>
+    public List<(PlanetWikiPage Folder, int Depth)> GetMoveTargets(PlanetWikiPage doc)
+    {
+        var excluded = new HashSet<long>();
+        if (doc.IsFolder)
+        {
+            void Exclude(WikiTreeNode node)
+            {
+                excluded.Add(node.Doc.Id);
+                foreach (var child in node.Children)
+                    Exclude(child);
+            }
+
+            var subtree = FindNode(_roots, doc.Id);
+            if (subtree is not null)
+                Exclude(subtree);
+        }
+        else
+        {
+            excluded.Add(doc.Id);
+        }
+
+        var result = new List<(PlanetWikiPage, int)>();
+
+        void Walk(List<WikiTreeNode> nodes, int depth)
+        {
+            foreach (var node in nodes)
+            {
+                if (node.Doc.IsFolder && !excluded.Contains(node.Doc.Id))
+                    result.Add((node.Doc, depth));
+                if (!excluded.Contains(node.Doc.Id))
+                    Walk(node.Children, depth + 1);
+            }
+        }
+
+        Walk(_roots, 0);
+        return result;
+    }
+
+    private static WikiTreeNode FindNode(List<WikiTreeNode> nodes, long id)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.Doc.Id == id)
+                return node;
+
+            var found = FindNode(node.Children, id);
+            if (found is not null)
+                return found;
+        }
+
+        return null;
+    }
+
+    public async Task MoveUpAsync(PlanetWikiPage doc) => await NudgeAsync(doc, -1);
+
+    public async Task MoveDownAsync(PlanetWikiPage doc) => await NudgeAsync(doc, +1);
+
+    private async Task NudgeAsync(PlanetWikiPage doc, int delta)
+    {
+        var siblings = _planet.WikiPages.Where(x => x.ParentId == doc.ParentId).ToList();
+        var index = siblings.FindIndex(x => x.Id == doc.Id);
+        var target = index + delta;
+
+        if (index < 0 || target < 0 || target >= siblings.Count)
+            return;
+
+        var result = await Client.WikiService.MoveWikiPageAsync(doc, doc.ParentId, (uint)target);
+        if (!result.Success)
+            ToastContainer.Instance.AddToast(new ToastData("Move failed", result.Message, ToastProgressState.Failure));
+    }
+
+    public async Task MoveToAsync(PlanetWikiPage doc, long? folderId)
+    {
+        var result = await Client.WikiService.MoveWikiPageAsync(doc, folderId, uint.MaxValue);
+        if (!result.Success)
+            ToastContainer.Instance.AddToast(new ToastData("Move failed", result.Message, ToastProgressState.Failure));
+    }
+
+    public void RequestDelete(PlanetWikiPage doc)
+    {
+        var descendantCount = 0;
+        if (doc.IsFolder)
+        {
+            var node = FindNode(_roots, doc.Id);
+            if (node is not null)
+            {
+                void Count(WikiTreeNode n)
+                {
+                    descendantCount += n.Children.Count;
+                    foreach (var child in n.Children)
+                        Count(child);
+                }
+
+                Count(node);
+            }
+        }
+
+        var description = doc.IsFolder
+            ? descendantCount > 0
+                ? $"'{doc.Title}' and the {descendantCount} item{(descendantCount == 1 ? "" : "s")} inside it will be permanently deleted."
+                : $"The folder '{doc.Title}' will be permanently deleted."
+            : $"'{doc.Title}' and its history will be permanently deleted.";
+
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams(
+            $"Delete {(doc.IsFolder ? "folder" : "page")}?",
+            description,
+            "Delete",
+            "Cancel",
+            async () =>
+            {
+                var result = await Client.WikiService.DeleteWikiPageAsync(doc);
+                if (!result.Success)
+                    ToastContainer.Instance.AddToast(new ToastData("Delete failed", result.Message, ToastProgressState.Failure));
+            },
+            () => Task.CompletedTask));
+    }
+
+    ///////////////
+    // Revisions //
+    ///////////////
+
+    public void ToggleHistory()
+    {
+        _historyOpen = !_historyOpen;
+        _ = ReRender();
+    }
+
+    public void ShowRevision(PlanetWikiRevision revision)
+    {
+        _viewingRevision = revision;
+        _historyOpen = false;
+        _ = ReRender();
+    }
+
+    public void ExitRevisionView()
+    {
+        _viewingRevision = null;
+        _ = ReRender();
+    }
+
+    private async Task RestoreViewedRevisionAsync()
+    {
+        if (_viewingRevision is null || _selected is null)
+            return;
+
+        var revision = _viewingRevision;
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams(
+            "Restore revision?",
+            $"The page will be reverted to the revision from {revision.TimeCreated.ToLocalTime():g}. The current version stays in history.",
+            "Restore",
+            "Cancel",
+            async () =>
+            {
+                var result = await Client.WikiService.RestoreRevisionAsync(_selected, revision.Id);
+                if (!result.Success)
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Restore failed", result.Message, ToastProgressState.Failure));
+                    return;
+                }
+
+                _viewingRevision = null;
+                await SelectAsync(result.Data ?? _selected);
+            },
+            () => Task.CompletedTask));
+    }
+
+    ///////////
+    // Links //
+    ///////////
+
+    /// <summary>
+    /// Copies the best link for the page: public docs URL when the planet
+    /// exposes docs publicly, otherwise a deep link on the current origin
+    /// (so dev and self-host links point at the host you're actually on).
+    /// </summary>
+    private async Task ShareAsync()
+    {
+        if (_selected is null)
+            return;
+
+        var url = ShareUtils.GetWikiPageShareUrl(NavManager, _planet, _selected);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+        ToastContainer.Instance.AddToast(new ToastData("Copied", "Link copied to clipboard.", ToastProgressState.Success));
+    }
+
+    //////////////
+    // Realtime //
+    //////////////
+
+    private void OnDocsChanged(IModelEvent<PlanetWikiPage> eventData)
+    {
+        RebuildTree();
+
+        if (_selected is not null)
+        {
+            if (!_planet.WikiPages.TryGet(_selected.Id, out var current))
+            {
+                // Selection was deleted remotely
+                ToastContainer.Instance.AddToast(new ToastData("Page removed",
+                    "The page you were viewing was deleted.", ToastProgressState.Failure));
+
+                _selected = null;
+                Data.SelectedPageId = null;
+                _breadcrumbs.Clear();
+                _mode = DocsMode.View;
+                _viewingRevision = null;
+                _historyOpen = false;
+                _editorDirty = false;
+            }
+            else
+            {
+                _selected = current;
+                _breadcrumbs = WikiTree.GetAncestors(_planet, current);
+
+                if (_mode == DocsMode.Edit)
+                {
+                    if (current.Version != _contentVersion)
+                        _remoteChangedDuringEdit = true;
+                }
+                else if (_viewingRevision is null && !current.IsFolder && current.Version != _contentVersion)
+                {
+                    _ = InvokeAsync(async () =>
+                    {
+                        await LoadContentAsync(current);
+                        _ = ReRender();
+                    });
+                }
+            }
+        }
+
+        _ = ReRender();
+    }
+
+    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData)
+    {
+        if (eventData.Changes is null ||
+            eventData.Changes.On(x => x.EnableWiki) ||
+            eventData.Changes.On(x => x.PublicWiki) ||
+            eventData.Changes.On(x => x.Vanity))
+        {
+            _ = ReRender();
+        }
+    }
+
+    /////////////
+    // Helpers //
+    /////////////
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+        _ = ReRender();
+    }
+
+    private void CloseDrawer()
+    {
+        _drawerOpen = false;
+        _ = ReRender();
+    }
+
+    private void CancelFolderForm()
+    {
+        _folderFormOpen = false;
+        _renamingFolder = null;
+        _ = ReRender();
+    }
+
+    private async Task ScrollToHeadingAsync(int index)
+    {
+        await JsRuntime.InvokeVoidAsync("wikiScrollToHeading", ContentContainerId, index);
+    }
+
+    /// <summary>
+    /// Fence-aware extraction of h2/h3 headings from markdown. Matches the
+    /// rendered heading order, which is what wikiScrollToHeading targets.
+    /// </summary>
+    private static List<(int Level, string Text)> ComputeToc(string markdown)
+    {
+        var result = new List<(int, string)>();
+        if (string.IsNullOrEmpty(markdown))
+            return result;
+
+        var inFence = false;
+        foreach (var rawLine in markdown.Split('\n'))
+        {
+            var line = rawLine.TrimStart();
+            if (line.StartsWith("```") || line.StartsWith("~~~"))
+            {
+                inFence = !inFence;
+                continue;
+            }
+
+            if (inFence)
+                continue;
+
+            if (line.StartsWith("### "))
+                result.Add((3, line[4..].Trim()));
+            else if (line.StartsWith("## "))
+                result.Add((2, line[3..].Trim()));
+        }
+
+        return result;
+    }
+
+    ////////////////////
+    // Window content //
+    ////////////////////
+
+    public class Content : WindowContent<WikiWindowComponent, WikiWindowData>
+    {
+        public override async Task ImportData(string data, ValourClient client)
+        {
+            Data = JsonSerializer.Deserialize<WikiWindowData>(data);
+            if (Data is not null)
+            {
+                var planet = await client.PlanetService.FetchPlanetAsync(Data.PlanetId);
+                if (planet is not null)
+                {
+                    Title = "Wiki - " + planet.Name;
+                    Icon = planet.GetIconUrl(IconFormat.Webp64);
+                    PlanetId = planet.Id;
+                }
+            }
+        }
+
+        public override string ExportData(ValourClient client)
+        {
+            return JsonSerializer.Serialize(Data);
+        }
+    }
+
+    public static Content GetDefaultContent(Planet planet, long? pageId = null)
+    {
+        return new Content()
+        {
+            Title = "Wiki - " + planet.Name,
+            Icon = planet.GetIconUrl(IconFormat.Webp64),
+            Data = new WikiWindowData
+            {
+                PlanetId = planet.Id,
+                SelectedPageId = pageId,
+            },
+            PlanetId = planet.Id,
+        };
+    }
+
+    public void Dispose()
+    {
+        if (Instances.Remove(this))
+            SelectionsChanged?.Invoke();
+
+        if (_planet is not null)
+        {
+            _planet.WikiPages.Changed -= OnDocsChanged;
+            _planet.Updated -= OnPlanetUpdated;
+        }
+    }
+}

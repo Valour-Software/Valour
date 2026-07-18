@@ -1,0 +1,165 @@
+@page "/wiki/{planetIdOrVanity}/{slug}"
+@model Valour.Server.Pages.WikiPageViewModel
+@using Valour.Server.Pages
+@using Valour.Client.Components.Wiki.Display
+@using Microsoft.AspNetCore.Components
+@{
+    var planetName = Model.Planet?.Name ?? "Planet";
+    var title = Model.Doc?.Title ?? "Wiki";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@title - @planetName Docs | Valour</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/_content/Valour.Client/media/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/_content/Valour.Client/media/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/_content/Valour.Client/media/favicon/favicon-16x16.png">
+
+    @if (Model.Doc is not null)
+    {
+        <meta name="description" content="@Model.Snippet"/>
+
+        <!-- Open Graph -->
+        <meta property="og:type" content="article"/>
+        <meta property="og:url" content="@Model.CanonicalUrl"/>
+        <meta property="og:title" content="@title"/>
+        <meta property="og:site_name" content="@planetName Wiki on Valour"/>
+        <meta property="og:description" content="@Model.Snippet"/>
+        <meta property="og:image" content="@Model.PlanetIcon"/>
+
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary"/>
+        <meta property="twitter:title" content="@title"/>
+        <meta property="twitter:description" content="@Model.Snippet"/>
+        <meta property="twitter:image" content="@Model.PlanetIcon"/>
+
+        <link rel="canonical" href="@Model.CanonicalUrl"/>
+        @if (Model.Planet!.Nsfw)
+        {
+            <meta name="rating" content="adult"/>
+        }
+    }
+
+    <link id="bundled-css" href="/_content/Valour.Client/css/bundled.min.css" rel="stylesheet"/>
+    <link href="/_content/Valour.Client/css/public-wiki.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="pd-page">
+    <header class="pd-topbar">
+        <a class="pd-brand" href="/">
+            <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>
+            <span>Valour</span>
+        </a>
+        @if (Model.Planet is not null && !Model.IsPrivate)
+        {
+            <a class="pd-topbar-planet" href="@Model.HomeUrl">
+                <img src="@Model.PlanetIcon" alt="@planetName"/>
+                <span>@planetName Wiki</span>
+            </a>
+            <form class="pd-search" method="get" action="@Model.HomeUrl">
+                <input class="pd-search-input" type="search" name="q"
+                       placeholder="Search the wiki..." maxlength="64"/>
+            </form>
+        }
+        <a class="pd-open-app" href="@Model.AppLink">Open in Valour</a>
+    </header>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="pd-error">
+            <h2>Page not found</h2>
+            <p>@Model.ErrorMessage</p>
+            @if (Model.Planet is not null && !Model.IsPrivate)
+            {
+                <a class="pd-open-app" href="@Model.HomeUrl">Back to Wiki</a>
+            }
+            else
+            {
+                <a class="pd-open-app" href="/">Go Home</a>
+            }
+        </div>
+    }
+    else if (Model.IsPrivate)
+    {
+        <div class="pd-error">
+            <img class="pd-planet-icon-lg" src="@Model.PlanetIcon" alt="@planetName"/>
+            <h2>@planetName's wiki is private</h2>
+            <p>Join the community on Valour to read their wiki.</p>
+            <a class="pd-open-app" href="@Model.AppLink">Open in Valour</a>
+        </div>
+    }
+    else if (Model.Doc is not null)
+    {
+        <div class="pd-shell pd-shell-3col">
+            <aside class="pd-sidebar">
+                @(await Html.RenderComponentAsync<WikiTreeDisplay>(RenderMode.Static, new { Nodes = Model.Tree }))
+            </aside>
+
+            <main class="pd-main">
+                <article class="pd-article">
+                    <h1 class="pd-title">@Model.Doc.Title</h1>
+                    @if (Model.Doc.LastEdited is not null)
+                    {
+                        <p class="pd-meta">
+                            Last updated @Model.Doc.LastEdited.Value.ToString("MMMM d, yyyy")@(Model.LastEditorName is not null ? $" by {Model.LastEditorName}" : "")
+                        </p>
+                    }
+
+                    <div class="pd-content">
+                        @Html.Raw(Model.Rendered.Html)
+                    </div>
+                </article>
+
+                @if (Model.PrevPage is not null || Model.NextPage is not null)
+                {
+                    <nav class="pd-pager">
+                        @if (Model.PrevPage?.Slug is not null)
+                        {
+                            <a class="pd-pager-link pd-pager-prev" href="@Model.GetPageUrl(Model.PrevPage.Slug)">
+                                <span class="pd-pager-label">Previous</span>
+                                <span class="pd-pager-title">@Model.PrevPage.Title</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <span></span>
+                        }
+                        @if (Model.NextPage?.Slug is not null)
+                        {
+                            <a class="pd-pager-link pd-pager-next" href="@Model.GetPageUrl(Model.NextPage.Slug)">
+                                <span class="pd-pager-label">Next</span>
+                                <span class="pd-pager-title">@Model.NextPage.Title</span>
+                            </a>
+                        }
+                    </nav>
+                }
+            </main>
+
+            @if (Model.Rendered.Toc.Count > 0)
+            {
+                <aside class="pd-toc">
+                    <span class="pd-toc-heading">On this page</span>
+                    <ul>
+                        @foreach (var entry in Model.Rendered.Toc)
+                        {
+                            <li class="pd-toc-l@(entry.Level)">
+                                <a href="#@entry.Id">@entry.Text</a>
+                            </li>
+                        }
+                    </ul>
+                </aside>
+            }
+        </div>
+
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"
+                onload="document.querySelectorAll('.pd-content pre code').forEach(function(el){hljs.highlightElement(el);})"></script>
+        <script src="/_content/Valour.Client/js/wiki.js"></script>
+        <script>if (window.wikiEnhanceCodeBlocks) wikiEnhanceCodeBlocks(null);</script>
+    }
+</div>
+</body>
+</html>

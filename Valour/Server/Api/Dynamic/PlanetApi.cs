@@ -739,4 +739,69 @@ public class PlanetApi
 
         return Results.Created($"api/planets/{result.Data.Id}", result.Data);
     }
+
+    ////////////
+    // Vanity //
+    ////////////
+
+    [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/vanity/check")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> CheckVanityAsync(
+        long planetId,
+        [FromQuery] string name,
+        PlanetMemberService memberService,
+        PlanetService planetService)
+    {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var result = await planetService.CheckVanityAsync(planetId, name);
+        return Results.Json(result);
+    }
+
+    [ValourRoute(HttpVerbs.Put, "api/planets/{planetId}/vanity")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> PutVanityAsync(
+        long planetId,
+        [FromBody] PlanetVanityRequest request,
+        PlanetMemberService memberService,
+        PlanetService planetService)
+    {
+        if (request is null)
+            return ValourResult.BadRequest("Include request in body.");
+
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var result = await planetService.SetVanityAsync(planetId, request.Name);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json(result);
+    }
+
+    /// <summary>
+    /// Resolves a vanity name to a planet id, for in-app deep links from
+    /// public URLs.
+    /// </summary>
+    [ValourRoute(HttpVerbs.Get, "api/planets/vanity/{name}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> ResolveVanityAsync(
+        string name,
+        PlanetService planetService)
+    {
+        var planetId = await planetService.ResolveVanityAsync(name);
+        if (planetId is null)
+            return ValourResult.NotFound("No planet has claimed that name.");
+
+        return Results.Json(planetId.Value);
+    }
 }

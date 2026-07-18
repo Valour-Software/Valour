@@ -38,6 +38,7 @@ public static class MessageAttachmentExtensions
         typeof(GitHubAttachmentComponent),      // 24: GitHub
         typeof(EmbedAttachmentComponent),       // 25: Embed
         typeof(ValourThreadAttachmentComponent),// 26: ValourThread
+        typeof(ValourWikiAttachmentComponent),  // 27: ValourWikiPage
     };
 
     public static Type GetComponentType(this MessageAttachment attachment)

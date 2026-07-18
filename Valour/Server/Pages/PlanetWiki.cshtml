@@ -1,0 +1,156 @@
+@page "/wiki/{planetIdOrVanity}"
+@model Valour.Server.Pages.PlanetWikiModel
+@using Valour.Server.Pages
+@using Valour.Client.Components.Wiki.Display
+@using Microsoft.AspNetCore.Components
+@{
+    var planetName = Model.Planet?.Name ?? "Planet";
+    var title = $"{planetName} Wiki";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@title | Valour</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/_content/Valour.Client/media/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/_content/Valour.Client/media/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/_content/Valour.Client/media/favicon/favicon-16x16.png">
+
+    @if (Model.Planet is not null && !Model.IsPrivate)
+    {
+        <meta name="description" content="@Model.Snippet"/>
+
+        <!-- Open Graph -->
+        <meta property="og:type" content="website"/>
+        <meta property="og:url" content="@Model.CanonicalUrl"/>
+        <meta property="og:title" content="@title"/>
+        <meta property="og:site_name" content="@planetName on Valour"/>
+        <meta property="og:description" content="@Model.Snippet"/>
+        <meta property="og:image" content="@Model.PlanetIcon"/>
+
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary"/>
+        <meta property="twitter:title" content="@title"/>
+        <meta property="twitter:description" content="@Model.Snippet"/>
+        <meta property="twitter:image" content="@Model.PlanetIcon"/>
+
+        <link rel="canonical" href="@Model.CanonicalUrl"/>
+        @if (Model.Planet.Nsfw)
+        {
+            <meta name="rating" content="adult"/>
+        }
+    }
+
+    <link id="bundled-css" href="/_content/Valour.Client/css/bundled.min.css" rel="stylesheet"/>
+    <link href="/_content/Valour.Client/css/public-wiki.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="pd-page">
+    <header class="pd-topbar">
+        <a class="pd-brand" href="/">
+            <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>
+            <span>Valour</span>
+        </a>
+        @if (Model.Planet is not null && !Model.IsPrivate)
+        {
+            <div class="pd-topbar-planet">
+                <img src="@Model.PlanetIcon" alt="@planetName"/>
+                <span>@planetName Wiki</span>
+            </div>
+            <form class="pd-search" method="get" action="@Model.CanonicalUrl">
+                <input class="pd-search-input" type="search" name="q" value="@Model.Query"
+                       placeholder="Search the wiki..." maxlength="64"/>
+            </form>
+        }
+        <a class="pd-open-app" href="@Model.AppLink">Open in Valour</a>
+    </header>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="pd-error">
+            <h2>Wiki not found</h2>
+            <p>@Model.ErrorMessage</p>
+            <a class="pd-open-app" href="/">Go Home</a>
+        </div>
+    }
+    else if (Model.IsPrivate)
+    {
+        <div class="pd-error">
+            <img class="pd-planet-icon-lg" src="@Model.PlanetIcon" alt="@planetName"/>
+            <h2>@planetName's wiki is private</h2>
+            <p>Join the community on Valour to read their wiki.</p>
+            <a class="pd-open-app" href="@Model.AppLink">Open in Valour</a>
+        </div>
+    }
+    else
+    {
+        <div class="pd-shell">
+            <aside class="pd-sidebar">
+                @(await Html.RenderComponentAsync<WikiTreeDisplay>(RenderMode.Static, new { Nodes = Model.Tree }))
+            </aside>
+
+            <main class="pd-main">
+                @if (Model.SearchResults is not null)
+                {
+                    <h1 class="pd-title">Search results</h1>
+                    <p class="pd-meta">@Model.SearchResults.Count result@(Model.SearchResults.Count == 1 ? "" : "s") for "@Model.Query"</p>
+
+                    @if (Model.SearchResults.Count == 0)
+                    {
+                        <p class="pd-none">Nothing matched your search.</p>
+                    }
+                    else
+                    {
+                        <div class="pd-cards">
+                            @foreach (var result in Model.SearchResults)
+                            {
+                                <a class="pd-card" href="@Model.GetPageUrl(result.Slug)">
+                                    <span class="pd-card-title">@result.Title</span>
+                                </a>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <h1 class="pd-title">@planetName Wiki</h1>
+                    @if (!string.IsNullOrWhiteSpace(Model.Snippet))
+                    {
+                        <p class="pd-meta">@Model.Snippet</p>
+                    }
+
+                    @if (Model.RootNodes.Count == 0)
+                    {
+                        <p class="pd-none">Nothing published yet.</p>
+                    }
+                    else
+                    {
+                        <div class="pd-cards">
+                            @foreach (var node in Model.RootNodes)
+                            {
+                                @if (node.IsFolder)
+                                {
+                                    <div class="pd-card pd-card-folder">
+                                        <span class="pd-card-title">@node.Title</span>
+                                        <span class="pd-card-sub">Folder</span>
+                                    </div>
+                                }
+                                else if (node.Slug is not null)
+                                {
+                                    <a class="pd-card" href="@Model.GetPageUrl(node.Slug)">
+                                        <span class="pd-card-title">@node.Title</span>
+                                    </a>
+                                }
+                            }
+                        </div>
+                    }
+                }
+            </main>
+        </div>
+    }
+</div>
+</body>
+</html>

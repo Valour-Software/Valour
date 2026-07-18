@@ -40,6 +40,7 @@
     private RenderFragment EconomyContent => @<EditPlanetEconomyComponent Planet="@Data.Planet" />;
     private RenderFragment StorageContent => @<EditPlanetStorageComponent Planet="@Data.Planet" />;
     private RenderFragment VoiceContent => @<EditPlanetVoiceComponent Planet="@Data.Planet" />;
+    private RenderFragment WikiContent => @<EditPlanetWikiComponent Planet="@Data.Planet" />;
     private RenderFragment DeleteContent => @<div></div>;
 
     protected override void OnInitialized()
@@ -127,6 +128,13 @@
                         Icon = "emoji-smile-fill",
                         Description = "Manage custom planet emojis",
                         Content = EmojisContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Wiki",
+                        Icon = "journal-text",
+                        Description = "Community wiki settings",
+                        Content = WikiContent
                     },
                     new MainMenu.MenuItem()
                     {

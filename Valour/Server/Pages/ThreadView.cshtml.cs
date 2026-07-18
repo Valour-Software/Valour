@@ -66,7 +66,7 @@ public class ThreadViewModel : PageModel
             return Page();
         }
 
-        PlanetIcon = NormalizeUrl(ISharedPlanet.GetIconUrl(Planet, IconFormat.Webp128));
+        PlanetIcon = PublicThreadPageHelpers.NormalizeMediaUrl(ISharedPlanet.GetIconUrl(Planet, IconFormat.Webp128));
 
         if (!Planet.EnableThreads || !Planet.PublicThreads)
         {
@@ -186,7 +186,7 @@ public class ThreadViewModel : PageModel
         string GetAvatar(long userId)
         {
             users.TryGetValue(userId, out var user);
-            return NormalizeUrl(ISharedUser.GetAvatar(user, AvatarFormat.Webp64));
+            return PublicThreadPageHelpers.NormalizeMediaUrl(ISharedUser.GetAvatar(user, AvatarFormat.Webp64));
         }
 
         Post!.AuthorName = GetName(Thread.AuthorUserId, Thread.AuthorMemberId);
@@ -230,11 +230,4 @@ public class ThreadViewModel : PageModel
             .Select(x => x.Data));
     }
 
-    private static string NormalizeUrl(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-            return url;
-
-        return url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? url : "/" + url.TrimStart('/');
-    }
 }

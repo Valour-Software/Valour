@@ -1,0 +1,120 @@
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+@using Valour.Client.Components.Windows.WikiWindows
+
+<div class="settings-inner">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-journal-text"></i>
+            Wiki
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Enable Wiki</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckEnableWiki" checked="@_enableWikiValue"/>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Give this planet a wiki where members with permission can write pages and folders</p>
+            <ResultLabel Result="@_enableWikiResult"/>
+        </div>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Public Wiki</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckPublicWiki" checked="@_publicWikiValue" disabled="@(!_enableWikiValue)"/>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Publish this planet's wiki on the web so anyone can read it without an account</p>
+            <ResultLabel Result="@_publicWikiResult"/>
+        </div>
+
+        @if (_enableWikiValue && _publicWikiValue)
+        {
+            <div class="public-url">
+                <span class="public-url-label">Public URL</span>
+                <code>@_publicUrl</code>
+                <button class="v-btn icon-btn" title="Copy" @onclick="CopyPublicUrlAsync">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+            </div>
+            <p class="toggle-description">
+                Claim a vanity name in the <b>Info</b> tab to get a friendly URL.
+            </p>
+        }
+
+        <div class="open-wiki">
+            <button class="v-btn" @onclick="OpenWikiAsync" disabled="@(!_enableWikiValue)">
+                <i class="bi bi-journal-text"></i> Open Wiki
+            </button>
+            <p class="toggle-description">
+                Writing is controlled by the <b>Edit Wiki</b> and <b>Manage Wiki</b> role permissions.
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _enableWikiValue;
+    private ITaskResult _enableWikiResult;
+    private bool _publicWikiValue;
+    private ITaskResult _publicWikiResult;
+
+    private string _publicUrl => WikiLinks.GetPublicHomeUrl(Planet);
+
+    protected override void OnInitialized()
+    {
+        _enableWikiValue = Planet.EnableWiki;
+        _publicWikiValue = Planet.PublicWiki;
+    }
+
+    private async Task OnCheckEnableWiki()
+    {
+        _enableWikiValue = !_enableWikiValue;
+
+        Planet.EnableWiki = _enableWikiValue;
+        _enableWikiResult = await Planet.UpdateAsync();
+
+        if (!_enableWikiResult.Success)
+        {
+            _enableWikiValue = !_enableWikiValue;
+            Planet.EnableWiki = _enableWikiValue;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnCheckPublicWiki()
+    {
+        _publicWikiValue = !_publicWikiValue;
+
+        Planet.PublicWiki = _publicWikiValue;
+        _publicWikiResult = await Planet.UpdateAsync();
+
+        if (!_publicWikiResult.Success)
+        {
+            _publicWikiValue = !_publicWikiValue;
+            Planet.PublicWiki = _publicWikiValue;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task CopyPublicUrlAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _publicUrl);
+        ToastContainer.Instance.AddToast(new ToastData("Copied", "Public wiki URL copied.", ToastProgressState.Success));
+    }
+
+    private async Task OpenWikiAsync()
+    {
+        await WindowService.OpenWindowAtFocused(WikiWindowComponent.GetDefaultContent(Planet));
+    }
+}

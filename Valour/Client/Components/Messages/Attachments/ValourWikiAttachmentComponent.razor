@@ -1,0 +1,74 @@
+@inherits AttachmentComponent
+@inject ValourClient Client
+@using Valour.Client.Components.Windows.WikiWindows
+@using Valour.Sdk.Models.Wiki
+@using Valour.Shared.Utilities
+
+@if (_doc is not null && _planet is not null)
+{
+    <div class="valour-doc-preview" @onclick="OnClickAsync" @onclick:stopPropagation="true">
+        <div class="vdp-icon">
+            <i class="bi bi-journal-text"></i>
+        </div>
+        <div class="vdp-text">
+            <span class="vdp-title">@_doc.Title</span>
+            <span class="vdp-sub">@_breadcrumb</span>
+        </div>
+        <i class="bi bi-chevron-right vdp-arrow"></i>
+    </div>
+}
+
+@code {
+    private Planet _planet;
+    private PlanetWikiPage _doc;
+    private long? _loadedPageId;
+    private string _breadcrumb = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ValourRouteParser.TryParse(Attachment?.Location, out var route) ||
+            route.PlanetId is null || route.PageId is null)
+        {
+            _doc = null;
+            return;
+        }
+
+        // Only preview docs from the planet this message lives in - keeps
+        // cross-planet links as plain links and avoids leaking other planets.
+        if (Message?.PlanetId is null || Message.PlanetId != route.PlanetId)
+        {
+            _doc = null;
+            return;
+        }
+
+        if (_doc is not null && _loadedPageId == route.PageId)
+            return;
+
+        try
+        {
+            _planet = await Client.PlanetService.FetchPlanetAsync(route.PlanetId.Value);
+            _doc = await Client.WikiService.FetchWikiPageAsync(route.PlanetId.Value, route.PageId.Value);
+            _loadedPageId = route.PageId;
+
+            if (_doc is not null && _planet is not null)
+            {
+                var crumbs = WikiTree.GetAncestors(_planet, _doc).Select(x => x.Title);
+                _breadcrumb = string.Join(" › ", new[] { "Wiki" }.Concat(crumbs));
+            }
+        }
+        catch (Exception e)
+        {
+            Client.Logger?.Log("ValourDocAttachment", "Failed to load doc preview: " + e.Message, "yellow");
+            _doc = null;
+        }
+    }
+
+    private async Task OnClickAsync()
+    {
+        if (_planet is null || _doc is null)
+            return;
+
+        await WindowService.OpenWindowAtFocused(
+            WikiWindowComponent.GetDefaultContent(_planet, _doc.Id));
+    }
+}

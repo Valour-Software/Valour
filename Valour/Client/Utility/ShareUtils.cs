@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Valour.Sdk.Models;
+using Valour.Sdk.Models.Wiki;
 using Valour.Shared.Models.Threads;
 
 namespace Valour.Client.Utility;
@@ -31,5 +32,24 @@ public static class ShareUtils
 
         var baseUri = GetPublicBaseUri(nav).TrimEnd('/');
         return $"{baseUri}/planetthreads/{thread.PlanetId}/{thread.Id}";
+    }
+
+    /// <summary>
+    /// Builds the best link for a docs page: the public docs site when the
+    /// planet exposes docs publicly and the page is published, otherwise the
+    /// in-app deep link on the current origin.
+    /// </summary>
+    public static string GetWikiPageShareUrl(NavigationManager nav, Planet planet, PlanetWikiPage doc)
+    {
+        if (planet is not null && planet.EnableWiki && planet.PublicWiki &&
+            doc is not null && !doc.IsFolder && doc.IsPublished && doc.Slug is not null)
+        {
+            return WikiLinks.GetPublicPageUrl(planet, doc);
+        }
+
+        var baseUri = GetPublicBaseUri(nav).TrimEnd('/');
+        return doc is null
+            ? $"{baseUri}/planetwiki/{planet!.Id}"
+            : $"{baseUri}/planetwiki/{doc.PlanetId}/{doc.Id}";
     }
 }

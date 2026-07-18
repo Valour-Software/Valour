@@ -210,6 +210,9 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<ThreadBoost> ThreadBoosts { get; set; }
     public DbSet<ThreadCommentBoost> ThreadCommentBoosts { get; set; }
 
+    public DbSet<PlanetWikiPage> PlanetWikiPages { get; set; }
+    public DbSet<PlanetWikiRevision> PlanetWikiRevisions { get; set; }
+
     public DbSet<UserChannelState> UserChannelStates { get; set; }
     
     public DbSet<NodeStats> NodeStats { get; set; }
@@ -314,6 +317,8 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         PlanetRule.SetupDbModel(modelBuilder);
         PlanetReport.SetupDbModel(modelBuilder);
         PlanetThread.SetupDbModel(modelBuilder);
+        PlanetWikiPage.SetupDbModel(modelBuilder);
+        PlanetWikiRevision.SetupDbModel(modelBuilder);
         ThreadComment.SetupDbModel(modelBuilder);
         ThreadAttachment.SetupDbModel(modelBuilder);
         ThreadBoost.SetupDbModel(modelBuilder);

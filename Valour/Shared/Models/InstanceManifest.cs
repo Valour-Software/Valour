@@ -50,6 +50,7 @@ public class InstanceHosts
     public string App { get; set; }
     public string Api { get; set; }
     public string Threads { get; set; }
+    public string Docs { get; set; }
     public string ContentCdn { get; set; }
     public string PublicCdn { get; set; }
 }

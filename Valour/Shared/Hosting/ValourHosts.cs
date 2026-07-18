@@ -25,6 +25,11 @@ public static class ValourHosts
     public static string ThreadsHost { get; set; } = "threads.valour.gg";
 
     /// <summary>
+    /// Host serving the public server-rendered docs pages, e.g. "wiki.valour.gg".
+    /// </summary>
+    public static string WikiHost { get; set; } = "wiki.valour.gg";
+
+    /// <summary>
     /// Host serving proxied/authenticated content, e.g. "cdn.valour.gg".
     /// </summary>
     public static string ContentCdnHost { get; set; } = "cdn.valour.gg";
@@ -36,12 +41,13 @@ public static class ValourHosts
 
     public static string AppBaseUrl => $"https://{AppHost}";
     public static string ThreadsBaseUrl => $"https://{ThreadsHost}";
+    public static string WikiBaseUrl => $"https://{WikiHost}";
     public static string ContentCdnBaseUrl => $"https://{ContentCdnHost}";
     public static string PublicCdnBaseUrl => $"https://{PublicCdnHost}";
 
     /// <summary>
     /// True if the host is one of this deployment's own web hosts
-    /// (root, www, app, or threads).
+    /// (root, www, app, threads, or docs).
     /// </summary>
     public static bool IsSelfHost(string host)
     {
@@ -51,6 +57,7 @@ public static class ValourHosts
         return host.Equals(RootDomain, StringComparison.OrdinalIgnoreCase) ||
                host.Equals($"www.{RootDomain}", StringComparison.OrdinalIgnoreCase) ||
                host.Equals(AppHost, StringComparison.OrdinalIgnoreCase) ||
-               host.Equals(ThreadsHost, StringComparison.OrdinalIgnoreCase);
+               host.Equals(ThreadsHost, StringComparison.OrdinalIgnoreCase) ||
+               host.Equals(WikiHost, StringComparison.OrdinalIgnoreCase);
     }
 }
