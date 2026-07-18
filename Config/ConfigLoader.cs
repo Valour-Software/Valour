@@ -28,6 +28,7 @@ public static class ConfigLoader
         config.GetSection("Redis").Get<RedisConfig>();
         config.GetSection("Stripe").Get<StripeConfig>();
         config.GetSection("Cloudflare").Get<CloudflareConfig>();
+        config.GetSection("Voice").Get<VoiceConfig>();
         config.GetSection("MediaSafety").Get<MediaSafetyConfig>();
         config.GetSection("Hosting").Get<HostingConfig>();
         config.GetSection("Bootstrap").Get<BootstrapConfig>();
@@ -89,6 +90,11 @@ public static class ConfigLoader
         if (CloudflareConfig.Instance is null)
         {
             new CloudflareConfig();
+        }
+
+        if (VoiceConfig.Current is null)
+        {
+            new VoiceConfig();
         }
 
         if (StripeConfig.Current is null)

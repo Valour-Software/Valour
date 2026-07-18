@@ -1,0 +1,37 @@
+# LiveKit SFU config for self-hosted Valour voice/video.
+# Used only when you run the "voice" compose profile:
+#   docker compose --profile voice up -d
+#
+# API keys are injected via the LIVEKIT_KEYS environment variable in
+# docker-compose.yml (from VOICE_LIVEKIT_API_KEY / VOICE_LIVEKIT_API_SECRET in
+# your .env). This file configures ports and media behaviour.
+
+# Signalling (HTTP/WebSocket). Not published to the host directly — Caddy fronts
+# it with TLS at voice.$VALOUR_DOMAIN and reaches it over the compose network.
+port: 7880
+
+rtc:
+  # Media transport. UDP is the primary path and MUST be reachable from clients
+  # (published to the host in docker-compose.yml). TCP is a fallback for networks
+  # that block UDP.
+  tcp_port: 7881
+  udp_port: 7882
+  # Discover and advertise the host's public IP (via STUN) so clients can send
+  # media to it. On a plain VPS this "just works". If STUN cannot determine the
+  # address (some NATs), set it explicitly instead:
+  # node_ip: 203.0.113.10
+  use_external_ip: true
+
+# Rooms are created on first join and torn down shortly after the last
+# participant leaves — Valour also closes them explicitly.
+room:
+  empty_timeout: 60
+  departure_timeout: 20
+
+# Optional embedded TURN-over-TLS relay. Enable for clients behind strict
+# firewalls that block direct UDP/TCP media; needs its own port + certificate.
+turn:
+  enabled: false
+
+logging:
+  level: info

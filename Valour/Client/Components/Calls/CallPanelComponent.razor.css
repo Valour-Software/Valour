@@ -747,3 +747,23 @@
     height: 100px;
     min-height: 100px;
 }
+
+/* Community-hosted voice warning (mirrors the shared BYO warning style) */
+.custom-media-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    padding: 10px 14px;
+    margin: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--color-warning, #e0a030);
+    background-color: rgba(224, 160, 48, 0.08);
+    font-size: 0.85em;
+    color: var(--font-color, #eee);
+}
+
+.custom-media-warning i {
+    color: var(--color-warning, #e0a030);
+    margin-top: 2px;
+}

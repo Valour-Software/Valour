@@ -222,6 +222,32 @@
         </div>
     }
 
+    @if (_pendingCommunityVoiceAck)
+    {
+        @* Community-hosted voice: the join is paused until the user accepts. *@
+        <div class="custom-media-warning mt-2">
+            <i class="bi bi-hdd-network-fill"></i>
+            <span>
+                Voice in this planet runs on a <b>community server</b> chosen by the planet's
+                owner — not Valour. Your voice, video, and IP address go directly to that
+                server, and its operator can listen to and record calls. Valour cannot
+                moderate or protect what happens on it.
+            </span>
+        </div>
+        <div class="call-controls">
+            <button class="v-btn mt-2" @onclick="OnAcknowledgeCommunityVoice">I understand — join the call</button>
+            <button class="v-btn mt-2 danger" @onclick="OnCancelCommunityVoice">Cancel</button>
+        </div>
+    }
+    else if (_joined && !string.IsNullOrWhiteSpace(_communityVoiceHost))
+    {
+        @* Persistent reminder of where this call's media is actually going. *@
+        <div class="custom-media-warning mt-2">
+            <i class="bi bi-hdd-network-fill"></i>
+            <span>This call is hosted by <b>@_communityVoiceHost</b>, a community server.</span>
+        </div>
+    }
+
     @if (!string.IsNullOrWhiteSpace(_error))
     {
         <div class="call-error">
@@ -253,6 +279,8 @@
     private bool _screenShareEnabled;
 
     private string? _error;
+    private bool _pendingCommunityVoiceAck;
+    private string? _communityVoiceHost;
     private bool _pendingParticipantMediaSync;
     private Dictionary<string, int> _participantVolumes = new();
     private List<VoiceParticipantState> _participants = new();
@@ -419,6 +447,20 @@
         }
 
         await CallSession.InitializeAsync(channel, VideoMode);
+        SyncFromGlobalCallSession();
+        StateHasChanged();
+    }
+
+    private async Task OnAcknowledgeCommunityVoice()
+    {
+        await CallSession.AcknowledgeCommunityVoiceAsync();
+        SyncFromGlobalCallSession();
+        StateHasChanged();
+    }
+
+    private void OnCancelCommunityVoice()
+    {
+        CallSession.CancelCommunityVoiceJoin();
         SyncFromGlobalCallSession();
         StateHasChanged();
     }
@@ -985,6 +1027,8 @@
         _error = CallSession.Error;
         _canMuteParticipants = CallSession.CanMuteParticipants;
         _canKickParticipants = CallSession.CanKickParticipants;
+        _pendingCommunityVoiceAck = CallSession.PendingCommunityVoiceAck;
+        _communityVoiceHost = CallSession.CommunityVoiceHost;
 
         _moderatorMutedParticipantUserIds.Clear();
         _moderatorMutedParticipantUserIds.UnionWith(CallSession.ModeratorMutedParticipantUserIds);

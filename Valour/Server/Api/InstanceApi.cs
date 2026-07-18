@@ -1,4 +1,5 @@
 using Valour.Config.Configs;
+using Valour.Server.Services;
 using Valour.Shared.Models;
 
 namespace Valour.Server.API;
@@ -15,9 +16,14 @@ public class InstanceApi
         app.MapGet("/.well-known/valour-instance", GetManifest);
     }
 
-    private static IResult GetManifest()
+    private static IResult GetManifest(IVoiceProvider voiceProvider)
     {
         var hosting = HostingConfig.Current;
+
+        var voiceConfigured = voiceProvider.IsConfigured;
+        var voiceEndpoint = voiceConfigured && voiceProvider.Kind == VoiceProvider.LiveKit
+            ? VoiceConfig.Current?.LiveKitUrl ?? string.Empty
+            : string.Empty;
 
         var manifest = new InstanceManifest
         {
@@ -37,7 +43,9 @@ public class InstanceApi
             {
                 Email = EmailConfig.IsEnabled,
                 Payments = !string.IsNullOrWhiteSpace(StripeConfig.Current?.SecretKey),
-                Voice = VoiceCapable(),
+                Voice = voiceConfigured,
+                VoiceProvider = voiceConfigured ? voiceProvider.Kind.ToWire() : VoiceProvider.None.ToWire(),
+                VoiceEndpoint = voiceEndpoint,
                 PushNotifications = PushCapable(),
                 MediaSafety = MediaSafetyConfig.Current?.Enabled ?? false,
                 OpenRegistration = true,
@@ -46,14 +54,6 @@ public class InstanceApi
         };
 
         return Results.Json(manifest);
-    }
-
-    private static bool VoiceCapable()
-    {
-        var cf = CloudflareConfig.Instance;
-        return !string.IsNullOrWhiteSpace(cf?.RealtimeAccountId) &&
-               !string.IsNullOrWhiteSpace(cf?.RealtimeAppId) &&
-               !string.IsNullOrWhiteSpace(cf?.RealtimeApiToken);
     }
 
     private static bool PushCapable()

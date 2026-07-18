@@ -195,6 +195,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// (bring-your-own-storage) rather than Valour's CDN
     /// </summary>
     public bool SelfHostedMedia { get; set; }
+
+    /// <summary>
+    /// True when this planet runs voice/video calls on its own LiveKit SFU
+    /// (bring-your-own-voice) rather than Valour's voice backend
+    /// </summary>
+    public bool SelfHostedVoice { get; set; }
     
     /// <summary>
     /// The version of the planet. Used for cache busting.

@@ -239,6 +239,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     
     public DbSet<CdnBucketItem> CdnBucketItems { get; set; }
     public DbSet<PlanetStorageConfig> PlanetStorageConfigs { get; set; }
+    public DbSet<PlanetVoiceConfig> PlanetVoiceConfigs { get; set; }
     public DbSet<FederationKey> FederationKeys { get; set; }
     public DbSet<FederatedNode> FederatedNodes { get; set; }
     public DbSet<FederatedPlanetStub> FederatedPlanetStubs { get; set; }
@@ -339,6 +340,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         
         CdnBucketItem.SetupDbModel(modelBuilder);
         PlanetStorageConfig.SetupDbModel(modelBuilder);
+        PlanetVoiceConfig.SetupDbModel(modelBuilder);
         Planet.SetupDbModel(modelBuilder);
         FederationKey.SetupDbModel(modelBuilder);
         FederatedNode.SetupDbModel(modelBuilder);

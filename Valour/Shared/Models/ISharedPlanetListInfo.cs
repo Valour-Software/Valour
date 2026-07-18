@@ -47,6 +47,11 @@ public interface ISharedPlanetListInfo : ISharedModel<long>
     bool SelfHostedMedia { get; set; }
 
     /// <summary>
+    /// True when this planet runs voice/video on its own LiveKit SFU
+    /// </summary>
+    bool SelfHostedVoice { get; set; }
+
+    /// <summary>
     /// The community node domain hosting this planet, or null when official.
     /// </summary>
     string NodeDomain { get; set; }

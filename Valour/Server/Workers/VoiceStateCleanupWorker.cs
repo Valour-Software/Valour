@@ -10,12 +10,11 @@ public class VoiceStateCleanupWorker : BackgroundService
     private readonly ILogger<VoiceStateCleanupWorker> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnectionMultiplexer _redis;
-    private readonly RealtimeKitService _realtimeKitService;
+    private readonly IVoiceProvider _voiceProvider;
     private const int MinimumRealtimeKitParticipants = 2;
-    private static readonly TimeSpan OrphanSessionGracePeriod = TimeSpan.FromSeconds(90);
 
     /// <summary>
-    /// Cloudflare reconciliation runs every Nth cleanup cycle (~every 2 minutes at 30s intervals).
+    /// Provider reconciliation runs every Nth cleanup cycle (~every 2 minutes at 30s intervals).
     /// </summary>
     private const int ReconciliationCycleInterval = 4;
     private int _cycleCount;
@@ -24,12 +23,12 @@ public class VoiceStateCleanupWorker : BackgroundService
         ILogger<VoiceStateCleanupWorker> logger,
         IServiceProvider serviceProvider,
         IConnectionMultiplexer redis,
-        RealtimeKitService realtimeKitService)
+        IVoiceProvider voiceProvider)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _redis = redis;
-        _realtimeKitService = realtimeKitService;
+        _voiceProvider = voiceProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -47,8 +46,8 @@ public class VoiceStateCleanupWorker : BackgroundService
                 if (_cycleCount >= ReconciliationCycleInterval)
                 {
                     _cycleCount = 0;
-                    await ReconcileWithCloudflareAsync();
-                    await CleanupTrackedRealtimeKitMeetingsAsync("periodic sweep");
+                    await ReconcileWithProviderAsync();
+                    await CleanupTrackedMeetingsAsync("periodic sweep");
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -75,11 +74,11 @@ public class VoiceStateCleanupWorker : BackgroundService
 
         try
         {
-            await CleanupTrackedRealtimeKitMeetingsAsync("startup sweep");
+            await CleanupTrackedMeetingsAsync("startup sweep");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during RealtimeKit startup cleanup");
+            _logger.LogError(ex, "Error during voice meeting startup cleanup");
         }
     }
 
@@ -165,7 +164,7 @@ public class VoiceStateCleanupWorker : BackgroundService
 
             if (remainingUserIds.Count < MinimumRealtimeKitParticipants)
             {
-                await _realtimeKitService.CloseTrackedMeetingAsync(
+                await _voiceProvider.CloseTrackedMeetingAsync(
                     channelId,
                     "voice state cleanup left fewer than two participants");
             }
@@ -184,15 +183,18 @@ public class VoiceStateCleanupWorker : BackgroundService
     }
 
     /// <summary>
-    /// Polls Cloudflare RealtimeKit to reconcile actual meeting participants against Redis state.
-    /// Removes users from Redis/HostedPlanet that are no longer connected in Cloudflare.
+    /// Reconciles the backend's actual connected participants against Redis state,
+    /// removing users from Redis/HostedPlanet that the backend no longer sees. The
+    /// backend's live truth is fetched provider-agnostically via
+    /// <see cref="IVoiceProvider.GetConnectedUserIdsAsync"/>; a null result (backend
+    /// unreachable) skips that channel so live participants are never wrongly removed.
     /// </summary>
-    private async Task ReconcileWithCloudflareAsync()
+    private async Task ReconcileWithProviderAsync()
     {
-        var trackedMeetings = _realtimeKitService.GetTrackedChannelMeetingIds();
+        var trackedMeetings = _voiceProvider.GetTrackedChannelMeetingIds();
         if (trackedMeetings.Count == 0)
         {
-            await CloseUnderpopulatedRealtimeKitSessionsAsync();
+            await _voiceProvider.CloseOrphanedSessionsAsync(MinimumRealtimeKitParticipants);
             return;
         }
 
@@ -218,47 +220,20 @@ public class VoiceStateCleanupWorker : BackgroundService
 
                 if (redisUserIds.Count < MinimumRealtimeKitParticipants)
                 {
-                    await _realtimeKitService.CloseTrackedMeetingAsync(
+                    await _voiceProvider.CloseTrackedMeetingAsync(
                         channelId,
-                        "Cloudflare reconciliation found fewer than two Valour participants");
+                        "reconciliation found fewer than two Valour participants");
                     continue;
                 }
 
-                // Query Cloudflare for the live session(s) of this meeting
-                var sessionsResult = await _realtimeKitService.GetLiveSessionsForMeetingAsync(meetingId);
-                var cloudflareUserIds = new HashSet<long>();
-
-                if (sessionsResult.Success && sessionsResult.Data is not null)
-                {
-                    foreach (var session in sessionsResult.Data)
-                    {
-                        var participantsResult =
-                            await _realtimeKitService.GetSessionParticipantsAsync(session.Id);
-
-                        if (!participantsResult.Success || participantsResult.Data is null)
-                            continue;
-
-                        foreach (var participant in participantsResult.Data)
-                        {
-                            // Only count participants that haven't left
-                            if (!string.IsNullOrEmpty(participant.LeftAt))
-                                continue;
-
-                            var userId = participant.ExtractUserId();
-                            if (userId.HasValue)
-                                cloudflareUserIds.Add(userId.Value);
-                        }
-                    }
-                }
-                else
-                {
-                    // If the API call failed, skip reconciliation for this channel
-                    // to avoid incorrectly removing participants
+                // Ask the backend who is actually connected. Null = could not query;
+                // skip so we don't remove live participants on a transient failure.
+                var connectedUserIds = await _voiceProvider.GetConnectedUserIdsAsync(channelId, meetingId);
+                if (connectedUserIds is null)
                     continue;
-                }
 
-                // Find users in Redis but NOT in Cloudflare
-                var staleUserIds = redisUserIds.Except(cloudflareUserIds).ToList();
+                // Find users in Redis but NOT connected on the backend
+                var staleUserIds = redisUserIds.Except(connectedUserIds).ToList();
                 if (staleUserIds.Count == 0)
                     continue;
 
@@ -309,13 +284,14 @@ public class VoiceStateCleanupWorker : BackgroundService
                 {
                     await db.KeyDeleteAsync($"voice:channel:{channelId}");
                     hosted.SetVoiceParticipants(channelId, new List<long>());
+                    _voiceProvider.RemoveMeetingMapping(channelId);
                 }
 
                 if (remainingUserIds.Count < MinimumRealtimeKitParticipants)
                 {
-                    await _realtimeKitService.CloseTrackedMeetingAsync(
+                    await _voiceProvider.CloseTrackedMeetingAsync(
                         channelId,
-                        "Cloudflare reconciliation left fewer than two participants");
+                        "reconciliation left fewer than two participants");
                 }
 
                 coreHub.NotifyVoiceChannelParticipants(dbChannel.PlanetId.Value,
@@ -327,57 +303,21 @@ public class VoiceStateCleanupWorker : BackgroundService
                     });
 
                 _logger.LogInformation(
-                    "Cloudflare reconciliation removed {Count} stale participants from channel {ChannelId}",
+                    "Voice reconciliation removed {Count} stale participants from channel {ChannelId}",
                     staleUserIds.Count, channelId);
-
-                // If no live session and no remaining participants, clean up the meeting mapping
-                if (sessionsResult.Data!.Count == 0 && remainingUserIds.Count == 0)
-                {
-                    _realtimeKitService.RemoveMeetingMapping(channelId);
-                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error reconciling channel {ChannelId} with Cloudflare", channelId);
+                _logger.LogError(ex, "Error reconciling channel {ChannelId} with the voice backend", channelId);
             }
         }
 
-        await CloseUnderpopulatedRealtimeKitSessionsAsync();
+        await _voiceProvider.CloseOrphanedSessionsAsync(MinimumRealtimeKitParticipants);
     }
 
-    private async Task CloseUnderpopulatedRealtimeKitSessionsAsync()
+    private async Task CleanupTrackedMeetingsAsync(string reason)
     {
-        var sessionsResult = await _realtimeKitService.GetLiveSessionsAsync();
-        if (!sessionsResult.Success || sessionsResult.Data is null)
-            return;
-
-        foreach (var session in sessionsResult.Data)
-        {
-            if (session is null ||
-                string.IsNullOrWhiteSpace(session.AssociatedId) ||
-                session.LiveParticipants >= MinimumRealtimeKitParticipants ||
-                !IsPastOrphanSessionGracePeriod(session))
-            {
-                continue;
-            }
-
-            await _realtimeKitService.CloseMeetingAsync(
-                session.AssociatedId,
-                "Cloudflare live session had fewer than two participants");
-        }
-    }
-
-    private static bool IsPastOrphanSessionGracePeriod(RealtimeKitService.CloudflareSessionInfo session)
-    {
-        if (!DateTimeOffset.TryParse(session.CreatedAt, out var createdAt))
-            return true;
-
-        return DateTimeOffset.UtcNow - createdAt.ToUniversalTime() >= OrphanSessionGracePeriod;
-    }
-
-    private async Task CleanupTrackedRealtimeKitMeetingsAsync(string reason)
-    {
-        var trackedMeetings = await _realtimeKitService.LoadOpenMeetingMappingsAsync();
+        var trackedMeetings = await _voiceProvider.LoadOpenMeetingMappingsAsync();
         var participantCountsByChannel = await GetRedisParticipantCountsByChannelAsync();
         var checkedMeetings = 0;
         var keptMeetings = 0;
@@ -397,14 +337,14 @@ public class VoiceStateCleanupWorker : BackgroundService
                 continue;
             }
 
-            var closeResult = await _realtimeKitService.CloseMeetingAsync(
+            var closeResult = await _voiceProvider.CloseMeetingAsync(
                 meetingId,
                 $"{reason} found tracked Valour voice channel with fewer than two participants",
                 channelId);
 
             if (closeResult.Success)
             {
-                _realtimeKitService.RemoveMeetingMapping(channelId);
+                _voiceProvider.RemoveMeetingMapping(channelId);
                 closedMeetings++;
             }
             else
@@ -414,7 +354,7 @@ public class VoiceStateCleanupWorker : BackgroundService
         }
 
         _logger.LogInformation(
-            "RealtimeKit {Reason} checked {Checked} tracked meetings from the database; kept {Kept}, closed {Closed}, failed {Failed}",
+            "Voice {Reason} checked {Checked} tracked meetings; kept {Kept}, closed {Closed}, failed {Failed}",
             reason,
             checkedMeetings,
             keptMeetings,
@@ -468,7 +408,7 @@ public class VoiceStateCleanupWorker : BackgroundService
         {
             _logger.LogWarning(
                 ex,
-                "Could not read Redis voice participant counts for RealtimeKit cleanup; treating all active meetings as unused");
+                "Could not read Redis voice participant counts for meeting cleanup; treating all active meetings as unused");
         }
 
 

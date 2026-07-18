@@ -70,6 +70,12 @@ public interface ISharedPlanet : ISharedModel<long>
     /// (bring-your-own-storage) rather than Valour's CDN
     /// </summary>
     bool SelfHostedMedia { get; set; }
+
+    /// <summary>
+    /// True when this planet runs voice/video calls on its own LiveKit SFU
+    /// (bring-your-own-voice) rather than Valour's voice backend
+    /// </summary>
+    bool SelfHostedVoice { get; set; }
     
     /// <summary>
     /// The version of the planet. Used for cache busting.

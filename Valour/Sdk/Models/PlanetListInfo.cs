@@ -53,6 +53,11 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
     public bool SelfHostedMedia { get; set; }
 
     /// <summary>
+    /// True when this planet runs voice/video on its own LiveKit SFU
+    /// </summary>
+    public bool SelfHostedVoice { get; set; }
+
+    /// <summary>
     /// Community node domain hosting this planet, or null when official.
     /// </summary>
     public string NodeDomain { get; set; }
@@ -105,6 +110,7 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
             HasCustomBackground = planet.HasCustomBackground,
             Nsfw = planet.Nsfw,
             SelfHostedMedia = planet.SelfHostedMedia,
+            SelfHostedVoice = planet.SelfHostedVoice,
             Discoverable = planet.Discoverable,
             Version = planet.Version,
             TagIds = new List<long>() // Tags are not included in this model

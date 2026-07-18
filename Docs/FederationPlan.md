@@ -122,7 +122,7 @@ ad-hoc degradation (the `ApiKey == "fake-value"` email bypass becomes
 |---|---|
 | Stripe | Subscription/VC purchase UI hidden; configurable default limits |
 | SendGrid | Auto-verify accounts; password reset via admin CLI/panel |
-| RealtimeKit | Voice/video disabled (self-hostable LiveKit driver is a later add) |
+| RealtimeKit | Falls back to the self-hostable LiveKit driver, else voice/video disabled |
 | PhotoDNA | Already optional |
 | Firebase/VAPID | Push disabled; SignalR-only notifications |
 | Sentry/Tenor | Config-driven, off by default |
@@ -371,8 +371,15 @@ hub T&S at planet/domain granularity.
   impersonation); clients refuse or hard-warn on listed domains.
 - **Economy:** Valour Credits and Stripe never run on community nodes; planet-
   scoped currencies work locally; Stargazer perks arrive via token claims.
-- **Voice:** node brings its own RealtimeKit config or voice is disabled —
-  advertised via the instance manifest.
+- **Voice:** node runs its own self-hosted LiveKit SFU (no Cloudflare account
+  needed — media stays on node infra) or brings RealtimeKit config, or voice is
+  disabled — the active provider + endpoint are advertised via the instance
+  manifest. See [Deployment/SelfHostVoice.md](Deployment/SelfHostVoice.md).
+  Additionally, officially-hosted planets can bring their own LiveKit server
+  (Layer-2 style, mirroring BYO storage): the hub stores the owner's encrypted
+  API secret, signs join tokens with it, and call media flows directly between
+  members and the owner's SFU — Valour never carries the streams. Members get
+  an explicit consent warning before their first community-hosted call.
 
 ### Protocol versioning
 

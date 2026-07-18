@@ -132,6 +132,7 @@ public partial class Program
             new DynamicAPI<UserApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetStorageApi>().RegisterRoutes(app),
+            new DynamicAPI<PlanetVoiceApi>().RegisterRoutes(app),
             new DynamicAPI<FederationApi>().RegisterRoutes(app),
             new DynamicAPI<ChannelApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetMemberApi>().RegisterRoutes(app),
@@ -396,6 +397,33 @@ public partial class Program
         services.AddSingleton<ModelCacheService>();
         services.AddSingleton<UserCacheService>();
         services.AddSingleton<RealtimeKitService>();
+        services.AddSingleton<LiveKitService>();
+        // The instance-wide backend is resolved from config: an explicit Voice__Provider
+        // wins; otherwise LiveKit is auto-selected only when it is configured and
+        // RealtimeKit is not, so the managed default is never silently changed.
+        // The coordinator wraps it to route bring-your-own-voice planets to their
+        // own SFUs per channel, and is what the rest of the server sees.
+        services.AddSingleton<VoiceCoordinator>(sp =>
+        {
+            var cf = CloudflareConfig.Instance;
+            var realtimeKitConfigured =
+                !string.IsNullOrWhiteSpace(cf?.RealtimeAccountId) &&
+                !string.IsNullOrWhiteSpace(cf?.RealtimeAppId) &&
+                !string.IsNullOrWhiteSpace(cf?.RealtimeApiToken);
+
+            IVoiceProvider instanceProvider =
+                VoiceProviderSelector.Resolve(VoiceConfig.Current, realtimeKitConfigured) == VoiceProvider.LiveKit
+                    ? sp.GetRequiredService<LiveKitService>()
+                    : sp.GetRequiredService<RealtimeKitService>();
+
+            return new VoiceCoordinator(
+                instanceProvider,
+                sp.GetRequiredService<LiveKitService>(),
+                sp,
+                sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(),
+                sp.GetRequiredService<ILogger<VoiceCoordinator>>());
+        });
+        services.AddSingleton<IVoiceProvider>(sp => sp.GetRequiredService<VoiceCoordinator>());
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
         services.AddScoped<HostedPlanetService>();
@@ -414,6 +442,7 @@ public partial class Program
         services.AddScoped<ChannelService>();
         services.AddScoped<MessageService>();
         services.AddScoped<PlanetStorageService>();
+        services.AddScoped<PlanetVoiceService>();
         services.AddScoped<FederationKeyService>();
         services.AddScoped<FederationHubService>();
         services.AddScoped<FederationNodeService>();

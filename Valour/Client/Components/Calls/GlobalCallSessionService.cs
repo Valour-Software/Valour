@@ -37,6 +37,10 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
     private readonly HashSet<long> _moderatorMutedParticipantUserIds = new();
     private readonly string _voiceSessionId = Guid.NewGuid().ToString("N");
 
+    // Planets whose community-hosted-voice warning the user accepted this session.
+    private readonly HashSet<long> _acknowledgedVoicePlanets = new();
+    private (Channel Channel, bool VideoMode)? _pendingCommunityVoiceJoin;
+
     private bool _registeredWithVoiceState;
     private bool _disposed;
 
@@ -64,12 +68,51 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
     public string? Error { get; private set; }
     public bool CanMuteParticipants { get; private set; }
     public bool CanKickParticipants { get; private set; }
+
+    /// <summary>
+    /// True when the join is paused on the community-hosted-voice warning —
+    /// the user must accept (AcknowledgeCommunityVoiceAsync) or cancel.
+    /// </summary>
+    public bool PendingCommunityVoiceAck { get; private set; }
+
+    /// <summary>
+    /// Host of the community SFU carrying the active (or pending) call, when the
+    /// call runs on planet-owned infrastructure. Null on the instance backend.
+    /// </summary>
+    public string? CommunityVoiceHost { get; private set; }
     public RealtimeKitParticipantsSnapshot? ParticipantsSnapshot { get; private set; }
     public long ParticipantsVersion { get; private set; }
     public IReadOnlyCollection<long> ModeratorMutedParticipantUserIds => _moderatorMutedParticipantUserIds;
     public string VoiceSessionId => _voiceSessionId;
 
     private RealtimeKitComponent? Rtk => _rtkHost.Component;
+
+    /// <summary>
+    /// Accepts the community-hosted-voice warning for the pending planet and
+    /// resumes the interrupted join. Accepted planets don't warn again this session.
+    /// </summary>
+    public async Task AcknowledgeCommunityVoiceAsync()
+    {
+        if (!PendingCommunityVoiceAck || _pendingCommunityVoiceJoin is null)
+            return;
+
+        var (channel, videoMode) = _pendingCommunityVoiceJoin.Value;
+        if (channel.PlanetId is not null)
+            _acknowledgedVoicePlanets.Add(channel.PlanetId.Value);
+
+        PendingCommunityVoiceAck = false;
+        _pendingCommunityVoiceJoin = null;
+
+        await InitializeAsync(channel, videoMode);
+    }
+
+    /// <summary>Dismisses the community-hosted-voice warning without joining.</summary>
+    public void CancelCommunityVoiceJoin()
+    {
+        PendingCommunityVoiceAck = false;
+        _pendingCommunityVoiceJoin = null;
+        NotifyStateChanged();
+    }
 
     public async Task InitializeAsync(Channel channel, bool videoMode)
     {
@@ -80,6 +123,18 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
         if (!ISharedChannel.VoiceChannelTypes.Contains(channel.ChannelType))
             return;
+
+        // Community-hosted voice: pause on an explicit warning before the first
+        // join of a planet whose calls run on its own SFU. The user's IP (and the
+        // call itself) go to that operator's server, not Valour.
+        var planet = channel.PlanetId is null ? null : channel.Planet;
+        if (planet?.SelfHostedVoice == true && !_acknowledgedVoicePlanets.Contains(planet.Id))
+        {
+            _pendingCommunityVoiceJoin = (channel, videoMode);
+            PendingCommunityVoiceAck = true;
+            NotifyStateChanged();
+            return;
+        }
 
         if (Rtk is null)
         {
@@ -127,7 +182,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             _registeredWithVoiceState = true;
 
             var tokenResult = await _client.PrimaryNode.PostAsyncWithResponse<RealtimeKitVoiceTokenResponse>(
-                    $"api/voice/realtimekit/token/{channel.Id}?sessionId={Uri.EscapeDataString(_voiceSessionId)}")
+                    $"api/voice/token/{channel.Id}?sessionId={Uri.EscapeDataString(_voiceSessionId)}")
                 .WaitAsync(TokenRequestTimeout);
 
             if (!tokenResult.Success || tokenResult.Data is null)
@@ -170,7 +225,14 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
                 return;
             }
 
-            await rtk.InitializeAsync(BuildInitOptions(tokenResult.Data.AuthToken, videoMode));
+            // Surface the community host in the call UI when the planet brings its
+            // own SFU (the token's Url is that server).
+            CommunityVoiceHost = tokenResult.Data.SelfHosted &&
+                                 Uri.TryCreate(tokenResult.Data.Url, UriKind.Absolute, out var sfuUri)
+                ? sfuUri.Host
+                : null;
+
+            await rtk.InitializeAsync(BuildInitOptions(tokenResult.Data, videoMode), tokenResult.Data.Provider);
             await rtk.JoinRoomAsync((int)JoinTimeout.TotalMilliseconds);
 
             Joined = true;
@@ -338,7 +400,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             return;
 
         var result = await _client.PrimaryNode.PostAsync(
-            $"api/voice/realtimekit/channels/{ActiveChannel.Id}/participants/{targetUserId}/{action}",
+            $"api/voice/channels/{ActiveChannel.Id}/participants/{targetUserId}/{action}",
             new { });
 
         if (!result.Success)
@@ -372,7 +434,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             try
             {
                 await _client.PrimaryNode.PostAsync(
-                    $"api/voice/realtimekit/channels/{leaveChannelId}/leave?sessionId={Uri.EscapeDataString(_voiceSessionId)}",
+                    $"api/voice/channels/{leaveChannelId}/leave?sessionId={Uri.EscapeDataString(_voiceSessionId)}",
                     new { })
                     .WaitAsync(TimeSpan.FromSeconds(3));
             }
@@ -410,6 +472,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         ScreenShareEnabled = false;
         CanMuteParticipants = false;
         CanKickParticipants = false;
+        CommunityVoiceHost = null;
         _moderatorMutedParticipantUserIds.Clear();
 
         if (ParticipantsSnapshot is not null)
@@ -721,7 +784,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
                     await Task.Delay(TimeSpan.FromSeconds(45), cancellationToken);
                     if (_client.PrimaryNode is not null)
                     {
-                        await _client.PrimaryNode.PostAsync("api/voice/realtimekit/heartbeat", new { });
+                        await _client.PrimaryNode.PostAsync("api/voice/heartbeat", new { });
                     }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -983,12 +1046,16 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         StateChanged?.Invoke();
     }
 
-    private static RealtimeKitInitOptions BuildInitOptions(string authToken, bool videoMode)
+    private static RealtimeKitInitOptions BuildInitOptions(RealtimeKitVoiceTokenResponse token, bool videoMode)
     {
+        // For LiveKit, BaseUri carries the SFU websocket URL the client connects to
+        // (its interop reads options.baseURI); for RealtimeKit it's the Cloudflare host.
+        var isLiveKit = string.Equals(token.Provider, "livekit", StringComparison.OrdinalIgnoreCase);
+
         return new RealtimeKitInitOptions
         {
-            AuthToken = authToken,
-            BaseUri = "realtime.cloudflare.com",
+            AuthToken = token.AuthToken,
+            BaseUri = isLiveKit ? token.Url : "realtime.cloudflare.com",
             Defaults = new RealtimeKitMediaDefaults
             {
                 Audio = false,

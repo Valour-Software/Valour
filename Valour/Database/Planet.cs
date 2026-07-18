@@ -148,6 +148,13 @@ public class Planet : ISharedPlanet
     public bool SelfHostedMedia { get; set; }
 
     /// <summary>
+    /// True when this planet runs voice/video calls on its own LiveKit SFU
+    /// (bring-your-own-voice). Surfaces the "community-hosted voice" warning
+    /// to users before they join a call. Mapped fluently in SetupDbModel.
+    /// </summary>
+    public bool SelfHostedVoice { get; set; }
+
+    /// <summary>
     /// True while a migration is in progress — the planet is read-only during
     /// the snapshot→handoff window so no writes are lost. Cleared on completion
     /// (the planet is deleted) or abort. Server-internal (not on the wire).
@@ -164,6 +171,11 @@ public class Planet : ISharedPlanet
         {
             e.Property(x => x.SelfHostedMedia)
                 .HasColumnName("self_hosted_media")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            e.Property(x => x.SelfHostedVoice)
+                .HasColumnName("self_hosted_voice")
                 .HasDefaultValue(false)
                 .IsRequired();
 

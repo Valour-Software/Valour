@@ -76,6 +76,19 @@ public class InstanceCapabilities
     public bool Voice { get; set; }
 
     /// <summary>
+    /// Wire id of the active voice backend ("realtimekit" | "livekit" | "none").
+    /// The client uses this to load the matching interop module.
+    /// </summary>
+    public string VoiceProvider { get; set; } = "none";
+
+    /// <summary>
+    /// Backend connection endpoint the client needs up front, when applicable.
+    /// The LiveKit SFU websocket URL (wss://...); empty for RealtimeKit (its SDK
+    /// derives its own host) and when voice is disabled.
+    /// </summary>
+    public string VoiceEndpoint { get; set; } = string.Empty;
+
+    /// <summary>
     /// Push notifications (Web Push / FCM)
     /// </summary>
     public bool PushNotifications { get; set; }

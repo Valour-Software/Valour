@@ -60,6 +60,15 @@ services:
       # First-run staff account (created only if no staff account exists)
       - Bootstrap__AdminEmail=${VALOUR_ADMIN_EMAIL:-}
       - Bootstrap__AdminPassword=${VALOUR_ADMIN_PASSWORD:-}
+      # Voice/video. Empty by default (voice disabled). To self-host voice, set
+      # VOICE_PROVIDER=livekit + the keys in .env and run the "voice" profile.
+      # The server reaches the SFU over the compose network for room admin, while
+      # clients connect to the public wss URL.
+      - Voice__Provider=${VOICE_PROVIDER:-}
+      - Voice__LiveKitUrl=${VOICE_LIVEKIT_URL:-}
+      - Voice__LiveKitApiUrl=${VOICE_LIVEKIT_API_URL:-http://livekit:7880}
+      - Voice__LiveKitApiKey=${VOICE_LIVEKIT_API_KEY:-}
+      - Voice__LiveKitApiSecret=${VOICE_LIVEKIT_API_SECRET:-}
     volumes:
       - media:/app/media
     restart: unless-stopped
@@ -77,6 +86,29 @@ services:
       - caddy_config:/config
     depends_on:
       - valour
+    restart: unless-stopped
+
+  # Optional self-hosted voice/video (LiveKit SFU). Enable with:
+  #   docker compose --profile voice up -d
+  # Requirements (see Docs/Deployment/SelfHostVoice.md):
+  #   - .env: VOICE_PROVIDER=livekit, VOICE_LIVEKIT_URL=wss://voice.$VALOUR_DOMAIN,
+  #     VOICE_LIVEKIT_API_KEY, VOICE_LIVEKIT_API_SECRET
+  #   - DNS: voice.$VALOUR_DOMAIN → this host; uncomment the voice block in selfhost/Caddyfile
+  #   - Firewall: forward UDP 7882 (and TCP 7881) to this host — the media path
+  livekit:
+    image: livekit/livekit-server:latest
+    profiles: ["voice"]
+    command: ["--config", "/etc/livekit.yaml"]
+    environment:
+      # LiveKit reads keys from this env var as "key: secret". Quoted because the
+      # "key: secret" value contains a colon-space that YAML would otherwise treat
+      # as a mapping.
+      - "LIVEKIT_KEYS=${VOICE_LIVEKIT_API_KEY:?set VOICE_LIVEKIT_API_KEY in .env}: ${VOICE_LIVEKIT_API_SECRET:?set VOICE_LIVEKIT_API_SECRET in .env}"
+    volumes:
+      - ./selfhost/livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7881:7881"        # RTC over TCP (fallback)
+      - "7882:7882/udp"    # RTC over UDP (primary media path — must be reachable)
     restart: unless-stopped
 
   # Optional S3-compatible storage. Enable with: docker compose --profile minio up -d

@@ -10,12 +10,22 @@ using DbRealtimeKitMeeting = Valour.Database.RealtimeKitMeeting;
 
 namespace Valour.Server.Services;
 
-public class RealtimeKitService
+public class RealtimeKitService : IVoiceProvider
 {
     private const string CloudflareApiBase = "https://api.cloudflare.com/client/v4";
     private const int MinimumSessionKeepAliveSeconds = 60;
     private const string MeetingStatusActive = "ACTIVE";
     private const string MeetingStatusInactive = "INACTIVE";
+    private static readonly TimeSpan OrphanSessionGracePeriod = TimeSpan.FromSeconds(90);
+
+    public VoiceProvider Kind => VoiceProvider.RealtimeKit;
+
+    // Explicit: exposes the private static config gate through the interface without
+    // disturbing the many internal `if (!IsConfigured)` guards below.
+    bool IVoiceProvider.IsConfigured => IsConfigured;
+
+    IReadOnlyDictionary<long, string> IVoiceProvider.GetTrackedChannelMeetingIds() =>
+        GetTrackedChannelMeetingIds();
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RealtimeKitService> _logger;
@@ -376,6 +386,77 @@ public class RealtimeKitService
     public Dictionary<long, string> GetTrackedChannelMeetingIds()
     {
         return new Dictionary<long, string>(_meetingIdsByChannel);
+    }
+
+    /// <summary>
+    /// The backend's authoritative connected-user set for a meeting: unions the
+    /// live sessions' participants (excluding those that have left). Returns null
+    /// when Cloudflare could not be queried, so the caller skips reconciliation
+    /// rather than removing live participants.
+    /// </summary>
+    public async Task<HashSet<long>?> GetConnectedUserIdsAsync(long channelId, string meetingId)
+    {
+        var sessionsResult = await GetLiveSessionsForMeetingAsync(meetingId);
+        if (!sessionsResult.Success || sessionsResult.Data is null)
+            return null;
+
+        var userIds = new HashSet<long>();
+        foreach (var session in sessionsResult.Data)
+        {
+            if (session is null || string.IsNullOrWhiteSpace(session.Id))
+                continue;
+
+            var participantsResult = await GetSessionParticipantsAsync(session.Id);
+            if (!participantsResult.Success || participantsResult.Data is null)
+                continue;
+
+            foreach (var participant in participantsResult.Data)
+            {
+                if (!string.IsNullOrEmpty(participant.LeftAt))
+                    continue;
+
+                var userId = participant.ExtractUserId();
+                if (userId.HasValue)
+                    userIds.Add(userId.Value);
+            }
+        }
+
+        return userIds;
+    }
+
+    /// <summary>
+    /// Sweeps app-wide live sessions and closes any that have sat below the
+    /// participant threshold past the orphan grace period — a backstop for
+    /// server-side meetings the tracked map no longer knows about.
+    /// </summary>
+    public async Task CloseOrphanedSessionsAsync(int minParticipants)
+    {
+        var sessionsResult = await GetLiveSessionsAsync();
+        if (!sessionsResult.Success || sessionsResult.Data is null)
+            return;
+
+        foreach (var session in sessionsResult.Data)
+        {
+            if (session is null ||
+                string.IsNullOrWhiteSpace(session.AssociatedId) ||
+                session.LiveParticipants >= minParticipants ||
+                !IsPastOrphanSessionGracePeriod(session))
+            {
+                continue;
+            }
+
+            await CloseMeetingAsync(
+                session.AssociatedId,
+                "Cloudflare live session had fewer than the minimum participants");
+        }
+    }
+
+    private static bool IsPastOrphanSessionGracePeriod(CloudflareSessionInfo session)
+    {
+        if (!DateTimeOffset.TryParse(session.CreatedAt, out var createdAt))
+            return true;
+
+        return DateTimeOffset.UtcNow - createdAt.ToUniversalTime() >= OrphanSessionGracePeriod;
     }
 
     public async Task<Dictionary<long, string>> LoadOpenMeetingMappingsAsync()

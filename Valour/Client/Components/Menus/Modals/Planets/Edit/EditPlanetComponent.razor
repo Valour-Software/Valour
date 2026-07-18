@@ -39,6 +39,7 @@
     private RenderFragment AuditLogContent => @<EditPlanetAuditLogComponent Planet="@Data.Planet" />;
     private RenderFragment EconomyContent => @<EditPlanetEconomyComponent Planet="@Data.Planet" />;
     private RenderFragment StorageContent => @<EditPlanetStorageComponent Planet="@Data.Planet" />;
+    private RenderFragment VoiceContent => @<EditPlanetVoiceComponent Planet="@Data.Planet" />;
     private RenderFragment DeleteContent => @<div></div>;
 
     protected override void OnInitialized()
@@ -154,6 +155,13 @@
                         Icon = "hdd-network-fill",
                         Description = "Bring your own media storage",
                         Content = StorageContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Voice",
+                        Icon = "broadcast-pin",
+                        Description = "Bring your own voice server",
+                        Content = VoiceContent
                     },
                     new MainMenu.MenuItem()
                     {

@@ -10,7 +10,17 @@ public class VoiceSignallingApi
 
     public static void AddRoutes(WebApplication app)
     {
-        app.MapPost("api/voice/realtimekit/token/{channelId:long}", GetRealtimeKitToken);
+        // Provider-neutral routes (canonical). The handlers act through IVoiceProvider,
+        // so a single path serves whichever backend the instance runs.
+        app.MapPost("api/voice/token/{channelId:long}", GetVoiceToken);
+        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant);
+        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant);
+        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant);
+        app.MapPost("api/voice/channels/{channelId:long}/leave", LeaveVoiceChannel);
+        app.MapPost("api/voice/heartbeat", VoiceHeartbeat);
+
+        // Legacy provider-named aliases, retained so already-loaded clients keep working.
+        app.MapPost("api/voice/realtimekit/token/{channelId:long}", GetVoiceToken);
         app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant);
         app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant);
         app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant);
@@ -18,12 +28,12 @@ public class VoiceSignallingApi
         app.MapPost("api/voice/realtimekit/heartbeat", VoiceHeartbeat);
     }
 
-    public static async Task<IResult> GetRealtimeKitToken(
+    public static async Task<IResult> GetVoiceToken(
         ValourDb db,
         TokenService tokenService,
         PlanetMemberService memberService,
         CoreHubService coreHubService,
-        RealtimeKitService realtimeKitService,
+        IVoiceProvider voiceProvider,
         VoiceStateService voiceStateService,
         long channelId,
         string? sessionId)
@@ -70,12 +80,12 @@ public class VoiceSignallingApi
         // before returning the new response.
         if (previousChannelId.HasValue && previousChannelId.Value != channelId)
         {
-            await realtimeKitService.KickUserFromTrackedChannelAsync(previousChannelId.Value, authToken.UserId);
+            await voiceProvider.KickUserFromTrackedChannelAsync(previousChannelId.Value, authToken.UserId);
 
             var oldChannelParticipants = await voiceStateService.GetChannelParticipantsAsync(previousChannelId.Value);
             if (oldChannelParticipants.Count < MinimumRealtimeKitParticipants)
             {
-                await realtimeKitService.CloseTrackedMeetingAsync(
+                await voiceProvider.CloseTrackedMeetingAsync(
                     previousChannelId.Value,
                     "user moved to another voice channel");
             }
@@ -101,26 +111,27 @@ public class VoiceSignallingApi
         var participantCount = (await voiceStateService.GetChannelParticipantsAsync(channelId)).Count;
         if (participantCount < MinimumRealtimeKitParticipants)
         {
-            await realtimeKitService.CloseTrackedMeetingAsync(
+            await voiceProvider.CloseTrackedMeetingAsync(
                 channelId,
                 "voice channel is waiting for another participant");
 
             return ValourResult.Json(new RealtimeKitVoiceTokenResponse
             {
+                Provider = voiceProvider.Kind.ToWire(),
                 WaitingForPeer = true,
                 ParticipantCount = participantCount
             });
         }
 
         TaskResult<RealtimeKitVoiceTokenResponse> tokenResult =
-            await realtimeKitService.CreateParticipantTokenAsync(channel, authToken.UserId, displayName, sessionId);
+            await voiceProvider.CreateParticipantTokenAsync(channel, authToken.UserId, displayName, sessionId);
 
         if (!tokenResult.Success || tokenResult.Data is null)
         {
             await voiceStateService.UserLeaveVoiceChannelAsync(
                 authToken.UserId, channelId, dbChannel.PlanetId.Value, sessionId);
 
-            await realtimeKitService.CloseTrackedMeetingAsync(
+            await voiceProvider.CloseTrackedMeetingAsync(
                 channelId,
                 "failed to create participant token");
 
@@ -204,7 +215,7 @@ public class VoiceSignallingApi
         PlanetMemberService memberService,
         NodeLifecycleService nodeLifecycleService,
         VoiceStateService voiceStateService,
-        RealtimeKitService realtimeKitService,
+        IVoiceProvider voiceProvider,
         long channelId,
         long targetUserId)
     {
@@ -237,12 +248,12 @@ public class VoiceSignallingApi
             await voiceStateService.UserLeaveVoiceChannelAsync(
                 targetUserId, channelId, dbChannel.PlanetId.Value);
 
-            await realtimeKitService.KickUserFromTrackedChannelAsync(channelId, targetUserId);
+            await voiceProvider.KickUserFromTrackedChannelAsync(channelId, targetUserId);
 
             var remainingParticipants = await voiceStateService.GetChannelParticipantsAsync(channelId);
             if (remainingParticipants.Count < MinimumRealtimeKitParticipants)
             {
-                await realtimeKitService.CloseTrackedMeetingAsync(
+                await voiceProvider.CloseTrackedMeetingAsync(
                     channelId,
                     "voice moderation left fewer than two participants");
             }
@@ -255,7 +266,7 @@ public class VoiceSignallingApi
         ValourDb db,
         TokenService tokenService,
         PlanetMemberService memberService,
-        RealtimeKitService realtimeKitService,
+        IVoiceProvider voiceProvider,
         VoiceStateService voiceStateService,
         long channelId,
         string? sessionId)
@@ -278,16 +289,16 @@ public class VoiceSignallingApi
         await voiceStateService.UserLeaveVoiceChannelAsync(
             authToken.UserId, channelId, dbChannel.PlanetId.Value, sessionId);
 
-        // Best-effort exact RTK teardown. With session-aware participant IDs this avoids
+        // Best-effort exact teardown. With session-aware participant IDs this avoids
         // stale leave calls kicking a newer session from another window.
-        await realtimeKitService.KickUserSessionFromTrackedChannelAsync(channelId, authToken.UserId, sessionId);
+        await voiceProvider.KickUserSessionFromTrackedChannelAsync(channelId, authToken.UserId, sessionId);
 
         var remainingParticipants = await voiceStateService.GetChannelParticipantsAsync(channelId);
         if (remainingParticipants.Count < MinimumRealtimeKitParticipants)
         {
-            await realtimeKitService.CloseTrackedMeetingAsync(
+            await voiceProvider.CloseTrackedMeetingAsync(
                 channelId,
-                "voice channel dropped below the RTK participant threshold");
+                "voice channel dropped below the participant threshold");
         }
 
         return Results.Ok();

@@ -1,0 +1,187 @@
+@inject ValourClient Client
+
+<div class="settings-page">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-broadcast-pin"></i>
+            Bring Your Own Voice
+        </h3>
+
+        <p class="toggle-description">
+            Run this planet's voice and video calls on your own
+            <a href="https://livekit.io" target="_blank" rel="noopener">LiveKit</a> server.
+            Call audio and video flow directly between members and your server — Valour only signs
+            join tokens and never carries, records, or relays the streams. You are fully responsible
+            for hosting, moderation, and availability of calls on your server.
+        </p>
+        <p class="toggle-description">
+            <b>Requirements:</b> a LiveKit server reachable at a public <code>wss://</code> URL with
+            its media ports (UDP/TCP) open to the internet. Members see a warning before joining
+            their first call here.
+        </p>
+
+        @if (_loading)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <div class="form-group mt-2 new-input-style">
+                <label>LiveKit URL (wss)</label>
+                <input class="form-control" placeholder="wss://voice.example.com" @bind-value="_liveKitUrl" />
+            </div>
+            <div class="form-group mt-2 new-input-style">
+                <label>API Key</label>
+                <input class="form-control" placeholder="mykey" @bind-value="_apiKey" />
+            </div>
+            <div class="form-group mt-2 new-input-style">
+                <label>API Secret @(_hasExisting ? "(leave blank to keep current)" : "")</label>
+                <input class="form-control" type="password" autocomplete="off" @bind-value="_apiSecret" />
+            </div>
+
+            <div style="margin-top: 16px;">
+                <div class="perm-list-name mb-1" style="display: inline-block;">Enabled</div>
+                <div type="button" style="float: right">
+                    <label class="switch">
+                        <input type="checkbox" @bind="_enabled">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="v-btn" @onclick="OnSaveAsync" disabled="@_busy">Save</button>
+                <button class="v-btn" @onclick="OnProbeAsync" disabled="@(_busy || !_hasExisting)">Test Connection</button>
+                @if (_hasExisting)
+                {
+                    <button class="v-btn danger" @onclick="OnClearAsync" disabled="@_busy">Remove</button>
+                }
+            </div>
+
+            @if (_hasExisting)
+            {
+                <p class="toggle-description mt-2">
+                    Status:
+                    @if (_verifiedAt is not null)
+                    {
+                        <span style="color: var(--p-cyan);">verified @_verifiedAt?.ToLocalTime().ToString("g")</span>
+                    }
+                    else
+                    {
+                        <span class="v-text-red">not verified — run Test Connection</span>
+                    }
+                </p>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_resultMessage))
+            {
+                <p class="mt-2 @(_resultSuccess ? "" : "v-text-red")">@_resultMessage</p>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _loading = true;
+    private bool _busy;
+    private bool _hasExisting;
+
+    private string _liveKitUrl;
+    private string _apiKey;
+    private string _apiSecret;
+    private bool _enabled;
+    private DateTime? _verifiedAt;
+
+    private string _resultMessage;
+    private bool _resultSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Planet.FetchVoiceInfoAsync();
+        if (result.Success && result.Data is not null)
+        {
+            var info = result.Data;
+            _hasExisting = true;
+            _liveKitUrl = info.LiveKitUrl;
+            _apiKey = info.ApiKey;
+            _enabled = info.Enabled;
+            _verifiedAt = info.VerifiedAt;
+        }
+
+        _loading = false;
+    }
+
+    private async Task OnSaveAsync()
+    {
+        _busy = true;
+        _resultMessage = null;
+
+        var result = await Planet.SetVoiceConfigAsync(new PlanetVoiceConfigRequest
+        {
+            LiveKitUrl = _liveKitUrl,
+            ApiKey = _apiKey,
+            ApiSecret = _apiSecret,
+            Enabled = _enabled,
+        });
+
+        _resultSuccess = result.Success;
+        if (result.Success)
+        {
+            _hasExisting = true;
+            _verifiedAt = result.Data?.VerifiedAt;
+            _apiSecret = null;
+            Planet.SelfHostedVoice = _enabled;
+            _resultMessage = "Saved. Run Test Connection to verify your LiveKit server.";
+        }
+        else
+        {
+            _resultMessage = result.Message;
+        }
+
+        _busy = false;
+    }
+
+    private async Task OnProbeAsync()
+    {
+        _busy = true;
+        _resultMessage = null;
+        StateHasChanged();
+
+        var result = await Planet.ProbeVoiceAsync();
+
+        _resultSuccess = result.Success && result.Data.Success;
+        _resultMessage = result.Success ? result.Data.Message : result.Message;
+
+        if (_resultSuccess)
+            _verifiedAt = DateTime.UtcNow;
+
+        _busy = false;
+    }
+
+    private async Task OnClearAsync()
+    {
+        _busy = true;
+
+        var result = await Planet.ClearVoiceConfigAsync();
+        if (result.Success)
+        {
+            _hasExisting = false;
+            _liveKitUrl = _apiKey = _apiSecret = null;
+            _enabled = false;
+            _verifiedAt = null;
+            Planet.SelfHostedVoice = false;
+            _resultSuccess = true;
+            _resultMessage = "Voice config removed. Calls revert to Valour's voice backend.";
+        }
+        else
+        {
+            _resultSuccess = false;
+            _resultMessage = result.Message;
+        }
+
+        _busy = false;
+    }
+}

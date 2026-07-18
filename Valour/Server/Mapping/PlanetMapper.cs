@@ -24,6 +24,7 @@ public static class PlanetMapper
             Discoverable = planet.Discoverable,
             Nsfw = planet.Nsfw,
             SelfHostedMedia = planet.SelfHostedMedia,
+            SelfHostedVoice = planet.SelfHostedVoice,
             LockedForMigration = planet.LockedForMigration,
             Version = planet.Version,
             HasCustomBackground = planet.HasCustomBackground,

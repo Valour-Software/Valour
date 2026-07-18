@@ -171,6 +171,7 @@ public class PlanetService
         Description = x.Description,
         HasCustomIcon = x.HasCustomIcon,
         SelfHostedMedia = x.SelfHostedMedia,
+        SelfHostedVoice = x.SelfHostedVoice,
         HasAnimatedIcon = x.HasAnimatedIcon,
         HasCustomBackground = x.HasCustomBackground,
         Discoverable = x.Discoverable,

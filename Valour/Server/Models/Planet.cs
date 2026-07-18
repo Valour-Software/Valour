@@ -56,6 +56,12 @@ public class Planet : ServerModel<long>, ISharedPlanet
     public bool SelfHostedMedia { get; set; }
 
     /// <summary>
+    /// True when this planet runs voice/video calls on its own LiveKit SFU
+    /// (bring-your-own-voice) rather than Valour's voice backend
+    /// </summary>
+    public bool SelfHostedVoice { get; set; }
+
+    /// <summary>
     /// True while a migration is in progress — the planet is read-only.
     /// </summary>
     public bool LockedForMigration { get; set; }

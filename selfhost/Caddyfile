@@ -11,3 +11,13 @@
 
 	reverse_proxy valour:5000
 }
+
+# --- Self-hosted voice (LiveKit) ---
+# Uncomment this block when running the "voice" compose profile. It terminates
+# TLS for the LiveKit signalling websocket. Requires a DNS record
+# voice.$VALOUR_DOMAIN pointing at this host. Media does NOT flow through Caddy —
+# it uses UDP 7882 / TCP 7881 directly (see Docs/Deployment/SelfHostVoice.md).
+#
+# voice.{$VALOUR_DOMAIN} {
+# 	reverse_proxy livekit:7880
+# }

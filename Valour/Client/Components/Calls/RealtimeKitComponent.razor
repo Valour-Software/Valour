@@ -1,17 +1,60 @@
 @inject IJSRuntime JsRuntime
+@inject Valour.Sdk.Client.ValourClient Client
 @implements IAsyncDisposable
 
 @code {
     private IJSObjectReference? _jsModule;
+    private string? _activeProvider;
     private static readonly TimeSpan DisposeInteropTimeout = TimeSpan.FromSeconds(2);
 
     private async Task<IJSObjectReference> GetModuleAsync()
     {
+        // One interop surface, two backends: import the module for the provider the
+        // active (or last) call runs on — per-call, because bring-your-own-voice
+        // planets can use LiveKit on a RealtimeKit instance. Both modules export the
+        // same functions with the same JSON shapes, so every method below is unchanged.
         _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>(
-            "import",
-            "./_content/Valour.Client/Components/Calls/RealtimeKitComponent.razor.js");
+            "import", ResolveInteropModulePath(_activeProvider ?? ManifestProvider));
 
         return _jsModule;
+    }
+
+    private string ManifestProvider => Client.InstanceManifest?.Capabilities?.VoiceProvider ?? "realtimekit";
+
+    private static string ResolveInteropModulePath(string? provider)
+    {
+        var isLiveKit = string.Equals(provider, "livekit", StringComparison.OrdinalIgnoreCase);
+
+        return isLiveKit
+            ? "./_content/Valour.Client/js/livekit.interop.js"
+            : "./_content/Valour.Client/Components/Calls/RealtimeKitComponent.razor.js";
+    }
+
+    /// <summary>
+    /// Points the component at the interop module for the given provider. When the
+    /// provider changes between calls, the previous module is reset and dropped so
+    /// the next import loads the right backend.
+    /// </summary>
+    private async Task EnsureProviderModuleAsync(string? provider)
+    {
+        var target = string.IsNullOrWhiteSpace(provider) ? ManifestProvider : provider;
+        if (_jsModule is not null && !string.Equals(_activeProvider, target, StringComparison.OrdinalIgnoreCase))
+        {
+            var oldModule = _jsModule;
+            _jsModule = null;
+
+            try
+            {
+                await oldModule.InvokeVoidAsync("reset").AsTask().WaitAsync(DisposeInteropTimeout);
+                await oldModule.DisposeAsync().AsTask().WaitAsync(DisposeInteropTimeout);
+            }
+            catch (Exception e) when (e is JSDisconnectedException or TimeoutException or ObjectDisposedException)
+            {
+                // Best-effort teardown of the previous backend's module.
+            }
+        }
+
+        _activeProvider = target;
     }
 
     public async Task<bool> IsSdkLoadedAsync()
@@ -26,12 +69,14 @@
         return await module.InvokeAsync<bool>("isInitialized");
     }
 
-    public async Task InitializeAsync(RealtimeKitInitOptions options, int sdkLoadTimeoutMs = 20000)
+    public async Task InitializeAsync(RealtimeKitInitOptions options, string? provider = null, int sdkLoadTimeoutMs = 20000)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         if (string.IsNullOrWhiteSpace(options.AuthToken))
-            throw new ArgumentException("RealtimeKit auth token is required.", nameof(options));
+            throw new ArgumentException("Voice auth token is required.", nameof(options));
+
+        await EnsureProviderModuleAsync(provider);
 
         var module = await GetModuleAsync();
         await module.InvokeVoidAsync("init", options, sdkLoadTimeoutMs);

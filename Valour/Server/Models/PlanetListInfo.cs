@@ -50,6 +50,11 @@ public class PlanetListInfo : ServerModel<long>, ISharedPlanetListInfo
     public bool SelfHostedMedia { get; set; }
 
     /// <summary>
+    /// True when this planet runs voice/video on its own LiveKit SFU
+    /// </summary>
+    public bool SelfHostedVoice { get; set; }
+
+    /// <summary>
     /// Community node domain hosting this planet, or null when official.
     /// </summary>
     public string NodeDomain { get; set; }
