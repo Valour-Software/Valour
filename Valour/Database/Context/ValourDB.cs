@@ -78,6 +78,11 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     /// </summary>
     public DbSet<TenorFavorite> TenorFavorites { get; set; }
 
+    /// <summary>
+    /// Table for provider-neutral GIF favorites created in 0.7 and later.
+    /// </summary>
+    public DbSet<GifFavorite> GifFavorites { get; set; }
+
     // USER LOGIN AND PERMISSION STUFF //
 
     /// <summary>

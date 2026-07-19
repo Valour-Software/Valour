@@ -1,4 +1,4 @@
-.tenor-bg {
+.klipy-bg {
     padding: 20px;
     max-width: 400px;
     width: 90%;
@@ -10,10 +10,10 @@
     background-color: var(--main-2);
     border-radius: var(--radius-xl);
     border: 5px solid var(--main-4);
-    box-shadow: black 0px 0px 15px;
+    box-shadow: black 0 0 15px;
 }
 
-.tenor-bg input {
+.klipy-bg input {
     background: var(--main-4);
     border: 1px solid #030B11;
     border-radius: var(--radius-md);
@@ -21,9 +21,19 @@
     padding: 5px 9px;
 }
 
+.klipy-header {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.klipy-header input {
+    min-width: 0;
+}
+
 .masonry-root {
     overflow-y: auto;
-    margin-top: 10px;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -33,7 +43,7 @@
 .masonry-scroller {
     overflow-y: auto;
     overflow-x: hidden;
-    height: 90%;
+    height: 86%;
 }
 
 .masonry-root .masonry-cell {
@@ -59,7 +69,7 @@
 
 .masonry-cell:hover .favorite {
     opacity: 0.6;
-    text-shadow: black 0px 0px 6px;
+    text-shadow: black 0 0 6px;
 }
 
 .masonry-root .masonry-cell:hover .item {
@@ -72,4 +82,16 @@
     top: 10px;
     font-size: var(--font-size-md);
     text-shadow: -2px -2px 0 #000, 0 -2px 0 #000, 2px -2px 0 #000, 2px 0 0 #000, 2px 2px 0 #000, 0 2px 0 #000, -2px 2px 0 #000, -2px 0 0 #000;
+}
+
+.klipy-branding {
+    flex: 0 1 136px;
+    height: auto;
+    max-width: 38%;
+    min-width: 92px;
+}
+
+.klipy-error {
+    color: var(--bs-danger);
+    padding: 8px;
 }

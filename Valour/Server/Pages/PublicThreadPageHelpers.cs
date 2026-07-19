@@ -7,6 +7,7 @@ using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
 using Valour.Server.Cdn.Storage;
 using Valour.Server.Database;
+using Valour.Shared.Cdn;
 
 namespace Valour.Server.Pages;
 
@@ -154,6 +155,7 @@ public static partial class PublicThreadPageHelpers
             return null;
 
         if (location.StartsWith("https://media.tenor.com", StringComparison.OrdinalIgnoreCase) ||
+            KlipyMediaUrls.IsAllowed(location) ||
             location.Contains("proxy/", StringComparison.OrdinalIgnoreCase))
             return location;
 

@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
+using Valour.Shared.Cdn;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -197,9 +198,11 @@ public class MessageAttachment : ISharedMessageAttachment
         
         var location = Location;
 
-        if (location.StartsWith("https://media.tenor.com"))
+        if (location.StartsWith("https://media.tenor.com", StringComparison.OrdinalIgnoreCase) ||
+            KlipyMediaUrls.IsAllowed(location))
         {
-            // If the location is a Tenor URL, we don't need to fetch a signed URL
+            // Provider-hosted GIFs are directly loadable and do not require a
+            // Valour CDN signed URL. The Tenor branch remains for old messages.
             return location;
         }
         
@@ -243,4 +246,3 @@ public class MessageAttachment : ISharedMessageAttachment
                location.StartsWith("data:", StringComparison.OrdinalIgnoreCase);
     }
 }
-

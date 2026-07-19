@@ -53,7 +53,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(client.NodeService);
         services.AddSingleton(client.PlanetService);
         services.AddSingleton(client.ChannelService);
-        services.AddSingleton(client.TenorService);
+        services.AddSingleton(client.KlipyService);
         services.AddSingleton(client.SubscriptionService);
         services.AddSingleton(client.NotificationService);
         services.AddSingleton(client.EcoService);

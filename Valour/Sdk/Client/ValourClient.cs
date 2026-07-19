@@ -43,7 +43,7 @@ public class ValourClient
     public readonly PlanetService PlanetService;
     public readonly ChannelService  ChannelService;
     public readonly PermissionService PermissionService;
-    public readonly TenorService TenorService;
+    public readonly KlipyService KlipyService;
     public readonly SubscriptionService SubscriptionService;
     public readonly NotificationService NotificationService;
     public readonly AutomodService AutomodService;
@@ -140,9 +140,17 @@ public class ValourClient
         ThreadService = new ThreadService(this);
         WikiService = new WikiService(this);
 
-        var tenorHttpClient = new HttpClient();
-        tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
-        TenorService = new TenorService(tenorHttpClient, this);
+        KlipyService = new KlipyService(this);
+    }
+
+    /// <summary>
+    /// Configures the public, client-side Klipy platform key. This is intended
+    /// for browser/native application configuration and must not be used for a
+    /// server credential: clients can always inspect this value.
+    /// </summary>
+    public void ConfigureKlipy(string? publicApiKey)
+    {
+        KlipyService.Configure(publicApiKey);
     }
     
     /// <summary>
@@ -258,7 +266,7 @@ public class ValourClient
             FriendService.FetchFriendsAsync(),
             BlockService.FetchBlocksAsync(),
             PlanetService.FetchJoinedPlanetsAsync(),
-            TenorService.LoadTenorFavoritesAsync(),
+            KlipyService.LoadGifFavoritesAsync(),
             ChannelService.LoadDmChannelsAsync(),
             NotificationService.LoadUnreadNotificationsAsync()
         };

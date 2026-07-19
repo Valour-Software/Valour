@@ -8,8 +8,7 @@
 @using Valour.Client.Emojis
 @using Valour.Shared.Cdn
 @using Valour.Shared.Models
-@using Valour.TenorTwo.Models
-@using Media = Valour.TenorTwo.Models.Media
+@using Valour.Shared.Models
 
 <InputFile id="@DropUploadInputId" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" onclick="this.value='';" OnChange="@LoadFiles"></InputFile>
 
@@ -40,12 +39,12 @@
     }
 
     <div class="upload-menu" style="@UploadMenuStyle" @onclick:stopPropagation="true">
-        <div class="content tenor">
+        <div class="content klipy">
             <button type="button" class="button" @ref="_uploadMenuFileButton">
                 <img class="menu-icon" src="_content/Valour.Client/media/Paperclip-Icon.svg" alt="" />
                 <span>Upload</span>
             </button>
-            <button type="button" class="button tenor" @onclick="@ShowTenorMenu">
+            <button type="button" class="button klipy" @onclick="@ShowKlipyMenu" disabled="@(!Client.KlipyService.IsConfigured)" title="@(Client.KlipyService.IsConfigured ? "Search GIFs" : "GIF search is not configured")">
                 <img class="menu-icon" src="_content/Valour.Client/media/Gif-Icon.svg" alt="" />
                 <span>Gifs</span>
             </button>
@@ -58,7 +57,7 @@
     </div>
     
     <div style="position: relative">
-        <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
+        <KlipyMenuComponent @key="@("klipy-menu-" + ChatComponent.WindowCtx.Id)" @ref="KlipyMenu" ChannelWindow="ChatComponent"></KlipyMenuComponent>
     </div>
     <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
     
@@ -121,9 +120,9 @@
     private string UploadMenuStyle => _isUploadMenuOpen ? string.Empty : "display: none;";
 
     /// <summary>
-    /// The tenor menu component
+    /// The Klipy GIF menu component
     /// </summary>
-    private TenorMenuComponent TenorMenu { get; set; }
+    private KlipyMenuComponent KlipyMenu { get; set; }
 
     /// <summary>
     /// A reference to the inner input component
@@ -269,10 +268,13 @@
         ModalRoot.OpenModal<EcoPayModal>(data);
     }
 
-    public async Task ShowTenorMenu()
+    public async Task ShowKlipyMenu()
     {
+        if (!Client.KlipyService.IsConfigured)
+            return;
+
         HideUploadMenu();
-        await TenorMenu.Show();
+        await KlipyMenu.Show();
     }
 
     private Task ToggleUploadMenu()
@@ -762,17 +764,19 @@
         AddMessageAttachment(attachment);
     }
     
-    public void AddTenor(Media media)
+    public void AddKlipy(KlipyGif gif)
     {
-        var format = media.GetFormat(MediaFormatType.gif);
+        var format = gif.Gif;
+        if (format is null)
+            return;
 
         AddMessageAttachment(new MessageAttachment(MessageAttachmentType.Image)
         {
             Location = format.Url,
             MimeType = "image/gif",
-            Width = format.Dims[0],
-            Height = format.Dims[1],
-            FileName = media.Title + ".gif"
+            Width = format.Width,
+            Height = format.Height,
+            FileName = gif.Title + ".gif"
         });
     }
 

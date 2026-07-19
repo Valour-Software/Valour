@@ -1,10 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Valour.Database.Context;
 
 #nullable disable
 
 namespace Valour.Database.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(ValourDb))]
+    [Migration("20260719160000_RemoveFederatedWorkerIds")]
     public partial class RemoveFederatedWorkerIds : Migration
     {
         /// <inheritdoc />

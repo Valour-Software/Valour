@@ -582,6 +582,14 @@ public class UserApi
         return Results.Json(await userService.GetTenorFavoritesAsync(userId));
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/users/me/giffavorites")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> GetGifFavoritesRouteAsync(UserService userService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        return Results.Json(await userService.GetGifFavoritesAsync(userId));
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/users/me/referrals")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> GetReferralsAsync(UserService userService)

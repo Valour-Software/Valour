@@ -96,6 +96,17 @@ else
             // Host page does not expose a threads origin override.
         }
 
+        try
+        {
+            Client.ConfigureKlipy(await JsRuntime.InvokeAsync<string>("getKlipyApiKey"));
+        }
+        catch
+        {
+            // Klipy is optional and may be disabled by deployments that do not
+            // expose a public platform key in their runtime configuration.
+            Client.ConfigureKlipy(null);
+        }
+
         var hostMode = "web";
         try
         {

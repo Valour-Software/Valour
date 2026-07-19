@@ -85,6 +85,7 @@ namespace Valour.Shared.Cdn
             "cdn.discordapp.com",
             "vimeo.com",
             "tenor.com",
+            "klipy.com",
             "i.imgur.com",
             "youtu.be",
             "pbs.twimg.com",

@@ -10,6 +10,7 @@ using Valour.Shared.Queries;
 using Microsoft.EntityFrameworkCore.Storage;
 using AuthToken = Valour.Server.Models.AuthToken;
 using EmailConfirmCode = Valour.Server.Models.EmailConfirmCode;
+using GifFavorite = Valour.Server.Models.GifFavorite;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
 using Planet = Valour.Server.Models.Planet;
 using TenorFavorite = Valour.Server.Models.TenorFavorite;
@@ -217,6 +218,9 @@ public class UserService
 
     public async Task<List<TenorFavorite>> GetTenorFavoritesAsync(long userId) =>
         await _db.TenorFavorites.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
+
+    public async Task<List<GifFavorite>> GetGifFavoritesAsync(long userId) =>
+        await _db.GifFavorites.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<(List<User> outgoing, List<User> incoming)> GetFriendsDataAsync(long userId)
     {
@@ -1183,6 +1187,9 @@ public class UserService
             // Remove tenor favorites
             var tenorFavorites = _db.TenorFavorites.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.TenorFavorites.RemoveRange(tenorFavorites);
+
+            var gifFavorites = _db.GifFavorites.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.GifFavorites.RemoveRange(gifFavorites);
 
             await _db.SaveChangesAsync();
             

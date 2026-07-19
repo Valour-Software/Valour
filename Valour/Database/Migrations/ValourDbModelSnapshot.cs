@@ -1090,6 +1090,60 @@ namespace Valour.Database.Migrations
                     b.ToTable("federation_keys", (string)null);
                 });
 
+            modelBuilder.Entity("Valour.Database.GifFavorite", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("GifUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("gif_url");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<string>("PreviewUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("preview_url");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("provider_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Provider", "ProviderId")
+                        .IsUnique();
+
+                    b.ToTable("gif_favorites");
+                });
+
             modelBuilder.Entity("Valour.Database.Message", b =>
                 {
                     b.Property<long>("Id")

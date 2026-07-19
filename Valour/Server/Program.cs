@@ -150,6 +150,7 @@ public partial class Program
             new DynamicAPI<UserFriendApi>().RegisterRoutes(app),
             new DynamicAPI<UserBlockApi>().RegisterRoutes(app),
             new DynamicAPI<OauthAppApi>().RegisterRoutes(app),
+            new DynamicAPI<GifFavoriteApi>().RegisterRoutes(app),
             new DynamicAPI<TenorFavoriteApi>().RegisterRoutes(app),
             new DynamicAPI<EcoApi>().RegisterRoutes(app),
             new DynamicAPI<NotificationApi>().RegisterRoutes(app),
@@ -585,6 +586,7 @@ public partial class Program
         services.AddScoped<ThreadService>();
         services.AddScoped<PlanetWikiService>();
         services.AddScoped<PlanetService>();
+        services.AddScoped<GifFavoriteService>();
         services.AddScoped<TenorFavoriteService>();
         services.AddScoped<AutomodService>();
         services.AddScoped<ModerationAuditService>();

@@ -100,11 +100,16 @@ Hunt down remaining literals so everything flows from `HostingConfig`:
 - `MediaUriHelper` host allowlist
 - `ProxyHandler` thread links and Twitch `parent=valour.gg`
 - `ClientHosts`, `EmailManager` sender address
-- Tenor API key hardcoded in `Valour/Sdk/Services/TenorService.cs`
+- Klipy public web key supplied through the client runtime configuration
 - Sentry DSN in `Valour.Client.Blazor/Program.cs`
 
 The client's runtime-config override (`valour-runtime-config.js`) is the right
-pattern — keep it.
+pattern — keep it. Klipy is a direct client integration: deploy a dedicated
+public web platform key as `window.valourRuntimeConfig.klipyApiKey`, rather
+than placing it in server configuration or source control. The value is
+intentionally visible to clients, so it must not be reused for a private
+service; leaving it blank disables the GIF picker. Configure the app URL,
+content filters, blocked words, and ad choice in Klipy's Partner Panel.
 
 ### 1c. Instance manifest endpoint
 
@@ -125,7 +130,7 @@ ad-hoc degradation (the `ApiKey == "fake-value"` email bypass becomes
 | RealtimeKit | Falls back to the self-hostable LiveKit driver, else voice/video disabled |
 | PhotoDNA | Already optional |
 | Firebase/VAPID | Push disabled; SignalR-only notifications |
-| Sentry/Tenor | Config-driven, off by default |
+| Sentry/Klipy | Sentry config-driven; Klipy disabled until a public client key is deployed |
 
 **Postgres and Redis stay hard requirements.** Abstracting Redis away for
 single-node mode would touch presence, relay, and planet assignment for

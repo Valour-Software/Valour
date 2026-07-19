@@ -273,7 +273,7 @@ public class EmbedBuilder
 	/// <param name="height"></param>
 	/// <param name="mimetype"></param>
 	/// <param name="filename"></param>
-	/// <param name="location">Must be either from https://media.tenor.com or https://cdn.valour.gg</param>
+	/// <param name="location">Must be from an allowed GIF provider or Valour CDN host.</param>
 	/// <returns></returns>
 	public EmbedBuilder AddMedia(MessageAttachmentType type, int width, int height, string mimetype, string filename, string location)
     {

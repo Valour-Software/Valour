@@ -1,0 +1,252 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+@inject ValourClient Client
+@inject KlipyService KlipyService
+
+<div style="display: @(_visible ? "absolute" : "none")" id="klipy-bg-@ChannelWindow.WindowCtx.Id" class="klipy-bg">
+    <div class="klipy-header">
+        <input @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchChange" class="form-control" placeholder="Search KLIPY" aria-label="Search KLIPY" />
+        <img class="klipy-branding" src="_content/Valour.Client/media/klipy/powered-by-klipy-white.svg" alt="Powered by KLIPY" />
+    </div>
+    <div class="masonry-scroller">
+        <div id="masonry-root-@ChannelWindow.WindowCtx.Id" class="masonry-root">
+            @if (SearchResults is not null)
+            {
+                foreach (var result in SearchResults.Results)
+                {
+                    var preview = result.Preview;
+                    if (preview is null)
+                        continue;
+
+                    <div @key="@("cell-" + result.Slug)" class="masonry-cell" @onclick="async () => await OnClickGif(result)">
+                        @if (KlipyService.GifFavorites.Any(x => x.ProviderId == result.Slug))
+                        {
+                            <h3 class="favorite" @onclick="() => OnClickUnfavorite(result)" @onclick:stopPropagation="true">❤️</h3>
+                        }
+                        else
+                        {
+                            <h3 class="favorite" @onclick="() => OnClickFavorite(result)" @onclick:stopPropagation="true">🤍</h3>
+                        }
+                        <img data-natwidth="@preview.Width" data-natheight="@preview.Height" class="item" src="@preview.Url" alt="@result.Title" loading="lazy" />
+                    </div>
+                }
+            }
+            else if (CategoryResults is not null)
+            {
+                <div class="masonry-cell">
+                    <h2>Favorites ❤️</h2>
+                    <img data-natwidth="210" data-natheight="180" class="item" src="./_content/Valour.Client/media/Spookvooper.jpg" alt="Favorites" @onclick='() => OnClickCategory(":favorites:")' />
+                </div>
+
+                @foreach (var category in CategoryResults)
+                {
+                    <div @key="@category.SearchTerm" class="masonry-cell">
+                        <h2>@category.Name</h2>
+                        <img data-natwidth="210" data-natheight="180" class="item" src="@category.Image" alt="@category.Name" loading="lazy" @onclick="() => OnClickCategory(category.SearchTerm)" />
+                    </div>
+                }
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <p class="klipy-error">@_error</p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public ChatWindowComponent ChannelWindow { get; set; } = null!;
+
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<KlipyMenuComponent>? _thisRef;
+    private KlipyGifSearchResults? SearchResults { get; set; }
+    private List<KlipyCategory>? CategoryResults { get; set; }
+    private string _searchTerm = string.Empty;
+    private string? _error;
+    private bool _visible;
+    private bool _canRender;
+    private DateTime _lastLoad = DateTime.UtcNow;
+
+    protected override bool ShouldRender() => _canRender;
+
+    public void Refresh()
+    {
+        _canRender = true;
+        StateHasChanged();
+    }
+
+    private async Task OnClickFavorite(KlipyGif gif)
+    {
+        var preview = gif.Preview;
+        var media = gif.Gif;
+        if (preview is null || media is null)
+            return;
+
+        var favorite = new GifFavorite(Client)
+        {
+            UserId = Client.Me.Id,
+            Provider = "klipy",
+            ProviderId = gif.Slug,
+            Title = gif.Title,
+            PreviewUrl = preview.Url,
+            GifUrl = media.Url,
+            Width = media.Width,
+            Height = media.Height
+        };
+
+        var result = await KlipyService.AddGifFavoriteAsync(favorite);
+        _error = result.Success ? null : result.Message;
+        Refresh();
+    }
+
+    private async Task OnClickUnfavorite(KlipyGif gif)
+    {
+        var favorite = KlipyService.GifFavorites.FirstOrDefault(x => x.ProviderId == gif.Slug);
+        if (favorite is null)
+            return;
+
+        var result = await KlipyService.RemoveGifFavoriteAsync(favorite);
+        _error = result.Success ? null : result.Message;
+        Refresh();
+    }
+
+    private async Task OnClickGif(KlipyGif gif)
+    {
+        ChannelWindow.InputComponent.AddKlipy(gif);
+        Hide();
+        _ = KlipyService.RegisterShareAsync(gif.Slug);
+        await Task.CompletedTask;
+    }
+
+    private async Task OnSearchChange()
+    {
+        var term = _searchTerm;
+        if (_lastLoad.AddMilliseconds(500) > DateTime.UtcNow)
+            await Task.Delay(500);
+
+        _lastLoad = DateTime.UtcNow;
+        if (term != _searchTerm)
+            return;
+
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            SearchResults = null;
+            _error = null;
+            Refresh();
+            return;
+        }
+
+        await FocusAndScroll();
+        if (term == ":favorites:")
+        {
+            SearchResults = BuildFavoriteResults();
+            _error = null;
+        }
+        else
+        {
+            var result = await KlipyService.SearchAsync(term);
+            SearchResults = result.Success ? result.Data : null;
+            _error = result.Success ? null : result.Message;
+        }
+
+        Refresh();
+    }
+
+    private KlipyGifSearchResults BuildFavoriteResults() => new()
+    {
+        Results = KlipyService.GifFavorites
+            .Where(x => x.Provider.Equals("klipy", StringComparison.OrdinalIgnoreCase))
+            .Select(x => new KlipyGif
+            {
+                Slug = x.ProviderId,
+                Title = x.Title,
+                File = new KlipyMediaFile
+                {
+                    Md = new KlipyMediaFormats
+                    {
+                        Gif = new KlipyMediaAsset
+                        {
+                            Url = x.GifUrl,
+                            Width = x.Width,
+                            Height = x.Height
+                        }
+                    },
+                    Sm = new KlipyMediaFormats
+                    {
+                        Gif = new KlipyMediaAsset
+                        {
+                            Url = x.PreviewUrl,
+                            Width = x.Width,
+                            Height = x.Height
+                        }
+                    }
+                }
+            })
+            .ToList()
+    };
+
+    private async Task OnClickCategory(string term)
+    {
+        _searchTerm = term;
+        await OnSearchChange();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        _canRender = false;
+        if (firstRender)
+        {
+            _thisRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Valour.Client/Components/Menus/Upload/KlipyMenuComponent.razor.js");
+            await _jsModule.InvokeVoidAsync("setupHide", "klipy-bg-" + ChannelWindow.WindowCtx.Id, _thisRef);
+        }
+
+        await BuildMasonry();
+    }
+
+    public async Task FocusAndScroll()
+    {
+        if (_jsModule is not null)
+            await _jsModule.InvokeVoidAsync("focusAndScroll", "masonry-root-" + ChannelWindow.WindowCtx.Id);
+    }
+
+    private async Task BuildMasonry()
+    {
+        if (_jsModule is not null)
+            await _jsModule.InvokeVoidAsync("buildMasonry", "masonry-root-" + ChannelWindow.WindowCtx.Id);
+    }
+
+    public async Task Show()
+    {
+        _visible = true;
+        if (CategoryResults is null)
+        {
+            var result = await KlipyService.GetCategoriesAsync();
+            CategoryResults = result.Success ? result.Data : new List<KlipyCategory>();
+            _error = result.Success ? null : result.Message;
+        }
+
+        await FocusAndScroll();
+        Refresh();
+    }
+
+    [JSInvokable]
+    public void Hide()
+    {
+        if (!_visible)
+            return;
+
+        _visible = false;
+        Refresh();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_jsModule is not null)
+            await _jsModule.DisposeAsync();
+        _thisRef?.Dispose();
+    }
+}

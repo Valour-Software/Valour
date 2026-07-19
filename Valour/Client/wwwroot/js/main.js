@@ -135,6 +135,14 @@ window.getValourThreadsOrigin = function() {
     return config.threadsOrigin.trim();
 };
 
+window.getKlipyApiKey = function() {
+    const config = window["valourRuntimeConfig"];
+    if (!config || typeof config.klipyApiKey !== "string")
+        return "";
+
+    return config.klipyApiKey.trim();
+};
+
 function Log(message, color) {
     console.log("%c" + message, 'color: ' + color);
 }

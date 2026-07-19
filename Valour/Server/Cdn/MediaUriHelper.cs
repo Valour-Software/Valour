@@ -40,7 +40,8 @@ public class MediaUriHelper
 
         if (host.Equals(ValourHosts.ContentCdnHost, StringComparison.OrdinalIgnoreCase) ||
             host.Equals(ValourHosts.AppHost, StringComparison.OrdinalIgnoreCase) ||
-            host == "media.tenor.com")
+            host == "media.tenor.com" ||
+            KlipyMediaUrls.IsAllowed(attachment.Location))
             return true;
 
         if (CdnUtils.TryGetVirtualAttachmentType(host, out var mappedType) &&
