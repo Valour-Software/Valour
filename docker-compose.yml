@@ -46,8 +46,8 @@ services:
       - Node__Name=main
       - Node__Location=https://${VALOUR_DOMAIN:?set VALOUR_DOMAIN in .env}
       # Optional community-node federation. Configure these with
-      # ./scripts/valour-node-setup; they are intentionally disabled by default.
-      # The wizard generates and stores the KEK only in .env (which is gitignored).
+      # ./scripts/valour-node-setup; this self-hosted bundle is not an official
+      # hub replica. The wizard generates and stores the KEK only in .env.
       - Federation__HubUrl=${FEDERATION__HUBURL:-}
       - Federation__NodeDomain=${FEDERATION__NODEDOMAIN:-}
       - Federation__NodeChallenge=${FEDERATION__NODECHALLENGE:-}

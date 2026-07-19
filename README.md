@@ -40,6 +40,38 @@ Planets can deploy a currency and economic system in two clicks. Why? Don't both
 
 Valour Nodes are designed to be able to run independently of any central server or service. One node failing has no effect on other nodes, allowing Valour to scale safely and efficiently. Our logical-server based system, rather than depending on cloud services, also allows us to be provider-agnostic, hosting Valour across different providers and giving us the ability to dedicate resources to large communities that need it.
 
+## Federation
+
+Federation lets a planet move from Valour's official infrastructure to an
+independently operated community server without giving that server a user's
+Valour login token. It has two roles:
+
+| Role | Purpose | Configuration |
+| --- | --- | --- |
+| Official hub cluster | Accounts, planet registry, node verification, grants, and federation sessions. Every official Valour app instance is a hub-capable replica. | `Federation:HubEnabled=true` on every official instance; all replicas share the official database and Data Protection KEK. |
+| Community node | Independently hosts planets after its operator proves control of a public domain. | `Federation:HubUrl` and `Federation:NodeDomain`; do not enable `HubEnabled`. |
+
+Official `Node:WorkerId` values distinguish concurrent writers to the shared
+official database only. They are not federation registrations and community
+operators neither receive nor compete for them.
+
+A community-node operator starts a public HTTPS server, registers its bare
+domain in **User Settings → Federation** on the hub, installs the issued
+challenge, and verifies it. A planet owner then opens that planet's settings →
+**Federation**, enters the verified destination domain, and starts the move.
+The source planet is read-only while the destination imports a signed snapshot.
+The owner pastes the resulting grant into **User Settings → Federation**,
+verifies the destination, and explicitly finalizes removal of the official
+source copy. There is no direct community-node-to-community-node move; pull a
+planet back to the hub first.
+
+Community nodes are closed to other owners by default. Their operator may
+approve a hub owner or one planet, or deliberately opt into public migration
+hosting. Clients connect directly to a community node with short-lived,
+destination-bound federation credentials; the user's real Valour token never
+leaves the hub. See [Federation](Docs/Federation.md) for the full role model,
+operator steps, security properties, and migration limits.
+
 ## Self-hosting
 
 Run your own Valour instance with Docker Compose — Postgres, Redis, local-disk
@@ -67,12 +99,12 @@ wizard before starting Docker Compose:
 ./scripts/valour-node-setup
 ```
 
-It configures federation, generates the required private Data Protection KEK,
-and walks through the public/approval-only migration-hosting choice. After the
-node is publicly reachable, register and verify its bare domain through the
-hub's **User Settings → Federation** page; the wizard explains the short
-challenge/restart step. See the [federation production checklist](Docs/Deployment/README.md#federation-production-checklist)
-for the security requirements.
+It configures the community-node settings, generates the required private Data
+Protection KEK, and walks through the public/approval-only migration-hosting
+choice. The normal self-hosted Compose bundle is a community node, not an
+official hub replica. See [Federation](Docs/Federation.md#community-node-operator-flow)
+for the registration ceremony and [the deployment checklist](Docs/Deployment/README.md#federation-production-checklist)
+for production requirements.
 
 ## Contribute
 
