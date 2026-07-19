@@ -155,6 +155,10 @@ public class PlanetWikiService
         if (request is null)
             return TaskResult<PlanetWikiPage>.FromFailure("Request is required.");
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetWikiPage>.FromFailure(migrationGuard.Message);
+
         var title = request.Title?.Trim();
         var titleCheck = ValidateTitle(title);
         if (!titleCheck.Success)
@@ -253,6 +257,10 @@ public class PlanetWikiService
         if (updated is null)
             return TaskResult<PlanetWikiPage>.FromFailure("Doc is required.");
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, updated.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetWikiPage>.FromFailure(migrationGuard.Message);
+
         var dbDoc = await _db.PlanetWikiPages
             .FirstOrDefaultAsync(x => x.PlanetId == updated.PlanetId && x.Id == updated.Id);
 
@@ -322,6 +330,10 @@ public class PlanetWikiService
     {
         if (request is null)
             return TaskResult<PlanetWikiPage>.FromFailure("Request is required.");
+
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetWikiPage>.FromFailure(migrationGuard.Message);
 
         var dbDoc = await _db.PlanetWikiPages
             .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.Id == pageId);

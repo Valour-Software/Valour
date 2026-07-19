@@ -43,6 +43,9 @@ public class PlanetRuleService
 
         var hosted = await _hostedPlanetService.GetRequiredAsync(rule.PlanetId);
 
+        if (hosted.Planet.LockedForMigration)
+            return TaskResult<PlanetRule>.FromFailure(MigrationLock.Message);
+
         rule.Id = IdManager.Generate();
         rule.Position = hosted.Rules.List.Count == 0
             ? 0
@@ -70,6 +73,10 @@ public class PlanetRuleService
         var validation = Validate(updatedRule);
         if (!validation.Success)
             return TaskResult<PlanetRule>.FromFailure(validation.Message);
+
+        var migrationGuard = await MigrationLock.GuardAsync(_db, updatedRule.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetRule>.FromFailure(migrationGuard.Message);
 
         var dbRule = await _db.PlanetRules
             .FirstOrDefaultAsync(x => x.PlanetId == updatedRule.PlanetId && x.Id == updatedRule.Id);
@@ -100,6 +107,10 @@ public class PlanetRuleService
 
     public async Task<TaskResult> DeleteAsync(long planetId, long ruleId)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var dbRule = await _db.PlanetRules
             .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.Id == ruleId);
 

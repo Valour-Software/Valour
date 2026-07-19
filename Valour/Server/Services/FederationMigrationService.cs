@@ -151,7 +151,9 @@ public class FederationMigrationService
     }
 
     /// <summary>
-    /// Serves the planet snapshot to a destination holding a valid grant.
+    /// Serves the planet snapshot to a destination holding a valid grant, and
+    /// records the snapshot hash + timestamp so completion can require proof the
+    /// target actually pulled and imported it.
     /// </summary>
     public async Task<TaskResult<PlanetSnapshot>> GetSnapshotForGrantAsync(string grant)
     {
@@ -163,14 +165,37 @@ public class FederationMigrationService
         if (migration is null || migration.Status != FederatedMigrationStatus.Pending || migration.TargetDomain != target)
             return TaskResult<PlanetSnapshot>.FromFailure("No active migration for this grant.");
 
-        return await _snapshotService.ExportAsync(planetId.Value);
+        var export = await _snapshotService.ExportAsync(planetId.Value);
+        if (!export.Success || export.Data is null)
+            return TaskResult<PlanetSnapshot>.FromFailure(export.Message ?? "Failed to export snapshot.");
+
+        // Hash a canonical serialization of the snapshot object (not the wire
+        // bytes, which a compressing proxy could alter). The target re-derives the
+        // same hash from its imported copy — a mismatch fails safe: the source
+        // keeps its data.
+        migration.SnapshotHash = SnapshotHash(export.Data);
+        migration.SnapshotServedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return TaskResult<PlanetSnapshot>.FromData(export.Data);
+    }
+
+    /// <summary>
+    /// Canonical hash of a snapshot: SHA-256 over its default (compact, declared-
+    /// order) System.Text.Json serialization. Both source and target compute this
+    /// over the same logical object, so it is independent of wire encoding.
+    /// </summary>
+    private static string SnapshotHash(PlanetSnapshot snapshot)
+    {
+        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(snapshot);
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
     /// <summary>
     /// Destination confirms it imported the planet; source performs the full
     /// handoff — deletes the planet data and keeps only the stub. Node-authed.
     /// </summary>
-    public async Task<TaskResult> CompleteAsync(string nodeDomain, long planetId)
+    public async Task<TaskResult> CompleteAsync(string nodeDomain, long planetId, string grant, string importedHash)
     {
         var migration = await _db.FederatedMigrations.FindAsync(planetId);
         if (migration is null || migration.Status != FederatedMigrationStatus.Pending)
@@ -179,17 +204,41 @@ public class FederationMigrationService
         if (migration.TargetDomain != nodeDomain)
             return TaskResult.FromFailure("This migration targets a different node.");
 
+        // The node's S2S token proves who it is; it must ALSO present the hub-signed
+        // grant for THIS migration — completion is a destructive act, not something a
+        // node can trigger from identity alone.
+        var (grantPlanetId, grantTarget) = await ValidateGrantAsync(grant);
+        if (grantPlanetId != planetId || grantTarget != nodeDomain)
+            return TaskResult.FromFailure("A valid migration grant for this planet and node is required.");
+
+        // Never delete source data the target didn't actually receive. The snapshot
+        // must have been served, and the target must echo its exact hash — proof it
+        // pulled and imported the real data before we hand off.
+        if (migration.SnapshotServedAt is null || string.IsNullOrEmpty(migration.SnapshotHash))
+            return TaskResult.FromFailure("The snapshot has not been pulled yet; cannot complete.");
+
+        if (!string.Equals(migration.SnapshotHash, importedHash?.Trim().ToLowerInvariant(), StringComparison.Ordinal))
+            return TaskResult.FromFailure("Imported snapshot hash does not match the served snapshot.");
+
         // Capture stub info before the planet is deleted.
         var planet = await _db.Planets.AsNoTracking().FirstOrDefaultAsync(x => x.Id == planetId);
         var memberCount = await _db.PlanetMembers.CountAsync(x => x.PlanetId == planetId);
 
-        // Full handoff: delete the planet's data from this (official) source.
-        var deleteResult = await _snapshotService.DeletePlanetDataAsync(planetId);
-        if (!deleteResult.Success)
-            return deleteResult;
+        // Record the identities legitimately present at handoff (members + message
+        // authors + owner). A later pull-back trusts only these as official
+        // identities; anything the returning node adds beyond them is fabricated.
+        var trustedIds = new HashSet<long>();
+        trustedIds.UnionWith(await _db.PlanetMembers.Where(x => x.PlanetId == planetId).Select(x => x.UserId).ToListAsync());
+        trustedIds.UnionWith(await _db.Messages.Where(x => x.PlanetId == planetId).Select(x => x.AuthorUserId).Distinct().ToListAsync());
+        if (planet is not null)
+            trustedIds.Add(planet.OwnerId);
 
-        // Replace it with a stub pointing at the node — the hub now only knows
-        // this planet lives on the node (discovery, invites, moderation).
+        // Create the stub and mark the migration completed FIRST, in one atomic
+        // save, BEFORE deleting the source. Ordering matters for crash safety:
+        // if the delete then fails, the planet still exists on official AND has a
+        // stub — a recoverable duplicate (retry the delete) — rather than the
+        // unrecoverable "source deleted, no stub". The planet stays
+        // LockedForMigration throughout, so it's read-only in that window.
         var existingStub = await _db.FederatedPlanetStubs.FindAsync(planetId);
         if (existingStub is not null)
             _db.FederatedPlanetStubs.Remove(existingStub);
@@ -206,11 +255,23 @@ public class FederationMigrationService
             Discoverable = planet?.Discoverable ?? false,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
+            TrustedUserIdsJson = System.Text.Json.JsonSerializer.Serialize(trustedIds),
         });
 
         migration.Status = FederatedMigrationStatus.Completed;
         migration.CompletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+
+        // Now delete the source data. A failure here leaves a recoverable
+        // duplicate (stub + still-present, locked source) rather than data loss.
+        var deleteResult = await _snapshotService.DeletePlanetDataAsync(planetId);
+        if (!deleteResult.Success)
+        {
+            _logger.LogError(
+                "Handoff of planet {PlanetId} to {Domain}: stub created but source delete failed ({Message}). Source is retained and still locked; retry the delete.",
+                planetId, nodeDomain, deleteResult.Message);
+            return TaskResult.FromFailure("Handoff recorded, but source cleanup failed and will be retried.");
+        }
 
         // Evict the now-deleted planet from the hosted-planet cache so this
         // node stops serving its stale in-memory copy.
@@ -245,12 +306,18 @@ public class FederationMigrationService
         if (target != FederationConfig.Current.NodeDomain)
             return TaskResult.FromFailure("This grant is for a different destination.");
 
+        // Ignore the caller-supplied source URL: forward migrations always come
+        // from the trusted hub (the grant issuer). Trusting it would let a caller
+        // point the node at an attacker's server and capture the node's S2S token
+        // when it confirms completion there.
+        var source = FederationConfig.Current.HubUrl;
+
         // Pull the snapshot from the source using the grant.
         PlanetSnapshot snapshot;
         try
         {
             var client = _httpFactory.CreateClient("federation");
-            var url = sourceUrl.TrimEnd('/') + $"/api/federation/migrations/{planetId}/snapshot";
+            var url = source.TrimEnd('/') + $"/api/federation/migrations/{planetId}/snapshot";
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
             req.Headers.Add("X-Valour-Migration-Grant", grant);
             using var resp = await client.SendAsync(req);
@@ -267,6 +334,10 @@ public class FederationMigrationService
         if (snapshot?.Planet is null || snapshot.Planet.Id != planetId)
             return TaskResult.FromFailure("Snapshot did not match the grant.");
 
+        // Prove to the source we imported exactly what it served: the hash of our
+        // copy, computed the same canonical way, must match.
+        var importedHash = SnapshotHash(snapshot);
+
         // Import the planet locally at its original ids.
         var import = await _snapshotService.ImportAsync(snapshot);
         if (!import.Success)
@@ -274,14 +345,14 @@ public class FederationMigrationService
 
         // Confirm to the source, which atomically deletes its copy and replaces
         // it with a stub pointing here (the hub owns both sides of the handoff).
-        var complete = await ConfirmCompleteAsync(sourceUrl, planetId);
+        var complete = await ConfirmCompleteAsync(source, planetId, grant, importedHash);
         if (!complete.Success)
             return TaskResult.FromFailure($"Imported locally, but source handoff failed: {complete.Message}");
 
         return TaskResult.SuccessResult;
     }
 
-    private async Task<TaskResult> ConfirmCompleteAsync(string sourceUrl, long planetId)
+    private async Task<TaskResult> ConfirmCompleteAsync(string sourceUrl, long planetId, string grant, string importedHash)
     {
         var token = await _nodeService.MintS2STokenAsync(_keyService);
         if (token is null)
@@ -293,6 +364,8 @@ public class FederationMigrationService
             var url = sourceUrl.TrimEnd('/') + $"/api/federation/migrations/{planetId}/complete";
             using var req = new HttpRequestMessage(HttpMethod.Post, url);
             req.Headers.Add(FederationApi.NodeAuthHeader, token);
+            req.Headers.Add("X-Valour-Migration-Grant", grant);
+            req.Headers.Add("X-Valour-Snapshot-Hash", importedHash);
             using var resp = await client.SendAsync(req);
             if (!resp.IsSuccessStatusCode)
                 return TaskResult.FromFailure($"Complete returned {(int)resp.StatusCode}");
@@ -347,21 +420,36 @@ public class FederationMigrationService
             req.Headers.Add("X-Valour-Migration-Grant", grant);
             using var resp = await client.SendAsync(req);
             if (!resp.IsSuccessStatusCode)
+            {
+                await TryAbortPullBackOnNodeAsync(nodeBase, planetId, grant);
                 return TaskResult.FromFailure($"Snapshot pull from node failed: {(int)resp.StatusCode}");
+            }
             snapshot = await resp.Content.ReadFromJsonAsync<PlanetSnapshot>();
         }
         catch (Exception e)
         {
+            await TryAbortPullBackOnNodeAsync(nodeBase, planetId, grant);
             return TaskResult.FromFailure($"Snapshot pull from node failed: {e.Message}");
         }
 
         if (snapshot?.Planet is null || snapshot.Planet.Id != planetId)
+        {
+            await TryAbortPullBackOnNodeAsync(nodeBase, planetId, grant);
             return TaskResult.FromFailure("Node snapshot did not match.");
+        }
+
+        // The node controls this snapshot. Sanitize node-asserted identity before
+        // importing it as official data.
+        await SanitizePulledBackSnapshotAsync(snapshot, planetId, ownerId, stub.TrustedUserIdsJson);
 
         // Import as an official planet, remove the stub.
         var import = await _snapshotService.ImportAsync(snapshot);
         if (!import.Success)
+        {
+            // Import failed after the node froze itself for export — unfreeze it.
+            await TryAbortPullBackOnNodeAsync(nodeBase, planetId, grant);
             return import;
+        }
 
         _db.FederatedPlanetStubs.Remove(stub);
         await _db.SaveChangesAsync();
@@ -386,6 +474,85 @@ public class FederationMigrationService
     }
 
     /// <summary>
+    /// Best-effort: tell the node to unfreeze a planet whose pull-back the hub
+    /// could not finish, so a failed import doesn't leave it read-only.
+    /// </summary>
+    private async Task TryAbortPullBackOnNodeAsync(string nodeBase, long planetId, string grant)
+    {
+        try
+        {
+            var client = _httpFactory.CreateClient("federation");
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"{nodeBase}/api/federation/migrations/{planetId}/pullback-abort");
+            req.Headers.Add("X-Valour-Migration-Grant", grant);
+            using var resp = await client.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+                _logger.LogWarning("Pull-back abort on node returned {Status} for {PlanetId}", (int)resp.StatusCode, planetId);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Pull-back abort on node threw for {PlanetId}", planetId);
+        }
+    }
+
+    /// <summary>
+    /// A pull-back snapshot is authored by an untrusted community node, but it's
+    /// imported as OFFICIAL data. This strips node-fabricated identity: the owner
+    /// is pinned to the authenticated initiator, and any membership or message
+    /// that claims an EXISTING OFFICIAL account is dropped unless that account is
+    /// trusted — it was present at migration-out (recorded then), consented via a
+    /// federated join, or is the initiator. Federated/unknown ids pass through as
+    /// federated shadows (they can't impersonate a real account).
+    /// </summary>
+    private async Task SanitizePulledBackSnapshotAsync(
+        PlanetSnapshot snapshot, long planetId, long ownerId, string trustedJson)
+    {
+        // Owner is the person who authorized the pull-back on the hub, never the
+        // node's claim.
+        snapshot.Planet.OwnerId = ownerId;
+
+        var trusted = new HashSet<long> { ownerId };
+        if (!string.IsNullOrWhiteSpace(trustedJson))
+        {
+            try { trusted.UnionWith(System.Text.Json.JsonSerializer.Deserialize<List<long>>(trustedJson) ?? new()); }
+            catch { /* corrupt record → trust only the initiator */ }
+        }
+        trusted.UnionWith(await _db.FederatedMemberships
+            .Where(x => x.PlanetId == planetId).Select(x => x.UserId).ToListAsync());
+
+        // Which referenced ids are real official (non-federated) accounts here?
+        var referenced = new HashSet<long>();
+        referenced.UnionWith(snapshot.Members.Select(m => m.UserId));
+        referenced.UnionWith(snapshot.Messages.Select(m => m.AuthorUserId));
+        var officialIds = (await _db.Users
+            .Where(u => referenced.Contains(u.Id) && !u.IsFederated)
+            .Select(u => u.Id).ToListAsync()).ToHashSet();
+
+        // An official id may only be asserted if trusted; otherwise it's forged.
+        bool Forged(long userId) => officialIds.Contains(userId) && !trusted.Contains(userId);
+
+        var droppedMembers = snapshot.Members.RemoveAll(m => Forged(m.UserId));
+
+        var forgedMessageIds = snapshot.Messages.Where(m => Forged(m.AuthorUserId)).Select(m => m.Id).ToHashSet();
+        if (forgedMessageIds.Count > 0)
+        {
+            snapshot.Messages.RemoveAll(m => forgedMessageIds.Contains(m.Id));
+            snapshot.Attachments.RemoveAll(a => forgedMessageIds.Contains(a.MessageId));
+            snapshot.Reactions.RemoveAll(r => forgedMessageIds.Contains(r.MessageId));
+            snapshot.Mentions.RemoveAll(x => forgedMessageIds.Contains(x.MessageId));
+        }
+
+        // Bans that name an untrusted official issuer/target are also fabricated.
+        var droppedBans = snapshot.Bans.RemoveAll(b => Forged(b.IssuerId) || Forged(b.TargetId));
+
+        if (droppedMembers > 0 || forgedMessageIds.Count > 0 || droppedBans > 0)
+        {
+            _logger.LogWarning(
+                "Pull-back of planet {PlanetId} from {Node}: dropped {Members} forged memberships, {Messages} forged messages, {Bans} forged bans",
+                planetId, snapshot.Planet.Id, droppedMembers, forgedMessageIds.Count, droppedBans);
+        }
+    }
+
+    /// <summary>
     /// Node-side: serve a snapshot to the hub during a pull-back. Authorized by
     /// a hub-signed pull-back grant (validated against hub JWKS).
     /// </summary>
@@ -395,17 +562,34 @@ public class FederationMigrationService
         if (planetId is null)
             return TaskResult<PlanetSnapshot>.FromFailure("Invalid pull-back grant.");
 
+        // Freeze the local planet read-only for the hub's import window so no
+        // writes are lost between this export and the purge. Reversible via
+        // AbortPullBackAsync if the hub's import fails.
+        var planet = await _db.Planets.FindAsync(planetId.Value);
+        if (planet is not null && !planet.LockedForMigration)
+        {
+            planet.LockedForMigration = true;
+            await _db.SaveChangesAsync();
+            _hostedPlanetService.Remove(planetId.Value);
+        }
+
         return await _snapshotService.ExportAsync(planetId.Value);
     }
 
     /// <summary>
     /// Node-side: delete the local planet after the hub confirms it imported it.
+    /// Only a planet that was frozen for export can be purged, so a bare grant
+    /// replay can't destroy a live planet that never entered the pull-back flow.
     /// </summary>
     public async Task<TaskResult> PurgeForPullBackAsync(string grant)
     {
         var planetId = await ValidatePullBackGrantAsync(grant);
         if (planetId is null)
             return TaskResult.FromFailure("Invalid pull-back grant.");
+
+        var planet = await _db.Planets.FindAsync(planetId.Value);
+        if (planet is not null && !planet.LockedForMigration)
+            return TaskResult.FromFailure("This planet is not in a pull-back; refusing to purge.");
 
         var result = await _snapshotService.DeletePlanetDataAsync(planetId.Value);
         if (result.Success)
@@ -419,6 +603,27 @@ public class FederationMigrationService
             _hostedPlanetService.Remove(planetId.Value);
         }
         return result;
+    }
+
+    /// <summary>
+    /// Node-side: unfreeze a planet whose pull-back the hub could not complete,
+    /// so a failed import doesn't leave it read-only forever.
+    /// </summary>
+    public async Task<TaskResult> AbortPullBackAsync(string grant)
+    {
+        var planetId = await ValidatePullBackGrantAsync(grant);
+        if (planetId is null)
+            return TaskResult.FromFailure("Invalid pull-back grant.");
+
+        var planet = await _db.Planets.FindAsync(planetId.Value);
+        if (planet is not null && planet.LockedForMigration)
+        {
+            planet.LockedForMigration = false;
+            await _db.SaveChangesAsync();
+            _hostedPlanetService.Remove(planetId.Value);
+        }
+
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>

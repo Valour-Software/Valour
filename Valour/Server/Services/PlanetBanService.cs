@@ -52,6 +52,10 @@ public class PlanetBanService
         if (ban.TargetId == member.UserId)
             return new(false, "You cannot ban yourself.");
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, ban.PlanetId);
+        if (!migrationGuard.Success)
+            return new(false, migrationGuard.Message);
+
         // Check for existing ban
         var existingBan = await _db.PlanetBans.FirstOrDefaultAsync(x => x.PlanetId == ban.PlanetId && x.TargetId == ban.TargetId);
         if (existingBan is not null)
@@ -217,6 +221,10 @@ public class PlanetBanService
     /// </summary>
     public async Task<TaskResult> DeleteAsync(PlanetBan ban, PlanetMember member)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, ban.PlanetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         // Ensure the user unbanning is either the user that made the ban, or someone
         // with equal or higher authority to them
 

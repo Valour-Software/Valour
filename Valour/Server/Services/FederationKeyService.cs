@@ -23,8 +23,19 @@ public class FederationKeyService
     public const string HubPurpose = "hub";
     public const string NodePurpose = "node";
 
-    private static readonly ConcurrentDictionary<string, SigningCredentials> CredentialCache = new();
+    // Bounded caches so a rotated or revoked key takes effect within the TTL
+    // instead of living forever. InvalidateCaches() forces it immediately.
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly ConcurrentDictionary<string, (SigningCredentials Creds, DateTime CachedAt)> CredentialCache = new();
     private static string _cachedJwks;
+    private static DateTime _cachedJwksAt;
+
+    /// <summary>Drops the signing-credential and JWKS caches so a rotation is picked up now.</summary>
+    public static void InvalidateCaches()
+    {
+        CredentialCache.Clear();
+        _cachedJwks = null;
+    }
 
     private readonly ValourDb _db;
     private readonly IDataProtector _protector;
@@ -100,8 +111,8 @@ public class FederationKeyService
 
     private async Task<SigningCredentials> GetSigningCredentialsAsync(string purpose)
     {
-        if (CredentialCache.TryGetValue(purpose, out var cached))
-            return cached;
+        if (CredentialCache.TryGetValue(purpose, out var cached) && DateTime.UtcNow - cached.CachedAt < CacheTtl)
+            return cached.Creds;
 
         var key = await _db.FederationKeys
             .AsNoTracking()
@@ -119,7 +130,7 @@ public class FederationKeyService
             new ECDsaSecurityKey(ecdsa) { KeyId = key.Id },
             SecurityAlgorithms.EcdsaSha256);
 
-        CredentialCache[purpose] = credentials;
+        CredentialCache[purpose] = (credentials, DateTime.UtcNow);
         return credentials;
     }
 
@@ -143,7 +154,7 @@ public class FederationKeyService
     /// </summary>
     public async Task<string> GetJwksJsonAsync()
     {
-        if (_cachedJwks is not null)
+        if (_cachedJwks is not null && DateTime.UtcNow - _cachedJwksAt < CacheTtl)
             return _cachedJwks;
 
         var keys = await _db.FederationKeys
@@ -154,6 +165,7 @@ public class FederationKeyService
 
         var jwks = $"{{\"keys\":[{string.Join(",", keys)}]}}";
         _cachedJwks = jwks;
+        _cachedJwksAt = DateTime.UtcNow;
         return jwks;
     }
 }

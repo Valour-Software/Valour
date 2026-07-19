@@ -252,6 +252,10 @@
             return;
         }
 
+        // Route this planet's requests (and realtime) to the community node instead
+        // of the primary node, so normal planet loading talks to the right origin.
+        Client.NodeService.SetKnownByPlanet(planetId, node.Name);
+
         await PlanetService.FetchJoinedPlanetsAsync();
         NavManager.NavigateTo("/", true);
     }

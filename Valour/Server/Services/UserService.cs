@@ -1281,9 +1281,18 @@ public class UserService
 
             await _db.SaveChangesAsync();
 
+            // Remove the user's hub-side federation relationship records too, so a
+            // deletion doesn't leave their accepted-domain and cross-node
+            // membership data behind. (Empty/no-op on non-hub instances.)
+            _db.FederatedAcceptedDomains.RemoveRange(
+                _db.FederatedAcceptedDomains.Where(x => x.UserId == dbUser.Id));
+            _db.FederatedMemberships.RemoveRange(
+                _db.FederatedMemberships.Where(x => x.UserId == dbUser.Id));
+            await _db.SaveChangesAsync();
+
             _db.Users.Remove(dbUser);
             await _db.SaveChangesAsync();
-        
+
             await tran.CommitAsync();
             _logger.LogInformation("Hard deleted user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
 

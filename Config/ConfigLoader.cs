@@ -116,6 +116,14 @@ public static class ConfigLoader
         {
             new NodeConfig();
         }
+
+        // Fail loud on an out-of-range worker id rather than silently clamping it:
+        // a wrong value would let this instance mint ids that collide with others
+        // across the federation. 0–1023 is the 10-bit generator field.
+        var workerId = NodeConfig.Instance.WorkerId;
+        if (workerId is < 0 or > 1023)
+            throw new InvalidOperationException(
+                $"Node:WorkerId must be between 0 and 1023 (got {workerId}). Every federated instance needs a distinct value; the official network uses 0.");
     }
 
     public static void LoadTestDbConfig()

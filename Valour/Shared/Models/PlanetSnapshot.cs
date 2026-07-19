@@ -27,10 +27,107 @@ public class PlanetSnapshot
     public List<PlanetSnapshotReaction> Reactions { get; set; } = new();
     public List<PlanetSnapshotMention> Mentions { get; set; } = new();
 
+    // Threads (forum-style posts + comments), wiki, and automod config all move
+    // with the planet. Economy (Valour-Credits-tied) and reports do NOT — economy
+    // is reset and reports stay on official.
+    public List<PlanetSnapshotThread> Threads { get; set; } = new();
+    public List<PlanetSnapshotThreadComment> ThreadComments { get; set; } = new();
+    public List<PlanetSnapshotWikiPage> WikiPages { get; set; } = new();
+    public List<PlanetSnapshotWikiRevision> WikiRevisions { get; set; } = new();
+    public List<PlanetSnapshotAutomodTrigger> AutomodTriggers { get; set; } = new();
+    public List<PlanetSnapshotAutomodAction> AutomodActions { get; set; } = new();
+
     /// <summary>
     /// Names of members/authors so the destination can build shadow users.
     /// </summary>
     public List<PlanetSnapshotUser> Users { get; set; } = new();
+}
+
+public class PlanetSnapshotThread
+{
+    public long Id { get; set; }
+    public long PlanetId { get; set; }
+    public long AuthorUserId { get; set; }
+    public long? AuthorMemberId { get; set; }
+    public string Title { get; set; }
+    public string Content { get; set; }
+    public DateTime TimeCreated { get; set; }
+    public DateTime? EditedTime { get; set; }
+    public bool IsLocked { get; set; }
+    public bool Nsfw { get; set; }
+    public int BoostCount { get; set; }
+    public int CommentCount { get; set; }
+}
+
+public class PlanetSnapshotThreadComment
+{
+    public long Id { get; set; }
+    public long PlanetId { get; set; }
+    public long ThreadId { get; set; }
+    public long? ParentCommentId { get; set; }
+    public int Depth { get; set; }
+    public long AuthorUserId { get; set; }
+    public long? AuthorMemberId { get; set; }
+    public string Content { get; set; }
+    public DateTime TimeCreated { get; set; }
+    public DateTime? EditedTime { get; set; }
+    public int BoostCount { get; set; }
+    public int ReplyCount { get; set; }
+}
+
+public class PlanetSnapshotWikiPage
+{
+    public long Id { get; set; }
+    public long PlanetId { get; set; }
+    public long? ParentId { get; set; }
+    public bool IsFolder { get; set; }
+    public string Slug { get; set; }
+    public string PreviousSlug { get; set; }
+    public string Title { get; set; }
+    public string Content { get; set; }
+    public bool IsPublished { get; set; }
+    public long Version { get; set; }
+    public DateTime TimeCreated { get; set; }
+    public DateTime? LastEdited { get; set; }
+    public long CreatedByUserId { get; set; }
+    public long? LastEditedByUserId { get; set; }
+}
+
+public class PlanetSnapshotWikiRevision
+{
+    public long Id { get; set; }
+    public long PageId { get; set; }
+    public long PlanetId { get; set; }
+    public string Title { get; set; }
+    public string Content { get; set; }
+    public long AuthorUserId { get; set; }
+    public DateTime TimeCreated { get; set; }
+}
+
+public class PlanetSnapshotAutomodTrigger
+{
+    public Guid Id { get; set; }
+    public long PlanetId { get; set; }
+    public long MemberAddedBy { get; set; }
+    public string Name { get; set; }
+    public string TriggerWords { get; set; }
+    public bool RunForEveryone { get; set; }
+}
+
+public class PlanetSnapshotAutomodAction
+{
+    public Guid Id { get; set; }
+    public int Strikes { get; set; }
+    public bool UseGlobalStrikes { get; set; }
+    public Guid TriggerId { get; set; }
+    public long MemberAddedBy { get; set; }
+    public long PlanetId { get; set; }
+    public long TargetMemberId { get; set; }
+    public long? MessageId { get; set; }
+    public long? RoleId { get; set; }
+    public DateTime? Expires { get; set; }
+    public string Message { get; set; }
+    public long? ResponseChannelId { get; set; }
 }
 
 public class PlanetSnapshotUser

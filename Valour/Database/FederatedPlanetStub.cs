@@ -49,6 +49,15 @@ public class FederatedPlanetStub
 
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>
+    /// JSON array of user ids that were legitimately members or message authors
+    /// when the planet migrated out of official. On a later pull-back, these are
+    /// the only official (non-federated) identities the returning node data may
+    /// assert — anything else is a fabricated impersonation and is dropped.
+    /// Null for planets that originated on a node.
+    /// </summary>
+    public string TrustedUserIdsJson { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<FederatedPlanetStub>(e =>
@@ -94,6 +103,9 @@ public class FederatedPlanetStub
             e.Property(x => x.UpdatedAt)
                 .HasColumnName("updated_at")
                 .IsRequired();
+
+            e.Property(x => x.TrustedUserIdsJson)
+                .HasColumnName("trusted_user_ids_json");
 
             e.HasOne(x => x.Node)
                 .WithMany()

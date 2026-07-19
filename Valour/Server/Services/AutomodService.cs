@@ -82,6 +82,10 @@ public class AutomodService
 
     public async Task<TaskResult<AutomodTrigger>> CreateTriggerAsync(AutomodTrigger trigger)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, trigger.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<AutomodTrigger>.FromFailure(migrationGuard.Message);
+
         trigger.Id = Guid.NewGuid();
         try
         {
@@ -206,6 +210,10 @@ public class AutomodService
 
     public async Task<TaskResult<AutomodAction>> CreateActionAsync(AutomodAction action)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, action.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<AutomodAction>.FromFailure(migrationGuard.Message);
+
         action.Id = Guid.NewGuid();
         try
         {

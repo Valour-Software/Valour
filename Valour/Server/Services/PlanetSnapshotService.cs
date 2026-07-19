@@ -41,6 +41,13 @@ public class PlanetSnapshotService
         var reactions = await _db.MessageReactions.AsNoTracking().Where(x => messageIds.Contains(x.MessageId)).ToListAsync();
         var mentions = await _db.MessageMentions.AsNoTracking().Where(x => messageIds.Contains(x.MessageId)).ToListAsync();
 
+        var threads = await _db.PlanetThreads.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
+        var threadComments = await _db.ThreadComments.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
+        var wikiPages = await _db.PlanetWikiPages.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
+        var wikiRevisions = await _db.PlanetWikiRevisions.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
+        var automodTriggers = await _db.AutomodTriggers.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
+        var automodActions = await _db.AutomodActions.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
+
         var snapshot = new PlanetSnapshot
         {
             CreatedAt = DateTime.UtcNow,
@@ -127,12 +134,52 @@ public class PlanetSnapshotService
             {
                 Id = m.Id, MessageId = m.MessageId, SortOrder = m.SortOrder, Type = m.Type, TargetId = m.TargetId,
             }).ToList(),
+            Threads = threads.Select(t => new PlanetSnapshotThread
+            {
+                Id = t.Id, PlanetId = t.PlanetId, AuthorUserId = t.AuthorUserId, AuthorMemberId = t.AuthorMemberId,
+                Title = t.Title, Content = t.Content, TimeCreated = t.TimeCreated, EditedTime = t.EditedTime,
+                IsLocked = t.IsLocked, Nsfw = t.Nsfw, BoostCount = t.BoostCount, CommentCount = t.CommentCount,
+            }).ToList(),
+            ThreadComments = threadComments.Select(c => new PlanetSnapshotThreadComment
+            {
+                Id = c.Id, PlanetId = c.PlanetId, ThreadId = c.ThreadId, ParentCommentId = c.ParentCommentId,
+                Depth = c.Depth, AuthorUserId = c.AuthorUserId, AuthorMemberId = c.AuthorMemberId, Content = c.Content,
+                TimeCreated = c.TimeCreated, EditedTime = c.EditedTime, BoostCount = c.BoostCount, ReplyCount = c.ReplyCount,
+            }).ToList(),
+            WikiPages = wikiPages.Select(w => new PlanetSnapshotWikiPage
+            {
+                Id = w.Id, PlanetId = w.PlanetId, ParentId = w.ParentId, IsFolder = w.IsFolder, Slug = w.Slug,
+                PreviousSlug = w.PreviousSlug, Title = w.Title, Content = w.Content, IsPublished = w.IsPublished,
+                Version = w.Version, TimeCreated = w.TimeCreated, LastEdited = w.LastEdited,
+                CreatedByUserId = w.CreatedByUserId, LastEditedByUserId = w.LastEditedByUserId,
+            }).ToList(),
+            WikiRevisions = wikiRevisions.Select(r => new PlanetSnapshotWikiRevision
+            {
+                Id = r.Id, PageId = r.PageId, PlanetId = r.PlanetId, Title = r.Title, Content = r.Content,
+                AuthorUserId = r.AuthorUserId, TimeCreated = r.TimeCreated,
+            }).ToList(),
+            AutomodTriggers = automodTriggers.Select(t => new PlanetSnapshotAutomodTrigger
+            {
+                Id = t.Id, PlanetId = t.PlanetId, MemberAddedBy = t.MemberAddedBy, Name = t.Name,
+                TriggerWords = t.TriggerWords, RunForEveryone = t.RunForEveryone,
+            }).ToList(),
+            AutomodActions = automodActions.Select(a => new PlanetSnapshotAutomodAction
+            {
+                Id = a.Id, Strikes = a.Strikes, UseGlobalStrikes = a.UseGlobalStrikes, TriggerId = a.TriggerId,
+                MemberAddedBy = a.MemberAddedBy, PlanetId = a.PlanetId, TargetMemberId = a.TargetMemberId,
+                MessageId = a.MessageId, RoleId = a.RoleId, Expires = a.Expires, Message = a.Message,
+                ResponseChannelId = a.ResponseChannelId,
+            }).ToList(),
         };
 
-        // Referenced users (members + message authors) so the destination can
-        // build shadow rows.
+        // Referenced users (members + message/thread/wiki authors) so the
+        // destination can build shadow rows.
         var userIds = members.Select(m => m.UserId)
             .Concat(messages.Select(m => m.AuthorUserId))
+            .Concat(threads.Select(t => t.AuthorUserId))
+            .Concat(threadComments.Select(c => c.AuthorUserId))
+            .Concat(wikiPages.Select(w => w.CreatedByUserId))
+            .Concat(wikiRevisions.Select(r => r.AuthorUserId))
             .Append(planet.OwnerId)
             .Distinct()
             .ToList();
@@ -252,6 +299,57 @@ public class PlanetSnapshotService
                 Id = m.Id, MessageId = m.MessageId, SortOrder = m.SortOrder, Type = m.Type, TargetId = m.TargetId,
             }));
 
+            // Threads before comments (comments reference the thread).
+            await _db.PlanetThreads.AddRangeAsync((snapshot.Threads ?? new()).Select(t => new Valour.Database.PlanetThread
+            {
+                Id = t.Id, PlanetId = t.PlanetId, AuthorUserId = t.AuthorUserId, AuthorMemberId = t.AuthorMemberId,
+                Title = t.Title, Content = t.Content, TimeCreated = DateTime.SpecifyKind(t.TimeCreated, DateTimeKind.Utc),
+                EditedTime = t.EditedTime.HasValue ? DateTime.SpecifyKind(t.EditedTime.Value, DateTimeKind.Utc) : null,
+                IsLocked = t.IsLocked, Nsfw = t.Nsfw, BoostCount = t.BoostCount, CommentCount = t.CommentCount,
+                IsDeleted = false,
+            }));
+
+            await _db.ThreadComments.AddRangeAsync((snapshot.ThreadComments ?? new()).Select(c => new Valour.Database.ThreadComment
+            {
+                Id = c.Id, PlanetId = c.PlanetId, ThreadId = c.ThreadId, ParentCommentId = c.ParentCommentId,
+                Depth = c.Depth, AuthorUserId = c.AuthorUserId, AuthorMemberId = c.AuthorMemberId, Content = c.Content,
+                TimeCreated = DateTime.SpecifyKind(c.TimeCreated, DateTimeKind.Utc),
+                EditedTime = c.EditedTime.HasValue ? DateTime.SpecifyKind(c.EditedTime.Value, DateTimeKind.Utc) : null,
+                BoostCount = c.BoostCount, ReplyCount = c.ReplyCount, IsDeleted = false,
+            }));
+
+            // Wiki pages before revisions (revisions reference the page).
+            await _db.PlanetWikiPages.AddRangeAsync((snapshot.WikiPages ?? new()).Select(w => new Valour.Database.PlanetWikiPage
+            {
+                Id = w.Id, PlanetId = w.PlanetId, ParentId = w.ParentId, IsFolder = w.IsFolder, Slug = w.Slug,
+                PreviousSlug = w.PreviousSlug, Title = w.Title, Content = w.Content, IsPublished = w.IsPublished,
+                Version = w.Version, TimeCreated = DateTime.SpecifyKind(w.TimeCreated, DateTimeKind.Utc),
+                LastEdited = w.LastEdited.HasValue ? DateTime.SpecifyKind(w.LastEdited.Value, DateTimeKind.Utc) : null,
+                CreatedByUserId = w.CreatedByUserId, LastEditedByUserId = w.LastEditedByUserId,
+            }));
+
+            await _db.PlanetWikiRevisions.AddRangeAsync((snapshot.WikiRevisions ?? new()).Select(r => new Valour.Database.PlanetWikiRevision
+            {
+                Id = r.Id, PageId = r.PageId, PlanetId = r.PlanetId, Title = r.Title, Content = r.Content,
+                AuthorUserId = r.AuthorUserId, TimeCreated = DateTime.SpecifyKind(r.TimeCreated, DateTimeKind.Utc),
+            }));
+
+            // Automod triggers before actions (actions reference the trigger).
+            await _db.AutomodTriggers.AddRangeAsync((snapshot.AutomodTriggers ?? new()).Select(t => new Valour.Database.AutomodTrigger
+            {
+                Id = t.Id, PlanetId = t.PlanetId, MemberAddedBy = t.MemberAddedBy, Name = t.Name,
+                TriggerWords = t.TriggerWords, RunForEveryone = t.RunForEveryone,
+            }));
+
+            await _db.AutomodActions.AddRangeAsync((snapshot.AutomodActions ?? new()).Select(a => new Valour.Database.AutomodAction
+            {
+                Id = a.Id, Strikes = a.Strikes, UseGlobalStrikes = a.UseGlobalStrikes, TriggerId = a.TriggerId,
+                MemberAddedBy = a.MemberAddedBy, PlanetId = a.PlanetId, TargetMemberId = a.TargetMemberId,
+                MessageId = a.MessageId, RoleId = a.RoleId,
+                Expires = a.Expires.HasValue ? DateTime.SpecifyKind(a.Expires.Value, DateTimeKind.Utc) : null,
+                Message = a.Message, ResponseChannelId = a.ResponseChannelId,
+            }));
+
             await _db.SaveChangesAsync();
             await tran.CommitAsync();
 
@@ -288,6 +386,29 @@ public class PlanetSnapshotService
             await _db.PlanetEmojis.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
             await _db.PlanetInvites.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
             await _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+
+            // Threads (children before threads). Attachments are keyed by thread id.
+            var threadIds = await _db.PlanetThreads.Where(x => x.PlanetId == planetId).Select(x => x.Id).ToListAsync();
+            await _db.ThreadComments.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.ThreadAttachments.Where(x => threadIds.Contains(x.ThreadId)).ExecuteDeleteAsync();
+            await _db.ThreadBoosts.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.PlanetThreads.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+
+            // Wiki (revisions before pages).
+            await _db.PlanetWikiRevisions.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.PlanetWikiPages.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+
+            // Automod (actions + logs before triggers).
+            await _db.AutomodActions.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.AutomodLogs.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.AutomodTriggers.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+
+            // Economy: reset (Valour-Credits-tied economy never migrates). Transactions
+            // reference accounts/currencies, so they go first.
+            await _db.Transactions.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.EcoAccounts.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.Currencies.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+
             await _db.Channels.IgnoreQueryFilters().Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
             await _db.PlanetRoles.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
             await _db.Planets.IgnoreQueryFilters().Where(x => x.Id == planetId).ExecuteDeleteAsync();

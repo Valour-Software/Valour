@@ -418,10 +418,23 @@ public partial class Program
 
         // Data Protection keys live in the shared DB so every node (and
         // container restarts) can decrypt protected payloads such as planet
-        // storage credentials.
-        services.AddDataProtection()
+        // storage credentials and federation signing keys. The ring itself is
+        // wrapped with an external KEK (env/file) when one is configured, so a
+        // database reader alone cannot recover any of it.
+        var kekProvider = new DataProtectionKekProvider(
+            builder.Configuration,
+            LoggerFactory.Create(b => b.AddConsole()).CreateLogger<DataProtectionKekProvider>());
+        services.AddSingleton(kekProvider);
+
+        var dataProtection = services.AddDataProtection()
             .SetApplicationName("Valour")
             .PersistKeysToDbContext<ValourDb>();
+
+        if (kekProvider.Available)
+        {
+            dataProtection.Services.Configure<Microsoft.AspNetCore.DataProtection.KeyManagement.KeyManagementOptions>(
+                options => options.XmlEncryptor = new KekXmlEncryptor(kekProvider));
+        }
 
         services.AddSingleton<CdnStorageProvider>();
         services.AddSingleton<CdnBucketService>();

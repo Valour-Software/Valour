@@ -16,8 +16,16 @@ public class NodeConfig
     //#endif
     
     public bool LogInfo { get; set; }
-    
+
     public string Location { get; set; }
+
+    /// <summary>
+    /// IdGen worker id (0–1023). Snowflake ids embed this; two instances that
+    /// share it can mint colliding ids. Federation makes ids cross-instance, so
+    /// every self-hosted node MUST set a distinct value. The official network
+    /// keeps 0. Defaults to 0 for backward compatibility.
+    /// </summary>
+    public int WorkerId { get; set; }
 
     public NodeConfig()
     {

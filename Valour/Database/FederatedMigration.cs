@@ -31,6 +31,19 @@ public class FederatedMigration
 
     public DateTime? CompletedAt { get; set; }
 
+    /// <summary>
+    /// When the source served the snapshot to the target. Completion is refused
+    /// until this is set — a node can't make the source delete data it never
+    /// pulled.
+    /// </summary>
+    public DateTime? SnapshotServedAt { get; set; }
+
+    /// <summary>
+    /// SHA-256 (hex) of the exact snapshot bytes served. Completion requires the
+    /// target to echo this, proving it imported precisely what was served.
+    /// </summary>
+    public string SnapshotHash { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<FederatedMigration>(e =>
@@ -44,6 +57,8 @@ public class FederatedMigration
             e.Property(x => x.Status).HasColumnName("status").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
             e.Property(x => x.CompletedAt).HasColumnName("completed_at");
+            e.Property(x => x.SnapshotServedAt).HasColumnName("snapshot_served_at");
+            e.Property(x => x.SnapshotHash).HasColumnName("snapshot_hash");
         });
     }
 }

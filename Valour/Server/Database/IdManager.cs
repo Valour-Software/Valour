@@ -1,4 +1,5 @@
 ﻿using IdGen;
+using Valour.Config.Configs;
 
 /*  Valour (TM) - A free and secure chat client
  *  Copyright (C) 2025 Valour Software LLC
@@ -23,7 +24,11 @@ public static class IdManager
 
         var options = new IdGeneratorOptions(structure, new DefaultTimeSource(epoch));
 
-        Generator = new IdGenerator(0, options);
+        // Worker id from config (0 for the official network). The 10-bit generator
+        // field allows 0–1023; distinct per instance keeps snowflake ids from
+        // colliding across the federation.
+        var workerId = Math.Clamp(NodeConfig.Instance?.WorkerId ?? 0, 0, 1023);
+        Generator = new IdGenerator(workerId, options);
     }
 
     public static long Generate()

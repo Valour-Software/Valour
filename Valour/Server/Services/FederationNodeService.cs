@@ -26,17 +26,20 @@ public class FederationNodeService
 
     private readonly ValourDb _db;
     private readonly UserService _userService;
+    private readonly PlanetMemberService _memberService;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<FederationNodeService> _logger;
 
     public FederationNodeService(
         ValourDb db,
         UserService userService,
+        PlanetMemberService memberService,
         IHttpClientFactory httpFactory,
         ILogger<FederationNodeService> logger)
     {
         _db = db;
         _userService = userService;
+        _memberService = memberService;
         _httpFactory = httpFactory;
         _logger = logger;
     }
@@ -166,6 +169,18 @@ public class FederationNodeService
         if (user is null)
             return TaskResult<AuthToken>.FromFailure("Failed to create local account.");
 
+        // Materialize the hub-signed memberships as local PlanetMember rows so the
+        // federated user is a real member — normal API/SignalR paths recognize them.
+        // The hub is ground truth for who belongs where; the node only grants
+        // membership the signed token vouches for, and only for planets it hosts.
+        await MaterializeMembershipsAsync(result.ClaimsIdentity, hubUserId);
+
+        // Housekeeping: drop this user's expired federation sessions so they don't
+        // accumulate unbounded across re-exchanges.
+        await _db.AuthTokens
+            .Where(x => x.AppId == "FEDERATION" && x.UserId == hubUserId && x.TimeExpires < DateTime.UtcNow)
+            .ExecuteDeleteAsync();
+
         // Node-local opaque session, shorter than hub logins: tier changes and
         // revocations propagate on silent re-exchange.
         var token = new Valour.Database.AuthToken
@@ -186,6 +201,36 @@ public class FederationNodeService
     }
 
     /// <summary>
+    /// Creates local PlanetMember rows for the planets the hub-signed token
+    /// vouches the user belongs to (and this node actually hosts). Idempotent and
+    /// best-effort — re-run on every exchange, it heals missing memberships.
+    /// </summary>
+    private async Task MaterializeMembershipsAsync(System.Security.Claims.ClaimsIdentity identity, long userId)
+    {
+        if (identity is null)
+            return;
+
+        foreach (var claim in identity.FindAll("memberships"))
+        {
+            if (!long.TryParse(claim.Value, out var planetId))
+                continue;
+
+            // Only grant membership for planets that actually live on this node.
+            if (!await _db.Planets.AnyAsync(x => x.Id == planetId && !x.IsDeleted))
+                continue;
+
+            var add = await _memberService.AddMemberAsync(planetId, userId);
+            if (!add.Success)
+            {
+                // "Already a member" is the common, benign case — keep it quiet.
+                _logger.LogDebug(
+                    "Federated membership for planet {PlanetId} user {UserId}: {Message}",
+                    planetId, userId, add.Message);
+            }
+        }
+    }
+
+    /// <summary>
     /// Creates or refreshes the local shadow row for a hub user. Shadow users
     /// keep their hub user id (the id space is hub-global), carry no
     /// credentials, and refresh name/tier from token claims on each exchange.
@@ -195,6 +240,18 @@ public class FederationNodeService
         var existing = await _db.Users.FindAsync(hubUserId);
         if (existing is not null)
         {
+            // Only ever adopt a pre-existing FEDERATED shadow. If a real local
+            // account happens to occupy this id (an id-space collision between
+            // instances — see IdManager worker ids), refuse: adopting it would
+            // hand the visitor a FullControl token for someone else's account.
+            if (!existing.IsFederated)
+            {
+                _logger.LogError(
+                    "Refusing federation exchange for hub user {UserId}: a non-federated local account already holds that id",
+                    hubUserId);
+                return null;
+            }
+
             existing.Name = name;
             existing.SubscriptionType = string.IsNullOrWhiteSpace(subscription) ? null : subscription;
             existing.TimeLastActive = DateTime.UtcNow;

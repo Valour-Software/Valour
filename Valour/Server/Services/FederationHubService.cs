@@ -119,6 +119,18 @@ public class FederationHubService
             return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
                 "The served challenge does not match. Set Federation:NodeChallenge on the node and restart it.");
 
+        // Don't activate a node that speaks an incompatible protocol — it would
+        // fail in confusing ways at token/exchange time instead.
+        if (wellKnown.ProtocolVersion != ValourFederation.ProtocolVersion)
+            return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
+                $"Node speaks federation protocol v{wellKnown.ProtocolVersion}; this hub speaks v{ValourFederation.ProtocolVersion}. Upgrade the node.");
+
+        // The node must advertise the same domain it's registering under, or its
+        // hub-minted tokens (audience = domain) won't validate.
+        if (!string.Equals(FederationHubService.NormalizeDomain(wellKnown.Domain), domain, StringComparison.OrdinalIgnoreCase))
+            return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
+                "The node advertises a different domain than the one being registered.");
+
         if (string.IsNullOrWhiteSpace(wellKnown.PublicJwk))
             return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
                 "The node did not advertise a public key.");
@@ -187,6 +199,22 @@ public class FederationHubService
         if (node is null || node.Status != FederatedNodeStatus.Active)
             return TaskResult<FederationTokenResponse>.FromFailure("Domain is not an active community node.");
 
+        // Consent + membership gate. Both are established by the hub-side join flow
+        // (which shows the first-contact warning), so a token is minted only for a
+        // node the user opted into and a planet they actually joined there — not for
+        // any hub user against any active node.
+        var domainAccepted = await _db.FederatedAcceptedDomains
+            .AnyAsync(x => x.UserId == user.Id && x.Domain == domain);
+        if (!domainAccepted)
+            return TaskResult<FederationTokenResponse>.FromFailure("Accept the node's domain before connecting.");
+
+        var membershipPlanetIds = await _db.FederatedMemberships.AsNoTracking()
+            .Where(x => x.UserId == user.Id && x.NodeDomain == domain)
+            .Select(x => x.PlanetId)
+            .ToListAsync();
+        if (membershipPlanetIds.Count == 0)
+            return TaskResult<FederationTokenResponse>.FromFailure("Join a planet on this node before connecting.");
+
         var credentials = await _keyService.GetHubSigningCredentialsAsync();
         if (credentials is null)
             return TaskResult<FederationTokenResponse>.FromFailure("Hub signing key unavailable.");
@@ -210,6 +238,13 @@ public class FederationHubService
                 ["subscription"] = user.SubscriptionType ?? "",
                 ["account_age_days"] = accountAgeDays,
                 ["protocol"] = ValourFederation.ProtocolVersion,
+                // Unique token id — a foundation for replay detection and lets a
+                // specific mint be reasoned about/revoked.
+                ["jti"] = Guid.NewGuid().ToString("N"),
+                // Hub-signed membership grant: the node materializes local
+                // PlanetMember rows for these (and only these) planets. Strings
+                // avoid JSON long-precision loss.
+                ["memberships"] = membershipPlanetIds.Select(x => x.ToString()).ToArray(),
             },
         };
 

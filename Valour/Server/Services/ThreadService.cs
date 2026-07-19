@@ -72,6 +72,10 @@ public class ThreadService
         if (!validation.Success)
             return TaskResult<PlanetThread>.FromFailure(validation.Message);
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, thread.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetThread>.FromFailure(migrationGuard.Message);
+
         if (!await IsThreadsEnabledAsync(thread.PlanetId))
             return TaskResult<PlanetThread>.FromFailure("Threads are disabled for this planet.");
 
@@ -132,6 +136,10 @@ public class ThreadService
         var validation = ValidateThread(updated);
         if (!validation.Success)
             return TaskResult<PlanetThread>.FromFailure(validation.Message);
+
+        var migrationGuard = await MigrationLock.GuardAsync(_db, updated.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetThread>.FromFailure(migrationGuard.Message);
 
         var dbThread = await _db.PlanetThreads
             .Include(x => x.Attachments)
@@ -617,6 +625,10 @@ public class ThreadService
         if (!validation.Success)
             return TaskResult<ThreadComment>.FromFailure(validation.Message);
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, comment.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<ThreadComment>.FromFailure(migrationGuard.Message);
+
         if (!await IsThreadsEnabledAsync(comment.PlanetId))
             return TaskResult<ThreadComment>.FromFailure("Threads are disabled for this planet.");
 
@@ -700,6 +712,10 @@ public class ThreadService
         var validation = ValidateComment(updated);
         if (!validation.Success)
             return TaskResult<ThreadComment>.FromFailure(validation.Message);
+
+        var migrationGuard = await MigrationLock.GuardAsync(_db, updated.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<ThreadComment>.FromFailure(migrationGuard.Message);
 
         var dbComment = await _db.ThreadComments
             .FirstOrDefaultAsync(x => x.Id == updated.Id && x.ThreadId == updated.ThreadId);

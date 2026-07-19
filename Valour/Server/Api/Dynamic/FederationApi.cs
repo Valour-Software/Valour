@@ -386,7 +386,10 @@ public class FederationApi
         if (domain is null)
             return ValourResult.Forbid("Invalid or missing node credentials.");
 
-        var result = await migration.CompleteAsync(domain, planetId);
+        var grant = ctx.Request.Headers["X-Valour-Migration-Grant"].ToString();
+        var importedHash = ctx.Request.Headers["X-Valour-Snapshot-Hash"].ToString();
+
+        var result = await migration.CompleteAsync(domain, planetId, grant, importedHash);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
@@ -437,6 +440,21 @@ public class FederationApi
             return ValourResult.Forbid(result.Message);
 
         return ValourResult.Ok("Purged.");
+    }
+
+    /// <summary>Node: unfreeze a planet whose pull-back the hub couldn't finish.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/federation/migrations/{planetId}/pullback-abort")]
+    public static async Task<IResult> AbortPullBackRoute(
+        long planetId,
+        HttpContext ctx,
+        FederationMigrationService migration)
+    {
+        var grant = ctx.Request.Headers["X-Valour-Migration-Grant"].ToString();
+        var result = await migration.AbortPullBackAsync(grant);
+        if (!result.Success)
+            return ValourResult.Forbid(result.Message);
+
+        return ValourResult.Ok("Pull-back aborted; planet unlocked.");
     }
 
     /// <summary>Destination (node): owner hands over the grant; node pulls + imports.</summary>

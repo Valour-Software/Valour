@@ -649,12 +649,15 @@ public class PlanetService
             return new TaskResult<Planet>(false, baseValid.Message);
         
         var old = await _db.Planets
-            .Include(p => p.Tags) 
+            .Include(p => p.Tags)
             .FirstOrDefaultAsync(p => p.Id == planet.Id);
-        
+
         if (old is null)
             return new TaskResult<Planet>(false, "Planet not found.");
-        
+
+        if (old.LockedForMigration)
+            return new TaskResult<Planet>(false, MigrationLock.Message);
+
         await using var tran = await _db.Database.BeginTransactionAsync();
         
         try

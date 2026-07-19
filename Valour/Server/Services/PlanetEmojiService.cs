@@ -51,6 +51,9 @@ public class PlanetEmojiService
 
         var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
 
+        if (hosted.Planet.LockedForMigration)
+            return TaskResult<PlanetEmoji>.FromFailure(MigrationLock.Message);
+
         var count = hosted.Emojis.List.Count;
         if (count >= ISharedPlanetEmoji.MaxPerPlanet)
         {
@@ -94,6 +97,10 @@ public class PlanetEmojiService
 
     public async Task<TaskResult> DeleteAsync(long planetId, long emojiId, bool notify = true)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var dbEmoji = await _db.PlanetEmojis
             .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.Id == emojiId);
 

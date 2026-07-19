@@ -216,6 +216,33 @@ public class PlanetService : ServiceBase
             _joinedPlanets.Add(planet);
         }
 
+        // Also render community-hosted memberships: connect to each node, map the
+        // planet to it, and load it from its own origin. Best-effort per node so a
+        // single offline community server doesn't break the whole list.
+        foreach (var membership in await FetchFederatedMembershipsAsync())
+        {
+            try
+            {
+                var node = await _client.NodeService.ConnectToFederatedNodeAsync(membership.NodeDomain);
+                if (node is null)
+                    continue;
+
+                _client.NodeService.SetKnownByPlanet(membership.PlanetId, node.Name);
+
+                var planetResult = await node.GetJsonAsync<Planet>($"api/planets/{membership.PlanetId}");
+                if (planetResult.Success && planetResult.Data is not null)
+                {
+                    planetResult.Data.Sync(_client);
+                    if (_joinedPlanets.All(x => x.Id != planetResult.Data.Id))
+                        _joinedPlanets.Add(planetResult.Data);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Failed to load community-hosted planet {membership.PlanetId} on {membership.NodeDomain}: {ex.Message}");
+            }
+        }
+
         JoinedPlanetsUpdated?.Invoke();
 
         return TaskResult.SuccessResult;
@@ -476,6 +503,14 @@ public class PlanetService : ServiceBase
         _client.PrimaryNode.PostAsyncWithResponse<FederatedPlanetLocation>(
             $"api/federation/planets/{planetId}/join", null);
 
+    /// <summary>
+    /// Revokes the hub-side federation membership for a community-hosted planet.
+    /// Without this, leaving only removes the node-local member while the hub
+    /// grant persists — the user could silently re-materialize membership.
+    /// </summary>
+    public Task<TaskResult> LeaveFederatedPlanetAsync(long planetId) =>
+        _client.PrimaryNode.PostAsync($"api/federation/planets/{planetId}/leave", null);
+
     /// <summary>The user's community-hosted memberships ("planets on other servers").</summary>
     public async Task<List<FederatedMembershipInfo>> FetchFederatedMembershipsAsync()
     {
@@ -543,7 +578,18 @@ public class PlanetService : ServiceBase
         var result = await myMember.DeleteAsync();
 
         if (result.Success)
+        {
+            // For a community-hosted planet, also revoke the hub grant so the
+            // membership can't be silently re-materialized on the next connect.
+            if (_client.NodeService.GetKnownByPlanet(planet.Id)?.IsExternal == true)
+            {
+                var fedLeave = await LeaveFederatedPlanetAsync(planet.Id);
+                if (!fedLeave.Success)
+                    LogError($"Left {planet.Name} on its node but failed to revoke the hub grant: {fedLeave.Message}");
+            }
+
             RemoveJoinedPlanet(planet);
+        }
 
         return result;
     }

@@ -14,6 +14,12 @@
     <ItemGroup>
       <PackageReference Include="EntityFrameworkCore.Exceptions.PostgreSQL" Version="8.1.3" />
       <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.3" />
+      <!-- Pin the DataProtection leaf above the vulnerable 10.0.0–10.0.6 range
+           (GHSA-9mv3-2cwr-p262, critical): it protects federation signing keys and
+           planet BYO credentials at rest. Direct reference overrides the transitive
+           10.0.3 that the EntityFrameworkCore variant would otherwise pull. -->
+      <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.10" />
+      <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.10" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
         <PrivateAssets>all</PrivateAssets>

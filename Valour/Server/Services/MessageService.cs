@@ -357,6 +357,10 @@ public class MessageService
         if (updated is null)
             return TaskResult<Message>.FromFailure("Include updated message");
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, updated.PlanetId);
+        if (!migrationGuard.Success)
+            return TaskResult<Message>.FromFailure(migrationGuard.Message);
+
         ISharedMessage old = null;
         Message oldModel = null;
         Message stagedOld = null;
@@ -513,7 +517,14 @@ public class MessageService
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
             .FirstOrDefaultAsync(x => x.Id == messageId);
-        
+
+        if (dbMessage is not null)
+        {
+            var migrationGuard = await MigrationLock.GuardAsync(_db, dbMessage.PlanetId);
+            if (!migrationGuard.Success)
+                return migrationGuard;
+        }
+
         if (dbMessage is null)
         {
             // Check staging
@@ -722,6 +733,10 @@ public class MessageService
 
     public async Task<TaskResult> AddReactionAsync(User user, PlanetMember? member, Message message, string emoji)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, message.PlanetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         if (await _db.MessageReactions.AnyAsync(x => x.MessageId == message.Id && x.Emoji == emoji && x.AuthorUserId == user.Id))
             return TaskResult.FromFailure("Reaction already exists");
 
