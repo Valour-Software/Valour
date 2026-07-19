@@ -70,7 +70,7 @@ services:
       - Bootstrap__AdminEmail=${VALOUR_ADMIN_EMAIL:-}
       - Bootstrap__AdminPassword=${VALOUR_ADMIN_PASSWORD:-}
       # Voice/video. Empty by default (voice disabled). To self-host voice, set
-      # VOICE_PROVIDER=livekit + the keys in .env and run the "voice" profile.
+      # VOICE_PROVIDER=livekit + the keys in .env and run the voice Compose overlay.
       # The server reaches the SFU over the compose network for room admin, while
       # clients connect to the public wss URL.
       - Voice__Provider=${VOICE_PROVIDER:-}

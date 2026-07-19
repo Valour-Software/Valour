@@ -4,6 +4,10 @@ Federation protocol v5 lets a recipient join a private community-hosted planet
 while the hub is unavailable. It intentionally does **not** let a community
 node invent hub memberships or trust its ordinary local invite codes.
 
+The official hub is a cluster role: every official app replica serves the same
+hub APIs and reads the same shared signing key material. Community nodes trust
+the official hub origin and protocol, not a particular official worker node.
+
 ## Capability chain
 
 1. The hub planet owner creates a grant for one named hub account. The hub

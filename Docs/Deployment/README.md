@@ -96,22 +96,26 @@ reverse-proxy/deploy reference.
 
 ## Federation production checklist
 
-Federation is disabled by default. Configure exactly one of the following
-roles before exposing it publicly:
+Federation is disabled by default. It has two roles:
 
-- **Hub:** set `Federation:HubEnabled` to `true`. `Node:WorkerId` is only for
-  cooperating official-cluster instances; the official hub ordinarily uses
-  `0`.
-- **Community node:** set `Federation:HubUrl` and `Federation:NodeDomain`.
-  It does **not** register or consume an official `Node:WorkerId`: its local
-  object ids are scoped to its domain, while the hub allocates global planet
-  ids. `Node:WorkerId` is optional and matters only when multiple app
-  instances write that node's own database; it can be reused by unrelated
-  community nodes. Register and verify the node only after its public HTTPS
-  endpoint serves `/.well-known/valour-node`. By default a node accepts only
-  migrations of its registrant's own planets, plus explicit hosting approvals
-  created by that registrant at the hub. A self-hosted node that deliberately
-  wants to accept any eligible owner's planet can set
+- **Official hub cluster:** every official Valour application instance is a
+  hub-capable replica. Set `Federation:HubEnabled=true` on **every** official
+  node, not only a primary node. All replicas must share the official database,
+  Redis deployment, stable Data Protection KEK, and release/protocol version;
+  any replica may then serve node registration, grants, token exchange, and
+  JWKS. Do not set `Federation:HubUrl` or `Federation:NodeDomain` on those
+  nodes. `Node:WorkerId` must be distinct only among concurrent writers to the
+  shared official database. It is not a federation identifier.
+- **Community node:** set `Federation:HubUrl` and `Federation:NodeDomain`; do
+  **not** enable `HubEnabled`. It does not register or consume an official
+  `Node:WorkerId`: its local object ids are scoped to its domain, while the hub
+  allocates global planet ids. `Node:WorkerId` is optional and matters only
+  when multiple app instances write that node's own database; it can be reused
+  by unrelated community nodes. Register and verify the node only after its
+  public HTTPS endpoint serves `/.well-known/valour-node`. By default a node
+  accepts only migrations of its registrant's own planets, plus explicit
+  hosting approvals created by that registrant at the hub. A self-hosted node
+  that deliberately wants to accept any eligible owner's planet can set
   `Federation:AllowPublicMigrations` to `true`; re-register and verify after
   changing that setting so the hub records the new policy.
 
@@ -128,10 +132,10 @@ instances must run the same release before enabling node traffic.
 
 Federation protocol v5 is an exact-version protocol: node descriptors and all
 federation credentials, including S2S credentials, must agree with the hub.
-Deploy the hub and every community node together, then re-verify each node and
-reissue any still-open migration or invite grant. Do not roll this version out
-while a migration is pending; abort it first or let it complete and verify the
-destination.
+Deploy every official hub replica and every community node together, then
+re-verify each node and reissue any still-open migration or invite grant. Do
+not roll this version out while a migration is pending; abort it first or let
+it complete and verify the destination.
 
 ### Community-node setup wizard
 
@@ -159,6 +163,9 @@ the operator while signed into the intended hub. The normal ceremony is:
 4. Run the wizard again, paste that challenge, and restart the Compose stack.
 5. Click **Verify server** in the hub UI. Re-register and re-verify whenever
    the node public key or public-migration policy changes.
+
+See [Federation](../Federation.md) for the complete role model, migration
+ceremony, trust boundary, and current transfer limitations.
 
 Before production enablement, complete an interactive test against isolated
 public HTTPS hub and node deployments: accept the node warning, join a public

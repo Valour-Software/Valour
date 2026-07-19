@@ -106,19 +106,20 @@ public class KlipyService : ServiceBase
         if (!IsConfigured)
             return TaskResult<List<KlipyCategory>>.FromFailure("GIF search is not configured.", 503);
 
-        var providerResult = await GetProviderAsync<List<string>>("gifs/categories");
+        var providerResult = await GetProviderAsync<ProviderCategoriesResult>("gifs/categories");
         if (!providerResult.Success)
             return TaskResult<List<KlipyCategory>>.FromFailure(providerResult);
 
-        return TaskResult<List<KlipyCategory>>.FromData(providerResult.Data
-            .Where(IsSafeCategory)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        return TaskResult<List<KlipyCategory>>.FromData(providerResult.Data.Categories
+            .Where(c => IsSafeCategory(c.Category) && KlipyMediaUrls.IsAllowed(c.PreviewUrl))
+            .GroupBy(c => c.Category, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
             .Take(50)
-            .Select(category => new KlipyCategory
+            .Select(c => new KlipyCategory
             {
-                Name = category,
-                SearchTerm = category,
-                Image = $"https://api.klipy.com/assets/images/category/{Uri.EscapeDataString(category)}.png"
+                Name = c.Category,
+                SearchTerm = string.IsNullOrWhiteSpace(c.Query) ? c.Category : c.Query,
+                Image = c.PreviewUrl
             })
             .ToList());
     }
@@ -267,5 +268,23 @@ public class KlipyService : ServiceBase
 
         [JsonPropertyName("has_next")]
         public bool HasNext { get; set; }
+    }
+
+    private sealed class ProviderCategoriesResult
+    {
+        [JsonPropertyName("categories")]
+        public List<ProviderCategory> Categories { get; set; } = new();
+    }
+
+    private sealed class ProviderCategory
+    {
+        [JsonPropertyName("category")]
+        public string Category { get; set; } = string.Empty;
+
+        [JsonPropertyName("query")]
+        public string Query { get; set; } = string.Empty;
+
+        [JsonPropertyName("preview_url")]
+        public string PreviewUrl { get; set; } = string.Empty;
     }
 }

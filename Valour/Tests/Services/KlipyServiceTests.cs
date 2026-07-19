@@ -19,8 +19,8 @@ public class KlipyServiceTests
                     "slug": "happy-dog",
                     "title": "Happy dog",
                     "file": {
-                      "sm": { "webp": { "url": "https://media.klipy.com/preview.webp", "width": 120, "height": 100, "size": 12 } },
-                      "md": { "gif": { "url": "https://media.klipy.com/happy.gif", "width": 480, "height": 400, "size": 1200 } }
+                      "sm": { "webp": { "url": "https://static.klipy.com/preview.webp", "width": 120, "height": 100, "size": 12 } },
+                      "md": { "gif": { "url": "https://static.klipy.com/happy.gif", "width": 480, "height": 400, "size": 1200 } }
                     }
                   },
                   {
@@ -47,9 +47,43 @@ public class KlipyServiceTests
         Assert.True(result.Data.HasNext);
         var gif = Assert.Single(result.Data.Results);
         Assert.Equal("happy-dog", gif.Slug);
-        Assert.Equal("https://media.klipy.com/happy.gif", gif.Gif!.Url);
+        Assert.Equal("https://static.klipy.com/happy.gif", gif.Gif!.Url);
         Assert.Equal(
             "https://api.klipy.com/api/v1/public-web-key/gifs/search?q=happy%20dogs&page=2&per_page=50",
+            handler.RequestUri!.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task GetCategoriesAsync_ParsesTheRealCategoriesShape()
+    {
+        // The live Klipy response nests categories as objects under data.categories
+        // (not a bare string array), with preview_url on static.klipy.com.
+        var handler = new KlipyResponseHandler("""
+            {
+              "result": true,
+              "data": {
+                "locale": "en_US",
+                "categories": [
+                  { "category": "happy birthday", "query": "happy birthday", "preview_url": "https://static.klipy.com/hb.gif" },
+                  { "category": "bad host", "query": "bad", "preview_url": "https://example.invalid/x.gif" }
+                ]
+              }
+            }
+            """);
+        using var http = new HttpClient(handler);
+        var service = new KlipyService(new ValourClient("https://api.valour.example/"), http);
+        service.Configure("public-web-key");
+
+        var result = await service.GetCategoriesAsync();
+
+        Assert.True(result.Success, result.Message);
+        // The example.invalid preview is filtered by the host allowlist.
+        var category = Assert.Single(result.Data);
+        Assert.Equal("happy birthday", category.Name);
+        Assert.Equal("happy birthday", category.SearchTerm);
+        Assert.Equal("https://static.klipy.com/hb.gif", category.Image);
+        Assert.Equal(
+            "https://api.klipy.com/api/v1/public-web-key/gifs/categories",
             handler.RequestUri!.AbsoluteUri);
     }
 

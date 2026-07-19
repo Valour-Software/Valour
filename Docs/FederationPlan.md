@@ -15,9 +15,18 @@ Each layer builds directly on the previous one. Guiding constraints:
 The one-sentence shape: make `Valour.Server` a self-contained, configurable
 distribution — **one binary, three modes**: standalone instance (Layer 1),
 registered community node inside the official network (Layer 3), and official
-cluster node (today's deployment). Layer 2 (bring-your-own-S3) is a
+cluster node (today's deployment). Every official cluster replica runs the hub
+role; there is no single federation-primary instance. Layer 2 (bring-your-own-S3) is a
 planet-level feature on official infrastructure that shares Layer 3's
 trust/warning model for media.
+
+> **Current role model:** official Valour app instances all set
+> `Federation:HubEnabled=true` and share the cluster database, Redis, and Data
+> Protection KEK. `Node:WorkerId` distinguishes concurrent writers to that
+> shared database only. A community node instead sets `Federation:HubUrl` and
+> `Federation:NodeDomain`, has its own local identity space, and never consumes
+> an official worker ID. See [Federation](Federation.md) for the operator and
+> planet-owner flows implemented today.
 
 ---
 
@@ -264,8 +273,8 @@ warnings/badge, optional mirror worker.
 ## Layer 3 — Community nodes: third-party planet hosting inside the network
 
 **Goal:** anyone can run the (Layer 1) server on `planets.example.com`,
-register it with the official network, and host planets that appear in the
-ecosystem with feature parity — while valour.gg remains ground truth for
+register it with the official hub cluster, and host planets that appear in the
+ecosystem with feature parity — while the official cluster remains ground truth for
 accounts, Stargazer status, friends, and DMs.
 
 ### Architecture choice
@@ -314,9 +323,11 @@ Settings and must explicitly accept it before their external session is minted.
 
 ### Identity and token minting
 
-The hub holds an **ES256 (ECDSA P-256) signing keypair**, public keys published at
+The official hub cluster holds one **ES256 (ECDSA P-256) signing keypair** in
+its shared database, public keys published through the official origin at
 `https://valour.gg/.well-known/valour-federation` (JWKS-style, key IDs for
-rotation). Flow:
+rotation). Every official replica can serve that document and mint with the
+same key material. Flow:
 
 1. Client wants planet 123; hub's `api/node/planet/123` resolves to
    `external:planets.example.com`.
@@ -362,11 +373,12 @@ and member machinery run untouched.
 
 ### Node registration and planet identity
 
-- Operator generates a node keypair, registers the domain with the hub while
-  signed in as the owning account (accountability), proves domain control via
-  an ACME-style `/.well-known/valour-node` challenge, accepts the federation
-  policy. Hub stores `federated_nodes` (domain, pubkey, owner, status,
-  version, last-seen).
+- Operator first makes the public node descriptor available, then registers
+  the domain with the hub while signed in as the owning account
+  (accountability), installs the issued ACME-style
+  `/.well-known/valour-node` challenge, and verifies the federation policy.
+  Hub stores `federated_nodes` (domain, pubkey, owner, status, version,
+  last-seen).
 - **The hub mints planet IDs.** A community node requests an ID (signed
   request); the hub stores a **planet stub** (id, name, domain, owner, member
   count, NSFW/discovery flags). This keeps the global snowflake ID space

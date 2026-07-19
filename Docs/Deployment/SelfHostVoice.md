@@ -68,7 +68,7 @@ LiveKit container via `LIVEKIT_KEYS`. `VOICE_LIVEKIT_API_URL` defaults to
 
 Uncomment the `voice.{$VALOUR_DOMAIN}` block at the bottom of `selfhost/Caddyfile`.
 
-### 5. Start the stack with the voice overlay
+### 5. Start the stack with the voice Compose overlay
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.voice.yml up -d
