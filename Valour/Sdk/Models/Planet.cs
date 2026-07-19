@@ -399,6 +399,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         _node = node;
     }
 
+    /// <summary>
+    /// Planet-scoped operations must follow the planet's assigned node. The
+    /// base model defaults to the primary hub, which is incorrect for a
+    /// community-hosted planet and would send moderation, storage, thread, and
+    /// other planet APIs to the wrong origin after federation routing.
+    /// </summary>
+    [JsonIgnore]
+    [IgnoreRealtimeChanges]
+    public override Node Node =>
+        _node ?? Client?.NodeService.GetKnownByPlanet(Id) ?? base.Node;
+
 
     protected override void OnDeleted()
     {

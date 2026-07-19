@@ -31,6 +31,7 @@
     private RenderFragment NotificationsContent => @<EditUserNotificationsComponent />;
     private RenderFragment DevicePreferencesContent => @<EditDevicePreferencesComponent />;
     private RenderFragment SecurityContent => @<EditSessionsComponent />;
+    private RenderFragment FederationContent => @<EditFederationMigrationComponent />;
     private RenderFragment LogOutContent => @<div></div>;
     private RenderFragment OAuthContent => @<EditOAuthComponent />;
     private RenderFragment BotsContent => @<BotManagementComponent />;
@@ -135,6 +136,13 @@
                     },
                     new MainMenu.MenuItem()
                     {
+                        Name = "Federation",
+                        Icon = "diagram-3-fill",
+                        Description = "Import and manage planet migrations",
+                        Content = FederationContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
                         Name = "Log Out",
                         Icon = "x-octagon-fill",
                         Color = "var(--color-danger)",
@@ -189,6 +197,12 @@
         }
 
         _categories = BuildCategories();
+
+        // Federation account flows are hub-side. A standalone or destination
+        // node used to show controls that could only return a 404, which made
+        // migration setup look supported when it was not.
+        if (Client.InstanceManifest?.Capabilities?.FederationHub != true)
+            _categories[0].Items.RemoveAll(x => x.Name == "Federation");
 
         // Add staff category if user is staff
         if (Data.User?.ValourStaff == true)

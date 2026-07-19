@@ -54,6 +54,11 @@ public class MessageReaction
     /// The time this reaction was created
     /// </summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Server-managed provenance for an externally imported reaction.
+    /// </summary>
+    public string? ImportSource { get; set; }
     
     public static void SetupDbModel(ModelBuilder builder)
     {
@@ -87,6 +92,10 @@ public class MessageReaction
             e.Property(x => x.CreatedAt)
                 .HasColumnName("created_at")
                 .IsRequired();
+
+            e.Property(x => x.ImportSource)
+                .HasColumnName("import_source")
+                .HasMaxLength(256);
             
             // Relationships
             e.HasOne(x => x.Message)

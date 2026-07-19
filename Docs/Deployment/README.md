@@ -93,3 +93,47 @@ disk. That bundle will use **Caddy** (automatic HTTPS from a single
 `VALOUR_DOMAIN` variable) instead of nginx — the nginx config here stays as
 the production reference. Until it lands, use this folder as the
 reverse-proxy/deploy reference.
+
+## Federation production checklist
+
+Federation is disabled by default. Configure exactly one of the following
+roles before exposing it publicly:
+
+- **Hub:** set `Federation:HubEnabled` to `true`. `Node:WorkerId` is only for
+  cooperating official-cluster instances; the official hub ordinarily uses
+  `0`.
+- **Community node:** set `Federation:HubUrl` and `Federation:NodeDomain`.
+  It does **not** register or consume an official `Node:WorkerId`: its local
+  object ids are scoped to its domain, while the hub allocates global planet
+  ids. `Node:WorkerId` is optional and matters only when multiple app
+  instances write that node's own database; it can be reused by unrelated
+  community nodes. Register and verify the node only after its public HTTPS
+  endpoint serves `/.well-known/valour-node`.
+
+For either role, provide a stable, secret, base64-encoded 32-byte
+`DataProtection:Kek` (or a read-only `DataProtection:KekFile`) outside the
+database and repository. Federation-enabled instances refuse to start without
+it. Do not enable `Federation:AllowInsecure` on an internet-facing deployment.
+
+Before the first cutover, apply the database migrations, verify the public
+domain/DNS/TLS configuration, and test registration plus token exchange using
+a non-production community node. The federation migrations add durable,
+node-scoped account-deletion delivery and global planet-id allocation, so all app
+instances must run the same release before enabling node traffic.
+
+Federation protocol v5 is an exact-version protocol: node descriptors and all
+federation credentials, including S2S credentials, must agree with the hub.
+Deploy the hub and every community node together, then re-verify each node and
+reissue any still-open migration or invite grant. Do not roll this version out
+while a migration is pending; abort it first or let it complete and verify the
+destination.
+
+Before production enablement, complete an interactive test against isolated
+public HTTPS hub and node deployments: accept the node warning, join a public
+planet, redeem a recipient-bound private invite, perform a forward migration,
+and pull it back. The SDK smoke test is opt-in:
+`LIVE_FEDERATION=1`, `LIVE_HUB`, `LIVE_NODE_DOMAIN`, `LIVE_EMAIL`,
+`LIVE_PASSWORD`, and `LIVE_PLANET` run
+`FederationMultiOriginLiveTests`. It requires two real origins; localhost is
+not an acceptable production test substitute. The test requires HTTPS unless
+the explicitly development-only `LIVE_FEDERATION_INSECURE=1` is set.

@@ -71,11 +71,11 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
 
     public override EcoAccount AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.EcoAccounts.Put(this, flags);
+        return Client.Cache.EcoAccounts.Put(this, flags, CacheScope);
     }
 
     public override EcoAccount RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.EcoAccounts.Remove(this, skipEvents);
+        return Client.Cache.EcoAccounts.Remove(this, CacheScope, skipEvents);
     }
 }

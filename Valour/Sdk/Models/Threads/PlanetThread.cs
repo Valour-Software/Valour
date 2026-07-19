@@ -23,6 +23,11 @@ public class PlanetThread : ClientPlanetModel<PlanetThread, long>, ISharedPlanet
     public int BoostCount { get; set; }
     public int CommentCount { get; set; }
 
+    /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
     public List<MessageAttachment> Attachments { get; set; }
 
     /// <summary>

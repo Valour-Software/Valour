@@ -11,7 +11,7 @@ public class InstanceManifest
     /// <summary>
     /// The current federation protocol version spoken by this server build.
     /// </summary>
-    public const int CurrentProtocolVersion = 1;
+    public const int CurrentProtocolVersion = ValourFederation.ProtocolVersion;
 
     /// <summary>
     /// Display name of the instance
@@ -61,6 +61,12 @@ public class InstanceHosts
 /// </summary>
 public class InstanceCapabilities
 {
+    /// <summary>Whether this instance is configured as a federation hub.</summary>
+    public bool FederationHub { get; set; }
+
+    /// <summary>Whether this instance is configured as a federation community node.</summary>
+    public bool FederationNode { get; set; }
+
     /// <summary>
     /// Transactional email (verification emails, password resets)
     /// </summary>

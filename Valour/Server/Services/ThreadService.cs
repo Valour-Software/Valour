@@ -87,6 +87,8 @@ public class ThreadService
         thread.IsLocked = false;
         thread.BoostCount = 0;
         thread.CommentCount = 0;
+        // Import provenance is reserved for trusted import workflows.
+        thread.ImportSource = null;
 
         var attachments = thread.Attachments?.Where(x => x is not null).ToList();
         if (attachments is not null)
@@ -199,6 +201,10 @@ public class ThreadService
 
     public async Task<TaskResult> DeleteThreadAsync(long planetId, long threadId, long actorUserId, bool isModeration)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var dbThread = await _db.PlanetThreads
             .FirstOrDefaultAsync(x => x.Id == threadId && x.PlanetId == planetId);
 
@@ -259,6 +265,10 @@ public class ThreadService
     /// </summary>
     public async Task<TaskResult<PlanetThread>> SetPinnedAsync(long planetId, long threadId, bool value, long actorUserId)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetThread>.FromFailure(migrationGuard.Message);
+
         var dbPlanet = await _db.Planets
             .Include(x => x.Tags)
             .FirstOrDefaultAsync(x => x.Id == planetId);
@@ -308,6 +318,10 @@ public class ThreadService
     /// </summary>
     public async Task<TaskResult> DismissPinAsync(long planetId, long threadId, long userId)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var member = await _db.PlanetMembers
             .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
 
@@ -331,6 +345,10 @@ public class ThreadService
 
     private async Task<TaskResult<PlanetThread>> SetThreadFlagAsync(long planetId, long threadId, Action<Valour.Database.PlanetThread> setFlag)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetThread>.FromFailure(migrationGuard.Message);
+
         var dbThread = await _db.PlanetThreads
             .Include(x => x.Attachments)
             .FirstOrDefaultAsync(x => x.Id == threadId && x.PlanetId == planetId);
@@ -493,6 +511,10 @@ public class ThreadService
 
     public async Task<TaskResult<PlanetThread>> SetThreadBoostAsync(long planetId, long threadId, long userId, bool boosted)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetThread>.FromFailure(migrationGuard.Message);
+
         var thread = await _db.PlanetThreads
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == threadId && x.PlanetId == planetId);
@@ -661,6 +683,8 @@ public class ThreadService
         comment.BoostCount = 0;
         comment.ReplyCount = 0;
         comment.IsDeleted = false;
+        // Import provenance is reserved for trusted import workflows.
+        comment.ImportSource = null;
         comment.Content = SanitizeMarkdown(comment.Content);
 
         var scanResult = await ScanWithAutomodAsync(comment.PlanetId, comment.Id, comment.Content, comment.AuthorUserId, member);
@@ -747,6 +771,10 @@ public class ThreadService
 
     public async Task<TaskResult> DeleteCommentAsync(long planetId, long commentId, long actorUserId, bool isModeration)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var dbComment = await _db.ThreadComments
             .FirstOrDefaultAsync(x => x.Id == commentId && x.PlanetId == planetId);
 
@@ -786,6 +814,10 @@ public class ThreadService
 
     public async Task<TaskResult<ThreadComment>> SetCommentBoostAsync(long planetId, long commentId, long userId, bool boosted)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<ThreadComment>.FromFailure(migrationGuard.Message);
+
         var comment = await _db.ThreadComments
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == commentId && x.PlanetId == planetId);

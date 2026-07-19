@@ -69,7 +69,8 @@ public class EcoService : ServiceBase
     /// </summary>
     public async ValueTask<EcoAccount> FetchEcoAccountAsync(long id, Planet planet, bool skipCache = false)
     {
-        if (!skipCache && _cache.EcoAccounts.TryGet(id, out var cached))
+        var scope = planet?.Node?.IsExternal == true ? planet.Node.Name : null;
+        if (!skipCache && _cache.EcoAccounts.TryGet(id, scope, out var cached))
             return cached;
         
         var item = (await planet.Node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
@@ -148,10 +149,11 @@ public class EcoService : ServiceBase
     /// </summary>
     public async ValueTask<Currency> FetchCurrencyAsync(long id, Planet planet, bool skipCache = false)
     {
-        if (!skipCache && _cache.Currencies.TryGet(id, out var cached))
+        var scope = planet?.Node?.IsExternal == true ? planet.Node.Name : null;
+        if (!skipCache && _cache.Currencies.TryGet(id, scope, out var cached))
             return cached;
         
-        var item = (await _client.PrimaryNode.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
+        var item = (await planet.Node.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
 
         return item.Sync(_client);
     }

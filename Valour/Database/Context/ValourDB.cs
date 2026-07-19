@@ -247,9 +247,12 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<FederatedNode> FederatedNodes { get; set; }
     public DbSet<FederatedPlanetStub> FederatedPlanetStubs { get; set; }
     public DbSet<FederatedMigration> FederatedMigrations { get; set; }
+    public DbSet<FederatedImportReceipt> FederatedImportReceipts { get; set; }
     public DbSet<FederatedPurge> FederatedPurges { get; set; }
     public DbSet<FederatedAcceptedDomain> FederatedAcceptedDomains { get; set; }
     public DbSet<FederatedMembership> FederatedMemberships { get; set; }
+    public DbSet<FederatedInviteGrant> FederatedInviteGrants { get; set; }
+    public DbSet<FederatedInviteRedemption> FederatedInviteRedemptions { get; set; }
 
     /// <summary>
     /// ASP.NET Data Protection key ring, persisted in the shared database so
@@ -351,10 +354,12 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         FederatedNode.SetupDbModel(modelBuilder);
         FederatedPlanetStub.SetupDbModel(modelBuilder);
         FederatedMigration.SetupDbModel(modelBuilder);
+        FederatedImportReceipt.SetupDbModel(modelBuilder);
         FederatedPurge.SetupDbModel(modelBuilder);
         FederatedAcceptedDomain.SetupDbModel(modelBuilder);
         FederatedMembership.SetupDbModel(modelBuilder);
+        FederatedInviteGrant.SetupDbModel(modelBuilder);
+        FederatedInviteRedemption.SetupDbModel(modelBuilder);
         Transaction.SetupDbModel(modelBuilder);
     }
 }
-

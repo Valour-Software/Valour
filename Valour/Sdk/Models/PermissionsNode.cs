@@ -13,20 +13,34 @@ namespace Valour.Sdk.Models;
 
 public readonly struct PermissionsNodeKey : IEquatable<PermissionsNodeKey>
 {
+    /// <summary>
+    /// Planet ids are hub-global. Including this in the cache key prevents two
+    /// community nodes with the same local channel and role ids from sharing a
+    /// permission-node cache entry.
+    /// </summary>
+    public readonly long PlanetId;
     public readonly long TargetId;
     public readonly long RoleId;
     public readonly ChannelTypeEnum TargetType;
-    
-    public PermissionsNodeKey(long targetId, long roleId, ChannelTypeEnum targetType)
+
+    public PermissionsNodeKey(long planetId, long targetId, long roleId, ChannelTypeEnum targetType)
     {
+        PlanetId = planetId;
         TargetId = targetId;
         RoleId = roleId;
         TargetType = targetType;
     }
-    
+
+    // Retained for callers which only need an API lookup key. Cache lookups
+    // bind it to the supplied planet before use.
+    public PermissionsNodeKey(long targetId, long roleId, ChannelTypeEnum targetType)
+        : this(0, targetId, roleId, targetType)
+    {
+    }
+
     public bool Equals(PermissionsNodeKey other)
     {
-        return TargetId == other.TargetId && RoleId == other.RoleId && TargetType == other.TargetType;
+        return PlanetId == other.PlanetId && TargetId == other.TargetId && RoleId == other.RoleId && TargetType == other.TargetType;
     }
 }
 
@@ -92,7 +106,7 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     /// <summary>
     /// Returns a key used for caching nodes via several properties
     /// </summary>
-    public PermissionsNodeKey GetCombinedKey() => new(TargetId, RoleId, TargetType);
+    public PermissionsNodeKey GetCombinedKey() => new(PlanetId, TargetId, RoleId, TargetType);
     
     public override PermissionsNode AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

@@ -23,6 +23,7 @@ public static class PlanetWikiMapper
             LastEdited = doc.LastEdited,
             CreatedByUserId = doc.CreatedByUserId,
             LastEditedByUserId = doc.LastEditedByUserId,
+            ImportSource = doc.ImportSource,
         };
     }
 
@@ -42,6 +43,7 @@ public static class PlanetWikiMapper
             Content = includeContent ? revision.Content : null,
             AuthorUserId = revision.AuthorUserId,
             TimeCreated = revision.TimeCreated,
+            ImportSource = revision.ImportSource,
         };
     }
 }

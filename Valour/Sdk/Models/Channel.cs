@@ -325,7 +325,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         if (type is null)
             type = ISharedChannel.GetPermissionTargetType(ChannelType);
 
-        PermissionsNodeKey key = new(Id, roleId, type.Value);
+        PermissionsNodeKey key = new(Planet.Id, Id, roleId, type.Value);
 
         if (Client.Cache.PermNodeKeyToId.TryGetValue(key, out var nodeId))
         {

@@ -36,7 +36,12 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     public HybridEvent<ModelRemovedEvent<TModel>>? ModelDeleted;
 
     protected readonly List<TModel> List;
-    protected readonly Dictionary<TId, TModel> IdMap;
+    // Community nodes own their local object-id space. A non-null scope keeps
+    // two same-id external models from different origins distinct while the
+    // official network continues to use the existing unscoped fast path.
+    protected readonly Dictionary<ModelStoreKey, TModel> IdMap;
+
+    protected readonly record struct ModelStoreKey(TId Id, string Scope);
 
     /// <summary>
     /// Lock object for thread-safe access to List and IdMap.
@@ -58,7 +63,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     public ModelStore(List<TModel>? startingList = null)
     {
         List = startingList ?? new List<TModel>();
-        IdMap = List.ToDictionary(x => x.Id);
+        IdMap = List.ToDictionary(x => new ModelStoreKey(x.Id, null));
     }
     
     // Make iterable - returns a snapshot to avoid holding lock during iteration
@@ -132,11 +137,21 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     
     public TModel? Put(TModel model, ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        var result = PutInternal(model, flags);
+        var result = PutInternal(model, flags, null);
+        return result?.GetModel();
+    }
+
+    /// <summary>
+    /// Inserts a model under an origin scope. Scoped identifiers are used for
+    /// local objects received from federated community nodes.
+    /// </summary>
+    public TModel? Put(TModel model, ModelInsertFlags flags, string scope)
+    {
+        var result = PutInternal(model, flags, scope);
         return result?.GetModel();
     }
     
-    protected virtual IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags)
+    protected virtual IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags, string scope)
     {
         if (model is null)
             return null;
@@ -147,7 +162,8 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
 
         lock (SyncLock)
         {
-            if (IdMap.TryGetValue(model.Id, out existing))
+            var key = new ModelStoreKey(model.Id, scope);
+            if (IdMap.TryGetValue(key, out existing))
             {
                 isUpdate = true;
                 // Apply changes while holding lock
@@ -165,7 +181,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             {
                 isUpdate = false;
                 List.Add(model);
-                IdMap[model.Id] = model;
+                IdMap[key] = model;
                 result = new ModelAddedEvent<TModel>(model);
             }
         }
@@ -192,22 +208,33 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     
     public TModel? Remove(TModel item, bool skipEvent = false)
     {
-        return Remove(item.Id, skipEvent);
+        return Remove(item.Id, null, skipEvent);
+    }
+
+    public TModel? Remove(TModel item, string scope, bool skipEvent = false)
+    {
+        return Remove(item.Id, scope, skipEvent);
     }
     
     public TModel? Remove(TId id, bool skipEvent = false)
+    {
+        return Remove(id, null, skipEvent);
+    }
+
+    public TModel? Remove(TId id, string scope, bool skipEvent = false)
     {
         TModel item;
 
         lock (SyncLock)
         {
-            if (!IdMap.TryGetValue(id, out item))
+            var key = new ModelStoreKey(id, scope);
+            if (!IdMap.TryGetValue(key, out item))
                 return null;
 
-            IdMap.Remove(id);
+            IdMap.Remove(key);
 
             // Get index of item in list
-            var index = List.FindIndex(x => x.Id.Equals(id));
+            var index = List.FindIndex(x => ReferenceEquals(x, item));
             List.RemoveAt(index);
         }
 
@@ -235,7 +262,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             List.AddRange(items);
 
             foreach (var item in items)
-                IdMap[item.Id] = item;
+                IdMap[new ModelStoreKey(item.Id, null)] = item;
         }
 
         // Fire events outside lock
@@ -266,17 +293,27 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
 
     public bool TryGet(TId id, out TModel? item)
     {
+        return TryGet(id, null, out item);
+    }
+
+    public bool TryGet(TId id, string scope, out TModel? item)
+    {
         lock (SyncLock)
         {
-            return IdMap.TryGetValue(id, out item);
+            return IdMap.TryGetValue(new ModelStoreKey(id, scope), out item);
         }
     }
 
     public TModel? Get(TId id)
     {
+        return Get(id, null);
+    }
+
+    public TModel? Get(TId id, string scope)
+    {
         lock (SyncLock)
         {
-            IdMap.TryGetValue(id, out var item);
+            IdMap.TryGetValue(new ModelStoreKey(id, scope), out var item);
             return item;
         }
     }
@@ -286,7 +323,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     {
         lock (SyncLock)
         {
-            return IdMap.ContainsKey(item.Id);
+            return IdMap.ContainsKey(new ModelStoreKey(item.Id, null));
         }
     }
 
@@ -295,7 +332,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     {
         lock (SyncLock)
         {
-            return IdMap.ContainsKey(id);
+            return IdMap.ContainsKey(new ModelStoreKey(id, null));
         }
     }
 
@@ -370,11 +407,11 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
         return baseResult;
     }
 
-    protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags)
+    protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags, string scope)
     {
         // Always skip events in base - we'll fire them after repositioning
         var baseFlags = flags | ModelInsertFlags.SkipEvents;
-        var baseResult = base.PutInternal(model, baseFlags);
+        var baseResult = base.PutInternal(model, baseFlags, scope);
         if (baseResult is null)
             return null;
 
@@ -426,7 +463,7 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
         {
             if (doRemoval)
             {
-                var index = List.FindIndex(x => x.Id.Equals(resultModel.Id));
+                var index = List.FindIndex(x => ReferenceEquals(x, resultModel));
                 List.RemoveAt(index);
             }
 
@@ -470,7 +507,7 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
             List.AddRange(items);
 
             foreach (var item in items)
-                IdMap[item.Id] = item;
+                IdMap[new ModelStoreKey(item.Id, null)] = item;
 
             List.Sort(ISortable.Compare);
         }

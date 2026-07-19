@@ -33,4 +33,9 @@ public class MessageReaction : ISharedMessageReaction
     /// The time this reaction was created
     /// </summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Server-managed provenance for reactions imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
 }

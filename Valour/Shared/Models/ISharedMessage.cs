@@ -49,4 +49,10 @@ public interface ISharedMessage : ISharedModel<long>
     /// The time when the message was edited, or null if it was not
     /// </summary>
     public DateTime? EditedTime { get; set; }
+
+    /// <summary>
+    /// Non-null when this record was imported from another service or node.
+    /// This is server-managed provenance, never client-authored message data.
+    /// </summary>
+    string ImportSource { get; set; }
 }

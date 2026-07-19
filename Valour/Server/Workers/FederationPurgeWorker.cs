@@ -15,6 +15,7 @@ public class FederationPurgeWorker : IHostedService, IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<FederationPurgeWorker> _logger;
     private Timer _timer;
+    private int _running;
 
     public FederationPurgeWorker(IServiceScopeFactory scopeFactory, ILogger<FederationPurgeWorker> logger)
     {
@@ -33,6 +34,11 @@ public class FederationPurgeWorker : IHostedService, IDisposable
 
     private async Task RunAsync()
     {
+        // Timers do not await an async callback. A slow hub must not start a
+        // second purge pass that races the durable cursor from the first.
+        if (Interlocked.Exchange(ref _running, 1) != 0)
+            return;
+
         try
         {
             using var scope = _scopeFactory.CreateScope();
@@ -42,6 +48,10 @@ public class FederationPurgeWorker : IHostedService, IDisposable
         catch (Exception e)
         {
             _logger.LogWarning(e, "Federation purge poll failed");
+        }
+        finally
+        {
+            Volatile.Write(ref _running, 0);
         }
     }
 

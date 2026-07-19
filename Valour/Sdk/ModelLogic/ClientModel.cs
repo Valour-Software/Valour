@@ -47,6 +47,15 @@ public abstract class ClientModel
     [JsonIgnore]
     [IgnoreRealtimeChanges]
     public virtual Node Node => Client?.PrimaryNode;
+
+    /// <summary>
+    /// Community nodes may reuse local numeric ids. Cache entries received
+    /// from one therefore carry the origin as part of their identity; official
+    /// network entries intentionally remain in the existing unscoped space.
+    /// </summary>
+    [JsonIgnore]
+    [IgnoreRealtimeChanges]
+    internal string CacheScope => Node?.IsExternal == true ? Node.Name : null;
     
     [JsonConstructor]
     protected ClientModel() { }
@@ -203,4 +212,3 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
         return Node.DeleteAsync(IdRoute);
     }
 }
-

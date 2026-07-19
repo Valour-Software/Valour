@@ -338,11 +338,11 @@ public class SignalRConnectionService : IDisposable
             _registryLock.Release();
         }
         
-        if (groupsCopy == null)
-            return;
-            
-        // Remove from each group
-        foreach (var groupId in groupsCopy)
+        // Remove from each group when there are any. Even connections that
+        // never joined a group must have their identity and token reverse
+        // lookup removed on disconnect; otherwise a denied JoinUser attempt
+        // leaves a stale connection eligible for future ForceLogout sends.
+        foreach (var groupId in groupsCopy ?? [])
         {
             await UntrackGroupMembershipAsync(groupId, context);
         }

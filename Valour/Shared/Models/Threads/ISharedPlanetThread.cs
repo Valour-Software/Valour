@@ -77,4 +77,9 @@ public interface ISharedPlanetThread : ISharedPlanetModel<long>
     /// Denormalized count of comments on this thread
     /// </summary>
     int CommentCount { get; set; }
+
+    /// <summary>
+    /// Non-null when this thread originated in an external import.
+    /// </summary>
+    string ImportSource { get; set; }
 }

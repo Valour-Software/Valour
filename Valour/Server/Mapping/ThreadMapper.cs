@@ -25,6 +25,7 @@ public static class ThreadMapper
             Nsfw = thread.Nsfw,
             BoostCount = thread.BoostCount,
             CommentCount = thread.CommentCount,
+            ImportSource = thread.ImportSource,
             Attachments = thread.Attachments?
                 .OrderBy(x => x.SortOrder)
                 .Select(x => x.ToModel())
@@ -51,6 +52,7 @@ public static class ThreadMapper
             Nsfw = thread.Nsfw,
             BoostCount = thread.BoostCount,
             CommentCount = thread.CommentCount,
+            ImportSource = thread.ImportSource,
             Attachments = thread.Attachments?
                 .Select((x, i) => x.ToThreadAttachment(thread.Id, i))
                 .ToList()
@@ -139,7 +141,8 @@ public static class ThreadMapper
             EditedTime = comment.EditedTime,
             BoostCount = comment.BoostCount,
             ReplyCount = comment.ReplyCount,
-            IsDeleted = comment.IsDeleted
+            IsDeleted = comment.IsDeleted,
+            ImportSource = comment.ImportSource,
         };
     }
 
@@ -162,7 +165,8 @@ public static class ThreadMapper
             EditedTime = comment.EditedTime,
             BoostCount = comment.BoostCount,
             ReplyCount = comment.ReplyCount,
-            IsDeleted = comment.IsDeleted
+            IsDeleted = comment.IsDeleted,
+            ImportSource = comment.ImportSource,
         };
     }
 }

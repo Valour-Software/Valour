@@ -22,4 +22,9 @@ public class PlanetWikiRevision
 
     public long AuthorUserId { get; set; }
     public DateTime TimeCreated { get; set; }
+
+    /// <summary>
+    /// Non-null when this revision originated in an external import.
+    /// </summary>
+    public string? ImportSource { get; set; }
 }

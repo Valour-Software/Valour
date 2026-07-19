@@ -22,4 +22,5 @@ public class PlanetWikiPage : ServerModel<long>, ISharedPlanetWikiPage
     public DateTime? LastEdited { get; set; }
     public long CreatedByUserId { get; set; }
     public long? LastEditedByUserId { get; set; }
+    public string ImportSource { get; set; }
 }

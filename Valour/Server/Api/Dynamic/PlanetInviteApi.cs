@@ -94,7 +94,9 @@ public class PlanetInviteApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
-        await inviteService.DeleteAsync(invite);
+        var result = await inviteService.DeleteAsync(invite);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
         return Results.NoContent();
     }

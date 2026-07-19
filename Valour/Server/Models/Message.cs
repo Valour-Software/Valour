@@ -67,6 +67,11 @@ public class Message : ServerModel<long>, ISharedMessage
     public DateTime? EditedTime { get; set; }
 
     /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
+    /// <summary>
     /// Used to identify a message returned from the server 
     /// </summary>
     public string Fingerprint { get; set; }

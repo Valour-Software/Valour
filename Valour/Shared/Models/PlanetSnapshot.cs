@@ -1,12 +1,14 @@
+using Valour.Shared.Models.Staff;
+
 namespace Valour.Shared.Models;
 
 /// <summary>
 /// A complete, portable copy of a planet's data for migration between the
-/// official network and community nodes. IDs are the global snowflake ids and
-/// are preserved verbatim on import — migration keeps the planet, its channels,
-/// roles, members, and messages at their original ids, so no id remapping is
-/// needed. Referenced users are hub-global; the destination materializes shadow
-/// user rows for any it doesn't already have.
+/// official network and community nodes. Planet and user IDs are hub-global and
+/// preserved on import. All other IDs are node-local and are remapped whenever
+/// the snapshot crosses domains, including every internal reference. Referenced
+/// users are hub-global; the destination materializes shadow user rows for any
+/// it doesn't already have.
 /// </summary>
 public class PlanetSnapshot
 {
@@ -22,6 +24,8 @@ public class PlanetSnapshot
     public List<PlanetSnapshotEmoji> Emojis { get; set; } = new();
     public List<PlanetSnapshotRule> Rules { get; set; } = new();
     public List<PlanetSnapshotBan> Bans { get; set; } = new();
+    public List<PlanetSnapshotInvite> Invites { get; set; } = new();
+    public List<PlanetSnapshotUserChannelState> UserChannelStates { get; set; } = new();
     public List<PlanetSnapshotMessage> Messages { get; set; } = new();
     public List<PlanetSnapshotAttachment> Attachments { get; set; } = new();
     public List<PlanetSnapshotReaction> Reactions { get; set; } = new();
@@ -32,10 +36,14 @@ public class PlanetSnapshot
     // is reset and reports stay on official.
     public List<PlanetSnapshotThread> Threads { get; set; } = new();
     public List<PlanetSnapshotThreadComment> ThreadComments { get; set; } = new();
+    public List<PlanetSnapshotThreadBoost> ThreadBoosts { get; set; } = new();
+    public List<PlanetSnapshotThreadCommentBoost> ThreadCommentBoosts { get; set; } = new();
     public List<PlanetSnapshotWikiPage> WikiPages { get; set; } = new();
     public List<PlanetSnapshotWikiRevision> WikiRevisions { get; set; } = new();
     public List<PlanetSnapshotAutomodTrigger> AutomodTriggers { get; set; } = new();
     public List<PlanetSnapshotAutomodAction> AutomodActions { get; set; } = new();
+    public List<PlanetSnapshotAutomodLog> AutomodLogs { get; set; } = new();
+    public List<PlanetSnapshotModerationAuditLog> ModerationAuditLogs { get; set; } = new();
 
     /// <summary>
     /// Names of members/authors so the destination can build shadow users.
@@ -57,6 +65,7 @@ public class PlanetSnapshotThread
     public bool Nsfw { get; set; }
     public int BoostCount { get; set; }
     public int CommentCount { get; set; }
+    public string ImportSource { get; set; }
 }
 
 public class PlanetSnapshotThreadComment
@@ -73,6 +82,26 @@ public class PlanetSnapshotThreadComment
     public DateTime? EditedTime { get; set; }
     public int BoostCount { get; set; }
     public int ReplyCount { get; set; }
+    public string ImportSource { get; set; }
+}
+
+public class PlanetSnapshotThreadBoost
+{
+    public long Id { get; set; }
+    public long ThreadId { get; set; }
+    public long PlanetId { get; set; }
+    public long UserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class PlanetSnapshotThreadCommentBoost
+{
+    public long Id { get; set; }
+    public long CommentId { get; set; }
+    public long ThreadId { get; set; }
+    public long PlanetId { get; set; }
+    public long UserId { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public class PlanetSnapshotWikiPage
@@ -85,12 +114,14 @@ public class PlanetSnapshotWikiPage
     public string PreviousSlug { get; set; }
     public string Title { get; set; }
     public string Content { get; set; }
+    public uint Position { get; set; }
     public bool IsPublished { get; set; }
     public long Version { get; set; }
     public DateTime TimeCreated { get; set; }
     public DateTime? LastEdited { get; set; }
     public long CreatedByUserId { get; set; }
     public long? LastEditedByUserId { get; set; }
+    public string ImportSource { get; set; }
 }
 
 public class PlanetSnapshotWikiRevision
@@ -102,6 +133,7 @@ public class PlanetSnapshotWikiRevision
     public string Content { get; set; }
     public long AuthorUserId { get; set; }
     public DateTime TimeCreated { get; set; }
+    public string ImportSource { get; set; }
 }
 
 public class PlanetSnapshotAutomodTrigger
@@ -109,6 +141,7 @@ public class PlanetSnapshotAutomodTrigger
     public Guid Id { get; set; }
     public long PlanetId { get; set; }
     public long MemberAddedBy { get; set; }
+    public AutomodTriggerType Type { get; set; }
     public string Name { get; set; }
     public string TriggerWords { get; set; }
     public bool RunForEveryone { get; set; }
@@ -121,6 +154,7 @@ public class PlanetSnapshotAutomodAction
     public bool UseGlobalStrikes { get; set; }
     public Guid TriggerId { get; set; }
     public long MemberAddedBy { get; set; }
+    public AutomodActionType ActionType { get; set; }
     public long PlanetId { get; set; }
     public long TargetMemberId { get; set; }
     public long? MessageId { get; set; }
@@ -128,6 +162,31 @@ public class PlanetSnapshotAutomodAction
     public DateTime? Expires { get; set; }
     public string Message { get; set; }
     public long? ResponseChannelId { get; set; }
+}
+
+public class PlanetSnapshotAutomodLog
+{
+    public Guid Id { get; set; }
+    public long PlanetId { get; set; }
+    public Guid TriggerId { get; set; }
+    public long MemberId { get; set; }
+    public long? MessageId { get; set; }
+    public DateTime TimeTriggered { get; set; }
+}
+
+public class PlanetSnapshotModerationAuditLog
+{
+    public long Id { get; set; }
+    public long PlanetId { get; set; }
+    public long? ActorUserId { get; set; }
+    public long? TargetUserId { get; set; }
+    public long? TargetMemberId { get; set; }
+    public long? MessageId { get; set; }
+    public Guid? TriggerId { get; set; }
+    public ModerationActionSource Source { get; set; }
+    public ModerationActionType ActionType { get; set; }
+    public string Details { get; set; }
+    public DateTime TimeCreated { get; set; }
 }
 
 public class PlanetSnapshotUser
@@ -151,10 +210,33 @@ public class PlanetSnapshotPlanet
     public bool HasAnimatedIcon { get; set; }
     public bool HasCustomBackground { get; set; }
     public bool SelfHostedMedia { get; set; }
+    public bool SelfHostedVoice { get; set; }
     public bool EnableThreads { get; set; }
     public bool PublicThreads { get; set; }
     public long? PinnedThreadId { get; set; }
+    public bool EnableWiki { get; set; }
+    public bool PublicWiki { get; set; }
+    public string Vanity { get; set; }
     public int Version { get; set; }
+    public List<long> TagIds { get; set; } = new();
+}
+
+public class PlanetSnapshotInvite
+{
+    public string Id { get; set; }
+    public long PlanetId { get; set; }
+    public long IssuerId { get; set; }
+    public DateTime TimeCreated { get; set; }
+    public DateTime? TimeExpires { get; set; }
+}
+
+public class PlanetSnapshotUserChannelState
+{
+    public long UserId { get; set; }
+    public long ChannelId { get; set; }
+    public long? PlanetId { get; set; }
+    public long? PlanetMemberId { get; set; }
+    public DateTime LastViewedTime { get; set; }
 }
 
 public class PlanetSnapshotChannel
@@ -260,6 +342,7 @@ public class PlanetSnapshotMessage
     public DateTime TimeSent { get; set; }
     public long ChannelId { get; set; }
     public DateTime? EditedTime { get; set; }
+    public string ImportSource { get; set; }
 }
 
 public class PlanetSnapshotAttachment
@@ -290,6 +373,7 @@ public class PlanetSnapshotReaction
     public long AuthorUserId { get; set; }
     public long? AuthorMemberId { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string ImportSource { get; set; }
 }
 
 public class PlanetSnapshotMention

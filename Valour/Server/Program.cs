@@ -294,11 +294,6 @@ public partial class Program
     }
 
     /// <summary>
-    /// CORS origins derived from the configured hosting domains, plus fixed
-    /// dev and third-party entries. Note: the policy also sets
-    /// SetIsOriginAllowed(_ => true), which currently supersedes this list.
-    /// </summary>
-    /// <summary>
     /// True for docs clean-URL segments: planet ids, vanity names, page slugs
     /// (letters/digits/dashes), or the literal sitemap.xml.
     /// </summary>
@@ -319,11 +314,17 @@ public partial class Program
         return true;
     }
 
+    /// <summary>
+    /// CORS origins derived from the local deployment plus the configured
+    /// federation hub. Community nodes must accept the hub app's browser
+    /// origin for the SDK's direct HTTP and SignalR connections, but must not
+    /// reflect arbitrary origins while allowing credentials.
+    /// </summary>
     private static string[] BuildCorsOrigins()
     {
         var hosting = HostingConfig.Current;
-        return
-        [
+        var origins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
             $"https://{hosting.AppHost}",
             $"http://{hosting.AppHost}",
             $"https://www.{hosting.RootDomain}",
@@ -332,14 +333,31 @@ public partial class Program
             $"http://{hosting.RootDomain}",
             $"https://{hosting.ApiHost}",
             $"http://{hosting.ApiHost}",
-            "https://tenor.googleapis.com",
             "http://localhost:3000",
             "https://localhost:3000",
             "http://localhost:3001",
             "https://localhost:3001",
             "http://localhost:5000",
             "http://localhost:5001",
-        ];
+        };
+
+        // The node trusts this URL as its federation hub already. Permit the
+        // hub itself and the conventional app subdomain so a browser signed in
+        // to the hub can use this node as a separate origin. Operators whose
+        // app is hosted at the hub root are covered by the first entry.
+        if (Uri.TryCreate(FederationConfig.Current?.HubUrl, UriKind.Absolute, out var hubUri) &&
+            (hubUri.Scheme == Uri.UriSchemeHttps || hubUri.Scheme == Uri.UriSchemeHttp))
+        {
+            origins.Add(hubUri.GetLeftPart(UriPartial.Authority));
+            if (!hubUri.Host.StartsWith("app.", StringComparison.OrdinalIgnoreCase))
+            {
+                var appOrigin = new UriBuilder(hubUri.Scheme, $"app.{hubUri.Host}", hubUri.Port)
+                    .Uri.GetLeftPart(UriPartial.Authority);
+                origins.Add(appOrigin);
+            }
+        }
+
+        return origins.ToArray();
     }
 
     public static void ConfigureServices(WebApplicationBuilder builder)
@@ -353,7 +371,6 @@ public partial class Program
                 builder
                     .AllowAnyMethod()
                     .AllowAnyHeader()
-                    .SetIsOriginAllowed(_ => true)
                     .AllowCredentials()
                     .WithOrigins(BuildCorsOrigins());
             });
@@ -424,6 +441,20 @@ public partial class Program
         var kekProvider = new DataProtectionKekProvider(
             builder.Configuration,
             LoggerFactory.Create(b => b.AddConsole()).CreateLogger<DataProtectionKekProvider>());
+
+        // Federation signing keys are protected by the Data Protection ring.
+        // Running a hub or community node without an out-of-band KEK would put
+        // both the wrapped private key and the unwrapped ring in the same
+        // database, making the protection illusory. Fail before serving any
+        // federation endpoint rather than treating this as a deployment warning.
+        if ((FederationConfig.Current?.HubEnabled == true || FederationConfig.Current?.NodeEnabled == true)
+            && !kekProvider.Available)
+        {
+            throw new InvalidOperationException(
+                "Federation requires DataProtection:Kek (or DataProtection:KekFile). " +
+                "Use a stable base64-encoded 32-byte key stored outside the database.");
+        }
+
         services.AddSingleton(kekProvider);
 
         var dataProtection = services.AddDataProtection()
@@ -519,11 +550,14 @@ public partial class Program
         services.AddScoped<FederationHubService>();
         services.AddScoped<FederationNodeService>();
         services.AddScoped<FederationPlanetRegistryService>();
+        services.AddScoped<FederationPlanetRegistrySyncService>();
         services.AddScoped<FederationNodeClient>();
         services.AddScoped<PlanetSnapshotService>();
         services.AddScoped<FederationMigrationService>();
         services.AddScoped<FederationPurgeService>();
         services.AddScoped<FederationJoinService>();
+        services.AddScoped<FederationInviteService>();
+        services.AddScoped<FederationInviteReconciliationService>();
 
         // Federation S2S/JWKS fetches. Insecure mode (dev/LAN clone networks)
         // accepts self-signed certificates.
@@ -586,6 +620,8 @@ public partial class Program
         services.AddHostedService<StatWorker>();
         services.AddHostedService<ChannelWatchingWorker>();
         services.AddHostedService<FederationPurgeWorker>();
+        services.AddHostedService<FederationInviteReconciliationWorker>();
+        services.AddHostedService<FederationPlanetRegistrySyncWorker>();
         services.AddHostedService<UserOnlineWorker>();
         services.AddHostedService<NodeStateWorker>();
         services.AddHostedService<SubscriptionWorker>();

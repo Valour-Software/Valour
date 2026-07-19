@@ -190,3 +190,11 @@
     margin-left: 4px;
     align-self: center;
 }
+
+.community-host-icon {
+    font-size: 0.75em;
+    color: var(--color-warning, #e0a030);
+    opacity: 0.9;
+    margin-left: 5px;
+    align-self: center;
+}

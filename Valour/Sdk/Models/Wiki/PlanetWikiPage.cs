@@ -29,6 +29,11 @@ public class PlanetWikiPage : ClientPlanetModel<PlanetWikiPage, long>, ISharedPl
     public long CreatedByUserId { get; set; }
     public long? LastEditedByUserId { get; set; }
 
+    /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
     [JsonIgnore]
     public bool IsRoot => ParentId is null;
 

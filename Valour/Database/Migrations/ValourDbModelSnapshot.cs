@@ -691,6 +691,154 @@ namespace Valour.Database.Migrations
                     b.ToTable("federated_accepted_domains", (string)null);
                 });
 
+            modelBuilder.Entity("Valour.Database.FederatedImportReceipt", b =>
+                {
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("confirmed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("GrantId")
+                        .HasColumnType("text")
+                        .HasColumnName("grant_id");
+
+                    b.Property<long>("OwnerId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("SnapshotHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("snapshot_hash");
+
+                    b.Property<bool>("SourceDiscoverable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("source_discoverable");
+
+                    b.Property<string>("SourceDomain")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source_domain");
+
+                    b.Property<bool>("SourcePublic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("source_public");
+
+                    b.HasKey("PlanetId");
+
+                    b.HasIndex("SourceDomain");
+
+                    b.ToTable("federated_import_receipts", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.FederatedInviteGrant", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("CreatorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("creator_user_id");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<long>("IntendedUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("intended_user_id");
+
+                    b.Property<int>("MaxUses")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_uses");
+
+                    b.Property<string>("NodeDomain")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("node_domain");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<int>("Uses")
+                        .HasColumnType("integer")
+                        .HasColumnName("uses");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntendedUserId");
+
+                    b.HasIndex("NodeDomain");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("federated_invite_grants", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.FederatedInviteRedemption", b =>
+                {
+                    b.Property<string>("GrantId")
+                        .HasColumnType("text")
+                        .HasColumnName("grant_id");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Passport")
+                        .HasColumnType("text")
+                        .HasColumnName("passport");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<string>("Proof")
+                        .HasColumnType("text")
+                        .HasColumnName("proof");
+
+                    b.Property<DateTime>("RedeemedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("redeemed_at");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rejected_at");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<DateTime?>("ReportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reported_at");
+
+                    b.HasKey("GrantId", "UserId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("ReportedAt");
+
+                    b.ToTable("federated_invite_redemptions", (string)null);
+                });
+
             modelBuilder.Entity("Valour.Database.FederatedMembership", b =>
                 {
                     b.Property<long>("UserId")
@@ -733,6 +881,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("GrantId")
+                        .HasColumnType("text")
+                        .HasColumnName("grant_id");
+
                     b.Property<string>("SnapshotHash")
                         .HasColumnType("text")
                         .HasColumnName("snapshot_hash");
@@ -740,6 +892,14 @@ namespace Valour.Database.Migrations
                     b.Property<DateTime?>("SnapshotServedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("snapshot_served_at");
+
+                    b.Property<bool?>("SourceDiscoverable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("source_discoverable");
+
+                    b.Property<bool?>("SourcePublic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("source_public");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -839,6 +999,12 @@ namespace Valour.Database.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("owner_id");
 
+                    b.Property<bool>("Public")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("public");
+
                     b.Property<string>("TrustedUserIdsJson")
                         .HasColumnType("text")
                         .HasColumnName("trusted_user_ids_json");
@@ -866,6 +1032,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("NodeDomain")
+                        .HasColumnType("text")
+                        .HasColumnName("node_domain");
+
                     b.Property<long>("SubjectUserId")
                         .HasColumnType("bigint")
                         .HasColumnName("subject_user_id");
@@ -873,6 +1043,8 @@ namespace Valour.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("NodeDomain", "Id");
 
                     b.ToTable("federated_purges", (string)null);
                 });
@@ -946,6 +1118,11 @@ namespace Valour.Database.Migrations
                     b.Property<DateTime?>("EditedTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("edit_time");
+
+                    b.Property<string>("ImportSource")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("import_source");
 
                     b.Property<long?>("PlanetId")
                         .HasColumnType("bigint")
@@ -1114,6 +1291,11 @@ namespace Valour.Database.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("emoji");
+
+                    b.Property<string>("ImportSource")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("import_source");
 
                     b.Property<long>("MessageId")
                         .HasColumnType("bigint")
@@ -2165,6 +2347,11 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("edited_time");
 
+                    b.Property<string>("ImportSource")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("import_source");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
@@ -2260,6 +2447,11 @@ namespace Valour.Database.Migrations
                     b.Property<long>("CreatedByUserId")
                         .HasColumnType("bigint")
                         .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("ImportSource")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("import_source");
 
                     b.Property<bool>("IsFolder")
                         .HasColumnType("boolean")
@@ -2360,6 +2552,11 @@ namespace Valour.Database.Migrations
                         .HasMaxLength(100000)
                         .HasColumnType("character varying(100000)")
                         .HasColumnName("content");
+
+                    b.Property<string>("ImportSource")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("import_source");
 
                     b.Property<long>("PageId")
                         .HasColumnType("bigint")
@@ -3024,6 +3221,11 @@ namespace Valour.Database.Migrations
                     b.Property<DateTime?>("EditedTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("edited_time");
+
+                    b.Property<string>("ImportSource")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("import_source");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")

@@ -273,16 +273,50 @@ identity** — the client connects straight to the community node (HTTP +
 SignalR), authenticated by short-lived tokens the hub mints per-domain. The
 SDK's existing multi-node plumbing is most of the client work.
 
+**Pull-back trust boundary:** a pull-back imports a community's data under the
+authority of that community node's registered hub owner. Roles, permissions,
+memberships, moderation state, attachment metadata and URLs, and user identity
+claims are therefore preserved. A node-local CDN database pointer is removed
+because it cannot be a valid foreign key on the hub; the attachment itself and
+its location remain. User-generated history is explicitly marked with an
+`ImportSource` such as `federation:community.example`, rather than being
+presented as natively authored on official. The same provenance field is
+intended for future importers such as Discord.
+
+**Migration handoff safety:** forward migration grants are owner-bound,
+audience-bound, short-lived capabilities. The destination must present both
+the grant and its node S2S identity to obtain a snapshot, and persists an
+import receipt before creating the local copy. Completion is idempotent, so a
+lost response can be retried without duplicating a planet. The source stays
+locked as a hidden recovery copy until the owner explicitly finalizes it; it
+cannot become writable again locally after completion, because that would
+create two writable copies. If it must return, the owner verifies and
+finalizes the destination first, then uses the verified pull-back protocol.
+Pull-back follows the same rule in reverse: the imported official copy stays
+hidden until the node confirms its purge; a failed purge remains resumable
+instead of deleting the registry stub or publishing two homes. Snapshot
+exports include tags, invites, per-user channel state, and boost history;
+exports fail before handoff when encrypted node-local storage or voice
+credentials, custom planet/emoji assets, or thread attachments cannot safely
+transfer. Every local mutation path honors the migration read-only lock.
+
+The hub client derives the destination origin from the signed migration grant,
+then obtains a short federation session only for the owner of that pending
+move. This lets the owner import without ever typing a destination URL or
+having a pre-existing destination membership. Starting the move records the
+owner's consent to that node; other migrated members see the node in User
+Settings and must explicitly accept it before their external session is minted.
+
 ### Identity and token minting
 
-The hub holds an **Ed25519 signing keypair**, public keys published at
+The hub holds an **ES256 (ECDSA P-256) signing keypair**, public keys published at
 `https://valour.gg/.well-known/valour-federation` (JWKS-style, key IDs for
 rotation). Flow:
 
 1. Client wants planet 123; hub's `api/node/planet/123` resolves to
    `external:planets.example.com`.
 2. Client calls `POST hub/api/federation/token` for that domain. Hub returns a
-   **short-lived (~15 min) signed JWT (EdDSA)**: `sub` (user id), `aud` (the
+   **short-lived (~15 min) ES256 (ECDSA P-256) signed JWT**: `sub` (user id), `aud` (the
    node's domain — tokens are valid *only* for that domain, enforced by the
    audience claim), `exp`, plus parity claims: name/tag, avatar version,
    **subscription tier** (Stargazer perks and upload limits work remotely),
@@ -291,12 +325,31 @@ rotation). Flow:
    `aud` == its own domain, and **exchanges it for a node-local opaque
    `AuthToken`** — the existing `val-{guid}` mechanism. Past the exchange
    endpoint every existing server code path runs unmodified, which is where
-   feature parity comes from. Node-local sessions silently re-exchange every
-   ~24h so revocations and tier changes propagate.
+   feature parity comes from. Node-local sessions silently re-exchange before
+   their short expiry (the SDK checks every five minutes and refreshes when
+   five minutes remain), so revocations and tier changes propagate promptly.
+
+Before an offline invite flow sends a passport or proof to a destination, the
+SDK independently verifies the grant's ES256 signature against the hub JWKS,
+including its protocol, purpose, expiry, and normalized `aud` domain. The
+JWKS cache is usable offline for only 15 minutes; changing the hub account
+clears it, the passport key, and every external-node session. An altered or
+stale grant therefore cannot redirect identity proof to an untrusted host.
 
 The user's real Valour token never touches the community node. A compromised
 node holds only audience-scoped, short-lived, unforgeable tokens — worthless
 anywhere else.
+
+Only **planet IDs** cross the federation boundary as global identifiers: the
+hub reserves them for every new community planet and retains them on migration.
+All other community objects are local to the node domain. Clients key those
+objects by `(node domain, local id)`, so community capacity is not limited by
+the official cluster's 10-bit Snowflake worker field and official instances do
+not compete with third-party nodes for worker IDs.
+When a planet moves between domains, the destination keeps its hub-issued
+planet ID and user IDs but assigns new local IDs to every child object before
+writing the snapshot, rewriting all internal references in the same
+transaction.
 
 On the node, first exchange creates a **shadow user row** (`IsFederated`, no
 credentials, refreshed from claims each exchange) so FKs, permission caches,
@@ -312,8 +365,9 @@ and member machinery run untouched.
 - **The hub mints planet IDs.** A community node requests an ID (signed
   request); the hub stores a **planet stub** (id, name, domain, owner, member
   count, NSFW/discovery flags). This keeps the global snowflake ID space
-  intact — the SDK cache layer keys models by bare `long` IDs — and gives the
-  hub the registry for discovery, invites, and moderation.
+  intact for planet routing and gives the hub the registry for discovery,
+  invites, and moderation. Child object IDs remain local to the node; the SDK
+  keys them by `(node domain, id)` and migration remaps them on arrival.
 
 ### Server-to-server surface (kept tiny)
 
@@ -383,9 +437,11 @@ hub T&S at planet/domain granularity.
 
 ### Protocol versioning
 
-`FederationProtocolVersion` constant in Shared, reported on heartbeat, hub
-advertises a minimum, client warns on outdated nodes. The published
-`Valour.Shared`/`Valour.Sdk` NuGets are the de-facto protocol SDK.
+`ValourFederation.ProtocolVersion` in Shared is reported by the node
+well-known document and embedded in every federation JWT, including
+node-to-hub S2S credentials. Hubs and nodes reject missing or mismatched
+versions; deploy a protocol upgrade to the hub and all nodes together. The
+published `Valour.Shared`/`Valour.Sdk` NuGets are the de-facto protocol SDK.
 
 ---
 

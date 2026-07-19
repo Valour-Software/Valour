@@ -37,6 +37,10 @@ public class PermissionsNodeService
 
     public async Task<TaskResult<PermissionsNode>> PutAsync(PermissionsNode newNode)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, newNode?.PlanetId);
+        if (!migrationGuard.Success)
+            return new(false, migrationGuard.Message);
+
         await using var trans = await _db.Database.BeginTransactionAsync();
         
         try
@@ -44,6 +48,13 @@ public class PermissionsNodeService
             var oldNode = await _db.PermissionsNodes.FindAsync(newNode.Id);
 
             if (oldNode is null) return new(false, $"PermissionNode not found");
+
+            var persistedMigrationGuard = await MigrationLock.GuardAsync(_db, oldNode.PlanetId);
+            if (!persistedMigrationGuard.Success)
+                return new(false, persistedMigrationGuard.Message);
+
+            if (newNode.PlanetId != oldNode.PlanetId)
+                return new(false, "You cannot change the PlanetId.");
 
             if (oldNode.RoleId == newNode.RoleId &&
                 oldNode.TargetId == newNode.TargetId &&
@@ -76,6 +87,10 @@ public class PermissionsNodeService
     
     public async Task<TaskResult<PermissionsNode>> CreateAsync(PermissionsNode node)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, node?.PlanetId);
+        if (!migrationGuard.Success)
+            return new(false, migrationGuard.Message);
+
         node.Id = IdManager.Generate();
 
         try

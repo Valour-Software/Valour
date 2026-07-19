@@ -1,0 +1,93 @@
+@inject ValourClient Client
+
+<div class="settings-page">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-diagram-3-fill"></i>
+            Move to a Community Server
+        </h3>
+        <p class="toggle-description">
+            Move this planet from official Valour to an active community server. Migration freezes
+            writes while the destination imports a verified snapshot, so schedule it when moderators
+            are available to verify the result.
+        </p>
+
+        @if (Planet.OwnerId != Client.Me.Id)
+        {
+            <p class="v-text-red">Only the planet owner can start a federation migration.</p>
+        }
+        else
+        {
+            <div class="form-group mt-2">
+                <label>Destination domain</label>
+                <input class="v-input" @bind="_targetDomain" placeholder="community.example" autocomplete="off" />
+            </div>
+            <button class="v-btn primary mt-2" @onclick="InitiateAsync" disabled="@_busy">Start migration</button>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <p class="mt-2 @(_success ? "" : "v-text-red")">@_message</p>
+        }
+    </div>
+
+    @if (_grant is not null)
+    {
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-key-fill"></i>
+                Destination migration grant
+            </h3>
+            <p class="toggle-description">
+                Stay signed in to official Valour as this planet's owner, then open
+                <b>User Settings → Federation</b> and paste this grant. Valour securely connects
+                to the destination named in the signed grant; you do not need to sign in directly
+                to that server. It expires @_grant.ExpiresAt.ToLocalTime().ToString("g"). Treat it
+                like a password; anyone who can use it as the owner can start this migration.
+            </p>
+            <textarea class="v-input" rows="7" readonly>@_grant.Grant</textarea>
+            <p class="toggle-description mt-2">
+                Once the destination reports success, verify members, channels, permissions, and
+                content there. Use User Settings → Federation on official Valour to finalize the
+                source deletion. Do not finalize until that verification is complete.
+            </p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; } = null!;
+
+    private string _targetDomain = string.Empty;
+    private MigrationInitiateResponse? _grant;
+    private string? _message;
+    private bool _success;
+    private bool _busy;
+
+    private async Task InitiateAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.PrimaryNode.PostAsyncWithResponse<MigrationInitiateResponse>(
+                "api/federation/migrations",
+                new MigrationInitiateRequest
+                {
+                    PlanetId = Planet.Id,
+                    TargetDomain = _targetDomain,
+                });
+
+            _success = result.Success && result.Data is not null;
+            _message = _success
+                ? "Migration grant created. The planet is now read-only until the migration completes or is cancelled."
+                : result.Message ?? "Could not start migration.";
+            _grant = _success ? result.Data : null;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

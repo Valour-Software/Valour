@@ -39,7 +39,18 @@ public class ChannelStateService : ServiceBase
     public void OnChannelStateUpdated(ChannelStateUpdate update)
     {
         // Right now only planet chat channels have state updates
-        if (_client.Cache.Channels.TryGet(update.ChannelId, out var channel))
+        Channel channel = null;
+        if (update.PlanetId.HasValue &&
+            _client.Cache.Planets.TryGet(update.PlanetId.Value, out var planet))
+        {
+            planet!.Channels.TryGet(update.ChannelId, out channel);
+        }
+        else
+        {
+            _client.Cache.Channels.TryGet(update.ChannelId, out channel);
+        }
+
+        if (channel is not null)
         {
             channel.LastUpdateTime = update.Time;
         }
@@ -54,7 +65,15 @@ public class ChannelStateService : ServiceBase
 
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<ChannelStateUpdate>("Channel-State", OnChannelStateUpdated);
-        node.HubConnection.On<UserChannelState>("UserChannelState-Update", OnUserChannelStateUpdated);
+        node.HubConnection.On<ChannelStateUpdate>("Channel-State", update =>
+        {
+            if (node.AcceptsExternalPlanetRealtimeEvent(update.PlanetId))
+                OnChannelStateUpdated(update);
+        });
+
+        // User channel state has no planet provenance, so it is deliberately
+        // hub-only. An external node cannot update direct-message read state.
+        if (!node.IsExternal)
+            node.HubConnection.On<UserChannelState>("UserChannelState-Update", OnUserChannelStateUpdated);
     }
 }

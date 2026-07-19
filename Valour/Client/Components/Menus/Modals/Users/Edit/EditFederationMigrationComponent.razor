@@ -1,0 +1,370 @@
+@inject ValourClient Client
+
+<div class="settings-page">
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <p class="mt-2 @(_success ? "" : "v-text-red")">@_message</p>
+    }
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-shield-check"></i>
+            Community Server Access
+        </h3>
+        <p class="toggle-description">
+            Community servers are independently operated. Review and explicitly accept a server
+            before opening a planet that moved there. Acceptance is saved to your account and can
+            be reviewed here on each device.
+        </p>
+        @if (_loadingMemberships)
+        {
+            <p>Loading community memberships...</p>
+        }
+        else if (_memberships.Count == 0)
+        {
+            <p class="toggle-description">You do not have any community-hosted planet memberships.</p>
+        }
+        else
+        {
+            @foreach (var membership in _memberships)
+            {
+                var accepted = _acceptedDomains.Contains(membership.NodeDomain);
+                <div class="mt-3">
+                    <b>Planet @membership.PlanetId</b>
+                    <p class="toggle-description mb-1">
+                        Hosted by <code>@membership.NodeDomain</code>
+                    </p>
+                    @if (accepted)
+                    {
+                        <span class="toggle-description">Server accepted.</span>
+                    }
+                    else
+                    {
+                        <button class="v-btn primary" @onclick="() => AcceptDomainAsync(membership.NodeDomain)" disabled="@_busy">
+                            Review and accept server
+                        </button>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-box-arrow-in-down"></i>
+            Import a Planet Migration
+        </h3>
+        <p class="toggle-description">
+            Paste the short-lived grant supplied by the source owner. You must be signed in as
+            that same owner. The destination is read from the signed grant, and the source URL
+            cannot be overridden here.
+        </p>
+        <textarea class="v-input" rows="6" @bind="_grant" placeholder="Paste migration grant"></textarea>
+        <button class="v-btn primary mt-2" @onclick="ImportAsync" disabled="@(_busy || string.IsNullOrWhiteSpace(_grant))">
+            Import migration
+        </button>
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-ticket-perforated-fill"></i>
+            Redeem a Community Invite
+        </h3>
+        <p class="toggle-description">
+            Paste a recipient-bound invite grant and the community server domain. The grant is verified
+            by that community server and is never sent to an unrelated host.
+        </p>
+        <div class="form-group mt-2">
+            <label>Community server domain</label>
+            <input class="v-input" @bind="_inviteDomain" placeholder="community.example" autocomplete="off" />
+        </div>
+        <div class="form-group mt-2">
+            <label>Invite grant</label>
+            <textarea class="v-input" rows="5" @bind="_inviteGrant" placeholder="Paste recipient-bound invite grant"></textarea>
+        </div>
+        <button class="v-btn primary mt-2" @onclick="RedeemInviteAsync"
+                disabled="@(_busy || string.IsNullOrWhiteSpace(_inviteDomain) || string.IsNullOrWhiteSpace(_inviteGrant))">
+            Redeem invite
+        </button>
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-arrow-return-left"></i>
+            Return a Community Planet to Official Valour
+        </h3>
+        <p class="toggle-description">
+            Only the owner can pull a community-hosted planet back. The community copy becomes read-only
+            while official Valour imports it; retry this action if the node purge is still pending.
+        </p>
+        <div class="form-group mt-2">
+            <label>Community planet ID</label>
+            <input class="v-input" @bind="_pullBackPlanetId" inputmode="numeric" placeholder="Planet ID" />
+        </div>
+        <button class="v-btn danger mt-2" @onclick="PullBackAsync" disabled="@(_busy || string.IsNullOrWhiteSpace(_pullBackPlanetId))">
+            Pull back to official
+        </button>
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-person-plus-fill"></i>
+            Create a Recipient-Bound Community Invite
+        </h3>
+        <p class="toggle-description">
+            For a private community planet you own, enter the planet and recipient user IDs. The generated
+            grant is single-use; send it only to that recipient along with the community server domain.
+        </p>
+        <div class="form-group mt-2">
+            <label>Community planet ID</label>
+            <input class="v-input" @bind="_invitePlanetId" inputmode="numeric" placeholder="Planet ID" />
+        </div>
+        <div class="form-group mt-2">
+            <label>Recipient user ID</label>
+            <input class="v-input" @bind="_inviteRecipientId" inputmode="numeric" placeholder="Recipient user ID" />
+        </div>
+        <button class="v-btn primary mt-2" @onclick="CreateInviteAsync"
+                disabled="@(_busy || string.IsNullOrWhiteSpace(_invitePlanetId) || string.IsNullOrWhiteSpace(_inviteRecipientId))">
+            Create invite
+        </button>
+        @if (_createdInvite is not null)
+        {
+            <p class="toggle-description mt-2">
+                Send this grant to the recipient for <code>@_createdInvite.NodeDomain</code>. It expires
+                @_createdInvite.ExpiresAt.ToLocalTime().ToString("g").
+            </p>
+            <textarea class="v-input" rows="6" readonly>@_createdInvite.Grant</textarea>
+        }
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-arrow-left-right"></i>
+            Your Official-Valour Migrations
+        </h3>
+        <p class="toggle-description">
+            Pending migrations can be cancelled. Completed handoffs retain a locked recovery copy
+            until you verify the destination and explicitly finalize source deletion.
+        </p>
+
+        @if (_loading)
+        {
+            <p>Loading migrations...</p>
+        }
+        else if (_migrations.Count == 0)
+        {
+            <p class="toggle-description">No active federation migrations.</p>
+        }
+        else
+        {
+            @foreach (var migration in _migrations)
+            {
+                <div class="mt-3">
+                    <b>@migration.PlanetName</b>
+                    <p class="toggle-description mb-1">
+                        @migration.Status to <code>@migration.TargetDomain</code> · started
+                        @migration.CreatedAt.ToLocalTime().ToString("g")
+                    </p>
+                    @if (migration.Status == "Pending")
+                    {
+                        <button class="v-btn danger" @onclick="() => AbortAsync(migration.PlanetId)" disabled="@_busy">Cancel migration</button>
+                    }
+                    else if (migration.Status == "Completed")
+                    {
+                        <button class="v-btn danger" @onclick="() => FinalizeAsync(migration.PlanetId)" disabled="@_busy">
+                            Finalize source deletion
+                        </button>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private string _grant = string.Empty;
+    private string _inviteDomain = string.Empty;
+    private string _inviteGrant = string.Empty;
+    private string _pullBackPlanetId = string.Empty;
+    private string _invitePlanetId = string.Empty;
+    private string _inviteRecipientId = string.Empty;
+    private FederatedInviteGrantResponse? _createdInvite;
+    private string? _message;
+    private bool _success;
+    private bool _busy;
+    private bool _loading = true;
+    private bool _loadingMemberships = true;
+    private List<MigrationStatusResponse> _migrations = new();
+    private List<FederatedMembershipInfo> _memberships = new();
+    private HashSet<string> _acceptedDomains = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+    }
+
+    private async Task ImportAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.NodeService.ImportFederatedMigrationAsync(_grant);
+            _success = result.Success;
+            _message = result.Success
+                ? "Migration imported. Verify the planet, then return to official Valour to finalize the source deletion."
+                : result.Message ?? "Could not import migration.";
+            if (result.Success)
+                _grant = string.Empty;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task AbortAsync(long planetId)
+    {
+        await RunActionAsync($"api/federation/migrations/{planetId}/abort", "Migration cancelled and source writes restored.");
+    }
+
+    private async Task RedeemInviteAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var node = await Client.NodeService.RedeemFederatedInviteAsync(_inviteDomain.Trim(), _inviteGrant.Trim());
+            _success = node is not null;
+            _message = _success
+                ? "Invite redeemed. The community planet is now available in your planet list."
+                : "Could not redeem the invite. Check the domain and grant, then try again while the invite is valid.";
+            if (_success)
+            {
+                _inviteGrant = string.Empty;
+                await Client.PlanetService.FetchJoinedPlanetsAsync();
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task PullBackAsync()
+    {
+        if (!long.TryParse(_pullBackPlanetId, out var planetId) || planetId <= 0)
+        {
+            _success = false;
+            _message = "Enter a valid community planet ID.";
+            return;
+        }
+
+        await RunActionAsync(
+            $"api/federation/migrations/{planetId}/pullback",
+            "Pull-back completed. The planet is hosted on official Valour again.");
+    }
+
+    private async Task AcceptDomainAsync(string domain)
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.PlanetService.AcceptFederationDomainAsync(domain);
+            _success = result.Success;
+            _message = result.Success
+                ? $"Accepted {domain}. Refreshing your community planets."
+                : result.Message ?? $"Could not accept {domain}.";
+            if (result.Success)
+            {
+                _acceptedDomains.Add(domain);
+                await Client.PlanetService.FetchJoinedPlanetsAsync();
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task CreateInviteAsync()
+    {
+        if (!long.TryParse(_invitePlanetId, out var planetId) || planetId <= 0 ||
+            !long.TryParse(_inviteRecipientId, out var recipientId) || recipientId <= 0)
+        {
+            _success = false;
+            _message = "Enter valid planet and recipient user IDs.";
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.PrimaryNode.PostAsyncWithResponse<FederatedInviteGrantResponse>(
+                "api/federation/invites",
+                new FederatedInviteGrantCreateRequest
+                {
+                    PlanetId = planetId,
+                    IntendedUserId = recipientId,
+                    MaxUses = 1,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7),
+                });
+            _success = result.Success && result.Data is not null;
+            _message = _success
+                ? "Recipient-bound invite created."
+                : result.Message ?? "Could not create the federation invite.";
+            _createdInvite = _success ? result.Data : null;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task FinalizeAsync(long planetId)
+    {
+        await RunActionAsync(
+            $"api/federation/migrations/{planetId}/finalize",
+            "Source copy deleted. The community server is now this planet's only host.");
+    }
+
+    private async Task RunActionAsync(string route, string successMessage)
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.PrimaryNode.PostAsyncWithResponse<TaskResult>(route);
+            _success = result.Success;
+            _message = result.Success ? successMessage : result.Message ?? "Federation action failed.";
+            await RefreshAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        _loading = true;
+        _loadingMemberships = true;
+        try
+        {
+            var result = await Client.PrimaryNode.GetJsonAsync<List<MigrationStatusResponse>>(
+                "api/federation/migrations");
+            _migrations = result.Success && result.Data is not null ? result.Data : new();
+
+            _memberships = await Client.PlanetService.FetchFederatedMembershipsAsync();
+            _acceptedDomains = (await Client.PlanetService.FetchAcceptedFederationDomainsAsync())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            _loading = false;
+            _loadingMemberships = false;
+        }
+    }
+}

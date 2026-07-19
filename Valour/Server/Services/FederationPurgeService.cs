@@ -4,6 +4,7 @@ using Valour.Config.Configs;
 using Valour.Server.Api.Dynamic;
 using Valour.Server.Redis;
 using Valour.Shared;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -15,8 +16,7 @@ namespace Valour.Server.Services;
 /// </summary>
 public class FederationPurgeService
 {
-    private const string CursorKey = "federation:purge:cursor";
-    private static readonly TimeSpan CursorOverlap = TimeSpan.FromHours(1);
+    private const string CursorKeyPrefix = "federation:purge:cursor";
 
     private readonly ValourDb _db;
     private readonly UserService _userService;
@@ -53,80 +53,96 @@ public class FederationPurgeService
         if (!FederationNodeService.NodeEnabled)
             return 0;
 
-        // The purge list is privacy-sensitive (deleted account ids), so the hub
-        // requires node authentication. Attach this node's self-signed S2S token —
-        // without it every request is 403'd and silently retried forever.
-        var nodeToken = await _nodeService.MintS2STokenAsync(_keyService);
-        if (nodeToken is null)
-        {
-            _logger.LogWarning("Cannot pull purges: node signing key unavailable");
-            return 0;
-        }
-
-        // Durable cursor: resume from the last watermark we processed so a node
-        // that was offline longer than the poll lookback still catches every
-        // tombstone. Falls back to the lookback window only when no cursor exists.
+        // Durable monotonic cursor: resume exactly where this node left off.
+        // The caller's lookback remains in the signature for compatibility with
+        // the worker, but cursor delivery deliberately has no time-window gap.
+        // A cursor belongs to the hub that issued it. Reusing it after an
+        // operator repoints a node at a different hub can permanently skip
+        // that hub's older deletion tombstones (its ids commonly start below
+        // the previous hub's cursor).
+        var hubUrl = FederationConfig.Current.HubUrl.TrimEnd('/');
+        var cursorKey = GetCursorKey(hubUrl);
         var cursorDb = _redis.GetDatabase(RedisDbTypes.Cluster);
-        var sinceTime = DateTime.UtcNow - lookback;
-        var cursorRaw = await cursorDb.StringGetAsync(CursorKey);
-        if (cursorRaw.HasValue && DateTime.TryParse((string)cursorRaw, null,
-                System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var cursor))
-        {
-            // Overlap a little so nothing straddling the boundary is dropped.
-            sinceTime = cursor - CursorOverlap;
-        }
-
-        // Stamp the watermark BEFORE fetching, so purges created during this run
-        // are re-seen next time rather than skipped.
-        var newCursor = DateTime.UtcNow;
-
-        List<long> userIds;
-        try
-        {
-            var client = _httpFactory.CreateClient("federation");
-            var since = Uri.EscapeDataString(sinceTime.ToString("O"));
-            var url = FederationConfig.Current.HubUrl.TrimEnd('/') + $"/api/federation/purges?since={since}";
-
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add(FederationApi.NodeAuthHeader, nodeToken);
-            using var response = await client.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Purge pull rejected by hub: {Status}", (int)response.StatusCode);
-                return 0;
-            }
-
-            userIds = await response.Content.ReadFromJsonAsync<List<long>>() ?? new List<long>();
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Failed to pull purges from hub");
-            return 0;
-        }
+        var cursorRaw = await cursorDb.StringGetAsync(cursorKey);
+        var cursor = cursorRaw.HasValue && long.TryParse(cursorRaw.ToString(), out var storedCursor)
+            ? Math.Max(0, storedCursor)
+            : 0;
 
         var purged = 0;
-        foreach (var id in userIds.Distinct())
+        while (true)
         {
-            // Only purge local federated shadow accounts — never a real local user.
-            var user = await _db.Users.FindAsync(id);
-            if (user is null || !user.IsFederated)
-                continue;
+            // A full backlog can span the five-minute S2S token lifetime.
+            // Refresh per page so a later request does not fail merely because
+            // the cursor catch-up was successful but slow.
+            var nodeToken = await _nodeService.MintS2STokenAsync(_keyService);
+            if (nodeToken is null)
+            {
+                _logger.LogWarning("Cannot pull purges: node signing key unavailable");
+                return purged;
+            }
 
-            var result = await _userService.HardDelete(user.ToModel());
-            if (result.Success)
+            FederatedPurgePage page;
+            try
+            {
+                var client = _httpFactory.CreateClient("federation");
+                var url = hubUrl + $"/api/federation/purges?after={cursor}";
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Add(FederationApi.NodeAuthHeader, nodeToken);
+                using var response = await client.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Purge pull rejected by hub: {Status}", (int)response.StatusCode);
+                    return purged;
+                }
+
+                page = await response.Content.ReadFromJsonAsync<FederatedPurgePage>();
+                if (page is null || page.NextCursor < cursor)
+                {
+                    _logger.LogWarning("Hub returned an invalid federation purge cursor");
+                    return purged;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Failed to pull purges from hub");
+                return purged;
+            }
+
+            foreach (var id in page.UserIds.Distinct())
+            {
+                // Only purge local federated shadow accounts — never a real local user.
+                var user = await _db.Users.FindAsync(id);
+                if (user is null || !user.IsFederated)
+                    continue;
+
+                var result = await _userService.HardDelete(user.ToModel());
+                if (!result.Success)
+                {
+                    // Do not advance this page's cursor. A retry is idempotent and
+                    // prevents a failed local deletion from being lost forever.
+                    _logger.LogWarning("Failed to purge federated user {UserId}: {Message}", id, result.Message);
+                    return purged;
+                }
+
                 purged++;
-            else
-                _logger.LogWarning("Failed to purge federated user {UserId}: {Message}", id, result.Message);
-        }
+            }
 
-        // Advance the durable cursor only after a clean pass (the fetch succeeded
-        // and every applicable tombstone was applied), so a mid-run failure re-tries
-        // the same window next time instead of skipping it.
-        await cursorDb.StringSetAsync(CursorKey, newCursor.ToString("O"));
+            // Advance only after every record in the page was handled.
+            if (page.NextCursor > cursor)
+                await cursorDb.StringSetAsync(cursorKey, page.NextCursor.ToString());
+
+            if (page.UserIds.Count == 0 || page.NextCursor == cursor)
+                break;
+
+            cursor = page.NextCursor;
+        }
 
         if (purged > 0)
             _logger.LogInformation("Honored {Count} account-deletion purges", purged);
 
         return purged;
     }
+
+    private static string GetCursorKey(string hubUrl) =>
+        $"{CursorKeyPrefix}:{hubUrl.ToLowerInvariant()}";
 }

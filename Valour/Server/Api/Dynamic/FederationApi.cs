@@ -131,6 +131,25 @@ public class FederationApi
         return Results.Json(result.Data);
     }
 
+    /// <summary>
+    /// A client asks the hub for a short-lived identity passport bound to a
+    /// public signing key. It is cached client-side for offline invite joins.
+    /// </summary>
+    [ValourRoute(HttpVerbs.Post, "api/federation/passport")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> MintPassportRoute(
+        [FromBody] FederationPassportRequest request,
+        FederationInviteService inviteService,
+        UserService userService)
+    {
+        if (!FederationHubService.HubEnabled)
+            return ValourResult.NotFound("This instance is not a federation hub.");
+
+        var user = await userService.GetCurrentUserAsync();
+        var result = await inviteService.MintPassportAsync(user, request?.PublicJwk);
+        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+    }
+
     // ================= Node =================
 
     [ValourRoute(HttpVerbs.Get, "/.well-known/valour-node")]
@@ -145,6 +164,7 @@ public class FederationApi
             Domain = config.NodeDomain,
             Challenge = config.NodeChallenge,
             Version = typeof(ISharedUser).Assembly.GetName().Version?.ToString(),
+            ProtocolVersion = ValourFederation.ProtocolVersion,
             PublicJwk = await keyService.GetNodePublicJwkAsync(),
         });
     }
@@ -247,6 +267,66 @@ public class FederationApi
         return ValourResult.Ok("Deleted.");
     }
 
+    // ============ Offline-verifiable federation invites ============
+
+    /// <summary>Hub owner creates a recipient-bound grant redeemable while the hub is offline.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/federation/invites")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> CreateFederatedInviteRoute(
+        [FromBody] FederatedInviteGrantCreateRequest request,
+        FederationInviteService inviteService,
+        UserService userService)
+    {
+        if (!FederationHubService.HubEnabled)
+            return ValourResult.NotFound("This instance is not a federation hub.");
+
+        var user = await userService.GetCurrentUserAsync();
+        var result = await inviteService.CreateAsync(user.Id, request);
+        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/federation/invites/{grantId}")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> RevokeFederatedInviteRoute(
+        string grantId,
+        FederationInviteService inviteService,
+        UserService userService)
+    {
+        if (!FederationHubService.HubEnabled)
+            return ValourResult.NotFound("This instance is not a federation hub.");
+
+        var user = await userService.GetCurrentUserAsync();
+        var result = await inviteService.RevokeAsync(user.Id, grantId);
+        return result.Success ? ValourResult.Ok("Invite revoked.") : ValourResult.BadRequest(result.Message);
+    }
+
+    /// <summary>Destination-node redemption; it validates cached hub keys locally.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/federation/invites/redeem")]
+    public static async Task<IResult> RedeemFederatedInviteRoute(
+        [FromBody] FederatedInviteRedeemRequest request,
+        HttpContext ctx,
+        FederationInviteService inviteService)
+    {
+        var result = await inviteService.RedeemOnNodeAsync(request, ctx.Connection.RemoteIpAddress?.ToString());
+        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+    }
+
+    /// <summary>Hub acknowledgement of a node's queued offline redemption.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/federation/invites/redemptions")]
+    public static async Task<IResult> ReportFederatedInviteRedemptionRoute(
+        [FromBody] FederatedInviteRedemptionReport report,
+        HttpContext ctx,
+        FederationHubService hubService,
+        FederationInviteService inviteService)
+    {
+        var domain = await AuthNodeAsync(ctx, hubService);
+        if (domain is null)
+            return ValourResult.Forbid("Invalid or missing node credentials.");
+
+        var result = await inviteService.ReconcileRedemptionAsync(domain, report);
+        return result.Success ? ValourResult.Ok("Redemption acknowledged.") : ValourResult.BadRequest(result.Message);
+    }
+
     // ============ Join-via-hub (accepted domains + membership) ============
 
     [ValourRoute(HttpVerbs.Get, "api/federation/accepted-domains")]
@@ -324,6 +404,20 @@ public class FederationApi
 
     // ============ Migration ============
 
+    /// <summary>Source (hub): current owner's non-finalized migration states.</summary>
+    [ValourRoute(HttpVerbs.Get, "api/federation/migrations")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> GetOwnerMigrationsRoute(
+        FederationMigrationService migration,
+        UserService userService)
+    {
+        var result = await migration.GetOwnerMigrationsAsync(await userService.GetCurrentUserIdAsync());
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json(result.Data);
+    }
+
     /// <summary>Source (hub): owner authorizes migrating their planet to a node.</summary>
     [ValourRoute(HttpVerbs.Post, "api/federation/migrations")]
     [UserRequired(UserPermissionsEnum.FullControl)]
@@ -359,15 +453,20 @@ public class FederationApi
         return ValourResult.Ok("Migration aborted; planet unlocked.");
     }
 
-    /// <summary>Source: serves the planet snapshot to a grant holder.</summary>
+    /// <summary>Source: serves the planet snapshot only to the target node holding the current grant.</summary>
     [ValourRoute(HttpVerbs.Get, "api/federation/migrations/{planetId}/snapshot")]
     public static async Task<IResult> MigrationSnapshotRoute(
         long planetId,
         HttpContext ctx,
+        FederationHubService hubService,
         FederationMigrationService migration)
     {
+        var domain = await AuthNodeAsync(ctx, hubService);
+        if (domain is null)
+            return ValourResult.Forbid("Invalid or missing node credentials.");
+
         var grant = ctx.Request.Headers["X-Valour-Migration-Grant"].ToString();
-        var result = await migration.GetSnapshotForGrantAsync(grant);
+        var result = await migration.GetSnapshotForGrantAsync(domain, planetId, grant);
         if (!result.Success)
             return ValourResult.Forbid(result.Message);
 
@@ -393,7 +492,23 @@ public class FederationApi
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
-        return ValourResult.Ok("Handed off.");
+        return ValourResult.Ok("Handoff recorded. The owner must finalize source deletion after verifying the destination.");
+    }
+
+    /// <summary>Source: owner explicitly deletes the locked recovery copy after verifying the destination.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/federation/migrations/{planetId}/finalize")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> FinalizeMigrationRoute(
+        long planetId,
+        FederationMigrationService migration,
+        UserService userService)
+    {
+        var user = await userService.GetCurrentUserAsync();
+        var result = await migration.FinalizeAsync(user.Id, planetId);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok("Source migration copy deleted.");
     }
 
     /// <summary>Hub: owner pulls a community-hosted planet back to official.</summary>
@@ -420,7 +535,7 @@ public class FederationApi
         FederationMigrationService migration)
     {
         var grant = ctx.Request.Headers["X-Valour-Migration-Grant"].ToString();
-        var result = await migration.ExportForPullBackAsync(grant);
+        var result = await migration.ExportForPullBackAsync(planetId, grant);
         if (!result.Success)
             return ValourResult.Forbid(result.Message);
 
@@ -435,7 +550,7 @@ public class FederationApi
         FederationMigrationService migration)
     {
         var grant = ctx.Request.Headers["X-Valour-Migration-Grant"].ToString();
-        var result = await migration.PurgeForPullBackAsync(grant);
+        var result = await migration.PurgeForPullBackAsync(planetId, grant);
         if (!result.Success)
             return ValourResult.Forbid(result.Message);
 
@@ -450,7 +565,7 @@ public class FederationApi
         FederationMigrationService migration)
     {
         var grant = ctx.Request.Headers["X-Valour-Migration-Grant"].ToString();
-        var result = await migration.AbortPullBackAsync(grant);
+        var result = await migration.AbortPullBackAsync(planetId, grant);
         if (!result.Success)
             return ValourResult.Forbid(result.Message);
 
@@ -459,25 +574,31 @@ public class FederationApi
 
     /// <summary>Destination (node): owner hands over the grant; node pulls + imports.</summary>
     [ValourRoute(HttpVerbs.Post, "api/federation/migrations/import")]
-    [UserRequired(UserPermissionsEnum.FullControl)]
+    // A federation-exchanged destination session intentionally has the
+    // Membership scope, not node-local FullControl. The signed grant and its
+    // owner_id are the authorization for this destructive operation; the
+    // current node-local identity must still match that owner.
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> ImportMigrationRoute(
         [FromBody] MigrationImportRequest request,
-        FederationMigrationService migration)
+        FederationMigrationService migration,
+        UserService userService)
     {
         if (request is null)
             return ValourResult.BadRequest("Include request in body.");
 
-        var result = await migration.ImportFromGrantAsync(request.Grant, request.SourceUrl);
+        var result = await migration.ImportFromGrantAsync(
+            await userService.GetCurrentUserIdAsync(), request.Grant, request.SourceUrl);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
         return ValourResult.Ok("Migration imported.");
     }
 
-    /// <summary>Hub: account-deletion tombstones since a time, for nodes to honor. Node-authed.</summary>
+    /// <summary>Hub: a cursor-paginated, node-scoped account-deletion page. Node-authed.</summary>
     [ValourRoute(HttpVerbs.Get, "api/federation/purges")]
     public static async Task<IResult> GetPurgesRoute(
-        [FromQuery] string since,
+        [FromQuery] long after,
         HttpContext ctx,
         FederationHubService hubService)
     {
@@ -485,11 +606,8 @@ public class FederationApi
         if (domain is null)
             return ValourResult.Forbid("Invalid or missing node credentials.");
 
-        if (!DateTime.TryParse(since, null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var sinceTime))
-            sinceTime = DateTime.UtcNow.AddDays(-30);
-
-        var ids = await hubService.GetPurgedUserIdsSinceAsync(sinceTime);
-        return Results.Json(ids);
+        var page = await hubService.GetPurgedUserIdsAsync(domain, Math.Max(0, after));
+        return Results.Json(page);
     }
 
     private static async Task<string> AuthNodeAsync(HttpContext ctx, FederationHubService hubService)

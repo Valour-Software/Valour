@@ -37,6 +37,10 @@ public class PlanetInviteService
     
     public async Task<TaskResult<PlanetInvite>> CreateAsync(PlanetInvite invite, PlanetMember issuer)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, issuer?.PlanetId);
+        if (!migrationGuard.Success)
+            return new(false, migrationGuard.Message);
+
         invite.Id = await GenerateCodeAsync();
         invite.IssuerId = issuer.UserId;
         invite.TimeCreated = DateTime.UtcNow;
@@ -60,8 +64,16 @@ public class PlanetInviteService
 
     public async Task<TaskResult<PlanetInvite>> UpdateAsync(PlanetInvite updatedInvite)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, updatedInvite?.PlanetId);
+        if (!migrationGuard.Success)
+            return new(false, migrationGuard.Message);
+
         var old = await _db.PlanetInvites.FindAsync(updatedInvite.Id);
         if (old is null) return new(false, $"PlanetInvite not found");
+
+        var persistedMigrationGuard = await MigrationLock.GuardAsync(_db, old.PlanetId);
+        if (!persistedMigrationGuard.Success)
+            return new(false, persistedMigrationGuard.Message);
 
         if (updatedInvite.Id != old.Id)
             return new(false, "You cannot change the code.");
@@ -89,9 +101,23 @@ public class PlanetInviteService
     
     public async Task<TaskResult> DeleteAsync(PlanetInvite invite)
     {
+        if (invite is null || string.IsNullOrWhiteSpace(invite.Id))
+            return TaskResult.FromFailure("Invite is required.");
+
+        var storedInvite = await _db.PlanetInvites.FindAsync(invite.Id);
+        if (storedInvite is null)
+            return TaskResult.FromFailure("Invite not found or already deleted.");
+
+        // The request model is client-controlled. Always derive the lock
+        // target and the notification payload from the persisted invite so a
+        // caller cannot bypass a migration lock by supplying another planet id.
+        var migrationGuard = await MigrationLock.GuardAsync(_db, storedInvite.PlanetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         try
         {
-            var deleted = await _db.PlanetInvites.Where(x => x.Id == invite.Id).ExecuteDeleteAsync();
+            var deleted = await _db.PlanetInvites.Where(x => x.Id == storedInvite.Id).ExecuteDeleteAsync();
             if (deleted == 0)
                 return new(false, "Invite not found or already deleted.");
         }
@@ -101,7 +127,7 @@ public class PlanetInviteService
             return new(false, e.Message);
         }
 
-        _coreHub.NotifyPlanetItemDelete(invite);
+        _coreHub.NotifyPlanetItemDelete(storedInvite.ToModel());
 
         return TaskResult.SuccessResult;
     }

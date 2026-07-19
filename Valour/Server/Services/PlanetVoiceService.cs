@@ -47,6 +47,10 @@ public class PlanetVoiceService
         if (request is null)
             return TaskResult<PlanetVoiceInfo>.FromFailure("Include config in body.");
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetVoiceInfo>.FromFailure(migrationGuard.Message);
+
         var urlCheck = await ValidateLiveKitUrlAsync(request.LiveKitUrl);
         if (!urlCheck.Success)
             return TaskResult<PlanetVoiceInfo>.FromFailure(urlCheck.Message);
@@ -96,6 +100,10 @@ public class PlanetVoiceService
 
     public async Task<TaskResult> ClearAsync(long planetId)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var config = await _db.PlanetVoiceConfigs.FindAsync(planetId);
         if (config is not null)
             _db.PlanetVoiceConfigs.Remove(config);

@@ -14,7 +14,8 @@ public static class MessageReactionMapper
             MessageId = reaction.MessageId,
             AuthorUserId = reaction.AuthorUserId,
             AuthorMemberId = reaction.AuthorMemberId,
-            CreatedAt = reaction.CreatedAt
+            CreatedAt = reaction.CreatedAt,
+            ImportSource = reaction.ImportSource,
         };
     }
     
@@ -30,7 +31,8 @@ public static class MessageReactionMapper
             MessageId = reaction.MessageId,
             AuthorUserId = reaction.AuthorUserId,
             AuthorMemberId = reaction.AuthorMemberId,
-            CreatedAt = reaction.CreatedAt
+            CreatedAt = reaction.CreatedAt,
+            ImportSource = reaction.ImportSource,
         };
     }
 }

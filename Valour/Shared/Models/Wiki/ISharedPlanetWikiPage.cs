@@ -76,6 +76,11 @@ public interface ISharedPlanetWikiPage : ISharedPlanetModel<long>, ISortable
     long CreatedByUserId { get; set; }
     long? LastEditedByUserId { get; set; }
 
+    /// <summary>
+    /// Non-null when this page originated in an external import.
+    /// </summary>
+    string? ImportSource { get; set; }
+
     uint ISortable.GetSortPosition()
     {
         return Position;

@@ -66,7 +66,8 @@ public class MessageService : ServiceBase
     
     public async ValueTask<Message> FetchMessageAsync(long id, Planet planet, bool skipCache = false)
     {
-        if (!skipCache && _client.Cache.Messages.TryGet(id, out var cached))
+        var scope = planet?.Node?.IsExternal == true ? planet.Node.Name : null;
+        if (!skipCache && _client.Cache.Messages.TryGet(id, scope, out var cached))
             return cached;
         
         var response = await (planet?.Node ?? _client.PrimaryNode).GetJsonAsync<Message>($"api/message/{id}");
@@ -235,17 +236,19 @@ public class MessageService : ServiceBase
         ChannelEmbedUpdate?.Invoke(update);
     }
     
-    private void OnMessageReactionAdded(MessageReaction reaction)
+    private void OnMessageReactionAdded(Node node, MessageReaction reaction)
     {
-        if (_cache.Messages.TryGet(reaction.MessageId, out var message))
+        var scope = node.IsExternal ? node.Name : null;
+        if (_cache.Messages.TryGet(reaction.MessageId, scope, out var message))
         {
             message?.NotifyReactionAdded(reaction);
         }
     }
     
-    private void OnMessageReactionRemoved(MessageReaction reaction)
+    private void OnMessageReactionRemoved(Node node, MessageReaction reaction)
     {
-        if (_cache.Messages.TryGet(reaction.MessageId, out var message))
+        var scope = node.IsExternal ? node.Name : null;
+        if (_cache.Messages.TryGet(reaction.MessageId, scope, out var message))
         {
             message?.NotifyReactionRemoved(reaction);
         }
@@ -253,14 +256,44 @@ public class MessageService : ServiceBase
     
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<Message>("Relay", OnPlanetMessageReceived);
-        node.HubConnection.On<Message>("RelayEdit", OnPlanetMessageEdited);
-        node.HubConnection.On<Message>("RelayDirect", OnDirectMessageReceived);
-        node.HubConnection.On<Message>("RelayDirectEdit", OnDirectMessageEdited);
-        node.HubConnection.On<Message>("DeleteMessage", _client.MessageService.OnMessageDeleted);
-        node.HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", OnPersonalEmbedUpdate);
-        node.HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", OnChannelEmbedUpdate);
-        node.HubConnection.On<MessageReaction>("MessageReactionAdd", OnMessageReactionAdded);
-        node.HubConnection.On<MessageReaction>("MessageReactionRemove", OnMessageReactionRemoved);
+        node.HubConnection.On<Message>("Relay", message =>
+        {
+            if (node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
+                OnPlanetMessageReceived(message);
+        });
+        node.HubConnection.On<Message>("RelayEdit", message =>
+        {
+            if (node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
+                OnPlanetMessageEdited(message);
+        });
+        node.HubConnection.On<Message>("DeleteMessage", message =>
+        {
+            if (node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
+                _client.MessageService.OnMessageDeleted(message);
+        });
+        node.HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", update =>
+        {
+            if (update is not null && node.AcceptsExternalMessageRealtimeEvent(update.TargetMessageId))
+                OnChannelEmbedUpdate(update);
+        });
+        node.HubConnection.On<MessageReaction>("MessageReactionAdd", reaction =>
+        {
+            if (reaction is not null && node.AcceptsExternalMessageRealtimeEvent(reaction.MessageId))
+                OnMessageReactionAdded(node, reaction);
+        });
+        node.HubConnection.On<MessageReaction>("MessageReactionRemove", reaction =>
+        {
+            if (reaction is not null && node.AcceptsExternalMessageRealtimeEvent(reaction.MessageId))
+                OnMessageReactionRemoved(node, reaction);
+        });
+
+        // Direct-message and user-targeted embed events are hub-only. A
+        // federated community node has no authority over those global caches.
+        if (!node.IsExternal)
+        {
+            node.HubConnection.On<Message>("RelayDirect", OnDirectMessageReceived);
+            node.HubConnection.On<Message>("RelayDirectEdit", OnDirectMessageEdited);
+            node.HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", OnPersonalEmbedUpdate);
+        }
     }
 }

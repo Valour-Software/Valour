@@ -41,6 +41,7 @@
     private RenderFragment StorageContent => @<EditPlanetStorageComponent Planet="@Data.Planet" />;
     private RenderFragment VoiceContent => @<EditPlanetVoiceComponent Planet="@Data.Planet" />;
     private RenderFragment WikiContent => @<EditPlanetWikiComponent Planet="@Data.Planet" />;
+    private RenderFragment FederationContent => @<EditPlanetFederationComponent Planet="@Data.Planet" />;
     private RenderFragment DeleteContent => @<div></div>;
 
     protected override void OnInitialized()
@@ -57,8 +58,9 @@
         _categories = BuildCategories();
     }
 
-    private List<MainMenu.MenuCategory> BuildCategories() =>
-        new List<MainMenu.MenuCategory>()
+    private List<MainMenu.MenuCategory> BuildCategories()
+    {
+        var categories = new List<MainMenu.MenuCategory>()
         {
             new MainMenu.MenuCategory()
             {
@@ -173,6 +175,13 @@
                     },
                     new MainMenu.MenuItem()
                     {
+                        Name = "Federation",
+                        Icon = "diagram-3-fill",
+                        Description = "Move this planet to a community server",
+                        Content = FederationContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
                         Name = "Delete",
                         Icon = "x-octagon-fill",
                         Color = "var(--color-danger)",
@@ -183,6 +192,18 @@
                 }
             }
         };
+
+        // The primary hub owns forward migrations. Editing a community-hosted
+        // planet uses its external node, so showing a hub-only "move" action
+        // there would always fail and imply an unsupported node-to-node move.
+        if (Client.InstanceManifest?.Capabilities?.FederationHub != true ||
+            Client.NodeService.GetKnownByPlanet(Data.Planet.Id)?.IsExternal == true)
+        {
+            categories[0].Items.RemoveAll(x => x.Name == "Federation");
+        }
+
+        return categories;
+    }
 
     public void Dispose()
     {

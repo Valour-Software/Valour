@@ -43,6 +43,13 @@ public class FederatedPlanetStub
 
     public bool Nsfw { get; set; }
 
+    /// <summary>
+    /// Whether the hosted planet permits self-service joins. This is kept on
+    /// the hub so it can never turn a private node planet into a hub-issued
+    /// membership merely because the caller knows its snowflake id.
+    /// </summary>
+    public bool Public { get; set; }
+
     public bool Discoverable { get; set; }
 
     public DateTime CreatedAt { get; set; }
@@ -50,11 +57,9 @@ public class FederatedPlanetStub
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// JSON array of user ids that were legitimately members or message authors
-    /// when the planet migrated out of official. On a later pull-back, these are
-    /// the only official (non-federated) identities the returning node data may
-    /// assert — anything else is a fabricated impersonation and is dropped.
-    /// Null for planets that originated on a node.
+    /// Historical compatibility data from older migration flows. Pull-back
+    /// authorization is governed by the active node's registered hub owner;
+    /// this field is not an identity allow-list.
     /// </summary>
     public string TrustedUserIdsJson { get; set; }
 
@@ -90,6 +95,11 @@ public class FederatedPlanetStub
 
             e.Property(x => x.Nsfw)
                 .HasColumnName("nsfw")
+                .IsRequired();
+
+            e.Property(x => x.Public)
+                .HasColumnName("public")
+                .HasDefaultValue(false)
                 .IsRequired();
 
             e.Property(x => x.Discoverable)

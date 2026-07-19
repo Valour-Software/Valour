@@ -44,6 +44,10 @@ public class PlanetStorageService
         if (request is null)
             return TaskResult<PlanetStorageInfo>.FromFailure("Include config in body.");
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<PlanetStorageInfo>.FromFailure(migrationGuard.Message);
+
         var endpointCheck = await ValidateExternalUrlAsync(request.Endpoint, "Endpoint");
         if (!endpointCheck.Success)
             return TaskResult<PlanetStorageInfo>.FromFailure(endpointCheck.Message);
@@ -98,6 +102,10 @@ public class PlanetStorageService
 
     public async Task<TaskResult> ClearAsync(long planetId)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var config = await _db.PlanetStorageConfigs.FindAsync(planetId);
         if (config is not null)
             _db.PlanetStorageConfigs.Remove(config);

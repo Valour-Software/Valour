@@ -68,6 +68,26 @@ public class CoreHub : Hub
         return new TaskResult(true, "Authenticated with SignalR hub successfully.");
     }
 
+    /// <summary>
+    /// SignalR keeps the identity supplied during <see cref="Authorize"/> in
+    /// memory. Recheck its backing token on every privileged hub operation so
+    /// token expiry and federation re-exchange revocation take effect without
+    /// waiting for the transport to disconnect on its own.
+    /// </summary>
+    private async Task<AuthToken> GetValidAuthTokenAsync()
+    {
+        var tracked = _connectionTracker.GetToken(Context.ConnectionId);
+        if (tracked is null)
+            return null;
+
+        var current = await _tokenService.GetAsync(tracked.Id);
+        if (current is not null && current.UserId == tracked.UserId)
+            return current;
+
+        Context.Abort();
+        return null;
+    }
+
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         var authToken = _connectionTracker.GetToken(Context.ConnectionId);
@@ -85,8 +105,15 @@ public class CoreHub : Hub
     /// </summary>
     public async Task<TaskResult> JoinUser(bool isPrimary)
     {
-        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        var authToken = await GetValidAuthTokenAsync();
         if (authToken == null) return new TaskResult(false, "Failed to connect to User: SignalR was not authenticated.");
+
+        // Federation sessions are deliberately planet-scoped. Letting one join
+        // the user-wide group would allow a modified node client to subscribe
+        // to node-local notifications or direct-message events outside of the
+        // federated planet, even though the normal SDK never makes this call.
+        if (authToken.AppId == "FEDERATION")
+            return new TaskResult(false, "Federation sessions cannot join user-wide realtime.");
 
         var groupId = $"u-{authToken.UserId}";
 
@@ -115,7 +142,7 @@ public class CoreHub : Hub
 
     public async Task<TaskResult> JoinPlanet(long planetId)
     {
-        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        var authToken = await GetValidAuthTokenAsync();
         if (authToken == null) return new TaskResult(false, "Failed to connect to Planet: SignalR was not authenticated.");
 
         var hosted = await _hostedPlanetService.TryGetAsync(planetId);
@@ -152,7 +179,7 @@ public class CoreHub : Hub
 
     public async Task<TaskResult> JoinChannel(long channelId)
     {
-        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        var authToken = await GetValidAuthTokenAsync();
         if (authToken == null) return new TaskResult(false, "Failed to connect to Channel: SignalR was not authenticated.");
         
         // Grab channel
@@ -189,8 +216,9 @@ public class CoreHub : Hub
             member?.PlanetId,
             member?.Id,
             DateTime.UtcNow);
-        
-        _hubService.NotifyUserChannelStateUpdate(authToken.UserId, updatedState);
+
+        if (updatedState.Success)
+            _hubService.NotifyUserChannelStateUpdate(authToken.UserId, updatedState.Data);
 
         return new TaskResult(true, "Connected to channel " + channelId);
     }
@@ -210,7 +238,7 @@ public class CoreHub : Hub
 
     public async Task JoinInteractionGroup(long planetId)
     {
-        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        var authToken = await GetValidAuthTokenAsync();
         if (authToken == null) return;
 
         PlanetMember member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
@@ -218,17 +246,22 @@ public class CoreHub : Hub
         // If the user is not a member, cancel
         if (member == null)
             return;
-        
-        // Add to planet group
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"i-{planetId}");
+
+        var groupId = $"i-{planetId}";
+        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
     }
 
-    public async Task LeaveInteractionGroup(long planetId) =>
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planetId}");
+    public async Task LeaveInteractionGroup(long planetId)
+    {
+        var groupId = $"i-{planetId}";
+        await _connectionTracker.UntrackGroupMembershipAsync(groupId, Context);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
+    }
 
     public async Task<TaskResult> RefreshActiveChannelView(long channelId)
     {
-        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        var authToken = await GetValidAuthTokenAsync();
         if (authToken is null)
             return new TaskResult(false, "SignalR was not authenticated.");
 
@@ -241,16 +274,16 @@ public class CoreHub : Hub
 
     public async Task ClearActiveChannelView(long channelId)
     {
-        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        var authToken = await GetValidAuthTokenAsync();
         if (authToken is null)
             return;
 
         await _channelWatchingService.ClearAsync(authToken.UserId, channelId, Context.ConnectionId);
     }
 
-    public Task<string> Ping(bool userState = false)
+    public async Task<string> Ping(bool userState = false)
     {
-        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        var authToken = await GetValidAuthTokenAsync();
         if (authToken is not null)
         {
             var planetIds = GetConnectedPlanetIds();
@@ -260,7 +293,7 @@ public class CoreHub : Hub
             }
         }
 
-        return Task.FromResult("pong");
+        return "pong";
     }
 
     private long[] GetConnectedPlanetIds()

@@ -62,7 +62,11 @@ public class VoiceStateService : ServiceBase
     {
         node.HubConnection.On<VoiceChannelParticipantsUpdate>(
             "Voice-Channel-Participants",
-            OnVoiceChannelParticipantsUpdate);
+            update =>
+            {
+                if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
+                    OnVoiceChannelParticipantsUpdate(update);
+            });
     }
 
     private void OnVoiceChannelParticipantsUpdate(VoiceChannelParticipantsUpdate update)

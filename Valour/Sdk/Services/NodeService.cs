@@ -1,7 +1,10 @@
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
+using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
@@ -20,6 +23,9 @@ public class NodeService : ServiceBase
 
     public readonly IReadOnlyDictionary<string, Node> NameToNode;
     private readonly Dictionary<string, Node> _nameToNode = new();
+
+    private readonly SemaphoreSlim _federatedSessionLock = new(1, 1);
+    private Timer _federationSessionRefreshTimer;
     
     private readonly ValourClient _client;
     
@@ -137,11 +143,163 @@ public class NodeService : ServiceBase
     /// </summary>
     public async Task<Node> ConnectToFederatedNodeAsync(string domain, bool insecure = false)
     {
+        domain = NormalizeFederationDomain(domain);
+        if (domain is null)
+            return null;
+
+        await _federatedSessionLock.WaitAsync();
+        try
+        {
+            return await ConnectToFederatedNodeInternalAsync(domain, insecure);
+        }
+        finally
+        {
+            _federatedSessionLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Redeems a recipient-bound federation invite directly with its community
+    /// node. When the hub is down this uses the client's cached passport and
+    /// the node's cached hub JWKS; it does not make the hub join-time critical.
+    /// </summary>
+    public async Task<Node> RedeemFederatedInviteAsync(string domain, string grant, bool insecure = false)
+    {
+        if (string.IsNullOrWhiteSpace(domain) || string.IsNullOrWhiteSpace(grant))
+            return null;
+
+        // The passport and proof are sufficient to redeem this exact grant.
+        // Verify the grant locally against the hub JWKS cache before using its
+        // destination claim; otherwise a modified JWT could redirect this
+        // identity material to an attacker-controlled host.
+        var destination = await _client.AuthService.GetFederatedInviteDestinationAsync(grant);
+        if (!destination.Success)
+            return null;
+
+        var expectedDomain = destination.Data;
+        var requestedDomain = NormalizeFederationDomain(domain);
+        if (expectedDomain is null || requestedDomain is null ||
+            !string.Equals(expectedDomain, requestedDomain, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var redemption = await _client.AuthService.CreateFederatedInviteRedeemRequestAsync(grant);
+        if (!redemption.Success)
+            return null;
+
+        await _federatedSessionLock.WaitAsync();
+        try
+        {
+            _nameToNode.TryGetValue(requestedDomain, out var existing);
+            var scheme = insecure ? "http" : "https";
+            using var http = new HttpClient();
+            var response = await http.PostAsJsonAsync(
+                $"{scheme}://{requestedDomain}/api/federation/invites/redeem",
+                redemption.Data);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var authToken = await response.Content.ReadFromJsonAsync<Valour.Sdk.Models.AuthToken>();
+            if (string.IsNullOrWhiteSpace(authToken?.Id))
+                return null;
+
+            if (existing is not null)
+            {
+                var refreshed = await existing.RefreshExternalTokenAsync(authToken.Id, authToken.TimeExpires);
+                return refreshed.Success ? existing : null;
+            }
+
+            var node = new Node(_client);
+            var init = await node.InitializeExternalAsync(requestedDomain, authToken.Id, authToken.TimeExpires, insecure);
+            if (!init.Success)
+                return null;
+
+            EnsureFederationSessionRefreshTimer();
+            return node;
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            _federatedSessionLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Imports a hub-authorized migration on the destination node named by the
+    /// signed grant. The SDK deliberately derives the destination from the
+    /// grant instead of accepting a separate URL, so a copied grant cannot be
+    /// sent to an unrelated host by a misleading UI field.
+    /// </summary>
+    public async Task<TaskResult> ImportFederatedMigrationAsync(string grant, bool insecure = false)
+    {
+        var destinationDomain = NormalizeFederationDomain(
+            ReadUnvalidatedJwtStringClaim(grant, "aud"));
+        if (destinationDomain is null)
+            return TaskResult.FromFailure("The migration grant has no valid destination domain.");
+
+        // The hub mints a narrowly scoped federation session for the owner of
+        // a pending migration, even before that owner has a regular membership
+        // on the destination. The node still validates the signed grant and
+        // owner id before it imports anything.
+        var node = await ConnectToFederatedNodeAsync(destinationDomain, insecure);
+        if (node is null)
+            return TaskResult.FromFailure("Could not establish a secure session with the migration destination.");
+
+        return await node.PostAsync(
+            "api/federation/migrations/import",
+            new MigrationImportRequest { Grant = grant });
+    }
+
+    internal static string NormalizeFederationDomain(string domain)
+    {
         if (string.IsNullOrWhiteSpace(domain))
             return null;
 
-        if (_nameToNode.TryGetValue(domain, out var existing))
-            return existing;
+        domain = domain.Trim().TrimEnd('/');
+        if (domain.Contains("//", StringComparison.Ordinal) || domain.Contains('/') || domain.Contains(' '))
+            return null;
+
+        if (!Uri.TryCreate($"https://{domain}", UriKind.Absolute, out var uri) ||
+            uri.HostNameType != UriHostNameType.Dns ||
+            !string.IsNullOrEmpty(uri.UserInfo) ||
+            !string.IsNullOrEmpty(uri.Query) ||
+            !string.IsNullOrEmpty(uri.Fragment) ||
+            uri.AbsolutePath != "/")
+        {
+            return null;
+        }
+
+        return uri.IsDefaultPort ? uri.Host.ToLowerInvariant() : $"{uri.Host.ToLowerInvariant()}:{uri.Port}";
+    }
+
+    private static string ReadUnvalidatedJwtStringClaim(string token, string claim)
+    {
+        try
+        {
+            var parts = token.Split('.');
+            if (parts.Length != 3)
+                return null;
+
+            var base64 = parts[1].Replace('-', '+').Replace('_', '/');
+            base64 = base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
+            using var document = JsonDocument.Parse(Encoding.UTF8.GetString(Convert.FromBase64String(base64)));
+            if (!document.RootElement.TryGetProperty(claim, out var value))
+                return null;
+            return value.ValueKind == JsonValueKind.String ? value.GetString() : value.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<Node> ConnectToFederatedNodeInternalAsync(string domain, bool insecure)
+    {
+        _nameToNode.TryGetValue(domain, out var existing);
 
         // 1. Hub mints a federation token for this domain.
         var tokenResult = await _client.PrimaryNode.PostAsyncWithResponse<Valour.Shared.Models.FederationTokenResponse>(
@@ -151,7 +309,6 @@ public class NodeService : ServiceBase
 
         // 2. Exchange it on the node's origin for a node-local session token.
         var scheme = insecure ? "http" : "https";
-        string nodeLocalToken;
         try
         {
             using var http = new HttpClient();
@@ -161,20 +318,54 @@ public class NodeService : ServiceBase
             if (!resp.IsSuccessStatusCode)
                 return null;
             var authToken = await resp.Content.ReadFromJsonAsync<Valour.Sdk.Models.AuthToken>();
-            nodeLocalToken = authToken?.Id;
+            if (string.IsNullOrWhiteSpace(authToken?.Id))
+                return null;
+
+            if (existing is not null)
+            {
+                var refreshed = await existing.RefreshExternalTokenAsync(authToken.Id, authToken.TimeExpires);
+                return refreshed.Success ? existing : null;
+            }
+
+            // 3. Bring up the external node (HTTP + SignalR to the node origin).
+            var node = new Node(_client);
+            var init = await node.InitializeExternalAsync(domain, authToken.Id, authToken.TimeExpires, insecure);
+            if (!init.Success)
+                return null;
+
+            EnsureFederationSessionRefreshTimer();
+            return node;
         }
         catch
         {
             return null;
         }
+    }
 
-        if (string.IsNullOrWhiteSpace(nodeLocalToken))
-            return null;
+    private void EnsureFederationSessionRefreshTimer()
+    {
+        _federationSessionRefreshTimer ??= new Timer(
+            _ => _ = RefreshExpiringFederatedSessionsAsync(),
+            null,
+            TimeSpan.FromMinutes(5),
+            TimeSpan.FromMinutes(5));
+    }
 
-        // 3. Bring up the external node (HTTP + realtime to the node origin).
-        var node = new Node(_client);
-        var init = await node.InitializeExternalAsync(domain, nodeLocalToken, insecure);
-        return init.Success ? node : null;
+    private async Task RefreshExpiringFederatedSessionsAsync()
+    {
+        try
+        {
+            var expiringNodes = _nameToNode.Values
+                .Where(node => node.IsExternal && node.NeedsFederationSessionRefresh)
+                .ToList();
+
+            foreach (var node in expiringNodes)
+                await ConnectToFederatedNodeAsync(node.Name, node.ExternalInsecure);
+        }
+        catch (Exception ex)
+        {
+            LogWarning("Failed to refresh a federated node session: " + ex.Message);
+        }
     }
 
     public void RegisterNode(Node node)
@@ -184,9 +375,49 @@ public class NodeService : ServiceBase
         if (_nodes.All(x => x.Name != node.Name))
             _nodes.Add(node);
     }
+
+    /// <summary>
+    /// An external node bearer is bound to the hub account that obtained it.
+    /// Never retain it across login, logout, or token replacement; otherwise a
+    /// reused SDK client could let the next account operate on the previous
+    /// account's community membership.
+    /// </summary>
+    internal void InvalidateFederatedSessions(string reason)
+    {
+        var externalNodes = _nodes.Where(node => node.IsExternal).ToList();
+        if (externalNodes.Count == 0)
+            return;
+
+        var externalNames = externalNodes
+            .Select(node => node.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var node in externalNodes)
+            node.InvalidateExternalSession(reason);
+
+        foreach (var name in externalNames)
+            _nameToNode.Remove(name);
+
+        _nodes.RemoveAll(node => node.IsExternal);
+
+        foreach (var planetId in _planetToNodeName
+                     .Where(pair => externalNames.Contains(pair.Value))
+                     .Select(pair => pair.Key)
+                     .ToList())
+        {
+            _planetToNodeName.Remove(planetId);
+        }
+    }
     
     public void SetKnownByPlanet(long planetId, string nodeName)
     {
+        // A planet payload fetched directly from a node does not include the
+        // hub-internal node name. Never let that absent field erase an
+        // established routing decision (especially an external domain).
+        if (string.IsNullOrWhiteSpace(nodeName))
+            return;
+
         _planetToNodeName[planetId] = nodeName;
     }
 

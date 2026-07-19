@@ -15,6 +15,7 @@ public class PlanetThread : ServerModel<long>, ISharedPlanetThread
     public bool Nsfw { get; set; }
     public int BoostCount { get; set; }
     public int CommentCount { get; set; }
+    public string ImportSource { get; set; }
 
     public List<Valour.Sdk.Models.MessageAttachment> Attachments { get; set; }
 }

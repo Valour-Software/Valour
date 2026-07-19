@@ -31,4 +31,9 @@ public interface ISharedMessageReaction
     /// The time this reaction was created
     /// </summary>
     DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Non-null when this reaction originated in an external import.
+    /// </summary>
+    string? ImportSource { get; set; }
 }

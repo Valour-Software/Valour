@@ -122,6 +122,10 @@ else
             {
                 <p class="edited-flag"> (Edited)</p>
             }
+            @if (!string.IsNullOrWhiteSpace(_message.ImportSource))
+            {
+                <span class="imported-flag" title="Imported from @_message.ImportSource">Imported</span>
+            }
         </div>
     </div>
     @if (_reactions is not null && _reactions.Count > 0)

@@ -50,6 +50,8 @@ public class InstanceApi
                 PushNotifications = PushCapable(),
                 MediaSafety = MediaSafetyConfig.Current?.Enabled ?? false,
                 OpenRegistration = true,
+                FederationHub = FederationHubService.HubEnabled,
+                FederationNode = FederationNodeService.NodeEnabled,
             },
             DefaultMaxUploadBytes = UserSubscriptionTypes.GetMaxUploadBytes(null),
         };

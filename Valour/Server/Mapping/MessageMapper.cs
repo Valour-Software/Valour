@@ -28,6 +28,7 @@ public static class MessageMapper
             TimeSent = message.TimeSent,
             ChannelId = message.ChannelId,
             EditedTime = message.EditedTime,
+            ImportSource = message.ImportSource,
             ReplyTo = message.ReplyToMessage?.ToModel(),
             Reactions = message.Reactions?.Select(x => x.ToModel()).ToList(),
             Attachments = attachments,
@@ -51,6 +52,7 @@ public static class MessageMapper
             TimeSent = message.TimeSent,
             ChannelId = message.ChannelId,
             EditedTime = message.EditedTime,
+            ImportSource = message.ImportSource,
             Reactions = message.Reactions?.Select(x => x.ToDatabase()).ToList(),
             Attachments = message.Attachments?
                 .Select((x, i) => x.ToDatabase(message.Id, i))

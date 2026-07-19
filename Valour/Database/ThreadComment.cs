@@ -32,6 +32,11 @@ public class ThreadComment : ISharedThreadComment
     public int ReplyCount { get; set; }
     public bool IsDeleted { get; set; }
 
+    /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<ThreadComment>(e =>
@@ -85,6 +90,10 @@ public class ThreadComment : ISharedThreadComment
 
             e.Property(x => x.IsDeleted)
                 .HasColumnName("is_deleted");
+
+            e.Property(x => x.ImportSource)
+                .HasColumnName("import_source")
+                .HasMaxLength(256);
 
             e.HasOne(x => x.Thread)
                 .WithMany(x => x.Comments)

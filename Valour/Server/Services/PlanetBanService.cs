@@ -124,8 +124,16 @@ public class PlanetBanService
 
     public async Task<TaskResult<PlanetBan>> PutAsync(PlanetBan updatedban, long? actorUserId = null)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, updatedban?.PlanetId);
+        if (!migrationGuard.Success)
+            return new(false, migrationGuard.Message);
+
         var old = await _db.PlanetBans.FindAsync(updatedban.Id);
         if (old is null) return new(false, $"PlanetBan not found");
+
+        var persistedMigrationGuard = await MigrationLock.GuardAsync(_db, old.PlanetId);
+        if (!persistedMigrationGuard.Success)
+            return new(false, persistedMigrationGuard.Message);
 
         if (updatedban.PlanetId != old.PlanetId)
             return new(false, "You cannot change the PlanetId.");
@@ -221,16 +229,26 @@ public class PlanetBanService
     /// </summary>
     public async Task<TaskResult> DeleteAsync(PlanetBan ban, PlanetMember member)
     {
-        var migrationGuard = await MigrationLock.GuardAsync(_db, ban.PlanetId);
+        if (ban is null)
+            return TaskResult.FromFailure("Planet ban is required.");
+
+        var storedBan = await _db.PlanetBans.FindAsync(ban.Id);
+        if (storedBan is null)
+            return TaskResult.FromFailure("PlanetBan not found");
+
+        // The client model is not an authority for the planet, issuer, or
+        // target. Using the persisted row prevents a forged PlanetId from
+        // bypassing the migration lock (and keeps the authority check honest).
+        var migrationGuard = await MigrationLock.GuardAsync(_db, storedBan.PlanetId);
         if (!migrationGuard.Success)
             return migrationGuard;
 
         // Ensure the user unbanning is either the user that made the ban, or someone
         // with equal or higher authority to them
 
-        if (ban.IssuerId != member.UserId)
+        if (storedBan.IssuerId != member.UserId)
         {
-            var banner = await _memberService.GetByUserAsync(ban.IssuerId, ban.PlanetId);
+            var banner = await _memberService.GetByUserAsync(storedBan.IssuerId, storedBan.PlanetId);
 
             if (banner is not null && await _memberService.GetAuthorityAsync(banner) > await _memberService.GetAuthorityAsync(member))
                 return new(false, "The banner of this user has higher authority than you.");
@@ -238,9 +256,7 @@ public class PlanetBanService
 
         try
         {
-            var _old = await _db.PlanetBans.FindAsync(ban.Id);
-            if (_old is null) return new(false, $"PlanetBan not found");
-            _db.PlanetBans.Remove(_old);
+            _db.PlanetBans.Remove(storedBan);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -251,15 +267,15 @@ public class PlanetBanService
 
 
         // Notify of changes
-        _coreHub.NotifyPlanetItemDelete(ban);
+        _coreHub.NotifyPlanetItemDelete(storedBan.ToModel());
 
         await _moderationAuditService.LogAsync(
-            ban.PlanetId,
+            storedBan.PlanetId,
             ModerationActionSource.Manual,
             ModerationActionType.Unban,
             actorUserId: member.UserId,
-            targetUserId: ban.TargetId,
-            details: ban.Reason);
+            targetUserId: storedBan.TargetId,
+            details: storedBan.Reason);
 
         return new(true, "Success");
     }

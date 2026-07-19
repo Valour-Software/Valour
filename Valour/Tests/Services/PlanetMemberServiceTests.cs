@@ -1,12 +1,17 @@
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
 using Valour.Database.Context;
 using Valour.Sdk.Client;
 using Valour.Server;
+using Valour.Server.Hubs;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
 using Valour.Server.Services;
+using Valour.Shared.Models;
 
 namespace Valour.Tests.Services;
 
@@ -21,6 +26,8 @@ public class PlanetMemberServiceTests : IAsyncLifetime
     private readonly PlanetMemberService _memberService;
     private readonly PlanetRoleService _roleService;
     private readonly UserService _userService;
+    private readonly TokenService _tokenService;
+    private readonly SignalRConnectionService _connectionTracker;
     private readonly ValourDb _db;
 
     private Planet _planet = null!;
@@ -39,6 +46,8 @@ public class PlanetMemberServiceTests : IAsyncLifetime
         _memberService = _scope.ServiceProvider.GetRequiredService<PlanetMemberService>();
         _roleService = _scope.ServiceProvider.GetRequiredService<PlanetRoleService>();
         _userService = _scope.ServiceProvider.GetRequiredService<UserService>();
+        _tokenService = _scope.ServiceProvider.GetRequiredService<TokenService>();
+        _connectionTracker = _scope.ServiceProvider.GetRequiredService<SignalRConnectionService>();
     }
 
     public async ValueTask InitializeAsync()
@@ -73,6 +82,17 @@ public class PlanetMemberServiceTests : IAsyncLifetime
         var details = await _fixture.RegisterUser();
         var user = await _db.Users.FirstAsync(u => u.Name == details.Username);
         return user.ToModel();
+    }
+
+    private sealed class TestHubCallerContext(string connectionId) : HubCallerContext
+    {
+        public override string ConnectionId { get; } = connectionId;
+        public override string? UserIdentifier => null;
+        public override ClaimsPrincipal User { get; } = new(new ClaimsIdentity());
+        public override IDictionary<object, object?> Items { get; } = new Dictionary<object, object?>();
+        public override IFeatureCollection Features { get; } = new FeatureCollection();
+        public override CancellationToken ConnectionAborted => CancellationToken.None;
+        public override void Abort() { }
     }
 
     [Fact]
@@ -160,6 +180,86 @@ public class PlanetMemberServiceTests : IAsyncLifetime
 
         var dbMember = await _db.PlanetMembers.IgnoreQueryFilters().FirstAsync(m => m.Id == member.Id);
         Assert.True(dbMember.IsDeleted);
+    }
+
+    [Fact]
+    public async Task DeleteMember_EvictsExistingRealtimeSubscriptions()
+    {
+        var newUser = await RegisterNewUserAsync();
+        var create = await _memberService.AddMemberAsync(_planet.Id, newUser.Id);
+        Assert.True(create.Success, create.Message);
+
+        var channelId = await _db.Channels
+            .Where(channel => channel.PlanetId == _planet.Id && channel.ChannelType == ChannelTypeEnum.PlanetChat)
+            .Select(channel => channel.Id)
+            .FirstAsync();
+
+        var context = new TestHubCallerContext("membership-revocation-" + Guid.NewGuid());
+        _connectionTracker.AddConnectionIdentity(context.ConnectionId, new AuthToken
+        {
+            Id = "membership-revocation-token-" + Guid.NewGuid(),
+            UserId = newUser.Id,
+        });
+
+        try
+        {
+            await _connectionTracker.TrackGroupMembershipAsync($"p-{_planet.Id}", context, create.Data!.Id);
+            await _connectionTracker.TrackGroupMembershipAsync($"c-{channelId}", context);
+            await _connectionTracker.TrackGroupMembershipAsync($"i-{_planet.Id}", context);
+
+            var deletion = await _memberService.DeleteAsync(create.Data.Id);
+            Assert.True(deletion.Success, deletion.Message);
+
+            Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"p-{_planet.Id}"));
+            Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"c-{channelId}"));
+            Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"i-{_planet.Id}"));
+        }
+        finally
+        {
+            await _connectionTracker.RemoveAllMembershipsAsync(context);
+            _connectionTracker.RemoveConnectionIdentity(context.ConnectionId);
+        }
+    }
+
+    [Fact]
+    public async Task FederationSession_CannotJoinUserRealtimeGroup()
+    {
+        var token = new Valour.Database.AuthToken
+        {
+            Id = "fed-" + Guid.NewGuid().ToString("N"),
+            AppId = "FEDERATION",
+            UserId = _client.Me.Id,
+            Scope = 0,
+            TimeCreated = DateTime.UtcNow,
+            TimeExpires = DateTime.UtcNow.AddMinutes(5),
+            IssuedAddress = "test",
+        };
+        await _db.AuthTokens.AddAsync(token);
+        await _db.SaveChangesAsync();
+
+        var context = new TestHubCallerContext("federation-user-group-" + Guid.NewGuid());
+        var hub = ActivatorUtilities.CreateInstance<CoreHub>(_scope.ServiceProvider);
+        hub.Context = context;
+
+        try
+        {
+            var authorization = await hub.Authorize(token.Id);
+            Assert.True(authorization.Success, authorization.Message);
+
+            var result = await hub.JoinUser(isPrimary: false);
+            Assert.False(result.Success);
+            Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"u-{token.UserId}"));
+
+            await _connectionTracker.RemoveAllMembershipsAsync(context);
+            Assert.Empty(_connectionTracker.GetConnectionsByTokenId(token.Id));
+        }
+        finally
+        {
+            _connectionTracker.RemoveConnectionIdentity(context.ConnectionId);
+            _tokenService.RemoveFromQuickCache(token.Id);
+            _db.AuthTokens.Remove(token);
+            await _db.SaveChangesAsync();
+        }
     }
 
     [Fact]

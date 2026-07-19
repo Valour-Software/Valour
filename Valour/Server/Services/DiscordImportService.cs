@@ -192,7 +192,11 @@ public class DiscordImportService
     /// <summary>
     /// Imports a Discord template and creates a fully scaffolded planet.
     /// </summary>
-    public async Task<TaskResult<Planet>> ImportAsync(string templateCodeOrUrl, User user, string nameOverride = null)
+    public async Task<TaskResult<Planet>> ImportAsync(
+        string templateCodeOrUrl,
+        User user,
+        string nameOverride = null,
+        long? reservedPlanetId = null)
     {
         var code = ParseTemplateCode(templateCodeOrUrl);
         if (string.IsNullOrWhiteSpace(code))
@@ -218,7 +222,10 @@ public class DiscordImportService
             // Create the planet
             planet = new Valour.Database.Planet
             {
-                Id = IdManager.Generate(),
+                // Community nodes receive a hub-reserved global snowflake
+                // before beginning the import. This keeps imported planets in
+                // the same collision-free id space as every other planet.
+                Id = reservedPlanetId ?? IdManager.Generate(),
                 OwnerId = user.Id,
                 Name = planetName,
                 Description = "Imported from Discord template",

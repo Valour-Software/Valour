@@ -16,4 +16,5 @@ public class ThreadComment : ServerModel<long>, ISharedThreadComment
     public int BoostCount { get; set; }
     public int ReplyCount { get; set; }
     public bool IsDeleted { get; set; }
+    public string ImportSource { get; set; }
 }

@@ -24,9 +24,10 @@ public static class IdManager
 
         var options = new IdGeneratorOptions(structure, new DefaultTimeSource(epoch));
 
-        // Worker id from config (0 for the official network). The 10-bit generator
-        // field allows 0–1023; distinct per instance keeps snowflake ids from
-        // colliding across the federation.
+        // Worker ids identify cooperating official-cluster instances only.
+        // Community federation nodes do not participate in this 10-bit space:
+        // their local objects are origin-scoped, while globally routed planet
+        // ids are allocated by the hub.
         var workerId = Math.Clamp(NodeConfig.Instance?.WorkerId ?? 0, 0, 1023);
         Generator = new IdGenerator(workerId, options);
     }

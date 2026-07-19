@@ -69,6 +69,11 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// </summary>
     public DateTime? EditedTime { get; set; }
 
+    /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
     public async ValueTask<IMessageAuthor> FetchAuthorAsync()
     {
         if (AuthorMemberId is not null)
@@ -369,12 +374,12 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
 
     public override Message AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.Messages.Put(this, flags);
+        return Client.Cache.Messages.Put(this, flags, CacheScope);
     }
 
     public override Message RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.Messages.Remove(this, skipEvents);
+        return Client.Cache.Messages.Remove(this, CacheScope, skipEvents);
     }
     
     public override void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None)

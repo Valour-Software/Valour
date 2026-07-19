@@ -480,9 +480,21 @@ public class ChannelService : ServiceBase
 
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<ChannelsMovedEvent>("Channels-Moved", OnChannelsMoved);
-        node.HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", OnWatchingUpdate);
-        node.HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", OnTypingUpdate);
+        node.HubConnection.On<ChannelsMovedEvent>("Channels-Moved", update =>
+        {
+            if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
+                OnChannelsMoved(update);
+        });
+        node.HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", update =>
+        {
+            if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
+                OnWatchingUpdate(update);
+        });
+        node.HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", update =>
+        {
+            if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
+                OnTypingUpdate(update);
+        });
     }
     
     private async Task OnNodeReconnect(Node node)

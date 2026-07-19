@@ -196,6 +196,9 @@ public class MessageService
 
         message.Id = Valour.Server.Database.IdManager.Generate();
         message.TimeSent = DateTime.UtcNow;
+        // Import provenance is set only by trusted import workflows, never by
+        // a client submitting a native message.
+        message.ImportSource = null;
         
         var attachments = message.Attachments?.Where(x => x is not null).ToList();
         if (attachments is not null)
@@ -398,6 +401,7 @@ public class MessageService
         updated.Reactions = oldModel.Reactions;
         updated.ReplyTo = oldModel.ReplyTo;
         updated.Fingerprint = oldModel.Fingerprint;
+        updated.ImportSource = old.ImportSource;
         
         // Sanity checks
         if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))

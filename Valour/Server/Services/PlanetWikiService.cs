@@ -383,6 +383,10 @@ public class PlanetWikiService
         if (request is null)
             return TaskResult.FromFailure("Request is required.");
 
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var nodes = await GetNodeMapAsync(planetId);
 
         if (!nodes.TryGetValue(pageId, out var node))
@@ -505,6 +509,10 @@ public class PlanetWikiService
     /// </summary>
     public async Task<TaskResult<int>> DeleteAsync(long planetId, long pageId)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<int>.FromFailure(migrationGuard.Message);
+
         var nodes = await GetNodeMapAsync(planetId);
 
         if (!nodes.TryGetValue(pageId, out var node))
@@ -568,6 +576,7 @@ public class PlanetWikiService
                 Title = x.Title,
                 Content = null,
                 AuthorUserId = x.AuthorUserId,
+                ImportSource = x.ImportSource,
                 TimeCreated = x.TimeCreated,
             })
             .ToListAsync();
@@ -647,6 +656,7 @@ public class PlanetWikiService
             LastEdited = x.LastEdited,
             CreatedByUserId = x.CreatedByUserId,
             LastEditedByUserId = x.LastEditedByUserId,
+            ImportSource = x.ImportSource,
         };
 
     private record struct DocNode(long Id, long? ParentId, bool IsFolder, uint Position, string Title, string Slug);

@@ -60,4 +60,9 @@ public interface ISharedThreadComment : ISharedPlanetModel<long>
     /// Deleted comments remain as tombstones to preserve the reply tree
     /// </summary>
     bool IsDeleted { get; set; }
+
+    /// <summary>
+    /// Non-null when this comment originated in an external import.
+    /// </summary>
+    string ImportSource { get; set; }
 }

@@ -137,6 +137,10 @@ public class PlanetRuleService
 
     public async Task<TaskResult> SetRuleOrderAsync(long planetId, long[] order)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         if (order is null || order.Length == 0)
             return TaskResult.FromFailure("Rule order cannot be empty.");
 

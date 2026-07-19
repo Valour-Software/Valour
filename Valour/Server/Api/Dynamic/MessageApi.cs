@@ -336,8 +336,10 @@ public class MessageApi
             channel.PlanetId,
             memberId,
             unreadFromTime);
+        if (!updated.Success)
+            return ValourResult.Problem(updated.Message);
 
-        return ValourResult.Json(updated);
+        return ValourResult.Json(updated.Data);
     }
 
     [ValourRoute(HttpVerbs.Post, "api/messages/{messageId}/reactions/add")]

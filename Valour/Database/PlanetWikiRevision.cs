@@ -27,6 +27,11 @@ public class PlanetWikiRevision
     public long AuthorUserId { get; set; }
     public DateTime TimeCreated { get; set; }
 
+    /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<PlanetWikiRevision>(e =>
@@ -60,6 +65,10 @@ public class PlanetWikiRevision
                 .HasConversion(
                     x => x,
                     x => new DateTime(x.Ticks, DateTimeKind.Utc));
+
+            e.Property(x => x.ImportSource)
+                .HasColumnName("import_source")
+                .HasMaxLength(256);
 
             e.HasOne(x => x.Doc)
                 .WithMany(x => x.Revisions)

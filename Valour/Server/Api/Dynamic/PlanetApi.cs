@@ -53,12 +53,19 @@ public class PlanetApi
     public static async Task<IResult> PostRouteAsync(
         [FromBody] Planet planet,
         PlanetService planetService,
-        UserService userService)
+        UserService userService,
+        FederationNodeClient federationNodeClient)
     {
         var user = await userService.GetCurrentUserAsync();
         
         if (planet is null)
             return ValourResult.BadRequest("Include planet in body.");
+
+        // A node-local shadow identity is authorized only for the hub-signed
+        // memberships it already holds. It must not create an unregistered
+        // local planet whose ownership cannot be represented at the hub.
+        if (await userService.IsFederatedAsync(user.Id))
+            return ValourResult.Forbid("Federated accounts cannot create planets directly on a community node.");
         
         if (!user.ValourStaff)
         {
@@ -67,12 +74,29 @@ public class PlanetApi
                 return ValourResult.BadRequest("You have reached the maximum owned planets!");
         }
 
-        planet.Id = IdManager.Generate();
+        long? reservedFederatedId = null;
+        if (FederationNodeService.NodeEnabled)
+        {
+            // A community node must reserve the global snowflake and stub
+            // before creating the local planet. Otherwise the planet is an
+            // orphan: other hub users can neither discover nor join it.
+            var reservation = await federationNodeClient.ReservePlanetAsync(ToFederatedStubRequest(planet, memberCount: 1));
+            if (!reservation.Success || reservation.Data is null)
+                return ValourResult.Problem(reservation.Message ?? "Could not register this community planet with the hub.");
+
+            reservedFederatedId = reservation.Data.Id;
+        }
+
+        planet.Id = reservedFederatedId ?? IdManager.Generate();
         planet.OwnerId = user.Id;
 
-        var result = await planetService.CreateAsync(planet, user);
+        var result = await planetService.CreateAsync(planet, user, reservedFederatedId);
         if (!result.Success)
+        {
+            if (reservedFederatedId.HasValue)
+                await federationNodeClient.DeletePlanetAsync(reservedFederatedId.Value);
             return ValourResult.Problem(result.Message);
+        }
         
         return Results.Created($"api/planets/{result.Data.Id}", result.Data);
     }
@@ -84,7 +108,8 @@ public class PlanetApi
         long id,
         PlanetService planetService,
         UserService userService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        FederationNodeClient federationNodeClient)
     {
         var member = await memberService.GetCurrentAsync(id);
         if (member is null)
@@ -120,10 +145,28 @@ public class PlanetApi
                 return Results.BadRequest("That new owner has the maximum owned planets!");
         }
 
+        // Push visibility before making the local update. In particular, a
+        // public-to-private change stops the hub from issuing new grants first.
+        FederatedPlanetStubRequest previousStub = null;
+        if (FederationNodeService.NodeEnabled)
+        {
+            var memberCount = await planetService.GetMemberCountAsync(id);
+            previousStub = ToFederatedStubRequest(old, memberCount);
+            var sync = await federationNodeClient.UpsertPlanetAsync(id, ToFederatedStubRequest(planet, memberCount));
+            if (!sync.Success)
+                return ValourResult.Problem(sync.Message ?? "Could not update this community planet at the hub.");
+        }
+
         var result = await planetService.UpdateAsync(planet);
 
         if (!result.Success)
+        {
+            // The hub was updated first to fail closed for privacy changes.
+            // Compensate if the local transaction then rejects the update.
+            if (previousStub is not null)
+                await federationNodeClient.UpsertPlanetAsync(id, previousStub);
             return ValourResult.Problem(result.Message);
+        }
         
         return Results.Json(planet);
     }
@@ -133,7 +176,8 @@ public class PlanetApi
     public static async Task<IResult> DeleteRouteAsync(
         long id,
         PlanetService planetService,
-        UserService userService)
+        UserService userService,
+        FederationNodeClient federationNodeClient)
     {
         var planet = await planetService.GetAsync(id);
         if (planet is null)
@@ -144,10 +188,40 @@ public class PlanetApi
         if (userId != planet.OwnerId)
             return ValourResult.Forbid("You are not the owner of this planet.");
 
-        await planetService.DeleteAsync(planet.Id);
+        // Check before the node-side registry mutation. PlanetService performs
+        // the authoritative check again immediately before local deletion, but
+        // without this early guard a locked migration could lose its hub stub
+        // even though the local deletion is rejected.
+        if (planet.LockedForMigration)
+            return ValourResult.BadRequest(MigrationLock.Message);
+
+        if (FederationNodeService.NodeEnabled)
+        {
+            // Revoke hub discovery/membership grants before deleting the local
+            // data, so a failed hub call cannot leave a live orphaned stub.
+            var removal = await federationNodeClient.DeletePlanetAsync(planet.Id);
+            if (!removal.Success)
+                return ValourResult.Problem(removal.Message ?? "Could not remove this community planet from the hub.");
+        }
+
+        var result = await planetService.DeleteAsync(planet.Id);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
         return Results.NoContent();
     }
+
+    private static FederatedPlanetStubRequest ToFederatedStubRequest(Planet planet, int memberCount) => new()
+    {
+        Id = planet.Id,
+        Name = planet.Name,
+        Description = planet.Description,
+        OwnerId = planet.OwnerId,
+        MemberCount = memberCount,
+        Nsfw = planet.Nsfw,
+        Public = planet.Public,
+        Discoverable = planet.Discoverable,
+    };
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels")]
     [UserRequired(UserPermissionsEnum.Membership)]
@@ -576,6 +650,13 @@ public class PlanetApi
         var user = await userService.GetCurrentUserAsync();
         var planet = await planetService.GetAsync(id);
 
+        // A federated shadow account can only be added by the node after the
+        // hub has signed a planet-specific membership grant. Letting it use
+        // the ordinary local join route would create an untracked membership
+        // on any public planet hosted by the same node.
+        if (await userService.IsFederatedAsync(user.Id))
+            return ValourResult.Forbid("Federated memberships must be joined through the hub.");
+
         if (!planet.Public)
             return Results.BadRequest("Planet is set to private");
 
@@ -603,6 +684,9 @@ public class PlanetApi
     {
         var user = await userService.GetCurrentUserAsync();
         var planet = await planetService.GetAsync(id);
+
+        if (await userService.IsFederatedAsync(user.Id))
+            return ValourResult.Forbid("Federated memberships must be joined through the hub.");
 
         if (!planet.Public)
         {
@@ -719,12 +803,17 @@ public class PlanetApi
     public static async Task<IResult> ImportDiscordTemplateAsync(
         [FromBody] ImportDiscordTemplateRequest request,
         DiscordImportService importService,
-        UserService userService)
+        UserService userService,
+        FederationNodeClient federationNodeClient,
+        ILogger<PlanetApi> logger)
     {
         if (request is null || string.IsNullOrWhiteSpace(request.TemplateCodeOrUrl))
             return ValourResult.BadRequest("Template code or URL is required.");
 
         var user = await userService.GetCurrentUserAsync();
+
+        if (await userService.IsFederatedAsync(user.Id))
+            return ValourResult.Forbid("Federated accounts cannot create planets directly on a community node.");
 
         if (!user.ValourStaff)
         {
@@ -733,9 +822,45 @@ public class PlanetApi
                 return ValourResult.BadRequest("You have reached the maximum owned planets!");
         }
 
-        var result = await importService.ImportAsync(request.TemplateCodeOrUrl, user, request.PlanetName);
+        long? reservedFederatedId = null;
+        if (FederationNodeService.NodeEnabled)
+        {
+            var requestedStub = new Planet
+            {
+                Name = string.IsNullOrWhiteSpace(request.PlanetName) ? "Imported Planet" : request.PlanetName,
+                Description = "Imported from Discord template",
+            };
+            var reservation = await federationNodeClient.ReservePlanetAsync(
+                ToFederatedStubRequest(requestedStub, memberCount: 1));
+            if (!reservation.Success || reservation.Data is null)
+                return ValourResult.Problem(reservation.Message ?? "Could not register this community planet with the hub.");
+
+            reservedFederatedId = reservation.Data.Id;
+        }
+
+        var result = await importService.ImportAsync(
+            request.TemplateCodeOrUrl, user, request.PlanetName, reservedFederatedId);
         if (!result.Success)
+        {
+            if (reservedFederatedId.HasValue)
+                await federationNodeClient.DeletePlanetAsync(reservedFederatedId.Value);
             return ValourResult.Problem(result.Message);
+        }
+
+        if (reservedFederatedId.HasValue)
+        {
+            // The reservation is private by default. Reconcile actual imported
+            // metadata now; the background registry worker will retry if this
+            // best-effort update is interrupted after the local import commits.
+            var sync = await federationNodeClient.UpsertPlanetAsync(
+                result.Data.Id, ToFederatedStubRequest(result.Data, memberCount: 1));
+            if (!sync.Success)
+            {
+                logger.LogWarning(
+                    "Discord-imported planet {PlanetId} was created but registry metadata could not be synchronized: {Reason}",
+                    result.Data.Id, sync.Message);
+            }
+        }
 
         return Results.Created($"api/planets/{result.Data.Id}", result.Data);
     }

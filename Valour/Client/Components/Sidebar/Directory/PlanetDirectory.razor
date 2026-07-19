@@ -17,6 +17,11 @@
                 <p class="planet-name">
                     @Planet.Name
                 </p>
+                @if (Planet.Node?.IsExternal == true)
+                {
+                    <i class="bi bi-diagram-3-fill community-host-icon"
+                       title="@($"Hosted by {Planet.Node.Name}, not by Valour")"></i>
+                }
                 @if (Planet.SelfHostedMedia)
                 {
                     <i class="bi bi-hdd-network-fill custom-media-icon"

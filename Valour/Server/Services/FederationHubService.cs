@@ -131,9 +131,9 @@ public class FederationHubService
             return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
                 "The node advertises a different domain than the one being registered.");
 
-        if (string.IsNullOrWhiteSpace(wellKnown.PublicJwk))
+        if (!IsValidNodePublicJwk(wellKnown.PublicJwk))
             return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
-                "The node did not advertise a public key.");
+                "The node must advertise a valid P-256 public signing key.");
 
         node.Status = FederatedNodeStatus.Active;
         node.VerificationChallenge = null;
@@ -199,20 +199,46 @@ public class FederationHubService
         if (node is null || node.Status != FederatedNodeStatus.Active)
             return TaskResult<FederationTokenResponse>.FromFailure("Domain is not an active community node.");
 
+        // Re-prove that this DNS name still serves the public key registered to
+        // the node. A one-time DNS challenge is insufficient: a transferred or
+        // hijacked domain must not inherit its predecessor's federation trust.
+        if (!await IsNodeKeyCurrentAsync(node))
+            return TaskResult<FederationTokenResponse>.FromFailure("Community node verification has expired or changed. Its owner must re-verify it.");
+
         // Consent + membership gate. Both are established by the hub-side join flow
         // (which shows the first-contact warning), so a token is minted only for a
         // node the user opted into and a planet they actually joined there — not for
-        // any hub user against any active node.
+        // any hub user against any active node. The one exception is the owner of
+        // an in-flight migration to this exact node: starting that migration is an
+        // explicit consent action, and the owner needs a narrow destination
+        // session before the first membership can exist there.
+        var hasPendingMigrationAuthorization = await (from migration in _db.FederatedMigrations.AsNoTracking()
+                                                      join planet in _db.Planets.IgnoreQueryFilters()
+                                                          on migration.PlanetId equals planet.Id
+                                                      where migration.TargetDomain == domain &&
+                                                            migration.Status == FederatedMigrationStatus.Pending &&
+                                                            planet.OwnerId == user.Id &&
+                                                            planet.LockedForMigration
+                                                      select migration.PlanetId)
+            .AnyAsync();
+
         var domainAccepted = await _db.FederatedAcceptedDomains
             .AnyAsync(x => x.UserId == user.Id && x.Domain == domain);
-        if (!domainAccepted)
+        if (!domainAccepted && !hasPendingMigrationAuthorization)
             return TaskResult<FederationTokenResponse>.FromFailure("Accept the node's domain before connecting.");
 
-        var membershipPlanetIds = await _db.FederatedMemberships.AsNoTracking()
-            .Where(x => x.UserId == user.Id && x.NodeDomain == domain)
-            .Select(x => x.PlanetId)
+        // The stub join makes stale rows fail closed even if a legacy cleanup
+        // missed one. A membership alone is never a durable authorization for
+        // an arbitrary node domain.
+        var membershipPlanetIds = await (from membership in _db.FederatedMemberships.AsNoTracking()
+                                         join stub in _db.FederatedPlanetStubs.AsNoTracking()
+                                             on membership.PlanetId equals stub.Id
+                                         where membership.UserId == user.Id &&
+                                               membership.NodeDomain == domain &&
+                                               stub.NodeDomain == domain
+                                         select membership.PlanetId)
             .ToListAsync();
-        if (membershipPlanetIds.Count == 0)
+        if (membershipPlanetIds.Count == 0 && !hasPendingMigrationAuthorization)
             return TaskResult<FederationTokenResponse>.FromFailure("Join a planet on this node before connecting.");
 
         var credentials = await _keyService.GetHubSigningCredentialsAsync();
@@ -258,16 +284,25 @@ public class FederationHubService
     }
 
     /// <summary>
-    /// Account-deletion tombstones since a given time, for nodes to honor.
+    /// Returns one durable, cursor-paginated tombstone page for the requesting
+    /// node. A node can only see users who had a federation relationship with
+    /// that exact domain at deletion time.
     /// </summary>
-    public async Task<List<long>> GetPurgedUserIdsSinceAsync(DateTime since)
+    public async Task<FederatedPurgePage> GetPurgedUserIdsAsync(string nodeDomain, long afterId)
     {
-        return await _db.FederatedPurges.AsNoTracking()
-            .Where(x => x.CreatedAt > since)
-            .OrderBy(x => x.CreatedAt)
-            .Select(x => x.SubjectUserId)
-            .Take(1000)
+        const int pageSize = 250;
+        var records = await _db.FederatedPurges.AsNoTracking()
+            .Where(x => x.NodeDomain == nodeDomain && x.Id > afterId)
+            .OrderBy(x => x.Id)
+            .Take(pageSize)
+            .Select(x => new { x.Id, x.SubjectUserId })
             .ToListAsync();
+
+        return new FederatedPurgePage
+        {
+            UserIds = records.Select(x => x.SubjectUserId).ToList(),
+            NextCursor = records.Count == 0 ? afterId : records[^1].Id,
+        };
     }
 
     /// <summary>
@@ -296,7 +331,8 @@ public class FederationHubService
             return null;
 
         var node = await _db.FederatedNodes.AsNoTracking().FirstOrDefaultAsync(x => x.Domain == claimedDomain);
-        if (node is null || node.Status != FederatedNodeStatus.Active || string.IsNullOrWhiteSpace(node.NodePublicJwk))
+        if (node is null || node.Status != FederatedNodeStatus.Active ||
+            !IsValidNodePublicJwk(node.NodePublicJwk))
             return null;
 
         JsonWebKey signingKey;
@@ -328,7 +364,64 @@ public class FederationHubService
             return null;
         }
 
+        if (!HasCurrentProtocol(result.Claims))
+        {
+            _logger.LogInformation("Node S2S token used an unsupported federation protocol for {Domain}", claimedDomain);
+            return null;
+        }
+
         return claimedDomain;
+    }
+
+    /// <summary>
+    /// Checks the live node document against the key pinned at registration.
+    /// This intentionally runs before each user-token mint rather than relying
+    /// on a stale LastSeenAt value, because the mint is the moment a domain
+    /// would otherwise regain access to a user's federation identity.
+    /// </summary>
+    private async Task<bool> IsNodeKeyCurrentAsync(FederatedNode node)
+    {
+        if (string.IsNullOrWhiteSpace(node.NodePublicJwk))
+            return false;
+
+        var insecure = FederationConfig.Current?.AllowInsecure == true;
+        var scheme = insecure ? "http" : "https";
+        var url = $"{scheme}://{node.Domain}{ValourFederation.NodeWellKnownRoute}";
+
+        if (!insecure && !await OutboundUrlSafetyValidator.IsSafeAsync(url, _logger))
+            return false;
+
+        try
+        {
+            var client = _httpFactory.CreateClient("federation");
+            var json = await client.GetStringAsync(url);
+            var current = JsonSerializer.Deserialize<FederatedNodeWellKnown>(json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (current is null ||
+                current.ProtocolVersion != ValourFederation.ProtocolVersion ||
+                !string.Equals(NormalizeDomain(current.Domain), node.Domain, StringComparison.OrdinalIgnoreCase) ||
+                !IsValidNodePublicJwk(current.PublicJwk))
+            {
+                return false;
+            }
+
+            var pinnedKey = new JsonWebKey(node.NodePublicJwk);
+            var currentKey = new JsonWebKey(current.PublicJwk);
+            var keysMatch = string.Equals(pinnedKey.Kty, currentKey.Kty, StringComparison.Ordinal) &&
+                            string.Equals(pinnedKey.Crv, currentKey.Crv, StringComparison.Ordinal) &&
+                            string.Equals(pinnedKey.X, currentKey.X, StringComparison.Ordinal) &&
+                            string.Equals(pinnedKey.Y, currentKey.Y, StringComparison.Ordinal);
+            if (!keysMatch)
+                _logger.LogWarning("Federated node {Domain} no longer serves its registered public key", node.Domain);
+
+            return keysMatch;
+        }
+        catch (Exception e)
+        {
+            _logger.LogInformation(e, "Live key check failed for federated node {Domain}", node.Domain);
+            return false;
+        }
     }
 
     private static FederatedNodeRegistrationResponse ToResponse(FederatedNode node) => new()
@@ -338,6 +431,28 @@ public class FederationHubService
         Challenge = node.VerificationChallenge,
         VerifiedAt = node.VerifiedAt,
     };
+
+    private static bool IsValidNodePublicJwk(string publicJwk)
+    {
+        try
+        {
+            var jwk = new JsonWebKey(publicJwk);
+            return string.Equals(jwk.Kty, "EC", StringComparison.Ordinal) &&
+                   string.Equals(jwk.Crv, "P-256", StringComparison.Ordinal) &&
+                   !string.IsNullOrWhiteSpace(jwk.X) &&
+                   !string.IsNullOrWhiteSpace(jwk.Y);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool HasCurrentProtocol(IDictionary<string, object> claims) =>
+        claims is not null &&
+        claims.TryGetValue("protocol", out var raw) &&
+        int.TryParse(raw?.ToString(), out var protocol) &&
+        protocol == ValourFederation.ProtocolVersion;
 
     /// <summary>
     /// Lowercases and validates a node domain. A federated node must be a real

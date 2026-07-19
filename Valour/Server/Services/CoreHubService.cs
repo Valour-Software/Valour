@@ -29,6 +29,7 @@ public class CoreHubService
     private readonly SignalRConnectionService _connectionTracker;
     private readonly ChannelWatchingService _channelWatchingService;
     private readonly UserCacheService _userCache;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly ILogger<CoreHubService> _logger;
 
     public CoreHubService(
@@ -39,6 +40,7 @@ public class CoreHubService
         SignalRConnectionService connectionTracker,
         ChannelWatchingService channelWatchingService,
         UserCacheService userCache,
+        NodeLifecycleService nodeLifecycleService,
         ILogger<CoreHubService> logger)
     {
         _db = db;
@@ -48,6 +50,7 @@ public class CoreHubService
         _connectionTracker = connectionTracker;
         _channelWatchingService = channelWatchingService;
         _userCache = userCache;
+        _nodeLifecycleService = nodeLifecycleService;
         _logger = logger;
     }
     
@@ -291,8 +294,60 @@ public class CoreHubService
     {
         if (userIds.Count == 0)
             return;
-        
-        var groupId = $"c-{channelId}";
+
+        var planetId = await _db.Channels.AsNoTracking()
+            .Where(x => x.Id == channelId)
+            .Select(x => x.PlanetId)
+            .FirstOrDefaultAsync();
+        if (planetId is null)
+            return;
+
+        await _nodeLifecycleService.EvictUsersFromChannelRealtimeAsync(
+            planetId.Value, channelId, userIds);
+    }
+
+    /// <summary>
+    /// Removes a former planet member from every realtime group that can
+    /// expose that planet's state. Deleting a membership in the database is
+    /// not sufficient: SignalR group membership otherwise outlives it and the
+    /// connection can continue receiving broadcasts until it reconnects.
+    /// </summary>
+    public async Task EvictUserFromPlanetRealtimeAsync(long planetId, long userId)
+    {
+        await _nodeLifecycleService.EvictUserFromPlanetRealtimeAsync(planetId, userId);
+    }
+
+    /// <summary>
+    /// Executes a planet-membership eviction on the node that owns the
+    /// corresponding SignalR groups. Cross-node callers must use
+    /// <see cref="EvictUserFromPlanetRealtimeAsync"/> instead.
+    /// </summary>
+    public async Task EvictUserFromPlanetRealtimeLocalAsync(long planetId, long userId)
+    {
+        await EvictUsersFromGroupAsync($"p-{planetId}", [userId]);
+        await EvictUsersFromGroupAsync($"i-{planetId}", [userId]);
+
+        var channelIds = await _db.Channels.AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        foreach (var channelId in channelIds)
+            await EvictUsersFromGroupAsync($"c-{channelId}", [userId]);
+    }
+
+    /// <summary>
+    /// Executes a channel eviction on its hosting node. The public counterpart
+    /// first routes to that node through <see cref="NodeLifecycleService"/>.
+    /// </summary>
+    public Task EvictUsersFromChannelGroupLocalAsync(long channelId, IReadOnlyList<long> userIds) =>
+        EvictUsersFromGroupAsync($"c-{channelId}", userIds);
+
+    private async Task EvictUsersFromGroupAsync(string groupId, IReadOnlyList<long> userIds)
+    {
+        if (userIds.Count == 0)
+            return;
+
         var connections = _connectionTracker.GetGroupConnections(groupId);
         if (connections.Length == 0)
             return;
@@ -363,8 +418,8 @@ public class CoreHubService
 
         foreach (var id in planetIds)
         {
-            // TODO: This will not work with node scaling
-            await _hub.Clients.Group($"p-{id}").SendAsync("User-Update", user, flags);
+            await _nodeLifecycleService.RelayPlanetUserEventAsync(
+                id, NodeLifecycleService.NodeEventType.PlanetUserUpdate, user, flags);
         }
     }
 
@@ -376,7 +431,8 @@ public class CoreHubService
 
         foreach (var m in members)
         {
-            await _hub.Clients.Group($"p-{m.PlanetId}").SendAsync("User-Delete", user);
+            await _nodeLifecycleService.RelayPlanetUserEventAsync(
+                m.PlanetId, NodeLifecycleService.NodeEventType.PlanetUserDelete, user);
         }
     }
     

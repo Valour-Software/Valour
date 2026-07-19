@@ -79,6 +79,10 @@ public class UserService
     public async Task<User> GetAsync(long id) =>
         (await _db.Users.FindAsync(id)).ToModel();
 
+    /// <summary>Whether this id belongs to a hub-backed federation shadow user.</summary>
+    public async Task<bool> IsFederatedAsync(long id) =>
+        await _db.Users.AsNoTracking().Where(x => x.Id == id).Select(x => x.IsFederated).FirstOrDefaultAsync();
+
     /// <summary>
     /// Queries users by the given attributes and returns the results
     /// </summary>
@@ -176,7 +180,14 @@ public class UserService
     public async Task<List<Planet>> GetJoinedPlanetInfo(long userId)
     {
         var planetEntities = await _db.PlanetMembers
-            .Where(x => x.UserId == userId)
+            // A completed federation handoff keeps a locked official recovery
+            // copy until the owner finalizes deletion. Do not render that copy
+            // alongside the community-hosted planet; the corresponding
+            // FederatedMembership is loaded by the client instead.
+            .Where(x => x.UserId == userId &&
+                        !_db.FederatedMigrations.Any(m =>
+                            m.PlanetId == x.PlanetId &&
+                            m.Status == FederatedMigrationStatus.Completed))
             .Include(x => x.Planet)
             .ThenInclude(p => p.Tags) 
             .Select(x => x.Planet)
@@ -1281,6 +1292,39 @@ public class UserService
 
             await _db.SaveChangesAsync();
 
+            // Record a targeted deletion tombstone for every community node the
+            // account joined BEFORE removing relationship rows. This is in the
+            // same database transaction as deletion, so the node list cannot be
+            // lost in a crash and unrelated nodes never learn the account id.
+            var federationNodeDomains = await _db.FederatedMemberships
+                .Where(x => x.UserId == dbUser.Id)
+                .Select(x => x.NodeDomain)
+                .Distinct()
+                .ToListAsync();
+            var outstandingInviteDomains = await _db.FederatedInviteGrants
+                .Where(x => x.IntendedUserId == dbUser.Id)
+                .Select(x => x.NodeDomain)
+                .Distinct()
+                .ToListAsync();
+            federationNodeDomains = federationNodeDomains
+                .Concat(outstandingInviteDomains)
+                .Distinct()
+                .ToList();
+            if (Valour.Config.Configs.FederationConfig.Current?.HubEnabled == true)
+            {
+                var createdAt = DateTime.UtcNow;
+                foreach (var nodeDomain in federationNodeDomains)
+                {
+                    _db.FederatedPurges.Add(new Valour.Database.FederatedPurge
+                    {
+                        Id = Valour.Server.Database.IdManager.Generate(),
+                        SubjectUserId = dbUser.Id,
+                        NodeDomain = nodeDomain,
+                        CreatedAt = createdAt,
+                    });
+                }
+            }
+
             // Remove the user's hub-side federation relationship records too, so a
             // deletion doesn't leave their accepted-domain and cross-node
             // membership data behind. (Empty/no-op on non-hub instances.)
@@ -1288,6 +1332,10 @@ public class UserService
                 _db.FederatedAcceptedDomains.Where(x => x.UserId == dbUser.Id));
             _db.FederatedMemberships.RemoveRange(
                 _db.FederatedMemberships.Where(x => x.UserId == dbUser.Id));
+            _db.FederatedInviteRedemptions.RemoveRange(
+                _db.FederatedInviteRedemptions.Where(x => x.UserId == dbUser.Id));
+            _db.FederatedInviteGrants.RemoveRange(
+                _db.FederatedInviteGrants.Where(x => x.IntendedUserId == dbUser.Id || x.CreatorUserId == dbUser.Id));
             await _db.SaveChangesAsync();
 
             _db.Users.Remove(dbUser);
@@ -1295,19 +1343,6 @@ public class UserService
 
             await tran.CommitAsync();
             _logger.LogInformation("Hard deleted user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
-
-            // Record a federation purge tombstone (hub mode) so community nodes
-            // remove this user's shadow data when they next pull purges.
-            if (Valour.Config.Configs.FederationConfig.Current?.HubEnabled == true)
-            {
-                _db.FederatedPurges.Add(new Valour.Database.FederatedPurge
-                {
-                    Id = Valour.Server.Database.IdManager.Generate(),
-                    SubjectUserId = dbUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                });
-                await _db.SaveChangesAsync();
-            }
 
             return TaskResult.SuccessResult;
         }

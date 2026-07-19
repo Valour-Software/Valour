@@ -118,7 +118,28 @@ public class PlanetService : ServiceBase
             return cached;
         }
 
-        var planetResult = await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}");
+        // A community planet is not present in the hub database. Prefer an
+        // already-known mapping (normal for joined planets), then ask the
+        // official node router for regular planets. If neither knows the id,
+        // resolve the federation stub and establish the external connection.
+        // This also makes direct links work before the home-page membership
+        // bootstrap has had a chance to populate the mapping.
+        var node = _client.NodeService.GetKnownByPlanet(id)
+                   ?? await _client.NodeService.GetNodeForPlanetAsync(id);
+
+        if (node is null)
+        {
+            var location = await FetchFederatedLocationAsync(id);
+            if (location is not null)
+            {
+                node = await _client.NodeService.ConnectToFederatedNodeAsync(location.NodeDomain);
+                if (node is not null)
+                    _client.NodeService.SetKnownByPlanet(id, node.Name);
+            }
+        }
+
+        node ??= _client.PrimaryNode;
+        var planetResult = await node.GetJsonAsync<Planet>($"api/planets/{id}");
         if (!planetResult.Success || planetResult.Data is null)
         {
             LogError($"Failed to fetch planet {id}: {planetResult.Message}");
@@ -127,7 +148,12 @@ public class PlanetService : ServiceBase
 
         var planet = planetResult.Data;
 
+        if (node.IsExternal)
+            planet.NodeName = node.Name;
+
         planet = planet.Sync(_client);
+        if (node.IsExternal)
+            planet.SetNode(node);
         
         await planet.EnsureReadyAsync();
 
@@ -232,9 +258,11 @@ public class PlanetService : ServiceBase
                 var planetResult = await node.GetJsonAsync<Planet>($"api/planets/{membership.PlanetId}");
                 if (planetResult.Success && planetResult.Data is not null)
                 {
-                    planetResult.Data.Sync(_client);
-                    if (_joinedPlanets.All(x => x.Id != planetResult.Data.Id))
-                        _joinedPlanets.Add(planetResult.Data);
+                    planetResult.Data.NodeName = node.Name;
+                    var planet = planetResult.Data.Sync(_client);
+                    planet.SetNode(node);
+                    if (_joinedPlanets.All(x => x.Id != planet.Id))
+                        _joinedPlanets.Add(planet);
                 }
             }
             catch (Exception ex)
@@ -498,6 +526,13 @@ public class PlanetService : ServiceBase
     public Task<TaskResult> AcceptFederationDomainAsync(string domain) =>
         _client.PrimaryNode.PostAsync("api/federation/accepted-domains", new AcceptDomainRequest { Domain = domain });
 
+    /// <summary>Returns the community domains the user has explicitly accepted.</summary>
+    public async Task<List<string>> FetchAcceptedFederationDomainsAsync()
+    {
+        var result = await _client.PrimaryNode.GetJsonAsync<List<string>>("api/federation/accepted-domains");
+        return result.Success ? result.Data : new List<string>();
+    }
+
     /// <summary>Records a join of a community-hosted planet (domain must be accepted first).</summary>
     public Task<TaskResult<FederatedPlanetLocation>> JoinFederatedPlanetAsync(long planetId) =>
         _client.PrimaryNode.PostAsyncWithResponse<FederatedPlanetLocation>(
@@ -575,21 +610,22 @@ public class PlanetService : ServiceBase
             return TaskResult.FromFailure("Membership not found.");
         }
         
-        var result = await myMember.DeleteAsync();
-
-        if (result.Success)
+        var isFederated = _client.NodeService.GetKnownByPlanet(planet.Id)?.IsExternal == true;
+        if (isFederated)
         {
-            // For a community-hosted planet, also revoke the hub grant so the
-            // membership can't be silently re-materialized on the next connect.
-            if (_client.NodeService.GetKnownByPlanet(planet.Id)?.IsExternal == true)
-            {
-                var fedLeave = await LeaveFederatedPlanetAsync(planet.Id);
-                if (!fedLeave.Success)
-                    LogError($"Left {planet.Name} on its node but failed to revoke the hub grant: {fedLeave.Message}");
-            }
-
-            RemoveJoinedPlanet(planet);
+            // The hub is the durable membership authority. Revoke it before
+            // deleting the node-local row: otherwise a transient hub failure
+            // can make a user appear to leave while the next token exchange
+            // silently materializes the membership again.
+            var fedLeave = await LeaveFederatedPlanetAsync(planet.Id);
+            if (!fedLeave.Success)
+                return TaskResult.FromFailure(
+                    $"Could not revoke the federation membership at the hub. Your community membership was not changed. {fedLeave.Message}");
         }
+
+        var result = await myMember.DeleteAsync();
+        if (result.Success)
+            RemoveJoinedPlanet(planet);
 
         return result;
     }
@@ -828,7 +864,11 @@ public class PlanetService : ServiceBase
 
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<RoleOrderEvent>("RoleOrder-Update", OnRoleOrderUpdate);
+        node.HubConnection.On<RoleOrderEvent>("RoleOrder-Update", update =>
+        {
+            if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
+                OnRoleOrderUpdate(update);
+        });
     }
 
     ////////////

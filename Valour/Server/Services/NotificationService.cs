@@ -401,10 +401,10 @@ public class NotificationService
     }
 
     public Task HandleMentionAsync(
-        Mention mention, 
-        ISharedPlanet planet, 
-        ISharedMessage message, 
-        ISharedPlanetMember member, 
+        Mention mention,
+        ISharedPlanet? planet,
+        ISharedMessage message,
+        ISharedPlanetMember? member,
         ISharedUser user, 
         ISharedChannel channel)
     {
@@ -522,9 +522,9 @@ public class NotificationService
 
     private async Task HandleMemberMentionAsync(
         Mention mention,
-        ISharedPlanet planet,
+        ISharedPlanet? planet,
         ISharedMessage message,
-        ISharedPlanetMember member,
+        ISharedPlanetMember? member,
         ISharedUser user,
         ISharedChannel channel
     )
@@ -539,7 +539,11 @@ public class NotificationService
 
         var content = await ReplaceMentionTagsAsync(message.Content);
 
-        var senderName = string.IsNullOrWhiteSpace(member.Nickname) ? user.Name : member.Nickname;
+        // System-originated messages (for example Automod responses authored
+        // by Victor) intentionally have no PlanetMember. They may still
+        // mention a member, so do not let notification formatting abort the
+        // message post before it reaches the queue.
+        var senderName = string.IsNullOrWhiteSpace(member?.Nickname) ? user.Name : member.Nickname;
         var title = user.Id == ISharedUser.VictorUserId
             ? "Victor in " + planet.Name
             : senderName + " in " + planet.Name;
@@ -564,9 +568,9 @@ public class NotificationService
 
     private async Task HandleRoleMentionAsync(
         Mention mention,
-        ISharedPlanet planet,
+        ISharedPlanet? planet,
         ISharedMessage message,
-        ISharedPlanetMember member,
+        ISharedPlanetMember? member,
         ISharedUser user,
         ISharedChannel channel
     )
@@ -582,7 +586,7 @@ public class NotificationService
         var content = await ReplaceMentionTagsAsync(message.Content);
         var mentionSource = GetRoleMentionSource(targetRole);
 
-        var roleSenderName = string.IsNullOrWhiteSpace(member.Nickname) ? user.Name : member.Nickname;
+        var roleSenderName = string.IsNullOrWhiteSpace(member?.Nickname) ? user.Name : member.Nickname;
         var baseNotification = new Notification()
         {
             Id = Guid.NewGuid(),

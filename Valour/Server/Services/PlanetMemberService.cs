@@ -339,7 +339,7 @@ public class PlanetMemberService
     /// <summary>
     /// Adds the given user to the given planet as a member
     /// </summary>
-    public async Task<TaskResult<PlanetMember>> AddMemberAsync(long planetId, long userId)
+    public async Task<TaskResult<PlanetMember>> AddMemberAsync(long planetId, long userId, bool doTransaction = true)
     {
         var planet = await _db.Planets.FindAsync(planetId);
         if (planet is null)
@@ -410,7 +410,8 @@ public class PlanetMemberService
         
         IDbContextTransaction trans = null;
 
-        trans = await _db.Database.BeginTransactionAsync();
+        if (doTransaction)
+            trans = await _db.Database.BeginTransactionAsync();
 
         try
         {
@@ -444,11 +445,13 @@ public class PlanetMemberService
         }
         catch (Exception e)
         {
-            await trans.RollbackAsync();
+            if (trans is not null)
+                await trans.RollbackAsync();
             return new TaskResult<PlanetMember>(false, e.Message);
         }
 
-        await trans.CommitAsync();
+        if (trans is not null)
+            await trans.CommitAsync();
 
         var model = await ToFullModelAsync(member);
 
@@ -484,6 +487,10 @@ public class PlanetMemberService
         
         if (old.UserId != member.UserId)
             return new TaskResult<PlanetMember>(false, "Cannot change user of member.");
+
+        var migrationGuard = await MigrationLock.GuardAsync(_db, old.PlanetId);
+        if (!migrationGuard.Success)
+            return new TaskResult<PlanetMember>(false, migrationGuard.Message);
 
         member.Nickname ??= string.Empty;
         var nameValid = ISharedPlanetMember.ValidateName(member);
@@ -656,7 +663,10 @@ public class PlanetMemberService
     /// <summary>
     /// Soft deletes the PlanetMember (and member roles)
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(long memberId, bool doTransaction = true)
+    public async Task<TaskResult> DeleteAsync(
+        long memberId,
+        bool doTransaction = true,
+        bool bypassMigrationLock = false)
     {
         IDbContextTransaction trans = null;
         
@@ -669,6 +679,13 @@ public class PlanetMemberService
 
         if (dbMember is null)
             return new TaskResult(false, "Member not found");
+
+        if (!bypassMigrationLock)
+        {
+            var migrationGuard = await MigrationLock.GuardAsync(_db, dbMember.PlanetId);
+            if (!migrationGuard.Success)
+                return migrationGuard;
+        }
         
         try
         {
@@ -701,6 +718,7 @@ public class PlanetMemberService
         MemberIdLookup.Remove((dbMember.UserId, dbMember.PlanetId), out _);
         _hostedPlanetService.GetCached(dbMember.PlanetId)?.RemoveMember(memberId);
 
+        await _coreHub.EvictUserFromPlanetRealtimeAsync(dbMember.PlanetId, dbMember.UserId);
         _coreHub.NotifyPlanetItemDelete(await ToFullModelAsync(dbMember));
 
         return TaskResult.SuccessResult;

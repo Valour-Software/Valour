@@ -24,6 +24,11 @@ public class ThreadComment : ClientPlanetModel<ThreadComment, long>, ISharedThre
     public int ReplyCount { get; set; }
     public bool IsDeleted { get; set; }
 
+    /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
     protected override long? GetPlanetId() => PlanetId;
 
     [JsonConstructor]

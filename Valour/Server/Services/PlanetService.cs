@@ -140,7 +140,7 @@ public class PlanetService
 
         return await (from stub in _db.FederatedPlanetStubs.AsNoTracking()
                       join node in _db.FederatedNodes.AsNoTracking() on stub.NodeDomain equals node.Domain
-                      where stub.Discoverable && !stub.Nsfw
+                      where stub.Public && stub.Discoverable && !stub.Nsfw
                             && node.Status == Valour.Database.FederatedNodeStatus.Active
                       orderby stub.MemberCount descending
                       select new PlanetListInfo
@@ -157,10 +157,34 @@ public class PlanetService
     
     public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId)
     {
-        return await _db.Planets.AsNoTracking()
+        var official = await _db.Planets.AsNoTracking()
             .Where(x => x.Id == planetId && x.Public && !x.IsDeleted) // only public planets
             .Select(PlanetListInfoSelector)
             .FirstOrDefaultAsync();
+
+        if (official is not null)
+            return official;
+
+        // Federated planets only have a small hub-side stub. Returning it from
+        // the same public-info endpoint lets discovery cards and direct links
+        // reach the domain-warning/join flow instead of failing as a 404.
+        if (Valour.Config.Configs.FederationConfig.Current?.HubEnabled != true)
+            return null;
+
+        return await (from stub in _db.FederatedPlanetStubs.AsNoTracking()
+                      join node in _db.FederatedNodes.AsNoTracking() on stub.NodeDomain equals node.Domain
+                      where stub.Id == planetId && stub.Public && stub.Discoverable
+                            && node.Status == Valour.Database.FederatedNodeStatus.Active
+                      select new PlanetListInfo
+                      {
+                          Id = stub.Id,
+                          PlanetId = stub.Id,
+                          Name = stub.Name,
+                          Description = stub.Description,
+                          MemberCount = stub.MemberCount,
+                          Discoverable = stub.Discoverable,
+                          NodeDomain = stub.NodeDomain,
+                      }).FirstOrDefaultAsync();
     }
     
     private static readonly Expression<Func<Valour.Database.Planet, PlanetListInfo>> PlanetListInfoSelector = x => new PlanetListInfo
@@ -501,13 +525,17 @@ public class PlanetService
     /// <summary>
     /// Soft deletes the given planet
     /// </summary>
-    public async Task DeleteAsync(long planetId)
+    public async Task<TaskResult> DeleteAsync(long planetId)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return migrationGuard;
+
         var entity = await _db.Planets.FindAsync(planetId);
         if (entity is null)
         {
             _logger.LogWarning("Tried to delete planet {PlanetId} but it does not exist.", planetId);
-            return;
+            return TaskResult.SuccessResult;
         }
 
         entity.IsDeleted = true;
@@ -521,6 +549,7 @@ public class PlanetService
 
         // Remove from hosted planet cache so the server stops serving it
         _hostedPlanetService.Remove(planetId);
+        return TaskResult.SuccessResult;
     }
     
     /// <summary>

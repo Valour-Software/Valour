@@ -31,8 +31,9 @@ public class PermissionService : ServiceBase
     
     public async ValueTask<PermissionsNode?> FetchPermissionsNodeAsync(PermissionsNodeKey key, Planet planet, bool skipCache = false)
     {
+        var cacheKey = new PermissionsNodeKey(planet.Id, key.TargetId, key.RoleId, key.TargetType);
         if (!skipCache && 
-            _cache.PermNodeKeyToId.TryGetValue(key, out var id) &&
+            _cache.PermNodeKeyToId.TryGetValue(cacheKey, out var id) &&
             planet.PermissionsNodes.TryGet(id, out var cached))
             return cached;
         

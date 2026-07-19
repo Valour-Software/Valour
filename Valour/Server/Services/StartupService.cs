@@ -27,6 +27,15 @@ public class StartupService
     /// </summary>
     public async Task EnsureVictorAndValourCentralReady()
     {
+        // Community nodes are not independent hubs. Creating an unregistered
+        // local Valour Central here would collide with the hub-reserved global
+        // id space and expose a phantom official community.
+        if (FederationNodeService.NodeEnabled)
+        {
+            _logger.LogInformation("Skipping Valour Central bootstrap on community node");
+            return;
+        }
+
         // Check for Victor
         var victorExists = await _db.Users.AnyAsync(x => x.Id == ISharedUser.VictorUserId);
         if (!victorExists)

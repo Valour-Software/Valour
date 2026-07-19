@@ -64,6 +64,12 @@ public class Message : ISharedMessage
     /// </summary>
     public DateTime? EditedTime { get; set; }
 
+    /// <summary>
+    /// Server-managed provenance for content imported from another service or
+    /// federation node. Null for content created natively on this instance.
+    /// </summary>
+    public string ImportSource { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<Message>(e =>
@@ -104,6 +110,10 @@ public class Message : ISharedMessage
                 .HasConversion(x => x, x =>
                     x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
                 );
+
+            e.Property(x => x.ImportSource)
+                .HasColumnName("import_source")
+                .HasMaxLength(256);
             
             // Keys
             e.HasKey(x => x.Id);

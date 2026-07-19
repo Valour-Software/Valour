@@ -42,6 +42,11 @@ public class PlanetWikiPage : ISharedPlanetWikiPage
     public long? LastEditedByUserId { get; set; }
 
     /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
+    /// <summary>
     /// Generated tsvector over title + content for full-text search
     /// </summary>
     public NpgsqlTsVector SearchVector { get; set; }
@@ -109,6 +114,10 @@ public class PlanetWikiPage : ISharedPlanetWikiPage
 
             e.Property(x => x.LastEditedByUserId)
                 .HasColumnName("last_edited_by_user_id");
+
+            e.Property(x => x.ImportSource)
+                .HasColumnName("import_source")
+                .HasMaxLength(256);
 
             e.Property(x => x.SearchVector)
                 .HasColumnName("search_vector");

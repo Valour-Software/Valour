@@ -32,6 +32,11 @@ public class PlanetThread : ISharedPlanetThread
     public int CommentCount { get; set; }
     public bool IsDeleted { get; set; }
 
+    /// <summary>
+    /// Server-managed provenance for content imported from another service.
+    /// </summary>
+    public string ImportSource { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<PlanetThread>(e =>
@@ -86,6 +91,10 @@ public class PlanetThread : ISharedPlanetThread
 
             e.Property(x => x.IsDeleted)
                 .HasColumnName("is_deleted");
+
+            e.Property(x => x.ImportSource)
+                .HasColumnName("import_source")
+                .HasMaxLength(256);
 
             e.HasOne(x => x.Planet)
                 .WithMany(x => x.Threads)

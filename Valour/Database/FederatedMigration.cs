@@ -29,7 +29,24 @@ public class FederatedMigration
 
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>
+    /// The current migration capability id. Re-issuing a grant rotates this
+    /// value so a leaked or superseded bearer cannot be replayed; the current
+    /// grant may be replayed only for the idempotent recovery steps.
+    /// </summary>
+    public string GrantId { get; set; }
+
     public DateTime? CompletedAt { get; set; }
+
+    /// <summary>
+    /// Original visibility settings captured immediately before a completed
+    /// handoff hides the official recovery copy. Retained as handoff audit
+    /// metadata; a completed handoff is not reopened locally because that
+    /// would produce two writable copies.
+    /// </summary>
+    public bool? SourcePublic { get; set; }
+
+    public bool? SourceDiscoverable { get; set; }
 
     /// <summary>
     /// When the source served the snapshot to the target. Completion is refused
@@ -56,7 +73,10 @@ public class FederatedMigration
             e.Property(x => x.TargetDomain).HasColumnName("target_domain").IsRequired();
             e.Property(x => x.Status).HasColumnName("status").IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            e.Property(x => x.GrantId).HasColumnName("grant_id");
             e.Property(x => x.CompletedAt).HasColumnName("completed_at");
+            e.Property(x => x.SourcePublic).HasColumnName("source_public");
+            e.Property(x => x.SourceDiscoverable).HasColumnName("source_discoverable");
             e.Property(x => x.SnapshotServedAt).HasColumnName("snapshot_served_at");
             e.Property(x => x.SnapshotHash).HasColumnName("snapshot_hash");
         });

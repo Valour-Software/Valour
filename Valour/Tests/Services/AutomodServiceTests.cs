@@ -123,7 +123,7 @@ public class AutomodServiceTests : IAsyncLifetime
 
         Assert.True(postResult.Success, postResult.Message);
 
-        var response = await WaitForStagedMessageAsync(_defaultChannel.Id, m =>
+        var response = await WaitForMessageAsync(_defaultChannel.Id, m =>
             m.AuthorUserId == ISharedUser.VictorUserId &&
             m.Content.Contains("Automod response text", StringComparison.Ordinal) &&
             m.Content.Contains($"«@m-{regularMember.Id}»", StringComparison.Ordinal));
@@ -284,7 +284,10 @@ public class AutomodServiceTests : IAsyncLifetime
 
         var joinedMember = joinResult.Data!;
 
-        var response = await WaitForStagedMessageAsync(_defaultChannel.Id, m =>
+        Assert.True(await _db.AutomodLogs.AnyAsync(x =>
+            x.TriggerId == trigger.Id && x.MemberId == joinedMember.Id));
+
+        var response = await WaitForMessageAsync(_defaultChannel.Id, m =>
             m.AuthorUserId == ISharedUser.VictorUserId &&
             m.Content.Contains("Welcome to the planet", StringComparison.Ordinal) &&
             m.Content.Contains($"«@m-{joinedMember.Id}»", StringComparison.Ordinal));
@@ -351,7 +354,7 @@ public class AutomodServiceTests : IAsyncLifetime
         return joinResult.Data!;
     }
 
-    private static async Task<Message?> WaitForStagedMessageAsync(
+    private async Task<Message?> WaitForMessageAsync(
         long channelId,
         Func<Message, bool> predicate,
         int timeoutMs = 5000)
@@ -361,6 +364,17 @@ public class AutomodServiceTests : IAsyncLifetime
         {
             var staged = PlanetMessageWorker.GetStagedMessages(channelId);
             var match = staged.FirstOrDefault(predicate);
+            if (match is not null)
+                return match;
+
+            // The worker may flush between polling iterations. Treat a
+            // persisted response as success too; staging is an implementation
+            // detail, while delivery is the actual behavior under test.
+            var persisted = await _db.Messages
+                .AsNoTracking()
+                .Where(x => x.ChannelId == channelId)
+                .ToListAsync();
+            match = persisted.Select(x => x.ToModel()).FirstOrDefault(predicate);
             if (match is not null)
                 return match;
 

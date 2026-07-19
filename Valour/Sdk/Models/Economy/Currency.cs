@@ -59,11 +59,11 @@ public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
 
     public override Currency AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.Currencies.Put(this, flags);
+        return Client.Cache.Currencies.Put(this, flags, CacheScope);
     }
 
     public override Currency RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.Currencies.Remove(this, skipEvents);
+        return Client.Cache.Currencies.Remove(this, CacheScope, skipEvents);
     }
 }

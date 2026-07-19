@@ -29,6 +29,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.3" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.19.2" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.6" />
     <PackageReference Include="Npgsql" Version="10.0.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="SendGrid" Version="9.29.3" />

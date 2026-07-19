@@ -1,3 +1,4 @@
+using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -51,17 +52,17 @@ public class UnreadService
             .ToArrayAsync();
     }
     
-    public async Task<UserChannelState> UpdateReadState(long channelId, long userId, long? planetId, long? memberId, DateTime? updateTime)
+    public async Task<TaskResult<UserChannelState>> UpdateReadState(long channelId, long userId, long? planetId, long? memberId, DateTime? updateTime)
     {
         return await UpsertReadState(channelId, userId, planetId, memberId, updateTime, onlyMoveForward: true);
     }
 
-    public async Task<UserChannelState> SetReadState(long channelId, long userId, long? planetId, long? memberId, DateTime? updateTime)
+    public async Task<TaskResult<UserChannelState>> SetReadState(long channelId, long userId, long? planetId, long? memberId, DateTime? updateTime)
     {
         return await UpsertReadState(channelId, userId, planetId, memberId, updateTime, onlyMoveForward: false);
     }
 
-    private async Task<UserChannelState> UpsertReadState(
+    private async Task<TaskResult<UserChannelState>> UpsertReadState(
         long channelId,
         long userId,
         long? planetId,
@@ -69,6 +70,10 @@ public class UnreadService
         DateTime? updateTime,
         bool onlyMoveForward)
     {
+        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+        if (!migrationGuard.Success)
+            return TaskResult<UserChannelState>.FromFailure(migrationGuard.Message);
+
         var effectiveUpdateTime = DateTime.SpecifyKind(updateTime ?? DateTime.UtcNow, DateTimeKind.Utc);
 
         // Atomic upsert to avoid race conditions when multiple requests update the same
@@ -104,16 +109,16 @@ public class UnreadService
         if (channelState is null)
         {
             _logger.LogWarning("Failed to load user_channel_state after upsert for user {UserId} channel {ChannelId}", userId, channelId);
-            return new UserChannelState
+            return TaskResult<UserChannelState>.FromData(new UserChannelState
             {
                 UserId = userId,
                 ChannelId = channelId,
                 PlanetId = planetId,
                 PlanetMemberId = memberId,
                 LastViewedTime = effectiveUpdateTime
-            };
+            });
         }
 
-        return channelState.ToModel();
+        return TaskResult<UserChannelState>.FromData(channelState.ToModel());
     }
 }

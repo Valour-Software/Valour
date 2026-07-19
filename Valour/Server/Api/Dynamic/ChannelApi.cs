@@ -375,8 +375,10 @@ public class ChannelApi
         }
 
         var updated = await stateService.UpdateReadState(channelId, token.UserId, channel.PlanetId, memberId, request.UpdateTime);
+        if (!updated.Success)
+            return ValourResult.Problem(updated.Message);
 
-        return ValourResult.Json(updated);
+        return ValourResult.Json(updated.Data);
     }
     
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/messages")]
