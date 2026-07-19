@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+# A guided, local-only setup for a Valour community node.
+set -Eeuo pipefail
+umask 077
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE=".env"
+
+usage() {
+    cat <<'EOF'
+Usage: ./scripts/valour-node-setup [--env-file PATH]
+
+Creates or updates a Docker Compose .env file for a Valour community node.
+It generates the required private Data Protection KEK when one is absent.
+After the node is public, register its domain at the hub, then re-run this
+wizard to install the challenge and finally verify it in the hub UI.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --env-file)
+            [[ $# -ge 2 ]] || { echo "Missing path after --env-file." >&2; exit 2; }
+            ENV_FILE="$2"; shift 2 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+    esac
+done
+
+[[ "$ENV_FILE" = /* ]] || ENV_FILE="$(pwd)/$ENV_FILE"
+[[ -d "$(dirname "$ENV_FILE")" ]] || { echo "Directory for $ENV_FILE does not exist." >&2; exit 1; }
+
+say() { printf '%s\n' "$*"; }
+headline() {
+    if [[ -t 1 ]]; then printf '\033[1;35m%s\033[0m\n' "$1"; else say "$1"; fi
+}
+
+banner() {
+    cat <<'EOF'
+
+       _    __      __
+      | |  / /___ _/ /___  __  ______
+      | | / / __ `/ / __ \/ / / / ___/
+      | |/ / /_/ / / /_/ / /_/ / /
+      |___/\__,_/_/\____/\__,_/_/
+
+                 (•‿•)  community node setup
+EOF
+}
+
+value_for() {
+    local key="$1"
+    [[ -f "$ENV_FILE" ]] || return 0
+    awk -v key="$key" 'index($0, key "=") == 1 { value = substr($0, length(key) + 2) } END { print value }' "$ENV_FILE"
+}
+
+ask() {
+    local prompt="$1" default_value="${2-}" answer
+    if [[ -n "$default_value" ]]; then printf '%s [%s]: ' "$prompt" "$default_value" >&2; else printf '%s: ' "$prompt" >&2; fi
+    IFS= read -r answer || true
+    printf '%s' "${answer:-$default_value}"
+}
+
+yes_no() {
+    local prompt="$1" default_value="$2" answer
+    while true; do
+        [[ "$default_value" == yes ]] && printf '%s [Y/n]: ' "$prompt" >&2 || printf '%s [y/N]: ' "$prompt" >&2
+        IFS= read -r answer || true
+        case "${answer:-$default_value}" in
+            y|Y|yes|YES|Yes) printf yes; return ;;
+            n|N|no|NO|No) printf no; return ;;
+            *) printf '%s\n' "Please answer yes or no." >&2 ;;
+        esac
+    done
+}
+
+valid_hub_url() { [[ "${1%/}" =~ ^https://[^/?#[:space:]]+$ ]]; }
+valid_domain() {
+    [[ "$1" != *"://"* && "$1" != */* && "$1" != *" "* && "$1" == *.* ]] || return 1
+    [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]]
+}
+valid_env_value() { [[ "$1" != *$'\n'* && "$1" != *$'\r'* && "$1" != *=* && "$1" != *'#'* ]]; }
+lowercase() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+
+generate_kek() {
+    command -v openssl >/dev/null 2>&1 || { echo "openssl is required to generate the Data Protection KEK." >&2; exit 1; }
+    openssl rand -base64 32 | tr -d '\r\n'
+}
+
+write_env() {
+    local temp_file backup_file
+    if [[ -f "$ENV_FILE" ]]; then
+        backup_file="$(mktemp "${ENV_FILE}.backup-$(date -u +%Y%m%dT%H%M%SZ).XXXXXX")"
+        cp "$ENV_FILE" "$backup_file"
+        chmod 600 "$backup_file"
+        say "Created backup: $backup_file"
+    fi
+    temp_file="$(mktemp "${ENV_FILE}.tmp.XXXXXX")"
+    awk '
+        BEGIN {
+            managed["VALOUR_DOMAIN"] = 1; managed["VALOUR_INSTANCE_NAME"] = 1
+            managed["FEDERATION__HUBURL"] = 1; managed["FEDERATION__NODEDOMAIN"] = 1
+            managed["FEDERATION__NODECHALLENGE"] = 1; managed["FEDERATION__ALLOWPUBLICMIGRATIONS"] = 1
+            managed["DATAPROTECTION__KEK"] = 1
+        }
+        /^[A-Za-z_][A-Za-z0-9_]*=/ { key = $0; sub(/=.*/, "", key); if (key in managed) next }
+        { print }
+    ' "$ENV_FILE" > "$temp_file"
+    cat >> "$temp_file" <<EOF
+
+# --- Valour community-node configuration (managed by valour-node-setup) ---
+VALOUR_DOMAIN=$node_domain
+VALOUR_INSTANCE_NAME=$instance_name
+FEDERATION__HUBURL=$hub_url
+FEDERATION__NODEDOMAIN=$node_domain
+FEDERATION__NODECHALLENGE=$node_challenge
+FEDERATION__ALLOWPUBLICMIGRATIONS=$allow_public_migrations
+DATAPROTECTION__KEK=$data_protection_kek
+EOF
+    mv "$temp_file" "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
+}
+
+banner
+say "This wizard configures one public community node for a federation hub."
+say "It does not register the node: registration requires your signed-in hub account."
+say
+
+if [[ ! -f "$ENV_FILE" ]]; then
+    cp "$REPO_ROOT/.env.example" "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
+    say "Started $ENV_FILE from .env.example. Replace any example database/admin credentials before launch."
+    say
+fi
+
+existing_hub_url="$(value_for FEDERATION__HUBURL)"
+existing_domain="$(value_for FEDERATION__NODEDOMAIN)"
+existing_domain="${existing_domain:-$(value_for VALOUR_DOMAIN)}"
+existing_instance_name="$(value_for VALOUR_INSTANCE_NAME)"
+existing_challenge="$(value_for FEDERATION__NODECHALLENGE)"
+existing_allow_public="$(value_for FEDERATION__ALLOWPUBLICMIGRATIONS)"
+existing_kek="$(value_for DATAPROTECTION__KEK)"
+
+headline "1/4  Federation hub"
+while true; do
+    hub_url="$(ask "Federation hub URL (HTTPS)" "${existing_hub_url:-https://valour.gg}")"
+    hub_url="${hub_url%/}"
+    valid_hub_url "$hub_url" && break
+    say "Use an HTTPS origin without a path, for example https://valour.gg."
+done
+
+headline "2/4  Public node identity"
+say "Use the bare DNS name Caddy serves and that you will register at the hub."
+while true; do
+    node_domain="$(ask "Public node domain" "$existing_domain")"
+    node_domain="$(lowercase "$node_domain")"
+    valid_domain "$node_domain" && break
+    say "Use a public DNS host without https:// or a path, for example community.example.com."
+done
+while true; do
+    instance_name="$(ask "Instance display name" "${existing_instance_name:-My Valour}")"
+    valid_env_value "$instance_name" && [[ -n "$instance_name" ]] && break
+    say "Use a non-empty name without # or =."
+done
+
+headline "3/4  Migration hosting"
+say "Closed hosting is the safe default: only your planets and explicit approvals may move here."
+[[ "$(lowercase "$existing_allow_public")" == true ]] && hosting_default=yes || hosting_default=no
+if [[ "$(yes_no "Accept migrations from any eligible hub owner" "$hosting_default")" == yes ]]; then
+    allow_public_migrations=true
+    say "Open hosting selected. Re-register and verify after changing this policy."
+else
+    allow_public_migrations=false
+    say "Closed hosting selected. Per-owner and per-planet approvals are available in the hub UI."
+fi
+
+headline "4/4  Key and verification challenge"
+if [[ -n "$existing_kek" ]]; then
+    data_protection_kek="$existing_kek"
+    say "Keeping the existing Data Protection KEK (not displayed)."
+else
+    data_protection_kek="$(generate_kek)"
+    say "Generated a stable Data Protection KEK (saved, never displayed)."
+fi
+say "Leave the challenge blank on the first run; the hub issues it after registration."
+while true; do
+    node_challenge="$(ask "Hub verification challenge" "$existing_challenge")"
+    [[ -z "$node_challenge" || "$node_challenge" =~ ^[A-Za-z0-9_-]+$ ]] && break
+    say "The challenge may contain only letters, digits, _ and -."
+done
+
+say
+say "The wizard will update its managed settings in: $ENV_FILE"
+if [[ "$(yes_no "Write this configuration" yes)" != yes ]]; then
+    say "No files changed."
+    exit 0
+fi
+write_env
+
+say
+headline "Your node is configured!"
+say "  1. Point DNS for $node_domain here and open ports 80/443."
+say "  2. From $REPO_ROOT: docker compose up -d"
+say "  3. Check: curl -fsS https://$node_domain/.well-known/valour-node"
+say "  4. On $hub_url: User Settings → Federation → register $node_domain"
+say "  5. Re-run this wizard, paste the issued challenge, restart Compose, then Verify server."
+say
+say "Keep $ENV_FILE private (mode 600). Its KEK is required to decrypt federation keys."

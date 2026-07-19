@@ -6,7 +6,7 @@ never leaves their infrastructure. Both backends are feature-equivalent from the
 client's point of view; the server picks one via config.
 
 By default voice is **disabled** (no backend configured). This guide enables the
-self-hosted LiveKit backend using the bundled `voice` compose profile.
+self-hosted LiveKit backend using the bundled Compose overlay.
 
 ## How it fits together
 
@@ -68,10 +68,10 @@ LiveKit container via `LIVEKIT_KEYS`. `VOICE_LIVEKIT_API_URL` defaults to
 
 Uncomment the `voice.{$VALOUR_DOMAIN}` block at the bottom of `selfhost/Caddyfile`.
 
-### 5. Start the stack with the voice profile
+### 5. Start the stack with the voice overlay
 
 ```bash
-docker compose --profile voice up -d
+docker compose -f docker-compose.yml -f docker-compose.voice.yml up -d
 ```
 
 The manifest at `https://$VALOUR_DOMAIN/.well-known/valour-instance` should now report

@@ -108,7 +108,12 @@ roles before exposing it publicly:
   ids. `Node:WorkerId` is optional and matters only when multiple app
   instances write that node's own database; it can be reused by unrelated
   community nodes. Register and verify the node only after its public HTTPS
-  endpoint serves `/.well-known/valour-node`.
+  endpoint serves `/.well-known/valour-node`. By default a node accepts only
+  migrations of its registrant's own planets, plus explicit hosting approvals
+  created by that registrant at the hub. A self-hosted node that deliberately
+  wants to accept any eligible owner's planet can set
+  `Federation:AllowPublicMigrations` to `true`; re-register and verify after
+  changing that setting so the hub records the new policy.
 
 For either role, provide a stable, secret, base64-encoded 32-byte
 `DataProtection:Kek` (or a read-only `DataProtection:KekFile`) outside the
@@ -127,6 +132,33 @@ Deploy the hub and every community node together, then re-verify each node and
 reissue any still-open migration or invite grant. Do not roll this version out
 while a migration is pending; abort it first or let it complete and verify the
 destination.
+
+### Community-node setup wizard
+
+The repository includes a guided Docker Compose setup for operators who want to
+run a community node:
+
+```sh
+./scripts/valour-node-setup
+```
+
+It creates or updates the deployment `.env`, keeps a timestamped private
+backup, generates a stable 32-byte Data Protection KEK when needed, and asks
+whether the node should be closed to third-party migrations (the default) or
+open to every eligible owner. It writes only the settings it manages and marks
+the `.env` mode `0600`; do not commit that file.
+
+The wizard intentionally cannot register a node: that action must be made by
+the operator while signed into the intended hub. The normal ceremony is:
+
+1. Run the wizard, make DNS/TLS live, and start `docker compose up -d`.
+2. Check `https://your-node-domain/.well-known/valour-node` is publicly
+   reachable.
+3. On the hub, open **User Settings → Federation**, register the bare node
+   domain, and copy its generated challenge.
+4. Run the wizard again, paste that challenge, and restart the Compose stack.
+5. Click **Verify server** in the hub UI. Re-register and re-verify whenever
+   the node public key or public-migration policy changes.
 
 Before production enablement, complete an interactive test against isolated
 public HTTPS hub and node deployments: accept the node warning, join a public

@@ -45,6 +45,14 @@ services:
       - Redis__ConnectionString=redis:6379
       - Node__Name=main
       - Node__Location=https://${VALOUR_DOMAIN:?set VALOUR_DOMAIN in .env}
+      # Optional community-node federation. Configure these with
+      # ./scripts/valour-node-setup; they are intentionally disabled by default.
+      # The wizard generates and stores the KEK only in .env (which is gitignored).
+      - Federation__HubUrl=${FEDERATION__HUBURL:-}
+      - Federation__NodeDomain=${FEDERATION__NODEDOMAIN:-}
+      - Federation__NodeChallenge=${FEDERATION__NODECHALLENGE:-}
+      - Federation__AllowPublicMigrations=${FEDERATION__ALLOWPUBLICMIGRATIONS:-false}
+      - DataProtection__Kek=${DATAPROTECTION__KEK:-}
       # Single-domain mode: app, api, cdn, threads, and docs all served from
       # VALOUR_DOMAIN (empty subdomains collapse to the root domain).
       - Hosting__InstanceName=${VALOUR_INSTANCE_NAME:-Valour}
@@ -87,29 +95,6 @@ services:
       - caddy_config:/config
     depends_on:
       - valour
-    restart: unless-stopped
-
-  # Optional self-hosted voice/video (LiveKit SFU). Enable with:
-  #   docker compose --profile voice up -d
-  # Requirements (see Docs/Deployment/SelfHostVoice.md):
-  #   - .env: VOICE_PROVIDER=livekit, VOICE_LIVEKIT_URL=wss://voice.$VALOUR_DOMAIN,
-  #     VOICE_LIVEKIT_API_KEY, VOICE_LIVEKIT_API_SECRET
-  #   - DNS: voice.$VALOUR_DOMAIN → this host; uncomment the voice block in selfhost/Caddyfile
-  #   - Firewall: forward UDP 7882 (and TCP 7881) to this host — the media path
-  livekit:
-    image: livekit/livekit-server:latest
-    profiles: ["voice"]
-    command: ["--config", "/etc/livekit.yaml"]
-    environment:
-      # LiveKit reads keys from this env var as "key: secret". Quoted because the
-      # "key: secret" value contains a colon-space that YAML would otherwise treat
-      # as a mapping.
-      - "LIVEKIT_KEYS=${VOICE_LIVEKIT_API_KEY:?set VOICE_LIVEKIT_API_KEY in .env}: ${VOICE_LIVEKIT_API_SECRET:?set VOICE_LIVEKIT_API_SECRET in .env}"
-    volumes:
-      - ./selfhost/livekit.yaml:/etc/livekit.yaml:ro
-    ports:
-      - "7881:7881"        # RTC over TCP (fallback)
-      - "7882:7882/udp"    # RTC over UDP (primary media path — must be reachable)
     restart: unless-stopped
 
   # Optional S3-compatible storage. Enable with: docker compose --profile minio up -d

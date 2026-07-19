@@ -250,6 +250,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<PlanetVoiceConfig> PlanetVoiceConfigs { get; set; }
     public DbSet<FederationKey> FederationKeys { get; set; }
     public DbSet<FederatedNode> FederatedNodes { get; set; }
+    public DbSet<FederatedMigrationHostingApproval> FederatedMigrationHostingApprovals { get; set; }
     public DbSet<FederatedPlanetStub> FederatedPlanetStubs { get; set; }
     public DbSet<FederatedMigration> FederatedMigrations { get; set; }
     public DbSet<FederatedImportReceipt> FederatedImportReceipts { get; set; }
@@ -357,6 +358,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         Planet.SetupDbModel(modelBuilder);
         FederationKey.SetupDbModel(modelBuilder);
         FederatedNode.SetupDbModel(modelBuilder);
+        FederatedMigrationHostingApproval.SetupDbModel(modelBuilder);
         FederatedPlanetStub.SetupDbModel(modelBuilder);
         FederatedMigration.SetupDbModel(modelBuilder);
         FederatedImportReceipt.SetupDbModel(modelBuilder);

@@ -599,6 +599,96 @@ public class FederationServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ForwardMigration_DefaultDenyRequiresNodeOwnerApproval()
+    {
+        var ownerId = _fixture.Client.Me.Id;
+        var planetId = IdManager.Generate();
+        var ownerHadAcceptedNode = await _db.FederatedAcceptedDomains.AnyAsync(x =>
+            x.UserId == ownerId && x.Domain == NodeDomain);
+        await _db.Planets.AddAsync(new Valour.Database.Planet
+        {
+            Id = planetId,
+            OwnerId = ownerId,
+            Name = "Approval-gated migration test",
+            Description = "A foreign node must consent before it hosts this planet.",
+        });
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var denied = await _migrationService.InitiateAsync(ownerId, planetId, NodeDomain);
+            Assert.False(denied.Success);
+            Assert.Contains("not approved", denied.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.False(await _db.FederatedMigrations.AnyAsync(x => x.PlanetId == planetId));
+
+            var approval = await _hubService.CreateMigrationHostingApprovalAsync(
+                ISharedUser.VictorUserId,
+                NodeDomain,
+                new FederatedMigrationHostingApprovalRequest { OwnerId = ownerId, PlanetId = planetId });
+            Assert.True(approval.Success, approval.Message);
+
+            var allowed = await _migrationService.InitiateAsync(ownerId, planetId, NodeDomain);
+            Assert.True(allowed.Success, allowed.Message);
+        }
+        finally
+        {
+            await _db.FederatedMigrations.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.FederatedMigrationHostingApprovals
+                .Where(x => x.NodeDomain == NodeDomain && x.OwnerId == ownerId && x.PlanetId == planetId)
+                .ExecuteDeleteAsync();
+            await _db.Planets.IgnoreQueryFilters().Where(x => x.Id == planetId).ExecuteDeleteAsync();
+            if (!ownerHadAcceptedNode)
+            {
+                await _db.FederatedAcceptedDomains
+                    .Where(x => x.UserId == ownerId && x.Domain == NodeDomain)
+                    .ExecuteDeleteAsync();
+            }
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
+    public async Task ForwardMigration_NodePublicPolicyAcceptsAnyEligibleOwner()
+    {
+        var ownerId = _fixture.Client.Me.Id;
+        var planetId = IdManager.Generate();
+        var node = await _db.FederatedNodes.FindAsync(NodeDomain);
+        Assert.NotNull(node);
+        var previousPolicy = node!.AllowsPublicMigrations;
+        var ownerHadAcceptedNode = await _db.FederatedAcceptedDomains.AnyAsync(x =>
+            x.UserId == ownerId && x.Domain == NodeDomain);
+        await _db.Planets.AddAsync(new Valour.Database.Planet
+        {
+            Id = planetId,
+            OwnerId = ownerId,
+            Name = "Open-hosting migration test",
+            Description = "An explicitly open node accepts this planet.",
+        });
+        node.AllowsPublicMigrations = true;
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var result = await _migrationService.InitiateAsync(ownerId, planetId, NodeDomain);
+            Assert.True(result.Success, result.Message);
+        }
+        finally
+        {
+            await _db.FederatedMigrations.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.Planets.IgnoreQueryFilters().Where(x => x.Id == planetId).ExecuteDeleteAsync();
+            node.AllowsPublicMigrations = previousPolicy;
+            if (!ownerHadAcceptedNode)
+            {
+                await _db.FederatedAcceptedDomains
+                    .Where(x => x.UserId == ownerId && x.Domain == NodeDomain)
+                    .ExecuteDeleteAsync();
+            }
+            await _db.SaveChangesAsync();
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
     public async Task OfflineRecipientBoundInvite_RedeemsOnceWithProof_AndCreatesARecoverableReceipt()
     {
         var userService = _scope.ServiceProvider.GetRequiredService<UserService>();
@@ -1299,12 +1389,16 @@ public class FederationServiceTests : IAsyncLifetime
             Assert.Single(await _db.PermissionsNodes.Where(x => x.PlanetId == planetId).ToListAsync());
             Assert.Single(await _db.PlanetBans.Where(x => x.PlanetId == planetId).ToListAsync());
             Assert.Single(await _db.AutomodTriggers.Where(x => x.PlanetId == planetId).ToListAsync());
-            var attachment = Assert.Single(await _db.MessageAttachments.Where(x => x.MessageId == messageId).ToListAsync());
+            // Cross-domain imports remap node-local message IDs. Verify the
+            // attachment against the rewritten snapshot reference rather than
+            // the source node's now-invalid local identifier.
+            var importedMessageId = Assert.Single(snapshot.Messages).Id;
+            var attachment = Assert.Single(await _db.MessageAttachments.Where(x => x.MessageId == importedMessageId).ToListAsync());
             Assert.Equal("https://cdn.community-node.example.com/history.txt", attachment.Location);
             Assert.Null(attachment.CdnBucketItemId);
             Assert.True(await _db.Users.Where(x => x.Id == attackerId).Select(x => x.IsFederated).SingleAsync());
             Assert.Equal(expectedImportSource,
-                await _db.Messages.Where(x => x.Id == messageId).Select(x => x.ImportSource).SingleAsync());
+                await _db.Messages.Where(x => x.Id == importedMessageId).Select(x => x.ImportSource).SingleAsync());
         }
         finally
         {

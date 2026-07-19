@@ -141,6 +141,11 @@ public class FederationHubService
         node.LastSeenAt = DateTime.UtcNow;
         node.ReportedVersion = wellKnown.Version;
         node.NodePublicJwk = wellKnown.PublicJwk;
+        // This is a deliberate hosting-policy declaration made by the
+        // verified node operator. It remains fail-closed for older nodes that
+        // omit the field, and changing it requires the same re-verification
+        // ceremony as a key change.
+        node.AllowsPublicMigrations = wellKnown.AllowsPublicMigrations;
 
         await _db.SaveChangesAsync();
 
@@ -184,6 +189,140 @@ public class FederationHubService
             return null;
 
         return ToResponse(node);
+    }
+
+    /// <summary>Returns the nodes registered by a hub account.</summary>
+    public async Task<List<FederatedNodeRegistrationResponse>> GetNodesAsync(long ownerId)
+    {
+        var nodes = await _db.FederatedNodes.AsNoTracking()
+            .Where(x => x.OwnerId == ownerId)
+            .OrderBy(x => x.Domain)
+            .ToListAsync();
+
+        return nodes.Select(ToResponse).ToList();
+    }
+
+    /// <summary>
+    /// Returns whether an active node has expressly authorized an owner's
+    /// migration. Nodes are self-hosting by default; all other hosting is
+    /// opt-in either through the node's public policy or an owner/planet rule.
+    /// </summary>
+    public async Task<bool> CanHostMigrationAsync(FederatedNode node, long ownerId, long planetId)
+    {
+        if (node.OwnerId == ownerId || node.AllowsPublicMigrations)
+            return true;
+
+        return await _db.FederatedMigrationHostingApprovals.AsNoTracking()
+            .AnyAsync(x => x.NodeDomain == node.Domain &&
+                           x.OwnerId == ownerId &&
+                           (x.PlanetId == 0 || x.PlanetId == planetId));
+    }
+
+    /// <summary>
+    /// Creates an idempotent hosting approval. A zero PlanetId allows all
+    /// current and future official planets owned by OwnerId; otherwise the
+    /// approval is scoped to the supplied planet.
+    /// </summary>
+    public async Task<TaskResult<FederatedMigrationHostingApprovalResponse>> CreateMigrationHostingApprovalAsync(
+        long nodeOwnerId,
+        string domain,
+        FederatedMigrationHostingApprovalRequest request)
+    {
+        if (!HubEnabled)
+            return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure("This instance is not a federation hub.");
+
+        domain = NormalizeDomain(domain);
+        if (domain is null || request is null || request.OwnerId <= 0 || request.PlanetId < 0)
+            return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure("A valid domain, owner ID, and optional planet ID are required.");
+
+        var node = await _db.FederatedNodes.FindAsync(domain);
+        if (node is null || node.OwnerId != nodeOwnerId)
+            return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure("Node not found.");
+
+        if (request.PlanetId > 0)
+        {
+            var planetOwnerId = await _db.Planets.IgnoreQueryFilters()
+                .Where(x => x.Id == request.PlanetId)
+                .Select(x => (long?)x.OwnerId)
+                .FirstOrDefaultAsync();
+            if (planetOwnerId != request.OwnerId)
+                return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure(
+                    "That official planet does not belong to the supplied owner.");
+        }
+
+        var approval = await _db.FederatedMigrationHostingApprovals
+            .FindAsync(domain, request.OwnerId, request.PlanetId);
+        if (approval is null)
+        {
+            approval = new FederatedMigrationHostingApproval
+            {
+                NodeDomain = domain,
+                OwnerId = request.OwnerId,
+                PlanetId = request.PlanetId,
+                CreatedAt = DateTime.UtcNow,
+            };
+            await _db.FederatedMigrationHostingApprovals.AddAsync(approval);
+            await _db.SaveChangesAsync();
+        }
+
+        return TaskResult<FederatedMigrationHostingApprovalResponse>.FromData(ToApprovalResponse(approval));
+    }
+
+    /// <summary>Lists the hosting approvals controlled by one node owner.</summary>
+    public async Task<TaskResult<List<FederatedMigrationHostingApprovalResponse>>> GetMigrationHostingApprovalsAsync(
+        long nodeOwnerId,
+        string domain)
+    {
+        if (!HubEnabled)
+            return TaskResult<List<FederatedMigrationHostingApprovalResponse>>.FromFailure("This instance is not a federation hub.");
+
+        domain = NormalizeDomain(domain);
+        var node = await _db.FederatedNodes.AsNoTracking().FirstOrDefaultAsync(x => x.Domain == domain);
+        if (node is null || node.OwnerId != nodeOwnerId)
+            return TaskResult<List<FederatedMigrationHostingApprovalResponse>>.FromFailure("Node not found.");
+
+        var approvals = await _db.FederatedMigrationHostingApprovals.AsNoTracking()
+            .Where(x => x.NodeDomain == domain)
+            .OrderBy(x => x.OwnerId)
+            .ThenBy(x => x.PlanetId)
+            .Select(x => new FederatedMigrationHostingApprovalResponse
+            {
+                NodeDomain = x.NodeDomain,
+                OwnerId = x.OwnerId,
+                PlanetId = x.PlanetId,
+                CreatedAt = x.CreatedAt,
+            })
+            .ToListAsync();
+
+        return TaskResult<List<FederatedMigrationHostingApprovalResponse>>.FromData(approvals);
+    }
+
+    /// <summary>Revokes one node-owner hosting approval.</summary>
+    public async Task<TaskResult> DeleteMigrationHostingApprovalAsync(
+        long nodeOwnerId,
+        string domain,
+        long ownerId,
+        long planetId)
+    {
+        if (!HubEnabled)
+            return TaskResult.FromFailure("This instance is not a federation hub.");
+
+        domain = NormalizeDomain(domain);
+        if (domain is null || ownerId <= 0 || planetId < 0)
+            return TaskResult.FromFailure("Invalid migration approval.");
+
+        var node = await _db.FederatedNodes.AsNoTracking().FirstOrDefaultAsync(x => x.Domain == domain);
+        if (node is null || node.OwnerId != nodeOwnerId)
+            return TaskResult.FromFailure("Node not found.");
+
+        var approval = await _db.FederatedMigrationHostingApprovals.FindAsync(domain, ownerId, planetId);
+        if (approval is not null)
+        {
+            _db.FederatedMigrationHostingApprovals.Remove(approval);
+            await _db.SaveChangesAsync();
+        }
+
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>
@@ -430,6 +569,16 @@ public class FederationHubService
         Status = node.Status.ToString(),
         Challenge = node.VerificationChallenge,
         VerifiedAt = node.VerifiedAt,
+        AllowsPublicMigrations = node.AllowsPublicMigrations,
+    };
+
+    private static FederatedMigrationHostingApprovalResponse ToApprovalResponse(
+        FederatedMigrationHostingApproval approval) => new()
+    {
+        NodeDomain = approval.NodeDomain,
+        OwnerId = approval.OwnerId,
+        PlanetId = approval.PlanetId,
+        CreatedAt = approval.CreatedAt,
     };
 
     private static bool IsValidNodePublicJwk(string publicJwk)

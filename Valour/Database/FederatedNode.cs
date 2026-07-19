@@ -60,6 +60,12 @@ public class FederatedNode
 
     public DateTime? LastSeenAt { get; set; }
 
+    /// <summary>
+    /// Explicit node-operator opt-in to receive forward migrations from any
+    /// eligible hub planet owner. The safe default is false.
+    /// </summary>
+    public bool AllowsPublicMigrations { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<FederatedNode>(e =>
@@ -97,6 +103,11 @@ public class FederatedNode
 
             e.Property(x => x.LastSeenAt)
                 .HasColumnName("last_seen_at");
+
+            e.Property(x => x.AllowsPublicMigrations)
+                .HasColumnName("allows_public_migrations")
+                .HasDefaultValue(false)
+                .IsRequired();
 
             e.HasOne(x => x.Owner)
                 .WithMany()

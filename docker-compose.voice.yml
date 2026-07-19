@@ -1,0 +1,21 @@
+# Optional self-hosted voice/video (LiveKit SFU).
+# Enable with:
+#   docker compose -f docker-compose.yml -f docker-compose.voice.yml up -d
+#
+# The separate overlay means a normal `docker compose up -d` does not evaluate
+# voice-only secrets. This overlay deliberately fails if its required key or
+# secret is absent, instead of starting an SFU with weak placeholder credentials.
+services:
+  livekit:
+    image: livekit/livekit-server:latest
+    command: ["--config", "/etc/livekit.yaml"]
+    environment:
+      # LiveKit reads this as "key: secret". The quoted value contains a
+      # colon-space, which YAML would otherwise interpret as a mapping.
+      - "LIVEKIT_KEYS=${VOICE_LIVEKIT_API_KEY:?set VOICE_LIVEKIT_API_KEY in .env}: ${VOICE_LIVEKIT_API_SECRET:?set VOICE_LIVEKIT_API_SECRET in .env}"
+    volumes:
+      - ./selfhost/livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7881:7881"        # RTC over TCP (fallback)
+      - "7882:7882/udp"    # RTC over UDP (primary media path — must be reachable)
+    restart: unless-stopped

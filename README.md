@@ -60,6 +60,20 @@ automatically — see [Config/appsettings.helper.json](Config/appsettings.helper
 for every section. Production-cluster deployment (blue/green, nginx) is
 documented in [Docs/Deployment/](Docs/Deployment/README.md).
 
+To turn a self-hosted instance into a community node, run the interactive
+wizard before starting Docker Compose:
+
+```sh
+./scripts/valour-node-setup
+```
+
+It configures federation, generates the required private Data Protection KEK,
+and walks through the public/approval-only migration-hosting choice. After the
+node is publicly reachable, register and verify its bare domain through the
+hub's **User Settings → Federation** page; the wizard explains the short
+challenge/restart step. See the [federation production checklist](Docs/Deployment/README.md#federation-production-checklist)
+for the security requirements.
+
 ## Contribute
 
 To contribute to Valour, set up a local server + client environment first.

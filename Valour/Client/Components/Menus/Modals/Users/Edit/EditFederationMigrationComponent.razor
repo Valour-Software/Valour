@@ -8,6 +8,112 @@
 
     <div class="editor-section">
         <h3 class="editor-section-title">
+            <i class="bi bi-hdd-network-fill"></i>
+            Community Server Registration
+        </h3>
+        <p class="toggle-description">
+            Register the public domain of a community server you operate. The hub gives you a
+            challenge; set it as <code>Federation:NodeChallenge</code> on that server, restart it,
+            then verify here. A node never needs an official-cluster worker ID.
+        </p>
+        <div class="form-group mt-2">
+            <label>Public community-server domain</label>
+            <input class="v-input" @bind="_nodeDomain" placeholder="community.example" autocomplete="off" />
+        </div>
+        <button class="v-btn primary mt-2" @onclick="RegisterNodeAsync" disabled="@(_busy || string.IsNullOrWhiteSpace(_nodeDomain))">
+            Register server
+        </button>
+
+        @if (_ownedNodes.Count > 0)
+        {
+            <div class="form-group mt-3">
+                <label>Your registered community servers</label>
+                <select class="v-input" @bind="_selectedOwnedNode">
+                    @foreach (var node in _ownedNodes)
+                    {
+                        <option value="@node.Domain">@node.Domain (@node.Status)</option>
+                    }
+                </select>
+            </div>
+            <button class="v-btn mt-2" @onclick="LoadHostingApprovalsAsync" disabled="@(_busy || string.IsNullOrWhiteSpace(_selectedOwnedNode))">
+                Manage hosting
+            </button>
+
+            @foreach (var node in _ownedNodes)
+            {
+                <div class="mt-3">
+                    <b>@node.Domain</b>
+                    <p class="toggle-description mb-1">
+                        @node.Status · @(node.AllowsPublicMigrations ? "accepts public migrations" : "approval required for other owners")
+                    </p>
+                    @if (node.Status == "PendingVerification")
+                    {
+                        <p class="toggle-description mb-1">
+                            Set <code>Federation:NodeChallenge</code> to the following value on
+                            <code>@node.Domain</code>, ensure its public HTTPS descriptor is live, then verify it.
+                        </p>
+                        <textarea class="v-input" rows="2" readonly>@node.Challenge</textarea>
+                        <button class="v-btn primary mt-2" @onclick="() => VerifyNodeAsync(node.Domain)" disabled="@_busy">Verify server</button>
+                    }
+                    else if (node.Status == "Active" && !node.AllowsPublicMigrations)
+                    {
+                        <p class="toggle-description mb-1">
+                            To let any eligible owner migrate here, set <code>Federation:AllowPublicMigrations=true</code>
+                            on the community server and re-register then verify it. Otherwise use the approvals below.
+                        </p>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_selectedOwnedNode))
+    {
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-person-check-fill"></i>
+                Hosting Approvals for @_selectedOwnedNode
+            </h3>
+            <p class="toggle-description">
+                By default, only your own official planets can move to your node. Approve an owner
+                for all of their planets, or enter one planet ID to approve only that planet. This is
+                enforced by the hub before it locks a source planet or issues a migration grant.
+            </p>
+            <div class="form-group mt-2">
+                <label>Official owner user ID</label>
+                <input class="v-input" @bind="_hostingOwnerId" inputmode="numeric" placeholder="User ID" />
+            </div>
+            <div class="form-group mt-2">
+                <label>Specific official planet ID (optional)</label>
+                <input class="v-input" @bind="_hostingPlanetId" inputmode="numeric" placeholder="Leave blank to allow all of this owner's planets" />
+            </div>
+            <button class="v-btn primary mt-2" @onclick="CreateHostingApprovalAsync"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_hostingOwnerId))">
+                Approve hosting
+            </button>
+
+            @if (_hostingApprovals.Count == 0)
+            {
+                <p class="toggle-description mt-3">No explicit hosting approvals for this server.</p>
+            }
+            else
+            {
+                @foreach (var approval in _hostingApprovals)
+                {
+                    <div class="mt-3">
+                        <b>Owner @approval.OwnerId</b>
+                        <p class="toggle-description mb-1">
+                            @(approval.PlanetId == 0 ? "All current and future official planets" : $"Planet {approval.PlanetId}")
+                        </p>
+                        <button class="v-btn danger" @onclick="() => DeleteHostingApprovalAsync(approval)" disabled="@_busy">Revoke approval</button>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
             <i class="bi bi-shield-check"></i>
             Community Server Access
         </h3>
@@ -183,6 +289,10 @@
 
 @code {
     private string _grant = string.Empty;
+    private string _nodeDomain = string.Empty;
+    private string _selectedOwnedNode = string.Empty;
+    private string _hostingOwnerId = string.Empty;
+    private string _hostingPlanetId = string.Empty;
     private string _inviteDomain = string.Empty;
     private string _inviteGrant = string.Empty;
     private string _pullBackPlanetId = string.Empty;
@@ -196,6 +306,8 @@
     private bool _loadingMemberships = true;
     private List<MigrationStatusResponse> _migrations = new();
     private List<FederatedMembershipInfo> _memberships = new();
+    private List<FederatedNodeRegistrationResponse> _ownedNodes = new();
+    private List<FederatedMigrationHostingApprovalResponse> _hostingApprovals = new();
     private HashSet<string> _acceptedDomains = new(StringComparer.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
@@ -216,6 +328,115 @@
                 : result.Message ?? "Could not import migration.";
             if (result.Success)
                 _grant = string.Empty;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RegisterNodeAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.PrimaryNode.PostAsyncWithResponse<FederatedNodeRegistrationResponse>(
+                "api/federation/nodes", new FederatedNodeRegistrationRequest { Domain = _nodeDomain.Trim() });
+            _success = result.Success && result.Data is not null;
+            _message = _success
+                ? "Server registered. Set the challenge on the node, then verify it here."
+                : result.Message ?? "Could not register the community server.";
+            if (_success)
+            {
+                _selectedOwnedNode = result.Data!.Domain;
+                _nodeDomain = string.Empty;
+                await RefreshNodeManagementAsync();
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task VerifyNodeAsync(string domain)
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.PrimaryNode.PostAsyncWithResponse<FederatedNodeRegistrationResponse>(
+                $"api/federation/nodes/{Uri.EscapeDataString(domain)}/verify");
+            _success = result.Success && result.Data is not null;
+            _message = _success ? "Community server verified and activated." : result.Message ?? "Could not verify the community server.";
+            await RefreshNodeManagementAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task LoadHostingApprovalsAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            await RefreshHostingApprovalsAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task CreateHostingApprovalAsync()
+    {
+        if (!long.TryParse(_hostingOwnerId, out var ownerId) || ownerId <= 0 ||
+            (!string.IsNullOrWhiteSpace(_hostingPlanetId) && (!long.TryParse(_hostingPlanetId, out var parsedPlanetId) || parsedPlanetId <= 0)))
+        {
+            _success = false;
+            _message = "Enter a valid owner ID and, if supplied, a valid planet ID.";
+            return;
+        }
+
+        var planetId = string.IsNullOrWhiteSpace(_hostingPlanetId) ? 0 : long.Parse(_hostingPlanetId);
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.PrimaryNode.PostAsyncWithResponse<FederatedMigrationHostingApprovalResponse>(
+                $"api/federation/nodes/{Uri.EscapeDataString(_selectedOwnedNode)}/migration-approvals",
+                new FederatedMigrationHostingApprovalRequest { OwnerId = ownerId, PlanetId = planetId });
+            _success = result.Success && result.Data is not null;
+            _message = _success ? "Hosting approval saved." : result.Message ?? "Could not save the hosting approval.";
+            if (_success)
+            {
+                _hostingOwnerId = string.Empty;
+                _hostingPlanetId = string.Empty;
+                await RefreshHostingApprovalsAsync();
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteHostingApprovalAsync(FederatedMigrationHostingApprovalResponse approval)
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Client.PrimaryNode.DeleteAsync(
+                $"api/federation/nodes/{Uri.EscapeDataString(_selectedOwnedNode)}/migration-approvals/{approval.OwnerId}/{approval.PlanetId}");
+            _success = result.Success;
+            _message = result.Success ? "Hosting approval revoked." : result.Message ?? "Could not revoke the hosting approval.";
+            if (result.Success)
+                await RefreshHostingApprovalsAsync();
         }
         finally
         {
@@ -360,11 +581,35 @@
             _memberships = await Client.PlanetService.FetchFederatedMembershipsAsync();
             _acceptedDomains = (await Client.PlanetService.FetchAcceptedFederationDomainsAsync())
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            await RefreshNodeManagementAsync();
         }
         finally
         {
             _loading = false;
             _loadingMemberships = false;
         }
+    }
+
+    private async Task RefreshNodeManagementAsync()
+    {
+        var result = await Client.PrimaryNode.GetJsonAsync<List<FederatedNodeRegistrationResponse>>("api/federation/nodes");
+        _ownedNodes = result.Success && result.Data is not null ? result.Data : new();
+        if (string.IsNullOrWhiteSpace(_selectedOwnedNode) || !_ownedNodes.Any(x => x.Domain == _selectedOwnedNode))
+            _selectedOwnedNode = _ownedNodes.FirstOrDefault()?.Domain ?? string.Empty;
+
+        await RefreshHostingApprovalsAsync();
+    }
+
+    private async Task RefreshHostingApprovalsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedOwnedNode))
+        {
+            _hostingApprovals = new();
+            return;
+        }
+
+        var result = await Client.PrimaryNode.GetJsonAsync<List<FederatedMigrationHostingApprovalResponse>>(
+            $"api/federation/nodes/{Uri.EscapeDataString(_selectedOwnedNode)}/migration-approvals");
+        _hostingApprovals = result.Success && result.Data is not null ? result.Data : new();
     }
 }

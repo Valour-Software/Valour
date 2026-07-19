@@ -106,6 +106,15 @@ public class FederationMigrationService
         if (node is null || node.Status != FederatedNodeStatus.Active)
             return TaskResult<MigrationInitiateResponse>.FromFailure("Target is not an active community node.");
 
+        // A verified node controls who it hosts. The hub enforces this before
+        // locking the source or minting a destination grant, so a destination
+        // cannot be forced to import a planet merely because it is online.
+        if (!await _hubService.CanHostMigrationAsync(node, ownerId, planetId))
+        {
+            return TaskResult<MigrationInitiateResponse>.FromFailure(
+                "This community node has not approved hosting this planet. Ask its owner for a migration approval, or choose a node that accepts public migrations.");
+        }
+
         // A retry rotates the signed capability. Completed handoffs retain their
         // recovery copy, so they can also issue a fresh grant for an idempotent
         // destination confirmation without reopening the handoff.

@@ -40,6 +40,15 @@ public class FederationConfig
     public string NodeChallenge { get; set; }
 
     /// <summary>
+    /// Node mode: explicitly opt in to accepting forward migrations from any
+    /// eligible hub planet owner. The secure default is false: a node accepts
+    /// its registrant's own planets, plus owner/planet approvals created by
+    /// that registrant at the hub. Re-verify the node after changing this so
+    /// the hub records the new hosting policy.
+    /// </summary>
+    public bool AllowPublicMigrations { get; set; }
+
+    /// <summary>
     /// Dev/LAN mode: allow plain-HTTP hub/node URLs and self-signed
     /// certificates for federation calls. Never enable on public deployments.
     /// </summary>

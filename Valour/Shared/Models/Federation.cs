@@ -65,6 +65,9 @@ public class FederatedNodeRegistrationResponse
     public string Status { get; set; }
     public string Challenge { get; set; }
     public DateTime? VerifiedAt { get; set; }
+
+    /// <summary>Whether this node has opted in to hosting any eligible planet.</summary>
+    public bool AllowsPublicMigrations { get; set; }
 }
 
 /// <summary>
@@ -89,6 +92,31 @@ public class FederatedNodeWellKnown
     /// requests.
     /// </summary>
     public string PublicJwk { get; set; }
+
+    /// <summary>
+    /// Node-operator opt-in to accepting forward migrations from any eligible
+    /// owner. Omitted by older nodes and defaults to false at the hub.
+    /// </summary>
+    public bool AllowsPublicMigrations { get; set; }
+}
+
+/// <summary>
+/// A node owner's explicit authorization for an official planet owner to
+/// migrate to that node. A PlanetId of 0 authorizes all of the owner's
+/// official planets; otherwise it authorizes just that planet.
+/// </summary>
+public class FederatedMigrationHostingApprovalRequest
+{
+    public long OwnerId { get; set; }
+    public long PlanetId { get; set; }
+}
+
+public class FederatedMigrationHostingApprovalResponse
+{
+    public string NodeDomain { get; set; }
+    public long OwnerId { get; set; }
+    public long PlanetId { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 /// <summary>

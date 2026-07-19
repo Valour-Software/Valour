@@ -112,6 +112,61 @@ public class FederationApi
         return Results.Json(status);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/federation/nodes")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> GetNodesRoute(
+        FederationHubService hubService,
+        UserService userService)
+    {
+        if (!FederationHubService.HubEnabled)
+            return ValourResult.NotFound("This instance is not a federation hub.");
+
+        return Results.Json(await hubService.GetNodesAsync(await userService.GetCurrentUserIdAsync()));
+    }
+
+    /// <summary>
+    /// Node owner: approve one owner (PlanetId = 0) or one specific official
+    /// planet for a forward migration to this node.
+    /// </summary>
+    [ValourRoute(HttpVerbs.Post, "api/federation/nodes/{domain}/migration-approvals")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> CreateMigrationHostingApprovalRoute(
+        string domain,
+        [FromBody] FederatedMigrationHostingApprovalRequest request,
+        FederationHubService hubService,
+        UserService userService)
+    {
+        var result = await hubService.CreateMigrationHostingApprovalAsync(
+            await userService.GetCurrentUserIdAsync(), domain, request);
+        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/federation/nodes/{domain}/migration-approvals")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> GetMigrationHostingApprovalsRoute(
+        string domain,
+        FederationHubService hubService,
+        UserService userService)
+    {
+        var result = await hubService.GetMigrationHostingApprovalsAsync(
+            await userService.GetCurrentUserIdAsync(), domain);
+        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/federation/nodes/{domain}/migration-approvals/{ownerId}/{planetId}")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> DeleteMigrationHostingApprovalRoute(
+        string domain,
+        long ownerId,
+        long planetId,
+        FederationHubService hubService,
+        UserService userService)
+    {
+        var result = await hubService.DeleteMigrationHostingApprovalAsync(
+            await userService.GetCurrentUserIdAsync(), domain, ownerId, planetId);
+        return result.Success ? ValourResult.Ok("Migration hosting approval revoked.") : ValourResult.BadRequest(result.Message);
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/federation/token")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> MintTokenRoute(
@@ -166,6 +221,7 @@ public class FederationApi
             Version = typeof(ISharedUser).Assembly.GetName().Version?.ToString(),
             ProtocolVersion = ValourFederation.ProtocolVersion,
             PublicJwk = await keyService.GetNodePublicJwkAsync(),
+            AllowsPublicMigrations = config.AllowPublicMigrations,
         });
     }
 
