@@ -11,6 +11,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
       - Notifications__FirebaseCredentialPath=/app/firebase-credentials.json
+      # Stable per-color worker id (blue=0, green=1) so an overlapping
+      # blue/green window never runs two writers on the same worker id.
+      - Node__WorkerId=${VALOUR_WORKERID:-0}
     volumes:
       - ./dotnet/appsettings.json:/app/appsettings.json:ro
       - ./dotnet/firebase-credentials.json:/app/firebase-credentials.json:ro

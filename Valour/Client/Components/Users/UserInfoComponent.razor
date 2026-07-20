@@ -111,11 +111,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // It's slower to just supply the member, but we can
-        // use the UserId to still function
+        // Prefer the User already embedded in the member payload; only fall
+        // back to fetching by id if it wasn't supplied. Avoids a redundant
+        // /api/users/{id} call per member when the member carries its user.
         if (User is null && Member is not null)
         {
-            User = await UserService.FetchUserAsync(Member.UserId);
+            User = Member.User ?? await UserService.FetchUserAsync(Member.UserId);
         }
         
         if (User is not null)

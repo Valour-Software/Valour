@@ -843,27 +843,29 @@ else
 
         Id = $"m-{_message.ChannelId}-{_message.Id}";
 
-        _user = await _message.FetchAuthorUserAsync();
-
-        if (_user != null)
-            _user.Updated += OnUserUpdated;
-        
-        if (!_isInnerReply && !_ghost && _chat is not null)
-        {
-            _chat.AddRenderedMessage(this);
-        }
-
-        // Planet message logic
+        // Planet message logic - resolve the author member first. The member
+        // payload embeds its User, which FetchAuthorMemberAsync caches, so the
+        // FetchAuthorUserAsync below hits that cache instead of issuing a
+        // separate /api/users/{id} request per message author.
         if (_message.PlanetId is not null)
         {
-            
             _member = await _message.FetchAuthorMemberAsync();
-            
+
             // Hook events
             if (_member is not null) // There is a chance they were deleted
             {
                 _member.Updated += OnMemberUpdated;
             }
+        }
+
+        _user = await _message.FetchAuthorUserAsync();
+
+        if (_user != null)
+            _user.Updated += OnUserUpdated;
+
+        if (!_isInnerReply && !_ghost && _chat is not null)
+        {
+            _chat.AddRenderedMessage(this);
         }
 
         _author = _member is not null ? _member : (_user ?? User.NotFound);
