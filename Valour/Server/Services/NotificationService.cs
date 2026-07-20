@@ -18,15 +18,17 @@ public class NotificationService
     private readonly PushNotificationWorker _pushNotificationWorker;
     private readonly HostedPlanetService _hostedService;
     private readonly ChannelWatchingService _channelWatchingService;
-    
+    private readonly PlanetPermissionService _permissionService;
+
     public NotificationService(
-        ValourDb db, 
+        ValourDb db,
         CoreHubService coreHub,
         NodeLifecycleService nodeLifecycleService,
-        ILogger<NotificationService> logger, 
-        PushNotificationWorker pushNotificationWorker, 
+        ILogger<NotificationService> logger,
+        PushNotificationWorker pushNotificationWorker,
         HostedPlanetService hostedService,
-        ChannelWatchingService channelWatchingService)
+        ChannelWatchingService channelWatchingService,
+        PlanetPermissionService permissionService)
     {
         _db = db;
         _coreHub = coreHub;
@@ -35,6 +37,7 @@ public class NotificationService
         _pushNotificationWorker = pushNotificationWorker;
         _hostedService = hostedService;
         _channelWatchingService = channelWatchingService;
+        _permissionService = permissionService;
     }
     
     public async Task<Models.Notification> GetNotificationAsync(Guid id)
@@ -173,12 +176,22 @@ public class NotificationService
 
         baseNotification.Body ??= "";
 
-        var userIds = await _db.PlanetMembers
+        var membersWithRole = await _db.PlanetMembers
             .AsNoTracking()
             .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.FlagBitIndex)
-            .Select(x => x.UserId)
-            .Distinct()
+            .Select(x => new { x.Id, x.UserId })
             .ToArrayAsync();
+
+        // Only notify members who can actually view the channel (#1570)
+        var allowedUserIds = new HashSet<long>();
+        foreach (var memberWithRole in membersWithRole)
+        {
+            if (baseNotification.ChannelId is null ||
+                await _permissionService.HasChannelAccessAsync(memberWithRole.Id, baseNotification.ChannelId.Value))
+                allowedUserIds.Add(memberWithRole.UserId);
+        }
+
+        var userIds = allowedUserIds.ToArray();
 
         if (userIds.Length == 0)
             return;
@@ -535,6 +548,14 @@ public class NotificationService
             
         var targetMember = await _db.PlanetMembers.FindAsync(mention.TargetId);
         if (targetMember is null)
+            return;
+
+        // The mention must target a member of the planet the message was posted in
+        if (targetMember.PlanetId != planet.Id)
+            return;
+
+        // Don't notify members who cannot view the channel (#1570)
+        if (!await _permissionService.HasChannelAccessAsync(targetMember.Id, channel.Id))
             return;
 
         var content = await ReplaceMentionTagsAsync(message.Content);

@@ -204,39 +204,46 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return await Planet.Node.DisconnectFromChannelRealtime(this);
     }
     
+    private DirectChannelKey? GetDirectChannelKey()
+    {
+        if (ChannelType != ChannelTypeEnum.DirectChat || Members is null)
+            return null;
+
+        // A self-DM has a single member; a normal DM has two
+        return Members.Count switch
+        {
+            1 => new DirectChannelKey(Members[0].UserId, Members[0].UserId),
+            2 => new DirectChannelKey(Members[0].UserId, Members[1].UserId),
+            _ => null
+        };
+    }
+
     public override Channel AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         // Add to direct channel lookup if needed
-        if (ChannelType == ChannelTypeEnum.DirectChat)
-        {
-            if (Members is not null && Members.Count == 2)
-            {
-                var key = new DirectChannelKey(Members[0].UserId, Members[1].UserId);
-                Client.Cache.DmChannelKeyToId[key] = Id;
-            }
-        }
+        var dmKey = GetDirectChannelKey();
+        if (dmKey is not null)
+            Client.Cache.DmChannelKeyToId[dmKey.Value] = Id;
 
         if (PlanetId is not null)
         {
-            return Planet.Channels.Put(this, flags);
+            // The planet store is authoritative, but also register in the global
+            // cache so client-wide lookups (Client.Cache.Channels) work
+            var master = Planet.Channels.Put(this, flags);
+            if (master is not null)
+                Client.Cache.Channels.Put(master, flags);
+            return master;
         }
-        else
-        {
-            return Client.Cache.Channels.Put(this, flags);
-        }
+
+        return Client.Cache.Channels.Put(this, flags);
     }
-    
+
     public override Channel RemoveFromCache(bool skipEvents = false)
     {
         // Remove from direct channel lookup if needed
-        if (ChannelType == ChannelTypeEnum.DirectChat)
-        {
-            if (Members is not null && Members.Count == 2)
-            {
-                var key = new DirectChannelKey(Members[0].UserId, Members[1].UserId);
-                Client.Cache.DmChannelKeyToId.Remove(key);
-            }
-        }
+        var dmKey = GetDirectChannelKey();
+        if (dmKey is not null)
+            Client.Cache.DmChannelKeyToId.Remove(dmKey.Value);
 
         if (PlanetId is not null)
         {

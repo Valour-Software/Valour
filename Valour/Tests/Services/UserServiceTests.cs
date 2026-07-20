@@ -73,6 +73,23 @@ public class UserServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetByNameAndTag_NameContainingHash_ReturnsUser()
+    {
+        // Regression for #1433: usernames may themselves contain '#', so the
+        // name/tag split must happen at the last '#', not the first
+        var model = await RegisterDisposableUserAsync();
+
+        var dbUser = await _db.Users.FindAsync(model.Id);
+        Assert.NotNull(dbUser);
+        dbUser.Name = $"hashy_#4338-{RandomName()}"[..20];
+        await _db.SaveChangesAsync();
+
+        var result = await _userService.GetByNameAndTagAsync($"{dbUser.Name}#{dbUser.Tag}");
+        Assert.NotNull(result);
+        Assert.Equal(model.Id, result.Id);
+    }
+
+    [Fact]
     public async Task IsTagTaken_ReturnsTrueForExisting()
     {
         var me = _client.Me;

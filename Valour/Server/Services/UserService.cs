@@ -419,14 +419,13 @@ public class UserService
     /// <returns></returns>
     public async Task<User> GetByNameAndTagAsync(string username)
     {
-        var split = username.Split('#');
-        if (split.Length < 2)
+        // Names may themselves contain '#', tags never do, so split at the last '#'
+        if (!UserUtils.TrySplitNameAndTag(username, out var name, out var tag))
         {
             return null;
         }
-        
-        // Users are searched by lowercase name, but the tags are uppercase
-        return await GetUserAsync(split[0], split[1]);
+
+        return await GetUserAsync(name, tag);
     }
     
     public async Task<TaskResult<User>> UpdateAsync(User updatedUser)

@@ -160,4 +160,30 @@ public class UserUtilsTests
         var result = UserUtils.TestEmail("user@@example.com");
         Assert.False(result.Success);
     }
+
+    // ──────────────────────────────────────────────
+    // TrySplitNameAndTag
+    // ──────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("SpikeViper#0000", "SpikeViper", "0000")]
+    [InlineData("Cassiopeia_#4338#LMTI", "Cassiopeia_#4338", "LMTI")] // #1433: name itself contains '#'
+    [InlineData("a#b#c#TAG1", "a#b#c", "TAG1")]
+    public void TrySplitNameAndTag_SplitsAtLastHash(string input, string expectedName, string expectedTag)
+    {
+        Assert.True(UserUtils.TrySplitNameAndTag(input, out var name, out var tag));
+        Assert.Equal(expectedName, name);
+        Assert.Equal(expectedTag, tag);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("noTagHere")]
+    [InlineData("#LEADINGHASH")]
+    [InlineData("trailingHash#")]
+    public void TrySplitNameAndTag_ReturnsFalse_ForInvalidInput(string input)
+    {
+        Assert.False(UserUtils.TrySplitNameAndTag(input, out _, out _));
+    }
 }

@@ -188,7 +188,8 @@ public class ChannelApi
     {
         var userId = await userService.GetCurrentUserIdAsync();
 
-        if (create)
+        // Block and DM-policy checks don't apply when messaging yourself
+        if (create && userId != otherUserId)
         {
             // Check blocks: if either user has blocked the other, forbid
             if (await userBlockService.IsBlockedEitherWayAsync(userId, otherUserId))

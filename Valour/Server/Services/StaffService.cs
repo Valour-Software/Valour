@@ -354,12 +354,12 @@ public class StaffService
         }
         else if (identifier.Contains('#'))
         {
-            var split = identifier.Split('#', 2);
-            if (split.Length != 2 || string.IsNullOrWhiteSpace(split[0]) || string.IsNullOrWhiteSpace(split[1]))
+            if (!UserUtils.TrySplitNameAndTag(identifier, out var namePart, out var tagPart)
+                || string.IsNullOrWhiteSpace(namePart) || string.IsNullOrWhiteSpace(tagPart))
                 return (null, null, TaskResult.FromFailure("Invalid format. Use username#tag.", errorCode: 400));
 
-            var username = split[0].Trim();
-            var tag = split[1].Trim();
+            var username = namePart.Trim();
+            var tag = tagPart.Trim();
 
             user = await _db.Users.FirstOrDefaultAsync(x =>
                 x.Name.ToLower() == username.ToLower() && x.Tag.ToLower() == tag.ToLower());

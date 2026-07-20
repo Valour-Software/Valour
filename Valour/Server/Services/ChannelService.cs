@@ -121,39 +121,59 @@ public class ChannelService
     /// </summary>
     public async ValueTask<Channel?> GetDirectChannelByUsersAsync(long userOneId, long userTwoId, bool create = true)
     {
-        var channel = await _db.Channels
+        var isSelf = userOneId == userTwoId;
+
+        var query = _db.Channels
             .AsNoTracking()
             .Include(x => x.Members)
-            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat)
-            .Where(x => x.Members.Any(m => m.UserId == userOneId) &&
-                        x.Members.Any(m => m.UserId == userTwoId))
-            .FirstOrDefaultAsync();
+            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat);
+
+        if (isSelf)
+        {
+            // A self-DM is the channel whose only member is this user. Checking both
+            // ids with Any() would match every DM the user is in.
+            query = query.Where(x => x.Members.Any() &&
+                                     x.Members.All(m => m.UserId == userOneId));
+        }
+        else
+        {
+            query = query.Where(x => x.Members.Any(m => m.UserId == userOneId) &&
+                                     x.Members.Any(m => m.UserId == userTwoId));
+        }
+
+        var channel = await query.FirstOrDefaultAsync();
 
         // If there is no channel and we have this set to create it if missing...
         if (channel is null && create)
         {
             var newId = IdManager.Generate();
-            
+
+            // A self-DM gets a single member row; a normal DM gets one per user
+            var members = new List<Valour.Database.ChannelMember>
+            {
+                new()
+                {
+                    Id = IdManager.Generate(),
+                    ChannelId = newId,
+                    UserId = userOneId
+                }
+            };
+
+            if (!isSelf)
+            {
+                members.Add(new()
+                {
+                    Id = IdManager.Generate(),
+                    ChannelId = newId,
+                    UserId = userTwoId
+                });
+            }
+
             // Create channel
             channel = new Valour.Database.Channel()
             {
                 Id = newId,
-
-                // Build the members
-                Members = [
-                    new()
-                    {
-                        Id = IdManager.Generate(),
-                        ChannelId = newId,
-                        UserId = userOneId
-                    },
-                    new()
-                    {
-                        Id = IdManager.Generate(),
-                        ChannelId = newId,
-                        UserId = userTwoId
-                    }
-                ],
+                Members = members,
 
                 Name = "Direct Chat",
                 Description = "A private discussion",

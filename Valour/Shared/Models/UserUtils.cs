@@ -72,6 +72,28 @@ public class UserUtils
         return new TaskResult(true, "The given username is valid.");
     }
 
+    /// <summary>
+    /// Splits a full "name#tag" identifier into its name and tag parts.
+    /// Tags never contain '#', but names can, so the split happens at the last '#'.
+    /// Returns false if the input has no tag portion.
+    /// </summary>
+    public static bool TrySplitNameAndTag(string nameAndTag, out string name, out string tag)
+    {
+        name = null;
+        tag = null;
+
+        if (string.IsNullOrEmpty(nameAndTag))
+            return false;
+
+        var hashIndex = nameAndTag.LastIndexOf('#');
+        if (hashIndex <= 0 || hashIndex == nameAndTag.Length - 1)
+            return false;
+
+        name = nameAndTag[..hashIndex];
+        tag = nameAndTag[(hashIndex + 1)..];
+        return true;
+    }
+
     private static readonly Regex HasUpperRegex = new Regex(@"[A-Z]");
     private static readonly Regex HasLowerRegex = new Regex(@"[a-z]");
     private static readonly Regex HasNumbersRegex = new Regex(@"\d");

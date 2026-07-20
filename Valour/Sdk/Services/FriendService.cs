@@ -154,9 +154,8 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task<TaskResult<UserFriend>> AddFriendAsync(string nameAndTag)
     {
-        var parts = nameAndTag.Split('#', 2);
-        var uri = parts.Length == 2
-            ? $"api/userfriends/addByNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}"
+        var uri = UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag)
+            ? $"api/userfriends/addByNameAndTag/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}"
             : $"api/userfriends/add/{Uri.EscapeDataString(nameAndTag)}";
         var result = await _client.PrimaryNode.PostAsyncWithResponse<UserFriend>(uri);
 
@@ -202,9 +201,8 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task<TaskResult> DeclineFriendAsync(string nameAndTag)
     {
-        var parts = nameAndTag.Split('#', 2);
-        var uri = parts.Length == 2
-            ? $"api/userfriends/declineByNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}"
+        var uri = UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag)
+            ? $"api/userfriends/declineByNameAndTag/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}"
             : $"api/userfriends/decline/{Uri.EscapeDataString(nameAndTag)}";
         var result = await _client.PrimaryNode.PostAsync(uri, null);
 
@@ -236,9 +234,8 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task<TaskResult> RemoveFriendAsync(string nameAndTag)
     {
-        var parts = nameAndTag.Split('#', 2);
-        var uri = parts.Length == 2
-            ? $"api/userfriends/removeByNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}"
+        var uri = UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag)
+            ? $"api/userfriends/removeByNameAndTag/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}"
             : $"api/userfriends/remove/{Uri.EscapeDataString(nameAndTag)}";
         var result = await _client.PrimaryNode.PostAsync(uri, null);
 
@@ -277,9 +274,8 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task<TaskResult> CancelFriendAsync(string nameAndTag)
     {
-        var parts = nameAndTag.Split('#', 2);
-        var uri = parts.Length == 2
-            ? $"api/userfriends/cancelByNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}"
+        var uri = UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag)
+            ? $"api/userfriends/cancelByNameAndTag/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}"
             : $"api/userfriends/cancel/{Uri.EscapeDataString(nameAndTag)}";
         var result = await _client.PrimaryNode.PostAsync(uri, null);
 

@@ -51,6 +51,113 @@ public class ChannelServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetDirectChannel_SelfDm_DoesNotReturnAnotherUsersDm()
+    {
+        // Regression for #1499: looking up a DM with yourself matched ANY dm
+        // channel you were in, opening a random other person's DM
+        var myId = _client.Me.Id;
+
+        // Seed a DM with a different user so the old buggy query has something
+        // to wrongly match
+        var otherUser = await _db.Users.FirstAsync(x => x.Id != myId);
+        var otherDm = await _channelService.GetDirectChannelByUsersAsync(myId, otherUser.Id, create: true);
+        Assert.NotNull(otherDm);
+
+        // A self-DM must not resolve to the DM with the other user
+        var selfDm = await _channelService.GetDirectChannelByUsersAsync(myId, myId, create: true);
+        Assert.NotNull(selfDm);
+        Assert.NotEqual(otherDm.Id, selfDm.Id);
+
+        // The self-DM must contain only me
+        var members = await _channelService.GetDirectChannelMembersAsync(selfDm.Id);
+        Assert.NotEmpty(members);
+        Assert.All(members, m => Assert.Equal(myId, m.Id));
+
+        // A second lookup returns the same channel instead of creating another
+        var selfDmAgain = await _channelService.GetDirectChannelByUsersAsync(myId, myId, create: true);
+        Assert.Equal(selfDm.Id, selfDmAgain.Id);
+
+        // The two-user lookup still returns the pair channel, not the self channel
+        var otherDmAgain = await _channelService.GetDirectChannelByUsersAsync(myId, otherUser.Id, create: true);
+        Assert.Equal(otherDm.Id, otherDmAgain.Id);
+    }
+
+    [Fact]
+    public async Task PlanetChannels_AreRegisteredInGlobalClientCache()
+    {
+        // Regression for #1501: channels loaded through a planet were only put
+        // in the per-planet store, never the global Client.Cache.Channels,
+        // breaking SDK consumers (bots) that look up channels client-wide
+        var planet = await _client.PlanetService.FetchPlanetAsync(_valourCentralId, skipCache: true);
+        Assert.NotNull(planet);
+
+        await planet.FetchChannelsAsync();
+        Assert.NotEmpty(planet.Channels);
+
+        foreach (var channel in planet.Channels)
+        {
+            Assert.True(_client.Cache.Channels.TryGet(channel.Id, out var cached),
+                $"Planet channel {channel.Id} missing from Client.Cache.Channels");
+            Assert.Same(channel, cached);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateRootCategory_NameAndDescriptionOnly_Succeeds()
+    {
+        // Regression for #1486/#1468 (fixed in v0.6.2): HasUniquePosition wasn't
+        // scoped to the planet, so editing any ROOT channel (categories have a
+        // null ParentId and share the same small RawPosition slots across
+        // planets) collided with another planet's root channel and always
+        // failed with "The position is already taken."
+        var owner = await _userService.GetAsync(_client.Me.Id);
+
+        // Seed a second planet so a cross-planet root-position collision
+        // deterministically exists
+        var otherPlanetResult = await _planetService.CreateAsync(new Planet
+        {
+            Name = "Collision Planet",
+            Description = "Planet whose root channels share position slots",
+            OwnerId = owner.Id
+        }, owner);
+        Assert.True(otherPlanetResult.Success, otherPlanetResult.Message);
+
+        try
+        {
+            var category = await _db.Channels
+                .Where(x => x.PlanetId == _valourCentralId &&
+                            x.ChannelType == ChannelTypeEnum.PlanetCategory &&
+                            x.ParentId == null)
+                .Select(x => x.ToModel())
+                .FirstOrDefaultAsync();
+
+            Assert.NotNull(category);
+
+            var oldName = category.Name;
+            var oldDesc = category.Description;
+            category.Name = $"Renamed {Guid.NewGuid():N}"[..16];
+            category.Description = "Updated description";
+
+            var result = await _channelService.UpdateAsync(category);
+            Assert.True(result.Success, result.Message);
+
+            var fromDb = await _db.Channels.AsNoTracking().FirstAsync(x => x.Id == category.Id);
+            Assert.Equal(category.Name, fromDb.Name);
+            Assert.Equal("Updated description", fromDb.Description);
+
+            // Restore
+            category.Name = oldName;
+            category.Description = oldDesc;
+            var restore = await _channelService.UpdateAsync(category);
+            Assert.True(restore.Success, restore.Message);
+        }
+        finally
+        {
+            await _planetService.DeleteAsync(otherPlanetResult.Data.Id);
+        }
+    }
+
+    [Fact]
     public async Task DescendantsOfTests()
     {
         var categories = await _db.Channels.Where(x => x.PlanetId == _valourCentralId &&

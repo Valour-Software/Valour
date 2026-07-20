@@ -202,16 +202,14 @@
             return;
         }
 
-        var hashIndex = _blockName.IndexOf('#');
-        if (hashIndex <= 0 || hashIndex >= _blockName.Length - 1)
+        if (!UserUtils.TrySplitNameAndTag(_blockName, out var blockUserName, out var blockUserTag))
         {
             _blockResult = new TaskResult(false, "Invalid format. Use username#tag (e.g. SpikeViper#a1b2).");
             return;
         }
 
-        // Split username#tag and look up via separate route parameters
-        var parts = _blockName.Split('#', 2);
-        var userResponse = await Client.PrimaryNode.GetJsonAsync<User>($"api/users/byNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}");
+        // Look up username#tag via separate route parameters
+        var userResponse = await Client.PrimaryNode.GetJsonAsync<User>($"api/users/byNameAndTag/{Uri.EscapeDataString(blockUserName)}/{Uri.EscapeDataString(blockUserTag)}");
         if (!userResponse.Success || userResponse.Data is null)
         {
             _blockResult = new TaskResult(false, $"User {_blockName} was not found.");

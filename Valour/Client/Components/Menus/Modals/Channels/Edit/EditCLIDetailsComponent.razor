@@ -58,7 +58,7 @@
                 // Restore old values on failure
                 Channel.Name = oldName;
                 Channel.Description = oldDesc;
-                _result = new TaskResult(false, "Failed to save changes. Try again?");
+                _result = new TaskResult(false, $"Failed to save changes: {result.Message}");
             }
             else
             {
