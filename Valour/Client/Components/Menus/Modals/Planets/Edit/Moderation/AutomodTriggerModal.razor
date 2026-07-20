@@ -151,6 +151,7 @@
                     <label>Role</label>
                     <CustomDropdown TItem="PlanetRole"
                                     Items="Data.Planet.Roles"
+                                    InitialItem="_selectedRole"
                                     SelectedItemChanged="OnRoleChanged"
                                     ItemTemplate="RoleFragments.RolePill"
                                     Placeholder="Select Role"
@@ -457,6 +458,7 @@
         };
         _duration = 0;
         _selectedRoleId = 0;
+        _selectedRole = null;
         _actionIsNew = true;
         _actionResult = null;
         _step = 3;
@@ -468,6 +470,9 @@
         _duration = _action.Expires.HasValue ?
             (int)Math.Ceiling((_action.Expires.Value - DateTime.UtcNow).TotalMinutes) : 0;
         _selectedRoleId = _action.RoleId ?? 0;
+        // Rebind the saved role so the dropdown shows it instead of the
+        // placeholder when reopening an existing action (#1477)
+        _selectedRole = Data.Planet.Roles.FirstOrDefault(r => r.Id == _selectedRoleId);
         _actionIsNew = false;
         _actionResult = null;
         _step = 3;
@@ -476,7 +481,7 @@
     private async Task OnSaveAction()
     {
         if (ShowRole)
-            _action.RoleId = _selectedRoleId;
+            _action.RoleId = _selectedRoleId != 0 ? _selectedRoleId : null;
         if (ShowExpires)
             _action.Expires = _duration > 0 ? DateTime.UtcNow.AddMinutes(_duration) : null;
 

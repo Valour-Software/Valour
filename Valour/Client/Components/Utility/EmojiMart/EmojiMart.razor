@@ -110,9 +110,17 @@
     /// </summary>
     public static async Task<List<EmojiClickEvent>> GetFrequentlyUsedAsync(IJSRuntime js, int maxResults = 6)
     {
-        var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
-        var results = await module.InvokeAsync<EmojiClickEvent[]>("getFrequent", maxResults);
-        return results?.ToList() ?? new();
+        try
+        {
+            var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+            var results = await module.InvokeAsync<EmojiClickEvent[]>("getFrequent", maxResults);
+            return results?.ToList() ?? new();
+        }
+        catch (JSException)
+        {
+            // Emoji library not loaded (e.g. CDN slow/blocked); show no quick reactions
+            return new();
+        }
     }
 
     /// <summary>
@@ -123,8 +131,15 @@
         if (string.IsNullOrWhiteSpace(emojiId))
             return;
 
-        var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
-        await module.InvokeVoidAsync("recordFrequent", emojiId);
+        try
+        {
+            var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+            await module.InvokeVoidAsync("recordFrequent", emojiId);
+        }
+        catch (JSException)
+        {
+            // Frequency tracking is best-effort; never crash the caller
+        }
     }
 
     public async Task SetCustomEmojisAsync(

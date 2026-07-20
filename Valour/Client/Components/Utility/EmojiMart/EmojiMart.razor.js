@@ -8,16 +8,16 @@ let dataInitPromise = null;
 // emoji-mart keeps a single global dataset shared by every picker and the search
 // index. It must be initialized exactly once, with the correct emoji set: spritesheet
 // sets (e.g. 'twitter') need the x/y coordinates that the 'native' dataset lacks.
-// Calling EmojiMart.init concurrently with picker construction races two fetches
+// Calling globalThis.EmojiMart.init concurrently with picker construction races two fetches
 // against each other and whichever resolves last wins, so callers must await this
 // before constructing a picker.
 function ensureDataInitialized(set = null) {
-    if (typeof EmojiMart?.init !== 'function') {
+    if (typeof globalThis.EmojiMart?.init !== 'function') {
         return null;
     }
 
     if (dataInitPromise === null) {
-        dataInitPromise = EmojiMart.init({ set: set ?? 'twitter' });
+        dataInitPromise = globalThis.EmojiMart.init({ set: set ?? 'twitter' });
     }
 
     return dataInitPromise;
@@ -213,7 +213,7 @@ function scheduleRenderPicker(state) {
 }
 
 async function renderPicker(state) {
-    if (typeof EmojiMart?.Picker !== 'function') {
+    if (typeof globalThis.EmojiMart?.Picker !== 'function') {
         if (state.renderAttempts < MAX_PICKER_RENDER_ATTEMPTS) {
             state.renderAttempts += 1;
             scheduleRenderPicker(state);
@@ -223,7 +223,7 @@ async function renderPicker(state) {
 
     state.renderAttempts = 0;
 
-    // The picker's own connectedCallback also calls EmojiMart.init with its props;
+    // The picker's own connectedCallback also calls globalThis.EmojiMart.init with its props;
     // awaiting here guarantees the dataset already exists by then, so that call takes
     // the cheap "already initialized" path instead of racing a second data fetch.
     await ensureDataInitialized(state.emojiSet);
@@ -283,7 +283,7 @@ async function renderPicker(state) {
         }
     }
 
-    const picker = new EmojiMart.Picker(pickerOptions);
+    const picker = new globalThis.EmojiMart.Picker(pickerOptions);
     wrapper.innerHTML = '';
     wrapper.appendChild(picker);
     state.picker = picker;
@@ -333,7 +333,7 @@ export async function search(query, maxResults = 10) {
     await ready;
 
     const cleanQuery = (query ?? '').trim().replace(/^:/, '');
-    if (!cleanQuery || !EmojiMart?.SearchIndex?.search) {
+    if (!cleanQuery || !globalThis.EmojiMart?.SearchIndex?.search) {
         return [];
     }
 
@@ -341,9 +341,9 @@ export async function search(query, maxResults = 10) {
         let results = [];
 
         try {
-            results = await EmojiMart.SearchIndex.search(cleanQuery, { maxResults });
+            results = await globalThis.EmojiMart.SearchIndex.search(cleanQuery, { maxResults });
         } catch (_) {
-            results = await EmojiMart.SearchIndex.search(cleanQuery);
+            results = await globalThis.EmojiMart.SearchIndex.search(cleanQuery);
         }
 
         if (!Array.isArray(results)) {
@@ -376,7 +376,7 @@ function readFrequentlyStore() {
 // padded with defaults when there isn't enough history.
 export async function getFrequent(maxResults = 6) {
     const ready = ensureDataInitialized();
-    if (ready === null || typeof EmojiMart?.SearchIndex?.get !== 'function') {
+    if (ready === null || typeof globalThis.EmojiMart?.SearchIndex?.get !== 'function') {
         return [];
     }
     await ready;
@@ -404,7 +404,7 @@ export async function getFrequent(maxResults = 6) {
         }
 
         try {
-            const emoji = await EmojiMart.SearchIndex.get(id);
+            const emoji = await globalThis.EmojiMart.SearchIndex.get(id);
             const normalized = normalizeNativeResult(emoji);
             if (normalized !== null) {
                 results.push(normalized);

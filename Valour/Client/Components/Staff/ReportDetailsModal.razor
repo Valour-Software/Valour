@@ -558,11 +558,10 @@
             $"Disabled while resolving report {Data.Report.Id}");
         if (!disableResult.Success)
         {
-            ToastContainer.Instance.AddToast(new ProgressToastData()
-            {
-                Message = $"Failed to disable user: {disableResult.Message}",
-                ProgressTask = Task.FromException(new Exception(disableResult.Message))
-            });
+            // Plain toast auto-dismisses; a ProgressToastData added via AddToast
+            // never closes because nothing awaits its ProgressTask (#1565)
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Error", $"Failed to disable user: {disableResult.Message}", ToastProgressState.Failure));
             _isSubmitting = false;
             StateHasChanged();
             return;
@@ -588,11 +587,10 @@
 
         if (!result.Success)
         {
-            ToastContainer.Instance.AddToast(new ProgressToastData()
-            {
-                Message = $"Failed to resolve report: {result.Message}",
-                ProgressTask = Task.FromException(new Exception(result.Message))
-            });
+            // Plain toast auto-dismisses; a ProgressToastData added via AddToast
+            // never closes because nothing awaits its ProgressTask (#1565)
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Error", $"Failed to resolve report: {result.Message}", ToastProgressState.Failure));
             StateHasChanged();
             return;
         }

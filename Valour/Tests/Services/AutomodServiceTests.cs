@@ -9,6 +9,7 @@ using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Staff;
+using Valour.Shared.Queries;
 
 namespace Valour.Tests.Services;
 
@@ -82,6 +83,53 @@ public class AutomodServiceTests : IAsyncLifetime
         }
 
         _scope.Dispose();
+    }
+
+    [Fact]
+    public async Task CreateTriggerWithActions_AddRoleAction_PersistsRoleId()
+    {
+        // Server-side contract behind #1477: the selected role of an
+        // AddRole/RemoveRole action must round-trip through create + reopen
+        var roleService = _scope.ServiceProvider.GetRequiredService<PlanetRoleService>();
+        var roleResult = await roleService.CreateAsync(new PlanetRole
+        {
+            Name = "Automod role",
+            PlanetId = _planet.Id,
+            Permissions = 0,
+            ChatPermissions = 0,
+            CategoryPermissions = 0,
+            VoicePermissions = 0
+        });
+        Assert.True(roleResult.Success, roleResult.Message);
+        var role = roleResult.Data!;
+
+        var trigger = new AutomodTrigger
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            Name = "Role trigger",
+            Type = AutomodTriggerType.Blacklist,
+            TriggerWords = "role-trigger-word"
+        };
+
+        var action = new AutomodAction
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            ActionType = AutomodActionType.AddRole,
+            RoleId = role.Id,
+            Strikes = 1,
+            UseGlobalStrikes = false
+        };
+
+        var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
+        Assert.True(createResult.Success, createResult.Message);
+
+        // The reopen path in the client loads actions via the query endpoint
+        var page = await _automodService.QueryTriggerActionsAsync(
+            _planet.Id, createResult.Data!.Id, new QueryRequest { Take = 10 });
+        var fetched = Assert.Single(page.Items);
+        Assert.Equal(role.Id, fetched.RoleId);
     }
 
     [Fact]

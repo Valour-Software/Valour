@@ -279,14 +279,14 @@
             {
                 case ModelsSetEvent<PlanetRole>:
                 {
-                    _displayedRoles = _planet.Roles.Where(x => x.HasPermission(PlanetPermissions.DisplayRole)).ToList();
+                    _displayedRoles = _planet.Roles.Where(x => x.HasDisplayRole).ToList();
                     return;
                 }
                 case ModelAddedEvent<PlanetRole> added:
                 {
                     var role = added.Model;
 
-                    if (role.HasPermission(PlanetPermissions.DisplayRole))
+                    if (role.HasDisplayRole)
                     {
                         _displayedRoleMembers[role.Id] = new();
                         _displayedRoles.Add(role);
@@ -301,7 +301,7 @@
 
                     if (_displayedRoleMembers.ContainsKey(role.Id))
                     {
-                        if (!role.HasPermission(PlanetPermissions.DisplayRole))
+                        if (!role.HasDisplayRole)
                         {
                             foreach (var member in _displayedRoleMembers[role.Id])
                             {
@@ -320,7 +320,7 @@
                     }
                     else
                     {
-                        if (role.HasPermission(PlanetPermissions.DisplayRole))
+                        if (role.HasDisplayRole)
                         {
                             _displayedRoleMembers[role.Id] = new();
                             _displayedRoles.Add(role);
@@ -404,7 +404,7 @@
                 continue;
 
             // Ensure role should be listed
-            if (!role.HasPermission(PlanetPermissions.DisplayRole))
+            if (!role.HasDisplayRole)
                 continue;
             
             // Member has role
@@ -468,7 +468,7 @@
 
                     Client.Logger.Log<MemberListComponent>($"Member list is updating to {planet.Name}", "cyan");
 
-                    _displayedRoles = _planet.Roles.Where(x => x.HasPermission(PlanetPermissions.DisplayRole)).ToList();
+                    _displayedRoles = _planet.Roles.Where(x => x.HasDisplayRole).ToList();
                     ClearForNewPlanet();
                 }
                 else

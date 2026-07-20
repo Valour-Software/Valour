@@ -183,7 +183,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     public PlanetRole GetDisplayedRoleAsync(bool refresh = false)
     {
         // Return first role that has the display role, or the last (default)
-        return Roles.FirstOrDefault(x => x.HasPermission(PlanetPermissions.DisplayRole));
+        return Roles.FirstOrDefault(x => x.HasDisplayRole);
     }
 
     /// <summary>

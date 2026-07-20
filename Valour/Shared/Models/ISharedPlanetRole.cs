@@ -86,9 +86,18 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     {
         if (role.IsAdmin)
             return true;
-        
+
         return Permission.HasPermission(role.Permissions, perm);
     }
+
+    /// <summary>
+    /// Display Role is a cosmetic flag, not an authorization grant, so the
+    /// admin bypass in HasPermission does not apply (#1510)
+    /// </summary>
+    public bool HasDisplayRole => GetHasDisplayRole(this);
+
+    public static bool GetHasDisplayRole(ISharedPlanetRole role) =>
+        (role.Permissions & PlanetPermissions.DisplayRole.Value) == PlanetPermissions.DisplayRole.Value;
 
     uint ISortable.GetSortPosition()
     {

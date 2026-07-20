@@ -307,29 +307,54 @@
             // Setup must run first: MessageWrapperEl only exists in the DOM
             // once _loading is false, so the JS init has to wait for it.
             await SetupNewChannelAsync();
-            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
-            _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
 
-            // Swipe-left-to-reply for touch devices. The :not() filters keep
-            // inner reply previews and ghost messages from being targets.
-            _touchSlide = new TouchSlide();
-            _touchSlide.SlideAction += OnMessageSwipeReply;
-            await _touchSlide.Initialize(MessageWrapperEl, ".message:not(.reply):not(.ghost)", JsRuntime);
+            // The window may have been closed while messages were loading;
+            // _thisRef is disposed then, and serializing it to JS throws
+            // ObjectDisposedException and crashes the app (#1554, #1566)
+            if (_disposed)
+                return;
 
-            // The notification path (TargetMessageId -> LoadAroundMessageAsync)
-            // wants to scroll before _jsService exists; it defers to here.
-            if (_pendingScrollToMessageId is not null)
+            try
             {
-                var target = _pendingScrollToMessageId.Value;
-                _pendingScrollToMessageId = null;
-                await ScrollToMessage(target, highlight: true);
-            }
-            else
-            {
-                await ScrollToBottom(true);
-            }
+                _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
+                if (_disposed)
+                    return;
 
-            await UpdateActiveViewingLeaseStateAsync();
+                _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
+                if (_disposed)
+                    return;
+
+                // Swipe-left-to-reply for touch devices. The :not() filters keep
+                // inner reply previews and ghost messages from being targets.
+                _touchSlide = new TouchSlide();
+                _touchSlide.SlideAction += OnMessageSwipeReply;
+                await _touchSlide.Initialize(MessageWrapperEl, ".message:not(.reply):not(.ghost)", JsRuntime);
+                if (_disposed)
+                    return;
+
+                // The notification path (TargetMessageId -> LoadAroundMessageAsync)
+                // wants to scroll before _jsService exists; it defers to here.
+                if (_pendingScrollToMessageId is not null)
+                {
+                    var target = _pendingScrollToMessageId.Value;
+                    _pendingScrollToMessageId = null;
+                    await ScrollToMessage(target, highlight: true);
+                }
+                else
+                {
+                    await ScrollToBottom(true);
+                }
+
+                await UpdateActiveViewingLeaseStateAsync();
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+            catch (JSDisconnectedException)
+            {
+                return;
+            }
         }
 
         if (_pendingReactionEmojiRefresh && !_loading && _reactionSelector is not null)

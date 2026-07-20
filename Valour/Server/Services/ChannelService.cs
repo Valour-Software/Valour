@@ -518,6 +518,12 @@ public class ChannelService
         if (old.AssociatedChatChannelId != updated.AssociatedChatChannelId)
             return TaskResult<Channel>.FromFailure("Cannot change AssociatedChatChannelId.");
 
+        // SetPrimaryChannelAsync maintains the single-default invariant; a raw
+        // update must not flip the flag (could leave a planet with no default,
+        // or two defaults)
+        if (old.IsDefault != updated.IsDefault)
+            return TaskResult<Channel>.FromFailure("Use the set primary channel endpoint to change the default channel.");
+
         // Channel parent is being changed
         if (old.ParentId != updated.ParentId)
         {

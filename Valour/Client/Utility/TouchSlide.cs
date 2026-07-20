@@ -20,6 +20,7 @@ public class TouchSlide : IAsyncDisposable
     private IJSObjectReference _jsModule;
     private IJSObjectReference _service;
     private DotNetObjectReference<TouchSlide> _dotnetRef;
+    private bool _disposed;
 
     public async Task Initialize(
         ElementReference container,
@@ -29,10 +30,32 @@ public class TouchSlide : IAsyncDisposable
         int maxSlide = 96,
         string iconHtml = "<i class=\"bi bi-reply-fill\"></i>")
     {
+        if (_disposed)
+            return;
+
         _dotnetRef = DotNetObjectReference.Create(this);
 
-        _jsModule = await runtime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ts/TouchSlide.js");
-        _service = await _jsModule.InvokeAsync<IJSObjectReference>("init", container, itemSelector, _dotnetRef, threshold, maxSlide, iconHtml);
+        try
+        {
+            _jsModule = await runtime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ts/TouchSlide.js");
+
+            // Owner may have been disposed while the import was in flight;
+            // serializing a disposed _dotnetRef throws ObjectDisposedException
+            if (_disposed)
+            {
+                if (_jsModule is not null)
+                {
+                    await _jsModule.DisposeAsync();
+                    _jsModule = null;
+                }
+                return;
+            }
+
+            _service = await _jsModule.InvokeAsync<IJSObjectReference>("init", container, itemSelector, _dotnetRef, threshold, maxSlide, iconHtml);
+        }
+        catch (ObjectDisposedException) { }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
     }
 
     [JSInvokable("OnSlideAction")]
@@ -44,6 +67,8 @@ public class TouchSlide : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+
         try
         {
             if (_service is not null)

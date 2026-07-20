@@ -158,6 +158,44 @@ public class ChannelServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task DefaultChannel_CanRename_CannotDelete_CannotFlipIsDefault()
+    {
+        // Regression for #1431: renaming the default channel must work, deleting
+        // it is intentionally blocked with a clear message, and IsDefault can't
+        // be flipped through a plain update (that would break the single-default
+        // invariant maintained by SetPrimaryChannelAsync)
+        var defaultChannel = await _db.Channels
+            .AsNoTracking()
+            .Where(x => x.PlanetId == _valourCentralId && x.IsDefault && !x.IsDeleted)
+            .Select(x => x.ToModel())
+            .FirstAsync();
+
+        // Rename works
+        var oldName = defaultChannel.Name;
+        defaultChannel.Name = $"Renamed {Guid.NewGuid():N}"[..16];
+        var rename = await _channelService.UpdateAsync(defaultChannel);
+        Assert.True(rename.Success, rename.Message);
+
+        var fromDb = await _db.Channels.AsNoTracking().FirstAsync(x => x.Id == defaultChannel.Id);
+        Assert.Equal(defaultChannel.Name, fromDb.Name);
+        Assert.True(fromDb.IsDefault);
+
+        // Restore name
+        defaultChannel.Name = oldName;
+        Assert.True((await _channelService.UpdateAsync(defaultChannel)).Success);
+
+        // Delete is blocked with a clear message
+        var del = await _channelService.DeletePlanetChannelAsync(_valourCentralId, defaultChannel.Id);
+        Assert.False(del.Success);
+        Assert.Contains("default", del.Message, StringComparison.OrdinalIgnoreCase);
+
+        // IsDefault cannot be changed via a plain update
+        defaultChannel.IsDefault = false;
+        var flip = await _channelService.UpdateAsync(defaultChannel);
+        Assert.False(flip.Success);
+    }
+
+    [Fact]
     public async Task DescendantsOfTests()
     {
         var categories = await _db.Channels.Where(x => x.PlanetId == _valourCentralId &&
