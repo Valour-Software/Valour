@@ -5,19 +5,19 @@
 /// </summary>
 public class NodeConfig
 {
-    public static NodeConfig Instance;
+    public static NodeConfig? Instance;
 
-    public string Key { get; set; }
+    public string? Key { get; set; }
     
     //#if DEBUG
     //public string Name => "debug-node";
     //#else
-    public string Name { get; set; }
+    public string? Name { get; set; }
     //#endif
     
     public bool LogInfo { get; set; }
 
-    public string Location { get; set; }
+    public string? Location { get; set; }
 
     /// <summary>
     /// IdGen worker id (0–1023). It needs to be distinct only among concurrent
@@ -54,7 +54,8 @@ public class NodeConfig
     public void ApplyKubeHostname(string name)
     {
         // Try to use nickname if we can find it
-        NicknameMap.TryGetValue(name, out name);
+        if (NicknameMap.TryGetValue(name, out var nickname))
+            name = nickname;
         
 #if !DEBUG
         this.Name = name;

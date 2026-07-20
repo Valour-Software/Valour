@@ -175,8 +175,8 @@
                     },
                     new MainMenu.MenuItem()
                     {
-                        Name = "Federation",
-                        Icon = "diagram-3-fill",
+                        Name = "Self-Hosting",
+                        Icon = "hdd-network-fill",
                         Description = "Move this planet to a community server",
                         Content = FederationContent
                     },
@@ -199,7 +199,7 @@
         if (Client.InstanceManifest?.Capabilities?.FederationHub != true ||
             Client.NodeService.GetKnownByPlanet(Data.Planet.Id)?.IsExternal == true)
         {
-            categories[0].Items.RemoveAll(x => x.Name == "Federation");
+            categories[0].Items.RemoveAll(x => x.Name == "Self-Hosting");
         }
 
         return categories;

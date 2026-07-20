@@ -222,14 +222,14 @@
         {
             Client.Logger.Log<ChatWindowComponent>("Cannot set up chat window because channel data is null.", "red");
             _loading = false;
-            ReRender();
+            await ReRender();
             return;
         }
 
         if (!_loading)
         {
             _loading = true;
-            ReRender();
+            await ReRender();
         }
 
         try
@@ -291,7 +291,7 @@
         if (InputComponent is not null)
             await InputComponent.NotifyChannelLoadedAsync();
 
-        ReRender();
+        await ReRender();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -730,7 +730,7 @@
         if (after is null || after.Count < 32)
             _isCaughtUp = true;
 
-        ReRender();
+        await ReRender();
 
         // Scroll to the target message and trigger highlight animation.
         // Uses instant scroll so it can't be interrupted by DOM changes.
@@ -780,7 +780,7 @@
         {
             //Console.WriteLine("Removed Queued Message");
             QueuedMessages.Remove(queued);
-            ReRender();
+            _ = ReRender();
         }
     }
 
@@ -790,7 +790,7 @@
         if (error != null) { 
             //Console.WriteLine("Removed error message");
             DisplayedMessages.Remove(error); 
-            ReRender();
+            _ = ReRender();
         }
     }
     
@@ -802,7 +802,7 @@
         _liveArrivalIds.Clear();
         
         if (render)
-            ReRender();
+            _ = ReRender();
     }
     
     public Message GetLastMessage()
@@ -897,7 +897,7 @@
 
         if (render)
         {
-            ReRender();
+            _ = ReRender();
         }
     }
 

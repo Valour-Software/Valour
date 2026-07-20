@@ -1,4 +1,4 @@
-#nullable enable
+#nullable enable annotations
 
 using Microsoft.Extensions.ObjectPool;
 using Valour.Server.Hubs;

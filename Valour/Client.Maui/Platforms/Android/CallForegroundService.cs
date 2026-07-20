@@ -19,7 +19,11 @@ public class CallForegroundService : Service
     {
         CreateNotificationChannel();
 
-        var notification = new Notification.Builder(this, ChannelId)
+        var builder = OperatingSystem.IsAndroidVersionAtLeast(26)
+            ? new Notification.Builder(this, ChannelId)
+            : new Notification.Builder(this);
+
+        var notification = builder
             .SetContentTitle("Valour")
             .SetContentText("Voice call in progress")
             .SetSmallIcon(Resource.Mipmap.appicon)
@@ -51,8 +55,12 @@ public class CallForegroundService : Service
         if (powerManager is null)
             return;
 
-        _wakeLock = powerManager.NewWakeLock(WakeLockFlags.Partial, "Valour::VoiceCall");
-        _wakeLock.Acquire();
+        var wakeLock = powerManager.NewWakeLock(WakeLockFlags.Partial, "Valour::VoiceCall");
+        if (wakeLock is null)
+            return;
+
+        wakeLock.Acquire();
+        _wakeLock = wakeLock;
     }
 
     private void ReleaseWakeLock()
@@ -68,7 +76,7 @@ public class CallForegroundService : Service
 
     private void CreateNotificationChannel()
     {
-        if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26))
             return;
 
         var channel = new NotificationChannel(ChannelId, "Voice Call", NotificationImportance.Low)

@@ -186,7 +186,7 @@ public class Planet : ISharedPlanet
 
     // Only to fulfill contract
     [NotMapped]
-    public new string NodeName { get; set; }
+    public string NodeName { get; set; }
 
     public static void SetupDbModel(ModelBuilder builder)
     {

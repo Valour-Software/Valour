@@ -737,9 +737,9 @@ public class PlanetSnapshotService
     private async Task<string> GenerateUniqueInviteCodeAsync(ISet<string> newCodes)
     {
         const string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        var code = new char[8];
         while (true)
         {
-            Span<char> code = stackalloc char[8];
             for (var i = 0; i < code.Length; i++)
                 code[i] = characters[RandomNumberGenerator.GetInt32(characters.Length)];
 

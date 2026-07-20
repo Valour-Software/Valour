@@ -654,7 +654,7 @@ public class AuthService : ServiceBase
         try
         {
             text = await result.Content.ReadAsStringAsync();
-        } catch (Exception ex)
+        } catch (Exception)
         {
             text = "Unknown error";
         }

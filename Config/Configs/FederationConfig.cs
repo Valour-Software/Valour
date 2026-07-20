@@ -9,7 +9,7 @@ namespace Valour.Config.Configs;
 /// </summary>
 public class FederationConfig
 {
-    public static FederationConfig Current;
+    public static FederationConfig? Current;
 
     public FederationConfig()
     {
@@ -25,19 +25,19 @@ public class FederationConfig
     /// <summary>
     /// Node mode: base URL of the hub this node trusts, e.g. "https://valour.gg".
     /// </summary>
-    public string HubUrl { get; set; }
+    public string? HubUrl { get; set; }
 
     /// <summary>
     /// Node mode: this node's public domain. Hub-minted tokens are only
     /// accepted when their audience equals this value.
     /// </summary>
-    public string NodeDomain { get; set; }
+    public string? NodeDomain { get; set; }
 
     /// <summary>
     /// Node mode: the verification challenge issued by the hub at
     /// registration. Served at /.well-known/valour-node until verified.
     /// </summary>
-    public string NodeChallenge { get; set; }
+    public string? NodeChallenge { get; set; }
 
     /// <summary>
     /// Node mode: explicitly opt in to accepting forward migrations from any

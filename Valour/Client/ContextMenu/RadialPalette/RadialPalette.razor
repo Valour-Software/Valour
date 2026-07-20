@@ -69,19 +69,19 @@
         Top = topPx;
         Left = leftPx;
         Right = rightPx;
-        ReRender();
+        _ = ReRender();
     }
 
     public void SetVisible(bool visible)
     {
         Show = visible;
-        ReRender();
+        _ = ReRender();
     }
     
     public void SetOptions(List<Option> options)
     {
         Options = options;
-        ReRender();
+        _ = ReRender();
     }
 
     private string ContainerPositionStyle

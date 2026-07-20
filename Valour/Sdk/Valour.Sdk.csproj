@@ -10,11 +10,12 @@
     <PackageTags>Valour, SDK, API, Messaging, Bots</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageIcon>logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
-    <Version>0.7.0</Version>
+    <Version>0.7.1</Version>
     <RootNamespace>Valour.Sdk</RootNamespace>
-    <Nullable>disable</Nullable>
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -32,6 +33,7 @@
 
   <ItemGroup>
     <None Include="logo.png" Pack="true" PackagePath="" />
+    <None Update="README.md" Pack="true" PackagePath="" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 

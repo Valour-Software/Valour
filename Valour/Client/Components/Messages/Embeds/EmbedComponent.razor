@@ -228,10 +228,9 @@
 							parent.Children.Add(item);
 							item.Init(embed, parent);
 							
-							// now rerender the item
-							if (EmbedRowComponents.ContainsKey(item.Id)) {
-								EmbedRowComponents[item.Id].Row = (EmbedRow)item;
-								EmbedRowComponents[item.Id].Refresh();
+								// now rerender the item
+								if (EmbedRowComponents.ContainsKey(item.Id)) {
+									EmbedRowComponents[item.Id].UpdateRow((EmbedRow)item);
 							}
 							else
 								Console.WriteLine($"Could not find embed row with id of {item.Id}");
@@ -266,9 +265,8 @@
 									}
 								}
 
-								if (EmbedRootItemComponents.ContainsKey(item.Id)) {
-									EmbedRootItemComponents[item.Id].item = item;
-									EmbedRootItemComponents[item.Id].Refresh();
+									if (EmbedRootItemComponents.ContainsKey(item.Id)) {
+										EmbedRootItemComponents[item.Id].UpdateItem(item);
 								}
 								else
 									Console.WriteLine($"Could not find embed item with id of {item.Id} (1st case)");

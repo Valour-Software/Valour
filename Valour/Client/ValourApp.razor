@@ -49,7 +49,7 @@ else
 }
 
 @code{
-    const bool USE_PROD = false;
+    private static readonly bool UseProd = false;
 
     private bool _triedInitialLogin;
     private bool _needsErrorReportingCheck;
@@ -123,7 +123,7 @@ else
 
         if (hostMode != "hybrid" && !isFallbackNativeLoopbackOrigin)
         {
-            if (!USE_PROD)
+            if (!UseProd)
             {
                 var apiOrigin = uriData.Origin;
                 try

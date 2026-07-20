@@ -20,12 +20,9 @@
     {
         // $(SHORTHASH) is replaced at build time with the short git hash, but if we're running in a development environment it will be empty, so we'll just return "dev" in that case
         // But the comparison would be replaced too, so we split it
-        if (Version.ShortHash == "$" + "(SHORTHASH)")
-        {
-            return "Dev";
-        }
-
-        return Version.ShortHash;
+        return string.Equals(Version.ShortHash, "$(SHORTHASH)", StringComparison.Ordinal)
+            ? "Dev"
+            : Version.ShortHash;
     }
     
     private void OnClickLogo()

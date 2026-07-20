@@ -121,13 +121,13 @@
             _result.Success = false;
             _result.Message = ex.Message;
             Console.WriteLine("Error loading planets: " + ex);
-            ReRender();
+            await ReRender();
         }
 
         if (DeviceInfo.IsMobile)
         {
             _mobileTag = "mobile";
-            ReRender();
+            await ReRender();
         }
     }
 
@@ -167,7 +167,7 @@
         
         _planetGrid?.SetPlanets(_filteredPlanets);
         
-        ReRender();
+        await ReRender();
     }
 
 
@@ -192,7 +192,7 @@
         if (_planetCarousel != null)
             await _planetCarousel.Reset();
 
-        ReRender();
+        await ReRender();
     }
 
     private async Task OnSearchChanged(string searchTerm)

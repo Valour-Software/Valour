@@ -1,4 +1,4 @@
-﻿#nullable  enable
+﻿#nullable enable annotations
 
 using System.Text.RegularExpressions;
 using Valour.Server.Database;

@@ -59,7 +59,7 @@ public class FederationInviteService
         string publicJwk)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<FederationPassportResponse>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<FederationPassportResponse>.FromFailure("Community-server features are only available on the official server.");
 
         if (!IsValidClientPublicJwk(publicJwk))
             return TaskResult<FederationPassportResponse>.FromFailure("A P-256 client public key is required.");
@@ -102,7 +102,7 @@ public class FederationInviteService
         FederatedInviteGrantCreateRequest request)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<FederatedInviteGrantResponse>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<FederatedInviteGrantResponse>.FromFailure("Community-server features are only available on the official server.");
 
         if (request is null || request.PlanetId <= 0 || request.IntendedUserId <= 0)
             return TaskResult<FederatedInviteGrantResponse>.FromFailure("Planet and recipient are required.");
@@ -186,7 +186,7 @@ public class FederationInviteService
     public async Task<TaskResult> RevokeAsync(long creatorUserId, string grantId)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         var grant = await _db.FederatedInviteGrants.FindAsync(grantId);
         if (grant is null)

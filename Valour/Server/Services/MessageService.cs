@@ -1,4 +1,4 @@
-#nullable enable
+#nullable enable annotations
 
 using System.Text.Json;
 using Valour.Sdk.Models.Messages.Embeds;

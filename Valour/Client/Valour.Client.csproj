@@ -3,6 +3,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <ImplicitUsings>true</ImplicitUsings>
+    <Nullable>annotations</Nullable>
     <DebugType>portable</DebugType>
     <WasmEnableSIMD>false</WasmEnableSIMD>
     <WasmBuildNative>true</WasmBuildNative>
@@ -36,6 +37,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- This build-only file must stay Content for the TypeScript target, but never ships in a native app bundle. -->
+    <Content Update="tsconfig.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
     <TypeScriptCompile Remove="Components\Menus\Modals\Users\Edit\EditWalletComponent.razor.ts" />
   </ItemGroup>

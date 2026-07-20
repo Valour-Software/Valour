@@ -24,7 +24,7 @@ public class FederationJoinService
     public async Task<TaskResult> AcceptDomainAsync(long userId, string domain)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         domain = FederationHubService.NormalizeDomain(domain);
         if (domain is null)
@@ -116,7 +116,7 @@ public class FederationJoinService
     public async Task<TaskResult<FederatedPlanetLocation>> JoinAsync(long userId, long planetId)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<FederatedPlanetLocation>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<FederatedPlanetLocation>.FromFailure("Community-server features are only available on the official server.");
 
         var stub = await _db.FederatedPlanetStubs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == planetId);
         if (stub is null)
@@ -157,7 +157,7 @@ public class FederationJoinService
     public async Task<TaskResult> LeaveAsync(long userId, long planetId)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         var membership = await _db.FederatedMemberships
             .FirstOrDefaultAsync(x => x.UserId == userId && x.PlanetId == planetId);

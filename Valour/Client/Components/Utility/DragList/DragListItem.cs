@@ -36,7 +36,7 @@ public abstract class DragListItem
             Open = !Open;
             
             // Re-render drag list
-            DragList.ReRender();
+            _ = DragList.ReRender();
         }
 
         return Task.CompletedTask;

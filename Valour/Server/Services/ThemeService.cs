@@ -254,7 +254,7 @@ public class ThemeService
         catch (Exception e)
         {
             await trans.RollbackAsync();
-            _logger.LogError("Failed to update theme", e);
+            _logger.LogError(e, "Failed to update theme");
             return TaskResult<Theme>.FromFailure("An error occured updating theme in the database.");
         }
     }
@@ -305,7 +305,7 @@ public class ThemeService
         catch (Exception e)
         {
             await transaction.RollbackAsync();
-            _logger.LogError("Failed to create theme", e);
+            _logger.LogError(e, "Failed to create theme");
             return TaskResult<Theme>.FromFailure("An error occured saving theme to the database.");
         }
     }
@@ -334,7 +334,7 @@ public class ThemeService
         catch (Exception e)
         {
             await trans.RollbackAsync();
-            _logger.LogError("Failed to delete theme", e);
+            _logger.LogError(e, "Failed to delete theme");
             return TaskResult.FromFailure("An error occured removing theme from the database.");
         }
     }
@@ -390,7 +390,7 @@ public class ThemeService
         catch (Exception e)
         {
             await trans.RollbackAsync();
-            _logger.LogError("Failed to create theme vote", e);
+            _logger.LogError(e, "Failed to create theme vote");
             return TaskResult<ThemeVote>.FromFailure("An error occured saving vote to the database.");
         }
     }
@@ -422,7 +422,7 @@ public class ThemeService
         {
             await trans.RollbackAsync();
             
-            _logger.LogError("Failed to delete theme vote", e);
+            _logger.LogError(e, "Failed to delete theme vote");
             return TaskResult.FromFailure("An error occured removing vote from the database.");
         }
     }

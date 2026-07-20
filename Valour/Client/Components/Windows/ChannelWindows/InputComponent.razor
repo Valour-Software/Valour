@@ -8,7 +8,6 @@
 @using Valour.Client.Emojis
 @using Valour.Shared.Cdn
 @using Valour.Shared.Models
-@using Valour.Shared.Models
 
 <InputFile id="@DropUploadInputId" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" onclick="this.value='';" OnChange="@LoadFiles"></InputFile>
 
@@ -892,7 +891,7 @@
     {
         PreviewMessage.ReplyToId = null;
         PreviewMessageComponent.ParamData.Message.ReplyTo = null;
-        PreviewMessageComponent.ReRender();
+        _ = PreviewMessageComponent.ReRender();
         return Task.CompletedTask;
     }
 
@@ -928,7 +927,7 @@
             
             PreviewMessageComponent.ParamData.Message.ReplyTo = null;
             PreviewMessage.Clear();
-            PreviewMessageComponent.ReRender();
+            await PreviewMessageComponent.ReRender();
             _retainedInputCache.Remove(ChatComponent.Channel.Id, out _);
         }
         // Editing message

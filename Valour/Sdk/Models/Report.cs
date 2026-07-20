@@ -8,11 +8,6 @@ namespace Valour.Sdk.Models;
 public class Report : ClientModel<Report, string>, ISharedReport
 {
     /// <summary>
-    /// Guid Id of the report
-    /// </summary>
-    public string Id { get; set; }
-    
-    /// <summary>
     /// The time the report was created
     /// </summary>
     public DateTime TimeCreated { get; set; }

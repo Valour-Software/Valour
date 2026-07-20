@@ -30,6 +30,10 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
+        <!-- The .NET 11 preview WebView package references an unpublished
+             intermediate ASP.NET Core build; NuGet correctly resolves the SDK
+             build that contains the required assemblies. -->
+        <NoWarn>$(NoWarn);NU1603;IL6001</NoWarn>
 
         <!-- Enable XAML source generation for faster build times and improved performance.
              This generates C# code from XAML at compile time instead of runtime inflation.
@@ -46,8 +50,8 @@
         <ApplicationId>gg.valour.app</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.7.0</ApplicationDisplayVersion>
-        <ApplicationVersion>72</ApplicationVersion>
+        <ApplicationDisplayVersion>0.7.1</ApplicationDisplayVersion>
+        <ApplicationVersion>73</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
@@ -106,7 +110,13 @@
         <PackageReference Include="Plugin.Firebase.CloudMessaging" Version="3.1.1" />
         <PackageReference Include="Xamarin.GooglePlayServices.Base" Version="118.9.0" />
         <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.9.0" />
+        <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.10.0.2" />
         <GoogleServicesJson Include="Platforms\Android\google-services.json" Condition="Exists('Platforms\Android\google-services.json')" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Remove="Platforms\Android\google-services.json" />
+        <None Remove="Platforms\Android\google-services.json" />
     </ItemGroup>
 
     <ItemGroup>

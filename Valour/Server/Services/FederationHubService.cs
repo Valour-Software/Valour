@@ -229,7 +229,7 @@ public class FederationHubService
         FederatedMigrationHostingApprovalRequest request)
     {
         if (!HubEnabled)
-            return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure("Community-server features are only available on the official server.");
 
         domain = NormalizeDomain(domain);
         if (domain is null || request is null || request.OwnerId <= 0 || request.PlanetId < 0)
@@ -274,7 +274,7 @@ public class FederationHubService
         string domain)
     {
         if (!HubEnabled)
-            return TaskResult<List<FederatedMigrationHostingApprovalResponse>>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<List<FederatedMigrationHostingApprovalResponse>>.FromFailure("Community-server features are only available on the official server.");
 
         domain = NormalizeDomain(domain);
         var node = await _db.FederatedNodes.AsNoTracking().FirstOrDefaultAsync(x => x.Domain == domain);
@@ -305,7 +305,7 @@ public class FederationHubService
         long planetId)
     {
         if (!HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         domain = NormalizeDomain(domain);
         if (domain is null || ownerId <= 0 || planetId < 0)

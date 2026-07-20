@@ -336,7 +336,7 @@ public class ChannelApi
         {
             await typingService.AddCurrentlyTyping(channelId, token.UserId);
         } 
-        catch (Exception ex)
+        catch (Exception)
         {
             return ValourResult.Problem("Failed to update typing state");
         }

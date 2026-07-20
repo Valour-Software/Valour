@@ -1,4 +1,4 @@
-#nullable enable
+#nullable enable annotations
 
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Utilities;

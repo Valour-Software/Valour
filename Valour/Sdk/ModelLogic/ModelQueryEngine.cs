@@ -14,7 +14,7 @@ public interface IModelQueryEngine<TModel>
     public Task<IReadOnlyList<TModel>> NextPageAsync();
     public Task<IReadOnlyList<TModel>> PreviousPageAsync();
     public Task<IReadOnlyList<TModel>> RefreshCurrentPageAsync();
-    public Task<TModel> GetAtIndexAsync(int index);
+    public Task<TModel?> GetAtIndexAsync(int index);
     public Task<int> GetTotalCountAsync();
 }
 
@@ -153,7 +153,7 @@ public class ModelQueryEngine<TModel> : IModelQueryEngine<TModel>, IAsyncEnumera
 
     // --- Random Access API ---
 
-    public async Task<TModel> GetAtIndexAsync(int index)
+    public async Task<TModel?> GetAtIndexAsync(int index)
     {
         var resp = await GetItemsAsync(index, 1);
         return resp.Items.FirstOrDefault();
@@ -215,7 +215,7 @@ public class ModelQueryEngine<TModel> : IModelQueryEngine<TModel>, IAsyncEnumera
         private readonly CancellationToken _ct;
         private int _index = 0;
         private int _total = -1;
-        private TModel _current;
+        private TModel? _current;
 
         public SlidingCacheEnumerator(ModelQueryEngine<TModel> engine, CancellationToken ct)
         {
@@ -223,7 +223,8 @@ public class ModelQueryEngine<TModel> : IModelQueryEngine<TModel>, IAsyncEnumera
             _ct = ct;
         }
 
-        public TModel Current => _current;
+        public TModel Current => _current ?? throw new InvalidOperationException(
+            "The enumerator has not advanced to an item.");
 
         public async ValueTask<bool> MoveNextAsync()
         {

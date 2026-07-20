@@ -1,4 +1,4 @@
-﻿#nullable enable
+﻿#nullable enable annotations
 
 using Valour.Server.Database;
 using Valour.Shared;
@@ -326,7 +326,7 @@ public class ChannelService
     /// <summary>
     /// Creates the given channel
     /// </summary>
-    public async Task<TaskResult<Channel>> CreateAsync(Channel channel, List<PermissionsNode> nodes = null)
+    public async Task<TaskResult<Channel>> CreateAsync(Channel channel, List<PermissionsNode>? nodes = null)
     {
         var baseValid = await ValidateChannel(channel);
         if (!baseValid.Success)
@@ -1309,7 +1309,7 @@ public class ChannelService
             
             _coreHub.NotifyChannelsMoved(eventData);
         }
-        catch (Exception e)
+        catch (Exception)
         {
             await trans.RollbackAsync();
             return TaskResult.FromFailure("An unexpected error occured.");

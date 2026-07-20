@@ -29,7 +29,11 @@
     </div>
     <div class="planet-info">
         <div class="planet-tags">
-            <ValourPill Variant="solid" Tone="neutral" Class="member-count-tag">
+            @* Community-hosted counts are self-reported by the node; ranking
+               uses hub-verified joins instead, but the display is honest about
+               where this number comes from. *@
+            <ValourPill Variant="solid" Tone="neutral" Class="member-count-tag"
+                        Title="@(string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain) ? null : $"As reported by {PlanetInfo.NodeDomain} — not verified by Valour")">
                 <strong>@PlanetInfo.MemberCount Members</strong>
             </ValourPill>
             @if (!string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain))

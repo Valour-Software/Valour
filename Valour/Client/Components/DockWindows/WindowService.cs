@@ -86,7 +86,7 @@ public static class WindowService
     {
         foreach (var dock in Docks)
         {
-            dock.Reset(false);
+            _ = dock.Reset(false);
         }
         
         // Handle this ourselves to avoid multiple calls to NotifyDockLayoutUpdated

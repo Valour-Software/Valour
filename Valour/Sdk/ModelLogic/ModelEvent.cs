@@ -35,13 +35,13 @@ public readonly struct ModelAddedEvent<TModel> : IModelInsertionEvent<TModel>
 public class ModelUpdatedEvent<TModel> : IModelInsertionEvent<TModel>, IDisposable
     where TModel : ClientModel
 {
-    public ModelChange<TModel> Changes;
+    public ModelChange<TModel>? Changes;
     public PositionChange? PositionChange;
     public readonly TModel Model;
     
     public TModel GetModel() => Model;
     
-    public ModelUpdatedEvent(TModel model, ModelChange<TModel> changes, PositionChange? positionChange = null)
+    public ModelUpdatedEvent(TModel model, ModelChange<TModel>? changes, PositionChange? positionChange = null)
     {
         Model = model;
         Changes = changes;

@@ -41,7 +41,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     // official network continues to use the existing unscoped fast path.
     protected readonly Dictionary<ModelStoreKey, TModel> IdMap;
 
-    protected readonly record struct ModelStoreKey(TId Id, string Scope);
+    protected readonly record struct ModelStoreKey(TId Id, string? Scope);
 
     /// <summary>
     /// Lock object for thread-safe access to List and IdMap.
@@ -103,7 +103,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     
     protected virtual ModelUpdatedEvent<TModel> HandleChanges(TModel existing, TModel updated)
     {
-        Dictionary<string, object> changes = null;
+        Dictionary<string, object>? changes = null;
         
         var type = existing.GetType();
         var properties = ModelUpdateUtils.ModelPropertyCache[type];
@@ -145,26 +145,27 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     /// Inserts a model under an origin scope. Scoped identifiers are used for
     /// local objects received from federated community nodes.
     /// </summary>
-    public TModel? Put(TModel model, ModelInsertFlags flags, string scope)
+    public TModel? Put(TModel model, ModelInsertFlags flags, string? scope)
     {
         var result = PutInternal(model, flags, scope);
         return result?.GetModel();
     }
     
-    protected virtual IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags, string scope)
+    protected virtual IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags, string? scope)
     {
         if (model is null)
             return null;
 
         IModelInsertionEvent<TModel>? result;
         bool isUpdate;
-        TModel existing;
+        TModel? existing = null;
 
         lock (SyncLock)
         {
             var key = new ModelStoreKey(model.Id, scope);
-            if (IdMap.TryGetValue(key, out existing))
+            if (IdMap.TryGetValue(key, out var existingModel))
             {
+                existing = existingModel;
                 isUpdate = true;
                 // Apply changes while holding lock
                 var modelEventData = HandleChanges(existing, model);
@@ -189,7 +190,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         // Fire events outside lock to prevent deadlocks
         if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
         {
-            if (isUpdate)
+            if (isUpdate && existing is not null)
             {
                 var updateEvent = (ModelUpdatedEvent<TModel>)result;
                 existing.InvokeUpdatedEvent(updateEvent);
@@ -211,7 +212,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         return Remove(item.Id, null, skipEvent);
     }
 
-    public TModel? Remove(TModel item, string scope, bool skipEvent = false)
+    public TModel? Remove(TModel item, string? scope, bool skipEvent = false)
     {
         return Remove(item.Id, scope, skipEvent);
     }
@@ -221,9 +222,9 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         return Remove(id, null, skipEvent);
     }
 
-    public TModel? Remove(TId id, string scope, bool skipEvent = false)
+    public TModel? Remove(TId id, string? scope, bool skipEvent = false)
     {
-        TModel item;
+        TModel? item = null;
 
         lock (SyncLock)
         {
@@ -237,6 +238,9 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             var index = List.FindIndex(x => ReferenceEquals(x, item));
             List.RemoveAt(index);
         }
+
+        if (item is null)
+            return null;
 
         // Fire events outside lock to prevent deadlocks
         if (!skipEvent)
@@ -296,7 +300,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         return TryGet(id, null, out item);
     }
 
-    public bool TryGet(TId id, string scope, out TModel? item)
+    public bool TryGet(TId id, string? scope, out TModel? item)
     {
         lock (SyncLock)
         {
@@ -309,7 +313,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         return Get(id, null);
     }
 
-    public TModel? Get(TId id, string scope)
+    public TModel? Get(TId id, string? scope)
     {
         lock (SyncLock)
         {
@@ -407,7 +411,7 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
         return baseResult;
     }
 
-    protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags, string scope)
+    protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags, string? scope)
     {
         // Always skip events in base - we'll fire them after repositioning
         var baseFlags = flags | ModelInsertFlags.SkipEvents;

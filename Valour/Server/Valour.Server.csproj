@@ -5,6 +5,7 @@
     <LangVersion>preview</LangVersion>
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <ImplicitUsings>true</ImplicitUsings>
+    <Nullable>annotations</Nullable>
     <DebugType>embedded</DebugType>
     <RazorCompileOnBuild>true</RazorCompileOnBuild>
     <RazorCompileOnPublish>true</RazorCompileOnPublish>

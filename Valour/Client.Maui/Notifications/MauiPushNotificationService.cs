@@ -246,8 +246,13 @@ public class MauiPushNotificationService : IPushNotificationService
     {
 #if ANDROID
         var context = Platform.CurrentActivity ?? Platform.AppContext;
-        var intent = new Android.Content.Intent(Android.Provider.Settings.ActionAppNotificationSettings);
-        intent.PutExtra(Android.Provider.Settings.ExtraAppPackage, context.PackageName);
+        var intent = OperatingSystem.IsAndroidVersionAtLeast(26)
+            ? new Android.Content.Intent(Android.Provider.Settings.ActionAppNotificationSettings)
+            : new Android.Content.Intent(Android.Provider.Settings.ActionSettings);
+
+        if (OperatingSystem.IsAndroidVersionAtLeast(26))
+            intent.PutExtra(Android.Provider.Settings.ExtraAppPackage, context.PackageName);
+
         intent.AddFlags(Android.Content.ActivityFlags.NewTask);
         context.StartActivity(intent);
 #endif

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
+    <Nullable>annotations</Nullable>
     <Company>Valour Software</Company>
     <Product>Valour Shared Library</Product>
     <Authors>The Valour Team</Authors>
@@ -9,9 +10,10 @@
     <PackageTags>Valour, API, Messaging, Bots</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageIcon>logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
-    <Version>0.7.0</Version>
+    <Version>0.7.1</Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -20,6 +22,7 @@
 
   <ItemGroup>
     <None Include="logo.png" Pack="true" PackagePath="" />
+    <None Update="README.md" Pack="true" PackagePath="" />
     <SupportedPlatform Include="browser" />
   </ItemGroup>
 

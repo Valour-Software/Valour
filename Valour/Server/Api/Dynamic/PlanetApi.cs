@@ -1,4 +1,4 @@
-#nullable enable
+#nullable enable annotations
 
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database;
@@ -680,7 +680,7 @@ public class PlanetApi
         PlanetMemberService memberService,
         PlanetService planetService,
         PlanetInviteService inviteService,
-        string inviteCode = null)
+        string? inviteCode = null)
     {
         var user = await userService.GetCurrentUserAsync();
         var planet = await planetService.GetAsync(id);

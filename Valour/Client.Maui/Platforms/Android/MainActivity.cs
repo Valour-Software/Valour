@@ -21,7 +21,7 @@ public class MainActivity : MauiAppCompatActivity
 {
     private static bool _notificationTapHooked;
 
-    protected override void OnCreate(Bundle savedInstanceState)
+    protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
 
@@ -112,7 +112,7 @@ public class MainActivity : MauiAppCompatActivity
 
     private void CreateNotificationChannel()
     {
-        if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26))
             return;
 
         var channel = new NotificationChannel(
@@ -176,12 +176,18 @@ public class MainActivity : MauiAppCompatActivity
     {
         public WindowInsetsCompat OnApplyWindowInsets(Android.Views.View? view, WindowInsetsCompat? insets)
         {
-            if (view is null || insets is null)
-                return insets ?? new WindowInsetsCompat.Builder().Build();
+            if (view is null)
+                return insets ?? CreateEmptyInsets();
+
+            if (insets is null)
+                return CreateEmptyInsets();
 
             view.SetBackgroundColor(Android.Graphics.Color.Black);
 
             var bars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
+            if (bars is null)
+                return insets;
+
             view.SetPadding(bars.Left, bars.Top, bars.Right, bars.Bottom);
 
             // Force white icons on the black bars — done here because
@@ -190,11 +196,18 @@ public class MainActivity : MauiAppCompatActivity
             if (window is not null)
             {
                 var controller = WindowCompat.GetInsetsController(window, window.DecorView);
-                controller.AppearanceLightStatusBars = false;
-                controller.AppearanceLightNavigationBars = false;
+                if (controller is not null)
+                {
+                    controller.AppearanceLightStatusBars = false;
+                    controller.AppearanceLightNavigationBars = false;
+                }
             }
 
             return insets;
         }
+
+        private static WindowInsetsCompat CreateEmptyInsets() =>
+            new WindowInsetsCompat.Builder().Build()
+            ?? throw new InvalidOperationException("Unable to create empty window insets.");
     }
 }

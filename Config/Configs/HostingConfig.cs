@@ -7,7 +7,7 @@ namespace Valour.Config.Configs;
 /// </summary>
 public class HostingConfig
 {
-    public static HostingConfig Current;
+    public static HostingConfig? Current;
 
     public HostingConfig()
     {

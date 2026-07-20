@@ -12,7 +12,7 @@ namespace Valour.Config.Configs;
 /// </summary>
 public class VoiceConfig
 {
-    public static VoiceConfig Current;
+    public static VoiceConfig? Current;
 
     public VoiceConfig()
     {

@@ -16,7 +16,6 @@
     private ElementBounds? _triggerBounds;
     
     private ElementPosition? _tooltipPosition;
-    private bool _boundsCalculated = false;
 
     // Initially positioned off-screen until we calculate the proper position
     private string TooltipStyles => _tooltipPosition is null
@@ -61,7 +60,7 @@
         _shown = true;
         
         // First render to make the tooltip visible so we can measure it
-        ReRender();
+        await ReRender();
         
         // Small delay to ensure DOM is ready
         await Task.Delay(10);
@@ -83,7 +82,7 @@
         }
 
         _shown = false;
-        ReRender();
+        await ReRender();
 
         await Task.Delay(150); // Wait for the fade-out animation
 
@@ -103,7 +102,6 @@
             // Get actual tooltip content bounds after it's rendered
             _contentBounds = await BrowserUtils.GetElementBoundingRectAsync(_tooltipReference);
             
-            _boundsCalculated = true;
         }
         catch
         {
@@ -131,7 +129,7 @@
         
         // Console.WriteLine($"Final position: {_tooltipPosition?.X},{_tooltipPosition?.Y}");
         
-        ReRender();
+        _ = ReRender();
     }
     
     const double TooltipMargin = 8; // Space between trigger and tooltip

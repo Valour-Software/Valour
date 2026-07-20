@@ -30,6 +30,12 @@
 		StateHasChanged();
 	}
 
+	public void UpdateRow(EmbedRow row)
+	{
+		Row = row;
+		Refresh();
+	}
+
 	public void Dispose()
 	{
 		embedComponent.RefreshRowComponents -= Refresh;

@@ -28,8 +28,8 @@ public interface ISharedPushNotificationSubscription
     /// </summary>
     public string Endpoint { get; set; }
     
-    public string Key { get; set; }
-    public string Auth { get; set; }
+    public string? Key { get; set; }
+    public string? Auth { get; set; }
     
     /// <summary>
     /// When this subscription expires

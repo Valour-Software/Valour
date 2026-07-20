@@ -85,11 +85,22 @@ public sealed class KekXmlEncryptor : IXmlEncryptor
     }
 }
 
-/// <summary>AES-GCM unwrap; DI-activated by Data Protection when reading keys.</summary>
+/// <summary>
+/// AES-GCM unwrap. Data Protection activates decryptors via reflection and can
+/// only call a parameterless ctor or ctor(IServiceProvider) — it does NOT do
+/// general constructor injection — so the KEK provider must be resolved from
+/// the service provider by hand. Without the IServiceProvider ctor, every read
+/// of a KEK-wrapped key ring fails with MissingMethodException and the ring
+/// (and everything protected under it) becomes unrecoverable.
+/// </summary>
 public sealed class KekXmlDecryptor : IXmlDecryptor
 {
     private readonly DataProtectionKekProvider _kek;
+
     public KekXmlDecryptor(DataProtectionKekProvider kek) => _kek = kek;
+
+    public KekXmlDecryptor(IServiceProvider services)
+        : this(services?.GetService(typeof(DataProtectionKekProvider)) as DataProtectionKekProvider) { }
 
     public XElement Decrypt(XElement encryptedElement)
     {

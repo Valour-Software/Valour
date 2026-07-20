@@ -26,7 +26,7 @@ public class FederationPlanetRegistryService
     public async Task<TaskResult<FederatedPlanetStubResponse>> ReserveAsync(string nodeDomain, FederatedPlanetStubRequest request)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<FederatedPlanetStubResponse>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<FederatedPlanetStubResponse>.FromFailure("Community-server features are only available on the official server.");
 
         if (request is null)
             return TaskResult<FederatedPlanetStubResponse>.FromFailure("Include request in body.");
@@ -52,7 +52,7 @@ public class FederationPlanetRegistryService
     public async Task<TaskResult<FederatedPlanetStubResponse>> AdoptAsync(string nodeDomain, long id, FederatedPlanetStubRequest request)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<FederatedPlanetStubResponse>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<FederatedPlanetStubResponse>.FromFailure("Community-server features are only available on the official server.");
 
         if (request is null)
             return TaskResult<FederatedPlanetStubResponse>.FromFailure("Include request in body.");
@@ -104,7 +104,7 @@ public class FederationPlanetRegistryService
     public async Task<TaskResult<FederatedPlanetStubResponse>> UpsertAsync(string nodeDomain, long id, FederatedPlanetStubRequest request)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<FederatedPlanetStubResponse>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<FederatedPlanetStubResponse>.FromFailure("Community-server features are only available on the official server.");
 
         if (request is null)
             return TaskResult<FederatedPlanetStubResponse>.FromFailure("Include request in body.");
@@ -135,7 +135,7 @@ public class FederationPlanetRegistryService
     public async Task<TaskResult> DeleteAsync(string nodeDomain, long id)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         var stub = await _db.FederatedPlanetStubs.FindAsync(id);
         if (stub is null)

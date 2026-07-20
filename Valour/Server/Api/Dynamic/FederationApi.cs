@@ -17,7 +17,7 @@ public class FederationApi
     public static async Task<IResult> GetJwksRoute(FederationKeyService keyService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var jwks = await keyService.GetJwksJsonAsync();
         return Results.Content(jwks, "application/json");
@@ -31,7 +31,7 @@ public class FederationApi
         UserService userService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var user = await userService.GetCurrentUserAsync();
 
@@ -50,7 +50,7 @@ public class FederationApi
         UserService userService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var user = await userService.GetCurrentUserAsync();
 
@@ -68,7 +68,7 @@ public class FederationApi
     public static async Task<IResult> SuspendNodeRoute(string domain, FederationHubService hubService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var result = await hubService.SetNodeSuspendedAsync(domain, true);
         if (!result.Success)
@@ -84,7 +84,7 @@ public class FederationApi
     public static async Task<IResult> UnsuspendNodeRoute(string domain, FederationHubService hubService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var result = await hubService.SetNodeSuspendedAsync(domain, false);
         if (!result.Success)
@@ -101,7 +101,7 @@ public class FederationApi
         UserService userService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var user = await userService.GetCurrentUserAsync();
 
@@ -119,7 +119,7 @@ public class FederationApi
         UserService userService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         return Results.Json(await hubService.GetNodesAsync(await userService.GetCurrentUserIdAsync()));
     }
@@ -175,7 +175,7 @@ public class FederationApi
         UserService userService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var user = await userService.GetCurrentUserAsync();
 
@@ -198,7 +198,7 @@ public class FederationApi
         UserService userService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var user = await userService.GetCurrentUserAsync();
         var result = await inviteService.MintPassportAsync(user, request?.PublicJwk);
@@ -334,7 +334,7 @@ public class FederationApi
         UserService userService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var user = await userService.GetCurrentUserAsync();
         var result = await inviteService.CreateAsync(user.Id, request);
@@ -349,7 +349,7 @@ public class FederationApi
         UserService userService)
     {
         if (!FederationHubService.HubEnabled)
-            return ValourResult.NotFound("This instance is not a federation hub.");
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
 
         var user = await userService.GetCurrentUserAsync();
         var result = await inviteService.RevokeAsync(user.Id, grantId);

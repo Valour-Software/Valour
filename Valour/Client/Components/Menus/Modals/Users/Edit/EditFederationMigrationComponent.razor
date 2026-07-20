@@ -259,7 +259,7 @@
         }
         else if (_migrations.Count == 0)
         {
-            <p class="toggle-description">No active federation migrations.</p>
+            <p class="toggle-description">No active planet migrations.</p>
         }
         else
         {
@@ -535,7 +535,7 @@
             _success = result.Success && result.Data is not null;
             _message = _success
                 ? "Recipient-bound invite created."
-                : result.Message ?? "Could not create the federation invite.";
+                : result.Message ?? "Could not create the invite.";
             _createdInvite = _success ? result.Data : null;
         }
         finally
@@ -559,7 +559,7 @@
         {
             var result = await Client.PrimaryNode.PostAsyncWithResponse<TaskResult>(route);
             _success = result.Success;
-            _message = result.Success ? successMessage : result.Message ?? "Federation action failed.";
+            _message = result.Success ? successMessage : result.Message ?? "The request failed.";
             await RefreshAsync();
         }
         finally

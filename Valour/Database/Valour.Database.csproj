@@ -3,6 +3,10 @@
     <PropertyGroup>
         <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Must stay disabled: with nullable annotations on, EF infers column
+             NOT NULL from reference nullability, silently rewriting the schema
+             model (~300 AlterColumn ops) and breaking Migrate() on data with
+             existing NULLs. Enabling it requires a full column audit + migration. -->
         <Nullable>disable</Nullable>
     </PropertyGroup>
 

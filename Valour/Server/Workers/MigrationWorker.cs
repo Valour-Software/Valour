@@ -66,6 +66,7 @@ public class MigrationWorker : IHostedService
                 await db.SaveChangesAsync();
 
                 // Now we generate member role indices
+#pragma warning disable CS0618 // This worker exists solely to transfer legacy role memberships.
                 var membersToUpdate = await db.PlanetMembers
                     .Include(x => x.OldRoleMembers)
                     .Where(x => x.PlanetId == planet.Id)
@@ -74,6 +75,7 @@ public class MigrationWorker : IHostedService
                         MemberId = x.Id,
                         Indices = x.OldRoleMembers.Select(y => y.Role.FlagBitIndex)
                     }).ToListAsync();
+#pragma warning restore CS0618
 
                 foreach (var member in membersToUpdate)
                 {

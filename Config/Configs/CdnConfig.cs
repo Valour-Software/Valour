@@ -13,29 +13,29 @@ public class CdnConfig
     }
 
     // Cross-server authorization
-    public string Key { get; set; }
+    public string? Key { get; set; }
 
     /// <summary>
     /// Storage backend: "s3" or "filesystem". When unset, "s3" is used if
     /// S3Endpoint is configured, otherwise "filesystem" (local disk).
     /// </summary>
-    public string StorageMode { get; set; }
+    public string? StorageMode { get; set; }
 
     /// <summary>
     /// Root directory for the "filesystem" storage mode. Defaults to
     /// "media-storage" under the server's content root.
     /// </summary>
-    public string FileSystemPath { get; set; }
+    public string? FileSystemPath { get; set; }
 
     // S3 properties
-    public string S3Access { get; set; }
-    public string S3Secret { get; set; }
-    public string S3Endpoint { get; set; }
+    public string? S3Access { get; set; }
+    public string? S3Secret { get; set; }
+    public string? S3Endpoint { get; set; }
 
     // Public S3 properties
-    public string PublicS3Access { get; set; }
-    public string PublicS3Secret { get; set; }
-    public string PublicS3Endpoint { get; set; }
+    public string? PublicS3Access { get; set; }
+    public string? PublicS3Secret { get; set; }
+    public string? PublicS3Endpoint { get; set; }
 
     /// <summary>
     /// Allows planet bring-your-own-storage endpoints on plain HTTP and
@@ -58,5 +58,4 @@ public class CdnConfig
     /// </summary>
     public string PublicBucket { get; set; } = "valour-public";
 }
-
 

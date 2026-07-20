@@ -245,6 +245,82 @@ public class FederationServiceTests : IAsyncLifetime
         Assert.False(stored.Discoverable);
     }
 
+    /// <summary>
+    /// A node's self-reported member count must never buy discovery placement:
+    /// stubs rank by hub-recorded FederatedMemberships (which the hub writes
+    /// before the node ever sees the user), so a lying node with a fantasy
+    /// count sorts below a modest planet with real hub-verified joins.
+    /// </summary>
+    [Fact]
+    public async Task Discovery_RanksStubsByHubVerifiedJoins_NotNodeReportedCount()
+    {
+        var token = await MintNodeTokenAsync(HostingConfig.Current.RootDomain);
+        var domain = await _hubService.AuthenticateNodeAsync(token);
+        Assert.Equal(NodeDomain, domain);
+
+        var liar = await _registry.ReserveAsync(domain!, new FederatedPlanetStubRequest
+        {
+            Name = "Definitely One Billion Users",
+            OwnerId = ISharedUser.VictorUserId,
+            MemberCount = int.MaxValue,
+            Public = true,
+            Discoverable = true,
+        });
+        Assert.True(liar.Success, liar.Message);
+
+        var honest = await _registry.ReserveAsync(domain!, new FederatedPlanetStubRequest
+        {
+            Name = "Small But Real",
+            OwnerId = ISharedUser.VictorUserId,
+            MemberCount = 3,
+            Public = true,
+            Discoverable = true,
+        });
+        Assert.True(honest.Success, honest.Message);
+
+        // Hub-verified joins for the honest planet only. Enough of them to keep
+        // it inside the top-30 window alongside seeded official planets.
+        var memberships = Enumerable.Range(0, 40).Select(_ => new Valour.Database.FederatedMembership
+        {
+            UserId = IdManager.Generate(),
+            PlanetId = honest.Data!.Id,
+            NodeDomain = NodeDomain,
+            JoinedAt = DateTime.UtcNow,
+        }).ToList();
+        await _db.FederatedMemberships.AddRangeAsync(memberships);
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var planetService = _scope.ServiceProvider.GetRequiredService<PlanetService>();
+            var discovery = await planetService.GetDiscoveryPlanetsAsync();
+
+            var honestIndex = discovery.FindIndex(x => x.PlanetId == honest.Data!.Id);
+            var liarIndex = discovery.FindIndex(x => x.PlanetId == liar.Data!.Id);
+
+            Assert.True(honestIndex >= 0, "hub-verified stub missing from discovery");
+
+            // The liar either ranks below the verified planet or fell out of the
+            // top list entirely — both mean the reported count bought nothing.
+            if (liarIndex >= 0)
+                Assert.True(honestIndex < liarIndex,
+                    $"node-reported count outranked hub-verified joins (honest at {honestIndex}, liar at {liarIndex})");
+
+            // The displayed number is still the node's report — ranking is what
+            // changed, not the (badged) display.
+            Assert.Equal(3, discovery[honestIndex].MemberCount);
+        }
+        finally
+        {
+            _db.FederatedMemberships.RemoveRange(memberships);
+            var stubs = await _db.FederatedPlanetStubs
+                .Where(x => x.Id == liar.Data!.Id || x.Id == honest.Data!.Id)
+                .ToListAsync();
+            _db.FederatedPlanetStubs.RemoveRange(stubs);
+            await _db.SaveChangesAsync();
+        }
+    }
+
     [Fact]
     public async Task HubOnlyRegistryAndMigrationServices_RejectCallsOnACommunityNode()
     {
@@ -261,8 +337,8 @@ public class FederationServiceTests : IAsyncLifetime
 
             Assert.False(reserve.Success);
             Assert.False(abort.Success);
-            Assert.Contains("federation hub", reserve.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("federation hub", abort.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("only available on the official server", reserve.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("only available on the official server", abort.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

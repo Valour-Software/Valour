@@ -70,7 +70,7 @@ public class FederationMigrationService
     public async Task<TaskResult<MigrationInitiateResponse>> InitiateAsync(long ownerId, long planetId, string targetDomain)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<MigrationInitiateResponse>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<MigrationInitiateResponse>.FromFailure("Community-server features are only available on the official server.");
 
         targetDomain = FederationHubService.NormalizeDomain(targetDomain);
         if (targetDomain is null)
@@ -195,7 +195,7 @@ public class FederationMigrationService
     public async Task<TaskResult> AbortAsync(long ownerId, long planetId)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         var planet = await _db.Planets.FindAsync(planetId);
         if (planet is null)
@@ -228,7 +228,7 @@ public class FederationMigrationService
     public async Task<TaskResult<List<MigrationStatusResponse>>> GetOwnerMigrationsAsync(long ownerId)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<List<MigrationStatusResponse>>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<List<MigrationStatusResponse>>.FromFailure("Community-server features are only available on the official server.");
 
         var migrations = await (
                 from migration in _db.FederatedMigrations.AsNoTracking()
@@ -262,7 +262,7 @@ public class FederationMigrationService
         string grant)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult<PlanetSnapshot>.FromFailure("This instance is not a federation hub.");
+            return TaskResult<PlanetSnapshot>.FromFailure("Community-server features are only available on the official server.");
 
         var (planetId, target, grantId, _, purpose) = await ValidateGrantAsync(grant);
         if (planetId is null || purpose != GrantPurpose)
@@ -312,7 +312,7 @@ public class FederationMigrationService
     public async Task<TaskResult> CompleteAsync(string nodeDomain, long planetId, string grant, string importedHash)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         var migration = await _db.FederatedMigrations.FindAsync(planetId);
         if (migration is null)
@@ -431,7 +431,7 @@ public class FederationMigrationService
     public async Task<TaskResult> FinalizeAsync(long ownerId, long planetId)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         var migration = await _db.FederatedMigrations.FindAsync(planetId);
         if (migration is null || migration.Status != FederatedMigrationStatus.Completed)
@@ -716,7 +716,7 @@ public class FederationMigrationService
     public async Task<TaskResult> PullBackAsync(long ownerId, long planetId)
     {
         if (!FederationHubService.HubEnabled)
-            return TaskResult.FromFailure("This instance is not a federation hub.");
+            return TaskResult.FromFailure("Community-server features are only available on the official server.");
 
         var stub = await _db.FederatedPlanetStubs.FindAsync(planetId);
         if (stub is null)

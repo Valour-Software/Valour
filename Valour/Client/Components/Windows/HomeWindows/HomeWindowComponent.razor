@@ -138,7 +138,7 @@
         UpdateFriendBadge();
 
         // Render planet and friend cards before unread is loaded
-        ReRender();
+        await ReRender();
 
         var unreadPlanetsTask = FetchAndRerenderPlanetsAsync();
         var unreadDirectChannelsTask = FetchAndRerenderDirectChannelsAsync();
@@ -153,7 +153,7 @@
         if (OnRerenderPlanetCards is not null)
             await OnRerenderPlanetCards.Invoke();
 
-        ReRender();
+        await ReRender();
     }
 
     private async Task FetchAndRerenderDirectChannelsAsync()
@@ -166,7 +166,7 @@
         if (_dmList is not null)
             await _dmList.RefreshAsync();
 
-        ReRender();
+        await ReRender();
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -177,7 +177,7 @@
             {
                 _mobileTag = "mobile";
                 _viewMode = HomeViewMode.Rows;
-                ReRender();
+                _ = ReRender();
             }
         }
 
@@ -189,7 +189,7 @@
     private void OnFilterInput(ChangeEventArgs e)
     {
         _filterText = e.Value?.ToString();
-        ReRender();
+        _ = ReRender();
     }
 
     private IEnumerable<Planet> FilterPlanets()
@@ -215,7 +215,7 @@
     private void SetViewMode(HomeViewMode mode)
     {
         _viewMode = mode;
-        ReRender();
+        _ = ReRender();
     }
 
     private void UpdateFriendBadge()
@@ -226,8 +226,7 @@
 
     private Task OnJoinedPlanetsUpdate()
     {
-        ReRender();
-        return Task.CompletedTask;
+        return ReRender();
     }
 
     public void OnClickCreatePlanet()
@@ -259,6 +258,6 @@
     private void OnFriendsListUpdate(FriendEventData e)
     {
         UpdateFriendBadge();
-        ReRender();
+        _ = ReRender();
     }
 }

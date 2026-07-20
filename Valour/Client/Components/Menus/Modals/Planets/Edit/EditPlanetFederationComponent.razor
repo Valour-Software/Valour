@@ -14,7 +14,7 @@
 
         @if (Planet.OwnerId != Client.Me.Id)
         {
-            <p class="v-text-red">Only the planet owner can start a federation migration.</p>
+            <p class="v-text-red">Only the planet owner can move this planet to another server.</p>
         }
         else
         {
@@ -40,7 +40,7 @@
             </h3>
             <p class="toggle-description">
                 Stay signed in to official Valour as this planet's owner, then open
-                <b>User Settings → Federation</b> and paste this grant. Valour securely connects
+                <b>User Settings → Self-Hosting</b> and paste this grant. Valour securely connects
                 to the destination named in the signed grant; you do not need to sign in directly
                 to that server. It expires @_grant.ExpiresAt.ToLocalTime().ToString("g"). Treat it
                 like a password; anyone who can use it as the owner can start this migration.
@@ -48,7 +48,7 @@
             <textarea class="v-input" rows="7" readonly>@_grant.Grant</textarea>
             <p class="toggle-description mt-2">
                 Once the destination reports success, verify members, channels, permissions, and
-                content there. Use User Settings → Federation on official Valour to finalize the
+                content there. Use User Settings → Self-Hosting on official Valour to finalize the
                 source deletion. Do not finalize until that verification is complete.
             </p>
         </div>

@@ -210,7 +210,7 @@ public class OauthAppApi
         };
         OauthCodeCache.TryAdd(model.Code, cachedCode);
 
-        context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
         return ValourResult.Json($"{model.RedirectUri}?code={model.Code}&state={model.State}&node={NodeConfig.Instance.Name}");
     }

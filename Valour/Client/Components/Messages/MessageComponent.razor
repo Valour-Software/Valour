@@ -459,7 +459,7 @@ else
         _showAllReactions = show;
         BuildReactionRenderList();
         
-        ReRender();
+        _ = ReRender();
     }
     
     private void OnReactionAdded(MessageReaction reaction)
@@ -497,7 +497,7 @@ else
         _ = AddReactionUserAsync(reaction);
 
         // Re-render the component to show the updated reactions
-        ReRender();
+        _ = ReRender();
     }
     
     private void OnReactionRemoved(MessageReaction reaction)
@@ -529,7 +529,7 @@ else
         _ = RemoveReactionUserAsync(reaction);
 
         // Re-render the component to show the updated reactions
-        ReRender();
+        _ = ReRender();
     }
 
     private async Task OnReactionClick(string emoji)
@@ -741,7 +741,7 @@ else
 
         CalculateClassAndStyles();
 
-        ReRender();
+        await ReRender();
 
         await _chat.OpenEditMode(this);
     }
@@ -757,7 +757,7 @@ else
 
         await _chat.CloseEditMode(cancel);
 
-        ReRender();
+        await ReRender();
     }
 
     public void SetMessage(Message message)
@@ -765,7 +765,7 @@ else
         _message = message;
         BuildMessage();
 
-        ReRender();
+        _ = ReRender();
     }
 
     public void RefreshMessage()
@@ -800,7 +800,7 @@ else
             _isBuilt = true;
 
             if (render)
-                ReRender();
+                _ = ReRender();
 
             return;
         }
@@ -816,7 +816,7 @@ else
         _isBuilt = true;
 
         if (render)
-            ReRender();
+            _ = ReRender();
     }
 
     protected override async Task OnInitializedAsync()
@@ -991,7 +991,7 @@ else
 
         if (render)
         {
-            ReRender();
+            _ = ReRender();
         }
     }
 
@@ -1026,7 +1026,7 @@ else
 
         if (render)
         {
-            ReRender();
+            _ = ReRender();
         }
     }
     

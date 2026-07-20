@@ -24,11 +24,7 @@ public static class PasswordManager
     {
         byte[] passBytes = Encoding.Unicode.GetBytes(password);
 
-        using (var deriveBytes = new Rfc2898DeriveBytes(passBytes, salt, Iterations, HashName))
-        {
-            // Returns 256-bit hash
-            return deriveBytes.GetBytes(HASH_SIZE);
-        }
+        return Rfc2898DeriveBytes.Pbkdf2(passBytes, salt, Iterations, HashName, HASH_SIZE);
     }
 
     /// <summary>

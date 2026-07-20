@@ -7,14 +7,14 @@ namespace Valour.Config.Configs;
 /// </summary>
 public class BootstrapConfig
 {
-    public static BootstrapConfig Current;
+    public static BootstrapConfig? Current;
 
     public BootstrapConfig()
     {
         Current = this;
     }
 
-    public string AdminEmail { get; set; }
-    public string AdminPassword { get; set; }
+    public string? AdminEmail { get; set; }
+    public string? AdminPassword { get; set; }
     public string AdminUsername { get; set; } = "admin";
 }

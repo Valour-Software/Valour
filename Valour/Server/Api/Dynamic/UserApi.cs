@@ -271,7 +271,7 @@ public class UserApi
 
         tokenRequest.Email = UserUtils.SanitizeEmail(tokenRequest.Email);
         if (string.IsNullOrWhiteSpace(tokenRequest.Email))
-            return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage });
+            return Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage });
 
         var validResult = await userService.ValidateCredentialAsync(
             CredentialType.PASSWORD,
@@ -282,17 +282,17 @@ public class UserApi
         if (!validResult.Success || validResult.Data is null)
         {
             var disabled = validResult.Code == UserService.AccountDisabledCode;
-            return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage, Disabled = disabled });
+            return Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage, Disabled = disabled });
         }
 
         var user = validResult.Data;
         var userPrivateInfo = await userService.GetUserPrivateInfoAsync(tokenRequest.Email);
         if (userPrivateInfo is null || userPrivateInfo.UserId != user.Id)
-            return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage });
+            return Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage });
 
         if (!userPrivateInfo.Verified)
         {
-            return Results.Json(new AuthResult
+            return Results.Json(new ServerAuthResult
             {
                 Success = false,
                 Message = GenericAuthFailureMessage,
@@ -305,7 +305,7 @@ public class UserApi
         {
             if (string.IsNullOrWhiteSpace(tokenRequest.MultiFactorCode))
             {
-                return Results.Json(new AuthResult
+                return Results.Json(new ServerAuthResult
                 {
                     Success = true,
                     Token = null,
@@ -323,7 +323,7 @@ public class UserApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Json(new AuthResult
+        return Results.Json(new ServerAuthResult
         {
             Success = true,
             Token = result.Data,

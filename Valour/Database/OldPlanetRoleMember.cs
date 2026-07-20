@@ -37,10 +37,10 @@ public class OldPlanetRoleMember
                 .HasColumnName("planet_id");
             
             e.HasOne(x => x.Member)
-                .WithMany(x => x.OldRoleMembers);
+                .WithMany("OldRoleMembers");
 
             e.HasOne(x => x.Role)
-                .WithMany(x => x.OldRoleMembers);
+                .WithMany("OldRoleMembers");
         });
     }
 }

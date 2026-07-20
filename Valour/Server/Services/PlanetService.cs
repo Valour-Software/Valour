@@ -122,37 +122,53 @@ public class PlanetService
 
         var federated = await GetFederatedDiscoveryAsync(30);
 
-        return official.Concat(federated)
-            .OrderByDescending(x => x.MemberCount)
+        // Official planets rank by their true member count. Federated stubs
+        // rank by hub-verified joins only — never by the node-reported count —
+        // so a node can't inflate its way above legitimate planets. Ties keep
+        // the official planet first (stable sort over the concat order).
+        return official.Select(x => (Info: x, Rank: (long)x.MemberCount))
+            .Concat(federated)
+            .OrderByDescending(x => x.Rank)
             .Take(30)
+            .Select(x => x.Info)
             .ToList();
     }
 
     /// <summary>
     /// Discoverable planets hosted on active community nodes (hub mode only).
     /// Projected into PlanetListInfo with NodeDomain set so the client badges
-    /// them and routes joins to the node.
+    /// them and routes joins to the node. The displayed MemberCount is the
+    /// node's own report, but the returned rank is the count of hub-recorded
+    /// FederatedMemberships — the hub writes those before the node ever sees
+    /// the user, so a lying node can't buy discovery placement.
     /// </summary>
-    private async Task<List<PlanetListInfo>> GetFederatedDiscoveryAsync(int take)
+    private async Task<List<(PlanetListInfo Info, long Rank)>> GetFederatedDiscoveryAsync(int take)
     {
         if (Valour.Config.Configs.FederationConfig.Current?.HubEnabled != true)
-            return new List<PlanetListInfo>();
+            return new List<(PlanetListInfo, long)>();
 
-        return await (from stub in _db.FederatedPlanetStubs.AsNoTracking()
+        var stubs = await (from stub in _db.FederatedPlanetStubs.AsNoTracking()
                       join node in _db.FederatedNodes.AsNoTracking() on stub.NodeDomain equals node.Domain
                       where stub.Public && stub.Discoverable && !stub.Nsfw
                             && node.Status == Valour.Database.FederatedNodeStatus.Active
-                      orderby stub.MemberCount descending
-                      select new PlanetListInfo
+                      let verified = _db.FederatedMemberships.Count(m => m.PlanetId == stub.Id)
+                      orderby verified descending, stub.MemberCount descending
+                      select new
                       {
-                          Id = stub.Id,
-                          PlanetId = stub.Id,
-                          Name = stub.Name,
-                          Description = stub.Description,
-                          MemberCount = stub.MemberCount,
-                          Discoverable = true,
-                          NodeDomain = stub.NodeDomain,
+                          Verified = verified,
+                          Info = new PlanetListInfo
+                          {
+                              Id = stub.Id,
+                              PlanetId = stub.Id,
+                              Name = stub.Name,
+                              Description = stub.Description,
+                              MemberCount = stub.MemberCount,
+                              Discoverable = true,
+                              NodeDomain = stub.NodeDomain,
+                          },
                       }).Take(take).ToListAsync();
+
+        return stubs.Select(x => (x.Info, (long)x.Verified)).ToList();
     }
     
     public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId)
@@ -276,14 +292,14 @@ public class PlanetService
             {
                 var lowered = search.ToLower();
                 federated = federated
-                    .Where(f => (f.Name ?? "").ToLower().Contains(lowered)
-                                || (f.Description ?? "").ToLower().Contains(lowered))
+                    .Where(f => (f.Info.Name ?? "").ToLower().Contains(lowered)
+                                || (f.Info.Description ?? "").ToLower().Contains(lowered))
                     .ToList();
             }
 
             if (federated.Count > 0)
             {
-                items = items.Concat(federated).ToList();
+                items = items.Concat(federated.Select(f => f.Info)).ToList();
                 totalCount += federated.Count;
             }
         }
