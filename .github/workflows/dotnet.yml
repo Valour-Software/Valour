@@ -1,15 +1,23 @@
 name: .NET
 
-on: 
+on:
   push:
     branches: [ main ]
-    
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "Runner label to build on (default: GitHub-hosted ARM)"
+        required: false
+        default: "ubuntu-24.04-arm"
+
 env:
   REGISTRY: ghcr.io
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    # Push builds use the hosted ARM runner; a manual dispatch can target any
+    # label (e.g. a temporary self-hosted arm64 runner) when hosted is down.
+    runs-on: ${{ inputs.runner || 'ubuntu-24.04-arm' }}
 
     #services:
     #  postgres:
@@ -102,7 +110,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 11.0
+        # Pinned to the same SDK as the Dockerfile (preview.3). Floating to the
+        # latest 11.0 preview broke the build: preview.6's static-web-asset
+        # compression discovery chokes on the checked-in TypeScript outputs
+        # (duplicate key on wwwroot/ts/*.js). Bump together with the Dockerfile.
+        dotnet-version: 11.0.100-preview.3.26207.106
 
     - name: Restore workload
       run: dotnet workload restore Valour/Valour.sln
