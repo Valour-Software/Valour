@@ -437,6 +437,7 @@ public class UserService
 
         old.Status = updatedUser.Status;
         old.UserStateCode = updatedUser.UserStateCode;
+        old.HidePriorName = updatedUser.HidePriorName;
 
         // Validate and copy star colors
         if (updatedUser.StarColor1 != old.StarColor1 || updatedUser.StarColor2 != old.StarColor2)

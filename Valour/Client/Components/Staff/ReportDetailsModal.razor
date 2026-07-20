@@ -554,7 +554,8 @@
         _isSubmitting = true;
         StateHasChanged();
 
-        var disableResult = await StaffService.SetUserDisabledAsync(Data.Report.ReportedUserId.Value, true);
+        var disableResult = await StaffService.SetUserDisabledAsync(Data.Report.ReportedUserId.Value, true,
+            $"Disabled while resolving report {Data.Report.Id}");
         if (!disableResult.Success)
         {
             ToastContainer.Instance.AddToast(new ProgressToastData()
@@ -601,12 +602,10 @@
         Data.Report.StaffNotes = _staffNotes;
         Data.Report.ResolvedAt = DateTime.UtcNow;
 
-        ToastContainer.Instance.AddToast(new ProgressToastData()
-        {
-            Title = "Success",
-            Message = "Report resolved successfully",
-            ProgressTask = Task.CompletedTask
-        });
+        // Plain success toast auto-dismisses; a ProgressToastData added via
+        // AddToast never closes because nothing awaits its ProgressTask (#1565)
+        ToastContainer.Instance.AddToast(new ToastData(
+            "Success", "Report resolved successfully", ToastProgressState.Success));
 
         if (Data.OnResolved != null)
         {

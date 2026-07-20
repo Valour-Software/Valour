@@ -166,6 +166,16 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<ModerationAuditLog> ModerationAuditLogs { get; set; }
 
     /// <summary>
+    /// Platform-level audit trail of staff tool usage.
+    /// </summary>
+    public DbSet<StaffAuditLog> StaffAuditLogs { get; set; }
+
+    /// <summary>
+    /// Staff-initiated MFA removals waiting out their safety delay.
+    /// </summary>
+    public DbSet<PendingMfaRemoval> PendingMfaRemovals { get; set; }
+
+    /// <summary>
     /// Table for planet invites
     /// </summary>
     public DbSet<StatObject> Stats { get; set; }
@@ -348,6 +358,8 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         AutomodAction.SetupDbModel(modelBuilder);
         AutomodLog.SetupDbModel(modelBuilder);
         ModerationAuditLog.SetupDbModel(modelBuilder);
+        StaffAuditLog.SetupDbModel(modelBuilder);
+        PendingMfaRemoval.SetupDbModel(modelBuilder);
 
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);
         OldPlanetRoleMember.SetupDbModel(modelBuilder);

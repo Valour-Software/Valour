@@ -1,0 +1,118 @@
+@inject ValourClient Client
+@using Valour.Shared.Models.Staff
+@using Valour.Shared.Queries
+
+<!-- Read-only view of the staff action audit trail. -->
+
+<div class="staff-audit">
+    <div class="audit-controls">
+        <input class="form-control" placeholder="Filter by target user id..."
+               @bind="_targetFilter" @bind:event="oninput" />
+        <button class="v-btn primary" @onclick="Reload">Search</button>
+    </div>
+
+    @if (_entries.Count == 0 && _loaded)
+    {
+        <p class="mt-2">No audit entries found.</p>
+    }
+    else
+    {
+        <table class="audit-table mt-2">
+            <thead>
+            <tr>
+                <th>Time (UTC)</th>
+                <th>Staff</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>Reason</th>
+                <th>Details</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var entry in _entries)
+            {
+                <tr>
+                    <td>@entry.TimeCreated.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@(entry.StaffName ?? entry.StaffUserId.ToString())</td>
+                    <td>@FormatAction(entry.ActionType)</td>
+                    <td>@(entry.TargetName ?? entry.TargetUserId?.ToString() ?? "-")</td>
+                    <td class="audit-reason">@entry.Reason</td>
+                    <td class="audit-reason">@entry.Details</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        @if (_hasMore)
+        {
+            <button class="v-btn mt-2" @onclick="LoadMore">Load more</button>
+        }
+    }
+</div>
+
+@code {
+    private const int PageSize = 50;
+
+    private readonly List<StaffAuditLogEntry> _entries = new();
+    private string _targetFilter = string.Empty;
+    private bool _loaded;
+    private bool _hasMore;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _entries.Clear();
+        await LoadMore();
+    }
+
+    private async Task LoadMore()
+    {
+        var request = new QueryRequest()
+        {
+            Skip = _entries.Count,
+            Take = PageSize
+        };
+
+        if (!string.IsNullOrWhiteSpace(_targetFilter))
+        {
+            request.Options = new()
+            {
+                Filters = new() { ["target"] = _targetFilter.Trim() }
+            };
+        }
+
+        var result = await Client.PrimaryNode
+            .PostAsyncWithResponse<QueryResponse<StaffAuditLogEntry>>("api/staff/audit/query", request);
+
+        if (result.Success && result.Data?.Items is not null)
+        {
+            _entries.AddRange(result.Data.Items);
+            _hasMore = _entries.Count < result.Data.TotalCount;
+        }
+
+        _loaded = true;
+        StateHasChanged();
+    }
+
+    private static string FormatAction(StaffActionType type) => type switch
+    {
+        StaffActionType.DisableAccount => "Disable account",
+        StaffActionType.EnableAccount => "Enable account",
+        StaffActionType.DeleteAccount => "Delete account",
+        StaffActionType.VerifyEmail => "Verify email",
+        StaffActionType.LookupUser => "PII lookup",
+        StaffActionType.ViewOwnedBots => "View owned bots",
+        StaffActionType.ResetUsername => "Reset username",
+        StaffActionType.HidePriorName => "Hide prior name",
+        StaffActionType.ShowPriorName => "Unhide prior name",
+        StaffActionType.TriggerPasswordReset => "Password reset email",
+        StaffActionType.ScheduleMfaRemoval => "Schedule 2FA removal",
+        StaffActionType.CancelMfaRemoval => "Cancel 2FA removal",
+        StaffActionType.ExecuteMfaRemoval => "2FA removal executed",
+        _ => type.ToString()
+    };
+}

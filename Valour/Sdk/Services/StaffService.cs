@@ -24,26 +24,58 @@ public class StaffService : ServiceBase
         SetupLogging(client.Logger, LogOptions);
     }
     
-    public async Task<TaskResult> SetUserDisabledAsync(long userId, bool value)
+    public async Task<TaskResult> SetUserDisabledAsync(long userId, bool value, string reason)
     {
         var request = new DisableUserRequest()
         {
             UserId = userId,
-            Value = value
+            Value = value,
+            Reason = reason
         };
-        
+
         return await _client.PrimaryNode.PostAsync($"api/staff/disable", request);
     }
-    
-    public async Task<TaskResult> DeleteUserAsync(long userId)
+
+    public async Task<TaskResult> DeleteUserAsync(long userId, string reason)
     {
         var request = new DeleteUserRequest()
         {
-            UserId = userId
+            UserId = userId,
+            Reason = reason
         };
-        
+
         return await _client.PrimaryNode.PostAsync($"api/staff/delete", request);
     }
+
+    public Task<TaskResult<StaffUserLookupResult>> LookupUserAsync(string identifier, string reason) =>
+        _client.PrimaryNode.PostAsyncWithResponse<StaffUserLookupResult>("api/staff/users/lookup",
+            new StaffUserLookupRequest() { Identifier = identifier, Reason = reason });
+
+    public async Task<List<User>> GetOwnedBotsAsync(long userId)
+    {
+        var result = await _client.PrimaryNode.GetJsonAsync<List<User>>($"api/staff/users/{userId}/bots");
+        return result.Data;
+    }
+
+    public Task<TaskResult> ResetUsernameAsync(long userId, string reason) =>
+        _client.PrimaryNode.PostAsync("api/staff/users/resetname",
+            new StaffResetUsernameRequest() { UserId = userId, Reason = reason });
+
+    public Task<TaskResult> SetPriorNameHiddenAsync(long userId, bool hidden, string reason) =>
+        _client.PrimaryNode.PostAsync("api/staff/users/priorname",
+            new StaffSetPriorNameHiddenRequest() { UserId = userId, Hidden = hidden, Reason = reason });
+
+    public Task<TaskResult> TriggerPasswordResetAsync(long userId, bool invalidateSessions, string reason) =>
+        _client.PrimaryNode.PostAsync("api/staff/users/passwordreset",
+            new StaffPasswordResetRequest() { UserId = userId, InvalidateSessions = invalidateSessions, Reason = reason });
+
+    public Task<TaskResult> ScheduleMfaRemovalAsync(long userId, string reason) =>
+        _client.PrimaryNode.PostAsync("api/staff/users/mfa/schedule",
+            new StaffMfaRemovalRequest() { UserId = userId, Reason = reason });
+
+    public Task<TaskResult> CancelMfaRemovalAsync(long userId, string reason) =>
+        _client.PrimaryNode.PostAsync("api/staff/users/mfa/cancel",
+            new StaffMfaRemovalRequest() { UserId = userId, Reason = reason });
 
     public async Task<TaskResult> VerifyUserAsync(string identifier)
     {

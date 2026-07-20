@@ -1,0 +1,66 @@
+@inherits Modal<StaffReasonModalComponent.ModalParams>
+
+<!-- Collects a required reason for a staff action. Every sensitive staff
+     tool call is audit-logged with this reason. -->
+
+<BasicModalLayout Title="@Data.Title" Icon="clipboard-check" MaxWidth="450px">
+    <MainArea>
+        <p>@Data.Description</p>
+        <div class="form-group">
+            <label>Reason (required, audit-logged)</label>
+            <textarea class="form-control" rows="3" maxlength="512"
+                      placeholder="Why is this action being taken?"
+                      @bind="_reason" @bind:event="oninput"></textarea>
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">@Data.CancelText</button>
+            <button @onclick="@OnConfirm" class="v-btn @(Data.Danger ? "danger" : "primary")"
+                    disabled="@(string.IsNullOrWhiteSpace(_reason))">@Data.ConfirmText</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        /// <summary>
+        /// Run with the entered reason when the user confirms.
+        /// </summary>
+        public Func<string, Task> ConfirmEvent;
+
+        public Func<Task> CancelEvent;
+
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string ConfirmText { get; set; } = "Confirm";
+        public string CancelText { get; set; } = "Cancel";
+
+        /// <summary>
+        /// Styles the confirm button as dangerous.
+        /// </summary>
+        public bool Danger { get; set; }
+    }
+
+    private string _reason = string.Empty;
+
+    private async Task OnConfirm()
+    {
+        if (string.IsNullOrWhiteSpace(_reason))
+            return;
+
+        Close();
+
+        if (Data.ConfirmEvent is not null)
+            await Data.ConfirmEvent.Invoke(_reason.Trim());
+    }
+
+    private async Task OnCancel()
+    {
+        Close();
+
+        if (Data.CancelEvent is not null)
+            await Data.CancelEvent.Invoke();
+    }
+}

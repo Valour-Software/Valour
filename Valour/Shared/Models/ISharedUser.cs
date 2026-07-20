@@ -121,6 +121,11 @@ public interface  ISharedUser : ISharedModel<long>
     public string PriorName { get; set; }
 
     /// <summary>
+    /// When true, the user's prior username is hidden from other users.
+    /// </summary>
+    public bool HidePriorName { get; set; }
+
+    /// <summary>
     /// The date and time the user last changed their username.
     /// </summary>
     public DateTime? NameChangeTime { get; set; }

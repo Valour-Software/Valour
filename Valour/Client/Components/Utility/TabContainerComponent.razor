@@ -59,6 +59,34 @@
                 }
             </div>
         }
+        @if (TabFive is not null)
+        {
+            <div class="v-tab @GetPositionClass(4) @GetActive(4)" @onclick="() => OnClick(4)">
+                @if (!string.IsNullOrEmpty(IconFive))
+                {
+                    <i class="bi bi-@IconFive v-tab-icon"></i>
+                }
+                <span>@_titleFive</span>
+                @if (BadgeFive.HasValue && BadgeFive.Value > 0)
+                {
+                    <span class="v-tab-badge">@BadgeFive</span>
+                }
+            </div>
+        }
+        @if (TabSix is not null)
+        {
+            <div class="v-tab @GetPositionClass(5) @GetActive(5)" @onclick="() => OnClick(5)">
+                @if (!string.IsNullOrEmpty(IconSix))
+                {
+                    <i class="bi bi-@IconSix v-tab-icon"></i>
+                }
+                <span>@_titleSix</span>
+                @if (BadgeSix.HasValue && BadgeSix.Value > 0)
+                {
+                    <span class="v-tab-badge">@BadgeSix</span>
+                }
+            </div>
+        }
     </div>
     <div class="v-tab-content" style="max-height: @MaxHeight; @ContentStyle">
         <SlideSwap Index="@_active" Subtle="true" Content="@ActiveContent" />
@@ -103,6 +131,12 @@
     public string IconFour { get; set; }
 
     [Parameter]
+    public string IconFive { get; set; }
+
+    [Parameter]
+    public string IconSix { get; set; }
+
+    [Parameter]
     public int? BadgeOne { get; set; }
 
     [Parameter]
@@ -113,6 +147,12 @@
 
     [Parameter]
     public int? BadgeFour { get; set; }
+
+    [Parameter]
+    public int? BadgeFive { get; set; }
+
+    [Parameter]
+    public int? BadgeSix { get; set; }
 
     private string GetPositionClass(int index)
     {
@@ -126,6 +166,8 @@
     private string _titleTwo = "Tab Two";
     private string _titleThree = "Tab Three";
     private string _titleFour = "Tab Four";
+    private string _titleFive = "Tab Five";
+    private string _titleSix = "Tab Six";
 
 
     [Parameter]
@@ -136,6 +178,10 @@
     public RenderFragment TabThree { get; set; }
     [Parameter]
     public RenderFragment TabFour { get; set; }
+    [Parameter]
+    public RenderFragment TabFive { get; set; }
+    [Parameter]
+    public RenderFragment TabSix { get; set; }
 
     private int _tabCount;
     private int _active;
@@ -150,6 +196,10 @@
             _tabCount++;
         if (TabFour is not null)
             _tabCount++;
+        if (TabFive is not null)
+            _tabCount++;
+        if (TabSix is not null)
+            _tabCount++;
 
         if (Titles is not null)
         {
@@ -161,6 +211,10 @@
                 _titleThree = Titles[2];
             if (Titles.Length > 3)
                 _titleFour = Titles[3];
+            if (Titles.Length > 4)
+                _titleFive = Titles[4];
+            if (Titles.Length > 5)
+                _titleSix = Titles[5];
         }
     }
 
@@ -169,7 +223,9 @@
         0 => TabOne,
         1 => TabTwo,
         2 => TabThree,
-        _ => TabFour
+        3 => TabFour,
+        4 => TabFive,
+        _ => TabSix
     };
 
     private void OnClick(int index)

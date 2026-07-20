@@ -1,0 +1,25 @@
+.staff-tools-user {
+    margin-bottom: 0.5em;
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.staff-tools-note {
+    font-size: 0.8em;
+    opacity: 0.7;
+    margin-bottom: 0;
+}
+
+.staff-tools-bots {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    margin-top: 0.5em;
+    max-height: 200px;
+    overflow-y: auto;
+}

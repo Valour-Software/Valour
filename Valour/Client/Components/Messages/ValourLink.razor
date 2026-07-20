@@ -1,5 +1,7 @@
 @inject ValourClient Client
 @inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
+@using Valour.Shared.Utilities
 
 <a href="@Url" class="valour-link" @onclick="OnClick" @onclick:preventDefault="true">@Url</a>
 
@@ -12,6 +14,15 @@
 
     private async Task OnClick()
     {
+        // Invite links use SPA navigation (the invite screen is a page, not a
+        // window) so they stay in-app rather than opening a browser tab (#1564)
+        if (ValourRouteParser.TryParse(Url, out var route) &&
+            route.Type == ValourRouteType.Invite)
+        {
+            NavManager.NavigateTo($"/I/{route.InviteCode}");
+            return;
+        }
+
         // If the link can't be resolved in-app for any reason, don't leave the
         // user stranded - fall back to opening it the normal way.
         if (!await DeepLinkRouter.TryNavigateAsync(Url, Client))

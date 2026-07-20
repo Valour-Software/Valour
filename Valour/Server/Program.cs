@@ -620,6 +620,7 @@ public partial class Program
 
         services.AddHostedService<PlanetMessageWorker>();
         services.AddHostedService<StatWorker>();
+        services.AddHostedService<PendingMfaRemovalWorker>();
         services.AddHostedService<ChannelWatchingWorker>();
         services.AddHostedService<FederationPurgeWorker>();
         services.AddHostedService<FederationInviteReconciliationWorker>();

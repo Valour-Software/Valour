@@ -1,0 +1,33 @@
+.staff-audit {
+    padding: 1em;
+    overflow-x: auto;
+}
+
+.audit-controls {
+    display: flex;
+    gap: 0.5em;
+    max-width: 400px;
+}
+
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+}
+
+.audit-table th,
+.audit-table td {
+    padding: 0.35em 0.5em;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    vertical-align: top;
+}
+
+.audit-table th {
+    opacity: 0.7;
+}
+
+.audit-reason {
+    max-width: 250px;
+    overflow-wrap: anywhere;
+}

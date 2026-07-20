@@ -28,6 +28,19 @@
 
         <p class="toggle-description">Protect your account with an additional security layer</p>
 
+        @if (_pendingMfaRemovalAt is not null)
+        {
+            <div class="mfa-status">
+                <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                <span class="text-danger">
+                    A staff-scheduled removal of your MFA executes
+                    @_pendingMfaRemovalAt.Value.ToString("u"). If you did not
+                    request this, cancel it now and change your password.
+                </span>
+            </div>
+            <VButton Variant="danger" OnClick="@OnClickCancelMfaRemoval">Cancel scheduled removal</VButton>
+        }
+
         <div class="toggle-content">
             @if (_multiAuthMethods is null) {
                 <div class="loading-state">
@@ -182,6 +195,8 @@
         return "less than a minute";
     }
 
+    private DateTime? _pendingMfaRemovalAt;
+
     protected override async Task OnInitializedAsync()
     {
         // Load both sessions and MFA status in parallel
@@ -191,6 +206,30 @@
         await Task.WhenAll(tokensTask, mfaTask);
 
         _multiAuthMethods = mfaTask.Result;
+
+        await LoadPendingMfaRemoval();
+        StateHasChanged();
+    }
+
+    private async Task LoadPendingMfaRemoval()
+    {
+        // 404 simply means nothing is pending
+        var result = await Client.PrimaryNode.GetJsonAsync<DateTime?>("api/users/me/mfaremoval", true);
+        _pendingMfaRemovalAt = result.Success ? result.Data : null;
+    }
+
+    private async Task OnClickCancelMfaRemoval()
+    {
+        var result = await Client.PrimaryNode.PostAsync("api/users/me/mfaremoval/cancel", null);
+        if (result.Success)
+        {
+            _pendingMfaRemovalAt = null;
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Removal Cancelled",
+                "The scheduled MFA removal has been cancelled.",
+                ToastProgressState.Success));
+        }
+
         StateHasChanged();
     }
 

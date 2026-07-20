@@ -237,6 +237,48 @@ public class UserApi
         return Results.Ok(result.Message);
     }
 
+    /// <summary>
+    /// Returns when a staff-scheduled MFA removal will execute for the
+    /// current account, or 404 if none is pending.
+    /// </summary>
+    [UserRequired]
+    [ValourRoute(HttpVerbs.Get, "api/users/me/mfaremoval")]
+    public static async Task<IResult> GetPendingMfaRemovalRouteAsync(
+        UserService userService,
+        ValourDb db)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+
+        var pending = await db.PendingMfaRemovals
+            .Where(x => x.TargetUserId == userId && x.Status == Valour.Database.MfaRemovalStatus.Pending)
+            .Select(x => (DateTime?)x.ExecuteAt)
+            .FirstOrDefaultAsync();
+
+        if (pending is null)
+            return ValourResult.NotFound("No pending MFA removal.");
+
+        return Results.Json(pending);
+    }
+
+    /// <summary>
+    /// Lets the account owner cancel a staff-scheduled MFA removal — the
+    /// escape hatch if the removal was socially engineered.
+    /// </summary>
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/mfaremoval/cancel")]
+    public static async Task<IResult> CancelPendingMfaRemovalRouteAsync(
+        UserService userService,
+        StaffService staffService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+
+        var result = await staffService.CancelMfaRemovalAsync(userId, userId, isStaff: false, "Cancelled by account owner");
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok(result.Message);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/users/me")]
     public static async Task<IResult> SelfRouteAsync(
         UserService userService)

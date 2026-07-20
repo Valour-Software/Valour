@@ -10,6 +10,7 @@ public enum ValourRouteType
     Friends,
     PlanetWiki,
     PlanetWikiPage,
+    Invite,
 }
 
 /// <summary>
@@ -35,6 +36,11 @@ public readonly struct ValourRoute
     /// than id. Vanities are never all-digits, so the two never collide.
     /// </summary>
     public string? Vanity { get; init; }
+
+    /// <summary>
+    /// Invite code for invite links (/i/{code}).
+    /// </summary>
+    public string? InviteCode { get; init; }
 }
 
 /// <summary>
@@ -227,6 +233,19 @@ public static class ValourRouteParser
             case "friends":
                 route = new ValourRoute { Type = ValourRouteType.Friends };
                 return true;
+
+            // /i/{code} — planet invite links
+            case "i":
+                if (parts.Length >= 2 && !string.IsNullOrWhiteSpace(parts[1]))
+                {
+                    route = new ValourRoute
+                    {
+                        Type = ValourRouteType.Invite,
+                        InviteCode = parts[1],
+                    };
+                    return true;
+                }
+                break;
         }
 
         return false;

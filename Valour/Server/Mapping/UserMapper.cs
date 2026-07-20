@@ -24,8 +24,11 @@ public static class UserMapper
             IsMobile = user.IsMobile,
             Compliance = user.Compliance,
             SubscriptionType = user.SubscriptionType,
-            PriorName = user.PriorName,
-            NameChangeTime = user.NameChangeTime,
+            // Privacy: a hidden prior name is not sent to clients at all.
+            // Staff view raw values through the staff lookup endpoint.
+            PriorName = user.HidePriorName ? null : user.PriorName,
+            NameChangeTime = user.HidePriorName ? null : user.NameChangeTime,
+            HidePriorName = user.HidePriorName,
             Version = user.Version,
             TutorialState = user.TutorialState,
             OwnerId = user.OwnerId,
@@ -58,6 +61,7 @@ public static class UserMapper
             SubscriptionType = user.SubscriptionType,
             PriorName = user.PriorName,
             NameChangeTime = user.NameChangeTime,
+            HidePriorName = user.HidePriorName,
             Version = user.Version,
             TutorialState = user.TutorialState,
             OwnerId = user.OwnerId,

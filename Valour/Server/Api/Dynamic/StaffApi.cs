@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Valour.Shared.Authorization;
 using Valour.Shared.Models.Staff;
 using Valour.Shared.Queries;
 
@@ -7,6 +8,7 @@ namespace Valour.Server.Api.Dynamic;
 public class StaffApi
 {
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Get, "api/staff/reports")]
     public static async Task<IResult> GetReportsAsync(StaffService staffService)
     {
@@ -15,6 +17,7 @@ public class StaffApi
     }
     
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/staff/reports/query")]
     public static async Task<IResult> QueryReportsAsync(
         [FromBody] QueryRequest queryRequest,
@@ -25,6 +28,7 @@ public class StaffApi
     }
 
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Get, "api/staff/reports/{reportId}")]
     public static async Task<IResult> GetReportAsync(
         StaffService staffService,
@@ -38,6 +42,7 @@ public class StaffApi
     }
 
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/staff/reports/resolve")]
     public static async Task<IResult> ResolveReportAsync(
         UserService userService,
@@ -59,6 +64,7 @@ public class StaffApi
     }
     
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Put, "api/staff/reports/{reportId}/reviewed/{value}")]
     public static async Task<IResult> SetReportReviewedAsync(StaffService staffService, [FromRoute] string reportId, [FromRoute] bool value)
     {
@@ -70,10 +76,16 @@ public class StaffApi
     }
 
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/staff/disable")]
-    public static async Task<IResult> DisableUserAsync(StaffService staffService, [FromBody] DisableUserRequest request)
+    public static async Task<IResult> DisableUserAsync(UserService userService, StaffService staffService, [FromBody] DisableUserRequest request)
     {
-        var result = await staffService.DisableUserAsync(request.UserId, request.Value);
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required.");
+
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.DisableUserAsync(request.UserId, request.Value, requestor.Id, request.Reason);
         if (!result.Success)
         {
             if (result.Code == 404)
@@ -88,20 +100,18 @@ public class StaffApi
 
         return ValourResult.Ok();
     }
-    
+
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/staff/delete")]
     public static async Task<IResult> DeleteUserAsync(UserService userService, StaffService staffService, [FromBody] DeleteUserRequest request)
     {
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required.");
+
         var requestor = await userService.GetCurrentUserAsync();
-        
-        // For now, only Spike can do this
-        if (requestor.Id != 12200448886571008)
-        {
-            return ValourResult.Forbid("SuperAdmins only.");
-        }
-        
-        var result = await staffService.DeleteUserAsync(request.UserId);
+
+        var result = await staffService.DeleteUserAsync(request.UserId, requestor.Id, request.Reason);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
@@ -109,6 +119,136 @@ public class StaffApi
     }
 
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/lookup")]
+    public static async Task<IResult> LookupUserAsync(UserService userService, StaffService staffService, [FromBody] StaffUserLookupRequest request)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Identifier))
+            return ValourResult.BadRequest("Please include an identifier.");
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required for PII lookups.");
+
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.LookupUserAsync(request.Identifier, requestor.Id, request.Reason);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json(result.Data);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Get, "api/staff/users/{userId}/bots")]
+    public static async Task<IResult> GetOwnedBotsAsync(UserService userService, StaffService staffService, long userId)
+    {
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.GetOwnedBotsAsync(userId, requestor.Id, "Owned bot review");
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json(result.Data);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/resetname")]
+    public static async Task<IResult> ResetUsernameAsync(UserService userService, StaffService staffService, [FromBody] StaffResetUsernameRequest request)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required.");
+
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.ResetUsernameAsync(request.UserId, requestor.Id, request.Reason);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok(result.Data);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/priorname")]
+    public static async Task<IResult> SetPriorNameHiddenAsync(UserService userService, StaffService staffService, [FromBody] StaffSetPriorNameHiddenRequest request)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required.");
+
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.SetPriorNameHiddenAsync(request.UserId, request.Hidden, requestor.Id, request.Reason);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok();
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/passwordreset")]
+    public static async Task<IResult> TriggerPasswordResetAsync(HttpContext ctx, UserService userService, StaffService staffService, [FromBody] StaffPasswordResetRequest request)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required.");
+
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.TriggerPasswordResetAsync(request.UserId, request.InvalidateSessions, requestor.Id, request.Reason, ctx);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok(result.Message);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/mfa/schedule")]
+    public static async Task<IResult> ScheduleMfaRemovalAsync(UserService userService, StaffService staffService, [FromBody] StaffMfaRemovalRequest request)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required.");
+
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.ScheduleMfaRemovalAsync(request.UserId, requestor.Id, request.Reason);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok(result.Message);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/mfa/cancel")]
+    public static async Task<IResult> CancelMfaRemovalAsync(UserService userService, StaffService staffService, [FromBody] StaffMfaRemovalRequest request)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required.");
+
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.CancelMfaRemovalAsync(request.UserId, requestor.Id, isStaff: true, request.Reason);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok(result.Message);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/staff/audit/query")]
+    public static async Task<IResult> QueryAuditLogAsync(
+        [FromBody] QueryRequest queryRequest,
+        StaffService staffService)
+    {
+        var result = await staffService.QueryAuditLogAsync(queryRequest);
+        return Results.Json(result);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/staff/users/verify")]
     public static async Task<IResult> VerifyUserAsync(
         StaffService staffService,
@@ -130,6 +270,7 @@ public class StaffApi
     }
 
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/staff/email/send")]
     public static async Task<IResult> SendMassEmailAsync(
         HttpContext ctx,
@@ -158,6 +299,7 @@ public class StaffApi
     }
 
     [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Get, "api/staff/messages/{messageId}")]
     public static async Task<IResult> GetMessageAsync(
         StaffService staffService,

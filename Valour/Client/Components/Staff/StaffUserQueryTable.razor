@@ -46,77 +46,51 @@
                 Name = "Actions",
                 RenderFragment = (rowData) =>
                     @<div class="button-row">
+                        <button class="v-btn" @onclick="@(() => OpenTools(rowData.Row))">Tools</button>
+
                         @if (rowData.Row.Disabled)
                         {
-                            <button class="v-btn primary" @onclick="@(async () => await EnableUser(rowData.Row.Id))">Enable</button>
+                            <button class="v-btn primary" @onclick="@(() => EnableUser(rowData.Row))">Enable</button>
                         }
                         else
                         {
-                            <button class="v-btn secondary" @onclick="@(async () => await DisableUser(rowData.Row.Id))">Disable</button>
+                            <button class="v-btn secondary" @onclick="@(() => DisableUser(rowData.Row))">Disable</button>
                         }
-                        
-                        <button class="v-btn danger" @onclick="@(async () => await DeleteUser(rowData.Row))">Delete</button>
+
+                        <button class="v-btn danger" @onclick="@(() => DeleteUser(rowData.Row))">Delete</button>
                     </div>
             }
         };
     }
-    
+
     /* Staff Controls */
-    
-    public async Task DisableUser(long userId)
-    {
-        var toastData = new ProgressToastData<TaskResult>()
-        {
-            Title = "Disabling User",
-            SuccessMessage = "User has been disabled",
-            Message = "Waiting for result...",
-            ProgressTask = StaffService.SetUserDisabledAsync(userId, true)
-        };
-        
-        var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
 
-        if (result.Success)
-        {
-            await _table.Requery();
-        }
-    }
-    
-    private async Task EnableUser(long userId)
+    private void OpenTools(User user)
     {
-        var toastData = new ProgressToastData<TaskResult>()
+        ModalRoot.OpenModal<StaffUserToolsModal>(new StaffUserToolsModal.ModalParams()
         {
-            Title = "Enabling User",
-            SuccessMessage = "User has been enabled",
-            Message = "Waiting for result...",
-            ProgressTask = StaffService.SetUserDisabledAsync(userId, false)
-        };
-        
-        var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+            User = user
+        });
+    }
 
-        if (result.Success)
-        {
-            await _table.Requery();
-        }
-    }
-    
-    public Task DeleteUser(User user)
+    public void DisableUser(User user)
     {
-        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams()
+        ModalRoot.OpenModal<StaffReasonModalComponent>(new StaffReasonModalComponent.ModalParams()
         {
-            Title = $"Hard Delete {user.NameAndTag}?",
-            Description = "This CANNOT be undone. Are you sure you want to delete this user?",
-            CancelText = "Cancel",
-            ConfirmText = "DELETE",
-            ConfirmEvent = async () =>
+            Title = $"Disable {user.NameAndTag}?",
+            Description = "The account is disabled and every session is signed out.",
+            ConfirmText = "Disable",
+            Danger = true,
+            ConfirmEvent = async reason =>
             {
                 var toastData = new ProgressToastData<TaskResult>()
                 {
-                    Title = "Deleting User",
-                    SuccessMessage = "User has been deleted",
+                    Title = "Disabling User",
+                    SuccessMessage = "User has been disabled",
                     Message = "Waiting for result...",
-                    ProgressTask = StaffService.DeleteUserAsync(user.Id)
+                    ProgressTask = StaffService.SetUserDisabledAsync(user.Id, true, reason)
                 };
-        
+
                 var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
 
                 if (result.Success)
@@ -125,7 +99,61 @@
                 }
             }
         });
+    }
 
-        return Task.CompletedTask;
+    private void EnableUser(User user)
+    {
+        ModalRoot.OpenModal<StaffReasonModalComponent>(new StaffReasonModalComponent.ModalParams()
+        {
+            Title = $"Enable {user.NameAndTag}?",
+            Description = "The account is re-enabled and can log in again.",
+            ConfirmText = "Enable",
+            ConfirmEvent = async reason =>
+            {
+                var toastData = new ProgressToastData<TaskResult>()
+                {
+                    Title = "Enabling User",
+                    SuccessMessage = "User has been enabled",
+                    Message = "Waiting for result...",
+                    ProgressTask = StaffService.SetUserDisabledAsync(user.Id, false, reason)
+                };
+
+                var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+
+                if (result.Success)
+                {
+                    await _table.Requery();
+                }
+            }
+        });
+    }
+
+    public void DeleteUser(User user)
+    {
+        ModalRoot.OpenModal<StaffReasonModalComponent>(new StaffReasonModalComponent.ModalParams()
+        {
+            Title = $"Hard Delete {user.NameAndTag}?",
+            Description = "This CANNOT be undone. The account and its data are permanently deleted.",
+            CancelText = "Cancel",
+            ConfirmText = "DELETE",
+            Danger = true,
+            ConfirmEvent = async reason =>
+            {
+                var toastData = new ProgressToastData<TaskResult>()
+                {
+                    Title = "Deleting User",
+                    SuccessMessage = "User has been deleted",
+                    Message = "Waiting for result...",
+                    ProgressTask = StaffService.DeleteUserAsync(user.Id, reason)
+                };
+
+                var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+
+                if (result.Success)
+                {
+                    await _table.Requery();
+                }
+            }
+        });
     }
 }

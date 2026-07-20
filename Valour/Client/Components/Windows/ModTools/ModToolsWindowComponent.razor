@@ -3,17 +3,33 @@
 <h4 class="title">Mod Tools for @(Data.Staff ? "Staff" : Data.Planet.Name)</h4>
 
 <div class="table-wrapper">
-    <TabContainerComponent Titles="@_tabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
-        <TabOne>
-            @if (Data.Staff)
-            {
+    @if (Data.Staff)
+    {
+        <TabContainerComponent Titles="@_staffTabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
+            <TabOne>
                 <StaffUserQueryTable />
-            }
-        </TabOne>
-        <TabTwo>
-            <ReportsQueryTable />
-        </TabTwo>
-    </TabContainerComponent>
+            </TabOne>
+            <TabTwo>
+                <ReportsQueryTable />
+            </TabTwo>
+            <TabThree>
+                <StaffLookupComponent />
+            </TabThree>
+            <TabFour>
+                <StaffAuditLogComponent />
+            </TabFour>
+        </TabContainerComponent>
+    }
+    else
+    {
+        <TabContainerComponent Titles="@_tabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
+            <TabOne>
+            </TabOne>
+            <TabTwo>
+                <ReportsQueryTable />
+            </TabTwo>
+        </TabContainerComponent>
+    }
 </div>
 @code {
 
@@ -71,4 +87,7 @@
     
     private readonly string[] _tabs =
         new string[] { "Members", "Reports" };
+
+    private readonly string[] _staffTabs =
+        new string[] { "Members", "Reports", "Lookup", "Audit" };
 }

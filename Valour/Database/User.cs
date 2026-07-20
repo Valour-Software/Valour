@@ -175,6 +175,12 @@ namespace Valour.Database
         /// The date and time the user last changed their username.
         /// </summary>
         public DateTime? NameChangeTime { get; set; }
+
+        /// <summary>
+        /// When true, the user's prior username is hidden from other users.
+        /// Settable by the user or by staff (privacy tool).
+        /// </summary>
+        public bool HidePriorName { get; set; }
         
         /// <summary>
         /// The version of the user. Used for cache busting.
@@ -294,6 +300,10 @@ namespace Valour.Database
                 
                 e.Property(x => x.PriorName)
                     .HasColumnName("prior_name");
+
+                e.Property(x => x.HidePriorName)
+                    .HasColumnName("hide_prior_name")
+                    .HasDefaultValue(false);
                 
                 e.Property(x => x.NameChangeTime)
                     .HasColumnName("name_change_time")

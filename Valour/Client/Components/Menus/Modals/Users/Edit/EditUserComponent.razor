@@ -44,14 +44,20 @@
                 <ReportsQueryTable />
             </TabTwo>
             <TabThree>
-                <StaffVerifyUserComponent />
+                <StaffLookupComponent />
             </TabThree>
             <TabFour>
-                <StaffEmailComponent />
+                <StaffAuditLogComponent />
             </TabFour>
+            <TabFive>
+                <StaffVerifyUserComponent />
+            </TabFive>
+            <TabSix>
+                <StaffEmailComponent />
+            </TabSix>
         </TabContainerComponent>;
 
-    private readonly string[] _staffTabs = new[] { "Members", "Reports", "Verify", "Email Users" };
+    private readonly string[] _staffTabs = new[] { "Members", "Reports", "Lookup", "Audit", "Verify", "Email Users" };
 
     private List<MainMenu.MenuCategory> _categories;
 

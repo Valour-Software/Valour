@@ -288,7 +288,8 @@
             Title = "Disabling User",
             SuccessMessage = "User has been disabled",
             Message = "Waiting for result...",
-            ProgressTask = StaffService.SetUserDisabledAsync(report.ReportedUserId.Value, true)
+            ProgressTask = StaffService.SetUserDisabledAsync(report.ReportedUserId.Value, true,
+                $"Quick action from report {report.Id}")
         };
 
         var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);

@@ -1,0 +1,220 @@
+@inherits Modal<StaffUserToolsModal.ModalParams>
+@inject ValourClient Client
+@inject StaffService StaffService
+
+<!-- Support & moderation tools for one account. Staff never see or set
+     credentials here: password resets go to the user's own email, and MFA
+     removal waits out a safety delay with the account notified. Every
+     action requires a reason and is audit-logged. -->
+
+<BasicModalLayout Title="@($"Staff Tools: {Data.User.NameAndTag}")" Icon="tools" MaxWidth="520px">
+    <MainArea>
+        <div class="staff-tools-user">
+            <UserInfoComponent User="@Data.User" ShowBadges="false" ShowState="false" />
+        </div>
+
+        <h6 class="mt-3">Account recovery</h6>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" @bind="_invalidateSessions" />
+                Also sign out all sessions (suspected compromise)
+            </label>
+        </div>
+        <div class="button-row">
+            <button class="v-btn primary" @onclick="TriggerPasswordReset">Send password reset email</button>
+            <button class="v-btn danger" @onclick="ScheduleMfaRemoval">Schedule 2FA removal</button>
+            <button class="v-btn" @onclick="CancelMfaRemoval">Cancel pending 2FA removal</button>
+        </div>
+        <p class="staff-tools-note">
+            Password resets are emailed to the account's own address — staff never
+            see or choose passwords. 2FA removal executes after a 48-hour delay;
+            the account is emailed immediately and can cancel it.
+        </p>
+
+        <h6 class="mt-3">Identity</h6>
+        <div class="button-row">
+            <button class="v-btn secondary" @onclick="ResetUsername">Reset username</button>
+            @if (Data.User.HidePriorName)
+            {
+                <button class="v-btn" @onclick="@(() => SetPriorNameHidden(false))">Unhide prior name</button>
+            }
+            else
+            {
+                <button class="v-btn" @onclick="@(() => SetPriorNameHidden(true))">Hide prior name</button>
+            }
+        </div>
+        <p class="staff-tools-note">
+            Resetting a username assigns a neutral placeholder and hides the old
+            name automatically.
+        </p>
+
+        <h6 class="mt-3">Owned bots</h6>
+        <div class="button-row">
+            <button class="v-btn" @onclick="LoadBots">View owned bots</button>
+        </div>
+        @if (_botsLoaded)
+        {
+            @if (_bots is null || _bots.Count == 0)
+            {
+                <p class="staff-tools-note">This user owns no bots.</p>
+            }
+            else
+            {
+                <div class="staff-tools-bots">
+                    @foreach (var bot in _bots)
+                    {
+                        <UserInfoComponent User="@bot" ShowBadges="false" ShowState="false" />
+                    }
+                </div>
+            }
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@(() => Close())" class="v-btn">Close</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public User User { get; set; }
+    }
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private bool _invalidateSessions;
+    private bool _botsLoaded;
+    private List<User> _bots;
+
+    private void AskReason(string title, string description, string confirmText, bool danger, Func<string, Task> action)
+    {
+        ModalRoot.OpenModal<StaffReasonModalComponent>(new StaffReasonModalComponent.ModalParams()
+        {
+            Title = title,
+            Description = description,
+            ConfirmText = confirmText,
+            Danger = danger,
+            ConfirmEvent = action
+        });
+    }
+
+    private void TriggerPasswordReset()
+    {
+        var invalidate = _invalidateSessions;
+        AskReason($"Send password reset to {Data.User.NameAndTag}?",
+            invalidate
+                ? "A reset email goes to the account's address and every session is signed out."
+                : "A reset email goes to the account's address.",
+            "Send", danger: false,
+            async reason =>
+            {
+                var toastData = new ProgressToastData<TaskResult>()
+                {
+                    Title = "Sending Reset Email",
+                    SuccessMessage = "Reset email sent",
+                    Message = "Waiting for result...",
+                    ProgressTask = StaffService.TriggerPasswordResetAsync(Data.User.Id, invalidate, reason)
+                };
+
+                await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+            });
+    }
+
+    private void ScheduleMfaRemoval()
+    {
+        AskReason($"Schedule 2FA removal for {Data.User.NameAndTag}?",
+            "This is a common account-takeover target. The removal waits 48 hours, " +
+            "the account is emailed immediately, and the owner can cancel it. " +
+            "Verify the requester's identity before confirming.",
+            "Schedule removal", danger: true,
+            async reason =>
+            {
+                var toastData = new ProgressToastData<TaskResult>()
+                {
+                    Title = "Scheduling 2FA Removal",
+                    SuccessMessage = "Removal scheduled; account notified",
+                    Message = "Waiting for result...",
+                    ProgressTask = StaffService.ScheduleMfaRemovalAsync(Data.User.Id, reason)
+                };
+
+                await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+            });
+    }
+
+    private void CancelMfaRemoval()
+    {
+        AskReason($"Cancel pending 2FA removal for {Data.User.NameAndTag}?",
+            "Cancels the scheduled removal if one is pending.",
+            "Cancel removal", danger: false,
+            async reason =>
+            {
+                var toastData = new ProgressToastData<TaskResult>()
+                {
+                    Title = "Cancelling 2FA Removal",
+                    SuccessMessage = "Pending removal cancelled",
+                    Message = "Waiting for result...",
+                    ProgressTask = StaffService.CancelMfaRemovalAsync(Data.User.Id, reason)
+                };
+
+                await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+            });
+    }
+
+    private void ResetUsername()
+    {
+        AskReason($"Reset username for {Data.User.NameAndTag}?",
+            "Assigns a neutral auto-generated name. The old name is stored as the " +
+            "prior name and hidden from other users.",
+            "Reset username", danger: true,
+            async reason =>
+            {
+                var toastData = new ProgressToastData<TaskResult>()
+                {
+                    Title = "Resetting Username",
+                    SuccessMessage = "Username reset",
+                    Message = "Waiting for result...",
+                    ProgressTask = StaffService.ResetUsernameAsync(Data.User.Id, reason)
+                };
+
+                await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+            });
+    }
+
+    private void SetPriorNameHidden(bool hidden)
+    {
+        AskReason(hidden
+                ? $"Hide prior name of {Data.User.NameAndTag}?"
+                : $"Unhide prior name of {Data.User.NameAndTag}?",
+            hidden
+                ? "The user's previous username stops being shown to other users."
+                : "The user's previous username becomes visible to other users again.",
+            hidden ? "Hide" : "Unhide", danger: false,
+            async reason =>
+            {
+                var toastData = new ProgressToastData<TaskResult>()
+                {
+                    Title = "Updating Prior Name Visibility",
+                    SuccessMessage = "Updated",
+                    Message = "Waiting for result...",
+                    ProgressTask = StaffService.SetPriorNameHiddenAsync(Data.User.Id, hidden, reason)
+                };
+
+                var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+                if (result.Success)
+                {
+                    Data.User.HidePriorName = hidden;
+                    StateHasChanged();
+                }
+            });
+    }
+
+    private async Task LoadBots()
+    {
+        _bots = await StaffService.GetOwnedBotsAsync(Data.User.Id);
+        _botsLoaded = true;
+        StateHasChanged();
+    }
+}
