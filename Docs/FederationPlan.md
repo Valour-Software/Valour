@@ -1,7 +1,10 @@
 # Federation Plan
 
-Three layers of federation for Valour, from easiest-to-ship to most ambitious.
-Each layer builds directly on the previous one. Guiding constraints:
+Three layers of federation for Valour, numbered by how much of the platform
+moves into your own hands — planet media and calls (Layer 1), whole planets on
+community nodes (Layer 2), the entire platform (Layer 3) — all built on one
+shared **foundation**: the self-contained server distribution. Guiding
+constraints:
 
 - **Keep complexity as low as possible.**
 - **Feature parity** between official and unofficial hosting wherever feasible.
@@ -12,13 +15,13 @@ Each layer builds directly on the previous one. Guiding constraints:
   Valour must be able to say *"we never touched that file."* Valour does not
   receive, store, scan, or serve those bytes — control is genuinely handed off.
 
-The one-sentence shape: make `Valour.Server` a self-contained, configurable
-distribution — **one binary, three modes**: standalone instance (Layer 1),
-registered community node inside the official network (Layer 3), and official
-cluster node (today's deployment). Every official cluster replica runs the hub
-role; there is no single federation-primary instance. Layer 2 (bring-your-own-S3) is a
-planet-level feature on official infrastructure that shares Layer 3's
-trust/warning model for media.
+The one-sentence shape: `Valour.Server` is a self-contained, configurable
+distribution — **one binary, three modes**: standalone or clone instance
+(Layer 3), registered community node inside the official network (Layer 2),
+and official cluster replica (today's deployment). Every official cluster
+replica runs the hub role; there is no single federation-primary instance.
+Layer 1 (bring-your-own media and voice) is a planet-level feature on official
+infrastructure that shares Layer 2's trust/warning model.
 
 > **Current role model:** official Valour app instances all set
 > `Federation:HubEnabled=true` and share the cluster database, Redis, and Data
@@ -57,7 +60,8 @@ From a full architecture exploration (July 2026):
   (`Valour/Server/Cdn/OutboundUrlSafetyValidator.cs`).
 - **DMs, friends, and notifications are user-scoped and effectively
   centralized.** DMs are channels with `PlanetId = null` and no owning node.
-  The "ground truth network" already owns exactly the right data for Layer 3.
+  The "ground truth network" already owns exactly the right data for
+  community nodes (Layer 2).
 - **Self-hosting today is contributor-mode only.** Hardcoded CORS origins and
   `valour.gg` literals in ~a dozen places, R2 assumed, no bundled compose for
   outsiders. A `HostingConfig` abstraction exists but is unfinished. The
@@ -76,13 +80,16 @@ From a full architecture exploration (July 2026):
 
 ---
 
-## Layer 1 — Painless self-hosting
+## The foundation — painless self-hosting
 
 **Goal:** `docker compose up` gives a working private instance: server,
 Postgres, Redis, media on local disk, client served from the same container,
 no cloud accounts required.
 
-### 1a. Storage abstraction with a local-disk driver
+This distribution is not itself a numbered layer: it is what a Layer 2
+community node runs, and running it for yourself *is* Layer 3.
+
+### Storage abstraction with a local-disk driver
 
 Replace the static `CdnBucketService.Client`/`PublicClient` with an injected
 `IObjectStorage` (`Put/Get/Delete/Exists/GetSignedUrl`) and two drivers:
@@ -101,7 +108,7 @@ driver — another container and ops concept for people who want a small
 instance. The FileSystem driver is small and is the right default; MinIO/
 Garage remain the documented growth path via the S3 driver.
 
-### 1b. Finish domain/config unification
+### Finish domain/config unification
 
 Hunt down remaining literals so everything flows from `HostingConfig`:
 
@@ -120,7 +127,7 @@ intentionally visible to clients, so it must not be reused for a private
 service; leaving it blank disables the GIF picker. Configure the app URL,
 content filters, blocked words, and ad choice in Klipy's Partner Panel.
 
-### 1c. Instance manifest endpoint
+### Instance manifest endpoint
 
 `GET /.well-known/valour-instance`: instance name, server version, federation
 protocol version, and a **capability map** (voice, payments, email,
@@ -128,9 +135,10 @@ registration open, upload limits, hosts). The client reads it and adapts —
 hide Stargazer UI when Stripe is unset, skip email verification when email is
 off, hide voice when RealtimeKit is unconfigured. This formalizes the existing
 ad-hoc degradation (the `ApiKey == "fake-value"` email bypass becomes
-`Email.Enabled = false`) and **becomes the node descriptor for Layer 3**.
+`Email.Enabled = false`) and **becomes the node descriptor for community
+nodes (Layer 2)**.
 
-### 1d. Optional-service degradation
+### Optional-service degradation
 
 | Service | When unconfigured |
 |---|---|
@@ -145,7 +153,7 @@ ad-hoc degradation (the `ApiKey == "fake-value"` email bypass becomes
 single-node mode would touch presence, relay, and planet assignment for
 near-zero benefit — it's one tiny container in compose.
 
-### 1e. Distribution polish
+### Distribution polish
 
 - `docker-compose.yml` for self-hosters (server + postgres + redis, optional
   `minio` profile), built from the production reference in
@@ -171,13 +179,14 @@ bulk. No schema changes beyond capability flags.
 
 ---
 
-## Layer 2 — Per-planet bring-your-own-S3 (hands-off model)
+## Layer 1 — Bring-your-own media and calls (hands-off model)
 
-**Goal:** a planet's settings can point its media at the owner's S3-compatible
-storage. Control genuinely transfers to the planet owner: **Valour never
+**Goal:** a planet on official infrastructure can point its media at the
+owner's S3-compatible storage and its voice channels at the owner's LiveKit
+server. Control genuinely transfers to the planet owner: **Valour never
 receives, stores, scans, or serves those bytes.** This is a deliberate
 liability boundary — for planet-hosted media, Valour's position is "we never
-touched that file," the same posture it holds toward media on Layer 3
+touched that file," the same posture it holds toward media on Layer 2
 community nodes.
 
 ### Design
@@ -235,7 +244,7 @@ community nodes.
   (per-planet setting) issues an S3 delete with the stored credentials when a
   message is deleted. The owner ultimately controls retention.
 
-**Warning & badge UX (consistent with Layer 3):**
+**Warning & badge UX (consistent with Layer 2):**
 - **Join warning** (first join of a planet with BYO media): media in this
   planet is hosted by the planet owner, not Valour; it is not scanned by
   Valour; your IP is visible to the owner's media host when viewing.
@@ -243,8 +252,16 @@ community nodes.
   storage controlled by the planet owner, not Valour. Valour never receives a
   copy and cannot recover or delete it for you."
 - **Icon by the planet name** wherever the planet renders (sidebar, header,
-  discovery) — same visual family as the Layer 3 community-node badge so
+  discovery) — same visual family as the Layer 2 community-node badge so
   "unofficial infrastructure" reads as one concept.
+
+**Bring-your-own voice (same posture, live media):** officially-hosted
+planets can bring their own LiveKit server, mirroring BYO storage: the hub
+stores the owner's encrypted API secret, signs join tokens with it, and call
+media flows directly between members and the owner's SFU — Valour never
+carries the streams. Members get an explicit consent warning before their
+first community-hosted call. See
+[Deployment/SelfHostVoice.md](Deployment/SelfHostVoice.md).
 
 **Kept simple / out of scope:**
 - Upload size caps default to the existing subscription tiers via the POST
@@ -255,13 +272,13 @@ community nodes.
 - **No custom endpoint for message/attachment *data*.** Storing message rows
   on a planet-supplied endpoint puts an untrusted dependency in the hottest
   path in the product (fetch, permissions, mentions, notifications) and its
-  failure modes hit other users. Full data sovereignty is Layer 3's job.
+  failure modes hit other users. Full data sovereignty is Layer 2's job.
   The zero-risk alternative that satisfies the underlying want: a **planet
   data mirror** — continuous async export of message/attachment metadata as
   JSON to the same planet bucket (write-only, out of every hot path).
   Combined with media already living there, an owner holds a complete
   restorable copy of their community, and it doubles as the migration path to
-  a Layer 3 community node.
+  a Layer 2 community node.
 
 **Effort: medium.** Schema (`planet_storage_configs`, attachment storage
 marker + reported hash), credential encryption, presigned POST minting,
@@ -270,9 +287,9 @@ warnings/badge, optional mirror worker.
 
 ---
 
-## Layer 3 — Community nodes: third-party planet hosting inside the network
+## Layer 2 — Community nodes: third-party planet hosting inside the network
 
-**Goal:** anyone can run the (Layer 1) server on `planets.example.com`,
+**Goal:** anyone can run the foundation distribution on `planets.example.com`,
 register it with the official hub cluster, and host planets that appear in the
 ecosystem with feature parity — while the official cluster remains ground truth for
 accounts, Stargazer status, friends, and DMs.
@@ -419,8 +436,8 @@ client bootstrap and account deletion.
 
 ### Media on community nodes
 
-The node stores its own media using its Layer 1 storage config (local disk or
-its own S3). Same liability posture as Layer 2: Valour never touches those
+The node stores its own media using its foundation storage config (local disk
+or its own S3). Same liability posture as Layer 1: Valour never touches those
 bytes; the join warning covers storage and IP visibility; reports route to
 hub T&S at planet/domain granularity.
 
@@ -433,7 +450,7 @@ hub T&S at planet/domain granularity.
   address will be visible to this server." Accepting adds the domain to the
   user's **accepted-domains list stored at the hub** (syncs across devices).
 - **Persistent badge/icon** on the planet name and header whenever inside a
-  federated planet (shared visual language with the Layer 2 BYO-media icon).
+  federated planet (shared visual language with the Layer 1 BYO-media icon).
 - **Invites and discovery route through the hub**, so the warning renders
   *before* any connection to the third-party server. Discovery shows
   community-hosted planets only behind an "include community-hosted" toggle,
@@ -446,11 +463,8 @@ hub T&S at planet/domain granularity.
   needed — media stays on node infra) or brings RealtimeKit config, or voice is
   disabled — the active provider + endpoint are advertised via the instance
   manifest. See [Deployment/SelfHostVoice.md](Deployment/SelfHostVoice.md).
-  Additionally, officially-hosted planets can bring their own LiveKit server
-  (Layer-2 style, mirroring BYO storage): the hub stores the owner's encrypted
-  API secret, signs join tokens with it, and call media flows directly between
-  members and the owner's SFU — Valour never carries the streams. Members get
-  an explicit consent warning before their first community-hosted call.
+  Officially-hosted planets can instead bring their own LiveKit server — that
+  is Layer 1's bring-your-own voice, above.
 
 ### Protocol versioning
 
@@ -462,29 +476,61 @@ published `Valour.Shared`/`Valour.Sdk` NuGets are the de-facto protocol SDK.
 
 ---
 
+## Layer 3 — The whole platform: standalone instances and clone networks
+
+The foundation distribution, run for yourself. Two shapes:
+
+- **Standalone instance:** the compose bundle with no federation config — a
+  private Valour with local accounts, planets, media, and (optionally) voice.
+  No relationship to the official network.
+- **Clone network:** the same binary with `Federation:HubEnabled=true` becomes
+  the hub of an entirely independent network — accounts, node registry, planet
+  registry, signed grants — as described in [Federation](Federation.md). Its
+  clients and community nodes must opt into that hub explicitly; enabling the
+  flag does not connect it to the official network in any way.
+
+Deliberate stances:
+
+- **Unsupported, not prevented.** No migration tooling between the official
+  network and clones, no cross-network anything. The AGPL guarantees the
+  capability; nothing more is promised.
+- **No network↔network peering exists or is planned.** Two hubs are separate
+  universes. A node registers with exactly one hub: `Federation:HubUrl` pins
+  the trusted hub, and credentials minted by any other hub are rejected.
+- **Run under your own name.** Clone networks are expected to present their
+  own identity rather than the official Valour branding.
+
+---
+
 ## Sequencing
 
 | Phase | What | Size | Depends on |
 |---|---|---|---|
 | 0 | Fix relay-channel bug + cross-node presence TODO | S | — |
-| 1 | Layer 1: storage abstraction, config unification, instance manifest, compose, bootstrap | M | — |
-| 2 | Layer 2: BYO-S3 direct mode, credential encryption, client EXIF strip, warnings/badge, mirror | M | 1 (storage abstraction) |
-| 3a | Signing infra, node registry + domain verification, token mint/exchange, shadow users | L | 1 |
-| 3b | Client multi-origin nodes, join-via-hub, warning UX, accepted-domains list | M | 3a |
-| 3c | Offline notify S2S, denylist, discovery integration, purge protocol | M | 3b |
+| 1 | Foundation: storage abstraction, config unification, instance manifest, compose, bootstrap | M | — |
+| 2 | Layer 1: BYO-S3 direct mode, credential encryption, client EXIF strip, warnings/badge, mirror | M | 1 (storage abstraction) |
+| 3a | Layer 2: signing infra, node registry + domain verification, token mint/exchange, shadow users | L | 1 |
+| 3b | Layer 2: client multi-origin nodes, join-via-hub, warning UX, accepted-domains list | M | 3a |
+| 3c | Layer 2: offline notify S2S, denylist, discovery integration, purge protocol | M | 3b |
 
-Run 3a–3c behind a feature flag with one hand-picked partner node before
-opening registration — the abuse surface (notify spam, impersonation planets,
-malicious media hosts) is best tuned against a friendly node.
+Layer 3 needed no phase of its own: standalone mode *is* the foundation, and
+the hub role ships in the same binary (`Federation:HubEnabled`).
+
+Shipped stance on the abuse surface (notify spam, impersonation planets,
+malicious media hosts): node registration is open and self-serve, but a node's
+migration-hosting policy is **closed by default** — only the registrant's own
+planets, plus explicitly approved owners/planets, may move there until the
+operator opts into `AllowPublicMigrations`. That default is the throttle a
+private partner-node phase would otherwise have provided.
 
 **Complexity-minimizing decisions, restated:** identity never federates (kills
 the hardest problems in federation outright); DMs stay home; the token
 exchange converts federated auth into the existing auth system at the node
-boundary so the whole server codebase runs unmodified; Layer 2's per-planet
+boundary so the whole server codebase runs unmodified; Layer 1's per-planet
 media host is scoped to that planet's messages only; and the S2S protocol is
 five endpoints, not a protocol suite.
 
-**Honest costs:** Layer 2's hands-off model trades scanning and content
+**Honest costs:** Layer 1's hands-off model trades scanning and content
 immutability for the liability boundary — the warnings exist precisely
-because those protections don't apply; Layer 3's weakest guarantee is
+because those protections don't apply; Layer 2's weakest guarantee is
 deletion on remote nodes (a purge *request*), and the join warning says so.

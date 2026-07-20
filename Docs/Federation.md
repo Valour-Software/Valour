@@ -21,6 +21,19 @@ connection.
 
 The user's normal Valour session token never leaves the official hub.
 
+Federation ships in three layers, numbered by how much of the platform moves
+into your own hands:
+
+1. **Layer 1 — your media and calls:** a planet on official infrastructure
+   brings its own S3 bucket and/or LiveKit server (planet settings → Storage /
+   Voice). Valour never touches those bytes.
+2. **Layer 2 — community nodes:** run the server on your own domain and host
+   whole planets inside the official network. This document covers that layer.
+3. **Layer 3 — the whole platform:** run a standalone instance, or enable the
+   hub role for an independent clone network. See
+   [self-hosting in the README](../README.md#self-hosting) and the
+   [federation plan](FederationPlan.md).
+
 ## Roles
 
 Configuration names below use the normal `Section:Property` form. In an
