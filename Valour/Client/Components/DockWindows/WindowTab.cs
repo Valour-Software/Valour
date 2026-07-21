@@ -127,6 +127,8 @@ public class FloatingWindowProps
 
 public class WindowTab
 {
+    private readonly SemaphoreSlim _contentChangeLock = new(1, 1);
+
     public event Func<Task> OnStartFloating;
     
     /// <summary>
@@ -175,28 +177,39 @@ public class WindowTab
     
     public async Task SetContent(WindowContent content)
     {
-        var oldContent = Content;
-        
-        Content = content;
-        content.Tab = this;
-        
-        // Render new component. We do this first because it feels
-        // much faster to the user
-        Component?.ReRender();
-        
-        if (oldContent is not null)
+        ArgumentNullException.ThrowIfNull(content);
+
+        await _contentChangeLock.WaitAsync();
+        try
         {
-            // Let old content know it's closing
-            await oldContent.NotifyClosed();
+            if (ReferenceEquals(Content, content))
+                return;
+
+            var oldContent = Content;
+            content.Tab = this;
+
+            // Acquire the incoming content's planet lock before releasing the
+            // outgoing one. This prevents a same-planet channel switch from
+            // briefly disconnecting the planet between components.
+            await content.NotifyOpened();
+
+            if (oldContent is not null)
+                await oldContent.NotifyClosed();
+
+            Content = content;
+            await WindowService.NotifyFocusedContentChanged(this);
+            Component?.ReRender();
+
+            // Floating tabs do not have a Layout, so fall back to their
+            // component's owning dock when persisting the replacement.
+            var dock = Layout?.DockComponent ?? Component?.Dock;
+            if (dock is not null)
+                await dock.SaveLayout();
         }
-        
-        // Let new content know it's opening
-        await content.NotifyOpened();
-        
-        // Let dock know to save new state
-        // Note to future self: this needs to run AFTER the new content
-        // has loaded its properties that need to be saved
-        await Layout.DockComponent.SaveLayout();
+        finally
+        {
+            _contentChangeLock.Release();
+        }
     }
 
     public void NotifyLayoutChanged()

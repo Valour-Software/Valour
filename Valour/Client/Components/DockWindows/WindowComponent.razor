@@ -268,9 +268,10 @@
         if (DeviceInfo.IsMobile)
         {
             await ReplaceAsync(content);
+            return;
         }
-        
-       await Layout.AddTab(content);
+
+        await Layout.AddTab(content);
     }
 
     public void NotifyNeedsReRender()

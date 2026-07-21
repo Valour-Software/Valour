@@ -136,7 +136,7 @@ else
                 var added = _myReactions.Contains(reaction.emoji) ? "added" : "";
                 var newReaction = _newReactions != null && _newReactions.Contains(reaction.emoji) ? "new" : "";
                 
-                <TooltipTrigger Position="top">
+                <TooltipTrigger Position="top" OnShow="@(() => EnsureReactionUsersAsync(reaction.emoji))">
                     <ChildContent>
                         <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
                             <img class="emoji" src="@GetReactionSrc(reaction.emoji)" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
@@ -311,6 +311,7 @@ else
     private const int MaxTooltipUsers = 5;
 
     private Dictionary<string, List<(User User, PlanetMember Member)>> _reactionUsers = new();
+    private HashSet<string> _loadingReactionUsers = new();
 
     private async Task<(User User, PlanetMember Member)> FetchReactionAuthorAsync(MessageReaction reaction)
     {
@@ -324,33 +325,36 @@ else
         return (user, member);
     }
 
-    private async Task BuildReactionUsersAsync()
+    private async Task EnsureReactionUsersAsync(string emoji)
     {
-        if (_message.Reactions is null) return;
+        if (_message.Reactions is null ||
+            _reactionUsers.ContainsKey(emoji) ||
+            !_loadingReactionUsers.Add(emoji))
+        {
+            return;
+        }
 
         try
         {
-            var changed = false;
-
-            foreach (var group in _message.Reactions.GroupBy(x => x.Emoji))
+            var users = new List<(User User, PlanetMember Member)>();
+            foreach (var reaction in _message.Reactions
+                         .Where(x => x.Emoji == emoji)
+                         .DistinctBy(x => x.AuthorUserId)
+                         .Take(MaxTooltipUsers))
             {
-                var users = new List<(User User, PlanetMember Member)>();
-
-                foreach (var reaction in group)
-                {
-                    users.Add(await FetchReactionAuthorAsync(reaction));
-                }
-
-                _reactionUsers[group.Key] = users;
-                changed = true;
+                users.Add(await FetchReactionAuthorAsync(reaction));
             }
 
-            if (changed)
-                await ReRender();
+            _reactionUsers[emoji] = users;
+            await ReRender();
         }
         catch (Exception e)
         {
             Client.Logger.Log("Message", "Error building reaction tooltips: " + e, "red");
+        }
+        finally
+        {
+            _loadingReactionUsers.Remove(emoji);
         }
     }
 
@@ -434,8 +438,6 @@ else
         }
 
         BuildReactionRenderList();
-
-        _ = BuildReactionUsersAsync();
     }
 
     private void BuildReactionRenderList()
@@ -497,7 +499,10 @@ else
 
         BuildReactionRenderList();
 
-        _ = AddReactionUserAsync(reaction);
+        // Only maintain author details after this tooltip has actually been
+        // opened. Loading history must not fetch every reactor up front.
+        if (_reactionUsers.ContainsKey(reaction.Emoji))
+            _ = AddReactionUserAsync(reaction);
 
         // Re-render the component to show the updated reactions
         _ = ReRender();

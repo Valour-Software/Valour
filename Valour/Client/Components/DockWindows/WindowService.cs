@@ -8,6 +8,8 @@ namespace Valour.Client.Components.DockWindows;
 
 public static class WindowService
 {
+    private static readonly SemaphoreSlim MobileNavigationLock = new(1, 1);
+
     public static HybridEvent<WindowTab> FocusedTabChanged;
     public static HybridEvent<Planet> FocusedPlanetChanged;
 
@@ -29,19 +31,27 @@ public static class WindowService
     {
         if (FocusedTab == tab)
             return;
-        
+
         FocusedTab = tab;
-        
-        if (FocusedTabChanged is not null)
-            FocusedTabChanged.Invoke(tab);
-        
-        if (tab.Content.PlanetId is not null)
-        {
-            FocusedPlanet = await MainDock.Client.PlanetService.FetchPlanetAsync(tab.Content.PlanetId.Value);
-            
-            if (FocusedPlanetChanged is not null)
-                FocusedPlanetChanged.Invoke(FocusedPlanet);
-        }
+        await NotifyFocusedContentChanged(tab);
+    }
+
+    /// <summary>
+    /// Refreshes focus-derived state when a mobile tab keeps its identity but
+    /// replaces its content.
+    /// </summary>
+    internal static async Task NotifyFocusedContentChanged(WindowTab tab)
+    {
+        if (FocusedTab != tab)
+            return;
+
+        FocusedTabChanged?.Invoke(tab);
+
+        FocusedPlanet = tab.Content.PlanetId is not null
+            ? await MainDock.Client.PlanetService.FetchPlanetAsync(tab.Content.PlanetId.Value)
+            : null;
+
+        FocusedPlanetChanged?.Invoke(FocusedPlanet);
     }
     
     public static void AddDock(WindowDockComponent dock)
@@ -95,6 +105,21 @@ public static class WindowService
 
     public static async Task OpenWindowAtFocused(WindowContent content, WindowTab tabToReplace = null)
     {
+        if (DeviceInfo.IsMobile)
+        {
+            await MobileNavigationLock.WaitAsync();
+            try
+            {
+                await OpenMobileWindowAsync(content);
+            }
+            finally
+            {
+                MobileNavigationLock.Release();
+            }
+
+            return;
+        }
+
         if (await TryFocusExistingWindowForContent(content))
             return;
 
@@ -111,30 +136,64 @@ public static class WindowService
     
     public static async Task OpenWindowAtFocused(WindowTab tab)
     {
-        // If mobile, always replace the main window
-        // TODO: Mobile window history
         if (DeviceInfo.IsMobile)
         {
-            var mainWindow = MainDock.Tabs.FirstOrDefault();
-            
-            await MainDock.Layout.AddTab(tab, false);
-            
-            if (mainWindow is not null)
+            await MobileNavigationLock.WaitAsync();
+            try
             {
-                await MainDock.Layout.RemoveTab(mainWindow);
+                await OpenMobileWindowAsync(tab.Content, tab);
             }
+            finally
+            {
+                MobileNavigationLock.Release();
+            }
+
+            return;
+        }
+
+        if (FocusedTab is not null)
+        {
+            await FocusedTab.Layout.AddTab(tab);
         }
         else
         {
-            if (FocusedTab is not null)
-            {
-                await FocusedTab.Layout.AddTab(tab);
-            }
-            else
-            {
-                await TryAddFloatingWindow(tab);
-            } 
+            await TryAddFloatingWindow(tab);
         }
+    }
+
+    /// <summary>
+    /// Mobile has one logical window. Reuse that tab so component teardown,
+    /// connection ownership, and layout rendering happen as one serialized
+    /// operation instead of racing an add followed by a remove.
+    /// </summary>
+    private static async Task OpenMobileWindowAsync(WindowContent content, WindowTab newTab = null)
+    {
+        if (content is null || MainDock?.Layout is null)
+            return;
+
+        var mainWindow = MainDock.Layout.FocusedTab
+                         ?? MainDock.Layout.Tabs.FirstOrDefault();
+
+        if (mainWindow is null)
+        {
+            await MainDock.Layout.AddTab(newTab ?? new WindowTab(content));
+            return;
+        }
+
+        // Repair layouts left in an invalid multi-tab state by older mobile
+        // navigation. Hidden tabs still own components and connection locks.
+        var extraTabs = MainDock.Layout.Tabs
+            .Where(x => x != mainWindow)
+            .ToList();
+
+        foreach (var extraTab in extraTabs)
+            await MainDock.Layout.RemoveTab(extraTab, false);
+
+        if (!RepresentsSameContent(mainWindow.Content, content))
+            await mainWindow.SetContent(content);
+
+        if (extraTabs.Count > 0)
+            await MainDock.NotifyLayoutChanged();
     }
     
     /// <summary>
@@ -172,20 +231,8 @@ public static class WindowService
         if (content is null)
             return false;
 
-        WindowTab? existingTab = null;
-
-        if (content is ChatWindowComponent.Content chatContent && chatContent.Data is not null)
-        {
-            existingTab = GlobalTabs.FirstOrDefault(t =>
-                t.Content is ChatWindowComponent.Content existing &&
-                existing.Data?.Id == chatContent.Data.Id);
-        }
-        else if (content is CallWindowComponent.Content callContent && callContent.Data is not null)
-        {
-            existingTab = GlobalTabs.FirstOrDefault(t =>
-                t.Content is CallWindowComponent.Content existing &&
-                existing.Data?.Id == callContent.Data.Id);
-        }
+        var existingTab = GlobalTabs.FirstOrDefault(t =>
+            RepresentsSameContent(t.Content, content));
 
         if (existingTab?.Layout is null)
             return false;
@@ -193,6 +240,27 @@ public static class WindowService
         await existingTab.Layout.SetFocusedTab(existingTab);
         await existingTab.Layout.DockComponent.NotifyLayoutChanged();
         return true;
+    }
+
+    private static bool RepresentsSameContent(WindowContent existing, WindowContent requested)
+    {
+        if (existing is ChatWindowComponent.Content existingChat &&
+            requested is ChatWindowComponent.Content requestedChat)
+        {
+            return existingChat.Data is not null &&
+                   requestedChat.Data is not null &&
+                   existingChat.Data.Id == requestedChat.Data.Id;
+        }
+
+        if (existing is CallWindowComponent.Content existingCall &&
+            requested is CallWindowComponent.Content requestedCall)
+        {
+            return existingCall.Data is not null &&
+                   requestedCall.Data is not null &&
+                   existingCall.Data.Id == requestedCall.Data.Id;
+        }
+
+        return ReferenceEquals(existing, requested);
     }
     
     /// <summary>

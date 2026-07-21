@@ -523,8 +523,20 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     public async Task<List<Message>> GetMessagesAsync(long index = long.MaxValue,
         int count = 10)
     {
+        var result = await GetMessagesWithResultAsync(index, count);
+        return result.Success ? result.Data : [];
+    }
+
+    /// <summary>
+    /// Returns messages without collapsing a failed history request into an
+    /// indistinguishable empty channel.
+    /// </summary>
+    public async Task<TaskResult<List<Message>>> GetMessagesWithResultAsync(
+        long index = long.MaxValue,
+        int count = 10)
+    {
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
-            return new List<Message>();
+            return TaskResult<List<Message>>.FromData([]);
 
         var result = await Node.GetJsonAsync<List<Message>>(
                 $"{IdRoute}/messages?index={index}&count={count}");
@@ -532,12 +544,13 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         if (!result.Success)
         {
             Client.Logger.Log("Channel",$"Failed to get messages from {Id}: {result.Message}", "Yellow");
-            return new List<Message>();
+            return TaskResult<List<Message>>.FromFailure(result);
         }
 
+        result.Data ??= [];
         result.Data.SyncAll(Client);
 
-        return result.Data;
+        return TaskResult<List<Message>>.FromData(result.Data);
     }
     
     /// <summary>
@@ -545,8 +558,16 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     public async Task<List<Message>> GetMessagesAfterAsync(long afterId, int count = 10)
     {
+        var result = await GetMessagesAfterWithResultAsync(afterId, count);
+        return result.Success ? result.Data : [];
+    }
+
+    public async Task<TaskResult<List<Message>>> GetMessagesAfterWithResultAsync(
+        long afterId,
+        int count = 10)
+    {
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
-            return new List<Message>();
+            return TaskResult<List<Message>>.FromData([]);
 
         var result = await Node.GetJsonAsync<List<Message>>(
             $"{IdRoute}/messages/after?afterId={afterId}&count={count}");
@@ -554,12 +575,13 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         if (!result.Success)
         {
             Client.Logger.Log("Channel", $"Failed to get messages after {afterId} from {Id}: {result.Message}", "Yellow");
-            return new List<Message>();
+            return TaskResult<List<Message>>.FromFailure(result);
         }
 
+        result.Data ??= [];
         result.Data.SyncAll(Client);
 
-        return result.Data;
+        return TaskResult<List<Message>>.FromData(result.Data);
     }
 
     public async Task<List<Message>> SearchMessagesAsync(string searchText, int count = 20)

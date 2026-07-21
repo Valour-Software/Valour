@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -56,25 +57,28 @@ public class PlanetService : ServiceBase
     public readonly IReadOnlyList<Planet> ConnectedPlanets;
 
     private readonly List<Planet> _connectedPlanets = new();
+    private readonly object _connectedPlanetsLock = new();
 
     /// <summary>
     /// Lookup for opened planets by id
     /// </summary>
     public readonly IReadOnlyDictionary<long, Planet> ConnectedPlanetsLookup;
 
-    private readonly Dictionary<long, Planet> _connectedPlanetsLookup = new();
+    private readonly ConcurrentDictionary<long, Planet> _connectedPlanetsLookup = new();
 
     /// <summary>
     /// A set of locks used to prevent planet connections from closing automatically
     /// </summary>
     public readonly IReadOnlyDictionary<string, long> PlanetLocks;
 
-    private readonly Dictionary<string, long> _planetLocks = new();
+    private readonly ConcurrentDictionary<string, long> _planetLocks = new();
 
     /// <summary>
-    /// Tracks planet IDs currently being connected to prevent concurrent setup
+    /// Serializes connection lifecycle operations per planet. Different planets
+    /// can still initialize concurrently, while callers for the same planet wait
+    /// for the real result instead of observing a false early success.
     /// </summary>
-    private readonly HashSet<long> _connectingPlanets = new();
+    private readonly ConcurrentDictionary<long, SemaphoreSlim> _planetConnectionGates = new();
 
     private readonly LogOptions _logOptions = new(
         "PlanetService",
@@ -287,7 +291,7 @@ public class PlanetService : ServiceBase
     /// Returns if the given planet is open
     /// </summary>
     public bool IsPlanetConnected(Planet planet) =>
-        ConnectedPlanets.Any(x => x.Id == planet.Id);
+        planet is not null && _connectedPlanetsLookup.ContainsKey(planet.Id);
 
     /// <summary>
     /// Opens a planet and prepares it for use
@@ -307,11 +311,13 @@ public class PlanetService : ServiceBase
         LogError(reason.Message);
             
         // Remove lock
-        RemovePlanetLock(key);
+        RemovePlanetLock(key, planet.Id);
             
         // Remove from lists
-        _connectedPlanets.Remove(planet);
-        _connectedPlanetsLookup.Remove(planet.Id);
+        lock (_connectedPlanetsLock)
+            _connectedPlanets.RemoveAll(x => x.Id == planet.Id);
+
+        _connectedPlanetsLookup.TryRemove(planet.Id, out _);
     }
 
     /// <summary>
@@ -334,34 +340,22 @@ public class PlanetService : ServiceBase
             return TaskResult.FromFailure("Failed to prepare planet connection.");
         }
         
-        if (PlanetLocks.ContainsKey(key))
-        {
-            _planetLocks[key] = planet.Id;
-        }
-        else
-        {
-            // Add lock
-            AddPlanetLock(key, planet.Id);
-        }
+        AddPlanetLock(key, planet.Id);
 
-        // Already open
-        if (_connectedPlanetsLookup.ContainsKey(planet.Id))
-            return TaskResult.SuccessResult;
+        var connectionGate = _planetConnectionGates.GetOrAdd(
+            planet.Id,
+            static _ => new SemaphoreSlim(1, 1));
 
-        // Already being connected by another concurrent call
-        if (_connectingPlanets.Contains(planet.Id))
-            return TaskResult.SuccessResult;
-
-        _connectingPlanets.Add(planet.Id);
-
-        Log($"Opening planet {planet.Name} ({planet.Id})");
-
-        var sw = new Stopwatch();
-
-        sw.Start();
-
+        await connectionGate.WaitAsync();
         try
         {
+            // Another caller may have completed setup while this caller waited.
+            if (_connectedPlanetsLookup.ContainsKey(planet.Id))
+                return TaskResult.SuccessResult;
+
+            Log($"Opening planet {planet.Name} ({planet.Id})");
+            var sw = Stopwatch.StartNew();
+
             // Joins SignalR group
             var result = await planet.ConnectToRealtime();
 
@@ -381,7 +375,12 @@ public class PlanetService : ServiceBase
             }
 
             // Mark as opened only after successful setup
-            _connectedPlanets.Add(planet);
+            lock (_connectedPlanetsLock)
+            {
+                if (_connectedPlanets.All(x => x.Id != planet.Id))
+                    _connectedPlanets.Add(planet);
+            }
+
             _connectedPlanetsLookup[planet.Id] = planet;
 
             sw.Stop();
@@ -405,7 +404,7 @@ public class PlanetService : ServiceBase
         }
         finally
         {
-            _connectingPlanets.Remove(planet.Id);
+            connectionGate.Release();
         }
     }
 
@@ -427,9 +426,12 @@ public class PlanetService : ServiceBase
     /// </summary>
     public async Task<TaskResult> TryClosePlanetConnection(Planet planet, string key, bool force = false)
     {
+        if (planet is null)
+            return TaskResult.FromFailure("Planet is null");
+
         if (!force)
         {
-            var lockResult = RemovePlanetLock(key);
+            var lockResult = RemovePlanetLock(key, planet.Id);
             if (lockResult == ConnectionLockResult.Locked)
             {
                 return TaskResult.FromFailure("Planet is locked by other keys.");
@@ -445,25 +447,38 @@ public class PlanetService : ServiceBase
             }
         }
 
-        // Already closed
-        if (!ConnectedPlanets.Contains(planet))
+        var connectionGate = _planetConnectionGates.GetOrAdd(
+            planet.Id,
+            static _ => new SemaphoreSlim(1, 1));
+
+        await connectionGate.WaitAsync();
+        try
+        {
+            // An opener can add its ownership while this close is waiting for
+            // initialization. Never disconnect out from under that caller.
+            if (!force && _planetLocks.Values.Any(x => x == planet.Id))
+                return TaskResult.FromFailure("Planet is locked by other keys.");
+
+            if (!_connectedPlanetsLookup.TryGetValue(planet.Id, out var connectedPlanet))
+                return TaskResult.SuccessResult;
+
+            await connectedPlanet.DisconnectFromRealtime();
+
+            lock (_connectedPlanetsLock)
+                _connectedPlanets.RemoveAll(x => x.Id == planet.Id);
+
+            _connectedPlanetsLookup.TryRemove(planet.Id, out _);
+
+            ConnectedPlanetsUpdated?.Invoke();
+            Log($"Left SignalR group for planet {connectedPlanet.Name} ({planet.Id})");
+            PlanetDisconnected?.Invoke(connectedPlanet);
+
             return TaskResult.SuccessResult;
-
-        // Close connection
-        await planet.DisconnectFromRealtime();
-
-        // Remove from list
-        _connectedPlanets.Remove(planet);
-        _connectedPlanetsLookup.Remove(planet.Id);
-        
-        ConnectedPlanetsUpdated?.Invoke();
-
-        Log($"Left SignalR group for planet {planet.Name} ({planet.Id})");
-
-        // Invoke event
-        PlanetDisconnected?.Invoke(planet);
-
-        return TaskResult.SuccessResult;
+        }
+        finally
+        {
+            connectionGate.Release();
+        }
     }
 
     /// <summary>
@@ -481,13 +496,13 @@ public class PlanetService : ServiceBase
     /// Removes the lock for a planet.
     /// Returns if there are any locks left for the planet.
     /// </summary>
-    private ConnectionLockResult RemovePlanetLock(string key)
+    private ConnectionLockResult RemovePlanetLock(string key, long expectedPlanetId)
     {
-        if (_planetLocks.TryGetValue(key, out var planetId))
+        var entry = new KeyValuePair<string, long>(key, expectedPlanetId);
+        if (((ICollection<KeyValuePair<string, long>>)_planetLocks).Remove(entry))
         {
-            Log($"Planet lock {key} removed for {planetId}");
-            _planetLocks.Remove(key);
-            return _planetLocks.Any(x => x.Value == planetId)
+            Log($"Planet lock {key} removed for {expectedPlanetId}");
+            return _planetLocks.Values.Any(x => x == expectedPlanetId)
                 ? ConnectionLockResult.Locked
                 : ConnectionLockResult.Unlocked;
         }

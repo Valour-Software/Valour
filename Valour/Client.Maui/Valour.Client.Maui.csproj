@@ -50,8 +50,8 @@
         <ApplicationId>gg.valour.app</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.7.9</ApplicationDisplayVersion>
-        <ApplicationVersion>79</ApplicationVersion>
+        <ApplicationDisplayVersion>0.7.10</ApplicationDisplayVersion>
+        <ApplicationVersion>80</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
@@ -112,6 +112,13 @@
         <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.9.0" />
         <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.10.0.2" />
         <GoogleServicesJson Include="Platforms\Android\google-services.json" Condition="Exists('Platforms\Android\google-services.json')" />
+
+        <!--
+            Keep the Blazor host files in Android packages even when an incremental
+            RID build produces an incomplete static-web-assets manifest.
+        -->
+        <MauiAsset Include="wwwroot\index.html" Link="wwwroot\index.html" />
+        <MauiAsset Include="wwwroot\app.css" Link="wwwroot\app.css" />
     </ItemGroup>
 
     <ItemGroup>

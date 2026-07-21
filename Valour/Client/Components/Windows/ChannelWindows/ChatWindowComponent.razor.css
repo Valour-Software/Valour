@@ -9,6 +9,33 @@
     border-top: 1px solid rgba(255, 255, 255, 0.02);
 }
 
+.chat-setup-error {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+    color: var(--font-alt-color);
+}
+
+.chat-setup-error i {
+    font-size: 2rem;
+    color: var(--color-danger);
+}
+
+.chat-setup-error h3,
+.chat-setup-error p {
+    margin: 0;
+}
+
+.chat-setup-error h3 {
+    color: var(--font-color);
+}
+
 .chat-member-wrapper {
     display: flex;
     flex-direction: row;

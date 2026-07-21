@@ -20,6 +20,9 @@
     public RenderFragment TooltipContent { get; set; }
 
     [Parameter]
+    public EventCallback OnShow { get; set; }
+
+    [Parameter]
     public string Position { get; set; } = "top"; // Default position
 
     [Parameter]
@@ -55,11 +58,11 @@
         _showTimer?.Dispose();
         _showTimer = new Timer(ShowDelay);
         _showTimer.AutoReset = false;
-        _showTimer.Elapsed += (sender, e) =>
+        _showTimer.Elapsed += async (sender, e) =>
         {
             if (_isHovering && !_disposed)
             {
-                ShowTooltip();
+                await InvokeAsync(ShowTooltipAsync);
             }
         };
         _showTimer.Start();
@@ -91,7 +94,14 @@
         _hideTimer.Start();
     }
 
-    public void ShowTooltip() => TooltipRoot.ShowTooltip(this);
+    public async Task ShowTooltipAsync()
+    {
+        if (OnShow.HasDelegate)
+            await OnShow.InvokeAsync();
+
+        if (_isHovering && !_disposed)
+            TooltipRoot.ShowTooltip(this);
+    }
 
     public Task HideTooltip() => TooltipRoot.HideTooltip(this);
 

@@ -14,6 +14,20 @@
     {
         <Loading Title="Loading chat..." Spin="@true" />
     }
+    else if (!string.IsNullOrWhiteSpace(_setupError))
+    {
+        <div class="chat-setup-error" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <h3>Couldn't load this channel</h3>
+            <p>@_setupError</p>
+            <button type="button"
+                    class="v-btn primary"
+                    disabled="@_retryingSetup"
+                    @onclick="RetrySetupAsync">
+                @(_retryingSetup ? "Retrying..." : "Retry")
+            </button>
+        </div>
+    }
     else
     {
         @if (!HideHeader)
@@ -73,6 +87,8 @@
     
     private bool _loading = true;
     private bool _disposed;
+    private bool _retryingSetup;
+    private string _setupError;
     private long? _pendingScrollToMessageId;
     private TouchSlide _touchSlide;
     private Timer _activeViewTimer;
@@ -217,15 +233,18 @@
         _reactionSelector?.ToggleVisible();
     }
     
-    public async Task SetupNewChannelAsync()
+    public async Task<bool> SetupNewChannelAsync()
     {
         if (Channel is null)
         {
             Client.Logger.Log<ChatWindowComponent>("Cannot set up chat window because channel data is null.", "red");
+            _setupError = "The channel data is unavailable. Please reopen the channel.";
             _loading = false;
             await ReRender();
-            return;
+            return false;
         }
+
+        _setupError = null;
 
         if (!_loading)
         {
@@ -233,6 +252,7 @@
             await ReRender();
         }
 
+        var succeeded = false;
         try
         {
             var openResult = await Channel.OpenWithResult(WindowChannelKey);
@@ -254,12 +274,18 @@
                     throw new Exception("Planet membership was not found while setting up this channel.");
                 }
 
+                // Setup can be retried after a transient failure. Remove first
+                // so retries never register duplicate handlers.
+                Channel.Planet.Deleted -= OnPlanetDeleted;
                 Channel.Planet.Deleted += OnPlanetDeleted;
+                myMember.Deleted -= OnSelfMemberDeleted;
                 myMember.Deleted += OnSelfMemberDeleted;
+                Channel.Deleted -= OnChannelDeleted;
                 Channel.Deleted += OnChannelDeleted;
                 ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(myMember.Id);
             }
 
+            Channel.Updated -= OnChatChannelUpdate;
             Channel.Updated += OnChatChannelUpdate;
 
             ClearMessages(false);
@@ -270,29 +296,75 @@
             var targetMessageId = (WindowCtx as Content)?.TargetMessageId;
             if (targetMessageId is not null && targetMessageId.Value != 0)
             {
-                await LoadAroundMessageAsync(targetMessageId.Value);
+                var historyResult = await LoadAroundMessageAsync(targetMessageId.Value);
+                if (!historyResult.Success)
+                {
+                    throw new Exception($"Failed to load channel history: {historyResult.Message}");
+                }
+
                 // Clear so re-setup doesn't re-navigate
                 ((Content)WindowCtx).TargetMessageId = null;
             }
             else
             {
-                await LoadRecentMessages(InitialMessageCount);
+                var historyResult = await LoadRecentMessages(InitialMessageCount);
+                if (!historyResult.Success)
+                {
+                    throw new Exception($"Failed to load channel history: {historyResult.Message}");
+                }
             }
 
             await Channel.UpdateUserState(DateTime.UtcNow);
+            succeeded = true;
         }
         catch (Exception e)
         {
             Client.Logger.Log<ChatWindowComponent>($"Error setting up channel: {e}", "red");
+            _setupError = "The channel couldn't finish loading. Check your connection and try again.";
         }
 
         _loading = false;
         _pendingReactionEmojiRefresh = true;
 
-        if (InputComponent is not null)
-            await InputComponent.NotifyChannelLoadedAsync();
+        if (succeeded && InputComponent is not null)
+        {
+            try
+            {
+                await InputComponent.NotifyChannelLoadedAsync();
+            }
+            catch (Exception e)
+            {
+                Client.Logger.Log<ChatWindowComponent>($"Error initializing channel input: {e}", "red");
+                _setupError = "The channel couldn't finish loading. Check your connection and try again.";
+                succeeded = false;
+            }
+        }
 
         await ReRender();
+        return succeeded;
+    }
+
+    private async Task RetrySetupAsync()
+    {
+        if (_retryingSetup || _disposed)
+            return;
+
+        _retryingSetup = true;
+        _setupError = null;
+        _loading = true;
+        await ReRender();
+
+        try
+        {
+            if (await SetupNewChannelAsync() && !_disposed)
+                await InitializeChatInteropAsync();
+        }
+        finally
+        {
+            _retryingSetup = false;
+            if (!_disposed)
+                await ReRender();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -307,55 +379,15 @@
         {
             // Setup must run first: MessageWrapperEl only exists in the DOM
             // once _loading is false, so the JS init has to wait for it.
-            await SetupNewChannelAsync();
+            var setupSucceeded = await SetupNewChannelAsync();
 
             // The window may have been closed while messages were loading;
             // _thisRef is disposed then, and serializing it to JS throws
             // ObjectDisposedException and crashes the app (#1554, #1566)
-            if (_disposed)
+            if (_disposed || !setupSucceeded)
                 return;
 
-            try
-            {
-                _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
-                if (_disposed)
-                    return;
-
-                _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
-                if (_disposed)
-                    return;
-
-                // Swipe-left-to-reply for touch devices. The :not() filters keep
-                // inner reply previews and ghost messages from being targets.
-                _touchSlide = new TouchSlide();
-                _touchSlide.SlideAction += OnMessageSwipeReply;
-                await _touchSlide.Initialize(MessageWrapperEl, ".message:not(.reply):not(.ghost)", JsRuntime);
-                if (_disposed)
-                    return;
-
-                // The notification path (TargetMessageId -> LoadAroundMessageAsync)
-                // wants to scroll before _jsService exists; it defers to here.
-                if (_pendingScrollToMessageId is not null)
-                {
-                    var target = _pendingScrollToMessageId.Value;
-                    _pendingScrollToMessageId = null;
-                    await ScrollToMessage(target, highlight: true);
-                }
-                else
-                {
-                    await ScrollToBottom(true);
-                }
-
-                await UpdateActiveViewingLeaseStateAsync();
-            }
-            catch (ObjectDisposedException)
-            {
-                return;
-            }
-            catch (JSDisconnectedException)
-            {
-                return;
-            }
+            await InitializeChatInteropAsync();
         }
 
         if (_pendingReactionEmojiRefresh && !_loading && _reactionSelector is not null)
@@ -397,6 +429,101 @@
         UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
         
         await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task InitializeChatInteropAsync()
+    {
+        if (_disposed || _jsService is not null)
+            return;
+
+        try
+        {
+            _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
+            if (_disposed)
+                return;
+
+            _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
+            if (_disposed)
+                return;
+
+            // Swipe-left-to-reply for touch devices. The :not() filters keep
+            // inner reply previews and ghost messages from being targets.
+            _touchSlide = new TouchSlide();
+            _touchSlide.SlideAction += OnMessageSwipeReply;
+            await _touchSlide.Initialize(MessageWrapperEl, ".message:not(.reply):not(.ghost)", JsRuntime);
+            if (_disposed)
+                return;
+
+            if (_pendingScrollToMessageId is not null)
+            {
+                var target = _pendingScrollToMessageId.Value;
+                _pendingScrollToMessageId = null;
+                await ScrollToMessage(target, highlight: true);
+            }
+            else
+            {
+                await ScrollToBottom(true);
+            }
+
+            await UpdateActiveViewingLeaseStateAsync();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The tab was closed during initialization.
+        }
+        catch (JSDisconnectedException)
+        {
+            // The WebView/browser disconnected during initialization.
+        }
+        catch (JSException e)
+        {
+            Client.Logger.Log<ChatWindowComponent>($"Error initializing channel UI: {e}", "red");
+            await ResetChatInteropAfterFailureAsync();
+            _setupError = "The channel loaded, but its interface couldn't start. Please try again.";
+            await ReRender();
+        }
+    }
+
+    private async Task ResetChatInteropAfterFailureAsync()
+    {
+        if (_touchSlide is not null)
+        {
+            _touchSlide.SlideAction -= OnMessageSwipeReply;
+            try
+            {
+                await _touchSlide.DisposeAsync();
+            }
+            catch (JSException)
+            {
+                // The failed JS context may already be gone.
+            }
+            catch (ObjectDisposedException)
+            {
+                // The failed JS context may already be gone.
+            }
+
+            _touchSlide = null;
+        }
+
+        if (_jsService is not null)
+        {
+            try
+            {
+                await _jsService.DisposeAsync();
+            }
+            catch (JSException)
+            {
+                // The failed JS context may already be gone.
+            }
+            catch (ObjectDisposedException)
+            {
+                // The failed JS context may already be gone.
+            }
+
+            _jsService = null;
+        }
     }
 
     public async Task OpenEditMode(MessageComponent message)
@@ -724,17 +851,21 @@
     // Message Handling //
     //////////////////////
     
-    public async Task LoadRecentMessages(int count)
+    public async Task<TaskResult> LoadRecentMessages(int count)
     {
-        var messages = await Channel.GetLastMessagesAsync(count);
-        await AddMessages(messages, true, true);
+        var result = await Channel.GetMessagesWithResultAsync(long.MaxValue, count);
+        if (!result.Success)
+            return TaskResult.FromFailure(result);
+
+        await AddMessages(result.Data, true, true);
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>
     /// Loads messages around a target message and highlights it.
     /// Used for notification click-through and search result navigation.
     /// </summary>
-    public async Task LoadAroundMessageAsync(long messageId)
+    public async Task<TaskResult> LoadAroundMessageAsync(long messageId)
     {
         ClearMessages(false);
         _isCaughtUp = false;
@@ -742,9 +873,17 @@
         SuppressAutoScroll = true;
 
         // Fetch messages up to and including the target (Id < messageId+1 gets Id <= messageId)
-        var before = await Channel.GetMessagesAsync(messageId + 1, 32);
+        var beforeResult = await Channel.GetMessagesWithResultAsync(messageId + 1, 32);
+        if (!beforeResult.Success)
+            return TaskResult.FromFailure(beforeResult);
+
         // Fetch messages after the target
-        var after = await Channel.GetMessagesAfterAsync(messageId, 32);
+        var afterResult = await Channel.GetMessagesAfterWithResultAsync(messageId, 32);
+        if (!afterResult.Success)
+            return TaskResult.FromFailure(afterResult);
+
+        var before = beforeResult.Data;
+        var after = afterResult.Data;
 
         var combined = new List<Message>();
         if (before is not null)
@@ -757,8 +896,7 @@
             // Target not found — fall back to recent messages
             _isCaughtUp = true;
             SuppressAutoScroll = false;
-            await LoadRecentMessages(InitialMessageCount);
-            return;
+            return await LoadRecentMessages(InitialMessageCount);
         }
 
         await AddMessages(combined, render: false, scroll: false);
@@ -783,6 +921,7 @@
         // (avatars, embeds, etc. trigger ShiftScrollPosition which would
         // fight our position). Release after content has settled.
         _ = ReleaseSuppressAfterDelay();
+        return TaskResult.SuccessResult;
     }
 
     private async Task ReleaseSuppressAfterDelay()
