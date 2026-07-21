@@ -110,8 +110,12 @@ public class MessageReaction
                 .WithMany()
                 .HasForeignKey(x => x.AuthorMemberId);
 
-            // VERY important index
-            e.HasIndex(x => x.MessageId);
+            // A user can apply a given emoji to a message only once. The
+            // service checks this for a friendly response, while the unique
+            // index closes the race between concurrent requests (and between
+            // server nodes).
+            e.HasIndex(x => new { x.MessageId, x.AuthorUserId, x.Emoji })
+                .IsUnique();
         });
     }
 }

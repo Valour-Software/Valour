@@ -181,6 +181,14 @@ public class ThreadService : ServiceBase
 
     public bool IsThreadBoosted(long threadId) => _boostedThreads.Contains(threadId);
 
+    public void SetThreadBoostState(long threadId, bool boosted)
+    {
+        if (boosted)
+            _boostedThreads.Add(threadId);
+        else
+            _boostedThreads.Remove(threadId);
+    }
+
     public bool IsCommentBoosted(long commentId) => _boostedComments.Contains(commentId);
 
     /// <summary>

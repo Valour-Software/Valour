@@ -741,7 +741,14 @@ public class MessageService
         if (!migrationGuard.Success)
             return migrationGuard;
 
-        if (await _db.MessageReactions.AnyAsync(x => x.MessageId == message.Id && x.Emoji == emoji && x.AuthorUserId == user.Id))
+        bool IsSameReaction(MessageReaction reaction) =>
+            reaction.MessageId == message.Id &&
+            reaction.Emoji == emoji &&
+            reaction.AuthorUserId == user.Id;
+
+        if (message.Reactions?.Any(IsSameReaction) == true ||
+            await _db.MessageReactions.AnyAsync(x =>
+                x.MessageId == message.Id && x.Emoji == emoji && x.AuthorUserId == user.Id))
             return TaskResult.FromFailure("Reaction already exists");
 
         var reaction = new Valour.Database.MessageReaction()
@@ -756,25 +763,53 @@ public class MessageService
         
         bool staged = PlanetMessageWorker.GetStagedMessage(message.Id) is not null;
 
-        if (!staged)
+        if (staged)
+        {
+            // Staged messages have not reached the database yet, so the
+            // database uniqueness constraint cannot protect them. The cached
+            // message is the shared coordination point for this short window.
+            lock (message)
+            {
+                message.Reactions ??= [];
+                if (message.Reactions.Any(IsSameReaction))
+                    return TaskResult.FromFailure("Reaction already exists");
+
+                message.Reactions.Add(reaction.ToModel());
+            }
+        }
+        else
         {
             try
             {
                 await _db.MessageReactions.AddAsync(reaction);
                 await _db.SaveChangesAsync();
             }
+            catch (DbUpdateException e)
+            {
+                _db.Entry(reaction).State = EntityState.Detached;
+
+                // A concurrent request (possibly on another node) may have
+                // won the unique-index race after our initial existence check.
+                if (await _db.MessageReactions.AsNoTracking().AnyAsync(x =>
+                        x.MessageId == message.Id && x.Emoji == emoji && x.AuthorUserId == user.Id))
+                    return TaskResult.FromFailure("Reaction already exists");
+
+                _logger.LogError(e, "Failed to add reaction");
+                return TaskResult.FromFailure("Failed to add reaction to database.");
+            }
             catch (Exception e)
             {
                 _logger.LogError(e, "Failed to add reaction");
                 return TaskResult.FromFailure("Failed to add reaction to database.");
             }
+
+            lock (message)
+            {
+                message.Reactions ??= [];
+                if (!message.Reactions.Any(IsSameReaction))
+                    message.Reactions.Add(reaction.ToModel());
+            }
         }
-        
-        // Add to message
-        if (message.Reactions is null)
-            message.Reactions = [];
-        
-        message.Reactions.Add(reaction.ToModel());
         
         // Replace in message cache
         _chatCacheService.ReplaceMessage(message);

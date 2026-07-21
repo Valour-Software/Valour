@@ -4,6 +4,24 @@ const MAX_PICKER_RENDER_ATTEMPTS = 80;
 const pickerStates = new Map();
 
 let dataInitPromise = null;
+let libraryLoadPromise = null;
+
+function ensureLibraryLoaded() {
+    if (typeof globalThis.EmojiMart?.init === 'function') {
+        return Promise.resolve();
+    }
+
+    libraryLoadPromise ??= new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/dist/browser.js?v=5.6.0';
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load emoji-mart'));
+        document.head.appendChild(script);
+    });
+
+    return libraryLoadPromise;
+}
 
 // emoji-mart keeps a single global dataset shared by every picker and the search
 // index. It must be initialized exactly once, with the correct emoji set: spritesheet
@@ -11,16 +29,14 @@ let dataInitPromise = null;
 // Calling globalThis.EmojiMart.init concurrently with picker construction races two fetches
 // against each other and whichever resolves last wins, so callers must await this
 // before constructing a picker.
-function ensureDataInitialized(set = null) {
-    if (typeof globalThis.EmojiMart?.init !== 'function') {
-        return null;
-    }
+async function ensureDataInitialized(set = null) {
+    await ensureLibraryLoaded();
 
     if (dataInitPromise === null) {
         dataInitPromise = globalThis.EmojiMart.init({ set: set ?? 'twitter' });
     }
 
-    return dataInitPromise;
+    await dataInitPromise;
 }
 
 function asNonEmptyString(...values) {
@@ -213,6 +229,12 @@ function scheduleRenderPicker(state) {
 }
 
 async function renderPicker(state) {
+    try {
+        await ensureLibraryLoaded();
+    } catch (_) {
+        return;
+    }
+
     if (typeof globalThis.EmojiMart?.Picker !== 'function') {
         if (state.renderAttempts < MAX_PICKER_RENDER_ATTEMPTS) {
             state.renderAttempts += 1;
@@ -327,10 +349,7 @@ export function setCustom(id, custom = [], customCategoryIcon = '', customCatego
 
 export async function search(query, maxResults = 10) {
     const ready = ensureDataInitialized();
-    if (ready === null) {
-        return [];
-    }
-    await ready;
+    try { await ready; } catch (_) { return []; }
 
     const cleanQuery = (query ?? '').trim().replace(/^:/, '');
     if (!cleanQuery || !globalThis.EmojiMart?.SearchIndex?.search) {
@@ -376,10 +395,8 @@ function readFrequentlyStore() {
 // padded with defaults when there isn't enough history.
 export async function getFrequent(maxResults = 6) {
     const ready = ensureDataInitialized();
-    if (ready === null || typeof globalThis.EmojiMart?.SearchIndex?.get !== 'function') {
-        return [];
-    }
-    await ready;
+    try { await ready; } catch (_) { return []; }
+    if (typeof globalThis.EmojiMart?.SearchIndex?.get !== 'function') return [];
 
     const frequently = readFrequentlyStore();
 

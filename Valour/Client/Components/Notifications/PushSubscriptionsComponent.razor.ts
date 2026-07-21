@@ -22,6 +22,8 @@ type PushNotificationsService = {
     requestSubscription: () => Promise<PushSubscriptionResult>;
     getSubscription: () => Promise<PushSubscriptionResult>;
     unsubscribe: () => Promise<void>;
+    dismissNotification: (notificationId: string, sourceId?: string) => Promise<void>;
+    dismissAllNotifications: () => Promise<void>;
 }
 
 function pushSupported(): boolean {
@@ -182,6 +184,37 @@ export function init(): PushNotificationsService {
             if (existingSubscription) {
                 await existingSubscription.unsubscribe();
             }
+        },
+        dismissNotification: async (notificationId: string, sourceId?: string) => {
+            if (!pushSupported()) {
+                return;
+            }
+
+            const registration = await getReadyRegistration();
+            if (!registration) {
+                return;
+            }
+
+            const notifications = await registration.getNotifications();
+            for (const notification of notifications) {
+                if (notification.data?.notificationId === notificationId ||
+                    (sourceId && notification.data?.sourceId === sourceId)) {
+                    notification.close();
+                }
+            }
+        },
+        dismissAllNotifications: async () => {
+            if (!pushSupported()) {
+                return;
+            }
+
+            const registration = await getReadyRegistration();
+            if (!registration) {
+                return;
+            }
+
+            const notifications = await registration.getNotifications();
+            notifications.forEach(notification => notification.close());
         }
     }
 }

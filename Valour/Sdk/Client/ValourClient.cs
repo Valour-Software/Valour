@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using Valour.Sdk.Models;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Services;
 using Valour.Sdk.Utility;
@@ -177,6 +179,9 @@ public class ValourClient
     /// </summary>
     public InstanceManifest InstanceManifest { get; private set; }
 
+    /// <summary>User preferences included in the login bootstrap response.</summary>
+    public UserPreferences StartupPreferences { get; private set; }
+
     /// <summary>
     /// Fetches the instance manifest from the connected server and applies its
     /// hosts to the shared ValourHosts source of truth so links, CDN URLs, and
@@ -260,6 +265,10 @@ public class ValourClient
         // Setup primary node
         // await NodeService.SetupPrimaryNodeAsync(); Already done in LoginAsync
         
+        if (await TryLoadBootstrapAsync())
+            return TaskResult.SuccessResult;
+
+        // Compatibility fallback for servers that predate api/bootstrap.
         var loadTasks = new List<Task>()
         {
             // LoadChannelStatesAsync(), this is already done by the Home component
@@ -268,7 +277,9 @@ public class ValourClient
             PlanetService.FetchJoinedPlanetsAsync(),
             KlipyService.LoadGifFavoritesAsync(),
             ChannelService.LoadDmChannelsAsync(),
-            NotificationService.LoadUnreadNotificationsAsync()
+            NotificationService.LoadUnreadNotificationsAsync(),
+            UnreadService.FetchUnreadPlanetsAsync(),
+            UnreadService.FetchUnreadDirectChannelsAsync()
         };
 
         // Load user data concurrently
@@ -283,6 +294,34 @@ public class ValourClient
         }
 
         return TaskResult.SuccessResult;
+    }
+
+    private async Task<bool> TryLoadBootstrapAsync()
+    {
+        try
+        {
+            var response = await PrimaryNode.GetJsonAsync<AppBootstrapData>("api/bootstrap", allow404: true);
+            if (!response.Success || response.Data is null)
+                return false;
+
+            var data = response.Data;
+            FriendService.ApplyFriendData(data.FriendData);
+            BlockService.ApplyBlocks(data.Blocks);
+            await PlanetService.ApplyJoinedPlanetsAsync(data.Planets, data.FederatedMemberships);
+            data.MyPlanetMembers.SyncAll(this, ModelInsertFlags.Batched);
+            KlipyService.ApplyGifFavorites(data.GifFavorites);
+            ChannelService.ApplyDirectChannels(data.DirectChannels);
+            NotificationService.ApplyUnreadNotifications(data.UnreadNotifications);
+            UnreadService.ApplyUnreadPlanets(data.UnreadPlanets);
+            UnreadService.ApplyUnreadDirectChannels(data.UnreadDirectChannels);
+            StartupPreferences = data.Preferences;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("App", $"Bootstrap unavailable, using legacy startup calls: {ex.Message}", "orange");
+            return false;
+        }
     }
         
     public async Task<TaskResult<List<ReferralDataModel>>> GetMyReferralsAsync()

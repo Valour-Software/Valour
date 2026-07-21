@@ -1,4 +1,6 @@
 using Valour.Server.Cdn;
+using Valour.Server.Cdn.Api;
+using Valour.Server.Cdn.Storage;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -23,6 +25,8 @@ public class ThreadService
     private readonly ProxyHandler _proxyHandler;
     private readonly ModerationAuditService _auditService;
     private readonly NotificationService _notificationService;
+    private readonly CdnMemoryCache _cdnCache;
+    private readonly CdnStorageProvider _cdnStorage;
     private readonly ILogger<ThreadService> _logger;
 
     public ThreadService(
@@ -32,6 +36,8 @@ public class ThreadService
         ProxyHandler proxyHandler,
         ModerationAuditService auditService,
         NotificationService notificationService,
+        CdnMemoryCache cdnCache,
+        CdnStorageProvider cdnStorage,
         ILogger<ThreadService> logger)
     {
         _db = db;
@@ -40,6 +46,8 @@ public class ThreadService
         _proxyHandler = proxyHandler;
         _auditService = auditService;
         _notificationService = notificationService;
+        _cdnCache = cdnCache;
+        _cdnStorage = cdnStorage;
         _logger = logger;
     }
 
@@ -388,7 +396,7 @@ public class ThreadService
 
         query = ApplyFeedSort(query, request, pinnedId);
 
-        return await ExecuteThreadQueryAsync(query, request);
+        return await ExecuteThreadQueryAsync(query, request, userId, includePresence: false);
     }
 
     public async Task<QueryResponse<PlanetThread>> QueryFeedAsync(long userId, QueryRequest request)
@@ -406,7 +414,7 @@ public class ThreadService
 
         query = ApplyFeedSort(query, request, pinnedId);
 
-        return await ExecuteThreadQueryAsync(query, request);
+        return await ExecuteThreadQueryAsync(query, request, userId, includePresence: true);
     }
 
     /// <summary>
@@ -482,9 +490,11 @@ public class ThreadService
         return ordered;
     }
 
-    private static async Task<QueryResponse<PlanetThread>> ExecuteThreadQueryAsync(
+    private async Task<QueryResponse<PlanetThread>> ExecuteThreadQueryAsync(
         IQueryable<Valour.Database.PlanetThread> query,
-        QueryRequest request)
+        QueryRequest request,
+        long? userId,
+        bool includePresence)
     {
         var take = request.Take;
         if (take > 50 || take <= 0)
@@ -498,11 +508,203 @@ public class ThreadService
             .Include(x => x.Attachments)
             .ToListAsync();
 
-        return new QueryResponse<PlanetThread>
+        var response = new QueryResponse<PlanetThread>
         {
             Items = items.Select(x => x.ToModel()).ToList(),
             TotalCount = total
         };
+
+        await HydrateThreadPageAsync(response.Items, userId, includePresence);
+        return response;
+    }
+
+    /// <summary>
+    /// Adds everything a thread card needs to the page response. Without this,
+    /// each card independently fetches its author, member, role, presence,
+    /// boost state, and attachment URLs.
+    /// </summary>
+    private async Task HydrateThreadPageAsync(
+        List<PlanetThread> threads,
+        long? userId,
+        bool includePresence)
+    {
+        if (threads is null || threads.Count == 0)
+            return;
+
+        var memberIds = threads
+            .Where(x => x.AuthorMemberId.HasValue)
+            .Select(x => x.AuthorMemberId!.Value)
+            .Distinct()
+            .ToList();
+
+        var members = memberIds.Count == 0
+            ? new List<Valour.Database.PlanetMember>()
+            : await _db.PlanetMembers
+                .AsNoTracking()
+                .Include(x => x.User)
+                .Where(x => memberIds.Contains(x.Id))
+                .ToListAsync();
+
+        var membersById = members.ToDictionary(x => x.Id);
+        var representedUserIds = members.Select(x => x.UserId).ToHashSet();
+        var missingUserIds = threads
+            .Select(x => x.AuthorUserId)
+            .Where(x => !representedUserIds.Contains(x))
+            .Distinct()
+            .ToList();
+
+        var usersById = missingUserIds.Count == 0
+            ? new Dictionary<long, Valour.Database.User>()
+            : await _db.Users
+                .AsNoTracking()
+                .Where(x => missingUserIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id);
+
+        var planetIds = threads.Select(x => x.PlanetId).Distinct().ToList();
+        var roles = await _db.PlanetRoles
+            .AsNoTracking()
+            .Where(x => planetIds.Contains(x.PlanetId))
+            .ToListAsync();
+
+        var rolesByPlanet = roles
+            .GroupBy(x => x.PlanetId)
+            .ToDictionary(x => x.Key, x => x.OrderBy(role => role.Position).ToList());
+
+        var boostedIds = userId.HasValue
+            ? (await GetBoostedThreadIdsAsync(userId.Value, threads.Select(x => x.Id).ToList())).ToHashSet()
+            : new HashSet<long>();
+
+        var presenceByPlanet = includePresence
+            ? await GetPresenceSummariesAsync(planetIds)
+            : new Dictionary<long, PlanetPresenceSummary>();
+
+        foreach (var thread in threads)
+        {
+            if (thread.AuthorMemberId.HasValue &&
+                membersById.TryGetValue(thread.AuthorMemberId.Value, out var dbMember))
+            {
+                thread.AuthorMember = dbMember.ToModel();
+                thread.AuthorUser = thread.AuthorMember.User;
+
+                if (rolesByPlanet.TryGetValue(thread.PlanetId, out var planetRoles))
+                {
+                    thread.AuthorRole = planetRoles
+                        .FirstOrDefault(x => dbMember.RoleMembership.HasRole(x.FlagBitIndex))
+                        ?.ToModel();
+                }
+            }
+            else if (usersById.TryGetValue(thread.AuthorUserId, out var dbUser))
+            {
+                thread.AuthorUser = dbUser.ToModel();
+            }
+
+            thread.ViewerHasBoosted = boostedIds.Contains(thread.Id);
+            if (presenceByPlanet.TryGetValue(thread.PlanetId, out var presence))
+                thread.Presence = presence;
+        }
+
+        await HydrateSignedAttachmentUrlsAsync(threads);
+    }
+
+    private async Task<Dictionary<long, PlanetPresenceSummary>> GetPresenceSummariesAsync(List<long> planetIds)
+    {
+        var result = new Dictionary<long, PlanetPresenceSummary>();
+        var cutoff = DateTime.UtcNow.AddMinutes(-15);
+
+        var activeMembers = _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => planetIds.Contains(x.PlanetId) &&
+                        x.TimeLastConnected > cutoff &&
+                        x.User.TimeLastActive > cutoff &&
+                        x.User.UserStateCode != 1);
+
+        var counts = await activeMembers
+            .GroupBy(x => x.PlanetId)
+            .Select(x => new { PlanetId = x.Key, Count = x.Count() })
+            .ToDictionaryAsync(x => x.PlanetId, x => x.Count);
+
+        // Keep avatar hydration bounded while retaining two database round-
+        // trips regardless of feed size. A globally recent sample is enough
+        // for the tooltip; exact per-planet counts come from the query above.
+        var recentUsers = await activeMembers
+            .OrderByDescending(member => member.User.TimeLastActive)
+            .Take(Math.Max(5, planetIds.Count * 5))
+            .Select(x => new { x.PlanetId, x.User })
+            .ToListAsync();
+
+        var usersByPlanet = recentUsers
+            .GroupBy(x => x.PlanetId)
+            .ToDictionary(x => x.Key, x => x.Select(row => row.User).Take(5).ToList());
+
+        foreach (var planetId in planetIds)
+        {
+            usersByPlanet.TryGetValue(planetId, out var users);
+            result[planetId] = new PlanetPresenceSummary
+            {
+                ChattingCount = counts.GetValueOrDefault(planetId),
+                Avatars = (users ?? []).Select(x => new PresenceAvatar
+                {
+                    Name = x.Name,
+                    AvatarUrl = ISharedUser.GetAvatar(x.ToModel(), AvatarFormat.Webp64)
+                }).ToList()
+            };
+        }
+
+        return result;
+    }
+
+    private async Task HydrateSignedAttachmentUrlsAsync(List<PlanetThread> threads)
+    {
+        var attachments = threads
+            .SelectMany(x => x.Attachments ?? [])
+            .Where(x => x is not null && !x.Missing && string.IsNullOrWhiteSpace(x.SignedUrl))
+            .ToList();
+
+        var attachmentIds = attachments
+            .Select(GetCdnBucketItemId)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .ToList();
+
+        if (attachmentIds.Count == 0)
+            return;
+
+        var bucketItems = await _db.CdnBucketItems
+            .AsNoTracking()
+            .Where(x => attachmentIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id);
+
+        var signedUrls = new Dictionary<string, string>();
+        foreach (var bucketItem in bucketItems.Values)
+        {
+            var signedUrl = await ContentApi.GetSignedUrlAsync(_cdnCache, _cdnStorage, bucketItem);
+            if (!string.IsNullOrWhiteSpace(signedUrl))
+                signedUrls[bucketItem.Id] = signedUrl;
+        }
+
+        foreach (var attachment in attachments)
+        {
+            var id = GetCdnBucketItemId(attachment);
+            if (id is not null && signedUrls.TryGetValue(id, out var signedUrl))
+                attachment.SignedUrl = signedUrl;
+        }
+    }
+
+    private static string GetCdnBucketItemId(Valour.Sdk.Models.MessageAttachment attachment)
+    {
+        if (!string.IsNullOrWhiteSpace(attachment.CdnBucketItemId))
+            return attachment.CdnBucketItemId;
+
+        if (!Uri.TryCreate(attachment.Location, UriKind.Absolute, out var uri))
+            return null;
+
+        var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var contentIndex = Array.FindIndex(parts, x =>
+            string.Equals(x, "content", StringComparison.OrdinalIgnoreCase));
+
+        return contentIndex >= 0 && parts.Length >= contentIndex + 4
+            ? string.Join('/', parts.Skip(contentIndex + 1).Take(3))
+            : null;
     }
 
     ///////////

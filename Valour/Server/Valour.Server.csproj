@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="..\Tests\Valour.Tests.csproj" />
+    <InternalsVisibleTo Include="Valour.Tests" />
   </ItemGroup>
 
   <ItemGroup>

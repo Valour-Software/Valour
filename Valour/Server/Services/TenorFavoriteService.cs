@@ -40,7 +40,11 @@ public class TenorFavoriteService
     {
         try
         {
-            _db.TenorFavorites.Remove(tenorFavorite.ToDatabase());
+            var entity = await _db.TenorFavorites.FindAsync(tenorFavorite.Id);
+            if (entity is null)
+                return TaskResult.FromFailure("Tenor favorite not found.", 404);
+
+            _db.TenorFavorites.Remove(entity);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

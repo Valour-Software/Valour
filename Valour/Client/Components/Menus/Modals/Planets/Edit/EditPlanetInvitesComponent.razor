@@ -194,14 +194,14 @@
 
     private async Task CopyInviteLink(PlanetInvite invite)
     {
-        var link = NavManager.BaseUri.TrimEnd('/') + "/I/" + invite.Id;
+        var link = ShareUtils.GetInviteShareUrl(NavManager, invite.Id);
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", link);
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Invite link copied to clipboard", ToastProgressState.Success));
     }
 
     private async Task CopyDiscoverableLink()
     {
-        var link = NavManager.BaseUri.TrimEnd('/') + "/D/" + Planet.Id;
+        var link = ShareUtils.GetDiscoverablePlanetShareUrl(NavManager, Planet.Id);
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", link);
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Discoverable link copied to clipboard", ToastProgressState.Success));
     }

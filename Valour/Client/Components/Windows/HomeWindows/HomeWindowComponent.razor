@@ -137,35 +137,7 @@
 
         UpdateFriendBadge();
 
-        // Render planet and friend cards before unread is loaded
-        await ReRender();
-
-        var unreadPlanetsTask = FetchAndRerenderPlanetsAsync();
-        var unreadDirectChannelsTask = FetchAndRerenderDirectChannelsAsync();
-
-        await Task.WhenAll(unreadPlanetsTask, unreadDirectChannelsTask);
-    }
-
-    private async Task FetchAndRerenderPlanetsAsync()
-    {
-        await UnreadService.FetchUnreadPlanetsAsync();
-
-        if (OnRerenderPlanetCards is not null)
-            await OnRerenderPlanetCards.Invoke();
-
-        await ReRender();
-    }
-
-    private async Task FetchAndRerenderDirectChannelsAsync()
-    {
-        await UnreadService.FetchUnreadDirectChannelsAsync();
-
-        if (OnRerenderFriendCards is not null)
-            await OnRerenderFriendCards.Invoke();
-
-        if (_dmList is not null)
-            await _dmList.RefreshAsync();
-
+        // Startup has already populated unread state; render from the shared cache.
         await ReRender();
     }
 
@@ -224,9 +196,12 @@
         _incomingFriendRequests = count > 0 ? count : null;
     }
 
-    private Task OnJoinedPlanetsUpdate()
+    private async Task OnJoinedPlanetsUpdate()
     {
-        return ReRender();
+        if (OnRerenderPlanetCards is not null)
+            await OnRerenderPlanetCards.Invoke();
+
+        await ReRender();
     }
 
     public void OnClickCreatePlanet()
@@ -258,6 +233,10 @@
     private void OnFriendsListUpdate(FriendEventData e)
     {
         UpdateFriendBadge();
+
+        if (OnRerenderFriendCards is not null)
+            _ = OnRerenderFriendCards.Invoke();
+
         _ = ReRender();
     }
 }

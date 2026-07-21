@@ -1,5 +1,20 @@
 const pickers = {};
-export function init(id, ref, startColor, button = false) {
+let pickrLoadPromise = null;
+
+function ensurePickrLoaded() {
+    if (globalThis.Pickr?.create) return Promise.resolve();
+    pickrLoadPromise ??= new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load Pickr'));
+        document.head.appendChild(script);
+    });
+    return pickrLoadPromise;
+}
+
+export async function init(id, ref, startColor, button = false) {
+    await ensurePickrLoaded();
     const pickr = Pickr.create({
         el: '#' + id,
         theme: 'nano', // or 'monolith', or 'nano'

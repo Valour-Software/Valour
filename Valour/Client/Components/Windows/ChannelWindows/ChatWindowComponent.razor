@@ -486,24 +486,35 @@
         {
             foreach (var messageComponent in RenderedMessages)
             {
-                if (messageComponent.ParamData.Message.Id == message.Id)
-                {
-                    var msg = messageComponent.ParamData.Message;
+                var displayed = messageComponent.ParamData.Message;
+                var updatedTarget = ApplyMessageEditToDisplayedMessage(displayed, message);
+                if (updatedTarget is null)
+                    continue;
 
-                    msg.EditedTime = DateTime.UtcNow;
-                    msg.Content = message.Content;
-                    msg.Attachments = message.Attachments;
-                    msg.Mentions = message.Mentions;
+                if (ReferenceEquals(updatedTarget, displayed) && messageComponent.Edit)
+                    await messageComponent.CloseEditMode();
 
-                    if (messageComponent.Edit)
-                    {
-                        await messageComponent.CloseEditMode();
-                    }
-
-                    messageComponent.BuildMessage(true);
-                }
+                messageComponent.BuildMessage(true);
             }
         });
+    }
+
+    internal static Message? ApplyMessageEditToDisplayedMessage(Message displayed, Message edit)
+    {
+        var target = displayed.Id == edit.Id
+            ? displayed
+            : displayed.ReplyTo?.Id == edit.Id
+                ? displayed.ReplyTo
+                : null;
+
+        if (target is null)
+            return null;
+
+        target.EditedTime = edit.EditedTime ?? DateTime.UtcNow;
+        target.Content = edit.Content;
+        target.Attachments = edit.Attachments;
+        target.Mentions = edit.Mentions;
+        return target;
     }
 
     public async Task OnClickWindow()
@@ -1391,6 +1402,17 @@
         {
             // Make sure planet is loaded for channel
             var planet = await channel.Client.PlanetService.FetchPlanetAsync(channel.PlanetId!.Value);
+            if (planet is null)
+            {
+                return new()
+                {
+                    Icon = "./_content/Valour.Client/media/logo/logo-128.webp",
+                    Title = channel.Name ?? "Unavailable channel",
+                    PlanetId = channel.PlanetId,
+                    Data = channel
+                };
+            }
+
             await planet.EnsureReadyAsync();
         }
 

@@ -15,7 +15,7 @@ public class AutomodTrigger : ISharedAutomodTrigger, ISharedPlanetModel<Guid>
     public long MemberAddedBy { get; set; }
     public AutomodTriggerType Type { get; set; }
     public string Name { get; set; }
-    public string? TriggerWords { get; set; }
+    public string TriggerWords { get; set; }
     public bool RunForEveryone { get; set; }
 
     public static void SetupDbModel(ModelBuilder builder)
@@ -29,7 +29,9 @@ public class AutomodTrigger : ISharedAutomodTrigger, ISharedPlanetModel<Guid>
             e.Property(x => x.MemberAddedBy).HasColumnName("member_added_by");
             e.Property(x => x.Type).HasColumnName("type");
             e.Property(x => x.Name).HasColumnName("name");
-            e.Property(x => x.TriggerWords).HasColumnName("trigger_words");
+            e.Property(x => x.TriggerWords)
+                .HasColumnName("trigger_words")
+                .IsRequired(false);
             e.Property(x => x.RunForEveryone).HasColumnName("run_for_everyone");
             e.HasIndex(x => x.PlanetId);
         });

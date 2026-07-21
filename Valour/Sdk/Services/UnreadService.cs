@@ -46,8 +46,14 @@ public class UnreadService : ServiceBase
             return;
         }
 
+        ApplyUnreadPlanets(result.Data);
+    }
+
+    public void ApplyUnreadPlanets(IEnumerable<long> planetIds)
+    {
+
         _unreadPlanets.Clear();
-        foreach (var planetId in result.Data)
+        foreach (var planetId in planetIds ?? [])
         {
             _unreadPlanets[planetId] = 0;
         }
@@ -81,8 +87,14 @@ public class UnreadService : ServiceBase
             return;
         }
 
+        ApplyUnreadDirectChannels(result.Data);
+    }
+
+    public void ApplyUnreadDirectChannels(IEnumerable<long> channelIds)
+    {
+
         _unreadDirectChannels.Clear();
-        foreach (var channelId in result.Data)
+        foreach (var channelId in channelIds ?? [])
         {
             _unreadDirectChannels[channelId] = 0;
         }

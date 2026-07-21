@@ -40,27 +40,12 @@
     private List<JoinedPlanetRenderInfo> _renderPlanets = new();
     private string _lastFilterText;
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         PlanetService.JoinedPlanetsUpdated += OnJoinedPlanetsUpdated;
         UnreadService.PlanetUnreadChanged += OnPlanetUnreadChanged;
-
-        _ = Task.Run(async () =>
-        {
-            await Task.WhenAll(
-                [
-                    UnreadService.FetchUnreadPlanetsAsync(),
-                    NotificationService.LoadUnreadNotificationsAsync(),
-                ]
-            );
-
-            await InvokeAsync(() =>
-            {
-                OnJoinedPlanetsUpdated();
-            });
-        });
-
         OnJoinedPlanetsUpdated();
+        return Task.CompletedTask;
     }
 
     protected override void OnParametersSet()

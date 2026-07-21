@@ -14,7 +14,7 @@ public class ModerationAuditLog : ISharedModerationAuditLog
     public Guid? TriggerId { get; set; }
     public ModerationActionSource Source { get; set; }
     public ModerationActionType ActionType { get; set; }
-    public string? Details { get; set; }
+    public string Details { get; set; }
     public DateTime TimeCreated { get; set; }
 
     public static void SetupDbModel(ModelBuilder builder)
@@ -32,7 +32,9 @@ public class ModerationAuditLog : ISharedModerationAuditLog
             e.Property(x => x.TriggerId).HasColumnName("trigger_id");
             e.Property(x => x.Source).HasColumnName("source");
             e.Property(x => x.ActionType).HasColumnName("action_type");
-            e.Property(x => x.Details).HasColumnName("details");
+            e.Property(x => x.Details)
+                .HasColumnName("details")
+                .IsRequired(false);
             e.Property(x => x.TimeCreated).HasColumnName("time_created");
             e.HasIndex(x => x.PlanetId);
             e.HasIndex(x => x.TimeCreated);

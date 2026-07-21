@@ -41,9 +41,13 @@
 
     public async ValueTask DisposeAsync()
     {
-        await _jsModule.InvokeVoidAsync("destroy", _id);
-        _dotnetRef.Dispose();
-        await _jsModule.DisposeAsync();
+        if (_jsModule is not null)
+        {
+            await _jsModule.InvokeVoidAsync("destroy", _id);
+            await _jsModule.DisposeAsync();
+        }
+
+        _dotnetRef?.Dispose();
     }
 
     [JSInvokable]

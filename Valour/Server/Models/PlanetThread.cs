@@ -1,3 +1,5 @@
+using Valour.Sdk.Models;
+using Valour.Shared.Models;
 using Valour.Shared.Models.Threads;
 
 namespace Valour.Server.Models;
@@ -18,4 +20,10 @@ public class PlanetThread : ServerModel<long>, ISharedPlanetThread
     public string ImportSource { get; set; }
 
     public List<Valour.Sdk.Models.MessageAttachment> Attachments { get; set; }
+
+    public User? AuthorUser { get; set; }
+    public PlanetMember? AuthorMember { get; set; }
+    public PlanetRole? AuthorRole { get; set; }
+    public PlanetPresenceSummary? Presence { get; set; }
+    public bool? ViewerHasBoosted { get; set; }
 }

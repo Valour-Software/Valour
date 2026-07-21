@@ -8,11 +8,6 @@
 
 <BrowserUtils OnReady="@ReadyAsync" />
 
-@if (_browserReady)
-{
-    <UpdateBanner />
-}
-
 <!-- Enable app sounds -->
 <SoundsComponent @key="@("sounds-component")"></SoundsComponent>
 
@@ -290,11 +285,15 @@ else
     {
         try
         {
-            var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
-            if (!response.Success || response.Data is null)
-                return;
+            var prefs = Client.StartupPreferences;
+            if (prefs is null)
+            {
+                var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
+                if (!response.Success || response.Data is null)
+                    return;
 
-            var prefs = response.Data;
+                prefs = response.Data;
+            }
             SoundManager.SetNotificationVolume(prefs.NotificationVolume);
             await DevicePreferences.SetForceGpuAccelerationEnabled(prefs.ForceGpuAcceleration, LocalStorage);
             await DevicePreferences.ApplyForceGpuAccelerationAsync(JsRuntime);

@@ -237,7 +237,10 @@ else
 
         builder.OpenComponent<MessageComponent>(0);
         builder.AddAttribute(0, "ParamData", messageParams);
-        builder.SetKey($"r-{_message.Id}-{_message.ReplyTo!.Id}");
+        // Recreate the compact reply component when its source message is
+        // edited. Inner replies intentionally do not subscribe to the chat's
+        // rendered-message list, so the edit timestamp is part of the key.
+        builder.SetKey($"r-{_message.Id}-{_message.ReplyTo!.Id}-{_message.ReplyTo.EditedTime?.Ticks ?? 0}");
         builder.CloseComponent();
     };
     
@@ -737,6 +740,9 @@ else
 
     public async Task OpenEditMode()
     {
+        if (Edit)
+            return;
+
         Edit = true;
 
         CalculateClassAndStyles();

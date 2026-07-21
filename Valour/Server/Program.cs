@@ -373,7 +373,8 @@ public partial class Program
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     .AllowCredentials()
-                    .WithOrigins(BuildCorsOrigins());
+                    .WithOrigins(BuildCorsOrigins())
+                    .SetPreflightMaxAge(TimeSpan.FromHours(12));
             });
         });
         

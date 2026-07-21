@@ -861,7 +861,7 @@ public class UserApi
         return Results.Json(prefs.ToModel());
     }
 
-    private static async Task<DbUserPreferences> EnsurePreferencesAsync(long userId, ValourDb db)
+    internal static async Task<DbUserPreferences> EnsurePreferencesAsync(long userId, ValourDb db)
     {
         var prefs = await db.UserPreferences.FindAsync(userId);
         if (prefs is not null)

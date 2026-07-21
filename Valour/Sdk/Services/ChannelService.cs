@@ -213,13 +213,19 @@ public class ChannelService : ServiceBase
 
             return;
         }
+
+        ApplyDirectChannels(response.Data);
+    }
+
+    public void ApplyDirectChannels(IEnumerable<Channel> channels)
+    {
         
         // Clear existing
         _directChatChannels.Clear();
         _directChatChannelsLookup.Clear();
         _cache.DmChannelKeyToId.Clear();
 
-        foreach (var channel in response.Data)
+        foreach (var channel in channels ?? [])
             RegisterDirectChatChannel(channel);
         
         Log($"Loaded {DirectChatChannels.Count} direct chat channels...");

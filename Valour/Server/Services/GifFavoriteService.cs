@@ -60,7 +60,11 @@ public class GifFavoriteService
     {
         try
         {
-            _db.GifFavorites.Remove(favorite.ToDatabase());
+            var entity = await _db.GifFavorites.FindAsync(favorite.Id);
+            if (entity is null)
+                return TaskResult.FromFailure("GIF favorite not found.", 404);
+
+            _db.GifFavorites.Remove(entity);
             await _db.SaveChangesAsync();
             return TaskResult.SuccessResult;
         }

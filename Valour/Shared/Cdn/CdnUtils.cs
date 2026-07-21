@@ -22,6 +22,68 @@ namespace Valour.Shared.Cdn
             "image/tiff",
             "image/webp"
         };
+
+        private static readonly HashSet<string> ExecutableUploadExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".exe", ".com", ".scr", ".msi", ".msp", ".msix", ".appx", ".appxbundle",
+            ".bat", ".cmd", ".ps1", ".psm1", ".vbs", ".vbe", ".wsf", ".wsh", ".hta",
+            ".cpl", ".dll", ".sys", ".jar", ".apk", ".dmg", ".pkg", ".deb", ".rpm",
+            ".run", ".appimage", ".sh", ".command", ".reg", ".lnk"
+        };
+
+        private static readonly HashSet<string> ExecutableUploadMimeTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "application/x-msdownload",
+            "application/x-msdos-program",
+            "application/vnd.microsoft.portable-executable",
+            "application/x-dosexec",
+            "application/x-msi",
+            "application/x-ms-installer",
+            "application/java-archive",
+            "application/vnd.android.package-archive",
+            "application/x-apple-diskimage",
+            "application/x-sh",
+            "application/x-shellscript"
+        };
+
+        /// <summary>
+        /// Returns true when an attachment is executable by its name, declared MIME type,
+        /// or native executable signature. The signature check prevents a PE, ELF, or
+        /// Mach-O binary from bypassing the filename rules by being renamed.
+        /// </summary>
+        public static bool IsExecutableUpload(
+            string? fileName,
+            string? contentType,
+            ReadOnlySpan<byte> contentPrefix = default)
+        {
+            var normalizedFileName = Path.GetFileName(fileName ?? string.Empty);
+            var alternateStreamIndex = normalizedFileName.IndexOf(':');
+            if (alternateStreamIndex >= 0)
+                normalizedFileName = normalizedFileName[..alternateStreamIndex];
+
+            normalizedFileName = normalizedFileName.TrimEnd(' ', '.');
+            var extension = Path.GetExtension(normalizedFileName);
+            if (ExecutableUploadExtensions.Contains(extension))
+                return true;
+
+            var normalizedContentType = contentType?.Split(';', 2)[0].Trim();
+            if (normalizedContentType is not null && ExecutableUploadMimeTypes.Contains(normalizedContentType))
+                return true;
+
+            if (contentPrefix.Length >= 2 && contentPrefix[0] == (byte)'M' && contentPrefix[1] == (byte)'Z')
+                return true;
+
+            if (contentPrefix.Length < 4)
+                return false;
+
+            // ELF and the common 32/64-bit, endian-swapped, and fat Mach-O magics.
+            return contentPrefix[..4].SequenceEqual(new byte[] { 0x7f, (byte)'E', (byte)'L', (byte)'F' }) ||
+                   contentPrefix[..4].SequenceEqual(new byte[] { 0xfe, 0xed, 0xfa, 0xce }) ||
+                   contentPrefix[..4].SequenceEqual(new byte[] { 0xfe, 0xed, 0xfa, 0xcf }) ||
+                   contentPrefix[..4].SequenceEqual(new byte[] { 0xce, 0xfa, 0xed, 0xfe }) ||
+                   contentPrefix[..4].SequenceEqual(new byte[] { 0xcf, 0xfa, 0xed, 0xfe }) ||
+                   contentPrefix[..4].SequenceEqual(new byte[] { 0xca, 0xfe, 0xba, 0xbe });
+        }
         
         public static readonly Regex UrlRegex = new Regex(@"(!\[\]\()?(http|https|)\:\/\/[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])*(:(0-9)*)*(\/?)([=a-zA-Z0-9\:\-\.\?\,\'\/\\\+&%\$#_]*)?([=a-zA-Z0-9\-\?\,\'\/\+&%\$#_]+)(\))?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         

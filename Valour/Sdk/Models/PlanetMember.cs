@@ -147,7 +147,11 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
         var key = new PlanetMemberKey(UserId, PlanetId);
         Client.Cache.MemberKeyToId[key] = Id;
 
-        return Planet.Members.Put(this, flags);
+        var member = Planet.Members.Put(this, flags);
+        if (UserId == Client.Me?.Id)
+            Planet.SetMyMember(member);
+
+        return member;
     }
 
     public override PlanetMember RemoveFromCache(bool skipEvents = false)

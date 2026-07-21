@@ -474,6 +474,8 @@ public class UploadApi
 
         var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
 
+        fullPath = AddCacheVersion(fullPath, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+
         // Update the profile's background image in the database
         var profile = await db.UserProfiles.FindAsync(authToken.UserId);
         if (profile is not null)
@@ -489,6 +491,9 @@ public class UploadApi
     {
         new(300, 400)
     };
+
+    internal static string AddCacheVersion(string url, long version)
+        => $"{url}{(url.Contains('?') ? '&' : '?')}v={version}";
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
@@ -534,6 +539,8 @@ public class UploadApi
         
         var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
         
+        fullPath = AddCacheVersion(fullPath, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+
         // Update on database
         await db.Planets.Where(x => x.Id == planetId)
             .ExecuteUpdateAsync(x => 
@@ -868,8 +875,19 @@ public class UploadApi
             return Results.BadRequest("Unsupported file type");
 
         string ext = Path.GetExtension(file.FileName);
+        if (CdnUtils.IsExecutableUpload(file.FileName, file.ContentType))
+            return Results.BadRequest("Executable files are not allowed");
+
         using MemoryStream ms = new();
         await file.CopyToAsync(ms);
+
+        if (CdnUtils.IsExecutableUpload(
+                file.FileName,
+                file.ContentType,
+                ms.GetBuffer().AsSpan(0, (int)Math.Min(ms.Length, 4))))
+        {
+            return Results.BadRequest("Executable files are not allowed");
+        }
 
         var bucketResult = await bucketService.Upload(ms, file.FileName, ext, authToken.UserId, file.ContentType, ContentCategory.File, db);
 

@@ -1392,7 +1392,8 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("AuthorUserId");
 
-                    b.HasIndex("MessageId");
+                    b.HasIndex("MessageId", "AuthorUserId", "Emoji")
+                        .IsUnique();
 
                     b.ToTable("message_reactions", (string)null);
                 });

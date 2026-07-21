@@ -13,6 +13,12 @@ self.addEventListener('push', event => {
     const payload = event.data.json();
     
     console.log(payload);
+
+    const tag = payload.notificationId
+        ? `notification-${payload.notificationId}`
+        : payload.sourceId
+            ? `source-${payload.sourceId}`
+            : undefined;
     
     event.waitUntil(
         self.registration.showNotification(payload.title, {
@@ -20,7 +26,12 @@ self.addEventListener('push', event => {
             icon: payload.iconUrl,
             vibrate: [100, 50, 100],
             badge: "https://app.valour.gg/_content/Valour.Client/media/logo/victor-mono-192.png",
-            data: { url: payload.url },
+            tag,
+            data: {
+                url: payload.url,
+                notificationId: payload.notificationId,
+                sourceId: payload.sourceId,
+            },
         })
     );
 });

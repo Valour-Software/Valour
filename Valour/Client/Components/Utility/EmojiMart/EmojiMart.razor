@@ -34,6 +34,7 @@
     public Func<OutsidePickerClickEvent, Task> OnClickOutside { get; set; }
 
     private IJSObjectReference _module;
+    private Task _initializationTask;
     private DotNetObjectReference<EmojiMart> _dotNetReference;
     private List<EmojiClickEvent> _customEmojis = new();
     private string _customCategoryIcon = string.Empty;
@@ -63,6 +64,7 @@
         _hiding = false;
         _shown = true;
         StateHasChanged();
+        _ = EnsureInitializedAsync();
     }
 
     private void Hide()
@@ -159,12 +161,20 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            _dotNetReference = DotNetObjectReference.Create(this);
-            _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/EmojiMart/EmojiMart.razor.js");
-            await _module.InvokeVoidAsync("init", _id, _dotNetReference, EmojiSet, _customEmojis, _customCategoryIcon, _customCategoryName);
-        }
+        if (firstRender && StartShown)
+            await EnsureInitializedAsync();
+    }
+
+    private Task EnsureInitializedAsync()
+    {
+        return _initializationTask ??= InitializeCoreAsync();
+    }
+
+    private async Task InitializeCoreAsync()
+    {
+        _dotNetReference = DotNetObjectReference.Create(this);
+        _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", ModulePath);
+        await _module.InvokeVoidAsync("init", _id, _dotNetReference, EmojiSet, _customEmojis, _customCategoryIcon, _customCategoryName);
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()

@@ -183,6 +183,17 @@ public class MessageAttachment : ISharedMessageAttachment
     }
 
     private string _signedUrl;
+    private Task<string?> _signedUrlTask;
+
+    /// <summary>
+    /// A signed URL optionally hydrated by a containing API response. Keeping
+    /// it on the attachment avoids a follow-up signing request for every card.
+    /// </summary>
+    public string SignedUrl
+    {
+        get => _signedUrl;
+        set => _signedUrl = value;
+    }
 
     public async ValueTask<string?> GetSignedUrl(ValourClient client, Node node)
     {
@@ -218,23 +229,31 @@ public class MessageAttachment : ISharedMessageAttachment
             return location;
         }
         
-        if (_signedUrl is null)
-        {
-            // Fetch url from CDN
-            try
-            {
-                var url = location + "/signed";
-                var result = await node.GetAsync(url);
-                
-                _signedUrl = result.Data;
-            } 
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error fetching signed URL for attachment: " + ex.Message);
-            }
-        }
+        if (_signedUrl is not null)
+            return _signedUrl;
+
+        // Cache the in-flight operation as well as its result. The same
+        // attachment can be rendered in the global and planet feeds at once.
+        var pending = _signedUrlTask ??= FetchSignedUrlAsync(node, location);
+        _signedUrl = await pending;
+        if (_signedUrl is null && ReferenceEquals(_signedUrlTask, pending))
+            _signedUrlTask = null;
 
         return _signedUrl;
+    }
+
+    private static async Task<string?> FetchSignedUrlAsync(Node node, string location)
+    {
+        try
+        {
+            var result = await node.GetAsync(location + "/signed");
+            return result.Data;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error fetching signed URL for attachment: " + ex.Message);
+            return null;
+        }
     }
 
     private static bool IsBrowserLocalLocation(string location)

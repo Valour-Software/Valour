@@ -446,6 +446,9 @@
 
     public async Task OnStopEdit(bool cancelled = false)
     {
+        if (EditingMessageComponent is null)
+            return;
+
         if (cancelled)
         {
             // Return to original
@@ -933,6 +936,7 @@
         // Editing message
         else
         {
+            var editingComponent = EditingMessageComponent;
             var result = await message.UpdateAsync();
             if (!result.Success)
             {
@@ -950,10 +954,11 @@
             }
             else
             {
-                PreviewMessage = BuildNewMessage();
-                PreviewMessageComponent.SetMessage(PreviewMessage);
-
-                await OnStopEdit();
+                // Do not depend on the realtime edit echo to clear the visual
+                // editing state. It may arrive late (or be coalesced), and a
+                // direct OnStopEdit call does not reset MessageComponent.Edit.
+                if (editingComponent is not null)
+                    await editingComponent.CloseEditMode();
             }
         }
     }

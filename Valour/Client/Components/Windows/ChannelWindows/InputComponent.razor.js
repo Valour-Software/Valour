@@ -135,6 +135,15 @@ export function init(dotnet, inputEl) {
         currentWord: '',
         currentIndex: 0,
         lastRange: null,
+        selectionChangeHandler: () => {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0)
+                return;
+            const range = selection.getRangeAt(0);
+            if (range.collapsed && ctx.inputEl.contains(range.commonAncestorContainer)) {
+                ctx.lastRange = range.cloneRange();
+            }
+        },
         getCursorPos: () => {
             const sel = window.getSelection();
             if (sel && sel.rangeCount) {
@@ -156,15 +165,10 @@ export function init(dotnet, inputEl) {
             return '';
         },
         caretMoveHandler: async (offset = 0) => {
+            ctx.selectionChangeHandler();
             ctx.currentWord = ctx.getCurrentWord(offset);
             ctx.currentIndex = ctx.getCursorPos();
             await ctx.dotnet.invokeMethodAsync('OnCaretUpdate', safeForInterop(ctx.currentWord));
-            if (document.activeElement !== ctx.inputEl) {
-                const sel = window.getSelection();
-                if (sel && sel.rangeCount > 0) {
-                    ctx.lastRange = sel.getRangeAt(0).cloneRange();
-                }
-            }
         },
         focus: () => {
             ctx.inputEl.focus();
@@ -253,9 +257,12 @@ export function init(dotnet, inputEl) {
                 }
                 else {
                     ctx.inputEl.focus();
-                    ctx.moveCursorToEnd();
                     sel = window.getSelection();
-                    range = sel.getRangeAt(0);
+                    range = document.createRange();
+                    range.selectNodeContents(ctx.inputEl);
+                    range.collapse(false);
+                    sel?.removeAllRanges();
+                    sel?.addRange(range);
                 }
             }
             else {
@@ -330,6 +337,7 @@ export function init(dotnet, inputEl) {
             range.collapse(true);
             sel?.removeAllRanges();
             sel?.addRange(range);
+            ctx.lastRange = range.cloneRange();
             await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
         },
         keyDownHandler: async (e) => {
@@ -385,6 +393,7 @@ export function init(dotnet, inputEl) {
         },
         // Debounced input handler for performance
         inputHandler: debounce(async (e) => {
+            ctx.selectionChangeHandler();
             ctx.currentWord = ctx.getCurrentWord(0);
             await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
         }, 50),
@@ -403,12 +412,14 @@ export function init(dotnet, inputEl) {
             ctx.inputEl.addEventListener('click', ctx.clickHandler);
             ctx.inputEl.addEventListener('paste', ctx.pasteHandler);
             ctx.inputEl.addEventListener('input', ctx.inputHandler);
+            document.addEventListener('selectionchange', ctx.selectionChangeHandler);
         },
         cleanup: () => {
             ctx.inputEl.removeEventListener('keydown', ctx.keyDownHandler);
             ctx.inputEl.removeEventListener('click', ctx.clickHandler);
             ctx.inputEl.removeEventListener('paste', ctx.pasteHandler);
             ctx.inputEl.removeEventListener('input', ctx.inputHandler);
+            document.removeEventListener('selectionchange', ctx.selectionChangeHandler);
         }
     };
     ctx.hookEvents();

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -117,14 +118,16 @@ public class PushNotificationService
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string GetPayload(NotificationContent content)
+    internal static string GetPayload(NotificationContent content)
     {
         return JsonSerializer.Serialize(new
         {
             title = content.Title,
             message = content.Message,
             iconUrl = content.IconUrl,
-            url = content.Url
+            url = content.Url,
+            notificationId = content.NotificationId?.ToString(),
+            sourceId = content.SourceId?.ToString(CultureInfo.InvariantCulture)
         });
     }
     

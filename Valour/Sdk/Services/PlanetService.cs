@@ -230,7 +230,16 @@ public class PlanetService : ServiceBase
         if (!response.Success)
             return response.WithoutData();
 
-        var planets = response.Data;
+        var memberships = await FetchFederatedMembershipsAsync();
+        await ApplyJoinedPlanetsAsync(response.Data, memberships);
+        return TaskResult.SuccessResult;
+    }
+
+    public async Task ApplyJoinedPlanetsAsync(
+        IEnumerable<Planet> joinedPlanets,
+        IEnumerable<FederatedMembershipInfo> federatedMemberships)
+    {
+        var planets = (joinedPlanets ?? []).ToList();
 
         _joinedPlanets.Clear();
 
@@ -245,7 +254,7 @@ public class PlanetService : ServiceBase
         // Also render community-hosted memberships: connect to each node, map the
         // planet to it, and load it from its own origin. Best-effort per node so a
         // single offline community server doesn't break the whole list.
-        foreach (var membership in await FetchFederatedMembershipsAsync())
+        foreach (var membership in federatedMemberships ?? [])
         {
             try
             {
@@ -272,8 +281,6 @@ public class PlanetService : ServiceBase
         }
 
         JoinedPlanetsUpdated?.Invoke();
-
-        return TaskResult.SuccessResult;
     }
 
     /// <summary>

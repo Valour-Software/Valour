@@ -49,7 +49,12 @@ public class NotificationService
         if (!response.Success)
             return;
 
-        var notifications = response.Data;
+        ApplyUnreadNotifications(response.Data);
+    }
+
+    public void ApplyUnreadNotifications(IEnumerable<Notification> notifications)
+    {
+        notifications ??= [];
 
         _unreadNotifications.Clear();
         _unreadNotificationsLookupBySource.Clear();
@@ -100,8 +105,10 @@ public class NotificationService
         
         if (cached.TimeRead is null)
         {
-            if (!_unreadNotifications.Contains(cached))
-                _unreadNotifications.Add(cached);
+            if (_unreadNotifications.Any(x => x.Id == cached.Id))
+                return;
+
+            _unreadNotifications.Add(cached);
 
             if (cached.SourceId is not null)
             {

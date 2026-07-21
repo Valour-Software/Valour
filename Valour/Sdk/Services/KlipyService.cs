@@ -68,8 +68,14 @@ public class KlipyService : ServiceBase
             return;
         }
 
+        ApplyGifFavorites(response.Data);
+    }
+
+    public void ApplyGifFavorites(IEnumerable<GifFavorite> favorites)
+    {
+
         _gifFavorites.Clear();
-        _gifFavorites.AddRange(response.Data.Select(x => x.Sync(_client)));
+        _gifFavorites.AddRange((favorites ?? []).Select(x => x.Sync(_client)));
     }
 
     public async Task<TaskResult<KlipyGifSearchResults>> SearchAsync(string? query, int page = 1)

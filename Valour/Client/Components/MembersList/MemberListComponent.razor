@@ -1,5 +1,6 @@
 ﻿@inject PlanetService PlanetService
 @inject ValourClient Client
+@implements IDisposable
 
 @if (!_visible)
 {
@@ -156,14 +157,18 @@
         _displayedRoleMembers.Add(0, new());
         _displayedRoleMembers.Add(1, new());
 
-        // Events
-        WindowService.FocusedPlanetChanged += OnPlanetChange;
         PlanetService.PlanetDisconnected += OnPlanetDisconnected;
         
         // Reload every 30s
         _reloadTimer = new Timer(Reload, null, 0, 1000 * 30);
 
-        OnPlanetChange(Channel.Planet);
+        SetPlanet(Channel.Planet);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Channel?.Planet != _planet)
+            SetPlanet(Channel?.Planet);
     }
 
     private void Reload(object state)
@@ -388,7 +393,7 @@
     private long DetermineDisplayRoleId(PlanetMember member, long exclude = long.MaxValue)
     {
         // Don't list at all if this is true
-        if (member is null || member.User is null || member.User.LastActiveSpan.TotalDays > 7)
+        if (ShouldHideMember(member, Client.Me.Id))
             return -1;
 
         // Throw directly into offline group
@@ -423,17 +428,18 @@
         return 0;
     }
 
-    public void ClearForNewPlanet()
+    internal static bool ShouldHideMember(PlanetMember? member, long currentUserId)
+        => member?.User is null ||
+           (member.User.Id != currentUserId && member.User.LastActiveSpan.TotalDays > 7);
+
+    private void ClearPlanetState()
     {
-        _planet.Roles.Changed -= OnPlanetRolesChange;
-        _planet.Members.Changed -= OnMemberListChange;
-        
         _lastMemberRoles?.Clear();
         _displayedRoleMembers.Clear();
         _displayedRoleMembers.Add(0, new());
         _displayedRoleMembers.Add(1, new());
 
-        foreach (var role in _displayedRoles)
+        foreach (var role in _displayedRoles ?? [])
         {
             _displayedRoleMembers.Add(role.Id, new());
         }
@@ -443,56 +449,60 @@
     {
         InvokeAsync(() =>
         {
-            if (_planet.Id != planet.Id)
+            if (_planet?.Id != planet.Id)
                 return;
 
-            ClearForNewPlanet();
-            _planet = null;
-
-            StateHasChanged();
+            SetPlanet(null);
         });
     }
 
-    public void OnPlanetChange(Planet planet)
+    public void OnPlanetChange(Planet? planet)
     {
-        InvokeAsync(() =>
+        _ = InvokeAsync(() => SetPlanet(planet));
+    }
+
+    private void SetPlanet(Planet? planet)
+    {
+        if (_planet == planet)
+            return;
+
+        if (_planet is not null)
         {
-            try
-            {
-                _planet = planet;
+            _planet.Roles.Changed -= OnPlanetRolesChange;
+            _planet.Members.Changed -= OnMemberListChange;
+        }
 
-                if (planet != null)
-                {
-                    _planet.Roles.Changed += OnPlanetRolesChange;
-                    _planet.Members.Changed += OnMemberListChange;
+        _planet = planet;
+        _displayedRoles = planet?.Roles.Where(x => x.HasDisplayRole).ToList() ?? [];
+        ClearPlanetState();
 
-                    Client.Logger.Log<MemberListComponent>($"Member list is updating to {planet.Name}", "cyan");
+        if (planet is not null)
+        {
+            planet.Roles.Changed += OnPlanetRolesChange;
+            planet.Members.Changed += OnMemberListChange;
+            Client.Logger.Log<MemberListComponent>($"Member list is updating to {planet.Name}", "cyan");
+            BuildRoleLists();
+        }
 
-                    _displayedRoles = _planet.Roles.Where(x => x.HasDisplayRole).ToList();
-                    ClearForNewPlanet();
-                }
-                else
-                {
-                    ClearForNewPlanet();
-                }
-
-                BuildRoleLists();
-
-                Client.Logger.Log<MemberListComponent>($"Starting with {_planet.Roles.Count} members.", "cyan");
-                StateHasChanged();
-            }
-            catch (System.Exception e)
-            {
-                string bad = e.Message;
-                string stack = e.StackTrace;
-            }
-        });
+        StateHasChanged();
     }
     
     public void ToggleVisible()
     {
         _visible = !_visible;
         StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _reloadTimer?.Dispose();
+        PlanetService.PlanetDisconnected -= OnPlanetDisconnected;
+
+        if (_planet is not null)
+        {
+            _planet.Roles.Changed -= OnPlanetRolesChange;
+            _planet.Members.Changed -= OnMemberListChange;
+        }
     }
 
     public class ActivityComparer : IComparer<PlanetMember>

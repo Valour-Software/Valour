@@ -281,7 +281,11 @@
                     _newestSeen = thread.TimeCreated;
             }
 
-            if (newThreads.Count > 0)
+            foreach (var thread in newThreads.Where(x => x.ViewerHasBoosted.HasValue))
+                Client.ThreadService.SetThreadBoostState(thread.Id, thread.ViewerHasBoosted!.Value);
+
+            // Compatibility with servers that predate hydrated feed state.
+            if (newThreads.Any(x => !x.ViewerHasBoosted.HasValue))
                 await Client.ThreadService.LoadThreadBoostStateAsync(newThreads);
         }
         catch (Exception e)

@@ -5,6 +5,7 @@ using Amazon.S3.Model;
 using Microsoft.AspNetCore.DataProtection;
 using Valour.Server.Cdn;
 using Valour.Shared;
+using Valour.Shared.Cdn;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -186,6 +187,9 @@ public class PlanetStorageService
 
         if (string.IsNullOrWhiteSpace(request.MimeType) || request.MimeType.Length > 127)
             return TaskResult<PlanetMediaUploadGrant>.FromFailure("A valid mime type is required.");
+
+        if (CdnUtils.IsExecutableUpload(request.FileName, request.MimeType))
+            return TaskResult<PlanetMediaUploadGrant>.FromFailure("Executable files are not allowed.");
 
         var extension = SanitizeExtension(Path.GetExtension(request.FileName ?? ""));
         var key = $"valour-media/{planetId}/{userId}/{request.Sha256}{extension}";

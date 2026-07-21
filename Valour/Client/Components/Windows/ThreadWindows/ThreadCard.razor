@@ -218,11 +218,16 @@
             _dismissedLocally = false;
         }
 
-        _boosted = Client.ThreadService.IsThreadBoosted(Thread.Id);
-        _planet = await Client.PlanetService.FetchPlanetAsync(Thread.PlanetId);
-        _author = await Client.UserService.FetchUserAsync(Thread.AuthorUserId);
+        _boosted = Thread.ViewerHasBoosted ?? Client.ThreadService.IsThreadBoosted(Thread.Id);
+        _planet = Thread.GetPlanet(false) ?? await Client.PlanetService.FetchPlanetAsync(Thread.PlanetId);
+        _author = Thread.AuthorUser ?? Thread.AuthorMember?.User;
+        _member = Thread.AuthorMember;
+        _role = Thread.AuthorRole;
 
-        if (Thread.AuthorMemberId is not null && _planet is not null)
+        if (_author is null)
+            _author = await Client.UserService.FetchUserAsync(Thread.AuthorUserId);
+
+        if (_member is null && Thread.AuthorMemberId is not null && _planet is not null)
         {
             // Role colors and tags need the planet's roles, which aren't
             // loaded unless the planet is connected
@@ -235,7 +240,7 @@
         }
 
         if (ShowPlanet && ShowPresence && _planet is not null)
-            _presence = await Client.PlanetService.FetchPresenceAsync(_planet);
+            _presence = Thread.Presence ?? await Client.PlanetService.FetchPresenceAsync(_planet);
     }
 
     private Task OnThreadUpdated(ModelUpdatedEvent<PlanetThread> e)
@@ -248,6 +253,7 @@
     {
         var result = await Client.ThreadService.ToggleThreadBoostAsync(Thread);
         _boosted = Client.ThreadService.IsThreadBoosted(Thread.Id);
+        Thread.ViewerHasBoosted = _boosted;
 
         if (!result.Success)
         {

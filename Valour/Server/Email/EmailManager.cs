@@ -12,12 +12,25 @@ namespace Valour.Server.Email;
 
 public class EmailManager
 {
-    public static SendGridClient client;
+    private static SendGridClient? _client;
+
+    public static bool IsConfigured => _client is not null;
 
     public static void SetupClient()
     {
-        client = new SendGridClient(EmailConfig.Instance.ApiKey);
+        _client = CreateClient(EmailConfig.Instance?.ApiKey);
+
+        if (_client is null)
+            Console.WriteLine("Email delivery is disabled because no SendGrid API key is configured.");
     }
+
+    internal static SendGridClient? CreateClient(string? apiKey) =>
+        string.IsNullOrWhiteSpace(apiKey) || apiKey == "fake-value"
+            ? null
+            : new SendGridClient(apiKey);
+
+    private static SendGridClient GetClient() => _client ?? throw new InvalidOperationException(
+        "Email delivery is disabled. Configure Email:ApiKey before sending email.");
 
     /// <summary>
     /// Sends an email using SendGrid API
@@ -48,7 +61,7 @@ public class EmailManager
         email.SetClickTracking(false, false);
 
         // Send the email
-        return await client.SendEmailAsync(email, cancellationToken);
+        return await GetClient().SendEmailAsync(email, cancellationToken);
     }
 
     /// <summary>
@@ -77,6 +90,6 @@ public class EmailManager
         email.AddHeader("List-Unsubscribe", $"<{unsubscribeUrl}>, <mailto:{EmailConfig.Instance.UnsubscribeAddress}>");
         email.AddHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
 
-        return await client.SendEmailAsync(email, cancellationToken);
+        return await GetClient().SendEmailAsync(email, cancellationToken);
     }
 }

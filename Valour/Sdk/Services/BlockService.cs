@@ -41,11 +41,17 @@ public class BlockService : ServiceBase
             return;
         }
 
+        ApplyBlocks(result.Data);
+    }
+
+    public void ApplyBlocks(IEnumerable<UserBlock> blocks)
+    {
+
         lock (_lock)
         {
             Blocks.Clear();
             _blockedUserIds.Clear();
-            foreach (var block in result.Data)
+            foreach (var block in blocks ?? [])
             {
                 Blocks.Add(block);
                 _blockedUserIds.Add(block.BlockedUserId);

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Valour.Sdk.Client;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -14,6 +15,7 @@ public class UserService : ServiceBase
     );
     
     private readonly ValourClient _client;
+    private readonly ConcurrentDictionary<long, Lazy<Task<User>>> _inflightUsers = new();
 
     public UserService(ValourClient client)
     {
@@ -41,7 +43,30 @@ public class UserService : ServiceBase
         
         if (!skipCache && _client.Cache.Users.TryGet(id, out var cached))
             return cached;
-        
+
+        if (!skipCache)
+        {
+            // ConcurrentDictionary may invoke its value factory more than once.
+            // Lazy guarantees only the published entry starts an HTTP request.
+            var pending = _inflightUsers.GetOrAdd(id, key =>
+                new Lazy<Task<User>>(
+                    () => FetchUserFromServerAsync(key),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+            try
+            {
+                return await pending.Value;
+            }
+            finally
+            {
+                _inflightUsers.TryRemove(id, out _);
+            }
+        }
+
+        return await FetchUserFromServerAsync(id);
+    }
+
+    private async Task<User> FetchUserFromServerAsync(long id)
+    {
         var response = await _client.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}");
         if (!response.Success || response.Data is null)
         {

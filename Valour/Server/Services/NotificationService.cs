@@ -157,6 +157,8 @@ public class NotificationService
                     Message = notification.Body,
                     IconUrl = notification.ImageUrl,
                     Url = notification.ClickUrl,
+                    NotificationId = notification.Id,
+                    SourceId = notification.SourceId,
                 },
                 UserId = userId
             });
@@ -228,6 +230,7 @@ public class NotificationService
             Message = baseNotification.Body,
             IconUrl = baseNotification.ImageUrl,
             Url = baseNotification.ClickUrl,
+            SourceId = baseNotification.SourceId,
         };
 
         const int insertBatchSize = 2_000;

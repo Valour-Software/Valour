@@ -19,11 +19,11 @@
                 {
                     @if (_visible.Count == 1)
                     {
-                        <video src="@url" controls preload="metadata" @onclick:stopPropagation="true"></video>
+                        <video src="@url" controls preload="none" @onclick:stopPropagation="true"></video>
                     }
                     else
                     {
-                        <video src="@url" preload="metadata" muted></video>
+                        <video src="@url" preload="none" muted></video>
                         <div class="play-overlay">
                             <i class="bi bi-play-circle-fill"></i>
                         </div>

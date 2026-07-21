@@ -11,4 +11,6 @@ public interface IPushNotificationService
     Task<string> GetPermissionStateAsync();
     Task AskForPermissionAsync();
     Task OpenNotificationSettingsAsync();
+    Task DismissNotificationAsync(Guid notificationId, long? sourceId);
+    Task DismissAllNotificationsAsync();
 }

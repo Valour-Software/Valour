@@ -50,6 +50,15 @@ public class FriendService : ServiceBase
             return;
         }
 
+        ApplyFriendData(data);
+    }
+
+    public void ApplyFriendData(UserFriendData data)
+    {
+        data ??= new UserFriendData();
+        data.Added ??= [];
+        data.AddedBy ??= [];
+
         lock (_lock)
         {
             IncomingRequests.Clear();

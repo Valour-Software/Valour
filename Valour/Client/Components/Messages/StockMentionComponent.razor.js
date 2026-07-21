@@ -1,4 +1,19 @@
-export function setupChart(id, ticker) {
+let tradingViewLoadPromise = null;
+
+function ensureTradingViewLoaded() {
+    if (globalThis.TradingView?.widget) return Promise.resolve();
+    tradingViewLoadPromise ??= new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://s3.tradingview.com/tv.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load TradingView'));
+        document.head.appendChild(script);
+    });
+    return tradingViewLoadPromise;
+}
+
+export async function setupChart(id, ticker) {
+    await ensureTradingViewLoaded();
     new TradingView.widget(
         {
             //"autosize": true,

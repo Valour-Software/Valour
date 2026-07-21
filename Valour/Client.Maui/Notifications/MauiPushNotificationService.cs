@@ -258,6 +258,10 @@ public class MauiPushNotificationService : IPushNotificationService
 #endif
         return Task.CompletedTask;
     }
+
+    public Task DismissNotificationAsync(Guid notificationId, long? sourceId) => Task.CompletedTask;
+
+    public Task DismissAllNotificationsAsync() => Task.CompletedTask;
 }
 #elif WINDOWS
 public class MauiPushNotificationService : IPushNotificationService
@@ -326,6 +330,10 @@ public class MauiPushNotificationService : IPushNotificationService
     public Task AskForPermissionAsync() => Task.CompletedTask;
 
     public Task OpenNotificationSettingsAsync() => Task.CompletedTask;
+
+    public Task DismissNotificationAsync(Guid notificationId, long? sourceId) => Task.CompletedTask;
+
+    public Task DismissAllNotificationsAsync() => Task.CompletedTask;
 }
 #else
 public class MauiPushNotificationService : IPushNotificationService
@@ -345,5 +353,9 @@ public class MauiPushNotificationService : IPushNotificationService
     public Task AskForPermissionAsync() => Task.CompletedTask;
 
     public Task OpenNotificationSettingsAsync() => Task.CompletedTask;
+
+    public Task DismissNotificationAsync(Guid notificationId, long? sourceId) => Task.CompletedTask;
+
+    public Task DismissAllNotificationsAsync() => Task.CompletedTask;
 }
 #endif

@@ -145,6 +145,33 @@ export function init() {
             if (existingSubscription) {
                 await existingSubscription.unsubscribe();
             }
+        },
+        dismissNotification: async (notificationId, sourceId) => {
+            if (!pushSupported()) {
+                return;
+            }
+            const registration = await getReadyRegistration();
+            if (!registration) {
+                return;
+            }
+            const notifications = await registration.getNotifications();
+            for (const notification of notifications) {
+                if (notification.data?.notificationId === notificationId ||
+                    (sourceId && notification.data?.sourceId === sourceId)) {
+                    notification.close();
+                }
+            }
+        },
+        dismissAllNotifications: async () => {
+            if (!pushSupported()) {
+                return;
+            }
+            const registration = await getReadyRegistration();
+            if (!registration) {
+                return;
+            }
+            const notifications = await registration.getNotifications();
+            notifications.forEach(notification => notification.close());
         }
     };
 }

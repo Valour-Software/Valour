@@ -14,7 +14,7 @@ public class StaffAuditLog : ISharedStaffAuditLog
     public StaffActionType ActionType { get; set; }
     public long? TargetUserId { get; set; }
     public string Reason { get; set; }
-    public string? Details { get; set; }
+    public string Details { get; set; }
     public DateTime TimeCreated { get; set; }
 
     public static void SetupDbModel(ModelBuilder builder)
@@ -28,7 +28,9 @@ public class StaffAuditLog : ISharedStaffAuditLog
             e.Property(x => x.ActionType).HasColumnName("action_type");
             e.Property(x => x.TargetUserId).HasColumnName("target_user_id");
             e.Property(x => x.Reason).HasColumnName("reason");
-            e.Property(x => x.Details).HasColumnName("details");
+            e.Property(x => x.Details)
+                .HasColumnName("details")
+                .IsRequired(false);
             e.Property(x => x.TimeCreated).HasColumnName("time_created")
                 .HasConversion(
                     x => x,

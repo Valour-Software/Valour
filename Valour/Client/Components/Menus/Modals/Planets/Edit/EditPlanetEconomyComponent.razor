@@ -273,6 +273,7 @@
         else
         {
             _accountInfo = result.Message;
+            _sharedAccountProvider.ResetPaging();
             await _planetVirtualize.RefreshDataAsync();
         }
     }
@@ -302,6 +303,7 @@
         else
         {
             _accountInfo = result.Message;
+            _sharedAccountProvider.ResetPaging();
             await _planetVirtualize.RefreshDataAsync();
         }
         

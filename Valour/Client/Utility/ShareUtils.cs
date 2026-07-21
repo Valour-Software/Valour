@@ -20,6 +20,12 @@ public static class ShareUtils
         return nav.BaseUri;
     }
 
+    public static string GetInviteShareUrl(NavigationManager nav, string inviteCode)
+        => $"{GetPublicBaseUri(nav).TrimEnd('/')}/I/{Uri.EscapeDataString(inviteCode)}";
+
+    public static string GetDiscoverablePlanetShareUrl(NavigationManager nav, long planetId)
+        => $"{GetPublicBaseUri(nav).TrimEnd('/')}/D/{planetId}";
+
     /// <summary>
     /// Builds the best link for a thread: the public server-rendered page on the
     /// threads subdomain when the planet exposes threads publicly, otherwise the

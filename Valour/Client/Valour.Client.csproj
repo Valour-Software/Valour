@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Sdk\Valour.Sdk.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
+    <InternalsVisibleTo Include="Valour.Tests" />
   </ItemGroup>
 
   <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('windows')) and '$(EnableTypeScriptNuGetTarget)' == 'true'">

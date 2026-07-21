@@ -71,7 +71,7 @@ public class CdnStorageProvider
         }
     }
 
-    private static CdnStorageMode ResolveMode(CdnConfig config)
+    internal static CdnStorageMode ResolveMode(CdnConfig? config)
     {
         var explicitMode = config?.StorageMode;
         if (!string.IsNullOrWhiteSpace(explicitMode))

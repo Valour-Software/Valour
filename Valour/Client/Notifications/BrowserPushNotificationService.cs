@@ -125,4 +125,19 @@ public class BrowserPushNotificationService : IPushNotificationService
         // Browser doesn't support opening notification settings directly
         return Task.CompletedTask;
     }
+
+    public async Task DismissNotificationAsync(Guid notificationId, long? sourceId)
+    {
+        await EnsureInitializedAsync();
+        await _jsService!.InvokeVoidAsync(
+            "dismissNotification",
+            notificationId.ToString(),
+            sourceId?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    public async Task DismissAllNotificationsAsync()
+    {
+        await EnsureInitializedAsync();
+        await _jsService!.InvokeVoidAsync("dismissAllNotifications");
+    }
 }
