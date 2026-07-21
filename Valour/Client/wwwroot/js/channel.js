@@ -1,4 +1,4 @@
-﻿function hljsHighlight(el){
+﻿async function hljsHighlight(el){
     const prior = el.parentElement.querySelector('.hljs-clone');
     if (prior) {
         el.parentElement.removeChild(prior);
@@ -11,6 +11,7 @@
     // Preserves padding for inline code blocks
     // and avoids false positive syntax highlighting
     if ((el.parentElement instanceof HTMLPreElement)) {
+        await ensureChannelHighlightScript();
         hljs.highlightElement(clone);
     } else {
         clone.classList.add('hljs');
@@ -18,6 +19,24 @@
 
     el.parentElement.insertBefore(clone, el.nextSibling);
     el.style.display = 'none';
+}
+
+let channelHighlightScriptPromise = null;
+
+function ensureChannelHighlightScript() {
+    if (window.hljs) return Promise.resolve();
+    if (channelHighlightScriptPromise) return channelHighlightScriptPromise;
+
+    channelHighlightScriptPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js';
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load syntax highlighting'));
+        document.head.appendChild(script);
+    });
+
+    return channelHighlightScriptPromise;
 }
 
 // Drop zone logic (thanks to https://www.meziantou.net/upload-files-with-drag-drop-or-paste-from-clipboard-in-blazor.htm)

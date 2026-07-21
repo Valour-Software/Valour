@@ -8,13 +8,14 @@ namespace Valour.Sdk.Models;
 /// </summary>
 public sealed class AppBootstrapData
 {
-    public UserFriendData FriendData { get; set; } = new();
+    public List<User> FriendUsers { get; set; } = [];
+    public long[] AddedFriendIds { get; set; } = [];
+    public long[] AddedByFriendIds { get; set; } = [];
     public List<UserBlock> Blocks { get; set; } = [];
     public List<Planet> Planets { get; set; } = [];
     public List<PlanetMember> MyPlanetMembers { get; set; } = [];
     public List<FederatedMembershipInfo> FederatedMemberships { get; set; } = [];
     public List<GifFavorite> GifFavorites { get; set; } = [];
-    public List<Channel> DirectChannels { get; set; } = [];
     public List<Notification> UnreadNotifications { get; set; } = [];
     public long[] UnreadPlanets { get; set; } = [];
     public long[] UnreadDirectChannels { get; set; } = [];

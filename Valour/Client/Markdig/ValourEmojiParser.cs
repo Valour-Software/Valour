@@ -186,19 +186,7 @@ public class ValourEmojiParser : InlineParser
     }
 
     public static int MatchEmojiAt(ReadOnlySpan<int> codePoints, EmojiTrieNode root)
-    {
-        var node = root;
-        int lastMatch = -1;
-        int i = 0;
-        for (; i < codePoints.Length; i++)
-        {
-            if (!node.Children.TryGetValue(codePoints[i], out node))
-                break;
-            if (node.IsEmoji)
-                lastMatch = i;
-        }
-        return lastMatch >= 0 ? lastMatch + 1 : 0;
-    }
+        => root.Match(codePoints);
 
     private static void LogTimings(
         TimeSpan total,

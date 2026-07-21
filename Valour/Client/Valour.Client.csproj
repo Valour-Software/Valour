@@ -45,6 +45,10 @@
 
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
     <TypeScriptCompile Remove="Components\Menus\Modals\Users\Edit\EditWalletComponent.razor.ts" />
+
+    <!-- Generated into obj by EmojiTrieCompiler and embedded in this assembly. -->
+    <EmbeddedResource Include="$(IntermediateOutputPath)generated/emoji-trie.bin"
+                      LogicalName="Valour.Client.Emojis.emoji-trie.bin" />
   </ItemGroup>
 
   <ItemGroup>
@@ -89,6 +93,21 @@
       <_DotNetCliForExec Condition="'$(_DotNetCliForExec)' == ''">dotnet</_DotNetCliForExec>
     </PropertyGroup>
     <Exec Command="&quot;$(_DotNetCliForExec)&quot; run --project &quot;$(_CssBundlerProject)&quot; -- &quot;$(_CssBundleInputs)&quot; &quot;$(_ScopedCssAggregator)&quot; &quot;$(_CssBundleSearchPaths)&quot; &quot;$(_CssBundleOutput)&quot;" />
+  </Target>
+
+  <Target Name="GenerateEmojiTrie"
+          BeforeTargets="PrepareResources"
+          Inputs="$(MSBuildProjectDirectory)/BuildInputs/emoji-test.txt;$(MSBuildProjectDirectory)/../BuildTools/EmojiTrieCompiler/Program.cs;$(MSBuildProjectDirectory)/../BuildTools/EmojiTrieCompiler/EmojiTrieCompiler.csproj"
+          Outputs="$(IntermediateOutputPath)generated/emoji-trie.bin">
+    <PropertyGroup>
+      <_EmojiTrieCompilerProject>$(MSBuildProjectDirectory)/../BuildTools/EmojiTrieCompiler/EmojiTrieCompiler.csproj</_EmojiTrieCompilerProject>
+      <_EmojiTrieInput>$(MSBuildProjectDirectory)/BuildInputs/emoji-test.txt</_EmojiTrieInput>
+      <_EmojiTrieOutput>$(IntermediateOutputPath)generated/emoji-trie.bin</_EmojiTrieOutput>
+      <_EmojiTrieDotNet Condition="'$(DotNetHostPath)' != ''">$(DotNetHostPath)</_EmojiTrieDotNet>
+      <_EmojiTrieDotNet Condition="'$(_EmojiTrieDotNet)' == '' and '$(DOTNET_HOST_PATH)' != ''">$(DOTNET_HOST_PATH)</_EmojiTrieDotNet>
+      <_EmojiTrieDotNet Condition="'$(_EmojiTrieDotNet)' == ''">dotnet</_EmojiTrieDotNet>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_EmojiTrieDotNet)&quot; run --project &quot;$(_EmojiTrieCompilerProject)&quot; -- &quot;$(_EmojiTrieInput)&quot; &quot;$(_EmojiTrieOutput)&quot;" />
   </Target>
 
 </Project>

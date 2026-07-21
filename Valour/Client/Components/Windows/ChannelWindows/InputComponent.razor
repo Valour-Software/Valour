@@ -325,7 +325,9 @@
         if (planet is not null)
         {
             await planet.EnsureReadyAsync();
-            await planet.LoadEmojisAsync();
+            // Opening a planet loads its complete initial-data snapshot, including
+            // custom emojis. Fetching them again here duplicated that request on
+            // every channel startup.
             CanUserPost = await ChatComponent.Channel.HasPermissionAsync(planet.MyMember, ChatChannelPermissions.PostMessages);
             await AttachEmojiPlanetSubscriptionAsync(planet);
         }

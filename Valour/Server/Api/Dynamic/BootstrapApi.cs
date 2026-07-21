@@ -21,7 +21,6 @@ public class BootstrapApi
     public static async Task<IResult> GetAsync(
         UserService userService,
         UserBlockService userBlockService,
-        ChannelService channelService,
         NotificationService notificationService,
         UnreadService unreadService,
         FederationJoinService federationJoinService,
@@ -38,13 +37,11 @@ public class BootstrapApi
         var planetIds = planets.Select(x => x.Id).ToList();
         var myPlanetMembers = await db.PlanetMembers
             .AsNoTracking()
-            .Include(x => x.User)
             .Where(x => x.UserId == userId && planetIds.Contains(x.PlanetId))
             .Select(x => x.ToModel())
             .ToListAsync();
         var memberships = await federationJoinService.GetMembershipsAsync(userId);
         var gifFavorites = await userService.GetGifFavoritesAsync(userId);
-        var directChannels = await channelService.GetAllDirectAsync(userId);
         var notifications = await notificationService.GetAllUnreadNotifications(userId);
         var unreadPlanets = await unreadService.GetUnreadPlanets(userId);
         var unreadDirectChannels = await unreadService.GetUnreadChannels(null, userId);
@@ -52,13 +49,16 @@ public class BootstrapApi
 
         return Results.Json(new
         {
-            friendData = new { added = friends.outgoing, addedBy = friends.incoming },
+            friendUsers = friends.outgoing
+                .Concat(friends.incoming)
+                .DistinctBy(x => x.Id),
+            addedFriendIds = friends.outgoing.Select(x => x.Id),
+            addedByFriendIds = friends.incoming.Select(x => x.Id),
             blocks,
             planets,
             myPlanetMembers,
             federatedMemberships = memberships,
             gifFavorites,
-            directChannels,
             unreadNotifications = notifications,
             unreadPlanets,
             unreadDirectChannels,

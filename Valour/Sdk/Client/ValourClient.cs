@@ -305,12 +305,16 @@ public class ValourClient
                 return false;
 
             var data = response.Data;
-            FriendService.ApplyFriendData(data.FriendData);
+            FriendService.ApplyFriendData(
+                data.FriendUsers,
+                data.AddedFriendIds,
+                data.AddedByFriendIds);
             BlockService.ApplyBlocks(data.Blocks);
             await PlanetService.ApplyJoinedPlanetsAsync(data.Planets, data.FederatedMemberships);
+            foreach (var member in data.MyPlanetMembers)
+                member.User = Me;
             data.MyPlanetMembers.SyncAll(this, ModelInsertFlags.Batched);
             KlipyService.ApplyGifFavorites(data.GifFavorites);
-            ChannelService.ApplyDirectChannels(data.DirectChannels);
             NotificationService.ApplyUnreadNotifications(data.UnreadNotifications);
             UnreadService.ApplyUnreadPlanets(data.UnreadPlanets);
             UnreadService.ApplyUnreadDirectChannels(data.UnreadDirectChannels);

@@ -56,6 +56,9 @@
     [Parameter]
     public bool CloseSidebarOnSelect { get; set; }
 
+    [Parameter]
+    public EventCallback OnItemsChanged { get; set; }
+
     private readonly List<DirectMessageListItem> _items = new();
     private readonly HashSet<long> _itemIds = new();
 
@@ -142,6 +145,9 @@
 
             _nextSkip += response.Items.Count;
             _hasMore = _items.Count < _totalCount && response.Items.Count > 0;
+
+            if (response.Items.Count > 0 && OnItemsChanged.HasDelegate)
+                await OnItemsChanged.InvokeAsync();
         }
         catch (Exception ex)
         {

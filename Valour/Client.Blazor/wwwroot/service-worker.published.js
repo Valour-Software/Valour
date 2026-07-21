@@ -113,6 +113,22 @@ async function onFetch(event) {
         const request = shouldServeIndexHtml ? 'index.html' : event.request;
         const cache = await caches.open(cacheName);
         cachedResponse = await cache.match(request);
+
+        // The assets manifest stores logical paths without the deploy-version
+        // query used by index.html and dynamic component imports. Reuse the
+        // current worker's cached asset only when the request version exactly
+        // matches this deployment. An older controlling worker therefore
+        // cannot accidentally serve an old script to a newly deployed page.
+        if (!cachedResponse && !shouldServeIndexHtml) {
+            const requestUrl = new URL(event.request.url);
+            const isCurrentVersion = requestUrl.searchParams.get('version') === COMMIT_HASH;
+            const isRuntimeConfig = requestUrl.pathname.endsWith('/valour-runtime-config.js');
+
+            if (isCurrentVersion && !isRuntimeConfig) {
+                requestUrl.searchParams.delete('version');
+                cachedResponse = await cache.match(requestUrl.toString());
+            }
+        }
     }
 
     return cachedResponse || fetch(event.request);

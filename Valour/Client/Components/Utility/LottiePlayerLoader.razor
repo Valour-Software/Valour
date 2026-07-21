@@ -1,0 +1,23 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+
+@code {
+    private IJSObjectReference _module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/Components/Utility/LottiePlayerLoader.razor.js?version=$(SHORTHASH)");
+        await _module.InvokeVoidAsync("ensureLoaded");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+            await _module.DisposeAsync();
+    }
+}

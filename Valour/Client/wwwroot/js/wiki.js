@@ -11,11 +11,31 @@ window.wikiScrollToHeading = function (containerId, index) {
         headings[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
-// Applies highlight.js to all code blocks inside the container, if loaded
-window.wikiHighlightAll = function (containerId) {
-    if (!window.hljs) return;
+let highlightScriptPromise = null;
+
+function ensureHighlightScript() {
+    if (window.hljs) return Promise.resolve();
+    if (highlightScriptPromise) return highlightScriptPromise;
+
+    highlightScriptPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js';
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load syntax highlighting'));
+        document.head.appendChild(script);
+    });
+
+    return highlightScriptPromise;
+}
+
+// Load highlight.js only when a rendered wiki page actually contains code.
+window.wikiHighlightAll = async function (containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
+    if (!container.querySelector('pre code')) return;
+
+    await ensureHighlightScript();
     container.querySelectorAll('pre code').forEach(function (el) {
         try { hljs.highlightElement(el); } catch { /* already highlighted */ }
     });

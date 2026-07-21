@@ -105,6 +105,32 @@ public class FriendService : ServiceBase
         });
     }
 
+    /// <summary>
+    /// Applies the compact startup representation, where each user is sent once
+    /// and the two relationship directions are represented by user IDs.
+    /// </summary>
+    public void ApplyFriendData(
+        IEnumerable<User> users,
+        IEnumerable<long> addedIds,
+        IEnumerable<long> addedByIds)
+    {
+        var usersById = (users ?? [])
+            .GroupBy(x => x.Id)
+            .ToDictionary(x => x.Key, x => x.First());
+
+        ApplyFriendData(new UserFriendData
+        {
+            Added = (addedIds ?? [])
+                .Where(usersById.ContainsKey)
+                .Select(id => usersById[id])
+                .ToList(),
+            AddedBy = (addedByIds ?? [])
+                .Where(usersById.ContainsKey)
+                .Select(id => usersById[id])
+                .ToList()
+        });
+    }
+
     public void OnFriendEventReceived(FriendEventData eventData)
     {
         if (eventData?.User == null)

@@ -51,6 +51,7 @@ else
     private bool _browserReady;
     private bool _firstRenderReady;
     private bool _startupInitializationStarted;
+    private Task _instanceManifestTask = Task.CompletedTask;
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,12 +149,13 @@ else
             Logger.Log("App", $"Using native/default API origin (hostMode={hostMode}, hostname={uriData.Hostname})", "magenta");
         }
 
-        // Learn this instance's hosts and capabilities. Applies configured
-        // domains to link building, CDN URLs, and route parsing; the UI uses
-        // the capability map to hide unavailable features.
-        var manifest = await Client.FetchInstanceManifestAsync();
-        if (manifest is not null)
-            Logger.Log("App", $"Connected to instance '{manifest.Name}' v{manifest.Version}", "magenta");
+        // The root route only needs the login shell for an anonymous visitor.
+        // Start instance discovery immediately, but don't put that network
+        // round trip on the critical path unless the requested public route
+        // needs the instance's host/capability map before it renders.
+        _instanceManifestTask = FetchAndApplyInstanceManifestAsync();
+        if (!string.Equals(uriData.Pathname, "/", StringComparison.Ordinal))
+            await _instanceManifestTask;
 
         _ = JsRuntime.InvokeAsync<object>(
             "blazorFuncs.registerClient",
@@ -196,6 +198,9 @@ else
 
             if (!string.IsNullOrWhiteSpace(localToken))
             {
+                // Signed-in initialization consumes the instance host map, but
+                // anonymous login rendering doesn't need to wait for it.
+                await _instanceManifestTask;
                 var result = await Client.InitializeUser(localToken);
 
                 if (result.Code == 401)
@@ -212,18 +217,21 @@ else
             }
         }
 
-        // Ensure PrimaryNode is set up for anonymous API calls (e.g., invite pages)
-        if (Client.PrimaryNode is null)
-        {
-            await Client.NodeService.SetupPrimaryNodeAsync();
-        }
-
         _triedInitialLogin = true;
         Log("App", $"Tried initial login. Status: {Client.IsLoggedIn}", "magenta");
 
         await InvokeAsync(StateHasChanged);
 
         _ = CheckForShellUpdateAsync();
+    }
+
+    private async Task FetchAndApplyInstanceManifestAsync()
+    {
+        // Applies configured domains to link building, CDN URLs, and route
+        // parsing; authenticated initialization awaits this task above.
+        var manifest = await Client.FetchInstanceManifestAsync();
+        if (manifest is not null)
+            Logger.Log("App", $"Connected to instance '{manifest.Name}' v{manifest.Version}", "magenta");
     }
 
     private async Task CheckForShellUpdateAsync()

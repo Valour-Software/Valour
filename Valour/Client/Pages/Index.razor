@@ -5,7 +5,6 @@
 @page "/planetthreads/{StartPlanetId:long}"
 @page "/planetwiki/{StartPlanetId:long}/{StartPageId:long}"
 @page "/planetwiki/{StartPlanetId:long}"
-@using Valour.Client.Emojis
 @using Valour.Sdk.Services
 
 @inject ValourClient Client
@@ -105,17 +104,15 @@
 	{
 		_startRoute = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
 
-		await EmojiTrieBuilder.SetupTrieAsync(Client);
-
 		await base.OnInitializedAsync();
 
 		WindowService.FocusedPlanetChanged += OnPlanetChange;
 		AuthService.LoggedIn += OnLoginAsync;
 	}
 
-	private void OnLoginAsync(User user)
+	private async Task OnLoginAsync(User user)
 	{
-		InvokeAsync(StateHasChanged);
+		await InvokeAsync(StateHasChanged);
 	}
 
 	public void Dispose()

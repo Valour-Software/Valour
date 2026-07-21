@@ -2,7 +2,13 @@
 @inherits AttachmentComponent
 
 <div class="image-attachment-wrapper" style="@GetWrapperStyle()" @onclick="OnClick">
-    <img class="attached-image" style="@GetImageStyle()" alt="@Attachment.FileName" data-og-src="@Attachment.Location" src="@_location" @onerror="@OnImageError" />
+    <LazyImage CssClass="attached-image"
+               Style="@GetImageStyle()"
+               Alt="@Attachment.FileName"
+               Src="@_location"
+               FallbackSrc="_content/Valour.Client/media/image-not-found.webp"
+               RootMargin="400px 0px"
+               data-og-src="@Attachment.Location" />
 </div>
 
 @code {
@@ -95,14 +101,4 @@
         ModalRoot.OpenModal<AttachmentModal>(modalParams);
     }
     
-    private void OnImageError()
-    {
-        _location = "_content/Valour.Client/media/image-not-found.webp";
-
-        var size = 100;
-        
-        _width = size;
-        _height = size;
-        StateHasChanged();
-    }
 }

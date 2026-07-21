@@ -65,7 +65,8 @@
                 <div class="row-list">
                     <DirectMessageVirtualListComponent @ref="_dmList"
                                                        FilterText="@_filterText"
-                                                       WindowCtx="@WindowCtx" />
+                                                       WindowCtx="@WindowCtx"
+                                                       OnItemsChanged="OnDirectMessagesLoaded" />
                 </div>
             </div>
         </TabTwo>
@@ -202,6 +203,12 @@
             await OnRerenderPlanetCards.Invoke();
 
         await ReRender();
+    }
+
+    private async Task OnDirectMessagesLoaded()
+    {
+        if (OnRerenderFriendCards is not null)
+            await OnRerenderFriendCards.Invoke();
     }
 
     public void OnClickCreatePlanet()
