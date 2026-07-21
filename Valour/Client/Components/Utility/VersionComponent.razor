@@ -18,9 +18,10 @@
 
     private string GetShortHash()
     {
-        // $(SHORTHASH) is replaced at build time with the short git hash, but if we're running in a development environment it will be empty, so we'll just return "dev" in that case
-        // But the comparison would be replaced too, so we split it
-        return string.Equals(Version.ShortHash, "$(SHORTHASH)", StringComparison.Ordinal)
+        // The build replaces the contiguous placeholder in Version.ShortHash. Keep this
+        // comparison split so the replacement step does not turn it into "hash == hash".
+        var unreplacedPlaceholder = "$" + "(SHORTHASH)";
+        return string.Equals(Version.ShortHash, unreplacedPlaceholder, StringComparison.Ordinal)
             ? "Dev"
             : Version.ShortHash;
     }
