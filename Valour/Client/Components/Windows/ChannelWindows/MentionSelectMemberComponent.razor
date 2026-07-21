@@ -1,4 +1,4 @@
-﻿<div class="@("item " + SelectedClass)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
+﻿<div class="@("item " + SelectedClass)" @onmousedown:preventDefault="true" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
     <img alt="avatar" class="icon" src="@_avatar" @onerror="OnAvatarError" />
     <p class="title noselect" style="color:@_roleColor">@Member.Name</p>
 </div>

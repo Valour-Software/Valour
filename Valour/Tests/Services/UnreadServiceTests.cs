@@ -54,5 +54,41 @@ public class UnreadServiceTests : IClassFixture<LoginTestFixture>, IDisposable
         }
     }
 
+    [Fact]
+    public async Task GetUnreadDirectChannels_ExcludesChannelsUserIsNotPartyTo()
+    {
+        var unrelatedUser = await _fixture.RegisterUser();
+        var unrelatedUserId = await _db.Users
+            .Where(x => x.Name == unrelatedUser.Username)
+            .Select(x => x.Id)
+            .SingleAsync();
+
+        // Registration creates a DM between the new account and Victor. The
+        // fixture's logged-in user is deliberately not a member of it.
+        var unrelatedChannel = await _db.Channels
+            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat &&
+                        x.Members.Any(m => m.UserId == unrelatedUserId) &&
+                        x.Members.Any(m => m.UserId == ISharedUser.VictorUserId))
+            .SingleAsync();
+        unrelatedChannel.LastUpdateTime = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        Assert.False(await _db.ChannelMembers.AnyAsync(x =>
+            x.ChannelId == unrelatedChannel.Id && x.UserId == _fixture.Client.Me.Id));
+
+        var unreadChannelIds = await _unreadService.GetUnreadChannels(
+            planetId: null,
+            _fixture.Client.Me.Id);
+
+        Assert.DoesNotContain(unrelatedChannel.Id, unreadChannelIds);
+
+        var ownDirectChannelIds = await _db.Channels
+            .Where(x => x.PlanetId == null &&
+                        x.Members.Any(m => m.UserId == _fixture.Client.Me.Id))
+            .Select(x => x.Id)
+            .ToHashSetAsync();
+        Assert.All(unreadChannelIds, id => Assert.Contains(id, ownDirectChannelIds));
+    }
+
     public void Dispose() => _scope.Dispose();
 }

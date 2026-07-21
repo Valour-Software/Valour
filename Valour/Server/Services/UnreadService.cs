@@ -20,9 +20,19 @@ public class UnreadService
     /// </summary>
     public async Task<long[]> GetUnreadChannels(long? planetId, long userId)
     {
-        return await _db.Channels
+        var channels = _db.Channels
             .AsNoTracking()
-            .Where(c => c.PlanetId == planetId && ISharedChannel.ChatChannelTypes.Contains(c.ChannelType))
+            .Where(c => c.PlanetId == planetId && ISharedChannel.ChatChannelTypes.Contains(c.ChannelType));
+
+        // Channel state is not an authorization boundary: a user normally has
+        // no state row for a channel they cannot access. Always scope the
+        // candidate channels to the user's actual membership first.
+        channels = planetId is null
+            ? channels.Where(c => c.Members.Any(m => m.UserId == userId))
+            : channels.Where(c => _db.PlanetMembers.Any(m =>
+                m.PlanetId == planetId.Value && m.UserId == userId));
+
+        return await channels
             .Where(c => !_db.UserChannelStates
                 .Where(s => s.UserId == userId && s.PlanetId == planetId)
                 .Any(s => s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)

@@ -1,4 +1,4 @@
-<div class="@("item " + SelectedClass)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
+<div class="@("item " + SelectedClass)" @onmousedown:preventDefault="true" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
     <p class='title noselect' style="color: @Role.Color">@@@Role.Name</p>
 </div>
 

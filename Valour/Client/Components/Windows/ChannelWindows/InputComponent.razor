@@ -808,7 +808,11 @@
         message.SetAttachments(attachments);
     }
 
-    public async Task UpdateMentionMenu(string text)
+    // Guards the ":shortcode:" auto-fill below: injecting the emoji itself fires
+    // another OnChatboxUpdate, which would otherwise re-trigger the auto-fill.
+    private bool _autoInjectingEmoji;
+
+    public async Task UpdateMentionMenu(string text, bool allowEmojiAutocomplete = false)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -822,6 +826,38 @@
         }
 
         var mode = text[0];
+
+        // When the user finishes typing a full ":shortcode:" (closing colon and
+        // all), replace it with the emoji immediately — no click required — as
+        // long as it's an exact match. Partial names still fall back to the
+        // picker below. Only runs on the typing path (allowEmojiAutocomplete).
+        if (allowEmojiAutocomplete && mode == ':' && !_autoInjectingEmoji
+            && text.Length >= 3 && text[^1] == ':')
+        {
+            var shortcode = text.Substring(1, text.Length - 2);
+            if (shortcode.Length > 0 && !shortcode.Contains(':'))
+            {
+                var exact = await FindExactEmojiAsync(shortcode);
+                if (exact is not null)
+                {
+                    _autoInjectingEmoji = true;
+                    try
+                    {
+                        if (MentionSelector.Visible)
+                            await MentionSelector.SetVisible(false);
+                        await InjectEmojiForAutocompleteAsync(exact);
+                    }
+                    finally
+                    {
+                        _autoInjectingEmoji = false;
+                    }
+
+                    Refresh();
+                    return;
+                }
+            }
+        }
+
         var isAutocompleteToken = mode == '@' || mode == '#' || mode == ':';
 
         // ":" autocomplete should wait until the user has typed at least one character.
@@ -1019,6 +1055,37 @@
         return merged;
     }
 
+    /// <summary>
+    /// Finds an emoji whose shortcode exactly equals <paramref name="shortcode"/>
+    /// (the text between the colons of a ":name:" token), or null if there is no
+    /// exact match. Used to auto-fill a fully typed emote without a click.
+    /// </summary>
+    private async Task<EmojiClickEvent> FindExactEmojiAsync(string shortcode)
+    {
+        var candidates = await SearchEmojisAsync(shortcode, 25);
+        return candidates.FirstOrDefault(e => EmojiShortcodeMatches(e, shortcode));
+    }
+
+    private static bool EmojiShortcodeMatches(EmojiClickEvent emoji, string shortcode)
+    {
+        bool Matches(string value) => !string.IsNullOrEmpty(value)
+            && string.Equals(value.Trim(':'), shortcode, StringComparison.OrdinalIgnoreCase);
+
+        if (Matches(emoji.Id) || Matches(emoji.Name) || Matches(emoji.Shortcodes) || Matches(emoji.Token))
+            return true;
+
+        if (emoji.Aliases is not null)
+        {
+            foreach (var alias in emoji.Aliases)
+            {
+                if (Matches(alias))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     public ValueTask InjectEmojiForAutocompleteAsync(EmojiClickEvent emoji)
     {
         return InjectEmojiAsync(
@@ -1063,7 +1130,10 @@
     {
         //Console.WriteLine(input);
 
-        await UpdateMentionMenu(currentWord);
+        // Typing path — allow a fully typed ":shortcode:" to auto-fill into the
+        // emoji. The caret-move path (OnCaretUpdate) intentionally does not, so
+        // moving the cursor over existing text never rewrites it.
+        await UpdateMentionMenu(currentWord, allowEmojiAutocomplete: true);
 
         if (input is not null)
         {
