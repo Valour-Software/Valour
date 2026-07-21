@@ -10,7 +10,18 @@ self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/lo
 
 self.addEventListener('install', event => event.waitUntil(onInstall(event)));
 self.addEventListener('activate', event => event.waitUntil(onActivate(event)));
-self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
+self.addEventListener('fetch', event => {
+    const requestUrl = new URL(event.request.url);
+
+    // The offline cache only contains this app's static assets. Let cross-origin
+    // CDN/API requests and non-GET requests pass through without service-worker
+    // interception; wrapping them in fetch() adds overhead and makes DevTools show
+    // a second service-worker request for the same network operation.
+    if (event.request.method !== 'GET' || requestUrl.origin !== self.location.origin)
+        return;
+
+    event.respondWith(onFetch(event));
+});
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}-${COMMIT_HASH}`;

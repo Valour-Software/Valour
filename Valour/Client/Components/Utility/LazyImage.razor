@@ -1,0 +1,158 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<span class="lazy-image-container @(_isLoaded ? "is-loaded" : "is-loading")">
+    @if (Placeholder is not null)
+    {
+        <span class="lazy-image-placeholder" aria-hidden="true">
+            @Placeholder
+        </span>
+    }
+
+    <img @ref="_element"
+         class="lazy-image @CssClass"
+         style="@Style"
+         alt="@Alt"
+         src="@_nativeSrc"
+         loading="lazy"
+         decoding="async"
+         fetchpriority="@FetchPriority"
+         aria-busy="@(_isLoaded ? "false" : "true")"
+         @onload="OnImageLoaded"
+         @onerror="OnImageError"
+         @attributes="AdditionalAttributes" />
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Src { get; set; }
+
+    [Parameter]
+    public string FallbackSrc { get; set; }
+
+    [Parameter]
+    public string Alt { get; set; } = "";
+
+    [Parameter]
+    public string CssClass { get; set; }
+
+    [Parameter]
+    public string Style { get; set; }
+
+    /// <summary>
+    /// Content shown beneath the image while its source is outside the viewport or loading.
+    /// </summary>
+    [Parameter]
+    public RenderFragment Placeholder { get; set; }
+
+    /// <summary>
+    /// How far outside the nearest scroll container to begin loading the image.
+    /// </summary>
+    [Parameter]
+    public string RootMargin { get; set; } = "600px 0px";
+
+    [Parameter]
+    public string FetchPriority { get; set; } = "low";
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; }
+
+    private ElementReference _element;
+    private IJSObjectReference _module;
+    private IJSObjectReference _registration;
+    private string _registeredSrc;
+    private string _registeredFallbackSrc;
+    private string _nativeSrc;
+    private bool _useNativeLoading;
+    private bool _isLoaded;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(_registeredSrc, Src, StringComparison.Ordinal))
+            _isLoaded = false;
+
+        // When JS isolation is unavailable, stay on the browser's native lazy-loading path.
+        if (_useNativeLoading && !string.Equals(_registeredSrc, Src, StringComparison.Ordinal))
+        {
+            _nativeSrc = Src;
+            RememberSources();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                    "import",
+                    "./_content/Valour.Client/Components/Utility/LazyImage.razor.js?version=$(SHORTHASH)");
+                _registration = await _module.InvokeAsync<IJSObjectReference>(
+                    "observe",
+                    _element,
+                    Src,
+                    FallbackSrc,
+                    RootMargin);
+                RememberSources();
+            }
+            catch (JSException)
+            {
+                // Never take down the renderer for an optional optimization. Native
+                // loading="lazy" remains a safe fallback if the JS module is unavailable.
+                _useNativeLoading = true;
+                _nativeSrc = Src;
+                RememberSources();
+                await InvokeAsync(StateHasChanged);
+            }
+
+            return;
+        }
+
+        if (_registration is not null &&
+            (!string.Equals(_registeredSrc, Src, StringComparison.Ordinal) ||
+             !string.Equals(_registeredFallbackSrc, FallbackSrc, StringComparison.Ordinal)))
+        {
+            await _registration.InvokeVoidAsync("update", Src, FallbackSrc);
+            RememberSources();
+        }
+    }
+
+    private void OnImageLoaded()
+    {
+        _isLoaded = true;
+    }
+
+    private void OnImageError()
+    {
+        // The JS observer owns fallback handling when it loaded successfully.
+        if (!_useNativeLoading || string.IsNullOrWhiteSpace(FallbackSrc) ||
+            string.Equals(_nativeSrc, FallbackSrc, StringComparison.Ordinal))
+            return;
+
+        _nativeSrc = FallbackSrc;
+    }
+
+    private void RememberSources()
+    {
+        _registeredSrc = Src;
+        _registeredFallbackSrc = FallbackSrc;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_registration is not null)
+            {
+                await _registration.InvokeVoidAsync("dispose");
+                await _registration.DisposeAsync();
+            }
+
+            if (_module is not null)
+                await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+    }
+}

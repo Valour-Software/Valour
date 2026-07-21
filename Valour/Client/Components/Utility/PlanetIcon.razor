@@ -14,7 +14,16 @@
     }
     else
     {
-        <img class="planet-icon-img" alt="@Planet.Name's icon" src="@_iconUrl" loading="lazy" decoding="async"/>
+        <LazyImage CssClass="planet-icon-img"
+                   Alt="@($"{Planet.Name}'s icon")"
+                   Src="@_iconUrl"
+                   FallbackSrc="_content/Valour.Client/media/logo-circle.svg">
+            <Placeholder>
+                <div class="planet-icon-img text-icon">
+                    <span style="font-size: @(_fontSize.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px">@_placeholderText</span>
+                </div>
+            </Placeholder>
+        </LazyImage>
     }
 </div>
 
@@ -36,12 +45,16 @@
 
     private string _iconUrl;
     private string _iconText;
+    private string _placeholderText;
     private float _fontSize;
 
     protected override void OnParametersSet()
     {
         if (Planet is null)
             return;
+
+        _placeholderText = ISharedPlanet.GetCommunityShortCode(Planet);
+        _fontSize = (float)Size / (_placeholderText.Length + 1);
 
         if (Planet.HasCustomIcon)
         {
@@ -51,8 +64,7 @@
         else
         {
             _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
-            _iconText = ISharedPlanet.GetCommunityShortCode(Planet);
-            _fontSize = (float)Size / (_iconText.Length + 1);
+            _iconText = _placeholderText;
         }
     }
 }

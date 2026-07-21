@@ -1,0 +1,52 @@
+.lazy-image-container {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+.lazy-image,
+.lazy-image-placeholder {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    box-sizing: border-box;
+}
+
+.lazy-image-placeholder {
+    display: block;
+    overflow: hidden;
+    transition: opacity var(--duration-fast, 150ms) var(--ease-standard, ease);
+}
+
+.lazy-image {
+    transition: opacity var(--duration-fast, 150ms) var(--ease-standard, ease);
+}
+
+.lazy-image-container.is-loading .lazy-image {
+    opacity: 0;
+    color: transparent;
+}
+
+.lazy-image-container.is-loaded .lazy-image {
+    opacity: 1;
+}
+
+.lazy-image-container.is-loaded .lazy-image-placeholder {
+    opacity: 0;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lazy-image,
+    .lazy-image-placeholder {
+        transition: none;
+    }
+}
