@@ -129,13 +129,26 @@ else if (!_isSelf)
 
 	protected override void OnInitialized()
 	{
-		_isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == Data.Member.UserId);
-		_isFriend = FriendService.Friends.Any(x => x.Id == Data.Member.UserId);
-		_isSelf = Data.Member.UserId == Client.Me.Id;
-		_isBlocked = BlockService.IsBlocked(Data.Member.UserId);
+		var member = Data?.Member;
+		if (member is null)
+			return;
 
-		_canKick = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Kick);
-		_canBan = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Ban);
+		_isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == member.UserId);
+		_isFriend = FriendService.Friends.Any(x => x.Id == member.UserId);
+		_isSelf = member.UserId == Client.Me.Id;
+		_isBlocked = BlockService.IsBlocked(member.UserId);
+
+		(_canKick, _canBan) = GetModerationPermissions(member.Planet?.MyMember);
+	}
+
+	internal static (bool CanKick, bool CanBan) GetModerationPermissions(PlanetMember? currentMember)
+	{
+		if (currentMember is null)
+			return (false, false);
+
+		return (
+			currentMember.HasPermission(PlanetPermissions.Kick),
+			currentMember.HasPermission(PlanetPermissions.Ban));
 	}
 
 	private async Task OnClickMessage()

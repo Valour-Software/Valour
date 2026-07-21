@@ -82,9 +82,6 @@
         public User User { get; set; }
     }
 
-    [CascadingParameter]
-    public new ModalRoot ModalRoot { get; set; }
-
     private bool _invalidateSessions;
     private bool _botsLoaded;
     private List<User> _bots;

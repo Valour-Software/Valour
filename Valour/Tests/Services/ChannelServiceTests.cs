@@ -196,6 +196,66 @@ public class ChannelServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MoveChannel_IntoEmptyCategory_PersistsParentAndPosition()
+    {
+        var owner = await _userService.GetAsync(_client.Me.Id);
+        var planetResult = await _planetService.CreateAsync(new Planet
+        {
+            Name = $"Move Test {Guid.NewGuid():N}"[..24],
+            Description = "Isolated channel movement regression planet",
+            OwnerId = owner.Id
+        }, owner);
+        Assert.True(planetResult.Success, planetResult.Message);
+
+        try
+        {
+            var categoryResult = await _channelService.CreateAsync(new Channel
+            {
+                PlanetId = planetResult.Data.Id,
+                Name = "Empty Category",
+                Description = "Empty Category",
+                ChannelType = ChannelTypeEnum.PlanetCategory
+            });
+            Assert.True(categoryResult.Success, categoryResult.Message);
+
+            var channelResult = await _channelService.CreateAsync(new Channel
+            {
+                PlanetId = planetResult.Data.Id,
+                Name = "Move Me",
+                Description = "Move Me",
+                ChannelType = ChannelTypeEnum.PlanetChat
+            });
+            Assert.True(channelResult.Success, channelResult.Message);
+
+            var moveResult = await _channelService.MoveChannelAsync(
+                planetResult.Data.Id,
+                channelResult.Data.Id,
+                categoryResult.Data.Id,
+                insertBefore: false,
+                insideCategory: true);
+            Assert.True(moveResult.Success, moveResult.Message);
+
+            var moved = await _db.Channels.AsNoTracking()
+                .FirstAsync(x => x.Id == channelResult.Data.Id);
+            Assert.Equal(categoryResult.Data.Id, moved.ParentId);
+            Assert.Equal(
+                categoryResult.Data.RawPosition,
+                new ChannelPosition(moved.RawPosition).GetParentPosition().RawPosition);
+            Assert.Equal(1u, ChannelPosition.GetLocalPosition(moved.RawPosition));
+
+            var hosted = await _hostedService.GetRequiredAsync(planetResult.Data.Id);
+            var cached = hosted.GetChannel(channelResult.Data.Id);
+            Assert.NotNull(cached);
+            Assert.Equal(categoryResult.Data.Id, cached.ParentId);
+            Assert.Equal(moved.RawPosition, cached.RawPosition);
+        }
+        finally
+        {
+            await _planetService.DeleteAsync(planetResult.Data.Id);
+        }
+    }
+
+    [Fact]
     public async Task DescendantsOfTests()
     {
         var categories = await _db.Channels.Where(x => x.PlanetId == _valourCentralId &&

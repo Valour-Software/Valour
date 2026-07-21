@@ -29,8 +29,8 @@ public abstract class WindowContent
         private set {
             _componentBase = value;
         }
-    }
-    
+        }
+
     public void SetComponent(WindowContentComponentBase componentBase)
     {
         ComponentBase = componentBase;
@@ -128,6 +128,7 @@ public class FloatingWindowProps
 public class WindowTab
 {
     private readonly SemaphoreSlim _contentChangeLock = new(1, 1);
+    private int _historyIndex = -1;
 
     public event Func<Task> OnStartFloating;
     
@@ -169,13 +170,17 @@ public class WindowTab
     
     public WindowTab(WindowContent content, FloatingWindowProps floatingProps = null)
     {
+        ArgumentNullException.ThrowIfNull(content);
+
         FloatingProps = floatingProps;
-        
+
         Content = content;
         content.Tab = this;
+        History.Add(content);
+        _historyIndex = 0;
     }
-    
-    public async Task SetContent(WindowContent content)
+
+    public async Task SetContent(WindowContent content, bool recordBrowserHistory = true)
     {
         ArgumentNullException.ThrowIfNull(content);
 
@@ -197,19 +202,53 @@ public class WindowTab
                 await oldContent.NotifyClosed();
 
             Content = content;
-            await WindowService.NotifyFocusedContentChanged(this);
-            Component?.ReRender();
+            if (recordBrowserHistory)
+            {
+                if (_historyIndex < History.Count - 1)
+                    History.RemoveRange(_historyIndex + 1, History.Count - _historyIndex - 1);
 
-            // Floating tabs do not have a Layout, so fall back to their
-            // component's owning dock when persisting the replacement.
+                History.Add(content);
+                _historyIndex = History.Count - 1;
+            }
+
+            await WindowService.NotifyFocusedContentChanged(this, recordBrowserHistory);
+
+            // A mobile navigation can arrive before the WindowComponent has
+            // mounted (most often while restoring a layout or handling a cold
+            // start deep link). Updating the tab alone does not invalidate the
+            // dock's render tree, which leaves the old or empty content visible.
+            // Once mounted, rerendering only this window remains the cheaper path.
             var dock = Layout?.DockComponent ?? Component?.Dock;
-            if (dock is not null)
-                await dock.SaveLayout();
+            if (Component is not null)
+            {
+                Component.ReRender();
+
+                if (dock is not null)
+                    await dock.SaveLayout();
+            }
+            else if (dock is not null)
+            {
+                await dock.NotifyLayoutChanged();
+            }
         }
         finally
         {
             _contentChangeLock.Release();
         }
+    }
+
+    internal async Task<bool> NavigateToHistoryAsync(string contentId)
+    {
+        var index = History.FindIndex(x => x.Id == contentId);
+        if (index < 0)
+            return false;
+
+        var content = History[index];
+        if (!ReferenceEquals(Content, content))
+            await SetContent(content, false);
+
+        _historyIndex = index;
+        return true;
     }
 
     public void NotifyLayoutChanged()

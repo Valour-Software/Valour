@@ -896,7 +896,7 @@ public class UserApi
             NotificationVolume = NotificationPreferences.DefaultNotificationVolume,
             EnabledNotificationSources = NotificationPreferences.AllNotificationSourcesMask,
             DmPolicy = dmPolicy,
-            ForceGpuAcceleration = true
+            ForceGpuAcceleration = false
         };
     }
 }

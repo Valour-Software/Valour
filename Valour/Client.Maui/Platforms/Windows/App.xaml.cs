@@ -51,6 +51,17 @@ public partial class App : MauiWinUIApplication
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(windowHandle);
         _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
 
+        try
+        {
+            var iconPath = GetIconPath();
+            if (_appWindow is not null && iconPath is not null)
+                _appWindow.SetIcon(iconPath);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Could not set the Valour window icon: {ex.Message}");
+        }
+
         // Intercept the close button to minimize to tray instead
         if (_appWindow is not null)
         {
@@ -81,8 +92,8 @@ public partial class App : MauiWinUIApplication
         // Try to load the app icon
         try
         {
-            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Platforms", "Windows", "trayicon.ico");
-            if (System.IO.File.Exists(iconPath))
+            var iconPath = GetIconPath();
+            if (iconPath is not null)
             {
                 _trayIcon.Icon = new System.Drawing.Icon(iconPath);
             }
@@ -125,6 +136,12 @@ public partial class App : MauiWinUIApplication
 
         _trayIcon.ContextFlyout = menu;
         _trayIcon.ForceCreate();
+    }
+
+    private static string? GetIconPath()
+    {
+        var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Platforms", "Windows", "trayicon.ico");
+        return System.IO.File.Exists(path) ? path : null;
     }
 
     private void ShowWindow()

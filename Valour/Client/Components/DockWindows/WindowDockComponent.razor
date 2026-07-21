@@ -9,7 +9,7 @@
     {
         <WindowComponent @key="@tab.Id" WindowTab="@tab" Dock="@this" />
     }
-    
+
     @foreach(var split in Splits)
     {
         <WindowSplitComponent @key="@split.Id" Split="@split" />
@@ -41,6 +41,9 @@
     private List<WindowTab> _floaters = new();
 
     private WindowSaveLoadAdapter _saveLoadAdapter;
+    private IJSObjectReference _historyModule;
+    private DotNetObjectReference<WindowDockComponent> _historyRef;
+    private Func<WindowTab, Task> _historyEntryHandler;
 
     protected override async Task OnInitializedAsync()
     {
@@ -289,6 +292,23 @@
             _resizeObserver = new ResizeObserver();
             _resizeObserver.ResizeEvent += OnWindowResize;
             await _resizeObserver.Initialize(_ref, JsRuntime, 3);
+
+            if (WindowService.MainDock == this)
+            {
+                _historyModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/Valour.Client/Components/DockWindows/WindowDockComponent.razor.js");
+                _historyRef = DotNetObjectReference.Create(this);
+                _historyEntryHandler = PushBrowserHistoryEntryAsync;
+
+                var focused = WindowService.FocusedTab ?? Layout?.FocusedTab;
+                if (focused?.Content is not null)
+                {
+                    await _historyModule.InvokeVoidAsync(
+                        "initialize", _historyRef, focused.Id, focused.Content.Id);
+                }
+
+                WindowService.SetBrowserHistoryEntryHandler(_historyEntryHandler);
+            }
         }
 
         await RefreshSize();
@@ -309,6 +329,19 @@
     {
         Dimensions = await BrowserUtils.GetElementDimensions(_ref);
     }
+
+    private Task PushBrowserHistoryEntryAsync(WindowTab tab)
+    {
+        if (_historyModule is null || tab?.Content is null)
+            return Task.CompletedTask;
+
+        return InvokeAsync(() => _historyModule.InvokeVoidAsync(
+            "push", tab.Id, tab.Content.Id).AsTask());
+    }
+
+    [JSInvokable]
+    public Task OnBrowserHistoryNavigation(string tabId, string contentId) =>
+        InvokeAsync(() => WindowService.NavigateBrowserHistoryAsync(tabId, contentId));
     
     public async ValueTask DisposeAsync()
     {
@@ -317,6 +350,23 @@
 
         if (_resizeObserver is not null)
             await _resizeObserver.DisposeAsync();
-    }
 
+        if (_historyEntryHandler is not null)
+            WindowService.ClearBrowserHistoryEntryHandler(_historyEntryHandler);
+
+        if (_historyModule is not null)
+        {
+            try
+            {
+                await _historyModule.InvokeVoidAsync("dispose");
+                await _historyModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The browser or native WebView closed before component disposal.
+            }
+        }
+
+        _historyRef?.Dispose();
+    }
 }

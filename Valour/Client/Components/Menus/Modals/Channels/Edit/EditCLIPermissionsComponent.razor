@@ -1,5 +1,6 @@
 ﻿@inject PlanetService PlanetService
 @inject ValourClient Client
+@implements IDisposable
 
 @if (_loading)
 {
@@ -169,6 +170,7 @@ else if (_selectedRole is not null)
     private PlanetRole _lastRole;
     private PlanetRole _selectedRole;
     private Channel? _associatedChatChannel;
+    private Planet? _subscribedPlanet;
     
     private bool _changed = false;
     private bool _loading = true;
@@ -279,17 +281,24 @@ else if (_selectedRole is not null)
             _buttonGroups[i] = new TriButtonComponent[ChannelPermissions.ChannelTypes[i].Permissions.Length];
         }
 
-        _selectedRole = Target.Planet.Roles[0];
-
-        var myMember = Target.Planet.MyMember;
-
-        var j = 1;
-        while (_selectedRole.GetAuthority() >= myMember.Authority && j < Target.Planet.Roles.Count)
+        var planet = Target?.Planet;
+        if (planet is null)
         {
-            _selectedRole = Target.Planet.Roles[j];
-            j += 1;
+            _loading = false;
+            return;
         }
-        
+
+        await planet.EnsureReadyAsync();
+
+        var myMember = planet.MyMember;
+        if (myMember is null)
+        {
+            _loading = false;
+            return;
+        }
+
+        _selectedRole = SelectFirstEditableRole(planet.Roles, myMember.Authority);
+
         var managePerm = GetManagePermission(Target.ChannelType);
         var managePermissionPerm = GetManagePermissionsPermission(Target.ChannelType);
 
@@ -300,11 +309,14 @@ else if (_selectedRole is not null)
 
         _loading = false;
 
-        await OnRoleChange(_selectedRole);
+        if (_selectedRole is not null)
+        {
+            await OnRoleChange(_selectedRole);
+            await RefreshButtons();
+        }
 
-        await RefreshButtons();
-
-        Target.Planet.PermissionsNodes.Changed += OnPermissionNodeUpdate;
+        planet.PermissionsNodes.Changed += OnPermissionNodeUpdate;
+        _subscribedPlanet = planet;
     }
 
     private Task OnPermissionNodeUpdate(IModelEvent<PermissionsNode> eventData)
@@ -337,12 +349,17 @@ else if (_selectedRole is not null)
 
     private async Task OnRoleSelect(ChangeEventArgs e)
     {
-        var newRoleId = long.Parse(e.Value.ToString());
+        if (!long.TryParse(e.Value?.ToString(), out var newRoleId))
+            return;
+
         await OnRoleChange(Target.Planet.Roles.FirstOrDefault(x => x.Id == newRoleId));
     }
 
-    private async Task OnRoleChange(PlanetRole role)
+    private async Task OnRoleChange(PlanetRole? role)
     {
+        if (role is null)
+            return;
+
         if (_lastRole == role)
             return;
 
@@ -406,6 +423,9 @@ else if (_selectedRole is not null)
             _ => throw new InvalidOperationException($"Channel type {type} cannot be edited in this permissions view.")
         };
     }
+
+    internal static PlanetRole? SelectFirstEditableRole(IEnumerable<PlanetRole> roles, uint memberAuthority) =>
+        roles.FirstOrDefault(role => role.GetAuthority() < memberAuthority);
 
     private static ChannelTypeEnum GetPermissionTargetType(ChannelTypeEnum type)
     {
@@ -529,5 +549,11 @@ else if (_selectedRole is not null)
         }
 
         StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedPlanet is not null)
+            _subscribedPlanet.PermissionsNodes.Changed -= OnPermissionNodeUpdate;
     }
 }

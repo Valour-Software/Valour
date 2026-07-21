@@ -9,6 +9,7 @@ namespace Valour.Client.Components.DockWindows;
 public static class WindowService
 {
     private static readonly SemaphoreSlim MobileNavigationLock = new(1, 1);
+    private static Func<WindowTab, Task> _browserHistoryEntryHandler;
 
     public static HybridEvent<WindowTab> FocusedTabChanged;
     public static HybridEvent<Planet> FocusedPlanetChanged;
@@ -27,20 +28,20 @@ public static class WindowService
     public static Planet FocusedPlanet { get; private set; }
 
     
-    public static async Task SetFocusedTab(WindowTab tab)
+    public static async Task SetFocusedTab(WindowTab tab, bool recordBrowserHistory = true)
     {
         if (FocusedTab == tab)
             return;
 
         FocusedTab = tab;
-        await NotifyFocusedContentChanged(tab);
+        await NotifyFocusedContentChanged(tab, recordBrowserHistory);
     }
 
     /// <summary>
     /// Refreshes focus-derived state when a mobile tab keeps its identity but
     /// replaces its content.
     /// </summary>
-    internal static async Task NotifyFocusedContentChanged(WindowTab tab)
+    internal static async Task NotifyFocusedContentChanged(WindowTab tab, bool recordBrowserHistory = true)
     {
         if (FocusedTab != tab)
             return;
@@ -52,6 +53,32 @@ public static class WindowService
             : null;
 
         FocusedPlanetChanged?.Invoke(FocusedPlanet);
+
+        if (recordBrowserHistory && _browserHistoryEntryHandler is not null)
+            await _browserHistoryEntryHandler(tab);
+    }
+
+    internal static void SetBrowserHistoryEntryHandler(Func<WindowTab, Task> handler) =>
+        _browserHistoryEntryHandler = handler;
+
+    internal static void ClearBrowserHistoryEntryHandler(Func<WindowTab, Task> handler)
+    {
+        if (_browserHistoryEntryHandler == handler)
+            _browserHistoryEntryHandler = null;
+    }
+
+    internal static async Task NavigateBrowserHistoryAsync(string tabId, string contentId)
+    {
+        var tab = Docks.SelectMany(x => x.Tabs).FirstOrDefault(x => x.Id == tabId);
+        if (tab is null)
+            return;
+
+        if (tab.Layout is not null)
+            await tab.Layout.SetFocusedTab(tab, false);
+        else
+            await SetFocusedTab(tab, false);
+
+        await tab.NavigateToHistoryAsync(contentId);
     }
     
     public static void AddDock(WindowDockComponent dock)

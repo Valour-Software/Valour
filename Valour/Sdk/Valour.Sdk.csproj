@@ -13,7 +13,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
-    <Version>0.7.10</Version>
+    <Version>0.7.11</Version>
     <RootNamespace>Valour.Sdk</RootNamespace>
     <Nullable>annotations</Nullable>
   </PropertyGroup>
@@ -35,6 +35,7 @@
     <None Include="logo.png" Pack="true" PackagePath="" />
     <None Update="README.md" Pack="true" PackagePath="" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
+    <InternalsVisibleTo Include="Valour.Tests" />
   </ItemGroup>
 
   <ItemGroup>

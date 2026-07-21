@@ -9,7 +9,7 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button class="v-btn" @onclick="OnCancel">Cancel</button>
-            <button class="v-btn primary" @onclick="OnConfirm">Crop</button>
+            <button class="v-btn primary" disabled="@_confirming" @onclick="OnConfirm">Crop</button>
         </div>
     </ButtonArea>
 </BasicModalLayout>
@@ -29,6 +29,7 @@
     
     private string _imgId = $"cropper-{Guid.NewGuid():N}";
     private bool _initialized;
+    private bool _confirming;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -42,13 +43,21 @@
 
     private async Task OnConfirm()
     {
-        if (_jsModule is not null)
-        {
-            var dataUrl = await _jsService.InvokeAsync<string>("getCroppedImage", _imgId, Data.OutputMimeType);
-            if (Data.OnCropped is not null)
-                await Data.OnCropped.Invoke(dataUrl);
-        }
+        if (_confirming || _jsService is null)
+            return;
+
+        _confirming = true;
+        var dataUrl = await _jsService.InvokeAsync<string>(
+            "getCroppedImage",
+            _imgId,
+            Data.OutputMimeType);
+
+        // Cropping is complete at this point. Close immediately instead of
+        // holding the modal open for the caller's network upload.
         Close();
+
+        if (Data.OnCropped is not null)
+            await Data.OnCropped.Invoke(dataUrl);
     }
 
     private async Task OnCancel()

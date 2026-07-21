@@ -1,4 +1,5 @@
 using Valour.Client.Components.MembersList;
+using Valour.Client.ContextMenu.Menus.Member;
 using Valour.Sdk.Client;
 using Valour.Sdk.Models;
 
@@ -6,6 +7,15 @@ namespace Valour.Tests.Client;
 
 public class MemberListComponentTests
 {
+    [Fact]
+    public void GetModerationPermissions_WhenCurrentMemberIsUnavailable_DeniesActions()
+    {
+        var permissions = MemberContextMenu.GetModerationPermissions(null);
+
+        Assert.False(permissions.CanKick);
+        Assert.False(permissions.CanBan);
+    }
+
     [Fact]
     public void ShouldHideMember_StaleCurrentUser_RemainsVisible()
     {

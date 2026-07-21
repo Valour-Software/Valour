@@ -175,6 +175,21 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     protected override void OnDeleted()
     {
     }
+
+    public override async Task<TaskResult> DeleteAsync()
+    {
+        var result = await base.DeleteAsync();
+        if (result.Success)
+        {
+            // The server also broadcasts a delete event, but the request can
+            // complete before that event arrives (or while the planet realtime
+            // group is still joining). Remove locally so the sidebar never
+            // presents a successfully deleted channel as if it still exists.
+            Destroy(Client);
+        }
+
+        return result;
+    }
     
     /// <summary>
     /// Opens a connection to realtime planet channel data.

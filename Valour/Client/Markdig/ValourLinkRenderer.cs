@@ -19,12 +19,11 @@ public class ValourLinkRenderer : BlazorObjectRenderer<LinkInline>
 
         var url = (link.GetDynamicUrl != null ? link.GetDynamicUrl() ?? link.Url : link.Url) ?? string.Empty;
 
-        if (!Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
-            url = "#";
-
         // Images and non-Valour links keep the default external-link rendering.
         if (link.IsImage || !ValourRouteParser.IsValourAppLink(url))
         {
+            url = GetSafeExternalUrl(url);
+
             renderer.OpenElement("a")
                 .AddAttribute("href", url, 1)
                 .AddAttribute("rel", "noopener noreferrer nofollow", 2)
@@ -37,5 +36,16 @@ public class ValourLinkRenderer : BlazorObjectRenderer<LinkInline>
         renderer.OpenComponent<ValourLink>()
             .AddComponentParam("Url", url)
             .CloseComponent();
+    }
+
+    internal static string GetSafeExternalUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return "#";
+
+        return uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+               uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            ? url
+            : "#";
     }
 }

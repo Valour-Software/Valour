@@ -189,9 +189,7 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task<TaskResult<UserFriend>> AddFriendAsync(string nameAndTag)
     {
-        var uri = UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag)
-            ? $"api/userfriends/addByNameAndTag/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}"
-            : $"api/userfriends/add/{Uri.EscapeDataString(nameAndTag)}";
+        var uri = BuildFriendActionRoute("add", nameAndTag);
         var result = await _client.PrimaryNode.PostAsyncWithResponse<UserFriend>(uri);
 
         if (!result.Success)
@@ -236,9 +234,7 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task<TaskResult> DeclineFriendAsync(string nameAndTag)
     {
-        var uri = UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag)
-            ? $"api/userfriends/declineByNameAndTag/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}"
-            : $"api/userfriends/decline/{Uri.EscapeDataString(nameAndTag)}";
+        var uri = BuildFriendActionRoute("decline", nameAndTag);
         var result = await _client.PrimaryNode.PostAsync(uri, null);
 
         if (!result.Success)
@@ -269,9 +265,7 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task<TaskResult> RemoveFriendAsync(string nameAndTag)
     {
-        var uri = UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag)
-            ? $"api/userfriends/removeByNameAndTag/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}"
-            : $"api/userfriends/remove/{Uri.EscapeDataString(nameAndTag)}";
+        var uri = BuildFriendActionRoute("remove", nameAndTag);
         var result = await _client.PrimaryNode.PostAsync(uri, null);
 
         if (!result.Success)
@@ -309,9 +303,7 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task<TaskResult> CancelFriendAsync(string nameAndTag)
     {
-        var uri = UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag)
-            ? $"api/userfriends/cancelByNameAndTag/{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}"
-            : $"api/userfriends/cancel/{Uri.EscapeDataString(nameAndTag)}";
+        var uri = BuildFriendActionRoute("cancel", nameAndTag);
         var result = await _client.PrimaryNode.PostAsync(uri, null);
 
         if (!result.Success)
@@ -361,5 +353,16 @@ public class FriendService : ServiceBase
         result.Data.AddedBy.SyncAll(_client);
 
         return result.Data;
+    }
+
+    internal static string BuildFriendActionRoute(string action, string nameAndTag)
+    {
+        if (UserUtils.TrySplitNameAndTag(nameAndTag, out var name, out var tag))
+        {
+            return $"api/userfriends/{action}ByNameAndTag/" +
+                   $"{Uri.EscapeDataString(name)}/{Uri.EscapeDataString(tag)}";
+        }
+
+        return $"api/userfriends/{action}/{Uri.EscapeDataString(nameAndTag)}";
     }
 }

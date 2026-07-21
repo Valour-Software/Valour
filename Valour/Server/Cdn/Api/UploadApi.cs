@@ -802,44 +802,32 @@ public class UploadApi
                     }
                 }
             }
-            else
+            // Animated uploads historically only wrote the anim-* WebP and a
+            // JPEG. Most icon call sites request the ordinary WebP path, so
+            // those uploads appeared to have no image at all. Always write a
+            // still WebP from the first frame as well as any animated copies.
+            using Image<Rgba32>? stillImage = sizedImage.Frames.Count > 1
+                ? sizedImage.Frames.ExportFrame(0)
+                : null;
+            var stillSource = stillImage ?? sizedImage;
+
+            using (MemoryStream webpMs = new())
             {
-                Image<Rgba32>? frameImage = null;
-                var imageSource = sizedImage;
-                if (sizedImage.Frames.Count > 1)
+                await stillSource.SaveAsync(webpMs, webpEncoder);
+                webpMs.Position = 0;
+
+                var webpResult = await bucketService.UploadPublicImage(webpMs, $"{folder}/{id}/{size}.webp");
+                if (!webpResult.Success)
                 {
-                    frameImage = sizedImage.Frames.ExportFrame(0);
-                    imageSource = frameImage;
+                    return new TaskResult<bool>(false,
+                        "There was an issue uploading your image. Try a different format or size.", doAnimated);
                 }
-
-                using (MemoryStream webpMs = new())
-                {
-                    await imageSource.SaveAsync(webpMs, webpEncoder);
-                    webpMs.Position = 0;
-
-                    var webpResult = await bucketService.UploadPublicImage(webpMs, $"{folder}/{id}/{size}.webp");
-                    if (!webpResult.Success)
-                    {
-                        return new TaskResult<bool>(false,
-                            "There was an issue uploading your image. Try a different format or size.", doAnimated);
-                    }
-                }
-
-                frameImage?.Dispose();
             }
 
             // Always save a jpeg using a still frame.
-            Image<Rgba32>? stillImage = null;
-            var jpegSource = sizedImage;
-            if (sizedImage.Frames.Count > 1)
-            {
-                stillImage = sizedImage.Frames.ExportFrame(0);
-                jpegSource = stillImage;
-            }
-
             using (MemoryStream jpegMs = new())
             {
-                await jpegSource.SaveAsync(jpegMs, JpegEncoder);
+                await stillSource.SaveAsync(jpegMs, JpegEncoder);
                 jpegMs.Position = 0;
 
                 var jpegResult = await bucketService.UploadPublicImage(jpegMs, $"{folder}/{id}/{size}.jpg");
@@ -849,8 +837,6 @@ public class UploadApi
                         "There was an issue uploading your image. Try a different format or size.", doAnimated);
                 }
             }
-
-            stillImage?.Dispose();
         }
 
         return new TaskResult<bool>(true, resultPath, doAnimated);

@@ -152,7 +152,11 @@
 }
 
 .mobile .textbox-holder {
-    margin-bottom: 24px; /* Account for rounded phone edges */
+    /* Android already lays the WebView above its navigation bar. A fixed
+       24px margin created a second, oversized safe area on every phone.
+       Keep the normal row rhythm and only grow it when the browser exposes
+       a real bottom inset (notably iOS/home-indicator layouts). */
+    margin-bottom: max(6px, env(safe-area-inset-bottom, 0px));
 }
 
 ::deep .preview-message .message {

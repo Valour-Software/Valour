@@ -113,40 +113,65 @@ namespace Valour.Client.Components.Sidebar.Directory
             OnDragEnterItem(0, DragIsTop);
             droppedOn.Refresh();
 
-            var draggedChannel = CurrentDragItem.Channel;
+            var draggedChannel = CurrentDragItem?.Channel;
             var droppedOnChannel = droppedOn.Channel;
 
+            await MoveChannelAsync(draggedChannel, droppedOnChannel, top, DragIntoCategory);
+        }
+
+        /// <summary>
+        /// Moves a channel from either the HTML drag path or the pointer/touch
+        /// fallback used by native WebViews and mobile browsers.
+        /// </summary>
+        public async Task<TaskResult> MoveChannelAsync(
+            Channel draggedChannel,
+            Channel droppedOnChannel,
+            bool placeBefore,
+            bool insideCategory)
+        {
+            if (draggedChannel is null || droppedOnChannel is null)
+                return TaskResult.FromFailure("A drag source or destination was unavailable.");
+
             if (draggedChannel.Id == droppedOnChannel.Id)
-                return;
+                return TaskResult.FromFailure("A channel cannot be moved onto itself.");
 
             var loop = ChannelPosition.ContainsPosition(draggedChannel.RawPosition, droppedOnChannel.RawPosition);
             
             // Ensure we aren't creating a loop
             if (loop)
             {
-                ToastContainer.Instance.AddToast(new ToastData()
+                ToastContainer.Instance?.AddToast(new ToastData()
                 {
                     Type = ToastProgressState.Failure,
                     Title = "Failed to move channel",
                     Message = "Move resulted in a loop",
                 });
                 
-                return;
+                return TaskResult.FromFailure("Move resulted in a loop");
             }
 
             var task = draggedChannel.Client.ChannelService.MoveChannelAsync(draggedChannel, droppedOnChannel,
-                    DragIsTop, DragIntoCategory);
+                placeBefore, insideCategory);
 
-            await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
-                "Moving channel",
-                "Waiting for server...",
-                task,
-                "Channel moved successfully"
-            ));
+            TaskResult result;
+            if (ToastContainer.Instance is not null)
+            {
+                result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
+                    "Moving channel",
+                    "Waiting for server...",
+                    task,
+                    "Channel moved successfully"
+                ));
+            }
+            else
+            {
+                result = await task;
+            }
             
             Console.WriteLine($"Dropped {draggedChannel.Id} onto {droppedOnChannel.Id}");
             
             ChannelDragChanged?.Invoke(null);
+            return result;
         }
 
         public long DragOverId = 0;

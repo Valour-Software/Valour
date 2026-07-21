@@ -19,6 +19,8 @@ public class EcoService : ServiceBase
     
     private readonly ValourClient _client;
     private readonly CacheService _cache;
+
+    public EcoAccount SelfGlobalAccount { get; private set; }
     
     public EcoService(ValourClient client)
     {
@@ -47,10 +49,19 @@ public class EcoService : ServiceBase
     
     public async Task<EcoAccount> GetSelfGlobalAccountAsync()
     {
+        if (SelfGlobalAccount is not null)
+            return SelfGlobalAccount;
+
         var planet = await _client.PlanetService.FetchPlanetAsync(ISharedPlanet.ValourCentralId);
         var account = (await planet.Node.GetJsonAsync<EcoAccount>($"api/eco/accounts/self/global")).Data;
 
-        return account.Sync(_client);
+        ApplySelfGlobalAccount(account);
+        return SelfGlobalAccount;
+    }
+
+    public void ApplySelfGlobalAccount(EcoAccount account)
+    {
+        SelfGlobalAccount = account?.Sync(_client);
     }
 
     /// <summary>

@@ -513,9 +513,50 @@
 
     private async Task OnAvatarCropped(string dataUrl)
     {
-        var base64 = dataUrl.Substring(dataUrl.IndexOf(',') + 1);
-        var bytes = Convert.FromBase64String(base64);
-        await UploadAvatar(bytes, _pendingImageType);
+        if (!TryDecodeImageDataUrl(dataUrl, out var bytes, out var contentType))
+        {
+            _pfpChangeResult = TaskResult.FromFailure("The cropped image could not be read.");
+            StateHasChanged();
+            return;
+        }
+
+        await UploadAvatar(bytes, contentType);
+    }
+
+    internal static bool TryDecodeImageDataUrl(
+        string dataUrl,
+        out byte[] bytes,
+        out string contentType)
+    {
+        bytes = null;
+        contentType = null;
+
+        if (string.IsNullOrWhiteSpace(dataUrl) ||
+            !dataUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var separator = dataUrl.IndexOf(',');
+        if (separator <= 5)
+            return false;
+
+        var metadata = dataUrl[5..separator];
+        var metadataParts = metadata.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        if (metadataParts.Length < 2 ||
+            !metadataParts.Skip(1).Any(x => x.Equals("base64", StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        try
+        {
+            bytes = Convert.FromBase64String(dataUrl[(separator + 1)..]);
+            contentType = metadataParts[0];
+            return bytes.Length > 0;
+        }
+        catch (FormatException)
+        {
+            bytes = null;
+            contentType = null;
+            return false;
+        }
     }
 
     private void OnCropCancel() { }

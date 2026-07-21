@@ -315,6 +315,7 @@ public class ValourClient
                 member.User = Me;
             data.MyPlanetMembers.SyncAll(this, ModelInsertFlags.Batched);
             KlipyService.ApplyGifFavorites(data.GifFavorites);
+            EcoService.ApplySelfGlobalAccount(data.GlobalAccount);
             NotificationService.ApplyUnreadNotifications(data.UnreadNotifications);
             UnreadService.ApplyUnreadPlanets(data.UnreadPlanets);
             UnreadService.ApplyUnreadDirectChannels(data.UnreadDirectChannels);

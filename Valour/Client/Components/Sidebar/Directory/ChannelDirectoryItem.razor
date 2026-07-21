@@ -13,7 +13,9 @@
 <div
     style="margin-left: @(Depth > 1 ? 18 : 0)px"
     class="channel-wrapper"
-    draggable="true"
+    draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded)"
+    data-channel-drag-id="@Channel.Id"
+    data-channel-drag-category="@(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "true" : "false")"
     depth="@Depth"
 
     @onclick:stopPropagation="true"

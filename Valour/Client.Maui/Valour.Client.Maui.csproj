@@ -50,8 +50,8 @@
         <ApplicationId>gg.valour.app</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.7.10</ApplicationDisplayVersion>
-        <ApplicationVersion>80</ApplicationVersion>
+        <ApplicationDisplayVersion>0.7.11</ApplicationDisplayVersion>
+        <ApplicationVersion>81</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
@@ -65,6 +65,9 @@
 
     <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
         <AssemblyName>Valour</AssemblyName>
+        <!-- MauiIcon supplies packaged tile assets, but unpackaged releases
+             also need a Win32 icon embedded directly in Valour.exe. -->
+        <ApplicationIcon>Platforms\Windows\trayicon.ico</ApplicationIcon>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">

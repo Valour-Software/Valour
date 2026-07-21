@@ -24,6 +24,7 @@ public class BootstrapApi
         NotificationService notificationService,
         UnreadService unreadService,
         FederationJoinService federationJoinService,
+        EcoService ecoService,
         ValourDb db)
     {
         var userId = await userService.GetCurrentUserIdAsync();
@@ -42,6 +43,7 @@ public class BootstrapApi
             .ToListAsync();
         var memberships = await federationJoinService.GetMembershipsAsync(userId);
         var gifFavorites = await userService.GetGifFavoritesAsync(userId);
+        var globalAccount = await ecoService.GetGlobalAccountAsync(userId);
         var notifications = await notificationService.GetAllUnreadNotifications(userId);
         var unreadPlanets = await unreadService.GetUnreadPlanets(userId);
         var unreadDirectChannels = await unreadService.GetUnreadChannels(null, userId);
@@ -59,6 +61,7 @@ public class BootstrapApi
             myPlanetMembers,
             federatedMemberships = memberships,
             gifFavorites,
+            globalAccount,
             unreadNotifications = notifications,
             unreadPlanets,
             unreadDirectChannels,

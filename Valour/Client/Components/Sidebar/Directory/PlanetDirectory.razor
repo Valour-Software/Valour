@@ -1,10 +1,12 @@
 ﻿@using Valour.Shared.Utilities
 @implements IDisposable
+@implements IAsyncDisposable
 @inject ChannelDragManager DragManager
 @inject ContextMenuService ContextMenuService
 @inject ChannelService ChannelService
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
+@inject IJSRuntime JsRuntime
 
 <div 
     class="@GetCssClass()" 
@@ -100,6 +102,9 @@
     private bool _hasUnread;
     
     private bool _canEdit;
+    private DotNetObjectReference<PlanetDirectory> _pointerDragRef;
+    private IJSObjectReference _pointerDragModule;
+    private IJSObjectReference _pointerDragRegistration;
 
     protected override async Task OnInitializedAsync()
     {
@@ -113,6 +118,39 @@
         DetermineRootChannels();
         
         StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _pointerDragRef = DotNetObjectReference.Create(this);
+        _pointerDragModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/Components/Sidebar/Directory/PlanetDirectory.razor.js");
+        _pointerDragRegistration = await _pointerDragModule.InvokeAsync<IJSObjectReference>(
+            "initializeChannelPointerDrag",
+            $"list-{Planet.Id}",
+            _pointerDragRef,
+            Valour.Client.Device.DeviceInfo.IsEmbedded);
+    }
+
+    [JSInvokable]
+    public async Task DropChannelFromPointer(string sourceId, string destinationId, string zone)
+    {
+        if (!long.TryParse(sourceId, out var sourceChannelId) ||
+            !long.TryParse(destinationId, out var destinationChannelId))
+            return;
+
+        var source = Planet.Channels.Get(sourceChannelId);
+        var destination = Planet.Channels.Get(destinationChannelId);
+        if (source is null || destination is null)
+            return;
+
+        var insideCategory = string.Equals(zone, "inside", StringComparison.Ordinal);
+        var placeBefore = string.Equals(zone, "before", StringComparison.Ordinal);
+        await DragManager.MoveChannelAsync(source, destination, placeBefore, insideCategory);
     }
 
     private void OnPlanetUnreadChanged(long planetId)
@@ -248,5 +286,34 @@
     {
         Planet.Channels.Changed -= OnChannelsChanged;
         UnreadService.PlanetUnreadChanged -= OnPlanetUnreadChanged;
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        ((IDisposable)this).Dispose();
+
+        if (_pointerDragRegistration is not null)
+        {
+            try
+            {
+                await _pointerDragRegistration.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+        }
+
+        if (_pointerDragModule is not null)
+        {
+            try
+            {
+                await _pointerDragModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+        }
+
+        _pointerDragRef?.Dispose();
     }
 }

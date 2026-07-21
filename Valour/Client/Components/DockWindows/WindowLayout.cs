@@ -267,7 +267,7 @@ public class WindowLayout
         await tab.NotifyOpened();
     }
     
-    public async Task SetFocusedTab(WindowTab tab)
+    public async Task SetFocusedTab(WindowTab tab, bool recordBrowserHistory = true)
     {
         // If the tab is not in the layout, return
         if (!Tabs.Contains(tab))
@@ -275,7 +275,10 @@ public class WindowLayout
         
         // If the tab is already focused, return
         if (FocusedTab == tab)
+        {
+            await WindowService.SetFocusedTab(tab, recordBrowserHistory);
             return;
+        }
         
         // Set the focused tab
         FocusedTab = tab;
@@ -287,7 +290,7 @@ public class WindowLayout
         NotifyTabsOfChange();
         
         // Set global focused tab
-        await WindowService.SetFocusedTab(tab);
+        await WindowService.SetFocusedTab(tab, recordBrowserHistory);
     }
 
     public void NotifyTabsOfChange()

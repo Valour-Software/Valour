@@ -141,10 +141,24 @@ public class ChannelService : ServiceBase
         return response.Data.Sync(_client);
     }
 
-    public Task<TaskResult<Channel>> CreatePlanetChannelAsync(Planet planet, CreateChannelRequest request)
+    public async Task<TaskResult<Channel>> CreatePlanetChannelAsync(Planet planet, CreateChannelRequest request)
     {
         request.Channel.PlanetId = planet.Id;
-        return planet.Node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
+        var result = await planet.Node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
+        if (!result.Success || result.Data is null)
+            return result;
+
+        // Do not depend on the realtime notification racing the HTTP response.
+        // The creating client may not have joined the planet group yet (notably
+        // immediately after creating a planet), and would otherwise keep a
+        // stale channel tree until the next full fetch or reload.
+        var cached = result.Data.Sync(_client);
+        return new TaskResult<Channel>(
+            true,
+            result.Message,
+            cached,
+            result.Details,
+            result.Code);
     }
     
     /// <summary>
@@ -207,6 +221,15 @@ public class ChannelService : ServiceBase
         };
 
         var result = await toMove.Node.PostAsync($"api/planets/{toMove.PlanetId}/channels/move", request);
+
+        if (result.Success)
+        {
+            // The move endpoint has no response body. Refresh the authoritative
+            // tree instead of relying on the Channels-Moved hub event racing
+            // the HTTP response; newly created planets may still be joining
+            // their realtime group when their first channels are organized.
+            await toMove.Planet.FetchChannelsAsync();
+        }
 
         return result;
     }

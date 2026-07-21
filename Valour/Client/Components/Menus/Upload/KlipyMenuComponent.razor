@@ -154,10 +154,12 @@
         Refresh();
     }
 
-    private KlipyGifSearchResults BuildFavoriteResults() => new()
+    private KlipyGifSearchResults BuildFavoriteResults() => BuildFavoriteResults(KlipyService.GifFavorites);
+
+    internal static KlipyGifSearchResults BuildFavoriteResults(IEnumerable<GifFavorite> favorites) => new()
     {
-        Results = KlipyService.GifFavorites
-            .Where(x => x.Provider.Equals("klipy", StringComparison.OrdinalIgnoreCase))
+        Results = favorites
+            .Where(x => string.Equals(x.Provider, "klipy", StringComparison.OrdinalIgnoreCase))
             .Select(x => new KlipyGif
             {
                 Slug = x.ProviderId,

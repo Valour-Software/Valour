@@ -15,9 +15,6 @@
 <KeyboardListener />
 <MouseListener />
 
-<!-- Enable themes -->
-<ThemeComponent />
-
 <!-- Window Target helper -->
 <WindowTargetScanner />
 
@@ -42,6 +39,10 @@ else
 {
     <Loading Subtext='Logging you in...'></Loading>
 }
+
+<!-- Keep theme CSS after routed/component styles so equal-specificity custom
+     rules have the final say without requiring !important. -->
+<ThemeComponent />
 
 @code{
     private static readonly bool UseProd = false;
