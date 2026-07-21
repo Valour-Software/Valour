@@ -144,4 +144,21 @@ cat > "$OUTPUT_DIR/_headers" <<'EOF'
 
 /service-worker-assets.js
   Cache-Control: no-cache
+
+# Framework resources below have content hashes in their filenames. They can be
+# kept indefinitely because a content change produces a different request URL.
+/_framework/*.wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+/_framework/*.dat
+  Cache-Control: public, max-age=31536000, immutable
+
+/_framework/*.pdb
+  Cache-Control: public, max-age=31536000, immutable
+
+/_framework/dotnet.native.*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/_framework/dotnet.runtime.*.js
+  Cache-Control: public, max-age=31536000, immutable
 EOF
