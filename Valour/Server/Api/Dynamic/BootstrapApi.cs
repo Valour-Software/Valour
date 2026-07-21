@@ -9,7 +9,12 @@ namespace Valour.Server.Api.Dynamic;
 /// Coalesces the authenticated state every app load needs. This replaces nine
 /// cross-origin requests and their corresponding CORS preflights with one.
 /// </summary>
-public static class BootstrapApi
+// Non-static so it can be used as the DynamicAPI<T> type argument (T : class,
+// instantiated via Activator.CreateInstance). The route handler itself stays
+// static, as DynamicAPI requires. Making this a static class silently drops the
+// route: DynamicAPI<BootstrapApi> won't compile, so the registration gets removed
+// and api/bootstrap falls through to the SPA fallback.
+public class BootstrapApi
 {
     [ValourRoute(HttpVerbs.Get, "api/bootstrap")]
     [UserRequired(UserPermissionsEnum.FullControl)]

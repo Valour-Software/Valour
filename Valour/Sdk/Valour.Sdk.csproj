@@ -13,7 +13,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
-    <Version>0.7.6</Version>
+    <Version>0.7.7</Version>
     <RootNamespace>Valour.Sdk</RootNamespace>
     <Nullable>annotations</Nullable>
   </PropertyGroup>

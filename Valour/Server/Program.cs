@@ -131,6 +131,7 @@ public partial class Program
         DynamicApis = new()
         {
             new DynamicAPI<UserApi>().RegisterRoutes(app),
+            new DynamicAPI<BootstrapApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetStorageApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetVoiceApi>().RegisterRoutes(app),
