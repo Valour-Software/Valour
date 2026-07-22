@@ -1,0 +1,16 @@
+.background {
+    background-color: #000;
+    height: 100vh;
+    width: 100vw;
+    text-align: center;
+}
+
+#current-count {
+    margin-top: 40px;
+    text-align: center;
+}
+
+#name-holder {
+    
+}
+

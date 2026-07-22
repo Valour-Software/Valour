@@ -1,0 +1,170 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
+    
+    <meta charset="utf-8"/>
+    <meta name="robots" content="index, follow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="icon" href="/favicon.ico"/>
+
+    @{
+        /* Title */
+        ViewData.TryGetValue("Title", out var title);
+        title ??= "Valour: Built for Communities";
+        <title>@title</title>
+        <meta name="og:title" content="@title">
+        <meta name="twitter:title" content="@title">
+
+        /* Description */
+        ViewData.TryGetValue("Description", out var description);
+        description ??= "Join the movement for a more flexible, transparent, and open platform made by communities for communities.";
+        <meta name="description" content="@description">
+        <meta name="og:description" content="@description">
+        <meta name="twitter:description" content="@description">
+
+        /* Keywords */
+        ViewData.TryGetValue("Keywords", out var keywords);
+        keywords ??= "Gaming Community, Chat Platform, Content Creators, Live Streaming, Multiplayer Gaming, Social Gaming, Esports Chat, Open Source, Privacy, Private Chat";
+        <meta name="keywords" content="@keywords">
+
+        /* Card Type */
+        ViewData.TryGetValue("CardType", out var cardType);
+        cardType ??= "summary_large_image";
+        <meta name="twitter:card" content="@cardType"/>
+
+        /* Image */
+        ViewData.TryGetValue("Image", out var image);
+        image ??= "https://valour.gg/media/twitter-card.png";
+        <meta name="og:image" content="@image">
+        <meta name="twitter:image" content="@image">
+
+        /* Image Alt */
+        ViewData.TryGetValue("ImageAlt", out var imageAlt);
+        imageAlt ??= "The Valour logo";
+        <meta name="twitter:image:alt" content="@imageAlt">
+    }
+
+    <meta name="twitter:site" content="@@valourapp">
+    <meta name="msapplication-TileColor" content="#2d89ef">
+    <meta name="theme-color" content="#00FAFF">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/css/site.css"/>
+</head>
+<body>
+    <!-- Enhanced Background Elements -->
+    <div class="bg-gradient-1"></div>
+    <div class="bg-gradient-2"></div>
+    <div class="bg-gradient-3"></div>
+    <div class="noise-overlay"></div>
+    
+    <!-- Accent Lines -->
+    <div class="accent-line accent-line-1"></div>
+    <div class="accent-line accent-line-2"></div>
+    <div class="accent-line accent-line-3"></div>
+    
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg">
+                <a class="navbar-brand" href="/">
+                    <img src="/media/logo/logo-64.png" alt="Valour" />
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                    <i class="bi bi-list"></i>
+                </button>
+                
+                <div class="collapse navbar-collapse" id="navbarMain">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link" href="https://app.valour.gg">App</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/#download">Download</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="https://raw.githubusercontent.com/Vooper-Media-LLC/Valour/main/PRIVACY">Privacy</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/faq/">FAQ</a>
+                        </li>
+                    </ul>
+                    
+                    <div class="nav-actions">
+                        <a href="https://app.valour.gg" class="btn btn-gradient btn-sm">
+                            Open on Web <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="@(ViewData.TryGetValue("main-class", out var mainClass) ? mainClass : "main-content")">
+        @RenderBody()
+    </div>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5>Valour</h5>
+                    <p>A more flexible, transparent, and open platform made by communities for communities.</p>
+                    <div class="social-links">
+                        <a href="https://github.com/Valour-Software/Valour" target="_blank"><i class="bi bi-github"></i></a>
+                        <a href="https://twitter.com/valourapp" target="_blank"><i class="bi bi-twitter-x"></i></a>
+                        <a href="https://discord.gg/qTMyJa4trF" target="_blank"><i class="bi bi-discord"></i></a>
+                    </div>
+                </div>
+                <div class="col-md-2 mb-4 mb-md-0">
+                    <h5>Platform</h5>
+                    <ul class="footer-links">
+                        <li><a href="https://app.valour.gg">Open on Web</a></li>
+                        <li><a href="https://github.com/Valour-Software/Valour/releases/latest/download/ValourLauncher.exe" data-download="windows">Download for Windows</a></li>
+                        <li><a href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk" data-download="android">Download for Android</a></li>
+                        <li><a href="#features">Features</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4 mb-md-0">
+                    <h5>Resources</h5>
+                    <ul class="footer-links">
+                        <li><a href="https://app.valour.gg/swagger/index.html">Documentation</a></li>
+                        <li><a href="https://app.valour.gg/swagger/index.html">API</a></li>
+                        <li><a href="#">Community</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4 mb-md-0">
+                    <h5>Company</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="https://raw.githubusercontent.com/Vooper-Media-LLC/Valour/main/PRIVACY">Privacy Policy</a></li>
+                        <li><a href="https://github.com/Valour-Software/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h5>Support</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="mailto:support@valour.gg">Contact Us</a></li>
+                        <li><a href="/faq/">FAQ</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; @DateTime.Now.Year Valour Software. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/download.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

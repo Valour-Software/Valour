@@ -1,0 +1,118 @@
+<style>
+     .name {
+         background: #00FFF7;
+         background: linear-gradient(to right, #00FFF7 0%, #F700FF 100%);
+         -webkit-background-clip: text;
+         -webkit-text-fill-color: transparent;
+         display: inline-block;
+         position: relative;
+     }
+     
+     .name-wrapper {
+        animation: fadeIn 0.5s ease-in-out;
+        opacity: 1;
+        transition: opacity 0.5s ease-in-out;
+     }
+     
+     .fade-out {
+        opacity: 0;
+     }
+</style>
+
+
+<div class="background">
+    <h1 id="current-count"></h1>
+    <div id="name-holder">
+        
+    </div>
+</div>
+
+<script>
+    let lastCount = null;
+    let counter = null;
+    let nameHolder = null;
+
+    window.addEventListener('load', () => {
+        counter = document.getElementById('current-count');
+        nameHolder = document.getElementById('name-holder');
+        
+        DoCountCheck();
+        
+        setInterval(() => {
+            DoCountCheck();
+        }, 10000);
+    });
+    
+    function DoCountCheck() {
+        fetch('https://api.valour.gg/api/users/count')
+            .then(response => response.json())
+            .then(OnGetCount);
+    }
+    
+    function ClearOld() {
+        
+    }
+    
+    function OnGetCount(newCount) {
+        
+        // Clear old names
+        for (const child of nameHolder.children) {
+            child.classList.add('fade-out');
+        }
+
+        setTimeout(() => {
+            nameHolder.innerHTML = '';
+               
+            counter.innerText = newCount;
+            
+            if (lastCount == null) {
+                lastCount = newCount;
+                return;
+            }
+            
+            if (newCount === lastCount) {
+                return;
+            }
+            
+            let diff = newCount - lastCount;
+            
+            lastCount = newCount;
+            
+            // Get actual new users
+            fetch('https://api.valour.gg/api/users/new/' + diff)
+                .then(response => response.json())
+                .then(ShowNewNames);
+        }, 2000);
+    }
+    
+    function ShowNewNames(names) {        
+        for (let i = 0; i < names.length; i++) {
+            let name = names[i];
+            let wrapper = document.createElement('div');
+            wrapper.classList.add('name-wrapper');
+            let nameElement = document.createElement('h3');
+            nameElement.classList.add('name');
+            nameElement.classList.add('confetti')
+            nameElement.innerText = name;
+            
+            wrapper.appendChild(nameElement);
+            nameHolder.appendChild(wrapper);
+        }
+        
+        confetti();
+    }
+    
+    function confetti() {
+       $.each($(".confetti"), function(){
+          var confetticount = ($(this).width()/50)*10;
+          for(var i = 0; i <= confetticount; i++) {
+             $(this).append('<span class="particle c' + rand(1,2) + '" style="top:' + rand(10,50) + '%; left:' + rand(0,100) + '%;width:' + rand(6,8) + 'px; height:' + rand(3,4) + 'px;animation-delay: ' + (rand(0,30)/10) + 's;"></span>');
+          }
+       });
+    }
+    
+    function rand(min, max) {
+        // min and max included
+        return Math.floor(Math.random() * (max - min + 1) + min);
+    }
+</script>

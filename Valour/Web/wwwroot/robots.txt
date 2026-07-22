@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://valour.gg/sitemap.xml

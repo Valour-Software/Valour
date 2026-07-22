@@ -1,0 +1,15 @@
+/.dotnet-pages/
+/bin/
+/dist/
+/obj/
+
+# The monorepo root ignores appsettings.json and all directories named dist.
+# These are source files for the marketing site, not generated output.
+!appsettings.json
+!wwwroot/**/dist/
+!wwwroot/**/dist/**
+
+.DS_Store
+.idea/
+*.user
+*.DotSettings.user

@@ -1,0 +1,53 @@
+#!/bin/sh
+set -eu
+
+# Match the SDK pinned for the rest of the monorepo in ../../global.json.
+DOTNET_VERSION="${VALOUR_WEB_DOTNET_VERSION:-11.0.100-preview.3.26207.106}"
+DOTNET_INSTALL_DIR="${PWD}/.dotnet-pages"
+INSTALL_SCRIPT="$(mktemp)"
+OUTPUT_DIR="dist"
+SITE_BASE_URL="${VALOUR_WEB_BASE_URL:-https://valour.gg}"
+
+trap 'rm -f "$INSTALL_SCRIPT"' EXIT
+
+if ! command -v dotnet >/dev/null 2>&1 || [ "$(dotnet --version)" != "$DOTNET_VERSION" ]; then
+  curl -fsSL https://dot.net/v1/dotnet-install.sh -o "$INSTALL_SCRIPT"
+  sh "$INSTALL_SCRIPT" --version "$DOTNET_VERSION" --install-dir "$DOTNET_INSTALL_DIR"
+  export PATH="$DOTNET_INSTALL_DIR:$PATH"
+fi
+
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+export DOTNET_NOLOGO=1
+export DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
+
+echo "Building Valour.Web with .NET $(dotnet --version)"
+echo "Canonical site URL: ${SITE_BASE_URL}"
+
+dotnet restore Valour.Web.csproj
+dotnet run \
+  --project Valour.Web.csproj \
+  --configuration Release \
+  --no-restore \
+  --no-launch-profile \
+  -- \
+  export \
+  --output "$OUTPUT_DIR" \
+  --base-url "$SITE_BASE_URL"
+
+for required in \
+  index.html \
+  faq/index.html \
+  userCount/index.html \
+  sitemap.xml \
+  _redirects \
+  css/site.css \
+  lib/bootstrap/dist/css/bootstrap.min.css \
+  media/logo/logo-64.png
+do
+  if [ ! -f "$OUTPUT_DIR/$required" ]; then
+    echo "Missing required Pages output: $OUTPUT_DIR/$required"
+    exit 1
+  fi
+done
+
+echo "Cloudflare Pages output is ready in ${OUTPUT_DIR}/"
