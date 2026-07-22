@@ -56,8 +56,14 @@ public class FriendService : ServiceBase
     public void ApplyFriendData(UserFriendData data)
     {
         data ??= new UserFriendData();
-        data.Added ??= [];
-        data.AddedBy ??= [];
+        data.Added = (data.Added ?? [])
+            .Where(x => x is not null)
+            .Select(x => x.Sync(_client))
+            .ToList();
+        data.AddedBy = (data.AddedBy ?? [])
+            .Where(x => x is not null)
+            .Select(x => x.Sync(_client))
+            .ToList();
 
         lock (_lock)
         {
@@ -135,6 +141,11 @@ public class FriendService : ServiceBase
     {
         if (eventData?.User == null)
             return;
+
+        // Realtime payloads are deserialized outside the model store. Attach
+        // them to this client and use the canonical cached instance before
+        // exposing them to UI components.
+        eventData.User = eventData.User.Sync(_client);
 
         lock (_lock)
         {

@@ -1,4 +1,5 @@
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
 
 @if (_hidden)
 {
@@ -68,7 +69,7 @@
         _corner = corner;
 
         _member = null;
-        _user = user;
+        _user = await ResolveUserAsync(user);
 
         _profile = await _user.FetchProfileAsync();
         if (_profile is null)
@@ -91,7 +92,7 @@
         _corner = corner;
 
         _member = member;
-        _user = member.User;
+        _user = await ResolveUserAsync(member.User);
 
         _profile =  await _user.FetchProfileAsync();
         if (_profile is null)
@@ -102,6 +103,14 @@
         _needsDetailLoad = true;
 
         StateHasChanged();
+    }
+
+    private async ValueTask<User> ResolveUserAsync(User user)
+    {
+        if (user.Client is not null)
+            return user;
+
+        return await Client.UserService.FetchUserAsync(user.Id);
     }
 
     

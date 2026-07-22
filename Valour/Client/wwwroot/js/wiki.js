@@ -35,7 +35,14 @@ window.wikiHighlightAll = async function (containerId) {
     if (!container) return;
     if (!container.querySelector('pre code')) return;
 
-    await ensureHighlightScript();
+    try {
+        await ensureHighlightScript();
+    } catch (error) {
+        // Syntax highlighting is an optional enhancement. A CDN or network
+        // failure must not prevent the wiki page itself from rendering.
+        console.warn('Wiki syntax highlighting is unavailable.', error);
+        return;
+    }
     container.querySelectorAll('pre code').forEach(function (el) {
         try { hljs.highlightElement(el); } catch { /* already highlighted */ }
     });

@@ -1,9 +1,56 @@
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
 using Valour.Sdk.Services;
+using Valour.Shared.Models;
 
 namespace Valour.Tests.Client;
 
 public class FriendServiceRouteTests
 {
+    [Fact]
+    public void ApplyFriendData_AttachesBootstrapUsersToClient()
+    {
+        var client = new ValourClient("https://api.valour.example/");
+        var user = new User(null)
+        {
+            Id = 42,
+            Name = "Detached",
+            Tag = "0001"
+        };
+
+        client.FriendService.ApplyFriendData(new UserFriendData
+        {
+            Added = [user],
+            AddedBy = [user]
+        });
+
+        var friend = Assert.Single(client.FriendService.Friends);
+        Assert.Same(client, friend.Client);
+        Assert.Same(friend, client.FriendService.FriendLookup[user.Id]);
+    }
+
+    [Fact]
+    public void OnFriendEventReceived_AttachesRealtimeUserToClient()
+    {
+        var client = new ValourClient("https://api.valour.example/");
+        var eventData = new FriendEventData
+        {
+            User = new User(null)
+            {
+                Id = 43,
+                Name = "Detached",
+                Tag = "0002"
+            },
+            Type = FriendEventType.AddedMe
+        };
+
+        client.FriendService.OnFriendEventReceived(eventData);
+
+        var incoming = Assert.Single(client.FriendService.IncomingRequests);
+        Assert.Same(client, incoming.Client);
+        Assert.Same(incoming, eventData.User);
+    }
+
     [Theory]
     [InlineData("add")]
     [InlineData("decline")]

@@ -93,6 +93,6 @@ public class UserService : ServiceBase
         
         var profile = (await _client.PrimaryNode.GetJsonAsync<UserProfile>($"api/userProfiles/{userid}")).Data;
 
-        return profile.Sync(_client);
+        return profile?.Sync(_client);
     }
 }
