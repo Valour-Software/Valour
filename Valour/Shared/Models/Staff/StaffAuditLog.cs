@@ -14,7 +14,9 @@ public enum StaffActionType
     TriggerPasswordReset = 9,
     ScheduleMfaRemoval = 10,
     CancelMfaRemoval = 11,
-    ExecuteMfaRemoval = 12
+    ExecuteMfaRemoval = 12,
+    SetPlatformBanner = 13,
+    ClearPlatformBanner = 14
 }
 
 public interface ISharedStaffAuditLog

@@ -1,15 +1,7 @@
 @inject ValourClient Client
-@implements IDisposable
 
 <div class="self-info">
     <UserInfoComponent User="@Client.Me" ShowBadges="false" />
-    @if (Client.EcoService.SelfGlobalAccount is not null)
-    {
-        <span class="credit-balance" title="Valour Credits balance">
-            <i class="bi bi-coin"></i>
-            @Client.EcoService.SelfGlobalAccount.BalanceValue.ToString("0.##") VC
-        </span>
-    }
     <button id="user-edit-button" class="settings-button" aria-label="User settings button"
             @onkeydown="@(e => { if (e.Key == "Enter") OnClickUserSettings(); })"
             @onclick="@OnClickUserSettings">
@@ -20,17 +12,6 @@
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
-    protected override void OnInitialized()
-    {
-        if (Client.EcoService.SelfGlobalAccount is not null)
-            Client.EcoService.SelfGlobalAccount.Updated += OnAccountUpdated;
-    }
-
-    private void OnAccountUpdated(ModelUpdatedEvent<EcoAccount> eventData)
-    {
-        _ = InvokeAsync(StateHasChanged);
-    }
-    
     private void OnClickUserSettings()
     {
         var data = new EditUserComponent.ModalParams()
@@ -41,9 +22,4 @@
         ModalRoot.OpenModal<EditUserComponent>(data);
     }
 
-    public void Dispose()
-    {
-        if (Client.EcoService.SelfGlobalAccount is not null)
-            Client.EcoService.SelfGlobalAccount.Updated -= OnAccountUpdated;
-    }
 }

@@ -1,0 +1,9 @@
+.ownership-page { max-width:620px; }
+.warning-card, .mfa-required { display:flex; gap:.9rem; padding:1rem; border-radius:var(--radius-md); border:1px solid color-mix(in srgb, var(--color-danger) 38%, transparent); background:color-mix(in srgb, var(--color-danger) 9%, var(--main-2)); margin-bottom:1.25rem; }
+.warning-card > i { color:var(--color-danger); font-size:1.35rem; }
+.warning-card p, .mfa-required p, .helper { color:var(--font-alt-color); margin:.25rem 0 0; font-size:.84rem; }
+.transfer-form { display:flex; flex-direction:column; gap:.65rem; }
+.transfer-form label { font-size:.85rem; font-weight:600; margin-top:.4rem; }
+.transfer-form .v-button { align-self:flex-start; margin-top:.8rem; }
+.code-input { max-width:190px; letter-spacing:.18em; font-variant-numeric:tabular-nums; }
+.member-search { display:flex; gap:.55rem; }.member-search .v-input { flex:1; min-width:0; }

@@ -1,0 +1,220 @@
+@using System.Net.Http.Headers
+@using System.IO
+@inject ValourClient Client
+
+<div class="settings-page identity-settings">
+    @if (_planets.Count == 0)
+    {
+        <div class="empty-state">Join a planet to create a planet-specific identity.</div>
+    }
+    else
+    {
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-globe2"></i>
+                Planet
+            </h3>
+
+            <div class="form-group planet-picker">
+                <label>Planet</label>
+                <CustomDropdown TItem="Planet"
+                                Items="@_planets"
+                                InitialItem="@_selectedPlanet"
+                                Placeholder="Select a planet..."
+                                SearchFunc="@PlanetSearch"
+                                SelectedItemChanged="@OnPlanetSelectedAsync">
+                    <ItemTemplate Context="planet">
+                        <div class="planet-option">
+                            <PlanetIcon Planet="@planet" Size="20" />
+                            <span class="planet-option-name">@planet.Name</span>
+                        </div>
+                    </ItemTemplate>
+                </CustomDropdown>
+                <p class="helper-text">Choose which planet-specific profile you want to edit.</p>
+            </div>
+        </div>
+
+        @if (_member is null)
+        {
+            <div class="editor-section">
+                <Loading Subtext="Loading your planet identity..." />
+            </div>
+        }
+        else
+        {
+            <div class="editor-section">
+                <h3 class="editor-section-title">
+                    <i class="bi bi-person-vcard"></i>
+                    Identity Details
+                </h3>
+
+                <div class="identity-preview">
+                    <UserAvatar @key="@($"preview:{AvatarKey}")" User="@Client.Me" Member="@_member" Size="48" ShowState="true" />
+                    <div class="preview-copy">
+                        <strong>@DisplayName</strong>
+                        <span>Preview in @_selectedPlanet.Name</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="planet-nickname">Nickname</label>
+                    <input id="planet-nickname" class="v-input" maxlength="32"
+                           placeholder="Use your account name" @bind="_nickname" @bind:event="oninput" />
+                    <div class="field-help">
+                        <p class="helper-text">Leave this empty to use <strong>@Client.Me.Name</strong>.</p>
+                        <span>@_nickname.Length/32</span>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <VButton Variant="primary" OnClick="SaveNicknameAsync" Disabled="@_saving">Save Changes</VButton>
+                </div>
+                <ResultLabel Result="@_nicknameResult" />
+            </div>
+
+            <div class="editor-section">
+                <h3 class="editor-section-title">
+                    <i class="bi bi-image"></i>
+                    Planet Avatar
+                </h3>
+
+                <div class="avatar-container">
+                    <UserAvatar @key="@AvatarKey" User="@Client.Me" Member="@_member" Size="96" />
+                    <div class="avatar-info">
+                        <label for="planet-avatar-upload" class="v-btn secondary">
+                            <i class="bi bi-upload"></i><span>Upload Image</span>
+                        </label>
+                        @if (!string.IsNullOrWhiteSpace(_member.MemberAvatar))
+                        {
+                            <VButton Variant="secondary" Icon="arrow-counterclockwise" OnClick="RemoveAvatarAsync" Disabled="@_saving">
+                                Use profile avatar
+                            </VButton>
+                        }
+                        <p class="helper-text">PNG, JPG, GIF, or WEBP. Square images look best; up to 20 MB.</p>
+                        <ResultLabel Result="@_avatarResult" />
+                    </div>
+                    <div hidden>
+                        <InputFile id="planet-avatar-upload" accept=".png,.jpg,.jpeg,.gif,.webp" OnChange="LoadAvatarFileAsync" />
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter] public ModalRoot ModalRoot { get; set; }
+
+    private List<Planet> _planets = new();
+    private Planet _selectedPlanet;
+    private PlanetMember _member;
+    private string _nickname = string.Empty;
+    private bool _saving;
+    private ITaskResult _nicknameResult;
+    private ITaskResult _avatarResult;
+
+    private string DisplayName => string.IsNullOrWhiteSpace(_nickname) ? Client.Me.Name : _nickname.Trim();
+    private string AvatarKey => $"{_member?.Id}:{_member?.MemberAvatar}";
+    private static bool PlanetSearch(Planet planet, string search) =>
+        planet.Name.Contains(search, StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _planets = Client.PlanetService.JoinedPlanets.OrderBy(x => x.Name).ToList();
+        if (_planets.Count == 0)
+            return;
+
+        _selectedPlanet = _planets[0];
+        await LoadSelectedMemberAsync();
+    }
+
+    private async Task OnPlanetSelectedAsync(Planet planet)
+    {
+        if (planet is null || planet.Id == _selectedPlanet?.Id)
+            return;
+
+        _selectedPlanet = planet;
+        _member = null;
+        await LoadSelectedMemberAsync();
+    }
+
+    private async Task LoadSelectedMemberAsync()
+    {
+        _member = _selectedPlanet?.MyMember;
+        if (_member is null && _selectedPlanet is not null)
+            _member = await Client.PlanetService.FetchMemberByUserAsync(Client.Me.Id, _selectedPlanet, true);
+        _nickname = _member?.Nickname ?? string.Empty;
+        _nicknameResult = null;
+        _avatarResult = null;
+    }
+
+    private async Task SaveNicknameAsync()
+    {
+        if (_member is null || _saving)
+            return;
+        _saving = true;
+        var old = _member.Nickname;
+        _member.Nickname = _nickname?.Trim() ?? string.Empty;
+        _nicknameResult = await _member.UpdateAsync();
+        if (!_nicknameResult.Success)
+            _member.Nickname = old;
+        _saving = false;
+    }
+
+    private async Task LoadAvatarFileAsync(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        if (file.Size > 20_971_520)
+        {
+            _avatarResult = TaskResult.FromFailure("Avatar must be 20 MB or smaller.");
+            return;
+        }
+
+        await using var stream = file.OpenReadStream(20_971_520);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+        var contentType = file.ContentType;
+        var dataUrl = $"data:{contentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+        ModalRoot.OpenModal<ImageCropperModal>(new ImageCropperModal.ModalParams
+        {
+            ImageDataUrl = dataUrl,
+            AspectRatio = 1d,
+            OutputMimeType = contentType,
+            OnCropped = UploadCroppedAvatarAsync,
+            OnCancel = () => { }
+        });
+    }
+
+    private async Task UploadCroppedAvatarAsync(string dataUrl)
+    {
+        if (!EditProfileComponent.TryDecodeImageDataUrl(dataUrl, out var bytes, out var contentType))
+        {
+            _avatarResult = TaskResult.FromFailure("The cropped image could not be read.");
+            return;
+        }
+
+        _saving = true;
+        using var multipart = new MultipartFormDataContent();
+        using var stream = new StreamContent(new MemoryStream(bytes));
+        stream.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        multipart.Add(stream, "avatar", "avatar");
+        var response = await _selectedPlanet.Node.PostMultipartDataWithResponse<PlanetMember>(
+            $"upload/memberavatar/{_selectedPlanet.Id}", multipart);
+        _avatarResult = response;
+        if (response.Success && response.Data is not null)
+            _member = response.Data.Sync(Client);
+        _saving = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveAvatarAsync()
+    {
+        if (_member is null || _saving)
+            return;
+        _saving = true;
+        _avatarResult = await _selectedPlanet.Node.DeleteAsync($"api/members/{_member.Id}/avatar");
+        if (_avatarResult.Success)
+            _member.MemberAvatar = string.Empty;
+        _saving = false;
+    }
+}

@@ -1,0 +1,5 @@
+.staff-banner-page { max-width:650px; display:flex; flex-direction:column; gap:.55rem; }
+.staff-banner-heading { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.5rem; }.staff-banner-heading h3 { margin:0; }.staff-banner-heading p { color:var(--font-alt-color); margin:.3rem 0 0; }.staff-banner-heading > i { font-size:1.5rem; color:var(--color-primary); }
+.staff-banner-page label { font-weight:600; font-size:.84rem; margin-top:.4rem; }.staff-banner-page textarea { resize:vertical; }.counter { color:var(--font-alt-color); font-size:.75rem; text-align:right; }
+.banner-preview { display:flex; gap:.75rem; padding:.85rem; border-radius:var(--radius-md); background:var(--main-3); border:1px solid var(--slight-tint); margin:.5rem 0; }.banner-preview > i { color:var(--color-primary); }.banner-preview div { display:flex; flex-direction:column; }.banner-preview span { color:var(--font-alt-color); white-space:pre-wrap; font-size:.82rem; }.banner-preview.kind-warning { border-color:#f4b740; }.banner-preview.kind-critical { border-color:var(--color-danger); }
+.actions { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.8rem; }

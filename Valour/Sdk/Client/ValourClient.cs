@@ -7,6 +7,7 @@ using Valour.Sdk.Utility;
 using Valour.Shared;
 using Valour.Shared.Hosting;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Client;
 
@@ -28,6 +29,7 @@ namespace Valour.Sdk.Client;
 
 public class ValourClient
 {
+    public HybridEvent<PlatformBanner> PlatformBannerChanged;
     //////////////
     // Services //
     //////////////

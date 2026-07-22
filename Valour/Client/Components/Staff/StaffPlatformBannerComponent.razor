@@ -1,0 +1,72 @@
+@inject ValourClient Client
+@inject AppBannerService Banners
+
+<div class="staff-banner-page">
+    <div class="staff-banner-heading"><div><h3>Platform Banner</h3><p>Publish a dismissible notice across the app for incidents and announcements.</p></div><i class="bi bi-megaphone-fill"></i></div>
+
+    <div class="banner-preview kind-@_kind.ToString().ToLowerInvariant()">
+        <i class="bi bi-megaphone-fill"></i>
+        <div><strong>@(string.IsNullOrWhiteSpace(_title) ? "Banner preview" : _title)</strong><span>@(string.IsNullOrWhiteSpace(_message) ? "Your message will appear here." : _message)</span></div>
+    </div>
+
+    <label>Type</label>
+    <InputSelect class="v-input" @bind-Value="_kind">
+        <option value="@PlatformBannerKind.Information">Information</option>
+        <option value="@PlatformBannerKind.Warning">Warning</option>
+        <option value="@PlatformBannerKind.Critical">Critical</option>
+    </InputSelect>
+    <label>Title</label>
+    <input class="v-input" maxlength="80" @bind="_title" @bind:event="oninput" placeholder="Scheduled maintenance" />
+    <label>Message</label>
+    <textarea class="v-input" maxlength="500" rows="5" @bind="_message" @bind:event="oninput" placeholder="Tell people what is happening and what they should expect."></textarea>
+    <span class="counter">@_message.Length/500</span>
+
+    <div class="actions">
+        <VButton Variant="primary" Icon="broadcast" OnClick="PublishAsync" Disabled="@_saving">Publish banner</VButton>
+        <VButton Variant="danger" Icon="trash3" OnClick="ClearAsync" Disabled="@(_saving || Client.InstanceManifest?.PlatformBanner is null)">Clear active banner</VButton>
+    </div>
+    <ResultLabel Result="@_result" />
+</div>
+
+@code {
+    private string _title = string.Empty;
+    private string _message = string.Empty;
+    private PlatformBannerKind _kind = PlatformBannerKind.Information;
+    private bool _saving;
+    private ITaskResult _result;
+
+    protected override void OnInitialized()
+    {
+        if (Client.InstanceManifest?.PlatformBanner is not { } banner)
+            return;
+        _title = banner.Title ?? string.Empty;
+        _message = banner.Message ?? string.Empty;
+        _kind = banner.Kind;
+    }
+
+    private async Task PublishAsync()
+    {
+        _saving = true;
+        var response = await Client.PrimaryNode.PutAsyncWithResponse<PlatformBanner>("api/staff/platform-banner",
+            new SetPlatformBannerRequest { Title = _title, Message = _message, Kind = _kind });
+        _result = response;
+        if (response.Success && response.Data is not null)
+        {
+            Client.InstanceManifest.PlatformBanner = response.Data;
+            await Banners.SetPlatformBannerAsync(response.Data);
+        }
+        _saving = false;
+    }
+
+    private async Task ClearAsync()
+    {
+        _saving = true;
+        _result = await Client.PrimaryNode.DeleteAsync("api/staff/platform-banner");
+        if (_result.Success)
+        {
+            Client.InstanceManifest.PlatformBanner = null;
+            await Banners.SetPlatformBannerAsync(null);
+        }
+        _saving = false;
+    }
+}

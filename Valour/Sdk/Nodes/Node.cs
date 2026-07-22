@@ -854,6 +854,8 @@ public class Node : ServiceBase // each node acts like a service
             HubConnection.On("RelayNotificationsCleared", Client.NotificationService.OnNotificationsCleared);
             HubConnection.On<FriendEventData>("RelayFriendEvent", Client.FriendService.OnFriendEventReceived);
             HubConnection.On<string>("ForceLogout", reason => Client.AuthService.HandleTokenInvalidated(reason));
+            HubConnection.On<PlatformBannerUpdate>("PlatformBanner-Update",
+                update => Client.PlatformBannerChanged?.Invoke(update?.Banner));
         }
 
 

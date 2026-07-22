@@ -26,13 +26,19 @@ public interface INativeUpdateService
     bool CanSelfUpdate { get; }
 
     /// <summary>
+    /// Label for the native update action, such as "Update" on Android or
+    /// "Restart to update" on Windows.
+    /// </summary>
+    string UpdateActionLabel { get; }
+
+    /// <summary>
     /// Downloads the update package and hands it to the OS installer.
     /// </summary>
     Task<TaskResult> DownloadAndInstallAsync(string downloadUrl);
 
     /// <summary>
-    /// Opens the release page in the system browser as a fallback
-    /// for shells that cannot self-update.
+    /// Starts the shell's external update path. This may open a release page
+    /// or hand control to a platform launcher.
     /// </summary>
-    Task OpenReleasePageAsync(string url);
+    Task LaunchExternalUpdateAsync(string releasePageUrl);
 }

@@ -1,0 +1,174 @@
+.banner-stack {
+    position: fixed;
+    z-index: 100000;
+    top: max(.75rem, env(safe-area-inset-top));
+    left: 50%;
+    width: min(720px, calc(100vw - 1.5rem));
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.app-banner {
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .8rem;
+    padding: .75rem .8rem;
+    color: var(--font-color);
+    background: color-mix(in srgb, var(--main-2) 94%, transparent);
+    border: 1px solid var(--slight-tint);
+    border-radius: 14px;
+    box-shadow: 0 12px 38px rgba(0, 0, 0, .32);
+    backdrop-filter: blur(18px);
+}
+
+.app-banner.update { border-color: color-mix(in srgb, var(--color-primary) 50%, var(--slight-tint)); }
+.app-banner.kind-warning { border-color: color-mix(in srgb, #f4b740 62%, var(--slight-tint)); }
+.app-banner.kind-critical { border-color: color-mix(in srgb, var(--color-danger) 68%, var(--slight-tint)); }
+
+.banner-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--main-3);
+    color: var(--color-primary);
+}
+
+.kind-warning .banner-icon { color: #f4b740; }
+.kind-critical .banner-icon { color: var(--color-danger); }
+
+.banner-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.banner-copy strong { font-size: .9rem; }
+.banner-copy span {
+    color: var(--font-alt-color);
+    font-size: .8rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.banner-actions {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.banner-action,
+.icon-action {
+    min-height: 34px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+
+.banner-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    padding: .38rem .7rem;
+    font-size: .8rem;
+    font-weight: 650;
+    line-height: 1;
+    color: color-mix(in srgb, var(--color-primary) 48%, white);
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--main-3));
+    border-color: color-mix(in srgb, var(--color-primary) 32%, var(--slight-tint));
+}
+
+.banner-action:hover {
+    color: color-mix(in srgb, var(--color-primary) 36%, white);
+    background: color-mix(in srgb, var(--color-primary) 22%, var(--main-4));
+    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--medium-tint));
+}
+
+.icon-action {
+    width: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: var(--font-alt-color);
+    background: var(--main-3);
+}
+
+.icon-action:hover {
+    color: var(--font-color);
+    background: var(--main-4);
+}
+
+.banner-action:focus-visible,
+.icon-action:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+    .banner-stack {
+        top: max(.45rem, env(safe-area-inset-top));
+        width: calc(100vw - .9rem);
+    }
+
+    .app-banner {
+        grid-template-columns: 36px minmax(0, 1fr) 34px;
+        grid-template-rows: auto auto;
+        align-items: start;
+        column-gap: .7rem;
+        row-gap: .55rem;
+        padding: .7rem;
+    }
+
+    .banner-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+
+    .banner-copy {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: center;
+    }
+
+    .banner-copy span { font-size: .75rem; }
+
+    .banner-actions { display: contents; }
+
+    .refresh-action {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: start;
+    }
+
+    .dismiss-action {
+        grid-column: 3;
+        grid-row: 1;
+    }
+}
+
+@media (max-width: 360px) {
+    .app-banner {
+        grid-template-columns: 32px minmax(0, 1fr) 32px;
+        column-gap: .55rem;
+    }
+
+    .banner-icon,
+    .icon-action {
+        width: 32px;
+        height: 32px;
+        min-height: 32px;
+    }
+
+    .banner-copy strong { font-size: .84rem; }
+}

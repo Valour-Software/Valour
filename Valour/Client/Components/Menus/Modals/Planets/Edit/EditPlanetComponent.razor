@@ -42,6 +42,7 @@
     private RenderFragment VoiceContent => @<EditPlanetVoiceComponent Planet="@Data.Planet" />;
     private RenderFragment WikiContent => @<EditPlanetWikiComponent Planet="@Data.Planet" />;
     private RenderFragment FederationContent => @<EditPlanetFederationComponent Planet="@Data.Planet" />;
+    private RenderFragment OwnershipContent => @<EditPlanetOwnershipComponent Planet="@Data.Planet" />;
     private RenderFragment DeleteContent => @<div></div>;
 
     protected override void OnInitialized()
@@ -200,6 +201,18 @@
             Client.NodeService.GetKnownByPlanet(Data.Planet.Id)?.IsExternal == true)
         {
             categories[0].Items.RemoveAll(x => x.Name == "Self-Hosting");
+        }
+
+        if (Data.Planet.OwnerId == Client.Me?.Id)
+        {
+            categories[0].Items.Insert(categories[0].Items.Count - 1, new MainMenu.MenuItem
+            {
+                Name = "Ownership",
+                Icon = "shield-lock-fill",
+                Color = "var(--color-danger)",
+                Description = "Transfer ownership with MFA",
+                Content = OwnershipContent
+            });
         }
 
         return categories;

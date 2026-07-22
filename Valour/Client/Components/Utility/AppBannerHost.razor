@@ -1,0 +1,41 @@
+@implements IDisposable
+@inject AppBannerService Banners
+@inject IJSRuntime Js
+
+<div class="banner-stack" role="region" aria-label="Platform notices">
+    @if (Banners.UpdateAvailable)
+    {
+        <section class="app-banner update" role="status">
+            <div class="banner-icon"><i class="bi bi-stars"></i></div>
+            <div class="banner-copy"><strong>A new Valour update is ready</strong><span>Refresh to switch to the latest version.</span></div>
+            <div class="banner-actions">
+                <button class="banner-action refresh-action" @onclick="RefreshAsync"><i class="bi bi-arrow-clockwise"></i><span>Refresh</span></button>
+                <button class="icon-action dismiss-action" title="Dismiss" aria-label="Dismiss update" @onclick="(() => Banners.DismissUpdate())"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </section>
+    }
+
+    @if (Banners.PlatformBanner is { } platform)
+    {
+        <section class="app-banner platform kind-@platform.Kind.ToString().ToLowerInvariant()" role="alert">
+            <div class="banner-icon"><i class="bi @KindIcon(platform.Kind)"></i></div>
+            <div class="banner-copy"><strong>@platform.Title</strong><span>@platform.Message</span></div>
+            <div class="banner-actions">
+                <button class="icon-action dismiss-action" title="Dismiss" aria-label="Dismiss announcement" @onclick="(async () => await Banners.DismissPlatformBannerAsync())"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </section>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Banners.Changed += OnChanged;
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+    private async Task RefreshAsync() => await Js.InvokeVoidAsync("location.reload");
+    private static string KindIcon(PlatformBannerKind kind) => kind switch
+    {
+        PlatformBannerKind.Warning => "bi-exclamation-triangle-fill",
+        PlatformBannerKind.Critical => "bi-exclamation-octagon-fill",
+        _ => "bi-info-circle-fill"
+    };
+    public void Dispose() => Banners.Changed -= OnChanged;
+}

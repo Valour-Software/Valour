@@ -95,6 +95,25 @@ public class MultiAuthService
 
         return TaskResult.FromFailure("Invalid");
     }
+
+    /// <summary>
+    /// Verifies an already-enabled authenticator for a sensitive action. Unlike the
+    /// setup verifier, this can never turn an unverified MFA record into a valid one.
+    /// </summary>
+    public async Task<TaskResult> VerifyEstablishedAppMultiAuth(long userId, string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return TaskResult.FromFailure("Enter your authenticator code.");
+
+        var multiAuth = await _db.MultiAuths.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Type == "app" && x.Verified);
+        if (multiAuth is null)
+            return TaskResult.FromFailure("You must enable MFA before transferring a planet.");
+
+        return _tfa.ValidateTwoFactorPIN(multiAuth.Secret, code.Trim())
+            ? TaskResult.SuccessResult
+            : TaskResult.FromFailure("That authenticator code is invalid.");
+    }
     
     public async Task<TaskResult> RemoveAppMultiAuth(long userId)
     {

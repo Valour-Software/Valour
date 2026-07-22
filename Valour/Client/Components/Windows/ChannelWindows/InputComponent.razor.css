@@ -234,6 +234,7 @@
     background-color: var(--main-1);
     border-radius: var(--radius-lg);
     padding: 5px;
+    min-width: 190px;
     display: flex;
     flex-direction: column;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -264,6 +265,44 @@
     object-fit: contain;
     display: block;
     margin-top: 1px;
+}
+
+.upload-menu .menu-label {
+    flex: 1 1 auto;
+}
+
+.upload-menu .pay-balances {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+}
+
+.upload-menu .pay-balance {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 2px 7px;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-full);
+    background: var(--main-3);
+    color: var(--font-color-mid);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.35;
+    white-space: nowrap;
+}
+
+.upload-menu .currency-code {
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.02em;
+}
+
+/* Planet currencies deliberately never inherit the purple
+   .valour-credits-text authenticity treatment used by VC. */
+.upload-menu .local-code {
+    color: var(--font-color);
 }
 
 .upload-menu .content .button:first-child {

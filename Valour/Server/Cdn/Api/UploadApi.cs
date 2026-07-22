@@ -80,6 +80,7 @@ public class UploadApi
     public static void AddRoutes(WebApplication app)
     {
         app.MapPost("/upload/profile", AvatarImageRoute);
+        app.MapPost("/upload/memberavatar/{planetId}", MemberAvatarImageRoute);
         app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute);
         app.MapPost("/upload/image", ImageRoute);
         app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
@@ -232,6 +233,45 @@ public class UploadApi
         await hubService.NotifyUserChange(user.ToModel());
         
         return ValourResult.Ok(fullPath);
+    }
+
+    [FileUploadOperation.FileContentType]
+    [RequestSizeLimit(20_971_520)]
+    private static async Task<IResult> MemberAvatarImageRoute(
+        HttpContext ctx,
+        TokenService tokenService,
+        PlanetMemberService memberService,
+        CdnBucketService bucketService,
+        long planetId)
+    {
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        if (authToken is null)
+            return ValourResult.InvalidToken();
+
+        var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var file = ctx.Request.Form.Files.FirstOrDefault();
+        if (file is null)
+            return ValourResult.BadRequest("Please attach a file.");
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
+            return ValourResult.BadRequest("Unsupported file type.");
+
+        using var image = await Image.LoadAsync(
+            new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) },
+            file.OpenReadStream());
+        HandleExif(image);
+
+        var imageId = $"{planetId}/{authToken.UserId}";
+        var upload = await UploadPublicImageVariants(
+            bucketService, image, "memberavatars", imageId, AvatarSizes, 0, true, false);
+        if (!upload.Success)
+            return ValourResult.Problem(upload.Message);
+
+        var fullPath = $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{upload.Message}?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+        var result = await memberService.UpdateAvatarAsync(member.Id, fullPath);
+        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
     }
     
     public static ImageSize[] ThemeBannerSizes =

@@ -16,7 +16,9 @@ public class InstanceApi
         app.MapGet("/.well-known/valour-instance", GetManifest);
     }
 
-    private static IResult GetManifest(IVoiceProvider voiceProvider)
+    private static async Task<IResult> GetManifest(
+        IVoiceProvider voiceProvider,
+        PlatformBannerService platformBannerService)
     {
         var hosting = HostingConfig.Current;
 
@@ -54,6 +56,7 @@ public class InstanceApi
                 FederationNode = FederationNodeService.NodeEnabled,
             },
             DefaultMaxUploadBytes = UserSubscriptionTypes.GetMaxUploadBytes(null),
+            PlatformBanner = await platformBannerService.GetAsync(),
         };
 
         return Results.Json(manifest);

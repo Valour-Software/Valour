@@ -1,0 +1,112 @@
+.identity-settings {
+    max-width: 640px;
+}
+
+.planet-picker {
+    margin-bottom: 0;
+}
+
+.planet-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.planet-option-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.identity-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    background-color: var(--main-3);
+}
+
+.preview-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.preview-copy strong {
+    max-width: 24rem;
+    color: var(--font-color);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.preview-copy span {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+}
+
+.field-help {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+}
+
+.field-help .helper-text {
+    margin-bottom: 0;
+}
+
+.field-help > span {
+    flex: 0 0 auto;
+    margin-top: 0.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.avatar-container {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.avatar-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.avatar-info label {
+    cursor: pointer;
+    margin: 0;
+}
+
+.avatar-info .helper-text {
+    margin: 0;
+}
+
+.empty-state {
+    padding: 2rem;
+    color: var(--font-alt-color);
+    text-align: center;
+    border: 1px dashed var(--slight-tint);
+    border-radius: var(--radius-lg);
+}
+
+@media (max-width: 520px) {
+    .avatar-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .identity-preview {
+        display: flex;
+    }
+}

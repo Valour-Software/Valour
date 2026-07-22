@@ -22,6 +22,7 @@
     public BrowserUtils DomWindow { get; set; }
 
     private RenderFragment ProfileContent => @<EditProfileComponent />;
+    private RenderFragment PlanetIdentityContent => @<EditPlanetIdentityComponent />;
     private RenderFragment FriendsContent => @<EditFriendsComponent />;
     private RenderFragment SafetyContent => @<EditSafetyComponent />;
     private RenderFragment AttachmentsContent => @<EditAttachmentsComponent />;
@@ -35,6 +36,7 @@
     private RenderFragment LogOutContent => @<div></div>;
     private RenderFragment OAuthContent => @<EditOAuthComponent />;
     private RenderFragment BotsContent => @<BotManagementComponent />;
+    private RenderFragment PlatformBannerContent => @<StaffPlatformBannerComponent />;
     private RenderFragment StaffToolsContent =>
         @<TabContainerComponent Titles="@_staffTabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
             <TabOne>
@@ -76,6 +78,13 @@
                         Icon = "person-fill",
                         Description = "Edit your profile, avatar, and appearance",
                         Content = ProfileContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Planet Identity",
+                        Icon = "person-vcard-fill",
+                        Description = "Customize your nickname and avatar per planet",
+                        Content = PlanetIdentityContent
                     },
                     new MainMenu.MenuItem()
                     {
@@ -225,6 +234,13 @@
                         Icon = "tools",
                         Description = "Manage users and reports",
                         Content = StaffToolsContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Platform Banner",
+                        Icon = "megaphone-fill",
+                        Description = "Publish platform-wide alerts and announcements",
+                        Content = PlatformBannerContent
                     }
                 }
             });

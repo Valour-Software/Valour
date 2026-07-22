@@ -42,6 +42,9 @@ public class InstanceManifest
     /// Upload cap for users without a subscription, in bytes
     /// </summary>
     public long DefaultMaxUploadBytes { get; set; }
+
+    /// <summary>Active staff-authored platform announcement, when present.</summary>
+    public PlatformBanner PlatformBanner { get; set; }
 }
 
 public class InstanceHosts

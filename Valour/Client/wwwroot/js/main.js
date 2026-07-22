@@ -103,10 +103,10 @@ window.blazorFuncs = {
         updateAvailablePromise
             .then(isAvailable => {
                 if (isAvailable) {
-                    DotNet.invokeMethodAsync("Valour.Client", "OnServiceUpdateAvailable").then(r => console.log(r));
+                    caller.invokeMethodAsync("OnServiceUpdateAvailable");
                 }
                 else {
-                    DotNet.invokeMethodAsync("Valour.Client", "OnServiceUpdateUnavailable").then(r => console.log(r));
+                    caller.invokeMethodAsync("OnServiceUpdateUnavailable");
                 }
             })
             .catch(error => {

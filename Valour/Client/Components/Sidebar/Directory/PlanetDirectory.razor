@@ -63,13 +63,13 @@
                         Rules
                     </p>
                 </div>
-                @if (Planet.EnableThreads)
-                {
-                    <ThreadsDirectorySection Planet="@Planet"/>
-                }
                 @if (Planet.EnableWiki)
                 {
                     <WikiDirectorySection Planet="@Planet"/>
+                }
+                @if (Planet.EnableThreads)
+                {
+                    <ThreadsDirectorySection Planet="@Planet"/>
                 }
 
                 @foreach (var root in RootChannels)

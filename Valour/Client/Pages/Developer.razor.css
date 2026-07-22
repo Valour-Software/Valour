@@ -53,9 +53,9 @@
 }
 
 .tab-button.active {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-    color: var(--color-primary-contrast);
+    background: color-mix(in srgb, var(--color-primary) 14%, var(--main-3));
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--slight-tint));
+    color: color-mix(in srgb, var(--color-primary) 42%, white);
 }
 
 .tab-button i {

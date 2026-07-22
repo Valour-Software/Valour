@@ -34,6 +34,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<INativeWindowService, NoopNativeWindowService>();
         services.AddSingleton<IShareService, BrowserShareService>();
         services.AddSingleton<RecentChatService>();
+        services.AddSingleton<AppBannerService>();
         services.AddScoped<RealtimeKitHostService>();
         services.AddScoped<GlobalCallSessionService>();
         services.AddScoped<RealtimeKitDeviceService>();

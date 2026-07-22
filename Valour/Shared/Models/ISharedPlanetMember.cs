@@ -64,8 +64,28 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
     
     public static string GetAvatar(ISharedPlanetMember member, AvatarFormat format = AvatarFormat.Webp256)
     {
-        if (!string.IsNullOrWhiteSpace(member.MemberAvatar)) // TODO: do same thing as user
-            return member.MemberAvatar;
+        if (!string.IsNullOrWhiteSpace(member.MemberAvatar))
+        {
+            // Native per-planet avatars are stored as the canonical 256px URL.
+            // Select the generated size that the caller actually requested while
+            // leaving legacy/external member-avatar URLs untouched.
+            var avatar = member.MemberAvatar;
+            var queryIndex = avatar.IndexOf('?');
+            var path = queryIndex < 0 ? avatar : avatar[..queryIndex];
+            var query = queryIndex < 0 ? string.Empty : avatar[queryIndex..];
+            if (path.Contains("/memberavatars/", StringComparison.Ordinal) && path.EndsWith("/256.webp", StringComparison.Ordinal))
+            {
+                var size = format switch
+                {
+                    AvatarFormat.Jpeg64 or AvatarFormat.Gif64 or AvatarFormat.Webp64 or AvatarFormat.WebpAnimated64 => 64,
+                    AvatarFormat.Jpeg128 or AvatarFormat.Gif128 or AvatarFormat.Webp128 or AvatarFormat.WebpAnimated128 => 128,
+                    _ => 256
+                };
+                return $"{path[..(path.Length - "256.webp".Length)]}{size}.webp{query}";
+            }
+
+            return avatar;
+        }
 
         return member.GetSharedUser()?.GetAvatar(format) ?? ISharedUser.DefaultAvatar;
     }

@@ -47,9 +47,28 @@
                 <img class="menu-icon" src="_content/Valour.Client/media/Gif-Icon.svg" alt="" />
                 <span>Gifs</span>
             </button>
-            <button type="button" class="button" @onclick="@OnClickSendCurrency">
+            <button type="button" class="button pay-button" @onclick="@OnClickSendCurrency">
                 <img class="menu-icon" src="_content/Valour.Client/media/Pay-Icon.svg" alt="" />
-                <span>Pay</span>
+                <span class="menu-label">Pay</span>
+                @if (Client.EcoService.SelfGlobalAccount is not null || (_localCurrency is not null && _localAccount is not null))
+                {
+                    <span class="pay-balances">
+                        @if (Client.EcoService.SelfGlobalAccount is not null)
+                        {
+                            <span class="pay-balance" title="Valour Credits balance: @GetFullBalance(Client.EcoService.SelfGlobalAccount.BalanceValue) VC">
+                                <span>@CompactNumberFormatter.Format(Client.EcoService.SelfGlobalAccount.BalanceValue)</span>
+                                <span class="currency-code valour-credits-text">VC</span>
+                            </span>
+                        }
+                        @if (_localCurrency is not null && _localAccount is not null)
+                        {
+                            <span class="pay-balance" title="@ChatComponent.Channel.Planet.Name balance: @GetFullBalance(_localAccount.BalanceValue) @_localCurrency.ShortCode">
+                                <span>@CompactNumberFormatter.Format(_localAccount.BalanceValue)</span>
+                                <span class="currency-code local-code">@_localCurrency.ShortCode</span>
+                            </span>
+                        }
+                    </span>
+                }
             </button>
         </div>
         <div class="carrot"></div>
@@ -78,7 +97,7 @@
             </div>
         </div>
         
-        <button type="button" tabindex="0" class="input-action-btn upload-btn" title="Attach" aria-label="Attach File" @onclick="@ToggleUploadMenu" @onclick:stopPropagation="true">
+        <button type="button" tabindex="0" class="input-action-btn upload-btn" title="Add" aria-label="Open add menu" @onclick="@ToggleUploadMenu" @onclick:stopPropagation="true">
             <i class="bi bi-plus-circle"></i>
         </button>
 
@@ -102,6 +121,9 @@
 @code {
     
     private bool _loading = true;
+    private long? _loadedPayBalancePlanetId;
+    private Currency _localCurrency;
+    private EcoAccount _localAccount;
 
     [Parameter]
     public ChatWindowComponent ChatComponent { get; set; }
@@ -281,8 +303,49 @@
         _isUploadMenuOpen = !_isUploadMenuOpen;
         Refresh();
 
+        if (_isUploadMenuOpen)
+            _ = LoadLocalPayBalanceAsync();
+
         return Task.CompletedTask;
     }
+
+    private async Task LoadLocalPayBalanceAsync()
+    {
+        var planet = ChatComponent?.Channel?.Planet;
+        if (planet is null || planet.Id == ISharedPlanet.ValourCentralId)
+        {
+            _localCurrency = null;
+            _localAccount = null;
+            return;
+        }
+
+        if (_loadedPayBalancePlanetId == planet.Id)
+            return;
+
+        _loadedPayBalancePlanetId = planet.Id;
+
+        try
+        {
+            var currencyTask = Client.EcoService.FetchCurrencyByPlanetAsync(planet).AsTask();
+            var accountTask = Client.EcoService.FetchUserEcoAccountAsync(planet, Client.Me.Id).AsTask();
+            await Task.WhenAll(currencyTask, accountTask);
+
+            _localCurrency = await currencyTask;
+            _localAccount = await accountTask;
+        }
+        catch
+        {
+            // Balance previews are optional and must not interfere with chat.
+            _localCurrency = null;
+            _localAccount = null;
+            _loadedPayBalancePlanetId = null;
+        }
+
+        await InvokeAsync(Refresh);
+    }
+
+    private static string GetFullBalance(decimal balance) =>
+        balance.ToString("#,##0.########");
 
     private void HideUploadMenu()
     {

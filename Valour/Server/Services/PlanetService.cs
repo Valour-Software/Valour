@@ -749,6 +749,32 @@ public class PlanetService
         
         return new TaskResult<Planet>(true, "Planet updated successfully.", planet);
     }
+
+    public async Task<TaskResult<Planet>> TransferOwnershipAsync(long planetId, long currentOwnerId, long newOwnerId)
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        var planet = await _db.Planets.FirstOrDefaultAsync(x => x.Id == planetId);
+        if (planet is null)
+            return TaskResult<Planet>.FromFailure("Planet not found.");
+        if (planet.LockedForMigration)
+            return TaskResult<Planet>.FromFailure(MigrationLock.Message);
+        if (planet.OwnerId != currentOwnerId)
+            return TaskResult<Planet>.FromFailure("You are no longer the owner of this planet.");
+        if (newOwnerId == currentOwnerId)
+            return TaskResult<Planet>.FromFailure("Choose a different owner.");
+        if (!await _db.PlanetMembers.AnyAsync(x => x.PlanetId == planetId && x.UserId == newOwnerId))
+            return TaskResult<Planet>.FromFailure("The new owner must be a member of this planet.");
+        if (await _db.Planets.CountAsync(x => x.OwnerId == newOwnerId) >= ISharedUser.MaxOwnedPlanets)
+            return TaskResult<Planet>.FromFailure("That member already owns the maximum number of planets.");
+
+        planet.OwnerId = newOwnerId;
+        await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        var model = planet.ToModel();
+        _coreHub.NotifyPlanetChange(model);
+        return TaskResult<Planet>.FromData(model);
+    }
     
     //////////////////////
     // Validation Logic //

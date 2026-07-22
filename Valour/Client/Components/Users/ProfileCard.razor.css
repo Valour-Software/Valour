@@ -415,6 +415,14 @@
     color: color-mix(in srgb, var(--profile-text) 82%, var(--font-color));
 }
 
+.bio-markdown {
+    white-space: pre-wrap;
+}
+
+.bio-markdown ::deep .rich-text > :first-child { margin-top: 0; }
+.bio-markdown ::deep .rich-text > :last-child { margin-bottom: 0; }
+.bio-markdown ::deep a { color: var(--color-primary); }
+
 @media (max-width: 380px) {
     .card-wrapper {
         width: min(100vw - 24px, 320px);

@@ -22,6 +22,8 @@ public class AndroidUpdateService : INativeUpdateService
 
     public bool CanSelfUpdate => !IsPlayInstalled();
 
+    public string UpdateActionLabel => "Update";
+
     public async Task<TaskResult> DownloadAndInstallAsync(string downloadUrl)
     {
         try
@@ -69,9 +71,9 @@ public class AndroidUpdateService : INativeUpdateService
         }
     }
 
-    public async Task OpenReleasePageAsync(string url)
+    public async Task LaunchExternalUpdateAsync(string releasePageUrl)
     {
-        await Browser.Default.OpenAsync(url, BrowserLaunchMode.External);
+        await Browser.Default.OpenAsync(releasePageUrl, BrowserLaunchMode.External);
     }
 
     private static bool IsPlayInstalled()

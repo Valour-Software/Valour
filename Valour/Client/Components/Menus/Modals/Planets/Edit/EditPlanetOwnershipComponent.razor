@@ -1,0 +1,101 @@
+@inject ValourClient Client
+@using Valour.Sdk.ModelLogic.QueryEngines
+
+<div class="ownership-page">
+    <div class="warning-card">
+        <i class="bi bi-shield-lock-fill"></i>
+        <div><strong>Transfer planet ownership</strong><p>This grants full control permanently. Your account must have MFA enabled and the transfer requires a current authenticator code.</p></div>
+    </div>
+
+    @if (!_mfaLoaded)
+    {
+        <Loading Subtext="Checking account security..." />
+    }
+    else if (!_hasMfa)
+    {
+        <div class="mfa-required"><strong>MFA is required</strong><p>Enable an authenticator in User Settings → Security before transferring this planet.</p></div>
+    }
+    else
+    {
+        <div class="transfer-form">
+            <label>Find a member</label>
+            <div class="member-search">
+                <input class="v-input" placeholder="Search by nickname or username" @bind="_memberSearch" />
+                <VButton Variant="secondary" Icon="search" OnClick="LoadMembersAsync" Disabled="@_loadingMembers">Search</VButton>
+            </div>
+            <label>New owner</label>
+            <select class="v-input" @bind="_newOwnerUserId">
+                <option value="0">Select a member…</option>
+                @foreach (var member in _eligibleMembers)
+                {
+                    <option value="@member.UserId">@member.Name (@member.User?.Tag)</option>
+                }
+            </select>
+            <p class="helper">Only current planet members can become the owner.</p>
+
+            <label>Authenticator code</label>
+            <input class="v-input code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8"
+                   placeholder="000000" @bind="_mfaCode" />
+
+            <label>Confirm planet name</label>
+            <input class="v-input" autocomplete="off" placeholder="@Planet.Name" @bind="_confirmation" />
+
+            <VButton Variant="danger" Icon="arrow-left-right" OnClick="TransferAsync" Disabled="@(!CanTransfer || _saving)">
+                Transfer ownership
+            </VButton>
+            <ResultLabel Result="@_result" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Planet Planet { get; set; }
+    private bool _mfaLoaded;
+    private bool _hasMfa;
+    private bool _saving;
+    private long _newOwnerUserId;
+    private string _mfaCode = string.Empty;
+    private string _confirmation = string.Empty;
+    private string _memberSearch = string.Empty;
+    private bool _loadingMembers;
+    private List<PlanetMember> _eligibleMembers = new();
+    private ITaskResult _result;
+    private bool CanTransfer => _newOwnerUserId > 0 && !string.IsNullOrWhiteSpace(_mfaCode) &&
+                                string.Equals(_confirmation?.Trim(), Planet.Name, StringComparison.Ordinal);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hasMfa = (await Client.AuthService.GetMfaMethodsAsync()).Contains("app");
+        if (_hasMfa)
+            await LoadMembersAsync();
+        _mfaLoaded = true;
+    }
+
+    private async Task LoadMembersAsync()
+    {
+        _loadingMembers = true;
+        var engine = new PlanetMemberQueryEngine(Planet);
+        engine.SetFilter("search", _memberSearch, apply: false);
+        engine.SetSort("name", apply: false);
+        engine.ApplyOptions();
+        _eligibleMembers = (await engine.GetPageAsync(0, 50))
+            .Where(x => x.UserId != Client.Me.Id).ToList();
+        if (_newOwnerUserId > 0 && _eligibleMembers.All(x => x.UserId != _newOwnerUserId))
+            _newOwnerUserId = 0;
+        _loadingMembers = false;
+    }
+
+    private async Task TransferAsync()
+    {
+        if (!CanTransfer || _saving)
+            return;
+        _saving = true;
+        var response = await Planet.Node.PostAsyncWithResponse<Planet>(
+            $"api/planets/{Planet.Id}/transfer-ownership",
+            new PlanetOwnershipTransferRequest { NewOwnerUserId = _newOwnerUserId, MultiFactorCode = _mfaCode });
+        _result = response;
+        if (response.Success && response.Data is not null)
+            response.Data.Sync(Client);
+        _saving = false;
+    }
+}

@@ -1,12 +1,38 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models.Staff;
+using Valour.Shared.Models;
 using Valour.Shared.Queries;
 
 namespace Valour.Server.Api.Dynamic;
 
 public class StaffApi
 {
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Put, "api/staff/platform-banner")]
+    public static async Task<IResult> SetPlatformBannerAsync(
+        [FromBody] SetPlatformBannerRequest request,
+        UserService userService,
+        PlatformBannerService bannerService)
+    {
+        var staff = await userService.GetCurrentUserAsync();
+        var result = await bannerService.SetAsync(request, staff.Id);
+        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Delete, "api/staff/platform-banner")]
+    public static async Task<IResult> ClearPlatformBannerAsync(
+        UserService userService,
+        PlatformBannerService bannerService)
+    {
+        var staff = await userService.GetCurrentUserAsync();
+        var result = await bannerService.ClearAsync(staff.Id);
+        return result.Success ? ValourResult.Ok() : ValourResult.BadRequest(result.Message);
+    }
+
     [StaffRequired]
     [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Get, "api/staff/reports")]

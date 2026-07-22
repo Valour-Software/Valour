@@ -112,6 +112,23 @@ public class PlanetMemberApi
         return Results.Json(result.Data);
     }
 
+    [ValourRoute(HttpVerbs.Delete, "api/members/{id}/avatar")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> DeleteAvatarRouteAsync(
+        long id,
+        PlanetMemberService service,
+        UserService userService)
+    {
+        var member = await service.GetAsync(id);
+        if (member is null)
+            return ValourResult.NotFound("Member not found.");
+        if (member.UserId != await userService.GetCurrentUserIdAsync())
+            return ValourResult.Forbid("You can only modify your own planet avatar.");
+
+        var result = await service.UpdateAvatarAsync(id, string.Empty);
+        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+    }
+
     [ValourRoute(HttpVerbs.Delete, "api/members/{id}")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> DeleteRouteAsync(

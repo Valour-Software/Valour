@@ -88,6 +88,19 @@ public class EcoService : ServiceBase
 
         return item.Sync(_client);
     }
+
+    /// <summary>
+    /// Returns a user's single personal economy account for a planet.
+    /// Missing accounts are returned as null.
+    /// </summary>
+    public async ValueTask<EcoAccount> FetchUserEcoAccountAsync(Planet planet, long userId)
+    {
+        var response = await planet.Node.GetJsonAsync<EcoAccount>(
+            $"api/eco/accounts/planet/{planet.Id}/byuser/{userId}",
+            allow404: true);
+
+        return response.Data?.Sync(_client);
+    }
     
     /// <summary>
     /// Returns the transaction with the given id.

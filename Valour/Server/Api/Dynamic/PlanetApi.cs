@@ -107,7 +107,6 @@ public class PlanetApi
         [FromBody] Planet planet,
         long id,
         PlanetService planetService,
-        UserService userService,
         PlanetMemberService memberService,
         FederationNodeClient federationNodeClient)
     {
@@ -129,21 +128,10 @@ public class PlanetApi
         if (old is null)
             return ValourResult.NotFound("Planet not found");
         
-        // Owner change check
+        // Ownership transfer is a dedicated MFA-protected operation. Never let a
+        // stale or hand-crafted generic update change this security boundary.
         if (old.OwnerId != planet.OwnerId)
-        {
-            // Only owner can do this
-            if (member.UserId != old.OwnerId)
-                return ValourResult.Forbid("Only a planet owner can transfer ownership.");
-
-            // Ensure new owner is a member of the planet
-            if (!await memberService.ExistsAsync(planet.OwnerId, planet.Id))
-                return Results.BadRequest("You cannot transfer ownership to a non-member.");
-            
-            var ownedPlanets = await userService.GetOwnedPlanetCount(planet.OwnerId);
-            if (ownedPlanets >= ISharedUser.MaxOwnedPlanets)
-                return Results.BadRequest("That new owner has the maximum owned planets!");
-        }
+            return ValourResult.BadRequest("Use the ownership transfer flow to change a planet owner.");
 
         // Push visibility before making the local update. In particular, a
         // public-to-private change stops the hub from issuing new grants first.
@@ -169,6 +157,57 @@ public class PlanetApi
         }
         
         return Results.Json(planet);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/transfer-ownership")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> TransferOwnershipRouteAsync(
+        long id,
+        [FromBody] PlanetOwnershipTransferRequest request,
+        PlanetService planetService,
+        PlanetMemberService memberService,
+        UserService userService,
+        MultiAuthService multiAuthService,
+        FederationNodeClient federationNodeClient)
+    {
+        if (request is null || request.NewOwnerUserId <= 0)
+            return ValourResult.BadRequest("Choose a new owner.");
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var planet = await planetService.GetAsync(id);
+        if (planet is null)
+            return ValourResult.NotFound("Planet not found.");
+        if (planet.OwnerId != userId)
+            return ValourResult.Forbid("Only the planet owner can transfer ownership.");
+
+        var mfa = await multiAuthService.VerifyEstablishedAppMultiAuth(userId, request.MultiFactorCode);
+        if (!mfa.Success)
+            return ValourResult.BadRequest(mfa.Message);
+
+        if (!await memberService.ExistsAsync(request.NewOwnerUserId, id))
+            return ValourResult.BadRequest("The new owner must be a member of this planet.");
+
+        FederatedPlanetStubRequest previousStub = null;
+        if (FederationNodeService.NodeEnabled)
+        {
+            var memberCount = await planetService.GetMemberCountAsync(id);
+            previousStub = ToFederatedStubRequest(planet, memberCount);
+            var nextStub = ToFederatedStubRequest(planet, memberCount);
+            nextStub.OwnerId = request.NewOwnerUserId;
+            var sync = await federationNodeClient.UpsertPlanetAsync(id, nextStub);
+            if (!sync.Success)
+                return ValourResult.Problem(sync.Message ?? "Could not update this community planet at the hub.");
+        }
+
+        var result = await planetService.TransferOwnershipAsync(id, userId, request.NewOwnerUserId);
+        if (!result.Success)
+        {
+            if (previousStub is not null)
+                await federationNodeClient.UpsertPlanetAsync(id, previousStub);
+            return ValourResult.BadRequest(result.Message);
+        }
+
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/planets/{id}")]

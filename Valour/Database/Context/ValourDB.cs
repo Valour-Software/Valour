@@ -170,6 +170,8 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     /// </summary>
     public DbSet<StaffAuditLog> StaffAuditLogs { get; set; }
 
+    public DbSet<PlatformBannerConfiguration> PlatformBannerConfigurations { get; set; }
+
     /// <summary>
     /// Staff-initiated MFA removals waiting out their safety delay.
     /// </summary>
@@ -359,6 +361,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         AutomodLog.SetupDbModel(modelBuilder);
         ModerationAuditLog.SetupDbModel(modelBuilder);
         StaffAuditLog.SetupDbModel(modelBuilder);
+        PlatformBannerConfiguration.SetupDbModel(modelBuilder);
         PendingMfaRemoval.SetupDbModel(modelBuilder);
 
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);

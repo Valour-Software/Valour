@@ -247,6 +247,8 @@ public partial class App : MauiWinUIApplication
         Shutdown();
     }
 
+    internal void ExitForUpdate() => ExitApplication();
+
     private static bool TryBecomePrimaryInstance()
     {
         if (_singleInstanceMutex is not null)

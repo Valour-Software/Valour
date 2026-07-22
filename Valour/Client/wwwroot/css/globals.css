@@ -1627,15 +1627,15 @@ img.emoji {
 }
 
 .v-btn.primary {
-    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
-    border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
-    color: color-mix(in srgb, var(--color-primary) 65%, white);
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--main-3));
+    border-color: color-mix(in srgb, var(--color-primary) 32%, var(--slight-tint));
+    color: color-mix(in srgb, var(--color-primary) 48%, white);
 }
 
 .v-btn.primary:hover {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: var(--color-primary-contrast);
+    background: color-mix(in srgb, var(--color-primary) 22%, var(--main-4));
+    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--medium-tint));
+    color: color-mix(in srgb, var(--color-primary) 36%, white);
 }
 
 .v-btn.secondary {
@@ -1760,11 +1760,15 @@ img.emoji {
 }
 
 .v-btn.blue {
-    background-color: #0d6efd;
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--main-3));
+    border-color: color-mix(in srgb, var(--color-primary) 32%, var(--slight-tint));
+    color: color-mix(in srgb, var(--color-primary) 48%, white);
 }
 
 .v-btn:hover.blue {
-    background-color: #b386eb;
+    background: color-mix(in srgb, var(--color-primary) 22%, var(--main-4));
+    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--medium-tint));
+    color: color-mix(in srgb, var(--color-primary) 36%, white);
 }
 
 .v-btn.center {

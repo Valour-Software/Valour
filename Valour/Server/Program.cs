@@ -605,6 +605,7 @@ public partial class Program
         services.AddScoped<SubscriptionService>();
         services.AddScoped<ThemeService>();
         services.AddScoped<StaffService>();
+        services.AddScoped<PlatformBannerService>();
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<VoiceStateService>();
         services.AddScoped<StartupService>();

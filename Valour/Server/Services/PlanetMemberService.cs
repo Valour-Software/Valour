@@ -517,6 +517,26 @@ public class PlanetMemberService
         return new TaskResult<PlanetMember>(true, "Success", updated);
     }
 
+    public async Task<TaskResult<PlanetMember>> UpdateAvatarAsync(long memberId, string avatarUrl)
+    {
+        var member = await _db.PlanetMembers.Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == memberId);
+        if (member is null)
+            return TaskResult<PlanetMember>.FromFailure("Member not found.");
+
+        var guard = await MigrationLock.GuardAsync(_db, member.PlanetId);
+        if (!guard.Success)
+            return TaskResult<PlanetMember>.FromFailure(guard.Message);
+
+        member.MemberAvatar = avatarUrl?.Trim() ?? string.Empty;
+        await _db.SaveChangesAsync();
+
+        var updated = await ToFullModelAsync(member);
+        _hostedPlanetService.GetCached(member.PlanetId)?.UpsertMember(updated);
+        _coreHub.NotifyPlanetItemChange(updated);
+        return TaskResult<PlanetMember>.FromData(updated);
+    }
+
     public async Task<TaskResult> AddRoleAsync(long planetId, long memberId, long roleId)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
