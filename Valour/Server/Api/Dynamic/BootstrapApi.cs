@@ -9,11 +9,6 @@ namespace Valour.Server.Api.Dynamic;
 /// Coalesces the authenticated state every app load needs. This replaces nine
 /// cross-origin requests and their corresponding CORS preflights with one.
 /// </summary>
-// Non-static so it can be used as the DynamicAPI<T> type argument (T : class,
-// instantiated via Activator.CreateInstance). The route handler itself stays
-// static, as DynamicAPI requires. Making this a static class silently drops the
-// route: DynamicAPI<BootstrapApi> won't compile, so the registration gets removed
-// and api/bootstrap falls through to the SPA fallback.
 public class BootstrapApi
 {
     [ValourRoute(HttpVerbs.Get, "api/bootstrap")]
@@ -25,6 +20,7 @@ public class BootstrapApi
         UnreadService unreadService,
         FederationJoinService federationJoinService,
         EcoService ecoService,
+        ChannelFavoriteService channelFavoriteService,
         ValourDb db)
     {
         var userId = await userService.GetCurrentUserIdAsync();
@@ -43,6 +39,7 @@ public class BootstrapApi
             .ToListAsync();
         var memberships = await federationJoinService.GetMembershipsAsync(userId);
         var gifFavorites = await userService.GetGifFavoritesAsync(userId);
+        var channelFavorites = await channelFavoriteService.GetForUserAsync(userId);
         var globalAccount = await ecoService.GetGlobalAccountAsync(userId);
         var notifications = await notificationService.GetAllUnreadNotifications(userId);
         var unreadPlanets = await unreadService.GetUnreadPlanets(userId);
@@ -61,6 +58,7 @@ public class BootstrapApi
             myPlanetMembers,
             federatedMemberships = memberships,
             gifFavorites,
+            channelFavorites,
             globalAccount,
             unreadNotifications = notifications,
             unreadPlanets,

@@ -1,52 +1,48 @@
 @implements IDisposable
 @inject MessageService MessageService
+@using Valour.Client.Components.Messages.Embeds.Items
 
-@if (embed is null)
+@if (Embed is null)
 {
 	return;
 }
-<CascadingValue Value="@this">
+
+<CascadingValue Value="@this" IsFixed="true">
 	<CascadingValue Value="@MessageComponent">
-		<div class="embed" style="@embed.GetStyle()">
-			@if (embed.CurrentlyDisplayed != null)
+		<div class="embed" style="@CurrentPage.Style">
+			@if (CurrentPage.Title is not null)
 			{
-				if (embed.CurrentlyDisplayed.Title is not null) {
-					<div class="embed-title" style="@embed.CurrentlyDisplayed.GetTitleStyle(embed)">
-						@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Title))
-					</div>
-				}
+				<div class="embed-title" style="@CurrentPage.TitleStyle">
+					@((MarkupString)MarkdownManager.GetHtml(CurrentPage.Title))
+				</div>
+			}
 
-				if (embed.CurrentlyDisplayed.Children is not null)
-				{
-					foreach (EmbedItem item in embed.CurrentlyDisplayed.Children)
-					{
-						<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
-					}
-				}
+			@foreach (var item in CurrentPage.Children)
+			{
+				<EmbedItemComponent Item="@item" @key="@(item.Id ?? (object)item)" />
+			}
 
-				if (embed.Pages is not null && embed.Pages.Count > 1 && !embed.HideChangePageArrows)
-				{
-					<div style="margin-top: 10px;">
-						<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
-						<p style="font-size:var(--font-size-xs);display: inline-block;">@embed.currentPage</p>
-						<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
-					</div>
-				}
+			@if (Embed.Pages.Count > 1 && !Embed.HideChangePageArrows)
+			{
+				<div class="embed-page-arrows">
+					<button @onclick="PrevPage" class="embed-page-arrow">&lt;</button>
+					<span class="embed-page-number">@(_pageIndex + 1) / @Embed.Pages.Count</span>
+					<button @onclick="NextPage" class="embed-page-arrow">&gt;</button>
+				</div>
+			}
 
-				if (embed.CurrentlyDisplayed.Footer is not null)
-				{
-					<div class="embed-footer" style="@embed.CurrentlyDisplayed.GetFooterStyle(embed)">
-						@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Footer))
-					</div>
-				}
+			@if (CurrentPage.Footer is not null)
+			{
+				<div class="embed-footer" style="@CurrentPage.FooterStyle">
+					@((MarkupString)MarkdownManager.GetHtml(CurrentPage.Footer))
+				</div>
 			}
 		</div>
 	</CascadingValue>
 </CascadingValue>
 
-
 @code {
-	
+
 	[Parameter]
 	public Message Message { get; set; }
 
@@ -56,302 +52,184 @@
 	[Parameter]
 	public MessageComponent MessageComponent { get; set; }
 
-	public event Action RefreshRowComponents;
-	public event Action RefreshRootItemComponents;
-	public event Action RefreshFormComponents;
-	public event Action RefreshItemComponents;
+	public Embed Embed { get; private set; }
 
-	private bool ProcessPageChange = false;
+	public EmbedRegistry Registry { get; } = new();
 
-	private bool ProcessPageChangeForForms = false;
+	private int _pageIndex;
+	private long _revision;
 
-	public bool ProcessingEmbedUpdate = false;
-
-	public Embed embed = null;
-
-	public EmbedPage page { get; set; }
-
-	public ConcurrentDictionary<string, BaseEmbedItemComponent> ItemComponents { get; set; }
-	public ConcurrentDictionary<string, EmbedItemComponent> EmbedRootItemComponents { get; set; }
-	public ConcurrentDictionary<string, EmbedRowComponent> EmbedRowComponents { get; set; }
-	public ConcurrentDictionary<string, EmbedFormComponent> EmbedFormComponents { get; set; }
-	public ConcurrentDictionary<string, IParentItem> IdToParentEmbedItem { get; set; }
-	public ConcurrentDictionary<string, INameable> IdToNameItemEmbedItem { get; set; }
-
-	public void Dispose()
-	{
-		MessageService.PersonalEmbedUpdate -= OnPersonalEmbedUpdate;
-		MessageService.ChannelEmbedUpdate -= OnChannelEmbedUpdate;
-		MessageService.MessageEdited -= OnReceiveMessageEdit;
-	}
+	public EmbedPage CurrentPage => Embed.Pages[_pageIndex];
 
 	protected override void OnInitialized()
 	{
-		StateHasChanged();
-		MessageService.PersonalEmbedUpdate += OnPersonalEmbedUpdate;
-		MessageService.ChannelEmbedUpdate += OnChannelEmbedUpdate;
-		MessageService.MessageEdited += OnReceiveMessageEdit;
-		ItemComponents = new();
-		EmbedRootItemComponents = new();
-		EmbedRowComponents = new();
-		EmbedFormComponents = new();
-		IdToParentEmbedItem = new();
-		IdToNameItemEmbedItem = new();
+		MessageService.EmbedUpdated += OnEmbedUpdate;
+		MessageService.MessageEdited += OnMessageEdited;
 
 		Attachment ??= Message.EmbedAttachment;
-		embed = Attachment?.Embed;
+		SetEmbed(Attachment?.Embed);
+	}
+
+	public void Dispose()
+	{
+		MessageService.EmbedUpdated -= OnEmbedUpdate;
+		MessageService.MessageEdited -= OnMessageEdited;
+	}
+
+	private void SetEmbed(Embed embed)
+	{
+		Embed = embed;
 		if (embed is null)
 			return;
 
-		foreach (var page in embed.Pages) {
-			foreach (var item in page.GetAllItems()) {
-				if (item.Id is not null) {
-					if (item.ItemType == EmbedItemType.Progress || item.ItemType == EmbedItemType.TextArea
-						|| item.ItemType == EmbedItemType.Text || item.ItemType == EmbedItemType.InputBox
-						|| item.ItemType == EmbedItemType.DropDownMenu)
-					{
-						var nameableitem = (INameable)item;
-						if (nameableitem.NameItem is not null && nameableitem.NameItem.Id is not null)
-							IdToNameItemEmbedItem[nameableitem.NameItem.Id] = (INameable)item;
-					}
-					IdToParentEmbedItem[item.Id] = item.Parent;
-				}
-			}
-		}
+		_revision = embed.Revision;
+		_pageIndex = ClampPage(embed.StartPage);
 	}
 
-	public Task OnReceiveMessageEdit(Message message)
-    {
-        // Ignore messages not meant for this channel
-        if (message.Id != Message.Id)
-            return Task.CompletedTask;
+	private int ClampPage(int index) =>
+		Math.Clamp(index, 0, Math.Max(0, Embed.Pages.Count - 1));
 
-        return InvokeAsync(() =>
-        {
-            var updatedAttachment = message.Attachments?.FirstOrDefault(x => x.Id == Attachment.Id) ??
-                                    message.Attachments?.FirstOrDefault(x => x.Type == MessageAttachmentType.Embed);
-            if (updatedAttachment is null)
-                return;
+	// ---- Page navigation ----
 
-            Attachment.Data = updatedAttachment.Data;
-            Attachment.SetEmbedParsed(false);
-            embed = Attachment.Embed;
-            ProcessPageChange = true;
-            StateHasChanged();
-        });
-    }
+	public void GoToPage(int index)
+	{
+		if (Embed is null)
+			return;
 
-	public Task OnChannelEmbedUpdate(ChannelEmbedUpdate update)
+		_pageIndex = ClampPage(index);
+		StateHasChanged();
+	}
+
+	public void NextPage() => GoToPage(_pageIndex + 1 >= Embed.Pages.Count ? 0 : _pageIndex + 1);
+
+	public void PrevPage() => GoToPage(_pageIndex - 1 < 0 ? Embed.Pages.Count - 1 : _pageIndex - 1);
+
+	// ---- Interactions ----
+
+	/// <summary>
+	/// Posts an interaction (click or form submit) for this embed's message.
+	/// The server derives all context from the message id.
+	/// </summary>
+	public async Task SendInteractionAsync(EmbedInteractionEventType eventType, string elementId, string formId = null, List<EmbedFormData> formData = null)
+	{
+		var request = new EmbedInteractionRequest
+		{
+			MessageId = Message.Id,
+			EventType = eventType,
+			ElementId = elementId,
+			FormId = formId,
+			FormData = formData,
+		};
+
+		await Message.Node.HttpClient.PostAsJsonAsync("api/embed/interact", request);
+	}
+
+	// ---- Live updates ----
+
+	private Task OnMessageEdited(Message message)
+	{
+		if (message.Id != Message.Id)
+			return Task.CompletedTask;
+
+		return InvokeAsync(() =>
+		{
+			var updated = message.Attachments?.FirstOrDefault(x => x.Id == Attachment?.Id) ??
+			              message.Attachments?.FirstOrDefault(x => x.Type == MessageAttachmentType.Embed);
+			if (updated is null || Attachment is null)
+				return;
+
+			Attachment.SetEmbedPayload(updated.Data);
+			SetEmbed(Attachment.Embed);
+			StateHasChanged();
+		});
+	}
+
+	private Task OnEmbedUpdate(EmbedUpdate update)
 	{
 		if (update.TargetMessageId != Message.Id)
 			return Task.CompletedTask;
 
 		return InvokeAsync(() =>
 		{
-			int currentpage = embed.currentPage;
-			Attachment.SetEmbedPayload(update.NewEmbedContent);
-			embed = Attachment.Embed;
-			if (!embed.KeepPageOnUpdate)
-			{
-				embed.currentPage = embed.StartPage;
-			}
+			if (Embed is null || Attachment is null)
+				return;
+
+			// Drop stale updates; bots that leave Revision 0 opt out of ordering
+			if (update.Revision < _revision)
+				return;
+			_revision = Math.Max(_revision, update.Revision);
+
+			if (update.NewEmbedContent is not null)
+				ApplyFullUpdate(update.NewEmbedContent);
+			else if (update.ChangedItemsContent is not null)
+				ApplyTargetedUpdate(update.ChangedItemsContent);
+		});
+	}
+
+	private void ApplyFullUpdate(string newContent)
+	{
+		// Snapshot user-entered input values so they survive the replace
+		var keptValues = new Dictionary<string, string>();
+		foreach (var item in Embed.EnumerateItems())
+		{
+			if (item is IFormInputItem { Id: not null, KeepValueOnUpdate: true } input && input.Value is not null)
+				keptValues[input.Id] = input.Value;
+		}
+
+		var previousPage = _pageIndex;
+
+		Attachment.SetEmbedPayload(newContent);
+		var embed = Attachment.Embed;
+		if (embed is null)
+		{
+			// Malformed replacement: render nothing rather than stale content
+			Embed = null;
+			StateHasChanged();
+			return;
+		}
+
+		Embed = embed;
+		_revision = Math.Max(_revision, embed.Revision);
+		_pageIndex = ClampPage(embed.KeepPageOnUpdate ? previousPage : embed.StartPage);
+
+		foreach (var item in embed.EnumerateItems())
+		{
+			if (item is IFormInputItem { Id: not null, KeepValueOnUpdate: true } input
+			    && keptValues.TryGetValue(input.Id, out var kept))
+				input.Value = kept;
+		}
+
+		StateHasChanged();
+	}
+
+	private void ApplyTargetedUpdate(string changedContent)
+	{
+		var items = EmbedParser.TryParseItems(changedContent);
+		if (items is null)
+			return;
+
+		var needsFullRender = false;
+
+		foreach (var item in items)
+		{
+			if (item?.Id is null)
+				continue;
+
+			// Preserve the user's typed value across the swap
+			if (item is IFormInputItem { KeepValueOnUpdate: true } incoming
+			    && Embed.FindItem(item.Id) is IFormInputItem { Value: not null } existing)
+				incoming.Value = existing.Value;
+
+			if (!Embed.ReplaceItem(item))
+				continue;
+
+			if (Registry.TryGet(item.Id, out var component))
+				component.RefreshFromModel();
 			else
-				embed.currentPage = currentpage;
-
-			if (embed.currentPage >= embed.Pages.Count)
-				embed.currentPage = embed.StartPage;
-			ProcessPageChange = true;
-			ProcessingEmbedUpdate = true;
-			UpdateItems();
-			ProcessingEmbedUpdate = false;
-		});
-	}
-
-	public Task OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
-	{
-		if (update.TargetMessageId != Message.Id)
-			return Task.CompletedTask;
-
-		return InvokeAsync(() =>
-		{
-			try
-			{
-				if (update.NewEmbedContent is not null) {
-					IdToParentEmbedItem = new();
-					int currentpage = embed.currentPage;
-					Attachment.SetEmbedPayload(update.NewEmbedContent);
-					//Console.WriteLine(update.NewEmbedContent);
-					embed = Attachment.Embed;
-					if (!embed.KeepPageOnUpdate)
-					{
-						embed.currentPage = embed.StartPage;
-					}
-					else
-						embed.currentPage = currentpage;
-
-					if (embed.currentPage >= embed.Pages.Count)
-						embed.currentPage = embed.StartPage;
-					ProcessPageChange = true;
-					ProcessingEmbedUpdate = true;
-					UpdateItems();
-					ProcessingEmbedUpdate = false;
-					foreach (var page in embed.Pages) {
-						foreach (var item in page.GetAllItems()) {
-							if (item.Id is not null) {
-								if (item.ItemType == EmbedItemType.Progress || item.ItemType == EmbedItemType.TextArea
-									|| item.ItemType == EmbedItemType.Text || item.ItemType == EmbedItemType.InputBox
-									|| item.ItemType == EmbedItemType.DropDownMenu)
-								{
-									var nameableitem = (INameable)item;
-									if (nameableitem.NameItem is not null && nameableitem.NameItem.Id is not null)
-										IdToNameItemEmbedItem[nameableitem.NameItem.Id] = (INameable)item;
-								}
-								IdToParentEmbedItem[item.Id] = item.Parent;
-							}
-						}
-					}
-				}
-				// means we are in a targetted update
-				else {
-					// this gets super fun due to the fact that we have to update components in a certain order :sob:
-					// this also means that the serialized embed attachment data will get more and more out of sync
-					// with the live embed but that *should not* be an issue
-
-					var data = JsonSerializer.Deserialize<List<EmbedItem>>(update.ChangedEmbedItemsContent);
-					var embed = Attachment.Embed;
-
-					foreach (var item in data) {
-						if (item.ItemType == EmbedItemType.EmbedRow) {
-							// get parent of this item
-							var parent = IdToParentEmbedItem[item.Id];
-							parent.Children.Remove(parent.Children.First(x => x.Id == item.Id));
-							parent.Children.Add(item);
-							item.Init(embed, parent);
-							
-								// now rerender the item
-								if (EmbedRowComponents.ContainsKey(item.Id)) {
-									EmbedRowComponents[item.Id].UpdateRow((EmbedRow)item);
-							}
-							else
-								Console.WriteLine($"Could not find embed row with id of {item.Id}");
-						}
-					}
-					for (int i = 0; i < 3; i++) {
-						foreach (var item in data) {
-							// root item
-							if (i == 0 && item.ItemType != EmbedItemType.EmbedRow) {
-								//if (item.Id != "money-text")
-								//	Console.WriteLine($"Updating {item.ItemType} with id {item.Id}");
-								//if (item.ItemType == EmbedItemType.Text) {
-								//	var text = (EmbedTextItem)item;
-								//	Console.WriteLine($"{item.Id} with content {text.Text}");
-								//}
-								if (!IdToParentEmbedItem.ContainsKey(item.Id) || IdToParentEmbedItem[item.Id] is null) {
-									if (IdToNameItemEmbedItem.ContainsKey(item.Id))
-										IdToNameItemEmbedItem[item.Id].NameItem = (EmbedTextItem)item;
-								}
-								else {
-									var parent = IdToParentEmbedItem[item.Id];
-									if (parent.Children is null) {
-										parent.Children = new();
-										parent.Children.Add(item);
-										item.Init(embed, parent);
-									}
-									else {
-										var self = parent.Children.First(x => x.Id == item.Id);
-										parent.Children.Remove(self);
-										parent.Children.Add(item);
-										item.Init(embed, parent);
-									}
-								}
-
-									if (EmbedRootItemComponents.ContainsKey(item.Id)) {
-										EmbedRootItemComponents[item.Id].UpdateItem(item);
-								}
-								else
-									Console.WriteLine($"Could not find embed item with id of {item.Id} (1st case)");
-							}
-							else if (i == 1 && item.ItemType == EmbedItemType.Form && item.ItemType != EmbedItemType.EmbedRow) {
-								if (EmbedFormComponents.ContainsKey(item.Id))
-									EmbedFormComponents[item.Id].Refresh();
-								else
-									Console.WriteLine($"Could not find embed form with id of {item.Id} (2nd case)");
-							}
-							else if (i == 2 && item.ItemType != EmbedItemType.EmbedRow && item.ItemType != EmbedItemType.Form) {
-								if (ItemComponents.ContainsKey(item.Id))
-									ItemComponents[item.Id].Refresh();
-								else
-									Console.WriteLine($"Could not find embed item with id of {item.Id} (3rd case)");
-							}
-						}
-					}
-					foreach (var page in embed.Pages) {
-						foreach (var item in page.GetAllItems()) {
-							if (item.Id is not null) {
-								if (item.ItemType == EmbedItemType.Progress || item.ItemType == EmbedItemType.TextArea
-									|| item.ItemType == EmbedItemType.Text || item.ItemType == EmbedItemType.InputBox
-									|| item.ItemType == EmbedItemType.DropDownMenu)
-								{
-									var nameableitem = (INameable)item;
-									if (nameableitem.NameItem is not null && nameableitem.NameItem.Id is not null)
-										IdToNameItemEmbedItem[nameableitem.NameItem.Id] = (INameable)item;
-								}
-								IdToParentEmbedItem[item.Id] = item.Parent;
-							}
-						}
-					}
-				}
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.Message);
-				Console.WriteLine(e.StackTrace);
-			}
-		});
-	}
-
-	protected override Task OnAfterRenderAsync(bool firstRender)
-	{
-		if (ProcessPageChange)
-		{
-			ProcessPageChange = false;
-			UpdateItems();
+				needsFullRender = true;
 		}
-		else if (ProcessPageChangeForForms)
-		{
-			ProcessPageChangeForForms = false;
-			RefreshRowComponents?.Invoke();
-			RefreshRootItemComponents?.Invoke();
-			RefreshItemComponents?.Invoke();
-		}
-		return base.OnAfterRenderAsync(firstRender);
-	}
 
-	public void UpdateItemComponents()
-	{
-		ProcessPageChangeForForms = true;
-		StateHasChanged();
-	}
-
-	public void UpdateItems()
-	{
-		StateHasChanged();
-		RefreshRowComponents?.Invoke();
-		RefreshRootItemComponents?.Invoke();
-		RefreshFormComponents?.Invoke();
-		RefreshItemComponents?.Invoke();
-		ProcessPageChangeForForms = true;
-	}
-
-	public void NextPage()
-	{
-		embed.NextPage();
-		ProcessPageChange = true;
-	}
-
-	public void PrevPage()
-	{
-		embed.PrevPage();
-		ProcessPageChange = true;
+		if (needsFullRender)
+			StateHasChanged();
 	}
 }

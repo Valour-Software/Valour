@@ -17,6 +17,7 @@ public sealed class AppBootstrapData
     public List<PlanetMember> MyPlanetMembers { get; set; } = [];
     public List<FederatedMembershipInfo> FederatedMemberships { get; set; } = [];
     public List<GifFavorite> GifFavorites { get; set; } = [];
+    public List<ChannelFavorite> ChannelFavorites { get; set; } = [];
     public EcoAccount GlobalAccount { get; set; }
     public List<Notification> UnreadNotifications { get; set; } = [];
     public long[] UnreadPlanets { get; set; } = [];

@@ -1,75 +1,41 @@
-﻿@implements IDisposable
+@* Dispatches an embed item to its component by type. *@
 
-@switch (item.ItemType)
+@switch (Item)
 {
-	case EmbedItemType.Text:
-		<EmbedTextItemComponent _item="@item"></EmbedTextItemComponent>
+	case EmbedTextItem:
+		<EmbedTextItemComponent Item="@Item" Nested="@Nested" />
 		break;
-	case EmbedItemType.Button:
-		<EmbedButtonComponent _item="@item" Message="@Message" Embed="@embed" FormItem="@FormItem"></EmbedButtonComponent>
+	case EmbedButtonItem:
+		<EmbedButtonComponent Item="@Item" />
 		break;
-	case EmbedItemType.InputBox:
-		<EmbedInputBoxComponent _item="@item"></EmbedInputBoxComponent>
+	case EmbedInputBoxItem:
+		<EmbedInputBoxComponent Item="@Item" />
 		break;
-	case EmbedItemType.Form:
-		<EmbedFormComponent _item="@item" Message="@Message" embed="@embed"></EmbedFormComponent>
+	case EmbedDropDownItem:
+		<EmbedDropDownComponent Item="@Item" />
 		break;
-	case EmbedItemType.DropDownMenu:
-		<EmbedDropDownComponent _item="@item"></EmbedDropDownComponent>
-		break; 
-	case EmbedItemType.Progress:
-		<EmbedProgressComponent _item="@item"></EmbedProgressComponent>
-		break; 
-	case EmbedItemType.EmbedRow:
-		<EmbedRowComponent Row="(EmbedRow)item" Message="@Message" embed="@embed" FormItem="@FormItem"></EmbedRowComponent>
+	case EmbedFormItem:
+		<EmbedFormComponent Item="@Item" />
 		break;
-	case EmbedItemType.TextArea:
-		//<EmbedButtonComponent _item="@item" Message="@Message" embed="@embed" FormItem="@FormItem"></EmbedButtonComponent>
+	case EmbedProgressItem:
+		<EmbedProgressComponent Item="@Item" />
 		break;
-	case EmbedItemType.Media:
-		<EmbedMediaComponent _item="@item"></EmbedMediaComponent>
+	case EmbedMediaItem:
+		<EmbedMediaComponent Item="@Item" />
+		break;
+	case EmbedRowItem:
+		<EmbedRowComponent Item="@Item" />
 		break;
 }
+
 @code {
 	[Parameter]
-	public EmbedItem item { get; set; }
+	public EmbedItem Item { get; set; }
 
+	/// <summary>
+	/// True when rendered inside another item (e.g. a button label),
+	/// which suppresses top-level item spacing.
+	/// </summary>
 	[Parameter]
-	public Message Message { get; set; }
-
-	[Parameter]
-	public Embed embed { get; set; }
-
-	[Parameter]
-	public EmbedFormItem FormItem { get; set; }
-
-	[CascadingParameter]
-	public EmbedComponent embedComponent { get; set; }
-
-	protected override void OnInitialized()
-	{
-		if (item.Id is not null)
-			embedComponent.EmbedRootItemComponents[item.Id] = this;
-		embedComponent.RefreshRootItemComponents += Refresh;
-	}
-
-	public void Dispose()
-    {
-        embedComponent.RefreshRootItemComponents -= Refresh;
-		if (item.Id is not null)
-            embedComponent.EmbedRootItemComponents.Remove(item.Id, out var _);
-    }
-
-	public void Refresh()
-	{
-		if (item.Id is not null)
-			embedComponent.EmbedRootItemComponents[item.Id] = this;
-		StateHasChanged();
-	}
-
-	public void UpdateItem(EmbedItem newItem)
-	{
-		item = newItem;
-		Refresh();
-	}
+	public bool Nested { get; set; }
 }

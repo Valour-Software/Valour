@@ -2,34 +2,39 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Server.EndpointFilters;
 
-public class UserPermissionsRequiredFilter : IEndpointFilter
+/// <summary>
+/// Enforces [UserRequired] and [StaffRequired] for an endpoint in a single pass:
+/// token validity, account disabled/staff flags, and token scopes.
+/// Configured once at route registration and shared across requests, so it must stay stateless.
+/// </summary>
+public class UserAccessFilter : IEndpointFilter
 {
-    private readonly TokenService _tokenService;
-    private readonly UserService _userService;
+    private readonly UserPermission[] _permissions;
+    private readonly bool _staffRequired;
 
-    public UserPermissionsRequiredFilter(TokenService tokenService, UserService userService)
+    public UserAccessFilter(UserPermission[] permissions, bool staffRequired)
     {
-        _tokenService = tokenService;
-        _userService = userService;
+        _permissions = permissions;
+        _staffRequired = staffRequired;
     }
 
     public async ValueTask<object> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
-        var token = await _tokenService.GetCurrentTokenAsync();
+        var services = ctx.HttpContext.RequestServices;
 
+        var token = await services.GetRequiredService<TokenService>().GetCurrentTokenAsync();
         if (token is null)
             return ValourResult.InvalidToken();
 
-        // Check if the user account has been disabled
-        var user = await _userService.GetAsync(token.UserId);
-        if (user is null || user.Disabled)
+        var flags = await services.GetRequiredService<UserService>().GetAccessFlagsAsync(token.UserId);
+        if (flags is null || flags.Value.Disabled)
             return ValourResult.Forbid("This account has been disabled.");
 
-        var userPermAttr = (UserRequiredAttribute)ctx.HttpContext.Items[nameof(UserRequiredAttribute)];
+        if (_staffRequired && !flags.Value.ValourStaff)
+            return ValourResult.Forbid("This endpoint is staff only");
 
-        foreach (var permEnum in userPermAttr.Permissions)
+        foreach (var permission in _permissions)
         {
-            var permission = UserPermissions.Permissions[(int)permEnum];
             if (!token.HasScope(permission))
                 return ValourResult.LacksPermission(permission);
         }
@@ -46,28 +51,6 @@ public class UserRequiredAttribute : Attribute
     public UserRequiredAttribute(params UserPermissionsEnum[] permissions)
     {
         this.Permissions = permissions;
-    }
-}
-
-public class StaffRequiredFilter : IEndpointFilter
-{
-    private readonly UserService _userService;
-    
-    public StaffRequiredFilter(UserService userService)
-    {
-        _userService = userService;
-    }
-    
-    public async ValueTask<object> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
-    {
-        var user = await _userService.GetCurrentUserAsync();
-        if (user is null)
-            return ValourResult.Forbid("User not found");
-
-        if (!user.ValourStaff)
-            return ValourResult.Forbid("This endpoint is staff only");
-
-        return await next(ctx);
     }
 }
 

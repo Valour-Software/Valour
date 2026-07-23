@@ -1,53 +1,12 @@
-﻿@implements IDisposable
+@inherits EmbedItemComponentBase
 
-<div class="embed-row" style="@Row.GetStyle()">
-	@foreach(EmbedItem item in Row.Children)
+<div class="embed-row @Row.Classes" style="@Row.Style">
+	@foreach (var child in Row.Children)
 	{
-		<EmbedItemComponent embed="@embed" Message="@Message" FormItem="@FormItem" item="@item"></EmbedItemComponent>
+		<EmbedItemComponent Item="@child" @key="@(child.Id ?? (object)child)" />
 	}
 </div>
 
 @code {
-	[Parameter]
-	public EmbedRow Row { get; set; }
-
-	[Parameter]
-	public Message Message { get; set; }
-
-	[Parameter]
-	public Embed embed { get; set; }
-
-	[Parameter]
-	public EmbedFormItem FormItem { get; set; }
-
-	[CascadingParameter]
-	public EmbedComponent embedComponent { get; set; }
-
-	public void Refresh()
-	{
-		if (Row.Id is not null)
-			embedComponent.EmbedRowComponents[Row.Id] = this;
-		StateHasChanged();
-	}
-
-	public void UpdateRow(EmbedRow row)
-	{
-		Row = row;
-		Refresh();
-	}
-
-	public void Dispose()
-	{
-		embedComponent.RefreshRowComponents -= Refresh;
-		if (Row.Id is not null)
-            embedComponent.EmbedRowComponents.Remove(Row.Id, out var _);
-	}
-
-	protected override void OnInitialized()
-	{
-		embedComponent.RefreshRowComponents += Refresh;
-		if (Row.Id is not null)
-			embedComponent.EmbedRowComponents[Row.Id] = this;
-		StateHasChanged();
-	}
+	private EmbedRowItem Row => (EmbedRowItem)Item;
 }

@@ -1,47 +1,68 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
-namespace Valour.Sdk.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Embeds.Items;
 
-public enum TargetType
+public enum EmbedClickTargetType
 {
-	Link,
-	EmbedPage,
-	Event,
-	SubmitForm
+    Link = 1,
+    Page = 2,
+    Event = 3,
+    SubmitForm = 4,
 }
 
-[JsonDerivedType(typeof(EmbedLinkTarget), typeDiscriminator: 1)]
-[JsonDerivedType(typeof(EmbedPageTarget), typeDiscriminator: 2)]
-[JsonDerivedType(typeof(EmbedEventTarget), typeDiscriminator: 3)]
-[JsonDerivedType(typeof(EmbedFormSubmitTarget), typeDiscriminator: 4)]
-public abstract class EmbedClickTargetBase 
+/// <summary>
+/// What happens when a clickable embed item is clicked.
+/// </summary>
+[JsonDerivedType(typeof(EmbedLinkTarget), "link")]
+[JsonDerivedType(typeof(EmbedPageTarget), "page")]
+[JsonDerivedType(typeof(EmbedEventTarget), "event")]
+[JsonDerivedType(typeof(EmbedFormSubmitTarget), "submit")]
+public abstract class EmbedClickTarget
 {
-	[JsonPropertyName("t")]
-	public TargetType Type { get; set; }
-
-	public EmbedClickTargetBase() { }
+    [JsonIgnore]
+    public abstract EmbedClickTargetType Type { get; }
 }
 
-public class EmbedLinkTarget : EmbedClickTargetBase
+/// <summary>
+/// Opens an external link (after user confirmation).
+/// </summary>
+public class EmbedLinkTarget : EmbedClickTarget
 {
-	[JsonPropertyName("h")]
-	public string Href { get; set; }
+    public string? Href { get; set; }
+
+    [JsonIgnore]
+    public override EmbedClickTargetType Type => EmbedClickTargetType.Link;
 }
 
-public class EmbedPageTarget : EmbedClickTargetBase
+/// <summary>
+/// Navigates the embed to another page.
+/// </summary>
+public class EmbedPageTarget : EmbedClickTarget
 {
-	[JsonPropertyName("p")]
-	public int PageNumber { get; set; }
+    public int PageIndex { get; set; }
+
+    [JsonIgnore]
+    public override EmbedClickTargetType Type => EmbedClickTargetType.Page;
 }
 
-public class EmbedEventTarget : EmbedClickTargetBase
+/// <summary>
+/// Sends an interaction event to the bot that authored the embed.
+/// </summary>
+public class EmbedEventTarget : EmbedClickTarget
 {
-	[JsonPropertyName("e")]
-	public string EventElementId { get; set; }
+    public string? EventId { get; set; }
+
+    [JsonIgnore]
+    public override EmbedClickTargetType Type => EmbedClickTargetType.Event;
 }
 
-public class EmbedFormSubmitTarget : EmbedClickTargetBase
+/// <summary>
+/// Submits the enclosing form, sending its input values to the bot.
+/// </summary>
+public class EmbedFormSubmitTarget : EmbedClickTarget
 {
-    [JsonPropertyName("e")]
-    public string EventElementId { get; set; }
+    public string? EventId { get; set; }
+
+    [JsonIgnore]
+    public override EmbedClickTargetType Type => EmbedClickTargetType.SubmitForm;
 }

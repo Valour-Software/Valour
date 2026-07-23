@@ -1,0 +1,252 @@
+@implements IDisposable
+@inject ValourClient Client
+@inject UnreadService UnreadService
+@inject ContextMenuService ContextMenuService
+
+@if (_channels.Count > 0)
+{
+    <div class="favorites-section">
+        <div class="channel planet-favorites" @onclick="ToggleOpen">
+            <i class="bi bi-star-fill planet-pseudo-icon"></i>
+            <p class="name">Favorites</p>
+        </div>
+
+        @if (_open)
+        {
+            <div class="sub-list open" depth="2">
+                <div class="sub-list-inner">
+                    @for (var i = 0; i < _channels.Count; i++)
+                    {
+                        var index = i;
+                        var channel = _channels[index];
+                        var isLast = index == _channels.Count - 1;
+
+                        <div class="tree-row @(isLast ? "last" : "")" depth="2">
+                            <div class="channel-wrapper" style="margin-left: 18px" depth="2"
+                                 draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded)"
+                                 ondragover="event.preventDefault();"
+
+                                 @onclick="@(() => OnClickChannel(channel))"
+                                 @onclick:stopPropagation="true"
+
+                                 @oncontextpress="@((e) => OnContextMenu(e, channel))"
+                                 @oncontextpress:stopPropagation="true"
+
+                                 @ondragstart="@(() => OnDragStart(index))"
+                                 @ondragstart:stopPropagation="true"
+
+                                 @ondrop="@OnDrop"
+                                 @ondrop:stopPropagation="true"
+
+                                 @ondragend="@OnDragEnd"
+                                 @ondragend:stopPropagation="true">
+
+                                @if (ShowDropLine(index, true))
+                                {
+                                    <div class="drop-line"
+                                         @ondragenter:stopPropagation="true"
+                                         ondragenter="return false;"></div>
+                                }
+
+                                <div class="channel-wrapper">
+                                    @{
+                                        var unread = UnreadService.IsChannelUnread(Planet.Id, channel.Id);
+                                        var icon = GetIcon(channel, unread);
+                                    }
+                                    <div class="channel nested @(unread ? "unread" : "")">
+                                        <i class="channel-icon bi-@icon.Name"
+                                           style="font-size: @icon.Size; transform: translateY(calc(-50% - -2px)); left: @icon.Left;"></i>
+                                        <div class="path" depth="2"></div>
+                                        <p class="name">@channel.Name</p>
+                                        @if (unread)
+                                        {
+                                            <div class="unread-dot"></div>
+                                        }
+                                    </div>
+                                </div>
+
+                                @if (ShowDropLine(index, false))
+                                {
+                                    <div class="drop-line"
+                                         @ondragenter:stopPropagation="true"
+                                         ondragenter="return false;"></div>
+                                }
+
+                                <div class="drop top"
+                                     @ondragenter:stopPropagation="true"
+                                     @ondragenter="@(() => OnDragEnterZone(index, true))"></div>
+                                <div class="drop bottom"
+                                     @ondragenter:stopPropagation="true"
+                                     @ondragenter="@(() => OnDragEnterZone(index, false))"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private List<Channel> _channels = new();
+    private bool _open = true;
+
+    // Drag-to-reorder state. Reordering is local to this section; the main
+    // channel tree's ChannelDragManager is intentionally not involved.
+    private int? _dragIndex;
+    private int? _dropIndex;
+    private bool _dropBefore;
+
+    protected override void OnInitialized()
+    {
+        Client.ChannelFavoriteService.FavoritesChanged += OnFavoritesChanged;
+        Planet.Channels.Changed += OnChannelsChanged;
+        UnreadService.PlanetUnreadChanged += OnPlanetUnreadChanged;
+
+        BuildChannels();
+    }
+
+    private void BuildChannels()
+    {
+        _channels = Client.ChannelFavoriteService.GetFavoriteChannels(Planet);
+    }
+
+    private void OnFavoritesChanged()
+    {
+        InvokeAsync(() =>
+        {
+            BuildChannels();
+            StateHasChanged();
+        });
+    }
+
+    private void OnChannelsChanged(IModelEvent<Channel> eventData)
+    {
+        InvokeAsync(() =>
+        {
+            BuildChannels();
+            StateHasChanged();
+        });
+    }
+
+    private void OnPlanetUnreadChanged(long planetId)
+    {
+        if (planetId != Planet.Id)
+            return;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleOpen()
+    {
+        _open = !_open;
+    }
+
+    private async Task OnClickChannel(Channel channel)
+    {
+        var newWindowContent = await ChannelWindowFactory.GetDefaultContent(channel);
+        if (newWindowContent is not null)
+        {
+            await WindowService.OpenWindowAtFocused(newWindowContent);
+            await Sidebar.ToggleMobileSidebar();
+        }
+    }
+
+    private void OnContextMenu(ContextPressEventArgs e, Channel channel)
+    {
+        ContextMenuService.Root.OpenMenu<ChannelContextMenu>(e, new ChannelContextMenu.ChannelContextParams()
+        {
+            Channel = channel
+        });
+    }
+
+    #region Drag and Drop
+
+    private bool ShowDropLine(int index, bool before) =>
+        _dragIndex is not null &&
+        _dropIndex == index &&
+        _dropBefore == before &&
+        _dragIndex != index;
+
+    private void OnDragStart(int index)
+    {
+        _dragIndex = index;
+    }
+
+    private void OnDragEnterZone(int index, bool before)
+    {
+        // Ignore drags that did not start inside this section (e.g. channels
+        // dragged from the main tree).
+        if (_dragIndex is null)
+            return;
+
+        _dropIndex = index;
+        _dropBefore = before;
+        StateHasChanged();
+    }
+
+    private async Task OnDrop()
+    {
+        var dragIndex = _dragIndex;
+        var dropIndex = _dropIndex;
+        var dropBefore = _dropBefore;
+        ClearDragState();
+
+        if (dragIndex is null || dropIndex is null || dragIndex == dropIndex)
+            return;
+
+        var insertAt = dropBefore ? dropIndex.Value : dropIndex.Value + 1;
+        if (dragIndex.Value < insertAt)
+            insertAt--;
+
+        if (insertAt == dragIndex.Value)
+            return;
+
+        var reordered = new List<Channel>(_channels);
+        var moving = reordered[dragIndex.Value];
+        reordered.RemoveAt(dragIndex.Value);
+        reordered.Insert(insertAt, moving);
+
+        _channels = reordered;
+        StateHasChanged();
+
+        await Client.ChannelFavoriteService.ReorderAsync(
+            Planet.Id,
+            reordered.Select(x => x.Id).ToList());
+    }
+
+    private void OnDragEnd()
+    {
+        ClearDragState();
+        StateHasChanged();
+    }
+
+    private void ClearDragState()
+    {
+        _dragIndex = null;
+        _dropIndex = null;
+        _dropBefore = false;
+    }
+
+    #endregion
+
+    private readonly record struct FavoriteIcon(string Name, string Size, string Left);
+
+    private static FavoriteIcon GetIcon(Channel channel, bool unread) =>
+        channel.ChannelType switch
+        {
+            ChannelTypeEnum.PlanetVoice => new FavoriteIcon("music-note-beamed", "16px", "6px"),
+            ChannelTypeEnum.PlanetVideo => new FavoriteIcon(unread ? "camera-video-fill" : "camera-video", "16px", "6px"),
+            _ => new FavoriteIcon(unread ? "chat-left-fill" : "chat-left", "14px", "8px")
+        };
+
+    public void Dispose()
+    {
+        Client.ChannelFavoriteService.FavoritesChanged -= OnFavoritesChanged;
+        Planet.Channels.Changed -= OnChannelsChanged;
+        UnreadService.PlanetUnreadChanged -= OnPlanetUnreadChanged;
+    }
+}

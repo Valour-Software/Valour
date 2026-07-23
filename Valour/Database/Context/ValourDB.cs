@@ -83,6 +83,11 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     /// </summary>
     public DbSet<GifFavorite> GifFavorites { get; set; }
 
+    /// <summary>
+    /// Table for per-user favorite channels shown in the sidebar
+    /// </summary>
+    public DbSet<ChannelFavorite> ChannelFavorites { get; set; }
+
     // USER LOGIN AND PERMISSION STUFF //
 
     /// <summary>

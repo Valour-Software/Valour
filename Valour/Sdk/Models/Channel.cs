@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
-using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Sdk.Models.Embeds;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Channels;

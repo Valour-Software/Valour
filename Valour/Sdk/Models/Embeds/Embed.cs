@@ -1,239 +1,128 @@
-﻿using System.Text.Json.Serialization;
-using Valour.Sdk.Models.Messages.Embeds.Items;
-using Valour.Sdk.Models.Messages.Embeds.Styles;
+using Valour.Sdk.Models.Embeds.Items;
 
-namespace Valour.Sdk.Models.Messages.Embeds;
+namespace Valour.Sdk.Models.Embeds;
 
-/*  Valour (TM) - A free and secure chat client
- *  Copyright (C) 2025 Valour Software LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
- */
-
-public class EmbedRow : EmbedItem
-{
-	[JsonIgnore]
-	public override EmbedItemType ItemType => EmbedItemType.EmbedRow;
-	public override EmbedItem GetLastItem(bool InsideofForms)
-	{
-        if (Children is null || Children.Count == 0)
-            return this;
-        else
-        {
-            return Children.Last().GetLastItem(InsideofForms);
-        }
-	}
-}
-
-public class EmbedPage : EmbedItem, IParentItem
-{
-    public new List<EmbedItem> Children { get; set; }
-
-    public string Title { get; set; }
-
-    public string Footer { get; set; }
-	public List<StyleBase> TitleStyles { get; set; }
-
-    public List<StyleBase> FooterStyles { get; set; }
-
-    [JsonIgnore]
-    public new EmbedItemType ItemType => EmbedItemType.EmbedPage;
-
-    [JsonIgnore]
-	public new IParentItem Parent { get; set; }
-
-    public override List<EmbedItem> GetAllItems()
-	{
-        if (Children is null)
-            return new();
-        List<EmbedItem> items = new();
-        foreach(var _item in Children) 
-        {
-            items.Add(_item);
-            items.AddRange(_item.GetAllItems());
-        }
-        return items;
-	}
-
-	public EmbedPage()
-    {
-
-    }
-	public string GetTitleStyle(Embed embed)
-	{
-		string style = "";
-		if (TitleStyles is not null)
-		{
-			foreach (var _style in TitleStyles)
-			{
-				style += _style;
-			}
-		}
-		return style;
-	}
-	public string GetFooterStyle(Embed embed)
-	{
-		string style = "";
-		if (FooterStyles is not null)
-		{
-			foreach (var _style in FooterStyles)
-			{
-				style += _style;
-			}
-		}
-		return style;
-	}
-
-	public string GetStyle(Embed embed)
-    {
-        string style = "";
-		if (Styles is not null)
-		{
-			foreach (var _style in Styles)
-			{
-				style += _style;
-			}
-		}
-		return style;
-    }
-}
-
+/// <summary>
+/// An interactive embed attached to a message. Embeds contain one or more
+/// pages, each holding a tree of items. Built with <see cref="EmbedBuilder"/>.
+/// </summary>
 public class Embed
 {
     /// <summary>
-    /// The pages within this embed.
+    /// The current embed wire-format version. Payloads with any other
+    /// version fail to parse and render nothing.
     /// </summary>
-    public List<EmbedPage> Pages { get; set; }
+    public const int CurrentVersion = 2;
+
+    public int Version { get; set; } = CurrentVersion;
 
     /// <summary>
-    /// The name of this embed. Must be set if the embed has forms.
+    /// The name of this embed. Should be set if the embed has forms.
     /// </summary>
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     /// <summary>
-    /// The id of this embed. Must be set if the embed has forms.
+    /// The id of this embed. Should be set if the embed has forms.
     /// </summary>
-    public string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
-    /// The page that the embed starts on when it's loaded
+    /// Monotonic revision used to order live updates; clients drop updates
+    /// with a lower revision than the one they are displaying.
+    /// </summary>
+    public long Revision { get; set; }
+
+    public List<EmbedPage> Pages { get; set; } = new();
+
+    /// <summary>
+    /// The page index the embed starts on when loaded.
     /// </summary>
     public int StartPage { get; set; }
 
-    [JsonIgnore]
-    public int currentPage = 0;
-
     /// <summary>
-    /// If true, hide the change page arrows at the bottom of the embed
+    /// If true, hides the page navigation arrows below the embed.
     /// </summary>
     public bool HideChangePageArrows { get; set; }
 
-    public bool KeepPageOnUpdate { get; set; }
+    /// <summary>
+    /// If true (the default), a live update keeps the page the user
+    /// is currently viewing instead of resetting to the start page.
+    /// </summary>
+    public bool KeepPageOnUpdate { get; set; } = true;
 
     /// <summary>
-    /// The Version of the embed system
+    /// Enumerates every item in every page, depth-first.
     /// </summary>
-    public string EmbedVersion
+    public IEnumerable<EmbedItem> EnumerateItems()
     {
-        get
+        foreach (var page in Pages)
         {
-            return "1.3";
-        }
-    }
-
-    public Embed()
-    {
-    }
-
-    public EmbedItem GetLastItem(bool InsideofForms, int? pagenum = null)
-    {
-        EmbedPage page = null;
-        if (pagenum is null)
-            page = Pages.Last();
-        else 
-            page = Pages[(int)pagenum];
-        var item = page.GetLastItem(InsideofForms);
-        //if (InsideofForms) {
-        //    if (item.ItemType == EmbedItemType.Form) {
-        //        return ((EmbedFormItem)item).GetLastItem(InsideofForms);
-        //    }
-       // }
-        return item;
-}
-
-    public string GetStyle()
-    {
-        return CurrentlyDisplayed.GetStyle(this);
-    }
-
-    /// <summary>
-    /// The currently displayed page
-    /// </summary>
-    [JsonIgnore]
-    public EmbedPage CurrentlyDisplayed
-    {
-        get
-        {
-            return Pages[currentPage];
-        }
-    }
-
-    public void NextPage()
-    {
-        currentPage += 1;
-
-        if (currentPage >= Pages.Count)
-        {
-            currentPage = 0;
-        }
-    }
-    public void PrevPage()
-    {
-        currentPage -= 1;
-
-        if (currentPage < 0)
-        {
-            currentPage = Pages.Count - 1;
-        }
-    }
-
-    public List<EmbedFormData> GetFormData()
-    {
-
-        // TODO: Convert this function to use the new form system
-        // Embed.AddPage()
-        //      .AddRow()
-        //        .AddForm(Id: "User Info Form")
-        //          .AddInput("Your Name", "name")
-        //          .AddInput("Your Email", "email")
-        //          .AddSubmitButton("Submit");
-
-        List<EmbedFormData> data = new();
-
-        /*foreach (EmbedItem item in CurrentlyDisplayed)
-        {
-            if (item.Type == EmbedItemType.InputBox)
+            foreach (var child in page.Children)
             {
-                EmbedFormData DataItem = new()
-                {
-                    Element_Id = item.Id,
-                    Value = item.Value,
-                    Type = item.Type
-                };
-
-                // do only if input is not null
-                // limit the size of the input to 4096 char
-                if (DataItem.Value != null)
-                {
-                    if (DataItem.Value.Length > 4096)
-                    {
-                        DataItem.Value = DataItem.Value.Substring(0, 4095);
-                    }
-                }
-                data.Add(DataItem);
+                yield return child;
+                foreach (var descendant in child.EnumerateDescendants())
+                    yield return descendant;
             }
-        }*/
-        return data;
+        }
+    }
+
+    /// <summary>
+    /// Finds an item anywhere in the embed by Id, or null.
+    /// </summary>
+    public EmbedItem? FindItem(string id) =>
+        EnumerateItems().FirstOrDefault(x => x.Id == id);
+
+    /// <summary>
+    /// Replaces the item whose Id matches the replacement's Id, anywhere in
+    /// the embed. Returns true if a swap occurred.
+    /// </summary>
+    public bool ReplaceItem(EmbedItem replacement)
+    {
+        if (replacement.Id is null)
+            return false;
+
+        foreach (var page in Pages)
+        {
+            for (var i = 0; i < page.Children.Count; i++)
+            {
+                if (page.Children[i].Id == replacement.Id)
+                {
+                    page.Children[i] = replacement;
+                    return true;
+                }
+
+                if (page.Children[i].TryReplaceDescendant(replacement))
+                    return true;
+            }
+        }
+
+        return false;
     }
 }
 
+/// <summary>
+/// A single page of an embed: an optional title and footer around a tree of items.
+/// </summary>
+public class EmbedPage
+{
+    public string? Title { get; set; }
+
+    public string? Footer { get; set; }
+
+    /// <summary>
+    /// Inline CSS declarations applied to the title.
+    /// </summary>
+    public string? TitleStyle { get; set; }
+
+    /// <summary>
+    /// Inline CSS declarations applied to the footer.
+    /// </summary>
+    public string? FooterStyle { get; set; }
+
+    /// <summary>
+    /// Inline CSS declarations applied to the page container.
+    /// </summary>
+    public string? Style { get; set; }
+
+    public List<EmbedItem> Children { get; set; } = new();
+}

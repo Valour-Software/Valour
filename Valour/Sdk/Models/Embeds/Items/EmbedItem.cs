@@ -1,167 +1,142 @@
-﻿using System.Text.Json.Serialization;
-using Valour.Sdk.Models.Messages.Embeds.Styles;
-using Valour.Sdk.Models.Messages.Embeds.Styles.Bootstrap;
+using System.Text.Json.Serialization;
 
-namespace Valour.Sdk.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Embeds.Items;
 
 public enum EmbedItemType
 {
-    Text = 1,
-    Button = 2,
-    InputBox = 3,
-    TextArea = 4,
-    ProgressBar = 5,
-    Form = 6,
-    GoTo = 7,
-    DropDownItem = 8,
-    DropDownMenu = 9,
-    EmbedRow = 10,
-    EmbedPage = 11,
-    Progress = 12,
-    Media = 13
+    Row = 1,
+    Text = 2,
+    Button = 3,
+    InputBox = 4,
+    DropDown = 5,
+    DropDownOption = 6,
+    Form = 7,
+    Progress = 8,
+    ProgressBar = 9,
+    Media = 10,
 }
 
-public interface IEmbedFormItem
+/// <summary>
+/// An item that performs an action when clicked.
+/// </summary>
+public interface IClickableItem
 {
-    public string Id { get; set; }
-    public string Value { get; set; }
-    public EmbedItemType ItemType { get; }
+    EmbedClickTarget? ClickTarget { get; set; }
 }
 
-public interface IClickable
+/// <summary>
+/// An item that can display a bolded name above its content.
+/// </summary>
+public interface INamedItem
 {
-    [JsonPropertyName("ct")]
-    public EmbedClickTargetBase ClickTarget { get; set; }
-}
-public interface INameable
-{
-    public EmbedTextItem NameItem { get; set; }
+    EmbedTextItem? NameItem { get; set; }
 }
 
-public interface IParentItem
+/// <summary>
+/// An item whose value is collected when an enclosing form is submitted.
+/// </summary>
+public interface IFormInputItem
 {
-	public List<EmbedItem> Children { get; set; }
-
-	public EmbedItemType ItemType { get; }
-
-	public IParentItem Parent { get; set; }
-}
-
-[JsonDerivedType(typeof(EmbedItem), typeDiscriminator: 1)]
-[JsonDerivedType(typeof(EmbedTextItem), typeDiscriminator: 2)]
-[JsonDerivedType(typeof(EmbedButtonItem), typeDiscriminator: 3)]
-[JsonDerivedType(typeof(EmbedFormItem), typeDiscriminator: 4)]
-[JsonDerivedType(typeof(EmbedInputBoxItem), typeDiscriminator: 5)]
-[JsonDerivedType(typeof(EmbedDropDownMenuItem), typeDiscriminator: 6)]
-[JsonDerivedType(typeof(EmbedDropDownItem), typeDiscriminator: 7)]
-[JsonDerivedType(typeof(EmbedRow), typeDiscriminator: 8)]
-[JsonDerivedType(typeof(EmbedProgress), typeDiscriminator: 9)]
-[JsonDerivedType(typeof(EmbedProgressBar), typeDiscriminator: 10)]
-[JsonDerivedType(typeof(EmbedMediaItem), typeDiscriminator: 11)]
-public class EmbedItem : IParentItem
-{
-    [JsonIgnore]
-    public virtual EmbedItemType ItemType { get; }
-    
-    public List<EmbedItem> Children { get; set; }
-
-    [JsonIgnore]
-	public IParentItem Parent { get; set; }
-
-	public List<StyleBase> Styles { get; set; }
-
-	[JsonIgnore]
-    public Embed Embed { get; set; }
-
-    public List<BootstrapClass> Classes { get; set; }
-
-    public string Id { get; set; }
+    string? Id { get; set; }
+    string? Value { get; set; }
 
     /// <summary>
-    /// This is NOT sent to the client. This is meant to be used by bots and frameworks.
+    /// When true (the default), a live embed update does not overwrite
+    /// what the user has already entered.
     /// </summary>
+    bool KeepValueOnUpdate { get; set; }
+
+    EmbedItemType ItemType { get; }
+}
+
+/// <summary>
+/// Base type for everything that can appear inside an embed page.
+/// The tree is purely serializable: items hold no parent or embed
+/// back-references; render-time context flows through the component tree.
+/// </summary>
+[JsonDerivedType(typeof(EmbedRowItem), "row")]
+[JsonDerivedType(typeof(EmbedTextItem), "text")]
+[JsonDerivedType(typeof(EmbedButtonItem), "button")]
+[JsonDerivedType(typeof(EmbedInputBoxItem), "input")]
+[JsonDerivedType(typeof(EmbedDropDownItem), "dropdown")]
+[JsonDerivedType(typeof(EmbedDropDownOptionItem), "option")]
+[JsonDerivedType(typeof(EmbedFormItem), "form")]
+[JsonDerivedType(typeof(EmbedProgressItem), "progress")]
+[JsonDerivedType(typeof(EmbedProgressBarItem), "progressBar")]
+[JsonDerivedType(typeof(EmbedMediaItem), "media")]
+public abstract class EmbedItem
+{
+    /// <summary>
+    /// Optional identifier. Required for items that participate in forms,
+    /// interaction events, or targeted live updates.
+    /// </summary>
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// Inline CSS declarations applied to the item, e.g. "width: 50%; color: red;".
+    /// Build with <see cref="Styles.EmbedStyles"/> for typed authoring.
+    /// </summary>
+    public string? Style { get; set; }
+
+    /// <summary>
+    /// Extra CSS classes applied to the item, space-separated.
+    /// </summary>
+    public string? Classes { get; set; }
+
     [JsonIgnore]
-    public Dictionary<string, object> ExtraData { get; set; }
+    public abstract EmbedItemType ItemType { get; }
 
-    public virtual List<EmbedItem> GetAllItems()
-	{
-        if (Children is null)
-            return new();
-        List<EmbedItem> items = new();
-        foreach(var _item in Children) 
-        {
-            items.Add(_item);
-            items.AddRange(_item.GetAllItems());
-        }
-        return items;
-	}
-
-	public virtual EmbedItem GetLastItem(bool InsideofForms)
-	{
-        if (Children is null || Children.Count == 0)
-            return this;
-        else
-        {
-            return Children.Last().GetLastItem(InsideofForms);
-        }
-	}
-
-    public void Init(Embed embed, IParentItem parent)
+    /// <summary>
+    /// Enumerates all items nested under this one, depth-first.
+    /// </summary>
+    public virtual IEnumerable<EmbedItem> EnumerateDescendants()
     {
-        Parent = parent;
-        Embed = embed;
-        if (Children is not null) {
-            foreach(var item in Children) 
-            {
-                item.Init(embed, this);
-            }
-        }
-        if (Children is null)
-        {
-            Children = new();
-		}
+        yield break;
     }
 
-    public virtual string GetStyle()
+    /// <summary>
+    /// Replaces the descendant whose Id matches the replacement's Id.
+    /// Returns true if a swap occurred.
+    /// </summary>
+    public virtual bool TryReplaceDescendant(EmbedItem replacement) => false;
+
+    /// <summary>
+    /// Enumerates a child list and everything below it, depth-first.
+    /// </summary>
+    protected static IEnumerable<EmbedItem> EnumerateList(IEnumerable<EmbedItem>? children)
     {
-        string style = "";
-        if (Styles is not null)
+        if (children is null)
+            yield break;
+
+        foreach (var child in children)
         {
-            foreach (var _style in Styles)
-            {
-                style += _style;
-            }
+            yield return child;
+            foreach (var descendant in child.EnumerateDescendants())
+                yield return descendant;
         }
-
-        if (ItemType == EmbedItemType.EmbedRow && !style.Contains("display: flex"))
-            style += "display: flex;";//align-items: center;";
-
-        else if (Parent is null)
-            return style;
-
-        if (Parent.ItemType == EmbedItemType.EmbedRow && !(style.Contains("margin-right") || style.Contains("margin-left")))
-            style += "margin-right: 5px;";
-
-        if (ItemType == EmbedItemType.Button && !style.Contains("align-self"))
-            style += "align-self: end;display: flex;";
-
-        if (ItemType == EmbedItemType.Progress && !style.Contains("width"))
-            style += "width: 150px";
-
-        return style;
     }
 
-    public virtual string GetClasses()
+    /// <summary>
+    /// Replaces an item by Id within a child list (searching nested items too).
+    /// Returns true if a swap occurred.
+    /// </summary>
+    protected static bool TryReplaceInList(List<EmbedItem>? children, EmbedItem replacement)
     {
-        string classes = "";
-        if (Classes is not null)
+        if (children is null)
+            return false;
+
+        for (var i = 0; i < children.Count; i++)
         {
-            foreach (var _class in Classes)
+            if (children[i].Id is not null && children[i].Id == replacement.Id)
             {
-                classes += _class + " ";
+                children[i] = replacement;
+                return true;
             }
+
+            if (children[i].TryReplaceDescendant(replacement))
+                return true;
         }
 
-        return classes;
+        return false;
     }
 }

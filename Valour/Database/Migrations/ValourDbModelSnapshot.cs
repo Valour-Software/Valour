@@ -417,6 +417,41 @@ namespace Valour.Database.Migrations
                     b.ToTable("channels", (string)null);
                 });
 
+            modelBuilder.Entity("Valour.Database.ChannelFavorite", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "ChannelId")
+                        .IsUnique();
+
+                    b.ToTable("channel_favorites");
+                });
+
             modelBuilder.Entity("Valour.Database.ChannelMember", b =>
                 {
                     b.Property<long>("Id")

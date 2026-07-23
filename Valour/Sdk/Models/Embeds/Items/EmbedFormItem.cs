@@ -1,64 +1,49 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
-namespace Valour.Sdk.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Embeds.Items;
 
+/// <summary>
+/// A container whose input values are collected and sent to the bot
+/// when a submit button inside it is clicked.
+/// </summary>
 public class EmbedFormItem : EmbedItem
 {
+    public const int MaxInputValueLength = 4096;
+
+    public List<EmbedItem> Children { get; set; } = new();
+
+    [JsonIgnore]
+    public override EmbedItemType ItemType => EmbedItemType.Form;
+
+    public override IEnumerable<EmbedItem> EnumerateDescendants() => EnumerateList(Children);
+
+    public override bool TryReplaceDescendant(EmbedItem replacement) => TryReplaceInList(Children, replacement);
+
     /// <summary>
-    /// the id of this form, ex "UserForms.User-Signup"
+    /// Collects the values of all inputs in this form. Inputs without
+    /// an Id are skipped; values are truncated to <see cref="MaxInputValueLength"/> chars.
     /// </summary>
-    public new string Id { get; set; }
-
-	[JsonIgnore]
-	public override EmbedItemType ItemType => EmbedItemType.Form;
-
-	public override EmbedItem GetLastItem(bool InsideofForms)
-    {
-        if (InsideofForms)
-            return Children.Last().GetLastItem(InsideofForms);
-        else
-            return this;
-    }
-
     public List<EmbedFormData> GetFormData()
     {
         List<EmbedFormData> data = new();
-        
-        var items = GetAllItems().Where(x => x is IEmbedFormItem);
-        foreach (IEmbedFormItem item in items)
+
+        foreach (var item in EnumerateDescendants())
         {
-            if (item.ItemType == EmbedItemType.InputBox)
-            {
-                EmbedFormData DataItem = new()
-                {
-                    ElementId = item.Id,
-                    Value = item.Value,
-                    Type = item.ItemType
-                };
+            if (item is not IFormInputItem input || input.Id is null)
+                continue;
 
-                // do only if input is not null
-                // limit the size of the input to 4096 char
-                if (DataItem.Value != null)
-                {
-                    if (DataItem.Value.Length > 4096)
-                    {
-                        DataItem.Value = DataItem.Value.Substring(0, 4095);
-                    }
-                }
-                data.Add(DataItem);
-            }
-            if (item.ItemType == EmbedItemType.DropDownMenu)
-            {
-				EmbedFormData DataItem = new()
-				{
-					ElementId = item.Id,
-					Value = item.Value,
-					Type = item.ItemType
-				};
+            var value = input.Value;
+            if (value is not null && value.Length > MaxInputValueLength)
+                value = value[..MaxInputValueLength];
 
-				data.Add(DataItem);
-			}
+            data.Add(new EmbedFormData
+            {
+                ElementId = input.Id,
+                Value = value,
+                Type = input.ItemType,
+            });
         }
+
         return data;
     }
 }

@@ -1,8 +1,8 @@
 #nullable enable annotations
 
 using System.Text.Json;
-using Valour.Sdk.Models.Messages.Embeds;
-using Valour.Sdk.Models.Messages.Embeds.Items;
+using Valour.Sdk.Models.Embeds;
+using Valour.Sdk.Models.Embeds.Items;
 using Valour.Server.Database;
 using Valour.Server.Cdn;
 using Valour.Server.Utilities;
@@ -976,34 +976,28 @@ public class MessageService
         if (string.IsNullOrWhiteSpace(attachment.Data))
             return TaskResult.FromFailure("Embed attachment must include data.");
 
-        if (attachment.Data.Length > 65535)
-            return TaskResult.FromFailure("Embed data must be under 65535 chars");
+        if (attachment.Data.Length > EmbedParser.MaxPayloadLength)
+            return TaskResult.FromFailure($"Embed data must be under {EmbedParser.MaxPayloadLength} chars");
 
-        Embed embed;
-        try
-        {
-            embed = JsonSerializer.Deserialize<Embed>(attachment.Data);
-        }
-        catch
-        {
-            return TaskResult.FromFailure("Embed data is invalid.");
-        }
-
-        if (embed?.Pages is null)
+        var embed = EmbedParser.TryParse(attachment.Data);
+        if (embed is null)
             return TaskResult.FromFailure("Embed data is invalid.");
 
-        foreach (var page in embed.Pages)
-        {
-            foreach (var item in page.GetAllItems())
-            {
-                if (item.ItemType != EmbedItemType.Media)
-                    continue;
+        var valid = EmbedParser.Validate(embed);
+        if (!valid.Success)
+            return valid;
 
-                var mediaAttachment = ((EmbedMediaItem)item).Attachment;
-                var result = MediaUriHelper.ScanMediaUri(mediaAttachment);
-                if (!result.Success)
-                    return TaskResult.FromFailure($"Error scanning media URI in embed | Page {page.Id} | ServerModel {item.Id}) | URI {mediaAttachment.Location}");
-            }
+        foreach (var item in embed.EnumerateItems())
+        {
+            if (item is not EmbedMediaItem media)
+                continue;
+
+            if (media.Attachment is null)
+                return TaskResult.FromFailure("Embed media item is missing its attachment.");
+
+            var result = MediaUriHelper.ScanMediaUri(media.Attachment);
+            if (!result.Success)
+                return TaskResult.FromFailure($"Error scanning media URI in embed | Item {item.Id} | URI {media.Attachment.Location}");
         }
 
         return TaskResult.SuccessResult;

@@ -27,8 +27,6 @@ namespace Valour.Server;
 
 public partial class Program
 {
-    public static List<object> DynamicApis { get; set; }
-
     public static NodeAPI NodeAPI { get; set; }
     
     public static async Task Main(string[] args)
@@ -126,48 +124,11 @@ public partial class Program
         InstanceApi.AddRoutes(app);
         EmbedAPI.AddRoutes(app);
         OauthAppApi.StartCodeCleanupTask();
+        TokenService.StartCacheSweepTask();
+        UserService.StartAccessFlagsSweepTask();
         VoiceSignallingApi.AddRoutes(app);
         
-        DynamicApis = new()
-        {
-            new DynamicAPI<UserApi>().RegisterRoutes(app),
-            new DynamicAPI<BootstrapApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetStorageApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetVoiceApi>().RegisterRoutes(app),
-            new DynamicAPI<FederationApi>().RegisterRoutes(app),
-            new DynamicAPI<ChannelApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetMemberApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetRoleApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetEmojiApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetRuleApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetReportApi>().RegisterRoutes(app),
-            new DynamicAPI<ThreadApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetWikiApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetInviteApi>().RegisterRoutes(app),
-            new DynamicAPI<PlanetBanApi>().RegisterRoutes(app),
-            new DynamicAPI<PermissionsNodeApi>().RegisterRoutes(app),
-            new DynamicAPI<AutomodApi>().RegisterRoutes(app),
-            new DynamicAPI<UserFriendApi>().RegisterRoutes(app),
-            new DynamicAPI<UserBlockApi>().RegisterRoutes(app),
-            new DynamicAPI<OauthAppApi>().RegisterRoutes(app),
-            new DynamicAPI<GifFavoriteApi>().RegisterRoutes(app),
-            new DynamicAPI<TenorFavoriteApi>().RegisterRoutes(app),
-            new DynamicAPI<EcoApi>().RegisterRoutes(app),
-            new DynamicAPI<NotificationApi>().RegisterRoutes(app),
-            new DynamicAPI<ReportApi>().RegisterRoutes(app),
-            new DynamicAPI<UserProfileApi>().RegisterRoutes(app),
-            new DynamicAPI<SubscriptionApi>().RegisterRoutes(app),
-            new DynamicAPI<StripeApi>().RegisterRoutes(app),
-            new DynamicAPI<ThemeApi>().RegisterRoutes(app),
-            new DynamicAPI<StaffApi>().RegisterRoutes(app),
-            new DynamicAPI<MessageApi>().RegisterRoutes(app),
-            new DynamicAPI<AttachmentApi>().RegisterRoutes(app),
-            new DynamicAPI<UnreadApi>().RegisterRoutes(app),
-            new DynamicAPI<TagApi>().RegisterRoutes(app),
-            new DynamicAPI<BotApi>().RegisterRoutes(app),
-            new DynamicAPI<UnsubscribeApi>().RegisterRoutes(app),
-        };
+        DynamicAPI.RegisterAll(app);
 
         NodeAPI = new NodeAPI();
         NodeAPI.AddRoutes(app);
@@ -589,6 +550,7 @@ public partial class Program
         services.AddScoped<PlanetWikiService>();
         services.AddScoped<PlanetService>();
         services.AddScoped<GifFavoriteService>();
+        services.AddScoped<ChannelFavoriteService>();
         services.AddScoped<TenorFavoriteService>();
         services.AddScoped<AutomodService>();
         services.AddScoped<ModerationAuditService>();

@@ -1,49 +1,67 @@
-﻿using System.Text.Json.Serialization;
+using Valour.Sdk.Models.Embeds.Items;
 
-namespace Valour.Sdk.Models.Messages.Embeds;
+namespace Valour.Sdk.Models.Embeds;
 
-/*  Valour (TM) - A free and secure chat client
- *  Copyright (C) 2025 Valour Software LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
- */
-
-public enum EmbedIteractionEventType
+public enum EmbedInteractionEventType
 {
     ItemClicked = 1,
     FormSubmitted = 2,
 }
 
-public class EmbedInteractionEvent
+/// <summary>
+/// What a client sends when a user interacts with an embed. The server
+/// derives all context (channel, planet, members) from the message itself,
+/// so clients only report what was interacted with.
+/// </summary>
+public class EmbedInteractionRequest
 {
-    [JsonPropertyName("FormId")]
-    public string FormId { get; set; }
-
-    [JsonPropertyName("ElementId")]
-    public string ElementId { get; set; }
-
-    [JsonPropertyName("EmbedIteractionEventType")]
-    public EmbedIteractionEventType EventType { get; set; }
-
-    [JsonPropertyName("PlanetId")]
-    public long PlanetId { get; set; }
-
-    [JsonPropertyName("MessageId")]
     public long MessageId { get; set; }
 
-    [JsonPropertyName("Author_MemberId")]
-    public long Author_MemberId { get; set; }
+    public EmbedInteractionEventType EventType { get; set; }
 
-    [JsonPropertyName("MemberId")]
-    public long MemberId { get; set; }
+    /// <summary>
+    /// The event id of the clicked element, from its click target.
+    /// </summary>
+    public string? ElementId { get; set; }
 
-    [JsonPropertyName("ChannelId")]
-    public long ChannelId { get; set; }
+    /// <summary>
+    /// The id of the submitted form, for form submissions.
+    /// </summary>
+    public string? FormId { get; set; }
 
-    [JsonPropertyName("TimeInteracted")]
-    public DateTime TimeInteracted { get; set; }
-
-    [JsonPropertyName("FormData")]
-    public List<EmbedFormData> FormData { get; set; }
+    public List<EmbedFormData>? FormData { get; set; }
 }
 
+/// <summary>
+/// The interaction event relayed to bots. All contextual fields are
+/// stamped by the server; only the element/form data originates
+/// from the interacting client.
+/// </summary>
+public class EmbedInteractionEvent
+{
+    public EmbedInteractionEventType EventType { get; set; }
+
+    public string? ElementId { get; set; }
+
+    public string? FormId { get; set; }
+
+    public List<EmbedFormData>? FormData { get; set; }
+
+    public long MessageId { get; set; }
+
+    public long ChannelId { get; set; }
+
+    public long PlanetId { get; set; }
+
+    /// <summary>
+    /// The planet member of the message author (the bot).
+    /// </summary>
+    public long AuthorMemberId { get; set; }
+
+    /// <summary>
+    /// The planet member who interacted.
+    /// </summary>
+    public long MemberId { get; set; }
+
+    public DateTime TimeInteracted { get; set; }
+}

@@ -1,14 +1,18 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
-namespace Valour.Sdk.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Embeds.Items;
 
-public class EmbedMediaItem : EmbedItem, IClickable
+/// <summary>
+/// A piece of media (image, video, etc.) rendered through the normal
+/// attachment pipeline. The attachment location must pass the server's
+/// media URI scan.
+/// </summary>
+public class EmbedMediaItem : EmbedItem, IClickableItem
 {
-	[JsonIgnore]
-	public override EmbedItemType ItemType => EmbedItemType.Media;
+    public MessageAttachment? Attachment { get; set; }
 
-	public MessageAttachment Attachment { get; set; }
+    public EmbedClickTarget? ClickTarget { get; set; }
 
-	[JsonPropertyName("ct")]
-	public EmbedClickTargetBase ClickTarget { get; set; }
+    [JsonIgnore]
+    public override EmbedItemType ItemType => EmbedItemType.Media;
 }

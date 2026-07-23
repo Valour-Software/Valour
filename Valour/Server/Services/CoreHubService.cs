@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
 using Valour.Config.Configs;
-using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Sdk.Models.Embeds;
 using Valour.Server.Hubs;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
@@ -392,10 +392,10 @@ public class CoreHubService
     public void NotifyDirectMessageDeletion(Message message, long targetUserId) =>
         _ = _hub.Clients.Group($"u-{targetUserId}").SendAsync("DeleteMessage", message);
 
-    public void NotifyPersonalEmbedUpdateEvent(PersonalEmbedUpdate u) =>
+    public void NotifyPersonalEmbedUpdateEvent(EmbedUpdate u) =>
         _ = _hub.Clients.Group($"u-{u.TargetUserId}").SendAsync("Personal-Embed-Update", u);
 
-    public void NotifyChannelEmbedUpdateEvent(ChannelEmbedUpdate u) =>
+    public void NotifyChannelEmbedUpdateEvent(EmbedUpdate u) =>
         _ = _hub.Clients.Group($"c-{u.TargetChannelId}").SendAsync("Channel-Embed-Update", u);
     
     public async Task NotifyUserChange(User user, int flags = 0)

@@ -1,91 +1,87 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
+using System.Reflection;
+using Valour.Shared.Authorization;
 
 namespace Valour.Server.API;
 
 /// <summary>
-/// The ServerModel API allows for easy construction of routes
-/// relating to Valour Items.
+/// Registers minimal API routes for every [ValourRoute] method in the server assembly.
 /// </summary>
-public class DynamicAPI<T> where T : class
+public static class DynamicAPI
 {
+    // Stateless, so a single instance serves every endpoint
+    private static readonly NotHostedExceptionFilter NotHostedFilter = new();
+
     /// <summary>
-    /// This method registers the API routes and should only be called
-    /// once during the application runtime.
+    /// Scans the server assembly for [ValourRoute] methods and registers their routes.
+    /// Should only be called once during startup.
     /// </summary>
-    public DynamicAPI<T> RegisterRoutes(WebApplication app)
+    public static void RegisterAll(WebApplication app)
     {
-        T dummy = (T)Activator.CreateInstance(typeof(T));
+        // Tracks (verb, route) pairs so duplicates fail at startup instead of
+        // as an AmbiguousMatchException on the first request to hit them.
+        var registered = new HashSet<(HttpVerbs, string)>();
 
-        // Custom routes
-        var methods = typeof(T).GetMethods();
-        foreach (var method in methods)
+        foreach (var type in typeof(DynamicAPI).Assembly.GetTypes())
         {
-            var attributes = method.GetCustomAttributes(false);
-
-            foreach (var att in attributes)
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Static |
+                                                   BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
-                if (att is ValourRouteAttribute)
-                {
-                    if (!method.IsStatic)
-                        throw new Exception($"Cannot use a non-static method for ValourRoute! Class: {typeof(T).Name}, Method: {method.Name}");
+                if (!method.IsDefined(typeof(ValourRouteAttribute), false))
+                    continue;
 
-                    var val = (ValourRouteAttribute)att;
-
-                    // This magically builds a delegate matching the method
-                    var paramTypes = method.GetParameters().Select(x => x.ParameterType);
-                    var delegateType = Expression.GetDelegateType(paramTypes.Append(method.ReturnType).ToArray());
-                    var del = method.CreateDelegate(delegateType);
-
-                    RouteHandlerBuilder builder = null;
-                    
-                    switch (val.Method)
-                    {
-                        case HttpVerbs.Get:
-                            builder = app.MapGet(val.Route, del);
-                            break;
-                        case HttpVerbs.Post:
-                            builder = app.MapPost(val.Route, del);
-                            break;
-                        case HttpVerbs.Put:
-                            builder = app.MapPut(val.Route, del);
-                            break;
-                        case HttpVerbs.Patch:
-                            builder = app.MapPatch(val.Route, del);
-                            break;
-                        case HttpVerbs.Delete:
-                            builder = app.MapDelete(val.Route, del);
-                            break;
-                    }
-                    
-                    // Add user validation
-
-                    foreach (var attr in attributes.Where(x => x is UserRequiredAttribute))
-                    {
-                        /* Adds data */
-                        builder.AddEndpointFilter(async (ctx, next) =>
-                        {
-                            ctx.HttpContext.Items[nameof(UserRequiredAttribute)] = (UserRequiredAttribute)attr;
-                            return await next(ctx);
-                        });
-
-                        /* Does filtering */
-                        builder.AddEndpointFilter<UserPermissionsRequiredFilter>();
-                    }
-                    
-                    // Add staff validation
-
-                    foreach (var attr in attributes.Where(x => x is StaffRequiredAttribute))
-                    {
-                        /* Does filtering */
-                        builder.AddEndpointFilter<StaffRequiredFilter>();
-                    }
-                    
-                    // Add wrong node exception handling
-                    builder.AddEndpointFilter<NotHostedExceptionFilter>();
-                }
+                RegisterMethod(app, type, method, registered);
             }
         }
+    }
 
-        return this;
+    private static void RegisterMethod(WebApplication app, Type type, MethodInfo method, HashSet<(HttpVerbs, string)> registered)
+    {
+        if (!method.IsStatic)
+            throw new Exception($"Cannot use a non-static method for ValourRoute! Class: {type.Name}, Method: {method.Name}");
+
+        // This magically builds a delegate matching the method
+        var paramTypes = method.GetParameters().Select(x => x.ParameterType);
+        var delegateType = Expression.GetDelegateType(paramTypes.Append(method.ReturnType).ToArray());
+        var del = method.CreateDelegate(delegateType);
+
+        var attributes = method.GetCustomAttributes(false);
+        var userRequired = attributes.OfType<UserRequiredAttribute>().FirstOrDefault();
+        var staffRequired = attributes.OfType<StaffRequiredAttribute>().Any();
+
+        UserAccessFilter accessFilter = null;
+        if (userRequired is not null || staffRequired)
+        {
+            // Resolve permission scopes once here rather than on every request
+            var permissions = userRequired?.Permissions
+                .Select(p => UserPermissions.Permissions[(int)p])
+                .ToArray() ?? [];
+
+            accessFilter = new UserAccessFilter(permissions, staffRequired);
+        }
+
+        foreach (var route in attributes.OfType<ValourRouteAttribute>())
+        {
+            if (!registered.Add((route.Method, route.Route.ToLowerInvariant())))
+                throw new Exception($"Duplicate route: {route.Method} {route.Route} ({type.Name}.{method.Name})");
+
+            var builder = route.Method switch
+            {
+                HttpVerbs.Get => app.MapGet(route.Route, del),
+                HttpVerbs.Post => app.MapPost(route.Route, del),
+                HttpVerbs.Put => app.MapPut(route.Route, del),
+                HttpVerbs.Patch => app.MapPatch(route.Route, del),
+                HttpVerbs.Delete => app.MapDelete(route.Route, del),
+                _ => throw new Exception($"Unsupported HTTP verb {route.Method} on {type.Name}.{method.Name}"),
+            };
+
+            builder.WithDisplayName($"{type.Name}.{method.Name}");
+            builder.WithTags(type.Name);
+
+            if (accessFilter is not null)
+                builder.AddEndpointFilter(accessFilter);
+
+            builder.AddEndpointFilter(NotHostedFilter);
+        }
     }
 }

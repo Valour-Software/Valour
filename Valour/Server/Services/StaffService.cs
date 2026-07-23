@@ -195,6 +195,7 @@ public class StaffService
         user.Disabled = value;
 
         await _db.SaveChangesAsync();
+        UserService.InvalidateAccessFlags(userId);
 
         await InvalidateSessionsAsync(userId);
 

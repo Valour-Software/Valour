@@ -1,0 +1,9 @@
+.embed-input input {
+    background-color: var(--main-1);
+    color: var(--font-color);
+    margin-top: 0;
+}
+
+.embed-input .item-name {
+    margin-left: 2px;
+}

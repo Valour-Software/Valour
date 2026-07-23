@@ -1,8 +1,6 @@
-﻿using System.Text.Json.Serialization;
+namespace Valour.Sdk.Models.Embeds.Styles;
 
-namespace Valour.Sdk.Models.Messages.Embeds.Styles;
-
-public enum Unit
+public enum SizeUnit
 {
     Zero,
     Auto,
@@ -11,52 +9,45 @@ public enum Unit
     MaxContent,
     MinContent,
     FitContent,
-    Em
+    Em,
 }
 
-public class Size
+/// <summary>
+/// A CSS length value. Only used at build time; embeds serialize
+/// the compiled CSS string.
+/// </summary>
+public readonly struct Size
 {
-    public static readonly Size Zero = new Size(Unit.Zero);
-    public static readonly Size Full = new Size(Unit.Percent, 100);
-    public static readonly Size Half = new Size(Unit.Percent, 50);
-    public static readonly Size Third = new Size(Unit.Percent, 33);
-    public static readonly Size Quarter = new Size(Unit.Percent, 25);
+    public static readonly Size Zero = new(SizeUnit.Zero);
+    public static readonly Size Auto = new(SizeUnit.Auto);
+    public static readonly Size Full = Percent(100);
+    public static readonly Size Half = Percent(50);
+    public static readonly Size Third = Percent(33);
+    public static readonly Size Quarter = Percent(25);
 
-    [JsonPropertyName("u")]
-    public Unit Unit { get; set; }
+    public SizeUnit Unit { get; }
+    public double Value { get; }
 
-    [JsonPropertyName("v")]
-    public int Value { get; set; }
-
-	public Size(Unit unit, int value = 0)
+    public Size(SizeUnit unit, double value = 0)
     {
         Unit = unit;
         Value = value;
     }
-    
-    public override string ToString()
+
+    public static Size Pixels(double value) => new(SizeUnit.Pixels, value);
+    public static Size Percent(double value) => new(SizeUnit.Percent, value);
+    public static Size Em(double value) => new(SizeUnit.Em, value);
+
+    public override string ToString() => Unit switch
     {
-        switch (Unit)
-        {
-            case Unit.Zero:
-                return "0";
-            case Unit.Auto:
-                return "auto";
-            case Unit.MaxContent:
-                return "max-content";
-            case Unit.MinContent:
-                return "min-content";
-            case Unit.FitContent:
-                return "fit-content";
-            case Unit.Pixels:
-                return Value + "px";
-            case Unit.Percent:
-                return Value + "%";
-            case Unit.Em:
-                return Value + "em";
-        }
-
-        return "";
-    }
-
+        SizeUnit.Zero => "0",
+        SizeUnit.Auto => "auto",
+        SizeUnit.MaxContent => "max-content",
+        SizeUnit.MinContent => "min-content",
+        SizeUnit.FitContent => "fit-content",
+        SizeUnit.Pixels => $"{Value}px",
+        SizeUnit.Percent => $"{Value}%",
+        SizeUnit.Em => $"{Value}em",
+        _ => "0",
+    };
 }

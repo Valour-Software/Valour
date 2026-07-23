@@ -1,104 +1,16 @@
-@inject HttpClient Http
-@implements IDisposable
+@inherits EmbedItemComponentBase
 @inject IJSRuntime JsRuntime
-@inherits BaseEmbedItemComponent
 
-<button type="button" class="btn embed-item" style="color: #ffffff;background: #000000;@_buttonItem.GetStyle()" @onclick="(async () => {await OnEmbedButtonClick();})">
-    @foreach (var child in _buttonItem.Children)
-    {
-        <EmbedItemComponent item="@child"></EmbedItemComponent>
-    }
+<button type="button" class="btn embed-item embed-button @Button.Classes" style="@Button.Style" @onclick="HandleClickAsync">
+	@foreach (var child in Button.Children)
+	{
+		<EmbedItemComponent Item="@child" Nested="true" @key="@(child.Id ?? (object)child)" />
+	}
 </button>
+
 @code {
-    [Parameter]
-    public Message Message {get; set;}
+	private EmbedButtonItem Button => (EmbedButtonItem)Item;
 
-    [Parameter]
-    public Embed Embed { get; set;}
-
-    [Parameter]
-    public EmbedFormItem FormItem { get; set; }
-
-    [CascadingParameter]
-    public ModalRoot ModalRoot { get; set; }
-
-    private EmbedButtonItem _buttonItem;
-
-    private bool _processClick = false;
-
-    protected override void OnInitialized()
-    {
-        _buttonItem = (EmbedButtonItem)_item;
-        embedComponent.RefreshItemComponents += Refresh;
-        if (_buttonItem.Id is not null)
-			embedComponent.ItemComponents[_buttonItem.Id] = this;
-    }
-
-    public override void Refresh()
-    {
-        _buttonItem = (EmbedButtonItem)_item;
-        if (_buttonItem.Id is not null)
-			embedComponent.ItemComponents[_buttonItem.Id] = this;
-        StateHasChanged();
-    }
-
-    public void Dispose()
-    {
-        embedComponent.RefreshItemComponents -= Refresh;
-        if (_buttonItem.Id is not null)
-            embedComponent.ItemComponents.Remove(_buttonItem.Id, out var _);
-    }
-
-    protected override Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (_processClick)
-        {
-            _processClick = false;
-            Task.Run((async () => await EmbedGoToClickHandler.HandleClick(_buttonItem, embedComponent, ModalRoot, JsRuntime)));
-        }
-        return base.OnAfterRenderAsync(firstRender);
-    }
-
-    public async Task OnEmbedButtonClick()
-    {
-        if (_buttonItem.ClickTarget is null)
-            return;
-
-        if (_buttonItem.ClickTarget.Type != TargetType.SubmitForm)
-        {
-            _processClick = true;
-            return;
-        }
-
-        //Console.WriteLine("Hello");
-        //Console.WriteLine(FormItem is not null);
-        //Console.WriteLine(Item.ClickTarget.Type);
-
-        var interaction = new EmbedInteractionEvent()
-        {
-            MessageId = Message.Id,
-            ChannelId = Message.ChannelId,
-            TimeInteracted = DateTime.UtcNow,
-            ElementId = ((EmbedFormSubmitTarget)_buttonItem.ClickTarget).EventElementId
-        };
-
-        if (Message.PlanetId is not null)
-        {
-            var selfMember = Message.Planet.MyMember;
-            interaction.PlanetId = selfMember.PlanetId;
-            interaction.Author_MemberId = Message.AuthorMemberId!.Value;
-            interaction.MemberId = selfMember.Id;
-        }
-
-        if (FormItem is not null && _buttonItem.ClickTarget.Type == TargetType.SubmitForm)
-        {
-            interaction.FormData = FormItem.GetFormData();
-            interaction.FormId = FormItem.Id;
-            interaction.EventType = EmbedIteractionEventType.FormSubmitted;
-        }
-
-        var response = await embedComponent.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
-
-        Console.WriteLine(response.Content.ReadAsStringAsync());
-    }
+	private Task HandleClickAsync() =>
+		EmbedClickHandler.HandleClickAsync(Button, Root, EnclosingForm, JsRuntime);
 }

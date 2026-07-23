@@ -1,493 +1,539 @@
-﻿using Valour.Sdk.Models.Messages.Embeds.Items;
-using Valour.Sdk.Models.Messages.Embeds.Styles;
-using Valour.Sdk.Models.Messages.Embeds.Styles.Basic;
-using Valour.Sdk.Models.Messages.Embeds.Styles.Bootstrap;
-using System.Collections.Concurrent;
+using Valour.Sdk.Models.Embeds.Items;
+using Valour.Sdk.Models.Embeds.Styles;
 using Valour.Shared.Models;
 
-namespace Valour.Sdk.Models.Messages.Embeds;
+namespace Valour.Sdk.Models.Embeds;
 
-public class EmbedBuilder
+/// <summary>
+/// Fluent builder for embeds. Items are added to the most recently opened
+/// container (page, row, or form); modifiers like <see cref="WithStyle"/> and
+/// <see cref="OnClickLink"/> apply to the most recently added item.
+/// </summary>
+/// <example>
+/// var embed = new EmbedBuilder()
+///     .AddPage("Signup")
+///         .AddForm("signup-form")
+///             .AddInputBox("name", name: "Your Name")
+///             .AddButton("Submit").OnClickSubmitForm("signup-submitted")
+///         .EndForm()
+///     .Build();
+/// </example>
+public sealed class EmbedBuilder
 {
-    public static List<EmbedItemType> AllowedTypesForNameStyles = new() { EmbedItemType.Text, EmbedItemType.DropDownMenu, EmbedItemType.InputBox };
+    private readonly Embed _embed = new();
+    private EmbedPage? _currentPage;
+    private enum ContainerKind { Page, Row, Form }
 
-    public Embed embed;
-
-    public EmbedItem LastItem;
-
-    public EmbedFormItem formItem;
-
-    public EmbedProgressBar progressBar;
-
-    public EmbedProgress progress;
+    private readonly Stack<(ContainerKind Kind, List<EmbedItem> Children)> _containers = new();
+    private EmbedItem? _lastItem;
+    private EmbedDropDownItem? _currentDropDown;
+    private EmbedProgressItem? _currentProgress;
 
     /// <summary>
-    /// The current item that we are "in"
+    /// Finishes the embed: closes any open containers, validates, and
+    /// returns the built <see cref="Embed"/>. Throws if validation fails.
     /// </summary>
-    public IParentItem CurrentParent;
-    public ConcurrentDictionary<string, object> Data { get; set; }
-
-    public EmbedBuilder()
+    public Embed Build()
     {
-        embed = new();
-        embed.Pages = new();
-        embed.KeepPageOnUpdate = true;
-        embed.StartPage = 0;
-        progressBar = null;
-        Data = new();
+        _containers.Clear();
+
+        var result = EmbedParser.Validate(_embed);
+        if (!result.Success)
+            throw new InvalidOperationException($"Embed is invalid: {result.Message}");
+
+        return _embed;
     }
 
-    public EmbedPage CurrentPage
+    // ---- Embed-level settings ----
+
+    public EmbedBuilder WithEmbedId(string id)
     {
-        get
-        {
-            return embed.Pages.Last();
-        }
+        _embed.Id = id;
+        return this;
     }
 
-    public EmbedBuilder AddPage(string title = null, string footer = null)
+    public EmbedBuilder WithEmbedName(string name)
     {
-        EmbedPage page = new()
+        _embed.Name = name;
+        return this;
+    }
+
+    public EmbedBuilder WithStartPage(int pageIndex)
+    {
+        _embed.StartPage = pageIndex;
+        return this;
+    }
+
+    public EmbedBuilder HidePageArrows()
+    {
+        _embed.HideChangePageArrows = true;
+        return this;
+    }
+
+    public EmbedBuilder KeepPageOnUpdate(bool keep)
+    {
+        _embed.KeepPageOnUpdate = keep;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the revision used to order live updates for this embed.
+    /// </summary>
+    public EmbedBuilder WithRevision(long revision)
+    {
+        _embed.Revision = revision;
+        return this;
+    }
+
+    // ---- Pages and containers ----
+
+    /// <summary>
+    /// Starts a new page. Closes any open row or form.
+    /// </summary>
+    public EmbedBuilder AddPage(string? title = null, string? footer = null)
+    {
+        _containers.Clear();
+
+        var page = new EmbedPage
         {
             Title = title,
             Footer = footer,
-            Children = new()
-        };
-        embed.Pages.Add(page);
-        CurrentParent = page;
-        LastItem = page;
-
-        return this;
-    }
-
-	/// <summary>
-	/// Adds a row
-	/// </summary>
-	/// <returns></returns>
-	public EmbedBuilder AddRow()
-    {
-        var row = new EmbedRow()
-        {
-            Children = new()
         };
 
-        if (CurrentParent.ItemType != EmbedItemType.EmbedRow)
-        {
-            row.Parent = CurrentParent;
-            CurrentParent.Children.Add(row);
-        }
-        else
-        {
-            if (formItem is null)
-            {
-                row.Parent = CurrentPage;
-                CurrentPage.Children.Add(row);
-            }
-            else
-            {
-                row.Parent = formItem;
-                formItem.Children.Add(row);
-            }
-        }
-
-		CurrentParent = row;
-        LastItem = row;
-        return this;
-    }
-
-	public EmbedBuilder WithRow()
-	{
-		var row = new EmbedRow()
-		{
-			Children = new(),
-            Parent = CurrentParent
-		};
-
-		CurrentParent.Children.Add(row);
-        CurrentParent = row;
-        LastItem = row;
-        return this;
-	}
-
-	/// <summary>
-	/// You should only call this function if you are closing a row that was added with WithRow
-	/// </summary>
-	/// <returns></returns>
-	public EmbedBuilder CloseRow()
-    {
-        CurrentParent = CurrentParent.Parent;
-        return this;
-    }
-
-    public EmbedBuilder Close()
-    {
-        CurrentParent = CurrentParent.Parent;
-        return this;
-    }
-
-	internal void AddItem(EmbedItem item)
-    {
-        item.Parent = CurrentParent;
-        CurrentParent.Children.Add(item);
-		LastItem = item;
-    }
-
-    /// <summary>
-    /// Adds a button item to the current row of the current page.
-    /// </summary>
-    /// <returns></returns>
-    public EmbedBuilder AddButton(string text = null)
-    {
-        var item = new EmbedButtonItem()
-        {
-            Children = new() { new EmbedTextItem(text) }
-        };
-
-        AddItem(item);
+        _embed.Pages.Add(page);
+        _currentPage = page;
+        _containers.Push((ContainerKind.Page, page.Children));
+        _lastItem = null;
         return this;
     }
 
     /// <summary>
-    /// Adds a button item to the current row of the current page. Make sure you call .Close() after you are done adding items to this button!
+    /// Opens a row (horizontal flex container). Close it with <see cref="EndRow"/>.
     /// </summary>
-    /// <returns></returns>
-    public EmbedBuilder AddButtonWithNoText()
+    public EmbedBuilder AddRow()
     {
-        var item = new EmbedButtonItem()
-        {
-            Children = new()
-        };
+        if (_containers.Count > 0 && _containers.Peek().Kind == ContainerKind.Row)
+            throw new InvalidOperationException("Rows cannot be nested. Call EndRow() before adding another row.");
 
-        AddItem(item);
-        CurrentParent = item;
+        var row = new EmbedRowItem();
+        AddItemInternal(row);
+        _containers.Push((ContainerKind.Row, row.Children));
+        return this;
+    }
+
+    public EmbedBuilder EndRow()
+    {
+        PopContainer(ContainerKind.Row, nameof(EndRow));
         return this;
     }
 
     /// <summary>
-    /// Tells the builder to stop adding new items to the current form.
+    /// Opens a form. All inputs added before <see cref="EndForm"/> are
+    /// collected when a submit button inside it is clicked.
     /// </summary>
-    /// <returns></returns>
+    public EmbedBuilder AddForm(string id)
+    {
+        var form = new EmbedFormItem { Id = id };
+        AddItemInternal(form);
+        _containers.Push((ContainerKind.Form, form.Children));
+        return this;
+    }
 
     public EmbedBuilder EndForm()
     {
-		CurrentParent = formItem.Parent;
-        formItem = null;
-		return this;
+        PopContainer(ContainerKind.Form, nameof(EndForm));
+        return this;
+    }
+
+    // ---- Items ----
+
+    /// <summary>
+    /// Adds a text item. Rendered as markdown.
+    /// </summary>
+    public EmbedBuilder AddText(string? text)
+    {
+        AddItemInternal(new EmbedTextItem(text));
+        return this;
     }
 
     /// <summary>
-    /// Adds a form item; until EndForm() is called, all items will be added to the form instead of the builder.
+    /// Adds a text item with a bolded name displayed above it.
     /// </summary>
-    /// <returns></returns>
-    public EmbedBuilder AddForm(string id)
+    public EmbedBuilder AddText(string? name, string? text)
     {
-        var item = new EmbedFormItem()
-        {
-            Id = id,
-            Children = new()
-        };
+        var item = new EmbedTextItem(text);
+        if (name is not null)
+            item.NameItem = new EmbedTextItem(name);
 
-        AddItem(item);
-        CurrentParent = item;
-        formItem = item;
-
-		return this;
+        AddItemInternal(item);
+        return this;
     }
 
     /// <summary>
-    /// Adds a inputbox item to the current row of the current form. If FreelyBased, then
-    /// this will add a inputbox item to the current form.
+    /// Adds a button. When text is given it becomes the button's label;
+    /// otherwise chain <see cref="WithText"/> (or leave it empty).
     /// </summary>
-    /// <returns></returns>
-    public EmbedBuilder AddInputBox(string id = null, string name = null, string placeholder = null, string value = null, bool? keepvalueonupdate = null)
+    public EmbedBuilder AddButton(string? text = null)
     {
-        var item = new EmbedInputBoxItem()
+        var button = new EmbedButtonItem();
+        if (text is not null)
+            button.Children.Add(new EmbedTextItem(text));
+
+        AddItemInternal(button);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a text input.
+    /// </summary>
+    public EmbedBuilder AddInputBox(string id, string? name = null, string? placeholder = null, string? value = null)
+    {
+        var item = new EmbedInputBoxItem
         {
-            Value = value,
             Id = id,
             Placeholder = placeholder,
-            KeepValueOnUpdate = keepvalueonupdate
+            Value = value,
         };
 
         if (name is not null)
             item.NameItem = new EmbedTextItem(name);
 
-        AddItem(item);
+        AddItemInternal(item);
         return this;
     }
 
-    public EmbedBuilder AddText(string name, string text)
+    /// <summary>
+    /// Adds a dropdown. Add its options with <see cref="AddOption"/>.
+    /// </summary>
+    public EmbedBuilder AddDropDown(string id, string? name = null, string? value = null)
     {
-        var item = new EmbedTextItem()
+        var item = new EmbedDropDownItem
         {
-            Text = text
+            Id = id,
+            Value = value,
         };
 
         if (name is not null)
-        {
-			item.NameItem = new EmbedTextItem(name)
-			{
-				Styles = new() { FontWeight.Bold }
-			};
-		}
+            item.NameItem = new EmbedTextItem(name);
 
-		AddItem(item);
+        AddItemInternal(item);
+        _currentDropDown = item;
         return this;
     }
 
-    public EmbedBuilder AddText(string text)
+    /// <summary>
+    /// Adds an option to the most recently added dropdown.
+    /// </summary>
+    public EmbedBuilder AddOption(string text, string? value = null)
     {
-        var item = new EmbedTextItem()
+        if (_currentDropDown is null)
+            throw new InvalidOperationException("Add a dropdown with AddDropDown() before adding options.");
+
+        var option = new EmbedDropDownOptionItem
         {
-            Text = text
-        };
-
-		AddItem(item);
-        return this;
-    }
-
-	public EmbedBuilder WithName(string text = null)
-	{
-        var item = new EmbedTextItem(text);
-		((INameable)LastItem).NameItem = item;
-        item.Parent = LastItem;
-        LastItem = item;
-
-		return this;
-	}
-
-	public EmbedBuilder WithText(string text = null)
-	{
-		var item = new EmbedTextItem(text);
-        LastItem.Children.Add(item);
-		item.Parent = LastItem;
-		LastItem = item;
-
-        return this;
-	}
-
-	/// <summary>
-	/// Adds a piece of media to the embed. Width and Height can be overriden by the Height and Width styles.
-	/// </summary>
-	/// <param name="width"></param>
-	/// <param name="height"></param>
-	/// <param name="mimetype"></param>
-	/// <param name="filename"></param>
-	/// <param name="location">Must be from an allowed GIF provider or Valour CDN host.</param>
-	/// <returns></returns>
-	public EmbedBuilder AddMedia(MessageAttachmentType type, int width, int height, string mimetype, string filename, string location)
-    {
-        var item = new EmbedMediaItem()
-        {
-            Attachment = new(type)
-            {
-                Width = width,
-                Height = height,
-                MimeType = mimetype,
-                FileName = filename,
-                Location = location,
-            }
-        };
-
-        AddItem(item);
-        return this;
-    }
-
-    public EmbedBuilder AddDropDownMenu(string id, string name = null, string value = "")
-	{
-		var item = new EmbedDropDownMenuItem()
-		{
-			Id = id,
+            Text = text,
             Value = value,
-            Children = new()
-		};
-
-		if (name is not null)
-			item.NameItem = new EmbedTextItem(name);
-
-		AddItem(item);
-        CurrentParent = item;
-		return this;
-	}
-
-    public EmbedBuilder EndDropDownMenu()
-    {
-        CurrentParent = CurrentParent.Parent;
-        return this;
-    }
-
-	public EmbedBuilder WithDropDownItem(string text = null)
-	{
-        if (CurrentParent.ItemType != EmbedItemType.DropDownMenu)
-			throw new ArgumentException("You can not add a dropdown item without a drop down menu!");
-
-		var item = new EmbedDropDownItem()
-		{
-			Children = new() { new EmbedTextItem(text) },
-            Parent = CurrentParent
-		};
-
-		CurrentParent.Children.Add(item);
-		LastItem = item;
-        return this;
-	}
-
-    /// <summary>
-    /// This function is intended for you to use WithText, etc afterwards
-    /// </summary>
-    /// <returns></returns>
-	public EmbedBuilder WithDropDownItem()
-	{
-		if (CurrentParent.ItemType != EmbedItemType.DropDownMenu)
-			throw new ArgumentException("You can not add a dropdown item without a drop down menu!");
-
-		var item = new EmbedDropDownItem()
-		{
-			Children = new(),
-            Parent = CurrentParent
-		};
-
-		CurrentParent.Children.Add(item);
-        LastItem = item;
-        return this;
-	}
-
-    public EmbedBuilder OnClickGoToEmbedPage(int page)
-    {
-        ((IClickable)LastItem).ClickTarget = new EmbedPageTarget()
-        {
-            Type = TargetType.EmbedPage,
-            PageNumber = page
-		};
-        return this;
-    }
-
-	public EmbedBuilder OnCLickGoToLink(string href)
-	{
-		((IClickable)LastItem).ClickTarget = new EmbedLinkTarget()
-		{
-			Type = TargetType.Link,
-			Href = href
-		};
-		return this;
-	}
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="ElementId">The eventid that the Interaction will use</param>
-    /// <returns></returns>
-	public EmbedBuilder OnClickSendInteractionEvent(string ElementId)
-	{
-		((IClickable)LastItem).ClickTarget = new EmbedEventTarget()
-		{
-			Type = TargetType.Event,
-			EventElementId = ElementId
-		};
-		return this;
-	}
-
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="ElementId">The id that the button will use</param>
-    /// <returns></returns>
-	public EmbedBuilder OnClickSubmitForm(string ElementId = null)
-	{
-		((IClickable)LastItem).ClickTarget = new EmbedFormSubmitTarget()
-		{
-			Type = TargetType.SubmitForm,
-            EventElementId = ElementId
-		};
-		return this;
-	}
-
-	public EmbedBuilder WithTitleStyles(params StyleBase[] styles)
-	{
-		var page = embed.Pages.Last();
-		if (page.TitleStyles is null)
-			page.TitleStyles = new();
-		page.TitleStyles.AddRange(styles);
-		return this;
-	}
-
-	public EmbedBuilder WithFooterStyles(params StyleBase[] styles)
-    {
-        var page = embed.Pages.Last();
-        if (page.FooterStyles is null)
-            page.FooterStyles = new();
-        page.FooterStyles.AddRange(styles);
-        return this;
-    }
-
-    public EmbedBuilder WithStyles(params StyleBase[] styles)
-    {
-        if (LastItem.Styles is null)
-            LastItem.Styles = new();
-        LastItem.Styles.AddRange(styles);
-		return this;
-    }
-
-    /// <summary>
-    /// Make sure to call .Close() after you are done adding a progressbar(s)!
-    /// </summary>
-    public EmbedBuilder AddProgress()
-    {
-        var item = new EmbedProgress()
-        {
-            Children = new()
         };
 
-        progress = item;
-        AddItem(item);
-        CurrentParent = item;
+        _currentDropDown.Options.Add(option);
+        _lastItem = option;
         return this;
     }
 
     /// <summary>
+    /// Adds a progress track. Add bars with <see cref="AddProgressBar"/>.
     /// </summary>
-    /// <param name="value">A number between 0 and 100</param>
-    /// <returns></returns>
-    public EmbedBuilder WithProgressBar(int value, bool showLabel = false)
+    public EmbedBuilder AddProgress(string? name = null)
     {
-        var item = new EmbedProgressBar()
+        var item = new EmbedProgressItem();
+        if (name is not null)
+            item.NameItem = new EmbedTextItem(name);
+
+        AddItemInternal(item);
+        _currentProgress = item;
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a bar to the most recently added progress track.
+    /// </summary>
+    /// <param name="value">Fill percentage, 0-100.</param>
+    public EmbedBuilder AddProgressBar(int value)
+    {
+        if (_currentProgress is null)
+            throw new InvalidOperationException("Add a progress track with AddProgress() before adding bars.");
+
+        var bar = new EmbedProgressBarItem { Value = value };
+        _currentProgress.Bars.Add(bar);
+        _lastItem = bar;
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a media item. The attachment location must be from an allowed
+    /// provider or the Valour CDN.
+    /// </summary>
+    public EmbedBuilder AddMedia(MessageAttachment attachment)
+    {
+        AddItemInternal(new EmbedMediaItem { Attachment = attachment });
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a media item from attachment details. The location must be from
+    /// an allowed provider or the Valour CDN.
+    /// </summary>
+    public EmbedBuilder AddMedia(MessageAttachmentType type, int width, int height, string mimeType, string fileName, string location)
+    {
+        return AddMedia(new MessageAttachment(type)
         {
-            Value = value,
-            ShowLabel = showLabel
-        };
+            Width = width,
+            Height = height,
+            MimeType = mimeType,
+            FileName = fileName,
+            Location = location,
+        });
+    }
 
-        progress.Children.Add(item);
-        item.Parent = progress;
-        LastItem = item;
+    // ---- Modifiers for the last-added item ----
 
-        progressBar = item;
+    /// <summary>
+    /// Sets the id of the last-added item. Required for items targeted by
+    /// live updates or interaction events.
+    /// </summary>
+    public EmbedBuilder WithId(string id)
+    {
+        RequireLastItem(nameof(WithId)).Id = id;
         return this;
     }
 
-    public EmbedBuilder WithStripes()
+    /// <summary>
+    /// Sets a bolded name displayed above the last-added item.
+    /// </summary>
+    public EmbedBuilder WithName(string name)
     {
-        if (progressBar is null)
-            throw new ArgumentException("You can not add stripes to an item which is not a progress bar!");
-        progressBar.IsStriped = true;
+        if (RequireLastItem(nameof(WithName)) is not INamedItem named)
+            throw new InvalidOperationException($"{_lastItem!.ItemType} items cannot have a name.");
+
+        named.NameItem = new EmbedTextItem(name);
         return this;
     }
 
-    public EmbedBuilder WithAnimatedStripes()
+    /// <summary>
+    /// Applies styles to the name of the last-added item. Set the name first.
+    /// </summary>
+    public EmbedBuilder WithNameStyle(params StyleValue[] styles)
     {
-        if (progressBar is null)
-            throw new ArgumentException("You can not add animated stripes to an item which is not a progress bar!");
-        progressBar.IsAnimatedStriped = true;
-        progressBar.IsStriped = true;
+        if (RequireLastItem(nameof(WithNameStyle)) is not INamedItem { NameItem: not null } named)
+            throw new InvalidOperationException("Set a name with WithName() (or a name argument) before styling it.");
+
+        named.NameItem.Style = Append(named.NameItem.Style, styles);
         return this;
     }
 
-    public EmbedBuilder WithBootStrapClasses(params BootstrapClass[] classes)
+    /// <summary>
+    /// Adds a text child to the last-added button.
+    /// </summary>
+    public EmbedBuilder WithText(string text)
     {
-        if (LastItem.Classes is null)
-            LastItem.Classes = new();
-        foreach (var _class in classes)
-            LastItem.Classes.Add(_class);
+        if (RequireLastItem(nameof(WithText)) is not EmbedButtonItem button)
+            throw new InvalidOperationException("WithText() adds label text to a button; use AddText() for standalone text.");
+
+        button.Children.Add(new EmbedTextItem(text));
         return this;
+    }
+
+    /// <summary>
+    /// Applies styles to the last-added item.
+    /// </summary>
+    public EmbedBuilder WithStyle(params StyleValue[] styles)
+    {
+        var item = RequireLastItem(nameof(WithStyle));
+        item.Style = Append(item.Style, styles);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds CSS classes to the last-added item.
+    /// </summary>
+    public EmbedBuilder WithClasses(params string[] classes)
+    {
+        var item = RequireLastItem(nameof(WithClasses));
+        var joined = string.Join(' ', classes);
+        item.Classes = item.Classes is null ? joined : $"{item.Classes} {joined}";
+        return this;
+    }
+
+    /// <summary>
+    /// Controls whether the last-added input keeps the user's typed value
+    /// when a live update arrives. Defaults to true.
+    /// </summary>
+    public EmbedBuilder KeepValueOnUpdate(bool keep)
+    {
+        if (RequireLastItem(nameof(KeepValueOnUpdate)) is not IFormInputItem input)
+            throw new InvalidOperationException($"{_lastItem!.ItemType} items do not hold a form value.");
+
+        input.KeepValueOnUpdate = keep;
+        return this;
+    }
+
+    /// <summary>
+    /// Shows the percentage label on the last-added progress bar.
+    /// </summary>
+    public EmbedBuilder WithLabel()
+    {
+        RequireProgressBar(nameof(WithLabel)).ShowLabel = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Renders the last-added progress bar with stripes.
+    /// </summary>
+    public EmbedBuilder Striped()
+    {
+        RequireProgressBar(nameof(Striped)).IsStriped = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Animates the stripes of the last-added progress bar.
+    /// </summary>
+    public EmbedBuilder Animated()
+    {
+        var bar = RequireProgressBar(nameof(Animated));
+        bar.IsStriped = true;
+        bar.IsAnimated = true;
+        return this;
+    }
+
+    // ---- Click targets ----
+
+    /// <summary>
+    /// Makes the last-added item open a link when clicked (after confirmation).
+    /// </summary>
+    public EmbedBuilder OnClickLink(string href)
+    {
+        SetClickTarget(new EmbedLinkTarget { Href = href });
+        return this;
+    }
+
+    /// <summary>
+    /// Makes the last-added item navigate the embed to another page when clicked.
+    /// </summary>
+    public EmbedBuilder OnClickPage(int pageIndex)
+    {
+        SetClickTarget(new EmbedPageTarget { PageIndex = pageIndex });
+        return this;
+    }
+
+    /// <summary>
+    /// Makes the last-added item send an interaction event to the bot when clicked.
+    /// </summary>
+    public EmbedBuilder OnClickEvent(string eventId)
+    {
+        SetClickTarget(new EmbedEventTarget { EventId = eventId });
+        return this;
+    }
+
+    /// <summary>
+    /// Makes the last-added item submit its enclosing form when clicked.
+    /// </summary>
+    public EmbedBuilder OnClickSubmitForm(string eventId)
+    {
+        SetClickTarget(new EmbedFormSubmitTarget { EventId = eventId });
+        return this;
+    }
+
+    // ---- Page modifiers ----
+
+    public EmbedBuilder WithFooter(string footer)
+    {
+        RequirePage(nameof(WithFooter)).Footer = footer;
+        return this;
+    }
+
+    public EmbedBuilder WithTitleStyle(params StyleValue[] styles)
+    {
+        var page = RequirePage(nameof(WithTitleStyle));
+        page.TitleStyle = Append(page.TitleStyle, styles);
+        return this;
+    }
+
+    public EmbedBuilder WithFooterStyle(params StyleValue[] styles)
+    {
+        var page = RequirePage(nameof(WithFooterStyle));
+        page.FooterStyle = Append(page.FooterStyle, styles);
+        return this;
+    }
+
+    public EmbedBuilder WithPageStyle(params StyleValue[] styles)
+    {
+        var page = RequirePage(nameof(WithPageStyle));
+        page.Style = Append(page.Style, styles);
+        return this;
+    }
+
+    // ---- Internals ----
+
+    private void AddItemInternal(EmbedItem item)
+    {
+        if (_currentPage is null)
+            throw new InvalidOperationException("Add a page with AddPage() before adding items.");
+
+        _containers.Peek().Children.Add(item);
+        _lastItem = item;
+
+        if (item is not EmbedDropDownOptionItem)
+            _currentDropDown = null;
+        if (item is not EmbedProgressBarItem)
+            _currentProgress = null;
+    }
+
+    private void PopContainer(ContainerKind expected, string caller)
+    {
+        var kind = _containers.Count > 0 ? _containers.Peek().Kind : ContainerKind.Page;
+        if (kind == ContainerKind.Page)
+            throw new InvalidOperationException($"{caller}() called with no open {expected.ToString().ToLowerInvariant()}.");
+
+        if (kind != expected)
+            throw new InvalidOperationException($"{caller}() called but the open container is a {kind.ToString().ToLowerInvariant()}.");
+
+        _containers.Pop();
+        _lastItem = null;
+    }
+
+    private EmbedItem RequireLastItem(string caller)
+    {
+        if (_lastItem is null)
+            throw new InvalidOperationException($"{caller}() must follow an Add* call.");
+        return _lastItem;
+    }
+
+    private EmbedProgressBarItem RequireProgressBar(string caller)
+    {
+        if (RequireLastItem(caller) is not EmbedProgressBarItem bar)
+            throw new InvalidOperationException($"{caller}() only applies to progress bars.");
+        return bar;
+    }
+
+    private EmbedPage RequirePage(string caller)
+    {
+        if (_currentPage is null)
+            throw new InvalidOperationException($"{caller}() must follow AddPage().");
+        return _currentPage;
+    }
+
+    private void SetClickTarget(EmbedClickTarget target)
+    {
+        if (RequireLastItem("OnClick*") is not IClickableItem clickable)
+            throw new InvalidOperationException($"{_lastItem!.ItemType} items are not clickable.");
+
+        clickable.ClickTarget = target;
+    }
+
+    private static string Append(string? existing, StyleValue[] styles)
+    {
+        var compiled = StyleValue.Compile(styles);
+        return existing is null ? compiled : $"{existing} {compiled}";
     }
 }

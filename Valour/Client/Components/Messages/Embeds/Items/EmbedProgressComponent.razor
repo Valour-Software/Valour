@@ -1,19 +1,20 @@
-﻿@implements IDisposable
-@inject IJSRuntime JS
-@inherits BaseEmbedItemComponent
+@inherits EmbedItemComponentBase
 
-<div style="@item.GetStyle()">
-	@if (item.NameItem is not null)
+<div class="embed-item embed-progress @Progress.Classes" style="@Progress.Style">
+	@if (Progress.NameItem is not null)
 	{
-		<EmbedTextItemComponent _item="@item.NameItem"></EmbedTextItemComponent>
+		<div class="item-name">
+			<EmbedTextItemComponent Item="@Progress.NameItem" Nested="true" />
+		</div>
 	}
-	<div class="@item.GetClasses()">
-		@foreach(EmbedProgressBar baritem in item.Children.Select(x => (EmbedProgressBar)x))
+	<div class="progress">
+		@foreach (var bar in Progress.Bars)
 		{
-			<div class="@baritem.GetClasses()" role="progressbar" style="@baritem.GetStyle()" aria-valuenow="@baritem.Value" aria-valuemin="0" aria-valuemax="100">
-				@if (baritem.ShowLabel)
+			<div class="@BarClasses(bar)" role="progressbar" style="width: @(bar.Value)%; @bar.Style"
+			     aria-valuenow="@bar.Value" aria-valuemin="0" aria-valuemax="100">
+				@if (bar.ShowLabel)
 				{
-					<span>@baritem.Value%</span>
+					<span>@bar.Value%</span>
 				}
 			</div>
 		}
@@ -21,28 +22,17 @@
 </div>
 
 @code {
-	public EmbedProgress item { get; set; }
+	private EmbedProgressItem Progress => (EmbedProgressItem)Item;
 
-	protected override void OnInitialized()
+	private static string BarClasses(EmbedProgressBarItem bar)
 	{
-		item = (EmbedProgress)_item;
-		if (item.Id is not null)
-			embedComponent.ItemComponents[item.Id] = this;
-		embedComponent.RefreshItemComponents += Refresh;
-	}
-
-	public void Dispose()
-    {
-        embedComponent.RefreshItemComponents -= Refresh;
-		if (item.Id is not null)
-            embedComponent.ItemComponents.Remove(item.Id, out var _);
-    }
-
-	public override void Refresh()
-	{
-		item = (EmbedProgress)_item;
-		if (item.Id is not null)
-			embedComponent.ItemComponents[item.Id] = this;
-		StateHasChanged();
+		var classes = "progress-bar";
+		if (bar.IsStriped || bar.IsAnimated)
+			classes += " progress-bar-striped";
+		if (bar.IsAnimated)
+			classes += " progress-bar-animated";
+		if (bar.Classes is not null)
+			classes += $" {bar.Classes}";
+		return classes;
 	}
 }

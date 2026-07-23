@@ -1,9 +1,12 @@
-﻿.item-name {
+.item-name {
     font-weight: var(--font-weight-bold);
     font-size: var(--font-size-sm);
-    cursor: pointer;
 }
 
 .item-text {
     font-size: var(--font-size-sm);
+}
+
+.clickable {
+    cursor: pointer;
 }

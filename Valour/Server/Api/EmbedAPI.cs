@@ -1,202 +1,205 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
-using Valour.Sdk.Models.Messages.Embeds;
+using Microsoft.AspNetCore.Mvc;
+using Valour.Sdk.Models.Embeds;
+using Valour.Sdk.Models.Embeds.Items;
+using Valour.Server.Cdn;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using Valour.Sdk.Models.Messages.Embeds.Items;
-using Valour.Server.Cdn;
 
 namespace Valour.Server.API;
+
 public class EmbedAPI : BaseAPI
 {
     public new static void AddRoutes(WebApplication app)
     {
         app.MapPost("api/embed/interact", Interaction);
-        app.MapPost("api/embed/planetpersonalupdate", PlanetPersonalUpdate);
-        app.MapPost("api/embed/planetchannelupdate", PlanetChannelUpdate);
+        app.MapPost("api/embed/update", Update);
     }
 
-    private static async Task<IResult> PlanetChannelUpdate(HttpContext ctx, ValourDb db, CoreHubService hubService, UserService userService, PlanetMemberService memberService, [FromHeader] string authorization)
+    /// <summary>
+    /// Relays a live embed update from a bot to clients. Sent to a single
+    /// user when TargetUserId is set, otherwise to the whole channel.
+    /// </summary>
+    private static async Task<IResult> Update([FromBody] EmbedUpdate update, ValourDb db, CoreHubService hubService, UserService userService, PlanetMemberService memberService)
     {
-        var ceu = await JsonSerializer.DeserializeAsync<ChannelEmbedUpdate>(ctx.Request.Body);
+        if (update is null)
+            return Results.BadRequest("Invalid update payload.");
 
-        if (ceu.NewEmbedContent.Length > 65535)
-            return Results.BadRequest("Embed data must be under 65535 chars");
-
-        // load embed to check for anti-valour propaganda (incorrect media URIs)
-        var embed = JsonSerializer.Deserialize<Embed>(ceu.NewEmbedContent);
-        foreach (var page in embed.Pages)
-        {
-            foreach (var item in page.GetAllItems())
-            {
-                if (item.ItemType == Valour.Sdk.Models.Messages.Embeds.Items.EmbedItemType.Media)
-                {
-                    var at = ((EmbedMediaItem)item).Attachment;
-                    var result = MediaUriHelper.ScanMediaUri(at);
-                    if (!result.Success)
-                        return Results.BadRequest(result.Message);
-                }
-            }
-        }
+        var contentResult = ValidateUpdateContent(update);
+        if (contentResult is not null)
+            return contentResult;
 
         var botUser = await userService.GetCurrentUserAsync();
-        if (botUser is null) { await TokenInvalid(ctx); return Results.BadRequest(); }
-
-        var targetmessage = await db.Messages
-            .Include(x => x.AuthorMember)
-            .Include(x => x.Attachments)
-            .FirstOrDefaultAsync(x => x.Id == ceu.TargetMessageId);
-        if (targetmessage is null)
-        {
-            targetmessage = PlanetMessageWorker.GetStagedMessage(ceu.TargetMessageId)?.ToDatabase();
-            if (targetmessage is null)
-                return Results.NotFound("Target message not found");
-        }
-
-        // TODO: Jacob check this change for PlanetId nullability
-        var botmember = await memberService.GetByUserAsync(botUser.Id, targetmessage.PlanetId.Value);
-
-        if (botmember is null)
-            return Results.NotFound("Bot's member not found");
+        if (botUser is null)
+            return Results.Unauthorized();
 
         if (!botUser.Bot)
-            return Results.BadRequest("Only bots can do personal embed updates!");
+            return Results.BadRequest("Only bots can send embed updates.");
 
-        // only the bot who sent the message can send channel embed updates
-        if (targetmessage.AuthorUserId != botmember.UserId)
-            return Results.BadRequest("User id mismatch");
+        var message = await db.Messages
+            .Include(x => x.Attachments)
+            .FirstOrDefaultAsync(x => x.Id == update.TargetMessageId)
+            ?? PlanetMessageWorker.GetStagedMessage(update.TargetMessageId)?.ToDatabase();
 
-        if (targetmessage.PlanetId != botmember.PlanetId)
-            return Results.BadRequest("Planet id mismatch");
+        if (message is null)
+            return Results.NotFound("Target message not found.");
 
-        if (!HasEmbedAttachment(targetmessage))
-            return Results.BadRequest("Target message does not contain an embed!");
+        if (message.PlanetId is null)
+            return Results.BadRequest("Embed updates are only supported for planet messages.");
 
-        var channel = (await db.Channels.FindAsync(targetmessage.ChannelId)).ToModel();
+        if (message.AuthorUserId != botUser.Id)
+            return Results.BadRequest("Only the bot that sent the message can update its embed.");
 
-        if (!await memberService.HasPermissionAsync(botmember, channel, ChatChannelPermissions.View))
-            return Results.BadRequest("Member lacks ChatChannelPermissions.View");
+        if (!HasEmbedAttachment(message))
+            return Results.BadRequest("Target message does not contain an embed.");
 
-        channel = (await db.Channels.FindAsync(ceu.TargetChannelId)).ToModel();
+        var botMember = await memberService.GetByUserAsync(botUser.Id, message.PlanetId.Value);
+        if (botMember is null)
+            return Results.NotFound("Bot's planet member not found.");
 
-        if (!await memberService.HasPermissionAsync(botmember, channel, ChatChannelPermissions.View))
-            return Results.BadRequest("Member lacks ChatChannelPermissions.View");
+        var channel = (await db.Channels.FindAsync(message.ChannelId)).ToModel();
+        if (!await memberService.HasPermissionAsync(botMember, channel, ChatChannelPermissions.View))
+            return Results.Forbid();
 
-        hubService.NotifyChannelEmbedUpdateEvent(ceu);
+        // The channel is routing information derived from the message,
+        // never trusted from the request
+        update.TargetChannelId = message.ChannelId;
 
-        return Results.Ok("Sent Channel Embed Update");
+        if (update.TargetUserId is not null)
+            hubService.NotifyPersonalEmbedUpdateEvent(update);
+        else
+            hubService.NotifyChannelEmbedUpdateEvent(update);
+
+        return Results.Ok("Sent embed update.");
     }
 
-    private static async Task<IResult> PlanetPersonalUpdate(HttpContext ctx, ValourDb db, UserService userService, CoreHubService hubService, PlanetMemberService memberService, [FromHeader] string authorization)
+    /// <summary>
+    /// Validates the embed (or changed-items) payload of an update.
+    /// Returns an error result, or null when valid.
+    /// </summary>
+    private static IResult ValidateUpdateContent(EmbedUpdate update)
     {
-        var peu = await JsonSerializer.DeserializeAsync<PersonalEmbedUpdate>(ctx.Request.Body);
-
-        if (peu.NewEmbedContent is not null && peu.NewEmbedContent.Length > 65535)
-            return Results.BadRequest("Embed data must be under 65535 chars");
-
-        if (peu.ChangedEmbedItemsContent is not null && peu.ChangedEmbedItemsContent.Length > 65535)
-            return Results.BadRequest("ChangeItemsData must be under 65535 chars");
-
-        if (peu.NewEmbedContent is not null)
+        if (update.NewEmbedContent is not null)
         {
-            // load embed to check for anti-valour propaganda (incorrect media URIs)
-            var embed = JsonSerializer.Deserialize<Embed>(peu.NewEmbedContent);
-            foreach (var page in embed.Pages)
-            {
-                foreach (var item in page.GetAllItems())
-                {
-                    if (item.ItemType == Valour.Sdk.Models.Messages.Embeds.Items.EmbedItemType.Media)
-                    {
-                        var at = ((EmbedMediaItem)item).Attachment;
-                        var result = MediaUriHelper.ScanMediaUri(at);
-                        if (!result.Success)
-                            return Results.BadRequest(result.Message);
-                    }
-                }
-            }
+            if (update.NewEmbedContent.Length > EmbedParser.MaxPayloadLength)
+                return Results.BadRequest($"Embed data must be under {EmbedParser.MaxPayloadLength} chars.");
+
+            var embed = EmbedParser.TryParse(update.NewEmbedContent);
+            if (embed is null)
+                return Results.BadRequest("Embed data is invalid.");
+
+            var valid = EmbedParser.Validate(embed);
+            if (!valid.Success)
+                return Results.BadRequest(valid.Message);
+
+            var mediaResult = ScanMediaItems(embed.EnumerateItems());
+            if (mediaResult is not null)
+                return mediaResult;
+        }
+        else if (update.ChangedItemsContent is not null)
+        {
+            if (update.ChangedItemsContent.Length > EmbedParser.MaxPayloadLength)
+                return Results.BadRequest($"Changed items data must be under {EmbedParser.MaxPayloadLength} chars.");
+
+            var items = EmbedParser.TryParseItems(update.ChangedItemsContent);
+            if (items is null)
+                return Results.BadRequest("Changed items data is invalid.");
+
+            var valid = EmbedParser.ValidateItems(items);
+            if (!valid.Success)
+                return Results.BadRequest(valid.Message);
+
+            var mediaResult = ScanMediaItems(items.Concat(items.SelectMany(x => x.EnumerateDescendants())));
+            if (mediaResult is not null)
+                return mediaResult;
         }
         else
         {
-            var embeditems = JsonSerializer.Deserialize<List<EmbedItem>>(peu.ChangedEmbedItemsContent);
-            foreach (var embeditem in embeditems)
+            return Results.BadRequest("Update must include NewEmbedContent or ChangedItemsContent.");
+        }
+
+        return null;
+    }
+
+    private static IResult ScanMediaItems(IEnumerable<EmbedItem> items)
+    {
+        foreach (var media in items.OfType<EmbedMediaItem>())
+        {
+            if (media.Attachment is null)
+                return Results.BadRequest("Embed media item is missing its attachment.");
+
+            var result = MediaUriHelper.ScanMediaUri(media.Attachment);
+            if (!result.Success)
+                return Results.BadRequest(result.Message);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Relays a user's embed interaction (click or form submit) to the
+    /// authoring bot. All context is derived from the message server-side;
+    /// the client only reports what was interacted with.
+    /// </summary>
+    private static async Task<IResult> Interaction([FromBody] EmbedInteractionRequest request, ValourDb db, UserService userService, CoreHubService hubService, PlanetMemberService memberService)
+    {
+        if (request is null)
+            return Results.BadRequest("Invalid interaction payload.");
+
+        var user = await userService.GetCurrentUserAsync();
+        if (user is null)
+            return Results.Unauthorized();
+
+        var message = await db.Messages
+            .Include(x => x.Attachments)
+            .FirstOrDefaultAsync(x => x.Id == request.MessageId)
+            ?? PlanetMessageWorker.GetStagedMessage(request.MessageId)?.ToDatabase();
+
+        if (message is null)
+            return Results.NotFound("Target message not found.");
+
+        if (message.PlanetId is null || message.AuthorMemberId is null)
+            return Results.BadRequest("Embed interactions are only supported for planet messages.");
+
+        if (!HasEmbedAttachment(message))
+            return Results.BadRequest("Target message does not contain an embed.");
+
+        var member = await memberService.GetByUserAsync(user.Id, message.PlanetId.Value);
+        if (member is null)
+            return Results.NotFound("Planet member not found.");
+
+        var channel = (await db.Channels.FindAsync(message.ChannelId)).ToModel();
+        if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+            return Results.Forbid();
+
+        var formData = request.FormData;
+        if (formData is not null)
+        {
+            if (formData.Count > 100)
+                return Results.BadRequest("Too many form values.");
+
+            foreach (var data in formData)
             {
-                foreach (var item in embeditem.GetAllItems())
-                {
-                    if (item.ItemType == Valour.Sdk.Models.Messages.Embeds.Items.EmbedItemType.Media)
-                    {
-                        var at = ((EmbedMediaItem)item).Attachment;
-                        var result = MediaUriHelper.ScanMediaUri(at);
-                        if (!result.Success)
-                            return Results.BadRequest(result.Message);
-                    }
-                }
+                if (data.Value is not null && data.Value.Length > EmbedFormItem.MaxInputValueLength)
+                    data.Value = data.Value[..EmbedFormItem.MaxInputValueLength];
             }
         }
 
-        var botUser = await userService.GetCurrentUserAsync();
-        if (botUser is null) { await TokenInvalid(ctx); return Results.BadRequest(); }
-
-        var targetmessage = await db.Messages
-            .Include(x => x.AuthorMember)
-            .Include(x => x.Attachments)
-            .FirstOrDefaultAsync(x => x.Id == peu.TargetMessageId);
-        if (targetmessage is null)
+        var interaction = new EmbedInteractionEvent
         {
-            targetmessage = PlanetMessageWorker.GetStagedMessage(peu.TargetMessageId)?.ToDatabase();
-            if (targetmessage is null)
-                return Results.NotFound("Target message not found");
-        }
+            EventType = request.EventType,
+            ElementId = request.ElementId,
+            FormId = request.FormId,
+            FormData = formData,
+            MessageId = message.Id,
+            ChannelId = message.ChannelId,
+            PlanetId = message.PlanetId.Value,
+            AuthorMemberId = message.AuthorMemberId.Value,
+            MemberId = member.Id,
+            TimeInteracted = DateTime.UtcNow,
+        };
 
-        // TODO: And here
-        var botmember = await memberService.GetByUserAsync(botUser.Id, targetmessage.PlanetId.Value);
-
-        if (botmember is null)
-            return Results.NotFound("Bot's member not found");
-
-        if (!botUser.Bot)
-            return Results.BadRequest("Only bots can do personal embed updates!");
-
-        var targetmember = await db.PlanetMembers.FirstOrDefaultAsync(x => x.UserId == peu.TargetUserId && x.PlanetId == targetmessage.PlanetId);
-        if (targetmember is null)
-            return Results.NotFound("Target member not found");
-
-        // only the bot who sent the message can send personal embed updates
-        if (targetmessage.AuthorUserId != botmember.UserId)
-            return Results.BadRequest("Member id mismatch");
-
-        if (targetmessage.PlanetId != botmember.PlanetId)
-            return Results.BadRequest("Planet id mismatch");
-
-        if (!HasEmbedAttachment(targetmessage))
-            return Results.BadRequest("Target message does not contain an embed!");
-
-        var channel = (await db.Channels.FindAsync(targetmessage.ChannelId)).ToModel();
-
-        if (!await memberService.HasPermissionAsync(botmember, channel, ChatChannelPermissions.View))
-            return Results.BadRequest("Member lacks ChatChannelPermissions.View");
-
-        hubService.NotifyPersonalEmbedUpdateEvent(peu);
-
-        return Results.Ok("Sent Personal Embed Update");
-    }
-
-    private static async Task<IResult> Interaction(HttpContext ctx, ValourDb db, UserService userService, CoreHubService hubService, PlanetMemberService memberService, [FromHeader] string authorization)
-    {
-        EmbedInteractionEvent e = await JsonSerializer.DeserializeAsync<EmbedInteractionEvent>(ctx.Request.Body);
-
-        var botUser = await userService.GetCurrentUserAsync();
-        if (botUser is null) return Results.Unauthorized();
-
-        var member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == e.MemberId);
-        if (member == null) return Results.NotFound("Member not found");
-        if (botUser.Id != member.UserId) return Results.BadRequest("Member id mismatch");
-
-        var channel = await db.Channels.FindAsync(e.ChannelId);
-
-        if (!await memberService.HasPermissionAsync(member.ToModel(), channel.ToModel(), ChatChannelPermissions.View)) return Results.Forbid();
-
-        hubService.NotifyInteractionEvent(e);
+        hubService.NotifyInteractionEvent(interaction);
         return Results.Ok();
     }
 

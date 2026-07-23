@@ -1,40 +1,46 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
-namespace Valour.Sdk.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Embeds.Items;
 
-public class EmbedTextItem : EmbedItem, IClickable, INameable
+/// <summary>
+/// A piece of text. Rendered as markdown. Optionally clickable and named.
+/// </summary>
+public class EmbedTextItem : EmbedItem, IClickableItem, INamedItem
 {
-    public EmbedTextItem NameItem { get; set; }
-    public string Text { get; set; }
-	public EmbedClickTargetBase ClickTarget { get; set; }
+    public string? Text { get; set; }
 
-	[JsonIgnore]
-	public override EmbedItemType ItemType => EmbedItemType.Text;
+    public EmbedTextItem? NameItem { get; set; }
 
-	public EmbedTextItem()
-	{
+    public EmbedClickTarget? ClickTarget { get; set; }
 
-	}
+    [JsonIgnore]
+    public override EmbedItemType ItemType => EmbedItemType.Text;
 
-	public override List<EmbedItem> GetAllItems()
-	{
-        if (Children is null)
-            return new();
-        List<EmbedItem> items = new();
-		if (NameItem is not null) {
-		    items.Add(NameItem);
-		    items.AddRange(NameItem.GetAllItems());
-        }
-        foreach(var _item in Children) 
+    public EmbedTextItem() { }
+
+    public EmbedTextItem(string? text)
+    {
+        Text = text;
+    }
+
+    public override IEnumerable<EmbedItem> EnumerateDescendants()
+    {
+        if (NameItem is null)
+            yield break;
+
+        yield return NameItem;
+        foreach (var descendant in NameItem.EnumerateDescendants())
+            yield return descendant;
+    }
+
+    public override bool TryReplaceDescendant(EmbedItem replacement)
+    {
+        if (NameItem?.Id is not null && NameItem.Id == replacement.Id && replacement is EmbedTextItem text)
         {
-            items.Add(_item);
-            items.AddRange(_item.GetAllItems());
+            NameItem = text;
+            return true;
         }
-        return items;
-	}
 
-	public EmbedTextItem(string text)
-	{
-		Text = text;
-	}
+        return NameItem?.TryReplaceDescendant(replacement) ?? false;
+    }
 }

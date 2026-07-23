@@ -1,66 +1,49 @@
-﻿@using Valour.Sdk.Models.Messages.Embeds.Styles;
-@implements IDisposable
-@inject IJSRuntime JS
-@inherits BaseEmbedItemComponent
+@inherits EmbedItemComponentBase
+@inject IJSRuntime JsRuntime
 
-<div style="@(AdditionalDivStyle + MediaItem.GetStyle())">
-	@{
-		var par = new Dictionary<string, object>(){ 
-            { "Attachment", MediaItem.Attachment },
-			{ "MessageComponent", MessageComponent }
-        };
-
-		if (MediaItem.Styles.Any(x => x.StyleType == StyleType.Width || x.StyleType == StyleType.Height))
-		{
-			par.Add("CustomStyle", MediaItem.GetStyle());
-			if (MediaItem.Attachment.Type == MessageAttachmentType.Image)
-			{
-				par.Add("Clickable", false);
-			}
-		}
-
-        <div class="attachment-wrapper">
-            <DynamicComponent Type="MediaItem.Attachment.GetComponentType()" Parameters="par"></DynamicComponent>
-        </div>
-	}
-</div>
+@if (Media.Attachment is not null)
+{
+	<div class="embed-item @Media.Classes" style="@ContainerStyle" @onclick="HandleClickAsync">
+		<div class="attachment-wrapper">
+			<DynamicComponent Type="Media.Attachment.GetComponentType()" Parameters="@ComponentParameters" />
+		</div>
+	</div>
+}
 
 @code {
-	public EmbedMediaItem MediaItem { get; set; }
-
 	[CascadingParameter]
 	public MessageComponent MessageComponent { get; set; }
 
-	public string AdditionalDivStyle
+	private EmbedMediaItem Media => (EmbedMediaItem)Item;
+
+	private bool HasSizeStyle =>
+		Media.Style is not null &&
+		(Media.Style.Contains("width") || Media.Style.Contains("height"));
+
+	private string ContainerStyle =>
+		Media.ClickTarget is not null ? $"cursor: pointer; {Media.Style}" : Media.Style;
+
+	private Dictionary<string, object> ComponentParameters
 	{
 		get
 		{
-			if (MediaItem.ClickTarget is not null)
-				return "cursor: pointer;";
-			return "";
+			var parameters = new Dictionary<string, object>
+			{
+				{ "Attachment", Media.Attachment },
+				{ "MessageComponent", MessageComponent },
+			};
+
+			if (HasSizeStyle)
+			{
+				parameters.Add("CustomStyle", Media.Style);
+				if (Media.Attachment.Type == MessageAttachmentType.Image)
+					parameters.Add("Clickable", false);
+			}
+
+			return parameters;
 		}
 	}
 
-	protected override void OnInitialized()
-	{
-		MediaItem = (EmbedMediaItem)_item;
-		if (MediaItem.Id is not null)
-			embedComponent.ItemComponents[MediaItem.Id] = this;
-		embedComponent.RefreshItemComponents += Refresh;
-	}
-
-	public void Dispose()
-    {
-        embedComponent.RefreshItemComponents -= Refresh;
-		if (MediaItem.Id is not null)
-            embedComponent.ItemComponents.Remove(MediaItem.Id, out var _);
-    }
-
-	public override void Refresh()
-	{
-		MediaItem = (EmbedMediaItem)_item;
-		if (MediaItem.Id is not null)
-			embedComponent.ItemComponents[MediaItem.Id] = this;
-		StateHasChanged();
-	}
+	private Task HandleClickAsync() =>
+		EmbedClickHandler.HandleClickAsync(Media, Root, EnclosingForm, JsRuntime);
 }

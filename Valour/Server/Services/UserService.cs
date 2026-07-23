@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Data;
 using Valour.Database;
 using Valour.Server.Email;
@@ -79,6 +80,66 @@ public class UserService
     /// </summary>
     public async Task<User> GetAsync(long id) =>
         (await _db.Users.FindAsync(id)).ToModel();
+
+    private readonly record struct UserAccessFlags(bool Disabled, bool ValourStaff, DateTime TimeCached);
+
+    private static readonly ConcurrentDictionary<long, UserAccessFlags> AccessFlagsCache = new();
+    private static readonly TimeSpan AccessFlagsTtl = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// Returns the disabled/staff flags for the given user, or null if the user does not exist.
+    /// Checked on every authenticated request, so results are briefly cached in memory;
+    /// the TTL also bounds staleness for flag changes made on other nodes.
+    /// </summary>
+    public async ValueTask<(bool Disabled, bool ValourStaff)?> GetAccessFlagsAsync(long userId)
+    {
+        if (AccessFlagsCache.TryGetValue(userId, out var cached) &&
+            DateTime.UtcNow - cached.TimeCached < AccessFlagsTtl)
+            return (cached.Disabled, cached.ValourStaff);
+
+        var flags = await _db.Users.AsNoTracking()
+            .Where(x => x.Id == userId)
+            .Select(x => new { x.Disabled, x.ValourStaff })
+            .FirstOrDefaultAsync();
+
+        if (flags is null)
+            return null;
+
+        AccessFlagsCache[userId] = new UserAccessFlags(flags.Disabled, flags.ValourStaff, DateTime.UtcNow);
+        return (flags.Disabled, flags.ValourStaff);
+    }
+
+    /// <summary>
+    /// Evicts the cached access flags for a user. Call after changing Disabled or
+    /// ValourStaff, or after deleting the user. Other nodes converge via the cache TTL.
+    /// </summary>
+    public static void InvalidateAccessFlags(long userId) =>
+        AccessFlagsCache.Remove(userId, out _);
+
+    public static void StartAccessFlagsSweepTask()
+    {
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(10));
+
+                    var now = DateTime.UtcNow;
+                    foreach (var entry in AccessFlagsCache)
+                    {
+                        if (now - entry.Value.TimeCached >= AccessFlagsTtl)
+                            AccessFlagsCache.TryRemove(entry.Key, out _);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error sweeping user access flags cache: {ex.Message}");
+                }
+            }
+        });
+    }
 
     /// <summary>Whether this id belongs to a hub-backed federation shadow user.</summary>
     public async Task<bool> IsFederatedAsync(long id) =>
@@ -1191,6 +1252,9 @@ public class UserService
             var gifFavorites = _db.GifFavorites.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.GifFavorites.RemoveRange(gifFavorites);
 
+            var channelFavorites = _db.ChannelFavorites.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.ChannelFavorites.RemoveRange(channelFavorites);
+
             await _db.SaveChangesAsync();
             
             // Remove eco stuff
@@ -1212,10 +1276,6 @@ public class UserService
             await _db.OldPlanetRoleMembers.IgnoreQueryFilters()
                 .Where(x => x.UserId == dbUser.Id)
                 .ExecuteDeleteAsync();
-
-            // Remove member channel access records (before planet members, since access FK to members)
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"DELETE FROM member_channel_access WHERE user_id = {dbUser.Id}");
 
             // Remove planet membership
             var members = _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
@@ -1349,6 +1409,7 @@ public class UserService
             await _db.SaveChangesAsync();
 
             await tran.CommitAsync();
+            InvalidateAccessFlags(dbUser.Id);
             _logger.LogInformation("Hard deleted user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
 
             return TaskResult.SuccessResult;

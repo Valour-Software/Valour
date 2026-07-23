@@ -1,4 +1,4 @@
-﻿.embed {
+.embed {
     background-color: rgba(255, 255, 255, 0.07);
     padding: 1rem 1rem 1rem 1rem;
     max-width: 1024px;
@@ -6,6 +6,10 @@
     width: fit-content;
     position: relative;
     font-size: var(--font-size-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .embed a {
@@ -17,17 +21,40 @@
     content: none;
 }
 
-.embed-item {
-
-}
-
 .embed-title {
     font-weight: var(--font-weight-bold);
     font-size: var(--font-size-md);
-    margin-bottom: 8px;
 }
 
 .embed-footer {
     font-size: var(--font-size-sm);
-    margin-top: 8px;
+    opacity: 0.8;
+}
+
+.embed-page-arrows {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.embed-page-arrow {
+    color: var(--font-color, #ffffff);
+    background-color: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-sm, 0.25rem);
+    padding: 0.15rem 0.6rem;
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.embed-page-arrow:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.embed-page-number {
+    font-size: var(--font-size-xs);
+    opacity: 0.8;
 }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
-using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Sdk.Models.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models.MessageReactions;
@@ -26,14 +26,9 @@ public class MessageService : ServiceBase
     public HybridEvent<Message> MessageDeleted;
     
     /// <summary>
-    /// Run when a personal embed update is received
+    /// Run when a live embed update is received (channel-wide or personal)
     /// </summary>
-    public HybridEvent<PersonalEmbedUpdate> PersonalEmbedUpdate;
-
-    /// <summary>
-    /// Run when a channel embed update is received
-    /// </summary>
-    public HybridEvent<ChannelEmbedUpdate> ChannelEmbedUpdate;
+    public HybridEvent<EmbedUpdate> EmbedUpdated;
     
     private readonly LogOptions _logOptions = new(
         "MessageService",
@@ -226,14 +221,9 @@ public class MessageService : ServiceBase
         }
     }
     
-    private void OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
+    private void OnEmbedUpdate(EmbedUpdate update)
     {
-        PersonalEmbedUpdate?.Invoke(update);
-    }
-
-    private void OnChannelEmbedUpdate(ChannelEmbedUpdate update)
-    {
-        ChannelEmbedUpdate?.Invoke(update);
+        EmbedUpdated?.Invoke(update);
     }
     
     private void OnMessageReactionAdded(Node node, MessageReaction reaction)
@@ -271,10 +261,10 @@ public class MessageService : ServiceBase
             if (node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
                 _client.MessageService.OnMessageDeleted(message);
         });
-        node.HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", update =>
+        node.HubConnection.On<EmbedUpdate>("Channel-Embed-Update", update =>
         {
             if (update is not null && node.AcceptsExternalMessageRealtimeEvent(update.TargetMessageId))
-                OnChannelEmbedUpdate(update);
+                OnEmbedUpdate(update);
         });
         node.HubConnection.On<MessageReaction>("MessageReactionAdd", reaction =>
         {
@@ -293,7 +283,7 @@ public class MessageService : ServiceBase
         {
             node.HubConnection.On<Message>("RelayDirect", OnDirectMessageReceived);
             node.HubConnection.On<Message>("RelayDirectEdit", OnDirectMessageEdited);
-            node.HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", OnPersonalEmbedUpdate);
+            node.HubConnection.On<EmbedUpdate>("Personal-Embed-Update", OnEmbedUpdate);
         }
     }
 }

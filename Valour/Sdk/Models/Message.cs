@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
-using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Sdk.Models.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared;
 using Valour.Sdk.ModelLogic;

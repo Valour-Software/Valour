@@ -1,45 +1,14 @@
-﻿@implements IDisposable
-@inherits BaseEmbedItemComponent
+@inherits EmbedItemComponentBase
 
-<div style="@item.GetStyle()" class="embed-item embed-form">
-	@if (item.Children is not null)
-	{
-		foreach (EmbedItem _item in item.Children)
+<CascadingValue Value="@this" IsFixed="true">
+	<div class="embed-item embed-form @Form.Classes" style="@Form.Style">
+		@foreach (var child in Form.Children)
 		{
-			<EmbedItemComponent embed="@embed" Message="@Message" item="@_item" FormItem="@item"></EmbedItemComponent>
+			<EmbedItemComponent Item="@child" @key="@(child.Id ?? (object)child)" />
 		}
-	}
-</div>
+	</div>
+</CascadingValue>
 
 @code {
-	[Parameter]
-	public Message Message { get; set; }
-
-	[Parameter]
-	public Embed embed { get; set; }
-
-	public EmbedFormItem item;
-
-	protected override void OnInitialized()
-	{
-		item = (EmbedFormItem)_item;
-		embedComponent.RefreshFormComponents += Refresh;
-		if (item.Id is not null)
-			embedComponent.EmbedFormComponents[item.Id] = this;
-	}
-
-	public void Dispose()
-    {
-        embedComponent.RefreshFormComponents -= Refresh;
-		if (item.Id is not null)
-            embedComponent.EmbedFormComponents.Remove(item.Id, out var _);
-    }
-
-	public override void Refresh()
-    {
-		item = (EmbedFormItem)_item;
-		if (item.Id is not null)
-			embedComponent.EmbedFormComponents[item.Id] = this;
-        StateHasChanged();
-    }
+	public EmbedFormItem Form => (EmbedFormItem)Item;
 }

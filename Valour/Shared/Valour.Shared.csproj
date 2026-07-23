@@ -13,7 +13,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
-    <Version>0.7.11</Version>
+    <Version>0.7.12</Version>
   </PropertyGroup>
 
   <PropertyGroup>

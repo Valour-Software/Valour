@@ -1,11 +1,20 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
-namespace Valour.Sdk.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Embeds.Items;
 
-public class EmbedButtonItem : EmbedItem, IClickable
+/// <summary>
+/// A clickable button. Its label is whatever items it contains.
+/// </summary>
+public class EmbedButtonItem : EmbedItem, IClickableItem
 {
-	public EmbedClickTargetBase ClickTarget { get; set; }
+    public List<EmbedItem> Children { get; set; } = new();
 
-	[JsonIgnore]
-	public override EmbedItemType ItemType => EmbedItemType.Button;
-} 
+    public EmbedClickTarget? ClickTarget { get; set; }
+
+    [JsonIgnore]
+    public override EmbedItemType ItemType => EmbedItemType.Button;
+
+    public override IEnumerable<EmbedItem> EnumerateDescendants() => EnumerateList(Children);
+
+    public override bool TryReplaceDescendant(EmbedItem replacement) => TryReplaceInList(Children, replacement);
+}

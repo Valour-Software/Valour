@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
-using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Sdk.Models.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
@@ -124,12 +124,9 @@ public class MessageAttachment : ISharedMessageAttachment
         Location = EmbedLocation;
         MimeType = "application/vnd.valour.embed+json";
         FileName ??= "Embed";
-        Data = embed is null ? null : JsonSerializer.Serialize(embed);
+        Data = embed is null ? null : EmbedParser.Serialize(embed);
         _embed = embed;
         _embedParsed = true;
-
-        if (_embed is not null)
-            InitEmbed(_embed);
     }
 
     public void SetEmbedPayload(string data)
@@ -152,34 +149,9 @@ public class MessageAttachment : ISharedMessageAttachment
 
     private static Embed ParseEmbed(string data)
     {
-        if (string.IsNullOrEmpty(data))
-            return null;
-
-        // prevent a million errors in console for legacy embed versions
-        if (data.Contains("EmbedVersion\":\"1.1.0\""))
-            return null;
-
-        var embed = JsonSerializer.Deserialize<Embed>(data);
-        InitEmbed(embed);
-        return embed;
-    }
-
-    private static void InitEmbed(Embed embed)
-    {
-        if (embed?.Pages is null)
-            return;
-
-        foreach (var page in embed.Pages)
-        {
-            if (page.Children is null)
-                continue;
-
-            foreach (var item in page.Children)
-            {
-                item.Embed = embed;
-                item.Init(embed, page);
-            }
-        }
+        // Handles legacy versions, malformed payloads, and oversized data
+        // by returning null; the client then renders nothing.
+        return EmbedParser.TryParse(data);
     }
 
     private string _signedUrl;

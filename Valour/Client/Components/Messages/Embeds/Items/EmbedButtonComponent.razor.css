@@ -1,23 +1,33 @@
-﻿.embed {
-    background-color: rgba(255, 255, 255, 0.07);
-    padding: 1rem 1rem 1rem 1rem;
-    max-width: 512px;
-    border-radius: var(--radius-md);
-}
-
-.embed a {
+/* Self-contained button styling; the app bundle does not ship
+   bootstrap's btn component. Bot-supplied styles override via inline style. */
+.embed-button {
+    color: #ffffff;
+    background-color: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-sm, 0.25rem);
+    padding: 0.35rem 0.85rem;
     font-size: var(--font-size-sm);
-    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.embed a:after {
-    content: none;
+.embed-button:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
-.embed-item {
-    margin-top: 8px;
+.embed-button:active {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
-.embed-button-text {
+.embed-button ::deep .item-text {
     font-size: var(--font-size-sm) !important;
+}
+
+.embed-button ::deep p {
+    margin: 0;
 }

@@ -26,6 +26,40 @@ public class TokenService
     }
 
     /// <summary>
+    /// Periodically evicts expired tokens from the cache. Without this, tokens that
+    /// expire and are never presented again would stay resident for the process lifetime.
+    /// </summary>
+    public static void StartCacheSweepTask()
+    {
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(10));
+
+                    var now = DateTime.UtcNow;
+                    var expired = QuickCache
+                        .Where(kvp => kvp.Value.TimeExpires < now)
+                        .Select(kvp => kvp.Key)
+                        .ToList();
+
+                    foreach (var key in expired)
+                        QuickCache.TryRemove(key, out _);
+
+                    if (expired.Count > 0)
+                        Console.WriteLine($"Cleaned up {expired.Count} expired auth tokens from cache");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error sweeping auth token cache: {ex.Message}");
+                }
+            }
+        });
+    }
+
+    /// <summary>
     /// Will return the auth object for a valid token.
     /// A null response means the key was invalid or expired.
     /// </summary>

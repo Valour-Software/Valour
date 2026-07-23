@@ -1,94 +1,36 @@
-﻿@implements IDisposable
-@inject IJSRuntime JS
-@inherits BaseEmbedItemComponent
+@inherits EmbedItemComponentBase
+@inject IJSRuntime JsRuntime
 
-<div style="@item.GetStyle()" class="@MainClass">
-	@if (item.NameItem is not null)
+<div style="@Text.Style" class="@(Nested ? null : "embed-item") @Text.Classes">
+	@if (Text.NameItem is not null)
 	{
-		<EmbedTextItemComponent _item="@item.NameItem"></EmbedTextItemComponent>
+		<div class="item-name">
+			<EmbedTextItemComponent Item="@Text.NameItem" Nested="true" />
+		</div>
 	}
-	<div @onclick="(async () => {await OnEmbedButtonClick();})">
-	@if (item.Text is not null)
+	@if (Text.Text is not null)
 	{
-		@if (item.ClickTarget is not null)
+		@if (Text.ClickTarget is not null)
 		{
-			<div style="cursor: pointer;">@((MarkupString)MarkdownManager.GetHtml(item.Text))</div>
+			<div class="item-text clickable" @onclick="HandleClickAsync">
+				@((MarkupString)MarkdownManager.GetHtml(Text.Text))
+			</div>
 		}
 		else
 		{
-			@((MarkupString)MarkdownManager.GetHtml(item.Text))
+			<div class="item-text">
+				@((MarkupString)MarkdownManager.GetHtml(Text.Text))
+			</div>
 		}
 	}
-	</div>
 </div>
 
 @code {
-	public EmbedTextItem item { get; set; }
+	[Parameter]
+	public bool Nested { get; set; }
 
-	[CascadingParameter]
-    public ModalRoot ModalRoot { get; set; }
+	private EmbedTextItem Text => (EmbedTextItem)Item;
 
-	public string MainClass
-	{
-		get
-		{
-			if (item.Parent is not null && (item.Parent.ItemType == EmbedItemType.EmbedRow 
-				|| item.Parent.ItemType == EmbedItemType.EmbedPage 
-				|| item.Parent.ItemType == EmbedItemType.Form))
-			{
-				return "embed-item";
-			}
-			return "";
-		}
-	}
-
-	private bool ProcessClick = false;
-
-	protected override Task OnAfterRenderAsync(bool firstRender)
-	{
-		if (ProcessClick)
-		{
-			ProcessClick = false;
-			Task.Run((async () => await EmbedGoToClickHandler.HandleClick(item, embedComponent, ModalRoot, JS)));
-		}
-		return base.OnAfterRenderAsync(firstRender);
-	}
-
-	public Task OnEmbedButtonClick()
-	{
-		if (item.ClickTarget is not null)
-		{
-			ProcessClick = true;
-			return Task.CompletedTask;
-		}
-
-		return Task.CompletedTask;
-	}
-
-	protected override void OnInitialized()
-	{
-		item = (EmbedTextItem)_item;
-		if (item.Id is not null)
-			embedComponent.ItemComponents[item.Id] = this;
-		embedComponent.RefreshItemComponents += Refresh;
-	}
-
-	public void Dispose()
-    {
-        embedComponent.RefreshItemComponents -= Refresh;
-		if (item.Id is not null)
-            embedComponent.ItemComponents.Remove(item.Id, out var _);
-    }
-
-	public override void Refresh()
-	{
-		item = (EmbedTextItem)_item;
-		if (item.Id is not null) {
-			embedComponent.ItemComponents[item.Id] = this;
-			//if (item.Id != "money-text") {
-			//	Console.WriteLine($"TextComponent: Updating {item.Id} with content {item.Text}");
-			//}
-		}
-		StateHasChanged();
-	}
+	private Task HandleClickAsync() =>
+		EmbedClickHandler.HandleClickAsync(Text, Root, EnclosingForm, JsRuntime);
 }

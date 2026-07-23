@@ -37,6 +37,23 @@
         <Icon><i class="bi bi-trash-fill"></i></Icon>
     </ContextMenuItem>
 }
+@if (CanFavorite)
+{
+    if (Client.ChannelFavoriteService.IsFavorite(Data.Channel.Id))
+    {
+        <ContextMenuItem OnClickAsync="@UnfavoriteChannel">
+            <Label>Unfavorite</Label>
+            <Icon><i class="bi bi-star-fill"></i></Icon>
+        </ContextMenuItem>
+    }
+    else
+    {
+        <ContextMenuItem OnClickAsync="@FavoriteChannel">
+            <Label>Favorite</Label>
+            <Icon><i class="bi bi-star"></i></Icon>
+        </ContextMenuItem>
+    }
+}
 <ContextMenuItem OnClickAsync="@OnClickCopyId">
     <Label>Copy ID</Label>
     <Icon><i class="bi bi-database-fill"></i></Icon>
@@ -44,6 +61,11 @@
 
 @code {
     private bool VoiceAvailable => Client.InstanceManifest?.Capabilities?.Voice != false;
+
+    // Favorites are per-user leaf shortcuts - categories are intentionally unsupported
+    private bool CanFavorite =>
+        Data.Channel.PlanetId is not null &&
+        Data.Channel.ChannelType != ChannelTypeEnum.PlanetCategory;
 
 
     public class ChannelContextParams
@@ -76,6 +98,24 @@
         StateHasChanged();
     }
     
+    private async Task FavoriteChannel()
+    {
+        await CloseAsync();
+
+        var result = await Client.ChannelFavoriteService.AddFavoriteAsync(Data.Channel);
+        if (!result.Success)
+            ToastContainer.Instance.AddToast(new ToastData("Failed to favorite", result.Message, ToastProgressState.Failure));
+    }
+
+    private async Task UnfavoriteChannel()
+    {
+        await CloseAsync();
+
+        var result = await Client.ChannelFavoriteService.RemoveFavoriteAsync(Data.Channel.Id);
+        if (!result.Success)
+            ToastContainer.Instance.AddToast(new ToastData("Failed to unfavorite", result.Message, ToastProgressState.Failure));
+    }
+
     private async Task OnClickCopyId(){
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Channel.Id.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Channel ID copied to clipboard", ToastProgressState.Success));

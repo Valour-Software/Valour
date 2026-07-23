@@ -46,6 +46,7 @@ public class ValourClient
     public readonly NodeService NodeService;
     public readonly PlanetService PlanetService;
     public readonly ChannelService  ChannelService;
+    public readonly ChannelFavoriteService ChannelFavoriteService;
     public readonly PermissionService PermissionService;
     public readonly KlipyService KlipyService;
     public readonly SubscriptionService SubscriptionService;
@@ -125,6 +126,7 @@ public class ValourClient
         MessageService = new MessageService(this);
         PlanetService = new PlanetService(this);
         ChannelService = new ChannelService(this);
+        ChannelFavoriteService = new ChannelFavoriteService(this);
         ChannelStateService = new ChannelStateService(this);
         PermissionService = new PermissionService(this);
         BotService = new BotService(this);
@@ -278,6 +280,7 @@ public class ValourClient
             BlockService.FetchBlocksAsync(),
             PlanetService.FetchJoinedPlanetsAsync(),
             KlipyService.LoadGifFavoritesAsync(),
+            ChannelFavoriteService.LoadFavoritesAsync(),
             ChannelService.LoadDmChannelsAsync(),
             NotificationService.LoadUnreadNotificationsAsync(),
             UnreadService.FetchUnreadPlanetsAsync(),
@@ -317,6 +320,7 @@ public class ValourClient
                 member.User = Me;
             data.MyPlanetMembers.SyncAll(this, ModelInsertFlags.Batched);
             KlipyService.ApplyGifFavorites(data.GifFavorites);
+            ChannelFavoriteService.ApplyFavorites(data.ChannelFavorites);
             EcoService.ApplySelfGlobalAccount(data.GlobalAccount);
             NotificationService.ApplyUnreadNotifications(data.UnreadNotifications);
             UnreadService.ApplyUnreadPlanets(data.UnreadPlanets);

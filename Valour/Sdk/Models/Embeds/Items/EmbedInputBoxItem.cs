@@ -1,55 +1,41 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
-namespace Valour.Sdk.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Embeds.Items;
 
-public class EmbedInputBoxItem : EmbedItem, IEmbedFormItem, INameable
+/// <summary>
+/// A single-line text input whose value is collected on form submit.
+/// </summary>
+public class EmbedInputBoxItem : EmbedItem, IFormInputItem, INamedItem
 {
-    /// <summary>
-    /// The input value
-    /// </summary>
-    public string Value { get; set; }
+    public string? Value { get; set; }
 
-    /// <summary>
-    /// The placeholder text for inputs
-    /// </summary>
-    public string Placeholder { get; set; }
+    public string? Placeholder { get; set; }
 
-    public new string Id { get; set; }
+    public EmbedTextItem? NameItem { get; set; }
 
-    public EmbedTextItem NameItem { get; set; }
+    public bool KeepValueOnUpdate { get; set; } = true;
 
-	public bool? KeepValueOnUpdate { get; set; } = true;
+    [JsonIgnore]
+    public override EmbedItemType ItemType => EmbedItemType.InputBox;
 
-	[JsonIgnore]
-	public override EmbedItemType ItemType => EmbedItemType.InputBox;
-
-    public override List<EmbedItem> GetAllItems()
-	{
-        if (Children is null)
-            return new();
-        List<EmbedItem> items = new();
-        if (NameItem is not null) {
-		    items.Add(NameItem);
-		    items.AddRange(NameItem.GetAllItems());
-        }
-        foreach(var _item in Children) 
-        {
-            items.Add(_item);
-            items.AddRange(_item.GetAllItems());
-        }
-        return items;
-	}
-
-	public EmbedInputBoxItem()
+    public override IEnumerable<EmbedItem> EnumerateDescendants()
     {
-        
+        if (NameItem is null)
+            yield break;
+
+        yield return NameItem;
+        foreach (var descendant in NameItem.EnumerateDescendants())
+            yield return descendant;
     }
 
-    public EmbedInputBoxItem(string id, string value = null, string placeholder = null, bool? keepvalueonupdate = null)
+    public override bool TryReplaceDescendant(EmbedItem replacement)
     {
-        Id = id;
-        Value = value;
-        Placeholder = placeholder; 
-        KeepValueOnUpdate = keepvalueonupdate;
+        if (NameItem?.Id is not null && NameItem.Id == replacement.Id && replacement is EmbedTextItem text)
+        {
+            NameItem = text;
+            return true;
+        }
+
+        return NameItem?.TryReplaceDescendant(replacement) ?? false;
     }
 }

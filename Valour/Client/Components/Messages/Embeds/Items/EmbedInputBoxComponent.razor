@@ -1,46 +1,15 @@
-@inject HttpClient Http
-@implements IDisposable
-@inherits BaseEmbedItemComponent
+@inherits EmbedItemComponentBase
 
-<div style="@Item.GetStyle()" class="embed-item">
-    @if (Item.NameItem is not null)
-    {
-        <div style="margin-left: 2px;">
-            <EmbedTextItemComponent _item="@Item.NameItem"></EmbedTextItemComponent>
-        </div>
-    }
-    <input type="text" class="form-control" placeholder="@Item.Placeholder" @bind-value="@Item.Value" style="background-color: var(--main-1);color: var(--font-color);margin-top: 0px;">
+<div class="embed-item embed-input @Input.Classes" style="@Input.Style">
+	@if (Input.NameItem is not null)
+	{
+		<div class="item-name">
+			<EmbedTextItemComponent Item="@Input.NameItem" Nested="true" />
+		</div>
+	}
+	<input type="text" class="form-control" placeholder="@Input.Placeholder" @bind-value="@Input.Value" />
 </div>
 
 @code {
-    public EmbedInputBoxItem Item { get; set; }
-    protected override void OnInitialized()
-    {
-        Item = (EmbedInputBoxItem)_item;
-        embedComponent.RefreshItemComponents += Refresh;
-        if (Item.Id is not null)
-			embedComponent.ItemComponents[Item.Id] = this;
-    }
-
-    public void Dispose()
-    {
-        embedComponent.RefreshItemComponents -= Refresh;
-        if (Item.Id is not null)
-            embedComponent.ItemComponents.Remove(Item.Id, out var _);
-    }
-
-    public override void Refresh()
-    {
-        if (!embedComponent.ProcessingEmbedUpdate || (Item.KeepValueOnUpdate is not null && !(bool)Item.KeepValueOnUpdate))
-            Item = (EmbedInputBoxItem)_item;
-        else
-        {
-            string value = Item.Value;
-            Item = (EmbedInputBoxItem)_item;
-            Item.Value = value;
-        }
-        if (Item.Id is not null)
-			embedComponent.ItemComponents[Item.Id] = this;
-        StateHasChanged();
-    }
+	private EmbedInputBoxItem Input => (EmbedInputBoxItem)Item;
 }

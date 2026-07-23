@@ -1,0 +1,44 @@
+.embed-progress {
+    width: 150px;
+}
+
+/* Self-contained progress styling; the app bundle does not ship
+   bootstrap's progress component */
+.progress {
+    display: flex;
+    height: 1rem;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm, 0.25rem);
+}
+
+.progress-bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    font-size: var(--font-size-xs);
+    background-color: #0d6efd;
+    transition: width 0.6s ease;
+}
+
+.progress-bar-striped {
+    background-image: linear-gradient(45deg,
+        rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%, transparent);
+    background-size: 1rem 1rem;
+}
+
+.progress-bar-animated {
+    animation: embed-progress-stripes 1s linear infinite;
+}
+
+@keyframes embed-progress-stripes {
+    0% {
+        background-position-x: 1rem;
+    }
+}
