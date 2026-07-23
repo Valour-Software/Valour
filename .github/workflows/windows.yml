@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Check if release already exists
+    - name: Check if release already has Windows assets
       id: check
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -25,11 +25,15 @@ jobs:
         CURRENT=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' Valour/Client.Maui/Valour.Client.Maui.csproj)
         echo "version=$CURRENT" >> $GITHUB_OUTPUT
 
-        if gh release view "v$CURRENT" > /dev/null 2>&1; then
-          echo "Release v$CURRENT already exists, skipping build"
+        # Gate on this platform's assets, not release existence: the release is
+        # shared with other platform workflows, and a failed run must not block
+        # rebuilding the same version after a fix is pushed.
+        ASSETS=$(gh release view "v$CURRENT" --json assets -q '.assets[].name' 2>/dev/null || true)
+        if echo "$ASSETS" | grep -qx 'Valour-full.zip' && echo "$ASSETS" | grep -qx 'ValourLauncher.exe'; then
+          echo "Release v$CURRENT already has Windows assets, skipping build"
           echo "changed=false" >> $GITHUB_OUTPUT
         else
-          echo "No release for v$CURRENT, will build"
+          echo "No complete Windows release for v$CURRENT, will build"
           echo "changed=true" >> $GITHUB_OUTPUT
         fi
 

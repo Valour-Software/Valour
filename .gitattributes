@@ -1,2 +1,6 @@
-autocrlf=true
 * text=auto eol=crlf
+
+# Shell scripts run on Linux (Cloudflare Pages, prod deploys); a CRLF shebang
+# breaks the kernel's interpreter lookup, so they must check out as LF.
+cf-build text eol=lf
+*.sh text eol=lf
