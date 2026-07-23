@@ -1,0 +1,125 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<div class="pull-refresh @CssClass" @ref="_root">
+    <div class="pull-refresh-indicator" aria-hidden="true">
+        <div class="pull-refresh-badge">
+            <svg class="pull-refresh-ring" viewBox="0 0 40 40" fill="none">
+                <defs>
+                    <linearGradient id="@_gradientId" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                        <stop class="ring-stop-start" offset="0"/>
+                        <stop class="ring-stop-end" offset="1"/>
+                    </linearGradient>
+                </defs>
+                <circle class="ring-track" cx="20" cy="20" r="16"/>
+                <circle class="ring-arc" cx="20" cy="20" r="16" stroke="url(#@_gradientId)"/>
+            </svg>
+            <i class="bi bi-arrow-down pull-refresh-arrow"></i>
+        </div>
+    </div>
+    <div class="pull-refresh-content">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// Invoked when the user releases a pull past the threshold. The
+    /// indicator keeps spinning until this callback completes.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnRefresh { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Pull distance in px (after rubber-band resistance) needed to arm a refresh
+    /// </summary>
+    [Parameter]
+    public int Threshold { get; set; } = 72;
+
+    /// <summary>
+    /// Distance in px the content can be pulled down at most
+    /// </summary>
+    [Parameter]
+    public int MaxPull { get; set; } = 144;
+
+    [Parameter]
+    public string CssClass { get; set; }
+
+    // SVG gradient ids are document-global, so each instance needs its own
+    private readonly string _gradientId = $"ptr-grad-{Guid.NewGuid():N}";
+
+    private ElementReference _root;
+    private DotNetObjectReference<PullToRefresh> _dotnetRef;
+    private IJSObjectReference _jsModule;
+    private IJSObjectReference _service;
+    private bool _lastDisabled;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./_content/Valour.Client/Components/Utility/PullToRefresh.razor.js");
+            _service = await _jsModule.InvokeAsync<IJSObjectReference>(
+                "init",
+                _root,
+                _dotnetRef,
+                Threshold,
+                MaxPull);
+        }
+
+        if (_service is not null && Disabled != _lastDisabled)
+        {
+            _lastDisabled = Disabled;
+            await _service.InvokeVoidAsync("setEnabled", !Disabled);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPullRefresh()
+    {
+        try
+        {
+            if (!Disabled && OnRefresh.HasDelegate)
+                await OnRefresh.InvokeAsync();
+        }
+        finally
+        {
+            // Always release the spinner, even if the refresh failed
+            try
+            {
+                if (_service is not null)
+                    await _service.InvokeVoidAsync("complete");
+            }
+            catch (JSDisconnectedException) { }
+            catch (JSException) { }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_service is not null)
+            {
+                await _service.InvokeVoidAsync("dispose");
+                await _service.DisposeAsync();
+            }
+
+            if (_jsModule is not null)
+                await _jsModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+
+        _dotnetRef?.Dispose();
+    }
+}

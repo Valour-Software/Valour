@@ -29,7 +29,12 @@ services:
   valour:
     image: ghcr.io/valour-software/valour:main-latest
     # To run from local source instead of the published image:
-    # build: .
+    # build:
+    #   context: .
+    #   args:
+    #     # Version stamp for cache-busting asset URLs. Any string that changes
+    #     # between builds works, e.g. SHORTHASH=$(git rev-parse --short=8 HEAD)
+    #     SHORTHASH: dev
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,0 +1,119 @@
+/* Twitter-style pull-to-refresh. The JS module drives two custom
+   properties on the root - --pull (px offset the content follows) and
+   --pull-progress (0..1 toward the trigger threshold) - plus state
+   classes: .ptr-pulling (finger down and engaged), .ptr-armed (past
+   threshold), .ptr-refreshing (waiting on .NET) and .ptr-settling
+   (animating back to rest). */
+
+.pull-refresh {
+    --pull: 0px;
+    --pull-progress: 0;
+    position: relative;
+}
+
+.pull-refresh-content {
+    transform: translate3d(0, var(--pull), 0);
+}
+
+.ptr-pulling > .pull-refresh-content,
+.ptr-pulling > .pull-refresh-indicator {
+    will-change: transform;
+}
+
+.ptr-settling > .pull-refresh-content,
+.ptr-settling > .pull-refresh-indicator {
+    transition: transform 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+/* The badge rides just above the content edge, so it emerges into the
+   gap the pull opens up. Kept below Valour's sticky headers (z-index 5)
+   so it slides out from underneath them. */
+.pull-refresh-indicator {
+    position: absolute;
+    top: -60px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 4;
+    transform: translate3d(0, var(--pull), 0);
+    opacity: clamp(0, calc(var(--pull-progress) * 2), 1);
+}
+
+.pull-refresh-badge {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--main-1);
+    border: 1px solid var(--main-4);
+    box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.35),
+        0 2px 6px rgba(0, 0, 0, 0.25);
+    transform: scale(clamp(0.55, calc(0.55 + var(--pull-progress) * 0.45), 1));
+}
+
+.pull-refresh-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg); /* Arc fills clockwise from 12 o'clock */
+}
+
+.pull-refresh-ring .ring-stop-start {
+    stop-color: var(--v-cyan);
+}
+
+.pull-refresh-ring .ring-stop-end {
+    stop-color: var(--v-purple);
+}
+
+.pull-refresh-ring .ring-track {
+    stroke: color-mix(in srgb, var(--font-color) 10%, transparent);
+    stroke-width: 3;
+}
+
+/* r=16 -> circumference 100.53; the arc fills to 75% of it when armed */
+.pull-refresh-ring .ring-arc {
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 100.53;
+    stroke-dashoffset: calc(100.53 - var(--pull-progress) * 75.4);
+}
+
+.ptr-refreshing .pull-refresh-ring {
+    animation: ptr-spin 0.9s linear infinite;
+}
+
+.ptr-refreshing .pull-refresh-ring .ring-arc {
+    stroke-dashoffset: 25.13;
+}
+
+@keyframes ptr-spin {
+    from {
+        transform: rotate(-90deg);
+    }
+    to {
+        transform: rotate(270deg);
+    }
+}
+
+/* Arrow flips to point up as the pull arms, like classic Twitter */
+.pull-refresh-arrow {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    color: var(--font-color);
+    transform: rotate(calc(var(--pull-progress) * 0.5turn));
+}
+
+.ptr-refreshing .pull-refresh-arrow {
+    opacity: 0;
+    transform: scale(0.4);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}

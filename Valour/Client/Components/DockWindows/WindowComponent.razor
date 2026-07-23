@@ -19,8 +19,9 @@
         @* Mobile does not have tabs *@
         @if (!DeviceInfo.IsMobile)
         {
-            <div 
-                class="tab">
+            <div
+                class="tab"
+                title="@Title">
                 <div class="tab-info">
                     <img alt="tab icon" class="tab-icon @(IsPlanetTab ? "circle" : "")" src="@Icon"/>
                     <span class="tab-title">@Title</span>
@@ -34,7 +35,7 @@
                             <i class="bi bi-box-arrow-up-right"></i>
                         </span>
                     }
-                    <span class="minus" @onclick="@OnClickMinus">
+                    <span class="minus" title="Close tab" @onclick="@OnClickMinus">
                         <i class="bi bi-dash-circle-fill"></i>
                     </span>
                 </div>

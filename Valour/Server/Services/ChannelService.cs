@@ -104,15 +104,20 @@ public class ChannelService
         }
         else
         {
-            var channel = await _db.Channels.FindAsync(channelId);
+            // Direct/group channels are meaningless to clients without their
+            // member list (DM titles, avatars, and self-DM detection use it)
+            var channel = await _db.Channels
+                .AsNoTracking()
+                .Include(x => x.Members)
+                .FirstOrDefaultAsync(x => x.Id == channelId);
             if (channel is null)
                 return null;
-            
+
             // Require planet up front
             if (channel.PlanetId is not null)
                 return null;
-        
-            return channel?.ToModel();
+
+            return channel.ToModel();
         }
     }
 
@@ -208,6 +213,25 @@ public class ChannelService
         return _db.Channels.Include(x => x.Members)
             .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat &&
                         x.Members.Any(m => m.UserId == userId))
+            .Select(x => x.ToModel())
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Returns the most recently active direct chat channels for the given
+    /// user id. Startup only needs enough to warm the cache (recents dock,
+    /// first sidebar page); older DMs load on demand by id or by user.
+    /// </summary>
+    public Task<List<Channel>> GetRecentDirectAsync(long userId, int take = 50)
+    {
+        return _db.Channels
+            .AsNoTracking()
+            .Include(x => x.Members)
+            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat &&
+                        x.Members.Any(m => m.UserId == userId))
+            .OrderByDescending(x => x.LastUpdateTime)
+            .ThenByDescending(x => x.Id)
+            .Take(take)
             .Select(x => x.ToModel())
             .ToListAsync();
     }

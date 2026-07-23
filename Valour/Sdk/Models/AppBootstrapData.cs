@@ -18,6 +18,12 @@ public sealed class AppBootstrapData
     public List<FederatedMembershipInfo> FederatedMemberships { get; set; } = [];
     public List<GifFavorite> GifFavorites { get; set; } = [];
     public List<ChannelFavorite> ChannelFavorites { get; set; } = [];
+
+    /// <summary>
+    /// Null (not empty) when the server predates DM data in bootstrap, so the
+    /// client can fall back to fetching DM channels separately.
+    /// </summary>
+    public List<Channel> DirectChatChannels { get; set; }
     public EcoAccount GlobalAccount { get; set; }
     public List<Notification> UnreadNotifications { get; set; } = [];
     public long[] UnreadPlanets { get; set; } = [];

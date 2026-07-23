@@ -55,4 +55,22 @@ public interface ISharedMessage : ISharedModel<long>
     /// This is server-managed provenance, never client-authored message data.
     /// </summary>
     string ImportSource { get; set; }
+
+    /// <summary>
+    /// Non-null when this message was sent through a webhook. Server-managed;
+    /// never client-authored.
+    /// </summary>
+    long? WebhookId { get; set; }
+
+    /// <summary>
+    /// Display-name override for webhook messages. Stamped by the server with
+    /// the effective value at send time; never client-authored.
+    /// </summary>
+    string OverrideName { get; set; }
+
+    /// <summary>
+    /// Avatar override for webhook messages. Stamped by the server with the
+    /// effective value at send time; never client-authored.
+    /// </summary>
+    string OverrideAvatarUrl { get; set; }
 }

@@ -321,6 +321,11 @@ public class ValourClient
             data.MyPlanetMembers.SyncAll(this, ModelInsertFlags.Batched);
             KlipyService.ApplyGifFavorites(data.GifFavorites);
             ChannelFavoriteService.ApplyFavorites(data.ChannelFavorites);
+
+            if (data.DirectChatChannels is not null)
+                ChannelService.ApplyDirectChannels(data.DirectChatChannels);
+            else
+                await ChannelService.LoadDmChannelsAsync();
             EcoService.ApplySelfGlobalAccount(data.GlobalAccount);
             NotificationService.ApplyUnreadNotifications(data.UnreadNotifications);
             UnreadService.ApplyUnreadPlanets(data.UnreadPlanets);

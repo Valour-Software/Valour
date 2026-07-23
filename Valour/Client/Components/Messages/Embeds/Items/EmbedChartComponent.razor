@@ -1,0 +1,259 @@
+@inherits EmbedItemComponentBase
+@using System.Globalization
+
+@* Renders chart data as inline SVG. No charting libraries: the model
+   carries plain numbers and the coordinate math lives right here. *@
+
+<div class="embed-item embed-chart @Chart.Classes" style="@Chart.Style">
+	@if (Chart.Title is not null)
+	{
+		<div class="chart-title">@Chart.Title</div>
+	}
+
+	<svg viewBox="0 0 @W @H" class="chart-svg" role="img" aria-label="@(Chart.Title ?? "Chart")">
+		@if (Chart.Kind == ChartKind.Pie)
+		{
+			@foreach (var slice in BuildPieSlices())
+			{
+				<path d="@slice.Path" fill="@slice.Color" stroke="var(--main-1, #111)" stroke-width="1" />
+			}
+		}
+		else
+		{
+			@* Horizontal gridlines + y-axis values. Razor reserves <text>,
+			   so SVG text is emitted as encoded markup *@
+			@foreach (var grid in BuildGridLines())
+			{
+				<line x1="@F(PadLeft)" y1="@F(grid.Y)" x2="@F(W - PadRight)" y2="@F(grid.Y)" class="chart-grid" />
+				@SvgText(PadLeft - 4, grid.Y, "end", grid.Label, middle: true)
+			}
+
+			@* X labels *@
+			@foreach (var label in BuildXLabels())
+			{
+				@SvgText(label.X, H - 4, "middle", label.Text)
+			}
+
+			@if (Chart.Kind == ChartKind.Line)
+			{
+				@foreach (var line in BuildLineSeries())
+				{
+					<polyline points="@line.Points" fill="none" stroke="@line.Color" stroke-width="2"
+					          stroke-linejoin="round" stroke-linecap="round" />
+				}
+			}
+			else
+			{
+				@foreach (var bar in BuildBars())
+				{
+					<rect x="@bar.X" y="@bar.Y" width="@bar.Width" height="@bar.Height" fill="@bar.Color" rx="1" />
+				}
+			}
+		}
+	</svg>
+
+	@if (Chart.ShowLegend)
+	{
+		<div class="chart-legend">
+			@foreach (var entry in BuildLegend())
+			{
+				<span class="chart-legend-entry">
+					<span class="chart-legend-swatch" style="background-color: @entry.Color"></span>@entry.Name
+				</span>
+			}
+		</div>
+	}
+</div>
+
+@code {
+	// ViewBox size; CSS width/height on the item scales the whole SVG
+	private const double W = 320;
+	private const double H = 180;
+	private const double PadLeft = 38;
+	private const double PadRight = 8;
+	private const double PadTop = 8;
+	private const double PadBottom = 18;
+
+	private static readonly string[] Palette =
+	{
+		"#4f8ef7", "#34c98e", "#f7b34f", "#ee6677",
+		"#9d78f2", "#46c4dd", "#f28add", "#a8b657",
+	};
+
+	private EmbedChartItem Chart => (EmbedChartItem)Item;
+
+	private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+	private static MarkupString SvgText(double x, double y, string anchor, string text, bool middle = false)
+	{
+		var baseline = middle ? " dominant-baseline=\"middle\"" : "";
+		var encoded = System.Net.WebUtility.HtmlEncode(text);
+		// Styling is inline because MarkupString content never receives the
+		// CSS-isolation scope attribute, so scoped rules can't reach it
+		return new MarkupString(
+			$"<text x=\"{F(x)}\" y=\"{F(y)}\" text-anchor=\"{anchor}\"{baseline} " +
+			"font-size=\"8\" fill=\"var(--font-alt-color, rgba(255, 255, 255, 0.6))\">" +
+			encoded + "</text>");
+	}
+
+	private string SeriesColor(int index) =>
+		Chart.Series[index].Color ?? Palette[index % Palette.Length];
+
+	private int PointCount => Chart.Series.Max(s => s.Values.Count);
+
+	private (double Min, double Max) ValueRange()
+	{
+		var all = Chart.Series.SelectMany(s => s.Values).ToList();
+		var min = Math.Min(0, all.Min());
+		var max = all.Max();
+
+		if (max <= min)
+			max = min + 1;
+
+		return (min, max);
+	}
+
+	private double ScaleY(double value, double min, double max) =>
+		H - PadBottom - (value - min) / (max - min) * (H - PadTop - PadBottom);
+
+	private double ScaleX(int index, int count)
+	{
+		var usable = W - PadLeft - PadRight;
+		return count <= 1 ? PadLeft + usable / 2 : PadLeft + index * usable / (count - 1);
+	}
+
+	// ---- Line ----
+
+	private IEnumerable<(string Points, string Color)> BuildLineSeries()
+	{
+		var (min, max) = ValueRange();
+
+		for (var s = 0; s < Chart.Series.Count; s++)
+		{
+			var values = Chart.Series[s].Values;
+			var points = string.Join(' ', values.Select((v, i) =>
+				$"{F(ScaleX(i, values.Count))},{F(ScaleY(v, min, max))}"));
+
+			yield return (points, SeriesColor(s));
+		}
+	}
+
+	// ---- Bar ----
+
+	private IEnumerable<(string X, string Y, string Width, string Height, string Color)> BuildBars()
+	{
+		var (min, max) = ValueRange();
+		var groups = PointCount;
+		var usable = W - PadLeft - PadRight;
+		var groupWidth = usable / groups;
+		var barWidth = Math.Max(1, groupWidth * 0.8 / Chart.Series.Count);
+		var zeroY = ScaleY(Math.Max(0, min), min, max);
+
+		for (var s = 0; s < Chart.Series.Count; s++)
+		{
+			var values = Chart.Series[s].Values;
+			for (var i = 0; i < values.Count; i++)
+			{
+				var x = PadLeft + i * groupWidth + groupWidth * 0.1 + s * barWidth;
+				var y = ScaleY(values[i], min, max);
+				var top = Math.Min(y, zeroY);
+				var height = Math.Abs(zeroY - y);
+
+				yield return (F(x), F(top), F(barWidth), F(Math.Max(height, 0.5)), SeriesColor(s));
+			}
+		}
+	}
+
+	// ---- Pie ----
+
+	private IEnumerable<(string Path, string Color)> BuildPieSlices()
+	{
+		var values = Chart.Series[0].Values.Select(Math.Abs).ToList();
+		var total = values.Sum();
+		if (total <= 0)
+			yield break;
+
+		var cx = W / 2;
+		var cy = H / 2;
+		var radius = Math.Min(W, H) / 2 - 6;
+		var angle = -Math.PI / 2;
+
+		for (var i = 0; i < values.Count; i++)
+		{
+			var sweep = values[i] / total * Math.PI * 2;
+			var end = angle + sweep;
+
+			var x1 = cx + radius * Math.Cos(angle);
+			var y1 = cy + radius * Math.Sin(angle);
+			var x2 = cx + radius * Math.Cos(end);
+			var y2 = cy + radius * Math.Sin(end);
+			var largeArc = sweep > Math.PI ? 1 : 0;
+
+			// A full-circle single slice needs two arcs; nudge instead
+			if (values.Count == 1)
+				end -= 0.0001;
+
+			var path = $"M {F(cx)} {F(cy)} L {F(x1)} {F(y1)} A {F(radius)} {F(radius)} 0 {largeArc} 1 {F(x2)} {F(y2)} Z";
+			yield return (path, Palette[i % Palette.Length]);
+
+			angle = end;
+		}
+	}
+
+	// ---- Axes / legend ----
+
+	private IEnumerable<(double Y, string Label)> BuildGridLines()
+	{
+		var (min, max) = ValueRange();
+		const int steps = 4;
+
+		for (var i = 0; i <= steps; i++)
+		{
+			var value = min + (max - min) * i / steps;
+			yield return (ScaleY(value, min, max), FormatValue(value));
+		}
+	}
+
+	private IEnumerable<(double X, string Text)> BuildXLabels()
+	{
+		if (Chart.Labels is null || Chart.Labels.Count == 0)
+			yield break;
+
+		// Thin out labels so at most 8 render
+		var step = Math.Max(1, (int)Math.Ceiling(Chart.Labels.Count / 8.0));
+
+		for (var i = 0; i < Chart.Labels.Count; i += step)
+		{
+			var x = Chart.Kind == ChartKind.Bar
+				? PadLeft + (i + 0.5) * (W - PadLeft - PadRight) / PointCount
+				: ScaleX(i, Chart.Labels.Count);
+
+			yield return (x, Chart.Labels[i]);
+		}
+	}
+
+	private IEnumerable<(string Name, string Color)> BuildLegend()
+	{
+		if (Chart.Kind == ChartKind.Pie)
+		{
+			var labels = Chart.Labels ?? new();
+			for (var i = 0; i < Chart.Series[0].Values.Count; i++)
+				yield return (i < labels.Count ? labels[i] : $"#{i + 1}", Palette[i % Palette.Length]);
+			yield break;
+		}
+
+		for (var s = 0; s < Chart.Series.Count; s++)
+			yield return (Chart.Series[s].Name ?? $"Series {s + 1}", SeriesColor(s));
+	}
+
+	private static string FormatValue(double value)
+	{
+		var abs = Math.Abs(value);
+		return abs switch
+		{
+			>= 1_000_000 => (value / 1_000_000).ToString("0.#", CultureInfo.InvariantCulture) + "M",
+			>= 1_000 => (value / 1_000).ToString("0.#", CultureInfo.InvariantCulture) + "k",
+			_ => value.ToString("0.##", CultureInfo.InvariantCulture),
+		};
+	}
+}

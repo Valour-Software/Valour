@@ -35,7 +35,7 @@ else
                 </style>
             }
             <div class="avatar-stack">
-                <UserAvatar User="@_user" Member="@_member" Size="38" ShowBadges="@(!_isInnerReply)" OnClick="@OnClickName"/>
+                <UserAvatar User="@_user" Member="@_member" OverrideUrl="@_message?.OverrideAvatarUrl" Size="38" ShowBadges="@(!_isInnerReply)" OnClick="@OnClickName"/>
             </div>
         }
         <div class="time-container">
@@ -893,19 +893,26 @@ else
     /// </summary>
     private string GetAuthorName()
     {
+        // Webhook messages carry their display name on the message itself
+        if (_message?.OverrideName is not null)
+            return _message.OverrideName;
+
         if (_member is not null)
             return _member.Name;
-        
+
         if (_user is not null)
             return _user.Name;
-        
+
         return "Unknown User";
     }
-    
+
     private string GetAuthorRoleTag()
     {
+        if (_message?.WebhookId is not null)
+            return "App";
+
         // If there's a member, we use the member's planet role
-        if (_member is not null) 
+        if (_member is not null)
             return _member.PrimaryRole?.Name ?? "Unknown Role";
 
         if (_user is not null)
@@ -925,15 +932,28 @@ else
     
     private string GetAuthorColor()
     {
+        if (_message?.WebhookId is not null)
+            return "#fff";
+
         return _member is not null ? (_member.PrimaryRole?.Color ?? "#fff") :
             (Client.FriendService.FriendLookup.ContainsKey(ParamData.Message.AuthorUserId) ? "#9ffff1" : "#fff");
     }
-    
-    public string GetAuthorAvatar() =>
-        _author?.GetAvatar(AvatarFormat.Webp128);
-    
+
+    public string GetAuthorAvatar()
+    {
+        // Webhook messages carry their avatar on the message itself
+        if (_message?.OverrideAvatarUrl is not null)
+            return _message.OverrideAvatarUrl;
+
+        return _author?.GetAvatar(AvatarFormat.Webp128);
+    }
+
     public string GetAuthorAvatarAnimated()
     {
+        // Override avatars are static
+        if (_message?.OverrideAvatarUrl is not null)
+            return null;
+
         if (_user is not null)
         {
             // TODO: Tweak when member avatars are implemented

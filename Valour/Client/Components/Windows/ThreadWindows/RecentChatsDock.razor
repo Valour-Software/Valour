@@ -80,6 +80,7 @@
 
     private readonly List<RecentChatDockItem> _items = new();
     private bool _loading;
+    private bool _reloadPending;
     private bool _showingPlanetFallback;
     private RecentChatDockItem _mouseDownItem;
     private RecentChatDockItem _dragGhostItem;
@@ -149,11 +150,16 @@
 
     private async Task LoadAsync()
     {
+        // A change arriving mid-load must not be dropped — the in-flight pass
+        // may have read the entries before that change landed.
         if (_loading)
+        {
+            _reloadPending = true;
             return;
+        }
 
         // Reloading rebuilds the item buttons, which would abort an in-flight
-        // drag. Defer refreshes until the drag completes.
+        // drag. Defer refreshes until the drag completes (mouse-up reloads).
         if (ChannelDragManager.Dragging)
             return;
 
@@ -161,22 +167,27 @@
 
         try
         {
-            var entries = await RecentChatService.GetRecentChatsAsync();
-            var items = new List<RecentChatDockItem>();
-
-            foreach (var entry in entries.Take(DisplayCount))
+            do
             {
-                var item = await ResolveAsync(entry);
-                if (item is not null)
-                    items.Add(item);
-            }
+                _reloadPending = false;
 
-            _showingPlanetFallback = items.Count == 0;
-            if (_showingPlanetFallback)
-                items.AddRange(GetPlanetFallbackItems());
+                var entries = await RecentChatService.GetRecentChatsAsync();
+                var items = new List<RecentChatDockItem>();
 
-            _items.Clear();
-            _items.AddRange(items);
+                foreach (var entry in entries.Take(DisplayCount))
+                {
+                    var item = await ResolveAsync(entry);
+                    if (item is not null)
+                        items.Add(item);
+                }
+
+                _showingPlanetFallback = items.Count == 0;
+                if (_showingPlanetFallback)
+                    items.AddRange(GetPlanetFallbackItems());
+
+                _items.Clear();
+                _items.AddRange(items);
+            } while (_reloadPending && !ChannelDragManager.Dragging);
         }
         finally
         {
@@ -223,7 +234,16 @@
         if (channel is null)
             return null;
 
-        var otherUserId = channel.Members?
+        // A DM without member data cannot be labeled — missing members is not
+        // the same as a self-DM. Retry past the cache once, then drop the entry.
+        if (channel.Members is null || channel.Members.Count == 0)
+        {
+            channel = await Client.ChannelService.FetchDirectChannelAsync(entry.ChannelId, skipCache: true);
+            if (channel?.Members is null || channel.Members.Count == 0)
+                return null;
+        }
+
+        var otherUserId = channel.Members
             .FirstOrDefault(x => x.UserId != Client.Me.Id)?
             .UserId ?? Client.Me.Id;
 

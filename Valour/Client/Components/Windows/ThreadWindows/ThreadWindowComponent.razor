@@ -29,78 +29,80 @@
     else
     {
         <div class="thread-scroll">
-            <div class="thread-main">
-                <div class="thread-topbar">
-                    <button class="back-btn" title="Back to home" @onclick="@OnClickBack">
-                        <i class="bi bi-arrow-left"></i> Home
-                    </button>
-                </div>
-
-                <ThreadCard Thread="@_thread" ShowPlanet="true" ShowPresence="false" Preview="false" Clickable="false"/>
-
-                @if (_planet is not null)
-                {
-                    <button class="live-cta" @onclick="@OnClickJoinChat">
-                        <span class="live-cta-inner">
-                            <span class="live-cta-left">
-                                <span class="live-dot"></span>
-                                @(_presence is not null && _presence.ChattingCount >= 3
-                                    ? $"{_presence.ChattingCount} chatting in {_planet.Name}"
-                                    : $"{_planet.Name} is on Valour")
-                            </span>
-                            <span class="live-cta-right">
-                                <span class="live-cta-label">Continue the conversation live</span>
-                                <i class="bi bi-arrow-right"></i>
-                            </span>
-                        </span>
-                    </button>
-                }
-
-                <div class="comments-section">
-                    @if (_thread.IsLocked)
-                    {
-                        <div class="locked-notice">
-                            <i class="bi bi-lock-fill"></i>
-                            This thread is locked. New comments cannot be posted.
-                        </div>
-                    }
-                    else
-                    {
-                        <ThreadCommentCompose Thread="@_thread" OnPosted="@OnCommentPosted"/>
-                    }
-
-                    <div class="comments-header">
-                        <h4>@_thread.CommentCount @(_thread.CommentCount == 1 ? "Comment" : "Comments")</h4>
-                        <div class="comment-sort">
-                            <CustomDropdown TItem="SortOption"
-                                            Items="@SortOptions"
-                                            InitialItem="@CurrentSortOption"
-                                            EnableSearch="false"
-                                            SelectedItemChanged="@OnSortChanged"/>
-                        </div>
+            <PullToRefresh OnRefresh="@RefreshThreadAsync">
+                <div class="thread-main">
+                    <div class="thread-topbar">
+                        <button class="back-btn" title="Back to home" @onclick="@OnClickBack">
+                            <i class="bi bi-arrow-left"></i> Home
+                        </button>
                     </div>
 
-                    @if (_hasLoaded && _comments.Count == 0)
-                    {
-                        <div class="no-comments">
-                            <i class="bi bi-chat-left"></i>
-                            <p>No comments yet. Start the conversation!</p>
-                        </div>
-                    }
+                    <ThreadCard Thread="@_thread" ShowPlanet="true" ShowPresence="false" Preview="false" Clickable="false"/>
 
-                    @foreach (var comment in _comments)
+                    @if (_planet is not null)
                     {
-                        <ThreadCommentComponent @key="@comment.Id" Comment="@comment" Thread="@_thread"/>
-                    }
-
-                    @if (_hasMore)
-                    {
-                        <button class="load-more" disabled="@_isLoading" @onclick="@LoadMoreAsync">
-                            @(_isLoading ? "Loading..." : "Load more comments")
+                        <button class="live-cta" @onclick="@OnClickJoinChat">
+                            <span class="live-cta-inner">
+                                <span class="live-cta-left">
+                                    <span class="live-dot"></span>
+                                    @(_presence is not null && _presence.ChattingCount >= 3
+                                        ? $"{_presence.ChattingCount} chatting in {_planet.Name}"
+                                        : $"{_planet.Name} is on Valour")
+                                </span>
+                                <span class="live-cta-right">
+                                    <span class="live-cta-label">Continue the conversation live</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </span>
+                            </span>
                         </button>
                     }
+
+                    <div class="comments-section">
+                        @if (_thread.IsLocked)
+                        {
+                            <div class="locked-notice">
+                                <i class="bi bi-lock-fill"></i>
+                                This thread is locked. New comments cannot be posted.
+                            </div>
+                        }
+                        else
+                        {
+                            <ThreadCommentCompose Thread="@_thread" OnPosted="@OnCommentPosted"/>
+                        }
+
+                        <div class="comments-header">
+                            <h4>@_thread.CommentCount @(_thread.CommentCount == 1 ? "Comment" : "Comments")</h4>
+                            <div class="comment-sort">
+                                <CustomDropdown TItem="SortOption"
+                                                Items="@SortOptions"
+                                                InitialItem="@CurrentSortOption"
+                                                EnableSearch="false"
+                                                SelectedItemChanged="@OnSortChanged"/>
+                            </div>
+                        </div>
+
+                        @if (_hasLoaded && _comments.Count == 0)
+                        {
+                            <div class="no-comments">
+                                <i class="bi bi-chat-left"></i>
+                                <p>No comments yet. Start the conversation!</p>
+                            </div>
+                        }
+
+                        @foreach (var comment in _comments)
+                        {
+                            <ThreadCommentComponent @key="@comment.Id" Comment="@comment" Thread="@_thread"/>
+                        }
+
+                        @if (_hasMore)
+                        {
+                            <button class="load-more" disabled="@_isLoading" @onclick="@LoadMoreAsync">
+                                @(_isLoading ? "Loading..." : "Load more comments")
+                            </button>
+                        }
+                    </div>
                 </div>
-            </div>
+            </PullToRefresh>
         </div>
     }
     <RecentChatsDock/>
@@ -205,6 +207,36 @@
     private Task OnThreadUpdated(ModelUpdatedEvent<PlanetThread> e)
     {
         return ReRender();
+    }
+
+    /// <summary>
+    /// Pull-to-refresh: refetches the thread, presence and comments
+    /// </summary>
+    private async Task RefreshThreadAsync()
+    {
+        if (_thread is null || _isLoading)
+            return;
+
+        var refreshed = await Client.ThreadService.FetchThreadAsync(Data.PlanetId, Data.ThreadId, skipCache: true);
+        if (refreshed is not null)
+        {
+            if (!ReferenceEquals(refreshed, _hooked))
+            {
+                if (_hooked is not null)
+                    _hooked.Updated -= OnThreadUpdated;
+
+                _hooked = refreshed;
+                _hooked.Updated += OnThreadUpdated;
+            }
+
+            _thread = refreshed;
+            await Client.ThreadService.LoadThreadBoostStateAsync(new[] { _thread });
+        }
+
+        if (_planet is not null)
+            _presence = await Client.PlanetService.FetchPresenceAsync(_planet);
+
+        await ReloadCommentsAsync();
     }
 
     private async Task ReloadCommentsAsync()

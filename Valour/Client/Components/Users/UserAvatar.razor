@@ -53,6 +53,13 @@
     [Parameter]
     public AvatarFormat Format { get; set; } = AvatarFormat.Webp128;
 
+    /// <summary>
+    /// When set, this URL is shown instead of the user's or member's avatar
+    /// (webhook messages carry their own avatar).
+    /// </summary>
+    [Parameter]
+    public string OverrideUrl { get; set; }
+
     [Parameter]
     public EventCallback<MouseEventArgs> OnClick { get; set; }
 
@@ -74,7 +81,7 @@
 
     private void CalculateAvatar()
     {
-        _avatarUrl = Member?.GetAvatar(Format) ?? User?.GetAvatar(Format) ?? ISharedUser.DefaultAvatar;
+        _avatarUrl = OverrideUrl ?? Member?.GetAvatar(Format) ?? User?.GetAvatar(Format) ?? ISharedUser.DefaultAvatar;
         _failedAvatarUrl = User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
     }
 

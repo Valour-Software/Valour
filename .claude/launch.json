@@ -21,6 +21,27 @@
         "--no-launch-profile"
       ],
       "port": 5100
+    },
+    {
+      "name": "valour-server-5101",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "TEST_DB=valour_test",
+        "TEST_DB_HOST=localhost:5432",
+        "TEST_DB_USER=test_user",
+        "TEST_DB_PASS=test_password_123",
+        "TEST_REDIS=localhost:6379,abortConnect=False",
+        "NODE_NAME=emma",
+        "APPLY_MIGRATIONS=false",
+        "ASPNETCORE_ENVIRONMENT=Development",
+        "ASPNETCORE_URLS=http://localhost:5101",
+        "dotnet",
+        "run",
+        "--project",
+        "Valour/Server/Valour.Server.csproj",
+        "--no-launch-profile"
+      ],
+      "port": 5101
     }
   ]
 }

@@ -89,9 +89,9 @@ public class MessageService
             .FirstOrDefaultAsync(x => x.Id == id)).ToModel();
     
     /// <summary>
-    /// Used to post a message 
+    /// Used to post a message
     /// </summary>
-    public async Task<TaskResult<Message>> PostMessageAsync(Message message)
+    public async Task<TaskResult<Message>> PostMessageAsync(Message message, MessageWriteOptions writeOptions = null)
     {
         var user = await _db.Users.FindAsync(message.AuthorUserId);
         if (user is null)
@@ -199,6 +199,12 @@ public class MessageService
         // Import provenance is set only by trusted import workflows, never by
         // a client submitting a native message.
         message.ImportSource = null;
+
+        // Webhook identity is set only by the webhook execute path, never by
+        // a client submitting a native message.
+        message.WebhookId = writeOptions?.WebhookId;
+        message.OverrideName = writeOptions?.OverrideName;
+        message.OverrideAvatarUrl = writeOptions?.OverrideAvatarUrl;
         
         var attachments = message.Attachments?.Where(x => x is not null).ToList();
         if (attachments is not null)
@@ -239,6 +245,12 @@ public class MessageService
         
         // Handle mentions
         var mentions = MentionParser.Parse(message.Content);
+
+        // Webhooks have no member to check MentionAll against, so role
+        // mentions are stripped from their messages
+        if (writeOptions?.SuppressRoleMentions == true && mentions is not null)
+            mentions.RemoveAll(x => x.Type == MentionType.Role);
+
         PrepareMentions(message, mentions);
 
         if (message.Mentions is not null)
@@ -402,6 +414,9 @@ public class MessageService
         updated.ReplyTo = oldModel.ReplyTo;
         updated.Fingerprint = oldModel.Fingerprint;
         updated.ImportSource = old.ImportSource;
+        updated.WebhookId = old.WebhookId;
+        updated.OverrideName = old.OverrideName;
+        updated.OverrideAvatarUrl = old.OverrideAvatarUrl;
         
         // Sanity checks
         if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))
@@ -528,6 +543,10 @@ public class MessageService
             if (!migrationGuard.Success)
                 return migrationGuard;
         }
+
+        // Persisted replies are handled by the FK (SET NULL); not-yet-flushed
+        // replies must be cleared here or they would violate it on flush
+        PlanetMessageWorker.ClearReplyReferences(messageId);
 
         if (dbMessage is null)
         {

@@ -171,11 +171,25 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    # Multi-arch: the dockerfile cross-publishes for each target arch from a
+    # native build stage, so QEMU only backs the (RUN-free) runtime stage.
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Build and push Docker image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v6
       with:
         context: .
+        platforms: linux/amd64,linux/arm64
+        # Keep the manifest list to the real platforms — provenance attestations
+        # show up as bogus "unknown/unknown" entries on ghcr.
+        provenance: false
         push: true
+        build-args: |
+          SHORTHASH=${{ steps.short-sha.outputs.short_sha }}
         tags: |
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}-${{ steps.short-sha.outputs.short_sha }}
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}-latest

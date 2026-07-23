@@ -151,6 +151,11 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<PlanetInvite> PlanetInvites { get; set; }
 
     /// <summary>
+    /// Table for planet webhooks
+    /// </summary>
+    public DbSet<PlanetWebhook> PlanetWebhooks { get; set; }
+
+    /// <summary>
     /// Table for automod triggers
     /// </summary>
     public DbSet<AutomodTrigger> AutomodTriggers { get; set; }
@@ -351,6 +356,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         ThreadCommentBoost.SetupDbModel(modelBuilder);
         Report.SetupDbModel(modelBuilder);
         PlanetInvite.SetupDbModel(modelBuilder);
+        PlanetWebhook.SetupDbModel(modelBuilder);
         AuthToken.SetupDbModel(modelBuilder);
         OauthApp.SetupDbModel(modelBuilder);
         Channel.SetupDbModel(modelBuilder);

@@ -29,6 +29,9 @@ public static class MessageMapper
             ChannelId = message.ChannelId,
             EditedTime = message.EditedTime,
             ImportSource = message.ImportSource,
+            WebhookId = message.WebhookId,
+            OverrideName = message.OverrideName,
+            OverrideAvatarUrl = message.OverrideAvatarUrl,
             ReplyTo = message.ReplyToMessage?.ToModel(),
             Reactions = message.Reactions?.Select(x => x.ToModel()).ToList(),
             Attachments = attachments,
@@ -53,6 +56,9 @@ public static class MessageMapper
             ChannelId = message.ChannelId,
             EditedTime = message.EditedTime,
             ImportSource = message.ImportSource,
+            WebhookId = message.WebhookId,
+            OverrideName = message.OverrideName,
+            OverrideAvatarUrl = message.OverrideAvatarUrl,
             Reactions = message.Reactions?.Select(x => x.ToDatabase()).ToList(),
             Attachments = message.Attachments?
                 .Select((x, i) => x.ToDatabase(message.Id, i))

@@ -1,6 +1,11 @@
 # Start with the official .NET 11 preview SDK image
 # Cache the dependencies so we don't have to restore them every time
-FROM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.3 AS dependencies
+#
+# --platform=$BUILDPLATFORM: the build stages always run natively on the build
+# host and cross-publish for $TARGETARCH (see the publish step below). Emulating
+# the full .NET publish under QEMU is slow and unreliable, so multi-arch images
+# only emulate the final runtime stage, which runs nothing at build time.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.3 AS dependencies
 
 # Install Node.js (replace with the latest LTS version)
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
@@ -18,6 +23,13 @@ FROM dependencies AS dotnet-restore
 
 # Copy the app's source code to the container image
 COPY . .
+
+# Stamp the $(SHORTHASH) asset-version placeholders (index.html, Version.cs, ...).
+# CI passes the git short hash; local source builds default to "dev" because .git
+# is dockerignored and the hash cannot be derived here. A no-op when the source
+# was already stamped (as in CI, which replaces placeholders before docker build).
+ARG SHORTHASH=dev
+RUN grep -RIlZ '\$(SHORTHASH)' Valour | xargs -0 -r perl -pi -e 's/\$\(SHORTHASH\)/$ENV{SHORTHASH}/g'
 
 # Restore workloads required by the server publish graph
 RUN dotnet workload restore Valour/Server/Valour.Server.csproj
@@ -38,8 +50,11 @@ FROM dotnet-restore AS build
 #        fi; \
 #    done
 
-# Build the app
-RUN dotnet publish Valour/Server/Valour.Server.csproj -c Release -o out
+# Build the app for the image's target architecture (framework-dependent,
+# RID-specific). TARGETARCH is amd64/arm64 from buildx; the .NET CLI accepts
+# those aliases directly.
+ARG TARGETARCH
+RUN dotnet publish Valour/Server/Valour.Server.csproj -c Release -a $TARGETARCH -o out
 
 # Staging dir for the media mount point (see COPY --chown below)
 RUN mkdir -p /staging/media

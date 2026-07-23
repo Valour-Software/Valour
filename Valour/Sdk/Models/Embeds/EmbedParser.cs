@@ -153,7 +153,73 @@ public static class EmbedParser
         if (!result.Success)
             return result;
 
-        return ValidateClasses(item.Classes);
+        result = ValidateClasses(item.Classes);
+        if (!result.Success)
+            return result;
+
+        if (item is EmbedChartItem chart)
+            return ValidateChart(chart);
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Validates chart data: bounded sizes, finite values, and hex-only
+    /// colors (everything that reaches the SVG renderer).
+    /// </summary>
+    public static TaskResult ValidateChart(EmbedChartItem chart)
+    {
+        if (chart.Series is null || chart.Series.Count == 0)
+            return TaskResult.FromFailure("Chart must have at least one series.");
+
+        if (chart.Series.Count > EmbedChartItem.MaxSeries)
+            return TaskResult.FromFailure($"Charts are limited to {EmbedChartItem.MaxSeries} series.");
+
+        if (chart.Labels is not null)
+        {
+            if (chart.Labels.Count > EmbedChartItem.MaxPoints)
+                return TaskResult.FromFailure($"Charts are limited to {EmbedChartItem.MaxPoints} labels.");
+
+            if (chart.Labels.Any(x => x is not null && x.Length > EmbedChartItem.MaxLabelLength))
+                return TaskResult.FromFailure($"Chart labels must be {EmbedChartItem.MaxLabelLength} characters or fewer.");
+        }
+
+        foreach (var series in chart.Series)
+        {
+            if (series is null)
+                return TaskResult.FromFailure("Chart series cannot be null.");
+
+            if (series.Values is null || series.Values.Count == 0)
+                return TaskResult.FromFailure("Chart series must have at least one value.");
+
+            if (series.Values.Count > EmbedChartItem.MaxPoints)
+                return TaskResult.FromFailure($"Chart series are limited to {EmbedChartItem.MaxPoints} values.");
+
+            if (series.Values.Any(x => !double.IsFinite(x)))
+                return TaskResult.FromFailure("Chart values must be finite numbers.");
+
+            if (series.Name is not null && series.Name.Length > EmbedChartItem.MaxLabelLength)
+                return TaskResult.FromFailure($"Chart series names must be {EmbedChartItem.MaxLabelLength} characters or fewer.");
+
+            if (series.Color is not null && !IsHexColor(series.Color))
+                return TaskResult.FromFailure("Chart series colors must be in #RRGGBB format.");
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    private static bool IsHexColor(string value)
+    {
+        if (value.Length != 7 || value[0] != '#')
+            return false;
+
+        for (var i = 1; i < value.Length; i++)
+        {
+            if (!Uri.IsHexDigit(value[i]))
+                return false;
+        }
+
+        return true;
     }
 
     /// <summary>

@@ -541,6 +541,8 @@ public partial class Program
         services.AddScoped<UserAttachmentService>();
         services.AddScoped<MediaSafetyService>();
         services.AddScoped<PlanetInviteService>();
+        services.AddScoped<PlanetWebhookService>();
+        services.AddSingleton<Valour.Server.Utilities.WebhookRateLimiter>();
         services.AddScoped<PlanetMemberService>();
         services.AddScoped<PlanetRoleService>();
         services.AddScoped<PlanetEmojiService>();

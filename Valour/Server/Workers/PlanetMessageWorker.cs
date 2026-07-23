@@ -85,6 +85,31 @@ namespace Valour.Server.Workers
             QueuedMessages.TryGetValue(messageId, out var queued);
             return queued;
         }
+
+        /// <summary>
+        /// Clears reply references to a deleted message from not-yet-persisted
+        /// messages, so they don't violate the reply FK when flushed.
+        /// </summary>
+        public static void ClearReplyReferences(long messageId)
+        {
+            foreach (var staged in StagedMessages.Values)
+            {
+                if (staged.ReplyToId == messageId)
+                {
+                    staged.ReplyToId = null;
+                    staged.ReplyTo = null;
+                }
+            }
+
+            foreach (var queued in QueuedMessages.Values)
+            {
+                if (queued.ReplyToId == messageId)
+                {
+                    queued.ReplyToId = null;
+                    queued.ReplyTo = null;
+                }
+            }
+        }
         
         public static List<Message> GetStagedMessages(long channelId)
         {

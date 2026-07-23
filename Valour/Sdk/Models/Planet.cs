@@ -75,6 +75,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public readonly ModelStore<PlanetInvite, string> Invites = new();
 
     /// <summary>
+    /// The loaded webhooks of this planet (requires ManageWebhooks to load)
+    /// </summary>
+    public readonly ModelStore<PlanetWebhook, long> Webhooks = new();
+
+    /// <summary>
     /// The loaded permission nodes of this planet
     /// </summary>
     public readonly ModelStore<PermissionsNode, long> PermissionsNodes = new();
@@ -424,6 +429,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Roles.Dispose();
         Members.Dispose();
         Invites.Dispose();
+        Webhooks.Dispose();
         PermissionsNodes.Dispose();
         Bans.Dispose();
         Reports.Dispose();
@@ -712,6 +718,24 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         invites.SyncAll(Client, ModelInsertFlags.Batched);
 
         Invites.NotifySet();
+    }
+
+    /// <summary>
+    /// Loads the planet's webhooks from the server.
+    /// Requires the ManageWebhooks permission.
+    /// </summary>
+    public async Task LoadWebhooksAsync()
+    {
+        var webhooks = (await Node.GetJsonAsync<List<PlanetWebhook>>($"api/planets/{Id}/webhooks")).Data;
+
+        if (webhooks is null)
+            return;
+
+        Webhooks.Clear(true);
+
+        webhooks.SyncAll(Client, ModelInsertFlags.Batched);
+
+        Webhooks.NotifySet();
     }
 
     private Task _rolesLoadTask;

@@ -66,32 +66,34 @@
         <div class="threads-feed">
             <ThreadComposeInline @ref="@_composer" Planet="@_planet" OnPosted="@OnThreadPosted"/>
 
-            <InfiniteScroll TItem="PlanetThread"
-                            Items="@_threads"
-                            HasLoaded="@_hasLoaded"
-                            HasMore="@_hasMore"
-                            IsLoading="@_isLoading"
-                            ErrorMessage="@_error"
-                            OnLoadMore="@LoadMoreAsync">
-                <ItemTemplate Context="thread">
-                    <ThreadCard @key="@thread.Id" Thread="@thread" ShowPlanet="@(_planet is null)" WindowCtx="@WindowCtx"/>
-                </ItemTemplate>
-                <EmptyContent>
-                    <div class="feed-empty">
-                        <i class="bi bi-rocket"></i>
-                        <h3>No threads yet</h3>
-                        <p>Be the first to post something!</p>
-                        <button class="v-btn primary" @onclick="@OnClickNewPost">New Post</button>
-                    </div>
-                </EmptyContent>
-                <LoadingContent>
-                    <div class="feed-skeletons">
-                        <ThreadCardSkeleton/>
-                        <ThreadCardSkeleton/>
-                        <ThreadCardSkeleton/>
-                    </div>
-                </LoadingContent>
-            </InfiniteScroll>
+            <PullToRefresh OnRefresh="@OnPullRefresh">
+                <InfiniteScroll TItem="PlanetThread"
+                                Items="@_threads"
+                                HasLoaded="@_hasLoaded"
+                                HasMore="@_hasMore"
+                                IsLoading="@_isLoading"
+                                ErrorMessage="@_error"
+                                OnLoadMore="@LoadMoreAsync">
+                    <ItemTemplate Context="thread">
+                        <ThreadCard @key="@thread.Id" Thread="@thread" ShowPlanet="@(_planet is null)" WindowCtx="@WindowCtx"/>
+                    </ItemTemplate>
+                    <EmptyContent>
+                        <div class="feed-empty">
+                            <i class="bi bi-rocket"></i>
+                            <h3>No threads yet</h3>
+                            <p>Be the first to post something!</p>
+                            <button class="v-btn primary" @onclick="@OnClickNewPost">New Post</button>
+                        </div>
+                    </EmptyContent>
+                    <LoadingContent>
+                        <div class="feed-skeletons">
+                            <ThreadCardSkeleton/>
+                            <ThreadCardSkeleton/>
+                            <ThreadCardSkeleton/>
+                        </div>
+                    </LoadingContent>
+                </InfiniteScroll>
+            </PullToRefresh>
         </div>
     </div>
     <RecentChatsDock/>
@@ -232,6 +234,14 @@
 
     private async Task OnClickRefresh()
     {
+        await RebuildFeedAsync();
+    }
+
+    private async Task OnPullRefresh()
+    {
+        if (_isLoading)
+            return;
+
         await RebuildFeedAsync();
     }
 

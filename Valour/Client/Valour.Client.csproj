@@ -93,6 +93,14 @@
       <_DotNetCliForExec Condition="'$(_DotNetCliForExec)' == ''">dotnet</_DotNetCliForExec>
     </PropertyGroup>
     <Exec Command="&quot;$(_DotNetCliForExec)&quot; run --project &quot;$(_CssBundlerProject)&quot; -- &quot;$(_CssBundleInputs)&quot; &quot;$(_ScopedCssAggregator)&quot; &quot;$(_CssBundleSearchPaths)&quot; &quot;$(_CssBundleOutput)&quot;" />
+    <!-- The bundle is generated during the build, so the evaluation-time wwwroot
+         glob misses it on a clean checkout (e.g. docker builds). Re-declare it
+         (project-relative, to match the wwwroot/** candidate pattern) so
+         ResolveProjectStaticWebAssets always picks it up. -->
+    <ItemGroup>
+      <Content Remove="wwwroot/css/bundled.min.css" />
+      <Content Include="wwwroot/css/bundled.min.css" />
+    </ItemGroup>
   </Target>
 
   <Target Name="GenerateEmojiTrie"

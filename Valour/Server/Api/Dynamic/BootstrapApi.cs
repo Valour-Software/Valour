@@ -21,6 +21,7 @@ public class BootstrapApi
         FederationJoinService federationJoinService,
         EcoService ecoService,
         ChannelFavoriteService channelFavoriteService,
+        ChannelService channelService,
         ValourDb db)
     {
         var userId = await userService.GetCurrentUserIdAsync();
@@ -40,6 +41,7 @@ public class BootstrapApi
         var memberships = await federationJoinService.GetMembershipsAsync(userId);
         var gifFavorites = await userService.GetGifFavoritesAsync(userId);
         var channelFavorites = await channelFavoriteService.GetForUserAsync(userId);
+        var directChatChannels = await channelService.GetRecentDirectAsync(userId);
         var globalAccount = await ecoService.GetGlobalAccountAsync(userId);
         var notifications = await notificationService.GetAllUnreadNotifications(userId);
         var unreadPlanets = await unreadService.GetUnreadPlanets(userId);
@@ -59,6 +61,7 @@ public class BootstrapApi
             federatedMemberships = memberships,
             gifFavorites,
             channelFavorites,
+            directChatChannels,
             globalAccount,
             unreadNotifications = notifications,
             unreadPlanets,

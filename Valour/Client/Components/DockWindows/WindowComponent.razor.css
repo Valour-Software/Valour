@@ -85,7 +85,7 @@
 }
 
 .tab-wrapper {
-    transition: transform, width, margin-left 0.2s ease-in-out;
+    transition: width 0.2s ease-in-out, margin-left 0.2s ease-in-out;
     pointer-events: all;
 
     width: 50%;
@@ -93,6 +93,9 @@
     display: flex;
     flex-direction: row;
     cursor: pointer;
+
+    /* Tabs adapt their contents to how much room the wrapper gets */
+    container: tabwrap / inline-size;
 }
 
 .tab-wrapper.floating {
@@ -120,7 +123,7 @@
     align-items: center;
     justify-content: space-between;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
-    min-width: 150px;
+    min-width: 30px;
     flex-grow: 1;
     transition: background-color var(--duration-fast) var(--ease-standard);
 }
@@ -196,6 +199,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
+    flex-shrink: 0;
     gap: 2px;
     margin-right: 2px;
     color: var(--strong-tint);
@@ -247,6 +251,7 @@
     width: 18px;
     height: 18px;
     margin-right: 6px;
+    flex-shrink: 0;
     user-select: none;
     border-radius: var(--radius-sm);
     object-fit: cover;
@@ -262,4 +267,65 @@
 .tab:hover .tab-icon,
 .active .tab .tab-icon {
     opacity: 1;
+}
+
+/* ------------------------------------------------------------------
+   Progressive tab shrinking: as a tab's slot narrows, shed the popout
+   button, then the close button (kept on hover/active), then the
+   title — down to an icon-only tab that never overlaps its neighbors.
+   ------------------------------------------------------------------ */
+
+@container tabwrap (max-width: 165px) {
+    .tab-buttons .popout {
+        display: none;
+    }
+}
+
+@container tabwrap (max-width: 115px) {
+    .tab-buttons {
+        display: none;
+    }
+
+    /* Keep close reachable on the active tab and on hover */
+    .active .tab .tab-buttons,
+    .tab:hover .tab-buttons {
+        display: flex;
+    }
+}
+
+@container tabwrap (max-width: 64px) {
+    .tab {
+        padding: 0 4px;
+    }
+
+    .tab .tab-title {
+        display: none;
+    }
+
+    .tab-info {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .tab .tab-icon {
+        margin-right: 0;
+    }
+
+    .active .tab .tab-buttons,
+    .tab:hover .tab-buttons {
+        display: none;
+    }
+
+    /* Active tab: hovering swaps the icon for a centered close button.
+       Inactive tabs stay icon-only so a click can't accidentally close. */
+    .active .tab:hover .tab-info {
+        display: none;
+    }
+
+    .active .tab:hover .tab-buttons {
+        display: flex;
+        flex: 1 1 auto;
+        justify-content: center;
+        margin-right: 0;
+    }
 }

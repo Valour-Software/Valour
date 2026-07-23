@@ -1,0 +1,43 @@
+.embed-chart {
+    width: 320px;
+    max-width: 100%;
+}
+
+.chart-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.chart-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: 4px;
+}
+
+.chart-grid {
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 1;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 4px;
+    font-size: var(--font-size-xs);
+    opacity: 0.9;
+}
+
+.chart-legend-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.chart-legend-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+}

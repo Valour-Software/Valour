@@ -14,6 +14,7 @@ public enum EmbedItemType
     Progress = 8,
     ProgressBar = 9,
     Media = 10,
+    Chart = 11,
 }
 
 /// <summary>
@@ -64,6 +65,7 @@ public interface IFormInputItem
 [JsonDerivedType(typeof(EmbedProgressItem), "progress")]
 [JsonDerivedType(typeof(EmbedProgressBarItem), "progressBar")]
 [JsonDerivedType(typeof(EmbedMediaItem), "media")]
+[JsonDerivedType(typeof(EmbedChartItem), "chart")]
 public abstract class EmbedItem
 {
     /// <summary>

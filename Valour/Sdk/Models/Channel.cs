@@ -235,6 +235,13 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
     public override Channel AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
+        // Cache updates copy every property, so a payload without member info
+        // (e.g. a realtime channel update) would erase the members already
+        // known for a direct/group channel. Carry them over instead.
+        if (Members is null && PlanetId is null &&
+            Client.Cache.Channels.TryGet(Id, out var cached) && cached.Members is not null)
+            Members = cached.Members;
+
         // Add to direct channel lookup if needed
         var dmKey = GetDirectChannelKey();
         if (dmKey is not null)
@@ -664,6 +671,10 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         }
         else
         {
+            // Missing member data is not the same as a self-DM
+            if (Members is null)
+                return result;
+
             var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
             if (!others.Any())
             {
@@ -682,7 +693,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     {
         if (PlanetId is not null)
             return Name;
-        
+
+        // Missing member data is not the same as a self-DM
+        if (Members is null)
+            return Name ?? "Direct Chat";
+
         var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
 
         if (!others.Any())

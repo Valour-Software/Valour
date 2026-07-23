@@ -28,6 +28,7 @@ public sealed class EmbedBuilder
     private EmbedItem? _lastItem;
     private EmbedDropDownItem? _currentDropDown;
     private EmbedProgressItem? _currentProgress;
+    private EmbedChartItem? _currentChart;
 
     /// <summary>
     /// Finishes the embed: closes any open containers, validates, and
@@ -270,6 +271,73 @@ public sealed class EmbedBuilder
     }
 
     /// <summary>
+    /// Adds a chart, rendered client-side as inline SVG. Add data with
+    /// <see cref="AddChartSeries"/> and labels with <see cref="WithChartLabels"/>.
+    /// </summary>
+    public EmbedBuilder AddChart(ChartKind kind, string? title = null)
+    {
+        var chart = new EmbedChartItem
+        {
+            Kind = kind,
+            Title = title,
+        };
+
+        AddItemInternal(chart);
+        _currentChart = chart;
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a data series to the most recently added chart.
+    /// Pie charts read only the first series.
+    /// </summary>
+    public EmbedBuilder AddChartSeries(string? name, params double[] values)
+    {
+        if (_currentChart is null)
+            throw new InvalidOperationException("Add a chart with AddChart() before adding series.");
+
+        _currentChart.Series.Add(new EmbedChartSeries
+        {
+            Name = name,
+            Values = values.ToList(),
+        });
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the category labels of the most recently added chart
+    /// (x-axis for line/bar charts, slice names for pie charts).
+    /// </summary>
+    public EmbedBuilder WithChartLabels(params string[] labels)
+    {
+        RequireChart(nameof(WithChartLabels)).Labels = labels.ToList();
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the color of the most recently added chart series.
+    /// </summary>
+    public EmbedBuilder WithSeriesColor(string hexColor)
+    {
+        var chart = RequireChart(nameof(WithSeriesColor));
+        if (chart.Series.Count == 0)
+            throw new InvalidOperationException("Add a series with AddChartSeries() before setting its color.");
+
+        chart.Series[^1].Color = hexColor;
+        return this;
+    }
+
+    /// <summary>
+    /// Shows the legend on the most recently added chart.
+    /// </summary>
+    public EmbedBuilder WithLegend()
+    {
+        RequireChart(nameof(WithLegend)).ShowLegend = true;
+        return this;
+    }
+
+    /// <summary>
     /// Adds a media item. The attachment location must be from an allowed
     /// provider or the Valour CDN.
     /// </summary>
@@ -487,6 +555,8 @@ public sealed class EmbedBuilder
             _currentDropDown = null;
         if (item is not EmbedProgressBarItem)
             _currentProgress = null;
+        if (item is not EmbedChartItem)
+            _currentChart = null;
     }
 
     private void PopContainer(ContainerKind expected, string caller)
@@ -514,6 +584,13 @@ public sealed class EmbedBuilder
         if (RequireLastItem(caller) is not EmbedProgressBarItem bar)
             throw new InvalidOperationException($"{caller}() only applies to progress bars.");
         return bar;
+    }
+
+    private EmbedChartItem RequireChart(string caller)
+    {
+        if (_currentChart is null)
+            throw new InvalidOperationException($"{caller}() must follow AddChart().");
+        return _currentChart;
     }
 
     private EmbedPage RequirePage(string caller)

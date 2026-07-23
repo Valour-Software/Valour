@@ -523,6 +523,8 @@ public enum PlanetPermissionsEnum
     // Docs Permissions
     EditWiki,
     ManageWiki,
+
+    ManageWebhooks,
 }
 
 /// <summary>
@@ -575,6 +577,8 @@ public static class PlanetPermissions
                 // Docs Permissions
                 EditWiki,
                 ManageWiki,
+
+                ManageWebhooks,
         };
     }
 
@@ -609,6 +613,8 @@ public static class PlanetPermissions
     // Docs Permissions
     public static readonly PlanetPermission EditWiki = new PlanetPermission(0x80000, "Edit Wiki", "Allow members to create and edit pages in the planet's wiki.");
     public static readonly PlanetPermission ManageWiki = new PlanetPermission(0x100000, "Manage Wiki", "Allow members to manage wiki folders, ordering, deletion, revisions, and wiki settings.");
+
+    public static readonly PlanetPermission ManageWebhooks = new PlanetPermission(0x200000, "Manage Webhooks", "Allow members to create, edit, and delete webhooks for the planet's channels.");
 }
 
 public enum PermissionState
