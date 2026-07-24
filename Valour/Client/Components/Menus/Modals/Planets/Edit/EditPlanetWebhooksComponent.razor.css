@@ -1,0 +1,132 @@
+.webhook-description {
+    font-size: var(--font-size-sm);
+    color: var(--font-color-mid);
+    margin-bottom: 12px;
+}
+
+.webhook-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.webhook-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    gap: 12px;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.webhook-card:hover {
+    border-color: var(--medium-tint);
+}
+
+.webhook-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.webhook-name {
+    font-size: var(--font-size-md);
+    color: var(--font-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.webhook-meta {
+    font-size: var(--font-size-xs);
+    color: var(--font-color-mid);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.webhook-meta i {
+    margin-right: 2px;
+}
+
+.separator {
+    opacity: 0.5;
+}
+
+.webhook-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.webhook-actions ::deep .v-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.35em 0.75em;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.token-reveal {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background-color: var(--main-3);
+    border: 1px solid var(--p-purple);
+    border-radius: var(--radius-md);
+}
+
+.token-reveal-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    color: var(--font-color);
+    margin-bottom: 8px;
+}
+
+.token-reveal-header i {
+    color: var(--p-purple);
+}
+
+.token-reveal-url {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.token-reveal-url input {
+    flex-grow: 1;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+}
+
+.token-reveal-note {
+    font-size: var(--font-size-xs);
+    color: var(--font-color-mid);
+    margin: 8px 0 0 0;
+}
+
+.token-reveal-note code {
+    font-family: var(--font-family-mono);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    color: var(--font-color-mid);
+    font-size: var(--font-size-md);
+}
+
+.empty-state i {
+    font-size: var(--font-size-2xl);
+}

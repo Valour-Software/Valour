@@ -1,0 +1,269 @@
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+@implements IDisposable
+
+<div class="settings-page">
+    @if (!_canManage)
+    {
+        <div class="empty-state">
+            <i class="bi bi-lock-fill"></i>
+            <span>You need the Manage Webhooks permission to view this page</span>
+        </div>
+    }
+    else
+    {
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-plus-circle-fill"></i>
+                Create Webhook
+            </h3>
+
+            <p class="webhook-description">
+                Webhooks let external apps and services post messages to a channel using a simple URL —
+                no bot account needed. Anyone with a webhook's URL can post to its channel, so treat the URL like a secret.
+            </p>
+
+            <div class="form-group">
+                <label>Name</label>
+                <input class="v-input" @bind="_createName" maxlength="@ISharedPlanetWebhook.MaxNameLength" placeholder="Captain Hook" />
+            </div>
+            <div class="form-group">
+                <label>Channel</label>
+                <select class="v-input" @bind="_createChannelId">
+                    <option value="0" disabled>Select a channel...</option>
+                    @foreach (var channel in Planet.Channels.Where(x => x.ChannelType == ChannelTypeEnum.PlanetChat))
+                    {
+                        <option value="@channel.Id">@channel.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Avatar URL (optional)</label>
+                <input class="v-input" @bind="_createAvatarUrl" maxlength="@ISharedPlanetWebhook.MaxAvatarUrlLength" placeholder="https://..." />
+            </div>
+
+            <button class="v-btn primary mt-2" disabled="@_creating" @onclick="CreateWebhookAsync">
+                <i class="bi bi-plus-lg"></i> Create Webhook
+            </button>
+            <ResultLabel Result="@_createResult" />
+
+            @if (_newWebhookUrl is not null)
+            {
+                <div class="token-reveal">
+                    <div class="token-reveal-header">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Webhook created! This is its URL:</span>
+                    </div>
+                    <div class="token-reveal-url">
+                        <input class="v-input" readonly value="@_newWebhookUrl" />
+                        <button class="v-btn small" title="Copy webhook URL" @onclick="() => CopyUrl(_newWebhookUrl)">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                    <p class="token-reveal-note">
+                        POST a JSON body like <code>{ "content": "Hello!" }</code> to this URL to send a message.
+                    </p>
+                </div>
+            }
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-plug-fill"></i>
+                Webhooks
+            </h3>
+
+            @if (!Planet.Webhooks.Any())
+            {
+                <div class="empty-state">
+                    <i class="bi bi-plug"></i>
+                    <span>No webhooks yet</span>
+                </div>
+            }
+            else
+            {
+                <div class="webhook-list">
+                    @foreach (var webhook in Planet.Webhooks)
+                    {
+                        <div class="webhook-card">
+                            <div class="webhook-info">
+                                <span class="webhook-name">@webhook.Name</span>
+                                <div class="webhook-meta">
+                                    <span><i class="bi bi-hash"></i>@(Planet.Channels.Get(webhook.ChannelId)?.Name ?? "Unknown channel")</span>
+                                    <span class="separator">·</span>
+                                    <span>Created @webhook.TimeCreated.ToLocalTime().ToShortDateString()</span>
+                                </div>
+                            </div>
+                            <div class="webhook-actions">
+                                <button class="v-btn small" title="Copy webhook URL" @onclick="() => CopyWebhookUrl(webhook)">
+                                    <i class="bi bi-clipboard"></i> Copy URL
+                                </button>
+                                <button class="v-btn small" title="Rotate token (invalidates the current URL)" @onclick="() => ConfirmRotate(webhook)">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                                <button class="v-btn small danger" title="Delete webhook" @onclick="() => ConfirmDelete(webhook)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _canManage;
+
+    private string _createName;
+    private long _createChannelId;
+    private string _createAvatarUrl;
+    private bool _creating;
+    private ITaskResult _createResult;
+
+    private string _newWebhookUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canManage = Planet.MyMember?.HasPermission(PlanetPermissions.ManageWebhooks) ?? false;
+
+        if (!_canManage)
+            return;
+
+        Planet.Webhooks.Changed += OnWebhooksChange;
+        await Planet.LoadWebhooksAsync();
+    }
+
+    public void Dispose()
+    {
+        Planet.Webhooks.Changed -= OnWebhooksChange;
+    }
+
+    private void OnWebhooksChange(IModelEvent<PlanetWebhook> eventData)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string BuildExecuteUrl(long id, string token) =>
+        $"{Client.BaseAddress}{ISharedPlanetWebhook.GetExecuteRoute(id, token)}";
+
+    private async Task CreateWebhookAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_createName))
+        {
+            _createResult = TaskResult.FromFailure("A name is required.");
+            return;
+        }
+
+        if (_createChannelId == 0)
+        {
+            _createResult = TaskResult.FromFailure("Select a channel for the webhook to post to.");
+            return;
+        }
+
+        _creating = true;
+
+        var webhook = new PlanetWebhook(Client)
+        {
+            PlanetId = Planet.Id,
+            ChannelId = _createChannelId,
+            Name = _createName.Trim(),
+            AvatarUrl = string.IsNullOrWhiteSpace(_createAvatarUrl) ? null : _createAvatarUrl.Trim(),
+        };
+
+        var result = await webhook.CreateAsync();
+        _createResult = result;
+        _creating = false;
+
+        if (result.Success && result.Data is not null)
+        {
+            _newWebhookUrl = BuildExecuteUrl(result.Data.Id, result.Data.Token);
+            _createName = null;
+            _createChannelId = 0;
+            _createAvatarUrl = null;
+            _createResult = null;
+
+            await Planet.LoadWebhooksAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task CopyWebhookUrl(PlanetWebhook webhook)
+    {
+        // List responses don't carry tokens, so fetch by id when needed
+        if (webhook.Token is null)
+        {
+            var result = await webhook.Node.GetJsonAsync<PlanetWebhook>($"{ISharedPlanetWebhook.BaseRoute}/{webhook.Id}");
+            if (!result.Success || result.Data?.Token is null)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Error", "Failed to fetch the webhook token", ToastProgressState.Failure));
+                return;
+            }
+
+            webhook.Token = result.Data.Token;
+        }
+
+        await CopyUrl(BuildExecuteUrl(webhook.Id, webhook.Token));
+    }
+
+    private async Task CopyUrl(string url)
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Webhook URL copied to clipboard", ToastProgressState.Success));
+    }
+
+    private void ConfirmRotate(PlanetWebhook webhook)
+    {
+        var modalData = new ConfirmModalComponent.ModalParams(
+            $"Rotate token for {webhook.Name}?",
+            "The current webhook URL will stop working immediately. Anything using it will need the new URL.",
+            "Rotate",
+            "Cancel",
+            async () =>
+            {
+                var result = await webhook.RotateTokenAsync();
+                if (result.Success)
+                {
+                    await CopyUrl(BuildExecuteUrl(webhook.Id, webhook.Token));
+                }
+                else
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Error", result.Message, ToastProgressState.Failure));
+                }
+            },
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+    }
+
+    private void ConfirmDelete(PlanetWebhook webhook)
+    {
+        var modalData = new ConfirmModalComponent.ModalParams(
+            $"Delete {webhook.Name}?",
+            "The webhook URL will stop working immediately. This cannot be undone.",
+            "Delete",
+            "Cancel",
+            async () =>
+            {
+                var result = await webhook.DeleteAsync();
+                if (result.Success)
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Deleted", "Webhook has been deleted", ToastProgressState.Success));
+                }
+                else
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Error", result.Message, ToastProgressState.Failure));
+                }
+            },
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+    }
+}

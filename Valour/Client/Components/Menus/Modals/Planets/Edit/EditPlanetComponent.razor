@@ -41,6 +41,7 @@
     private RenderFragment StorageContent => @<EditPlanetStorageComponent Planet="@Data.Planet" />;
     private RenderFragment VoiceContent => @<EditPlanetVoiceComponent Planet="@Data.Planet" />;
     private RenderFragment WikiContent => @<EditPlanetWikiComponent Planet="@Data.Planet" />;
+    private RenderFragment WebhooksContent => @<EditPlanetWebhooksComponent Planet="@Data.Planet" />;
     private RenderFragment FederationContent => @<EditPlanetFederationComponent Planet="@Data.Planet" />;
     private RenderFragment OwnershipContent => @<EditPlanetOwnershipComponent Planet="@Data.Planet" />;
     private RenderFragment DeleteContent => @<div></div>;
@@ -138,6 +139,13 @@
                         Icon = "journal-text",
                         Description = "Community wiki settings",
                         Content = WikiContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Webhooks",
+                        Icon = "plug-fill",
+                        Description = "Let external apps post to channels",
+                        Content = WebhooksContent
                     },
                     new MainMenu.MenuItem()
                     {
