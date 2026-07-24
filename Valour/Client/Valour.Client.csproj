@@ -79,6 +79,13 @@
   -->
 
   <!-- Build-time CSS bundling: concatenates global + scoped CSS files and minifies with NUglify -->
+  <PropertyGroup>
+    <!-- Captured at evaluation time: when the bundle already exists, the wwwroot
+         glob owns it and GenerateCssBundle must not re-declare it — on Windows the
+         glob's backslash item spec never string-matches a forward-slash re-include,
+         so both would reach DefineStaticWebAssets as duplicate assets. -->
+    <_CssBundleExistedAtEvaluation>$([System.IO.File]::Exists('$(MSBuildProjectDirectory)/wwwroot/css/bundled.min.css'))</_CssBundleExistedAtEvaluation>
+  </PropertyGroup>
   <Target Name="GenerateCssBundle"
           DependsOnTargets="BundleScopedCssFiles"
           BeforeTargets="ResolveProjectStaticWebAssets">
@@ -93,12 +100,11 @@
       <_DotNetCliForExec Condition="'$(_DotNetCliForExec)' == ''">dotnet</_DotNetCliForExec>
     </PropertyGroup>
     <Exec Command="&quot;$(_DotNetCliForExec)&quot; run --project &quot;$(_CssBundlerProject)&quot; -- &quot;$(_CssBundleInputs)&quot; &quot;$(_ScopedCssAggregator)&quot; &quot;$(_CssBundleSearchPaths)&quot; &quot;$(_CssBundleOutput)&quot;" />
-    <!-- The bundle is generated during the build, so the evaluation-time wwwroot
-         glob misses it on a clean checkout (e.g. docker builds). Re-declare it
-         (project-relative, to match the wwwroot/** candidate pattern) so
-         ResolveProjectStaticWebAssets always picks it up. -->
-    <ItemGroup>
-      <Content Remove="wwwroot/css/bundled.min.css" />
+    <!-- On a clean checkout (e.g. docker builds) the bundle didn't exist when the
+         wwwroot glob evaluated, so it must be declared here (project-relative, to
+         match the wwwroot/** candidate pattern) for ResolveProjectStaticWebAssets
+         to pick it up. -->
+    <ItemGroup Condition="'$(_CssBundleExistedAtEvaluation)' != 'true'">
       <Content Include="wwwroot/css/bundled.min.css" />
     </ItemGroup>
   </Target>

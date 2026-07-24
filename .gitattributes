@@ -1,2 +1,13 @@
-autocrlf=true
 * text=auto eol=crlf
+
+# Shell scripts run on Linux (Cloudflare Pages, prod deploys); a CRLF shebang
+# breaks the kernel's interpreter lookup, so they must check out as LF.
+cf-build text eol=lf
+*.sh text eol=lf
+
+# tsc regenerates committed .js/.js.map outputs during every build and is pinned
+# to LF (tsconfig newLine). If these checked out as CRLF, the rewrite would change
+# file content mid-publish and shift static-web-asset fingerprints between the
+# build and publish passes, failing publish with duplicate compressed assets.
+*.js text eol=lf
+*.js.map text eol=lf
