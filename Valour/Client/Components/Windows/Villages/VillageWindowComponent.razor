@@ -104,6 +104,8 @@ else
     private VillagePocMap? _currentMap;
     private VillagePocBuilding? _selectedBuilding;
     private bool _loading = true;
+    private bool _initializing;
+    private bool _disposed;
     private string? _error;
 
     protected override async Task OnInitializedAsync()
@@ -136,20 +138,37 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_scene is null || _error is not null || _runtime is not null)
+        if (_scene is null || _error is not null || _runtime is not null || _initializing || _disposed)
             return;
 
-        _selfRef = DotNetObjectReference.Create(this);
-        _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
-            "import",
-            "./_content/Valour.Client/Components/Windows/Villages/VillageWindowComponent.razor.js");
-        _runtime = await _module.InvokeAsync<IJSObjectReference>("init", _canvasId, _selfRef, _scene);
+        // The scene arrives after the first render, so we cannot key off firstRender.
+        // _runtime is only assigned after two awaits, so it cannot guard re-entry on its own.
+        _initializing = true;
+        try
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./_content/Valour.Client/Components/Windows/Villages/VillageWindowComponent.razor.js");
+
+            if (_disposed)
+                return;
+
+            _runtime = await _module.InvokeAsync<IJSObjectReference>("init", _canvasId, _selfRef, _scene);
+
+            if (_disposed)
+                await ShutdownRuntimeAsync();
+        }
+        finally
+        {
+            _initializing = false;
+        }
     }
 
     [JSInvokable]
     public async Task OnBuildingSelected(long? buildingId, long currentMapId)
     {
-        if (_scene is null)
+        if (_scene is null || _disposed)
             return;
 
         _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == currentMapId) ?? _currentMap;
@@ -162,22 +181,17 @@ else
     [JSInvokable]
     public async Task OnMapChanged(long mapId)
     {
-        if (_scene is null)
+        if (_scene is null || _disposed)
             return;
 
         _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == mapId) ?? _currentMap;
 
-        if (_selectedBuilding?.InteriorMapId == mapId)
-            await ReRender();
-        else if (_currentMap?.MapKind == "Outdoor")
-        {
+        // Stepping back outside clears the inspector; the building panel only makes
+        // sense while its own interior is the active map.
+        if (_currentMap?.MapKind == "Outdoor" && _selectedBuilding?.InteriorMapId != mapId)
             _selectedBuilding = null;
-            await ReRender();
-        }
-        else
-        {
-            await ReRender();
-        }
+
+        await ReRender();
     }
 
     private async Task ResetViewAsync()
@@ -241,7 +255,7 @@ else
         }
     }
 
-    public static async Task<Content> GetDefaultContent(Planet planet)
+    public static Content GetDefaultContent(Planet planet)
     {
         return new Content
         {
@@ -254,12 +268,48 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        if (_runtime is not null)
-            await _runtime.DisposeAsync();
+        _disposed = true;
+        await ShutdownRuntimeAsync();
 
         if (_module is not null)
-            await _module.DisposeAsync();
+        {
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+
+            _module = null;
+        }
 
         _selfRef?.Dispose();
+        _selfRef = null;
+    }
+
+    /// <summary>
+    /// Tears down the JS runtime. The runtime owns a rAF loop and window-level key
+    /// listeners, so releasing the .NET reference alone would leave both running
+    /// against a detached canvas for the lifetime of the page.
+    /// </summary>
+    private async ValueTask ShutdownRuntimeAsync()
+    {
+        if (_runtime is null)
+            return;
+
+        var runtime = _runtime;
+        _runtime = null;
+
+        try
+        {
+            await runtime.InvokeVoidAsync("dispose");
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+
+        try
+        {
+            await runtime.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
     }
 }

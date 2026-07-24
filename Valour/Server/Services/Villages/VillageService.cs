@@ -112,15 +112,6 @@ public class VillageService
                     }
                 }
             },
-            BlockedTiles =
-            {
-                new VillagePocRect { X = 1, Y = 1, Width = 1, Height = 1 },
-                new VillagePocRect { X = 19, Y = 2, Width = 1, Height = 1 },
-                new VillagePocRect { X = 10, Y = 6, Width = 2, Height = 2 },
-                new VillagePocRect { X = 3, Y = 3, Width = 4, Height = 2 },
-                new VillagePocRect { X = 13, Y = 3, Width = 4, Height = 2 },
-                new VillagePocRect { X = 9, Y = 10, Width = 4, Height = 2 }
-            },
             Portals =
             {
                 new VillagePocPortal
@@ -168,13 +159,6 @@ public class VillageService
                 new VillagePocDecoration { Kind = "Plant", X = 11, Y = 2, Width = 1, Height = 1, Color = "#4e7a43", BlocksMovement = true },
                 new VillagePocDecoration { Kind = "Table", X = 5, Y = 6, Width = 3, Height = 2, Color = "#a87449", BlocksMovement = true }
             },
-            BlockedTiles =
-            {
-                new VillagePocRect { X = 4, Y = 2, Width = 6, Height = 1 },
-                new VillagePocRect { X = 2, Y = 2, Width = 1, Height = 1 },
-                new VillagePocRect { X = 11, Y = 2, Width = 1, Height = 1 },
-                new VillagePocRect { X = 5, Y = 6, Width = 3, Height = 2 }
-            },
             Portals =
             {
                 new VillagePocPortal
@@ -210,13 +194,6 @@ public class VillageService
                 new VillagePocDecoration { Kind = "Sofa", X = 8, Y = 5, Width = 3, Height = 2, Color = "#6f4f80", BlocksMovement = true },
                 new VillagePocDecoration { Kind = "CoffeeTable", X = 6, Y = 4, Width = 2, Height = 1, Color = "#9d7c57", BlocksMovement = true },
                 new VillagePocDecoration { Kind = "Lamp", X = 2, Y = 2, Width = 1, Height = 1, Color = "#f2d36c", BlocksMovement = true }
-            },
-            BlockedTiles =
-            {
-                new VillagePocRect { X = 3, Y = 5, Width = 4, Height = 2 },
-                new VillagePocRect { X = 8, Y = 5, Width = 3, Height = 2 },
-                new VillagePocRect { X = 6, Y = 4, Width = 2, Height = 1 },
-                new VillagePocRect { X = 2, Y = 2, Width = 1, Height = 1 }
             },
             Portals =
             {

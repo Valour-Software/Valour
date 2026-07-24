@@ -1,4 +1,4 @@
-import { clamp, loadTexture as loadCachedTexture } from "../../../ts/VillageTileRendering.js";
+import { clamp, isTextInput, loadTexture as loadCachedTexture } from "../../../ts/VillageTileRendering.js";
 
 export function init(canvasId, dotNetRef, scene) {
     const canvas = document.getElementById(canvasId);
@@ -20,7 +20,6 @@ export function init(canvasId, dotNetRef, scene) {
         localAppearance,
         currentMapId: scene.startingMapId,
         selectedBuildingId: null,
-        tileSize: 32,
         keys: new Set(),
         lastDirectionKey: null,
         repeatDelayMs: 160,
@@ -38,6 +37,7 @@ export function init(canvasId, dotNetRef, scene) {
         viewportHeight: 0,
         devicePixelRatio: 1,
         localPlayerByMap: new Map(),
+        collisionByMap: new Map(),
         textureCache: new Map()
     };
 
@@ -65,8 +65,8 @@ export function init(canvasId, dotNetRef, scene) {
             state.moveAccumulatorMs = 0;
             resizeCanvas(state);
             updateCamera(state);
-            await dotNetRef.invokeMethodAsync("OnMapChanged", mapId);
-            await dotNetRef.invokeMethodAsync("OnBuildingSelected", null, mapId);
+            await invokeDotNet(state, "OnMapChanged", mapId);
+            await invokeDotNet(state, "OnBuildingSelected", null, mapId);
             draw(state);
         },
         dispose() {
@@ -74,10 +74,13 @@ export function init(canvasId, dotNetRef, scene) {
             window.removeEventListener("resize", state.onResize);
             window.removeEventListener("keydown", state.onKeyDown);
             window.removeEventListener("keyup", state.onKeyUp);
+            window.removeEventListener("blur", state.onBlur);
             canvas.removeEventListener("click", state.onClick);
             if (state.animationFrame) {
                 cancelAnimationFrame(state.animationFrame);
+                state.animationFrame = 0;
             }
+            state.keys.clear();
         }
     };
 
@@ -89,7 +92,7 @@ export function init(canvasId, dotNetRef, scene) {
 
     state.onKeyDown = (event) => {
         const normalizedKey = normalizeMovementKey(event.key);
-        if (!normalizedKey) {
+        if (!normalizedKey || !acceptsInput(state, event)) {
             return;
         }
 
@@ -104,6 +107,8 @@ export function init(canvasId, dotNetRef, scene) {
         }
     };
 
+    // Deliberately not gated on acceptsInput: a key pressed over the canvas and
+    // released after focus moved away must still clear, or the player walks forever.
     state.onKeyUp = (event) => {
         const normalizedKey = normalizeMovementKey(event.key);
         if (!normalizedKey) {
@@ -126,9 +131,11 @@ export function init(canvasId, dotNetRef, scene) {
         }
 
         const rect = canvas.getBoundingClientRect();
-        const px = state.tileSize * state.currentScale;
-        const worldX = event.clientX - rect.left + state.cameraX;
-        const worldY = event.clientY - rect.top + state.cameraY;
+        const px = tilePixelSize(state);
+        // Must match the rounded camera the frame was drawn with, or the hit-test
+        // skews by up to a pixel against what the user actually sees.
+        const worldX = event.clientX - rect.left + state.renderCameraX;
+        const worldY = event.clientY - rect.top + state.renderCameraY;
         const tileX = Math.floor(worldX / px);
         const tileY = Math.floor(worldY / px);
 
@@ -143,9 +150,16 @@ export function init(canvasId, dotNetRef, scene) {
         draw(state);
     };
 
+    state.onBlur = () => {
+        state.keys.clear();
+        state.lastDirectionKey = null;
+        state.moveAccumulatorMs = 0;
+    };
+
     window.addEventListener("resize", state.onResize);
     window.addEventListener("keydown", state.onKeyDown);
     window.addEventListener("keyup", state.onKeyUp);
+    window.addEventListener("blur", state.onBlur);
     canvas.addEventListener("click", state.onClick);
 
     primeMapTextures(state);
@@ -187,6 +201,15 @@ function createPlayerState(x, y) {
         moving: false,
         progressMs: 0
     };
+}
+
+/**
+ * Maps declare their own tile size; the runtime must not assume the 32px the
+ * proof-of-concept maps happen to use.
+ */
+function tilePixelSize(state) {
+    const map = getCurrentMap(state);
+    return (map?.tileSize > 0 ? map.tileSize : 32) * state.currentScale;
 }
 
 function getCurrentMap(state) {
@@ -263,7 +286,7 @@ function queueMovement(state, directionKey) {
     const nextX = player.tileX + direction.x;
     const nextY = player.tileY + direction.y;
 
-    if (!isWalkableTile(map, nextX, nextY)) {
+    if (!isWalkableTile(state, map, nextX, nextY)) {
         return false;
     }
 
@@ -300,10 +323,12 @@ function updateCamera(state) {
     if (!map || !player) {
         state.cameraX = 0;
         state.cameraY = 0;
+        state.renderCameraX = 0;
+        state.renderCameraY = 0;
         return;
     }
 
-    const px = state.tileSize * state.currentScale;
+    const px = tilePixelSize(state);
     const mapWidthPx = map.width * px;
     const mapHeightPx = map.height * px;
     const targetX = (player.renderX + 0.5) * px - state.viewportWidth / 2;
@@ -326,7 +351,7 @@ function draw(state) {
     }
 
     const { ctx } = state;
-    const px = state.tileSize * state.currentScale;
+    const px = tilePixelSize(state);
     ctx.clearRect(0, 0, state.viewportWidth, state.viewportHeight);
 
     drawMapBase(ctx, map, state, px);
@@ -524,18 +549,66 @@ function drawCharacter(ctx, state, px, x, y, character, isLocalPlayer) {
     }
 }
 
-function isWalkableTile(map, tileX, tileY) {
+function isWalkableTile(state, map, tileX, tileY) {
     if (tileX < 0 || tileY < 0 || tileX >= map.width || tileY >= map.height) {
         return false;
     }
 
-    for (const blocked of map.blockedTiles ?? []) {
-        if (rectContains(blocked, tileX, tileY)) {
-            return false;
+    return !getCollisionSet(state, map).has(tileKey(tileX, tileY));
+}
+
+/**
+ * Collision is derived from the authored objects themselves - decorations that
+ * block, building footprints, and any standalone blockers the map declares -
+ * rather than a parallel list that has to be kept in sync by hand.
+ */
+function getCollisionSet(state, map) {
+    const cached = state.collisionByMap.get(map.id);
+    if (cached) {
+        return cached;
+    }
+
+    const blocked = new Set();
+    const addRect = (rect) => {
+        if (!rect) {
+            return;
+        }
+
+        for (let y = rect.y; y < rect.y + rect.height; y++) {
+            for (let x = rect.x; x < rect.x + rect.width; x++) {
+                blocked.add(tileKey(x, y));
+            }
+        }
+    };
+
+    for (const rect of map.blockedTiles ?? []) {
+        addRect(rect);
+    }
+
+    for (const decoration of map.decorations ?? []) {
+        if (decoration.blocksMovement) {
+            addRect(decoration);
         }
     }
 
-    return true;
+    for (const building of map.buildings ?? []) {
+        for (const rect of building.collisionRects ?? []) {
+            addRect(rect);
+        }
+    }
+
+    // Doorways win over the footprint they sit in, otherwise a building whose
+    // collision covers its own entrance can never be entered.
+    for (const portal of map.portals ?? []) {
+        blocked.delete(tileKey(portal.x, portal.y));
+    }
+
+    state.collisionByMap.set(map.id, blocked);
+    return blocked;
+}
+
+function tileKey(x, y) {
+    return `${x},${y}`;
 }
 
 async function checkPortalTransition(state) {
@@ -568,8 +641,8 @@ async function checkPortalTransition(state) {
     state.moveAccumulatorMs = 0;
     resizeCanvas(state);
     updateCamera(state);
-    await state.dotNetRef.invokeMethodAsync("OnMapChanged", targetMap.id);
-    await state.dotNetRef.invokeMethodAsync("OnBuildingSelected", state.selectedBuildingId, targetMap.id);
+    await invokeDotNet(state, "OnMapChanged", targetMap.id);
+    await invokeDotNet(state, "OnBuildingSelected", state.selectedBuildingId, targetMap.id);
 }
 
 function getBuildingEntrance(building) {
@@ -602,7 +675,36 @@ async function notifySelection(state) {
         return;
     }
 
-    await state.dotNetRef.invokeMethodAsync("OnBuildingSelected", state.selectedBuildingId, map.id);
+    await invokeDotNet(state, "OnBuildingSelected", state.selectedBuildingId, map.id);
+}
+
+/**
+ * Movement keys are captured at the window level, so the runtime must not swallow
+ * them while the user is typing elsewhere or while its own tab is hidden behind
+ * another dock window.
+ */
+function acceptsInput(state, event) {
+    if (state.destroyed || isTextInput(event.target)) {
+        return false;
+    }
+
+    return state.canvas.isConnected && state.canvas.offsetParent !== null;
+}
+
+/**
+ * Blazor disposes the .NET reference before the runtime is torn down in some
+ * teardown orders, so every callback is best-effort.
+ */
+async function invokeDotNet(state, methodName, ...args) {
+    if (state.destroyed || !state.dotNetRef) {
+        return;
+    }
+
+    try {
+        await state.dotNetRef.invokeMethodAsync(methodName, ...args);
+    } catch {
+        state.dotNetRef = null;
+    }
 }
 
 function normalizeMovementKey(key) {
