@@ -338,6 +338,15 @@ public sealed class EmbedBuilder
     }
 
     /// <summary>
+    /// Fits the y-axis tightly to the data instead of always including 0.
+    /// </summary>
+    public EmbedBuilder WithZoomedYAxis()
+    {
+        RequireChart(nameof(WithZoomedYAxis)).ZoomYAxis = true;
+        return this;
+    }
+
+    /// <summary>
     /// Adds a media item. The attachment location must be from an allowed
     /// provider or the Valour CDN.
     /// </summary>

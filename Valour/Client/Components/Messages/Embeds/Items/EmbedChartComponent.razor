@@ -104,13 +104,23 @@
 	private (double Min, double Max) ValueRange()
 	{
 		var all = Chart.Series.SelectMany(s => s.Values).ToList();
-		var min = Math.Min(0, all.Min());
-		var max = all.Max();
+		var dataMin = all.Min();
+		var dataMax = all.Max();
 
-		if (max <= min)
-			max = min + 1;
+		if (!Chart.ZoomYAxis)
+		{
+			var min = Math.Min(0, dataMin);
+			var max = dataMax;
+			if (max <= min)
+				max = min + 1;
+			return (min, max);
+		}
 
-		return (min, max);
+		// Zoomed: fit tightly to the data, with a little padding so points don't
+		// sit flush against the top/bottom edge of the plot area.
+		var range = dataMax - dataMin;
+		var padding = range > 0 ? range * 0.1 : 1;
+		return (dataMin - padding, dataMax + padding);
 	}
 
 	private double ScaleY(double value, double min, double max) =>

@@ -36,6 +36,13 @@ public class EmbedChartItem : EmbedItem
     /// </summary>
     public bool ShowLegend { get; set; }
 
+    /// <summary>
+    /// When true, the y-axis fits tightly to the series' own min/max instead of
+    /// always including 0. Useful for charts tracking a large, slow-moving
+    /// value where a 0 floor would flatten the visible trend.
+    /// </summary>
+    public bool ZoomYAxis { get; set; }
+
     [JsonIgnore]
     public override EmbedItemType ItemType => EmbedItemType.Chart;
 }
