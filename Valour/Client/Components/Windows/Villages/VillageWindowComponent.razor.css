@@ -1,0 +1,205 @@
+.village-window {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top left, rgba(255, 231, 187, 0.2), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(85, 124, 76, 0.18), transparent 30%),
+        linear-gradient(180deg, #c6dba4 0%, #88b56a 100%);
+    color: #2c2417;
+}
+
+.village-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: linear-gradient(180deg, #bfdca8 0%, #94c06f 100%);
+    image-rendering: pixelated;
+}
+
+.village-overlay {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.overlay-top-left {
+    top: 16px;
+    left: 16px;
+    max-width: min(420px, calc(100% - 32px));
+}
+
+.overlay-top-right {
+    top: 16px;
+    right: 16px;
+    align-items: flex-end;
+    max-width: min(380px, calc(100% - 32px));
+}
+
+.overlay-bottom-left {
+    left: 16px;
+    bottom: 16px;
+    max-width: min(380px, calc(100% - 32px));
+}
+
+.overlay-bottom-right {
+    right: 16px;
+    bottom: 16px;
+    align-items: flex-end;
+    max-width: min(420px, calc(100% - 32px));
+}
+
+.overlay-card {
+    pointer-events: auto;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(28, 25, 18, 0.66);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 244, 222, 0.16);
+    box-shadow: 0 18px 45px rgba(18, 14, 10, 0.28);
+    color: #f3ead8;
+}
+
+.village-brand-card {
+    min-width: 260px;
+}
+
+.village-actions-card,
+.village-lore-card,
+.village-building-card {
+    width: min(100%, 340px);
+}
+
+.overlay-card-title {
+    font-size: 0.74rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(243, 234, 216, 0.68);
+    margin-bottom: 8px;
+}
+
+.overlay-card-body,
+.sidebar-meta {
+    color: rgba(243, 234, 216, 0.84);
+    line-height: 1.45;
+}
+
+.overlay-inline-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.overlay-button-row,
+.overlay-button-column {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    pointer-events: auto;
+}
+
+.overlay-button-column {
+    flex-direction: column;
+}
+
+.village-kicker {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(243, 234, 216, 0.62);
+}
+
+.village-title {
+    margin-top: 4px;
+    font-size: 1.6rem;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #fff7eb;
+}
+
+.village-subtitle {
+    margin-top: 6px;
+    color: rgba(243, 234, 216, 0.8);
+}
+
+.hud-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: rgba(28, 25, 18, 0.62);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 244, 222, 0.14);
+    color: #f7efdf;
+    font-size: 0.84rem;
+    box-shadow: 0 10px 24px rgba(18, 14, 10, 0.18);
+}
+
+.sidebar-building-name {
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: #fff8ef;
+}
+
+.village-building-card.is-empty {
+    opacity: 0.92;
+}
+
+.village-empty-state {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #6b5840;
+}
+
+@media (max-width: 960px) {
+    .overlay-top-left,
+    .overlay-top-right,
+    .overlay-bottom-left,
+    .overlay-bottom-right {
+        left: 12px;
+        right: 12px;
+        max-width: none;
+    }
+
+    .overlay-top-right,
+    .overlay-bottom-right {
+        align-items: stretch;
+    }
+
+    .overlay-top-left {
+        top: 12px;
+    }
+
+    .overlay-top-right {
+        top: 132px;
+    }
+
+    .overlay-bottom-left {
+        bottom: 144px;
+    }
+
+    .overlay-bottom-right {
+        bottom: 12px;
+    }
+
+    .village-actions-card,
+    .village-lore-card,
+    .village-building-card {
+        width: 100%;
+    }
+
+    .overlay-button-row {
+        flex-wrap: wrap;
+    }
+}

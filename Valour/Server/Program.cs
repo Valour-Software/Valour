@@ -570,6 +570,7 @@ public partial class Program
         services.AddScoped<PlanetReportService>();
         services.AddScoped<ThreadService>();
         services.AddScoped<PlanetWikiService>();
+        services.AddScoped<Valour.Server.Services.Villages.VillageService>();
         services.AddScoped<PlanetService>();
         services.AddScoped<GifFavoriteService>();
         services.AddScoped<ChannelFavoriteService>();
