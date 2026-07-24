@@ -200,6 +200,10 @@
                     <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="OAuth App" class="app-icon" />
                     <span class="app-name">OAuth App (@token.AppId)</span>
                 }
+                @if (token.IsCurrent)
+                {
+                    <span class="badge badge-primary">Current Session</span>
+                }
             </div>
             <div class="token-actions">
                 @if (!IsExpired(token))
@@ -224,12 +228,6 @@
                     }
                 </span>
             </div>
-            @if (token.IsCurrent)
-            {
-                <div class="current-session">
-                    <span class="badge badge-primary">Current Session</span>
-                </div>
-            }
         </div>
     </div>;
 
