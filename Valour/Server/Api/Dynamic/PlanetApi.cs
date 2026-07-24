@@ -33,6 +33,49 @@ public class PlanetApi
         return Results.Json(planet);
     }
     
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/activityAlerts")]
+    [UserRequired]
+    public static async Task<IResult> GetActivityAlertsRouteAsync(
+        long id,
+        ChannelActivityService activityService,
+        PlanetMemberService memberService,
+        TokenService tokenService)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var token = await tokenService.GetCurrentTokenAsync();
+        var setting = await activityService.GetPlanetActivityAlertsAsync(id, token.UserId);
+
+        return Results.Json(setting);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/activityAlerts/{setting}")]
+    [UserRequired]
+    public static async Task<IResult> SetActivityAlertsRouteAsync(
+        long id,
+        int setting,
+        ChannelActivityService activityService,
+        PlanetMemberService memberService,
+        TokenService tokenService)
+    {
+        if (!Enum.IsDefined(typeof(ChannelActivityAlerts), setting))
+            return ValourResult.BadRequest("Invalid activity alert setting.");
+
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await activityService.SetPlanetActivityAlertsAsync(
+            id, token.UserId, (ChannelActivityAlerts)setting);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Json((ChannelActivityAlerts)setting);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/initialData")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetInitialDataRouteAsync(

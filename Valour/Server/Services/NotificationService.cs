@@ -159,6 +159,7 @@ public class NotificationService
                     Url = notification.ClickUrl,
                     NotificationId = notification.Id,
                     SourceId = notification.SourceId,
+                    TimeSent = notification.TimeSent,
                 },
                 UserId = userId
             });
@@ -192,6 +193,7 @@ public class NotificationService
 
         var toRelay = new List<Models.Notification>();
         var newRows = new List<Valour.Database.Notification>();
+        var pushUserIds = new List<long>();
 
         foreach (var userId in userIds.Distinct())
         {
@@ -207,6 +209,7 @@ public class NotificationService
             }
             else
             {
+                pushUserIds.Add(userId);
                 var row = new Valour.Database.Notification
                 {
                     Id = Guid.NewGuid(),
@@ -234,18 +237,25 @@ public class NotificationService
         foreach (var notification in toRelay)
             _coreHub.RelayNotification(notification, _nodeLifecycleService);
 
-        await _pushNotificationWorker.QueueNotificationAction(new SendUsersPushNotification
+        // OS push only when a NEW inbox entry is created. Coalesced updates
+        // refresh the in-app inbox silently — each push renders as a separate
+        // entry in the OS shade, so re-pushing per update stacks duplicates.
+        if (pushUserIds.Count > 0)
         {
-            UserIds = userIds,
-            Content = new NotificationContent
+            await _pushNotificationWorker.QueueNotificationAction(new SendUsersPushNotification
             {
-                Title = template.Title,
-                Message = template.Body,
-                IconUrl = template.ImageUrl,
-                Url = template.ClickUrl,
-                SourceId = template.SourceId,
-            }
-        });
+                UserIds = pushUserIds.ToArray(),
+                Content = new NotificationContent
+                {
+                    Title = template.Title,
+                    Message = template.Body,
+                    IconUrl = template.ImageUrl,
+                    Url = template.ClickUrl,
+                    SourceId = template.SourceId,
+                    TimeSent = now,
+                }
+            });
+        }
     }
 
     /// <summary>
@@ -345,6 +355,7 @@ public class NotificationService
             IconUrl = baseNotification.ImageUrl,
             Url = baseNotification.ClickUrl,
             SourceId = baseNotification.SourceId,
+            TimeSent = DateTime.UtcNow,
         };
 
         const int insertBatchSize = 2_000;

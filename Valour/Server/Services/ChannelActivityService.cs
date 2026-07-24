@@ -147,11 +147,16 @@ public class ChannelActivityService
 
         var planetBaseCooldown = ChannelActivityPreferences.GetBaseCooldown(planet.ActivityNotificationCadence);
 
-        // Per-channel hard mutes apply regardless of interest source
+        // Per-channel and per-planet hard mutes apply regardless of interest source
         var mutedUserIds = (await _db.UserChannelStates.AsNoTracking()
             .Where(s => s.ChannelId == eval.ChannelId && s.ActivityAlerts == ChannelActivityAlerts.Off)
             .Select(s => s.UserId)
             .ToListAsync()).ToHashSet();
+
+        mutedUserIds.UnionWith(await _db.UserPlanetSettings.AsNoTracking()
+            .Where(s => s.PlanetId == eval.PlanetId && s.ActivityAlerts == ChannelActivityAlerts.Off)
+            .Select(s => s.UserId)
+            .ToListAsync());
 
         var interestCutoff = now - ChannelActivityPreferences.InterestFloor;
         var viewerStates = await _db.UserChannelStates.AsNoTracking()
@@ -229,6 +234,12 @@ public class ChannelActivityService
             // Membership required; also gates favorites left over from planets
             // the user has since left
             if (candidate.MemberId is null)
+                continue;
+
+            // Anyone who viewed the channel during the current burst window
+            // has already seen the activity — even if their watch lease lapsed
+            if (candidate.LastViewed is not null &&
+                candidate.LastViewed >= now - ChannelActivityPreferences.ActivityWindow)
                 continue;
 
             TimeSpan? baseCooldown = planetBaseCooldown;
@@ -323,16 +334,15 @@ public class ChannelActivityService
 
     /// <summary>
     /// Called when a user views a channel: marks their coalesced activity
-    /// notification read and resets the channel's cooldown so the next burst
-    /// after they leave can notify again.
+    /// notification read. The cooldown is deliberately NOT reset — it is a
+    /// hard budget. Read-state updates fire constantly while a client has a
+    /// channel open, and resetting the cooldown from them turns "once per
+    /// cooldown period" into "once per evaluation" during a burst.
     /// </summary>
     public async Task HandleChannelViewedAsync(long userId, long channelId)
     {
         try
         {
-            var redisDb = _redis.GetDatabase(RedisDbTypes.Cluster);
-            await redisDb.KeyDeleteAsync(GetCooldownKey(userId, channelId));
-
             await _notificationService.MarkChannelActivityNotificationsReadAsync(userId, channelId);
         }
         catch (Exception ex)
@@ -375,6 +385,34 @@ public class ChannelActivityService
         _coreHub.NotifyUserChannelStateUpdate(userId, model);
 
         return TaskResult<UserChannelState>.FromData(model);
+    }
+
+    /// <summary>
+    /// Returns the user's planet-wide activity alert override
+    /// </summary>
+    public async Task<ChannelActivityAlerts> GetPlanetActivityAlertsAsync(long planetId, long userId)
+    {
+        var setting = await _db.UserPlanetSettings.AsNoTracking()
+            .Where(x => x.UserId == userId && x.PlanetId == planetId)
+            .Select(x => (ChannelActivityAlerts?)x.ActivityAlerts)
+            .FirstOrDefaultAsync();
+
+        return setting ?? ChannelActivityAlerts.Auto;
+    }
+
+    /// <summary>
+    /// Upserts the user's planet-wide activity alert override
+    /// </summary>
+    public async Task<TaskResult> SetPlanetActivityAlertsAsync(long planetId, long userId, ChannelActivityAlerts setting)
+    {
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO user_planet_settings (user_id, planet_id, activity_alerts)
+            VALUES ({userId}, {planetId}, {(int)setting})
+            ON CONFLICT (user_id, planet_id) DO UPDATE
+            SET activity_alerts = EXCLUDED.activity_alerts
+        ");
+
+        return TaskResult.SuccessResult;
     }
 
     private class Candidate

@@ -85,7 +85,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         var viewer = await RegisterMemberAsync();
 
         var stateResult = await _unreadService.UpdateReadState(
-            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
+            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
         Assert.True(stateResult.Success, stateResult.Message);
 
         await _activityService.EvaluateAsync(MakeEvaluation(channel));
@@ -107,7 +107,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         var viewer = await RegisterMemberAsync();
 
         await _unreadService.UpdateReadState(
-            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
+            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
 
         await _activityService.EvaluateAsync(MakeEvaluation(channel));
         await _activityService.EvaluateAsync(MakeEvaluation(channel, conversationStart: false));
@@ -127,7 +127,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         var viewer = await RegisterMemberAsync();
 
         await _unreadService.UpdateReadState(
-            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
+            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
 
         var muteResult = await _activityService.SetActivityAlertsAsync(
             channel.Id, viewer.UserId, _valourCentralId, viewer.Id, ChannelActivityAlerts.Off);
@@ -152,7 +152,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         var viewer = await RegisterMemberAsync();
 
         await _unreadService.UpdateReadState(
-            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
+            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
 
         var eval = MakeEvaluation(channel);
         eval.WindowAuthorUserIds = [viewer.UserId];
@@ -196,7 +196,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         var viewer = await RegisterMemberAsync();
 
         await _unreadService.UpdateReadState(
-            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
+            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
 
         var dbPlanet = await _db.Planets.FirstAsync(x => x.Id == _valourCentralId);
         var originalCadence = dbPlanet.ActivityNotificationCadence;
@@ -268,13 +268,13 @@ public class ChannelActivityServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task HandleChannelViewed_MarksActivityNotificationRead()
+    public async Task HandleChannelViewed_MarksRead_ButKeepsCooldown()
     {
         var channel = await GetDefaultChannelAsync();
         var viewer = await RegisterMemberAsync();
 
         await _unreadService.UpdateReadState(
-            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
+            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
 
         await _activityService.EvaluateAsync(MakeEvaluation(channel));
 
@@ -284,7 +284,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             && x.Source == NotificationSource.ChannelActivity
             && x.TimeRead == null));
 
-        // Viewing the channel again (read-state update) clears the entry
+        // Viewing the channel (read-state update) clears the inbox entry
         await _unreadService.UpdateReadState(
             channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
 
@@ -293,5 +293,74 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             && x.ChannelId == channel.Id
             && x.Source == NotificationSource.ChannelActivity
             && x.TimeRead == null));
+
+        // ...but the cooldown is a hard budget: viewing must NOT reset it, or
+        // read-state updates from an open client re-arm notifications every
+        // evaluation during a burst (this regressed as grouped push spam)
+        await _db.UserChannelStates
+            .Where(x => x.UserId == viewer.UserId && x.ChannelId == channel.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(
+                s => s.LastViewedTime, DateTime.UtcNow.AddMinutes(-10)));
+
+        await _activityService.EvaluateAsync(MakeEvaluation(channel, conversationStart: false));
+
+        Assert.False(await _db.Notifications.AnyAsync(x =>
+            x.UserId == viewer.UserId
+            && x.ChannelId == channel.Id
+            && x.Source == NotificationSource.ChannelActivity
+            && x.TimeRead == null));
+    }
+
+    [Fact]
+    public async Task Evaluate_SkipsUsersWhoViewedDuringBurst()
+    {
+        var channel = await GetDefaultChannelAsync();
+        var viewer = await RegisterMemberAsync();
+
+        // Viewed seconds ago: they have seen the burst, even if their
+        // watching lease already lapsed
+        await _unreadService.UpdateReadState(
+            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
+
+        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+
+        Assert.False(await _db.Notifications.AnyAsync(x =>
+            x.UserId == viewer.UserId
+            && x.ChannelId == channel.Id
+            && x.Source == NotificationSource.ChannelActivity));
+    }
+
+    [Fact]
+    public async Task Evaluate_RespectsPlanetMute()
+    {
+        var channel = await GetDefaultChannelAsync();
+        var viewer = await RegisterMemberAsync();
+
+        await _unreadService.UpdateReadState(
+            channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
+
+        var muteResult = await _activityService.SetPlanetActivityAlertsAsync(
+            _valourCentralId, viewer.UserId, ChannelActivityAlerts.Off);
+        Assert.True(muteResult.Success, muteResult.Message);
+        Assert.Equal(ChannelActivityAlerts.Off,
+            await _activityService.GetPlanetActivityAlertsAsync(_valourCentralId, viewer.UserId));
+
+        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+
+        Assert.False(await _db.Notifications.AnyAsync(x =>
+            x.UserId == viewer.UserId
+            && x.ChannelId == channel.Id
+            && x.Source == NotificationSource.ChannelActivity));
+
+        // Unmuting restores delivery (muted evaluations must not consume cooldown)
+        await _activityService.SetPlanetActivityAlertsAsync(
+            _valourCentralId, viewer.UserId, ChannelActivityAlerts.Auto);
+
+        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+
+        Assert.True(await _db.Notifications.AnyAsync(x =>
+            x.UserId == viewer.UserId
+            && x.ChannelId == channel.Id
+            && x.Source == NotificationSource.ChannelActivity));
     }
 }

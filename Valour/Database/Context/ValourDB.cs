@@ -241,7 +241,9 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<PlanetWikiRevision> PlanetWikiRevisions { get; set; }
 
     public DbSet<UserChannelState> UserChannelStates { get; set; }
-    
+
+    public DbSet<UserPlanetSetting> UserPlanetSettings { get; set; }
+
     public DbSet<NodeStats> NodeStats { get; set; }
     
     public DbSet<Report> Reports { get; set; }
@@ -342,6 +344,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         User.SetupDbModel(modelBuilder);
         UserSubscription.SetupDbModel(modelBuilder);
         UserChannelState.SetupDbModel(modelBuilder);
+        UserPlanetSetting.SetupDbModel(modelBuilder);
         PlanetMember.SetupDbModel(modelBuilder);
         PlanetRole.SetupDbModel(modelBuilder);
         PlanetEmoji.SetupDbModel(modelBuilder);

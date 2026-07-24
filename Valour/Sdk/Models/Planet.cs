@@ -266,6 +266,25 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         MyMember = member;
     }
 
+    /// <summary>
+    /// Returns the user's planet-wide activity alert override
+    /// </summary>
+    public async Task<ChannelActivityAlerts> FetchActivityAlertsAsync()
+    {
+        var result = await Node.GetJsonAsync<ChannelActivityAlerts>($"{IdRoute}/activityAlerts");
+        return result.Success ? result.Data : ChannelActivityAlerts.Auto;
+    }
+
+    /// <summary>
+    /// Sets the user's planet-wide activity alert override
+    /// </summary>
+    public async Task<TaskResult> SetActivityAlertsAsync(ChannelActivityAlerts setting)
+    {
+        var result = await Node.PostAsyncWithResponse<ChannelActivityAlerts>(
+            $"{IdRoute}/activityAlerts/{(int)setting}", null);
+        return result.WithoutData();
+    }
+
     #region Planet Sub-Model CRUD
 
     /// <summary>

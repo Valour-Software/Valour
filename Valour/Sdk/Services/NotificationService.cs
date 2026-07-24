@@ -13,6 +13,13 @@ public class NotificationService
     public HybridEvent<Notification> NotificationReceived;
 
     /// <summary>
+    /// Run when an existing unread notification's content is updated in place
+    /// (coalesced channel activity). Presentation surfaces (sound, popups)
+    /// intentionally do NOT fire for these — only content renderers should.
+    /// </summary>
+    public HybridEvent<Notification> NotificationContentUpdated;
+
+    /// <summary>
     /// Run when notifications are cleared
     /// </summary>
     public HybridEvent NotificationsCleared;
@@ -114,17 +121,24 @@ public class NotificationService
         {
             // Coalesced notifications (channel activity) re-relay the same id
             // with updated content. Notifications have no model cache, so
-            // replace the list entry in place (keeping its position) and let
-            // the event fire so the inbox re-renders
+            // replace the list entry in place (keeping its position). Updates
+            // fire NotificationContentUpdated only — re-firing
+            // NotificationReceived would replay sounds and popups per update
             var existingIndex = _unreadNotifications.FindIndex(x => x.Id == cached.Id);
             if (existingIndex >= 0)
             {
                 _unreadNotifications[existingIndex] = cached;
+
+                if (cached.SourceId is not null)
+                {
+                    _unreadNotificationsLookupBySource[cached.SourceId.Value] = cached;
+                }
+
+                NotificationContentUpdated?.Invoke(cached);
+                return;
             }
-            else
-            {
-                _unreadNotifications.Add(cached);
-            }
+
+            _unreadNotifications.Add(cached);
 
             if (cached.SourceId is not null)
             {

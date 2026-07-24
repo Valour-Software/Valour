@@ -27,6 +27,8 @@ self.addEventListener('push', event => {
             vibrate: [100, 50, 100],
             badge: "https://app.valour.gg/_content/Valour.Client/media/logo/victor-mono-192.png",
             tag,
+            // Without an explicit timestamp some Android shells render a bogus date
+            timestamp: payload.timeSent ? Number(payload.timeSent) : Date.now(),
             data: {
                 url: payload.url,
                 notificationId: payload.notificationId,

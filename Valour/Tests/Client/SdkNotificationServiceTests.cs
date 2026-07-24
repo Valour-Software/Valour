@@ -9,13 +9,16 @@ public class SdkNotificationServiceTests
     public void OnNotificationReceived_DuplicateUnreadId_UpdatesInPlaceWithoutDuplicating()
     {
         // Coalesced notifications (channel activity) re-relay the same id with
-        // updated content: the list must not gain a duplicate entry, but the
-        // event must still fire so the inbox re-renders the new content
+        // updated content: the list must not gain a duplicate entry, and only
+        // NotificationContentUpdated fires — NotificationReceived would replay
+        // sounds and popups for what is just a content refresh
         var client = new ValourClient("https://api.valour.example/");
         var service = client.NotificationService;
         var notificationId = Guid.NewGuid();
         var received = 0;
+        var updatedCount = 0;
         service.NotificationReceived += _ => received++;
+        service.NotificationContentUpdated += _ => updatedCount++;
 
         service.OnNotificationReceived(CreateNotification(client, notificationId));
 
@@ -23,7 +26,8 @@ public class SdkNotificationServiceTests
         updated.Body = "Updated body";
         service.OnNotificationReceived(updated);
 
-        Assert.Equal(2, received);
+        Assert.Equal(1, received);
+        Assert.Equal(1, updatedCount);
         var entry = Assert.Single(service.UnreadNotifications);
         Assert.Equal("Updated body", entry.Body);
     }

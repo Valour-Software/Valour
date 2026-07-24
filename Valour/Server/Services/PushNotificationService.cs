@@ -120,6 +120,8 @@ public class PushNotificationService
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static string GetPayload(NotificationContent content)
     {
+        var timeSent = content.TimeSent == default ? DateTime.UtcNow : content.TimeSent;
+
         return JsonSerializer.Serialize(new
         {
             title = content.Title,
@@ -127,7 +129,9 @@ public class PushNotificationService
             iconUrl = content.IconUrl,
             url = content.Url,
             notificationId = content.NotificationId?.ToString(),
-            sourceId = content.SourceId?.ToString(CultureInfo.InvariantCulture)
+            sourceId = content.SourceId?.ToString(CultureInfo.InvariantCulture),
+            timeSent = new DateTimeOffset(DateTime.SpecifyKind(timeSent, DateTimeKind.Utc))
+                .ToUnixTimeMilliseconds()
         });
     }
     
@@ -194,6 +198,12 @@ public class PushNotificationService
         var iconUrl = content.TryGetProperty("iconUrl", out var icon) ? icon.GetString() : null;
         var url = content.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null;
 
+        // Without an explicit event time Android cards render a bogus date
+        var eventTime = content.TryGetProperty("timeSent", out var timeSentProp)
+                        && timeSentProp.TryGetInt64(out var timeSentMs)
+            ? DateTimeOffset.FromUnixTimeMilliseconds(timeSentMs).UtcDateTime
+            : DateTime.UtcNow;
+
         var message = new FirebaseAdmin.Messaging.Message
         {
             Token = sub.Endpoint,
@@ -208,6 +218,7 @@ public class PushNotificationService
                 Notification = new FirebaseAdmin.Messaging.AndroidNotification
                 {
                     ChannelId = "valour_default",
+                    EventTimestamp = eventTime,
                 },
             },
             Data = new Dictionary<string, string> { ["url"] = url ?? "" },

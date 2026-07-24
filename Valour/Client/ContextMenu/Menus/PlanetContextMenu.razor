@@ -29,6 +29,23 @@
         <Icon><i class="bi bi-pen-fill"></i></Icon>
     </ContextMenuItem>
 }
+@if (_activityAlertsLoaded)
+{
+    if (_activityAlerts == ChannelActivityAlerts.Off)
+    {
+        <ContextMenuItem OnClickAsync="@(() => SetActivityAlerts(ChannelActivityAlerts.Auto))">
+            <Label>Enable Activity Alerts</Label>
+            <Icon><i class="bi bi-bell"></i></Icon>
+        </ContextMenuItem>
+    }
+    else
+    {
+        <ContextMenuItem OnClickAsync="@(() => SetActivityAlerts(ChannelActivityAlerts.Off))">
+            <Label>Mute Activity Alerts</Label>
+            <Icon><i class="bi bi-bell-slash"></i></Icon>
+        </ContextMenuItem>
+    }
+}
 <ContextMenuItem OnClickAsync='@OnClickCopyId'>
     <Label>Copy ID</Label>
     <Icon><i class="bi bi-database-fill"></i></Icon>
@@ -56,10 +73,29 @@
 
     private static bool _canEdit;
     
-    protected override void OnInitialized()
+    private bool _activityAlertsLoaded;
+    private ChannelActivityAlerts _activityAlerts;
+
+    protected override async Task OnInitializedAsync()
     {
         _canEdit = Data.Planet.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false;
         StateHasChanged();
+
+        _activityAlerts = await Data.Planet.FetchActivityAlertsAsync();
+        _activityAlertsLoaded = true;
+        StateHasChanged();
+    }
+
+    private async Task SetActivityAlerts(ChannelActivityAlerts setting)
+    {
+        await CloseAsync();
+
+        var result = await Data.Planet.SetActivityAlertsAsync(setting);
+        if (!result.Success)
+        {
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Failed to update activity alerts", result.Message, ToastProgressState.Failure));
+        }
     }
 
     private void OpenCreateChannel()
