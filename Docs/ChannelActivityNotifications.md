@@ -152,6 +152,7 @@ rollout migration flips the bit on for already-initialized preference masks).
 - Not engagement-bait: no notification fires for a channel the user has never
   shown interest in, and every knob a planet owner has is bounded by the
   user's own budget.
+
 ## Phasing
 
 1. **v1 (this doc)**: bucketing, interest-banded cooldowns, conversation-start
