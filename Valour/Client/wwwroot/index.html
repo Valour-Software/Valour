@@ -38,7 +38,133 @@
 <script src="_content/Valour.Client/js/main.js?version=$(SHORTHASH)"></script>
 <script async src="_content/Valour.Client/js/channel.js?version=$(SHORTHASH)"></script>
 <script src="_content/Valour.Client/js/wiki.js?version=$(SHORTHASH)"></script>
-<script async src="_framework/blazor.webassembly.js?version=$(SHORTHASH)"></script>
+<script async id="blazor-script" src="_framework/blazor.webassembly.js?version=$(SHORTHASH)" autostart="false"></script>
+<script>
+    // Boot Blazor manually so a failed start is recoverable instead of leaving the
+    // loading logo on screen forever.
+    //
+    // Cloudflare Pages cannot 404 a fingerprinted asset that is missing: the SPA
+    // fallback rewrites it to index.html with a 200, and the long-lived cache
+    // headers for /_framework/* are applied by request path, so the browser can end
+    // up storing an HTML body under a .wasm URL. Any later boot that needs that
+    // fingerprint fails its SRI check and the app never starts. A normal reload does
+    // not help, because the cached entry is still fresh -- only a request that
+    // explicitly bypasses the cache replaces it, which is what repair() does below.
+    const BOOT_RECOVERY_KEY = 'valour:boot-recovery';
+
+    function bootAttempt() {
+        return Number(sessionStorage.getItem(BOOT_RECOVERY_KEY) || 0);
+    }
+
+    // Re-request a URL straight from the network, which replaces whatever the HTTP
+    // cache is holding for it.
+    async function repair(urls) {
+        await Promise.allSettled(
+            Array.from(new Set(urls)).map(url => fetch(url, { cache: 'reload' }))
+        );
+    }
+
+    async function clearOfflineCaches() {
+        try {
+            if (window.caches) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+            }
+
+            if (navigator.serviceWorker) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+            }
+        } catch (e) {
+            console.error('Could not clear offline caches:', e);
+        }
+    }
+
+    function failedUrlsFrom(error) {
+        const text = `${error && error.message} ${error && error.stack}`;
+        const urls = text.match(/https?:\/\/[^\s'"()]+/g) || [];
+        return urls.filter(url => url.startsWith(`${location.origin}/_framework/`));
+    }
+
+    async function allFrameworkUrls() {
+        // service-worker-assets.js is served no-cache, so this is always the asset
+        // list of the deployment currently live.
+        const res = await fetch('service-worker-assets.js', { cache: 'reload' });
+        const source = await res.text();
+        const urls = source.match(/"_framework\/[^"]+"/g) || [];
+        return urls.map(match => new URL(JSON.parse(match), document.baseURI).href);
+    }
+
+    async function onBootFailed(error) {
+        console.error('Blazor failed to start:', error);
+
+        const attempt = bootAttempt() + 1;
+        sessionStorage.setItem(BOOT_RECOVERY_KEY, String(attempt));
+
+        if (attempt === 1) {
+            // Cheapest repair: refetch only what the failure named.
+            const failed = failedUrlsFrom(error);
+            if (failed.length) {
+                await repair(failed);
+                location.reload();
+                return;
+            }
+        }
+
+        if (attempt <= 2) {
+            // Drop the offline cache and the worker itself first: its fetch handler
+            // answers from its own cache before the network, so repairing while it is
+            // still installed can be a no-op. Clearing it is wanted regardless -- a
+            // poisoned asset also fails the worker's integrity checked precache,
+            // which silently kills push notifications.
+            await clearOfflineCaches();
+            await repair(await allFrameworkUrls().catch(() => []));
+            location.reload();
+            return;
+        }
+
+        showBootError();
+    }
+
+    function showBootError() {
+        const app = document.querySelector('app');
+        if (!app) return;
+
+        app.innerHTML = `
+            <div class="loading-container">
+                <div class="loading-center" style="text-align:center; max-width:32rem; padding:1rem;">
+                    <p class="loading-title">Valour could not load</p>
+                    <p style="opacity:0.8;">Something went wrong while loading the app. Reloading usually fixes it.</p>
+                    <!-- Styled inline with fallbacks: the stylesheet may be part of what failed. -->
+                    <button type="button" id="boot-retry"
+                            style="margin-top:1.25rem; padding:0.6rem 1.6rem; cursor:pointer; font:inherit;
+                                   border:none; border-radius:0.5rem;
+                                   background:var(--color-accent, #6278cd);
+                                   color:var(--color-accent-contrast, #ffffff);">Reload</button>
+                </div>
+            </div>`;
+
+        document.getElementById('boot-retry').addEventListener('click', () => {
+            sessionStorage.removeItem(BOOT_RECOVERY_KEY);
+            location.reload();
+        });
+    }
+
+    function startBlazor() {
+        Blazor.start()
+            .then(() => sessionStorage.removeItem(BOOT_RECOVERY_KEY))
+            .catch(onBootFailed);
+    }
+
+    const blazorScript = document.getElementById('blazor-script');
+    if (window.Blazor) {
+        startBlazor();
+    } else {
+        blazorScript.addEventListener('load', startBlazor);
+        blazorScript.addEventListener('error', () => onBootFailed(
+            new Error(`Failed to load ${blazorScript.src}`)));
+    }
+</script>
 <script>
     // Installing the offline cache can fetch the entire application. On a new
     // browser, wait until the initial app load is complete and the main thread
