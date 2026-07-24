@@ -13,7 +13,6 @@ public class VillageApi
         long id,
         PlanetMemberService memberService,
         PlanetService planetService,
-        UserService userService,
         VillageService villageService)
     {
         var member = await memberService.GetCurrentAsync(id);
@@ -24,9 +23,8 @@ public class VillageApi
         if (planet is null)
             return ValourResult.NotFound("Planet not found");
 
-        var userId = await userService.GetCurrentUserIdAsync();
         var channels = await planetService.GetAllChannelsAsync(id);
-        var scene = villageService.BuildProofOfConceptScene(planet, channels, userId);
+        var scene = villageService.BuildProofOfConceptScene(planet, channels, member);
         return Results.Json(scene);
     }
 }

@@ -5,11 +5,9 @@ export function init(canvasId, dotNetRef, scene) {
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = false;
     const localAppearance = scene.characters.find((character) => character.isLocalPlayer) ?? {
-        name: "You",
-        bodyColor: "#f4d1b5",
-        hairColor: "#5a3825",
-        topColor: "#4780d9",
-        bottomColor: "#385068"
+        name: "",
+        avatarUrl: "",
+        accentColor: "#4780d9"
     };
 
     const state = {
@@ -76,6 +74,8 @@ export function init(canvasId, dotNetRef, scene) {
             window.removeEventListener("keyup", state.onKeyUp);
             window.removeEventListener("blur", state.onBlur);
             canvas.removeEventListener("click", state.onClick);
+            state.resizeObserver?.disconnect();
+            state.resizeObserver = null;
             if (state.animationFrame) {
                 cancelAnimationFrame(state.animationFrame);
                 state.animationFrame = 0;
@@ -162,6 +162,19 @@ export function init(canvasId, dotNetRef, scene) {
     window.addEventListener("blur", state.onBlur);
     canvas.addEventListener("click", state.onClick);
 
+    // The window resize event does not fire when the dock lays this canvas out,
+    // so the element itself is observed. Without this, a village opened into a
+    // pane that has not been sized yet keeps the tiny initial backing store and
+    // renders as a smear.
+    if (typeof ResizeObserver !== "undefined") {
+        state.resizeObserver = new ResizeObserver(() => {
+            if (!state.destroyed) {
+                state.onResize();
+            }
+        });
+        state.resizeObserver.observe(canvas);
+    }
+
     primeMapTextures(state);
     ensureLocalPlayerPosition(state, state.currentMapId);
     resizeCanvas(state);
@@ -216,8 +229,34 @@ function getCurrentMap(state) {
     return state.scene.maps.find((map) => map.id === state.currentMapId) ?? null;
 }
 
+/**
+ * Re-measures whenever the backing store has drifted from the element's real
+ * size. Resize events and ResizeObserver notifications are both unreliable
+ * while the dock is animating a pane in, and a stale backing store stretches a
+ * handful of pixels across the whole window, so the render loop self-heals.
+ */
+function ensureCanvasSize(state) {
+    const rect = state.canvas.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) {
+        return;
+    }
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const targetWidth = Math.max(1, Math.floor(rect.width * dpr));
+    const targetHeight = Math.max(1, Math.floor(rect.height * dpr));
+
+    if (state.canvas.width !== targetWidth || state.canvas.height !== targetHeight) {
+        resizeCanvas(state);
+        updateCamera(state);
+    }
+}
+
 function resizeCanvas(state) {
     const rect = state.canvas.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) {
+        return;
+    }
+
     state.currentScale = rect.width < 760 ? 1 : 2;
     state.viewportWidth = Math.max(1, Math.floor(rect.width));
     state.viewportHeight = Math.max(1, Math.floor(rect.height));
@@ -346,9 +385,7 @@ function draw(state) {
         return;
     }
 
-    if (state.canvas.width === 0 || state.canvas.height === 0) {
-        resizeCanvas(state);
-    }
+    ensureCanvasSize(state);
 
     const { ctx } = state;
     const px = tilePixelSize(state);
@@ -372,6 +409,12 @@ function primeMapTextures(state) {
             if (decoration.textureUrl) {
                 loadTexture(state, decoration.textureUrl);
             }
+        }
+    }
+
+    for (const character of state.scene.characters ?? []) {
+        if (character.avatarUrl) {
+            loadTexture(state, character.avatarUrl);
         }
     }
 }
@@ -519,34 +562,81 @@ function drawCharacters(ctx, state, px) {
     }
 }
 
+/**
+ * Characters are the member's own avatar drawn as a circular token, rather than
+ * an authored sprite. The accent ring keeps players distinguishable while an
+ * avatar is still loading, and stands in for it entirely if the image fails.
+ */
 function drawCharacter(ctx, state, px, x, y, character, isLocalPlayer) {
     const centerX = (x + 0.5) * px - state.renderCameraX;
-    const centerY = (y + 0.5) * px - state.renderCameraY;
+    const centerY = (y + 0.35) * px - state.renderCameraY;
+    const radius = 0.36 * px;
+    const accent = character.accentColor || "#4780d9";
 
-    ctx.fillStyle = character.hairColor;
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, centerY - 0.12 * px, 0.28 * px, 0, Math.PI * 2);
+    ctx.ellipse(centerX, centerY + radius * 0.95, radius * 0.8, radius * 0.32, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
     ctx.fill();
+    ctx.restore();
 
-    ctx.fillStyle = character.bodyColor;
+    const texture = character.avatarUrl ? loadTexture(state, character.avatarUrl) : null;
+
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, centerY + 0.04 * px, 0.23 * px, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.closePath();
 
-    ctx.fillStyle = character.topColor;
-    roundRect(ctx, centerX - 0.26 * px, centerY + 0.28 * px, 0.52 * px, 0.42 * px, 0.12 * px, true, false);
-
-    ctx.fillStyle = character.bottomColor;
-    ctx.fillRect(centerX - 0.2 * px, centerY + 0.64 * px, 0.16 * px, 0.32 * px);
-    ctx.fillRect(centerX + 0.04 * px, centerY + 0.64 * px, 0.16 * px, 0.32 * px);
-
-    if (isLocalPlayer) {
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY + 0.2 * px, 0.55 * px, 0, Math.PI * 2);
-        ctx.stroke();
+    if (texture?.loaded) {
+        ctx.clip();
+        // Cover-fit so non-square avatars are cropped rather than squashed.
+        const source = Math.min(texture.image.width, texture.image.height);
+        ctx.drawImage(
+            texture.image,
+            (texture.image.width - source) / 2,
+            (texture.image.height - source) / 2,
+            source,
+            source,
+            centerX - radius,
+            centerY - radius,
+            radius * 2,
+            radius * 2);
+    } else {
+        ctx.fillStyle = accent;
+        ctx.fill();
     }
+
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = isLocalPlayer ? "#ffffff" : accent;
+    ctx.lineWidth = Math.max(2, px * (isLocalPlayer ? 0.07 : 0.05));
+    ctx.stroke();
+
+    drawCharacterName(ctx, state, px, centerX, centerY + radius, character);
+}
+
+function drawCharacterName(ctx, state, px, centerX, bottomY, character) {
+    if (!character.name) {
+        return;
+    }
+
+    const fontSize = Math.max(9, Math.round(px * 0.26));
+    ctx.font = `600 ${fontSize}px var(--font-family, sans-serif)`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+
+    const y = bottomY + fontSize * 0.35;
+    ctx.lineWidth = Math.max(2, fontSize * 0.3);
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.72)";
+    ctx.lineJoin = "round";
+    ctx.strokeText(character.name, centerX, y);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(character.name, centerX, y);
+
+    ctx.textAlign = "start";
+    ctx.textBaseline = "alphabetic";
 }
 
 function isWalkableTile(state, map, tileX, tileY) {

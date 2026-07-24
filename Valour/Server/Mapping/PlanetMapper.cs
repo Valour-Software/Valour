@@ -32,6 +32,7 @@ public static class PlanetMapper
             PublicThreads = planet.PublicThreads,
             PinnedThreadId = planet.PinnedThreadId,
             EnableWiki = planet.EnableWiki,
+            EnableVillage = planet.EnableVillage,
             PublicWiki = planet.PublicWiki,
             Vanity = planet.Vanity,
             ActivityNotificationCadence = planet.ActivityNotificationCadence,
@@ -63,6 +64,7 @@ public static class PlanetMapper
         dbPlanet.PublicThreads = planet.PublicThreads;
         dbPlanet.PinnedThreadId = planet.PinnedThreadId;
         dbPlanet.EnableWiki = planet.EnableWiki;
+        dbPlanet.EnableVillage = planet.EnableVillage;
         dbPlanet.PublicWiki = planet.PublicWiki;
         dbPlanet.ActivityNotificationCadence = planet.ActivityNotificationCadence;
         // Vanity is intentionally NOT copied here: it is set exclusively by

@@ -525,6 +525,8 @@ public enum PlanetPermissionsEnum
     ManageWiki,
 
     ManageWebhooks,
+
+    ManageVillage,
 }
 
 /// <summary>
@@ -579,6 +581,8 @@ public static class PlanetPermissions
                 ManageWiki,
 
                 ManageWebhooks,
+
+                ManageVillage,
         };
     }
 
@@ -615,6 +619,9 @@ public static class PlanetPermissions
     public static readonly PlanetPermission ManageWiki = new PlanetPermission(0x100000, "Manage Wiki", "Allow members to manage wiki folders, ordering, deletion, revisions, and wiki settings.");
 
     public static readonly PlanetPermission ManageWebhooks = new PlanetPermission(0x200000, "Manage Webhooks", "Allow members to create, edit, and delete webhooks for the planet's channels.");
+
+    // Village Permissions
+    public static readonly PlanetPermission ManageVillage = new PlanetPermission(0x400000, "Manage Village", "Allow members to edit the planet's village map, buildings, and village settings.");
 }
 
 public enum PermissionState

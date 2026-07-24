@@ -107,8 +107,17 @@ public class VillagePocCharacter
     public int X { get; set; }
     public int Y { get; set; }
     public bool IsLocalPlayer { get; set; }
-    public string BodyColor { get; set; } = "#f4d1b5";
-    public string HairColor { get; set; } = "#5a3825";
-    public string TopColor { get; set; } = "#4780d9";
-    public string BottomColor { get; set; } = "#385068";
+
+    /// <summary>
+    /// The avatar drawn for this character in the village runtime. Villages use
+    /// existing member avatars rather than authored sprites, so this is the
+    /// member avatar where one is set and the user avatar otherwise.
+    /// </summary>
+    public string AvatarUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Ring colour behind the avatar. Kept so characters stay distinguishable
+    /// while an avatar is still loading or fails to load.
+    /// </summary>
+    public string AccentColor { get; set; } = "#4780d9";
 }

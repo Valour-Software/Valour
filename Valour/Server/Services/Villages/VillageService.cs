@@ -2,6 +2,7 @@ using Valour.Shared.Models;
 using Valour.Shared.Villages;
 using PlanetModel = Valour.Server.Models.Planet;
 using ChannelModel = Valour.Server.Models.Channel;
+using PlanetMemberModel = Valour.Server.Models.PlanetMember;
 
 namespace Valour.Server.Services.Villages;
 
@@ -10,7 +11,7 @@ public class VillageService
     public VillagePocScene BuildProofOfConceptScene(
         PlanetModel planet,
         IEnumerable<ChannelModel> channels,
-        long userId)
+        PlanetMemberModel member)
     {
         var primaryChat = channels.FirstOrDefault(x => x.IsDefault) ??
                           channels.FirstOrDefault(x => x.ChannelType == ChannelTypeEnum.PlanetChat);
@@ -29,7 +30,7 @@ public class VillageService
             BackgroundColor = "#9fcf81",
             AccentColor = "#6da05f",
             BaseTileTextureUrl = "/_content/Valour.Client/media/villages/default-tileset/terrain/grass-base-32.png",
-            SpawnTile = new VillagePocPoint { X = 10, Y = 11 },
+            SpawnTile = new VillagePocPoint { X = 10, Y = 14 },
             Plots =
             {
                 new VillagePocPlot { Id = 1, Name = "Town Center", X = 2, Y = 2, Width = 7, Height = 5 },
@@ -223,16 +224,14 @@ public class VillageService
             {
                 new VillagePocCharacter
                 {
-                    UserId = userId,
-                    Name = "You",
+                    UserId = member.UserId,
+                    Name = string.IsNullOrWhiteSpace(member.Nickname) ? member.User?.Name ?? "You" : member.Nickname,
                     MapId = outdoorMap.Id,
                     X = 10,
-                    Y = 11,
+                    Y = 14,
                     IsLocalPlayer = true,
-                    BodyColor = "#f2d0b8",
-                    HairColor = "#4c3327",
-                    TopColor = "#2d73d5",
-                    BottomColor = "#37485d"
+                    AvatarUrl = ISharedPlanetMember.GetAvatar(member, AvatarFormat.Webp64),
+                    AccentColor = "#2d73d5"
                 },
                 new VillagePocCharacter
                 {
@@ -241,10 +240,8 @@ public class VillageService
                     MapId = outdoorMap.Id,
                     X = 5,
                     Y = 10,
-                    BodyColor = "#f1c7aa",
-                    HairColor = "#2f2a22",
-                    TopColor = "#52a363",
-                    BottomColor = "#46513a"
+                    AvatarUrl = ISharedUser.DefaultAvatar,
+                    AccentColor = "#52a363"
                 },
                 new VillagePocCharacter
                 {
@@ -253,10 +250,8 @@ public class VillageService
                     MapId = townHallInterior.Id,
                     X = 7,
                     Y = 5,
-                    BodyColor = "#f1c7aa",
-                    HairColor = "#5b2f25",
-                    TopColor = "#d45454",
-                    BottomColor = "#5e3b3b"
+                    AvatarUrl = ISharedUser.DefaultAvatar,
+                    AccentColor = "#d45454"
                 }
             }
         };

@@ -215,6 +215,7 @@ public class PlanetSnapshotPlanet
     public bool PublicThreads { get; set; }
     public long? PinnedThreadId { get; set; }
     public bool EnableWiki { get; set; }
+    public bool EnableVillage { get; set; }
     public bool PublicWiki { get; set; }
     public string Vanity { get; set; }
     public int Version { get; set; }
