@@ -61,6 +61,16 @@ public class Credential
     /// </summary>
     [Column("salt")]
     public byte[] Salt { get; set; }
+
+    /// <summary>
+    /// The PBKDF2 iteration count this secret was hashed with. Stored per
+    /// credential so the work factor can be raised over time without
+    /// invalidating existing passwords - rows below the current count are
+    /// re-hashed on the next successful login. Rows created before this column
+    /// existed default to the legacy count.
+    /// </summary>
+    [Column("iterations")]
+    public int Iterations { get; set; }
 }
 
 /// <summary>

@@ -97,6 +97,33 @@
 
     <div class="editor-section">
         <h3 class="editor-section-title">
+            <i class="bi bi-bell"></i>
+            Notifications
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Activity Notification Cadence</span>
+            </div>
+            <p class="toggle-description">
+                How often members are notified when channels here become active, unless they
+                set their own preference. Members are only notified about channels they visit
+                or favorite, and never while viewing them.
+            </p>
+            <div class="toggle-content">
+                <select class="v-input" value="@((int)_activityCadenceValue)" @onchange="OnActivityCadenceChanged">
+                    <option value="@((int)ChannelActivityCadence.Off)">Off — never notify by default</option>
+                    <option value="@((int)ChannelActivityCadence.Quiet)">Quiet — at most every hour</option>
+                    <option value="@((int)ChannelActivityCadence.Standard)">Standard — at most every 15 minutes</option>
+                    <option value="@((int)ChannelActivityCadence.Lively)">Lively — at most every 5 minutes</option>
+                </select>
+            </div>
+            <ResultLabel Result="@_activityCadenceResult" />
+        </div>
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
             <i class="bi bi-image"></i>
             Appearance
         </h3>
@@ -154,6 +181,9 @@
     private bool _publicThreadsValue;
     private ITaskResult _publicThreadsResult;
 
+    private ChannelActivityCadence _activityCadenceValue;
+    private ITaskResult _activityCadenceResult;
+
     protected override Task OnInitializedAsync()
     {
         _nameValue = Planet.Name;
@@ -162,6 +192,7 @@
         _vanityValue = Planet.Vanity ?? string.Empty;
         _enableThreadsValue = Planet.EnableThreads;
         _publicThreadsValue = Planet.PublicThreads;
+        _activityCadenceValue = Planet.ActivityNotificationCadence;
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -283,6 +314,27 @@
         {
             _publicThreadsValue = !_publicThreadsValue;
             Planet.PublicThreads = _publicThreadsValue;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnActivityCadenceChanged(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var parsed) ||
+            !Enum.IsDefined(typeof(ChannelActivityCadence), parsed))
+            return;
+
+        var oldValue = _activityCadenceValue;
+        _activityCadenceValue = (ChannelActivityCadence)parsed;
+
+        Planet.ActivityNotificationCadence = _activityCadenceValue;
+        _activityCadenceResult = await Planet.UpdateAsync();
+
+        if (!_activityCadenceResult.Success)
+        {
+            _activityCadenceValue = oldValue;
+            Planet.ActivityNotificationCadence = oldValue;
         }
 
         StateHasChanged();

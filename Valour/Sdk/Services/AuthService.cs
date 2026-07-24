@@ -741,20 +741,21 @@ public class AuthService : ServiceBase
     #region Token Management
 
     /// <summary>
-    /// Gets all tokens for the current user
+    /// Gets the current user's sessions. The server never returns token secrets,
+    /// so each session is identified by its non-secret handle.
     /// </summary>
-    public async Task<List<AuthToken>> GetMyTokensAsync()
+    public async Task<List<AuthTokenInfo>> GetMyTokensAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<AuthToken>>("api/users/me/tokens");
-        return response.Success ? response.Data : new List<AuthToken>();
+        var response = await _client.PrimaryNode.GetJsonAsync<List<AuthTokenInfo>>("api/users/me/tokens");
+        return response.Success ? response.Data : new List<AuthTokenInfo>();
     }
 
     /// <summary>
-    /// Revokes a specific token
+    /// Revokes a specific session by its handle
     /// </summary>
-    public async Task<TaskResult> RevokeTokenAsync(string tokenId)
+    public async Task<TaskResult> RevokeTokenAsync(string handle)
     {
-        return await _client.PrimaryNode.DeleteAsync($"api/users/me/tokens/{tokenId}");
+        return await _client.PrimaryNode.DeleteAsync($"api/users/me/tokens/{handle}");
     }
 
     /// <summary>

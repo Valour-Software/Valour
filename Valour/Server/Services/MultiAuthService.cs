@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Google.Authenticator;
+using Microsoft.AspNetCore.DataProtection;
 using Valour.Database;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -8,13 +9,52 @@ namespace Valour.Server.Services;
 
 public class MultiAuthService
 {
+    public const string ProtectorPurpose = "Valour.MultiAuth.Secret";
+
+    /// <summary>
+    /// Marks a stored secret as protected. Rows written before encryption
+    /// existed have no prefix and are still plaintext.
+    /// </summary>
+    private const string ProtectedPrefix = "enc:";
+
     private readonly ValourDb _db;
     private readonly TwoFactorAuthenticator _tfa;
+    private readonly IDataProtector _protector;
+    private readonly ILogger<MultiAuthService> _logger;
 
-    public MultiAuthService(ValourDb db)
+    public MultiAuthService(ValourDb db, IDataProtectionProvider dataProtection, ILogger<MultiAuthService> logger)
     {
         _db = db;
         _tfa = new TwoFactorAuthenticator();
+        _protector = dataProtection.CreateProtector(ProtectorPurpose);
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// The TOTP shared secret is a credential: anyone who can read it can mint
+    /// valid codes, so it is encrypted at rest like other sensitive material.
+    /// </summary>
+    private string Protect(string secret) =>
+        ProtectedPrefix + _protector.Protect(secret);
+
+    /// <summary>
+    /// Reads a stored secret, transparently handling rows that predate
+    /// encryption.
+    /// </summary>
+    private string Unprotect(string stored)
+    {
+        if (string.IsNullOrEmpty(stored) || !stored.StartsWith(ProtectedPrefix, StringComparison.Ordinal))
+            return stored;
+
+        try
+        {
+            return _protector.Unprotect(stored[ProtectedPrefix.Length..]);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to unprotect a stored MFA secret.");
+            return null;
+        }
     }
 
     public async Task<List<string>> GetAppMultiAuthTypes(long userId)
@@ -49,7 +89,7 @@ public class MultiAuthService
         var multiAuth = await _db.MultiAuths.FirstOrDefaultAsync(x => x.UserId == userId && x.Type == "app" && !x.Verified);
         if (multiAuth is not null)
         {
-            multiAuth.Secret = key;
+            multiAuth.Secret = Protect(key);
             multiAuth.CreatedAt = DateTime.UtcNow;
         } 
         else
@@ -59,7 +99,7 @@ public class MultiAuthService
                 Id = IdManager.Generate(),
                 UserId = userId,
                 Type = "app",
-                Secret = key,
+                Secret = Protect(key),
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -81,14 +121,29 @@ public class MultiAuthService
         if (multiAuth == null)
             return TaskResult.FromFailure("Invalid");
 
-        bool result = _tfa.ValidateTwoFactorPIN(multiAuth.Secret, code);
+        var secret = Unprotect(multiAuth.Secret);
+        if (secret is null)
+            return TaskResult.FromFailure("Invalid");
+
+        bool result = _tfa.ValidateTwoFactorPIN(secret, code);
 
         if (result){
+            var changed = false;
+
             // If the code is valid, set the verified flag to true
             if (!multiAuth.Verified){
                 multiAuth.Verified = true;
-                await _db.SaveChangesAsync();
+                changed = true;
             }
+
+            // Upgrade rows stored before secrets were encrypted.
+            if (!multiAuth.Secret.StartsWith(ProtectedPrefix, StringComparison.Ordinal)){
+                multiAuth.Secret = Protect(secret);
+                changed = true;
+            }
+
+            if (changed)
+                await _db.SaveChangesAsync();
 
             return TaskResult.SuccessResult;
         }
@@ -110,7 +165,11 @@ public class MultiAuthService
         if (multiAuth is null)
             return TaskResult.FromFailure("You must enable MFA before transferring a planet.");
 
-        return _tfa.ValidateTwoFactorPIN(multiAuth.Secret, code.Trim())
+        var secret = Unprotect(multiAuth.Secret);
+        if (secret is null)
+            return TaskResult.FromFailure("That authenticator code is invalid.");
+
+        return _tfa.ValidateTwoFactorPIN(secret, code.Trim())
             ? TaskResult.SuccessResult
             : TaskResult.FromFailure("That authenticator code is invalid.");
     }

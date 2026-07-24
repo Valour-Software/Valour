@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Valour.Database.Context;
 using Valour.Sdk.Client;
 using Valour.Server;
+using Valour.Server.Utilities;
 using Valour.Shared.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -30,6 +31,7 @@ public class LoginTestFixture : IAsyncLifetime
             .WithWebHostBuilder(builder =>
             {
                 builder.UseSetting("https_port", "5001");
+                builder.UseSetting(RateLimitPolicies.DisabledSetting, "true");
                 builder.UseUrls("http://localhost:5000");
             });
 
@@ -178,6 +180,7 @@ public class TeardownTestFixture : IAsyncLifetime
             .WithWebHostBuilder(builder =>
             {
                 builder.UseSetting("https_port", "5001");
+                builder.UseSetting(RateLimitPolicies.DisabledSetting, "true");
                 builder.UseUrls("http://localhost:5000");
             });
         

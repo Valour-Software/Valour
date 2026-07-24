@@ -165,6 +165,120 @@ public class NotificationService
         }
     }
     
+    /// <summary>
+    /// Sends channel activity notifications to the given users, coalescing per
+    /// user and channel: an existing unread activity notification for the
+    /// channel is updated in place rather than stacking a new inbox entry.
+    /// Recipients are expected to be pre-filtered (preferences, cooldowns,
+    /// viewing state) by ChannelActivityService.
+    /// </summary>
+    public async Task SendChannelActivityNotificationsAsync(long[] userIds, Models.Notification template)
+    {
+        if (userIds.Length == 0 || template.ChannelId is null)
+            return;
+
+        var now = DateTime.UtcNow;
+
+        var existingByUser = new Dictionary<long, Valour.Database.Notification>();
+        var existing = await _db.Notifications
+            .Where(x => x.ChannelId == template.ChannelId
+                        && x.Source == NotificationSource.ChannelActivity
+                        && x.TimeRead == null
+                        && userIds.Contains(x.UserId))
+            .ToListAsync();
+
+        foreach (var row in existing)
+            existingByUser.TryAdd(row.UserId, row);
+
+        var toRelay = new List<Models.Notification>();
+        var newRows = new List<Valour.Database.Notification>();
+
+        foreach (var userId in userIds.Distinct())
+        {
+            if (existingByUser.TryGetValue(userId, out var existingRow))
+            {
+                existingRow.Title = template.Title;
+                existingRow.Body = template.Body;
+                existingRow.ImageUrl = template.ImageUrl;
+                existingRow.ClickUrl = template.ClickUrl;
+                existingRow.SourceId = template.SourceId;
+                existingRow.TimeSent = now;
+                toRelay.Add(existingRow.ToModel());
+            }
+            else
+            {
+                var row = new Valour.Database.Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    PlanetId = template.PlanetId,
+                    ChannelId = template.ChannelId,
+                    SourceId = template.SourceId,
+                    Source = NotificationSource.ChannelActivity,
+                    Title = template.Title,
+                    Body = template.Body ?? "",
+                    ImageUrl = template.ImageUrl,
+                    ClickUrl = template.ClickUrl,
+                    TimeSent = now,
+                };
+                newRows.Add(row);
+                toRelay.Add(row.ToModel());
+            }
+        }
+
+        if (newRows.Count > 0)
+            await _db.Notifications.AddRangeAsync(newRows);
+
+        await _db.SaveChangesAsync();
+
+        foreach (var notification in toRelay)
+            _coreHub.RelayNotification(notification, _nodeLifecycleService);
+
+        await _pushNotificationWorker.QueueNotificationAction(new SendUsersPushNotification
+        {
+            UserIds = userIds,
+            Content = new NotificationContent
+            {
+                Title = template.Title,
+                Message = template.Body,
+                IconUrl = template.ImageUrl,
+                Url = template.ClickUrl,
+                SourceId = template.SourceId,
+            }
+        });
+    }
+
+    /// <summary>
+    /// Marks any unread channel activity notifications for the channel read.
+    /// Called when the user views the channel.
+    /// </summary>
+    public async Task MarkChannelActivityNotificationsReadAsync(long userId, long channelId)
+    {
+        var unread = await _db.Notifications.AsNoTracking()
+            .Where(x => x.UserId == userId
+                        && x.ChannelId == channelId
+                        && x.Source == NotificationSource.ChannelActivity
+                        && x.TimeRead == null)
+            .ToListAsync();
+
+        if (unread.Count == 0)
+            return;
+
+        var now = DateTime.UtcNow;
+        var ids = unread.Select(x => x.Id).ToArray();
+
+        await _db.Notifications
+            .Where(x => ids.Contains(x.Id))
+            .ExecuteUpdateAsync(x => x.SetProperty(n => n.TimeRead, now));
+
+        foreach (var row in unread)
+        {
+            var model = row.ToModel();
+            model.TimeRead = now;
+            _coreHub.RelayNotificationReadChange(model, _nodeLifecycleService);
+        }
+    }
+
     public async Task SendRoleNotificationsAsync(long roleId, Models.Notification baseNotification)
     {
         var hostedPlanet = await _hostedService.GetRequiredAsync(baseNotification.PlanetId!.Value);

@@ -63,6 +63,35 @@
         </div>
     </div>
 
+    @* ===== Channel Activity ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-chat-dots"></i>
+            Channel Activity
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Activity Notification Frequency</span>
+            </div>
+            <p class="toggle-description">
+                How often a busy channel may notify you about non-ping activity.
+                Channels you visit often or favorite get priority. "Planet default"
+                uses each community's own setting.
+            </p>
+            <div class="toggle-content">
+                <select class="v-input" value="@_activityCooldownSeconds" @onchange="OnActivityCooldownChanged">
+                    <option value="0">Planet default</option>
+                    <option value="300">At most every 5 minutes</option>
+                    <option value="900">At most every 15 minutes</option>
+                    <option value="3600">At most every hour</option>
+                    <option value="21600">At most every 6 hours</option>
+                    <option value="86400">At most once a day</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     @* ===== Notification Types ===== *@
     <div class="editor-section">
         <h3 class="editor-section-title">
@@ -94,6 +123,7 @@
     private bool _notificationsBlocked = false;
     private int _notificationVolume = NotificationPreferences.DefaultNotificationVolume;
     private long _enabledNotificationSources = NotificationPreferences.AllNotificationSourcesMask;
+    private int _activityCooldownSeconds = 0;
 
     // Rotated whenever a toggle attempt fails. The native checkbox flips its own
     // DOM state on click, and if our backing field didn't change, Blazor's diff
@@ -187,9 +217,23 @@
         {
             _notificationVolume = NotificationPreferences.ClampVolume(response.Data.NotificationVolume);
             _enabledNotificationSources = response.Data.EnabledNotificationSources;
+            _activityCooldownSeconds = response.Data.ActivityCooldownSeconds ?? 0;
             SoundManager.SetNotificationVolume(_notificationVolume);
             StateHasChanged();
         }
+    }
+
+    private async Task OnActivityCooldownChanged(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var seconds))
+            return;
+
+        var result = await Client.PrimaryNode.PostAsync($"api/users/me/preferences/activityCooldown/{seconds}", null);
+        if (!result.Success)
+            return;
+
+        _activityCooldownSeconds = seconds;
+        StateHasChanged();
     }
 
     private async Task OnNotificationVolumeChanged(ChangeEventArgs e)
@@ -246,6 +290,7 @@
             NotificationSource.DirectMessage => "Direct Messages",
             NotificationSource.ThreadComment => "Thread Comments",
             NotificationSource.ThreadReply => "Thread Replies",
+            NotificationSource.ChannelActivity => "Channel Activity",
             _ => source.ToString()
         };
 
@@ -269,6 +314,7 @@
             NotificationSource.DirectMessage => "When you receive a new direct message.",
             NotificationSource.ThreadComment => "When someone comments on your thread.",
             NotificationSource.ThreadReply => "When someone replies to your comment.",
+            NotificationSource.ChannelActivity => "When channels you care about become active, without being pinged.",
             _ => string.Empty
         };
 }

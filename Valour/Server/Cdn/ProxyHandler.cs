@@ -392,7 +392,7 @@ public class ProxyHandler
         try
         {
             var oembedData = await GetCachedOEmbed(
-                $"https://publish.twitter.com/oembed?url={HttpUtility.UrlEncode(url)}&theme=dark&dnt=true&omit_script=true&maxwidth=400&maxheight=400&limit=1&hide_thread=true",
+                $"https://publish.x.com/oembed?url={HttpUtility.UrlEncode(url)}&theme=dark&dnt=true&omit_script=true&maxwidth=400&maxheight=400&limit=1&hide_thread=true",
                 url);
 
             if (oembedData == null)
@@ -643,7 +643,12 @@ public class ProxyHandler
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            var html = await response.Content.ReadAsStringAsync();
+            // Bound the read: the origin is user-chosen and may serve an
+            // enormous or slow body. OpenGraph tags are in the head anyway.
+            var html = await CdnLimits.ReadBoundedStringAsync(response.Content, CdnLimits.MaxHtmlScrapeBytes);
+            if (html is null)
+                return null;
+
             var ogData = ParseOpenGraphTags(html, url);
 
             if (ogData != null)

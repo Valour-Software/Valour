@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -154,7 +155,6 @@ public class PlanetInviteService
         return TaskResult<ISharedPlanetListInfo>.FromData(planetInfo);
     }
 
-    private Random random = new();
     private const string inviteChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     public async Task<string> GenerateCodeAsync()
@@ -164,7 +164,11 @@ public class PlanetInviteService
 
         do
         {
-            code = new string(Enumerable.Repeat(inviteChars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
+            // Invite codes gate access to planets that are not public, so they
+            // are a credential and must come from a CSPRNG. System.Random is
+            // seeded predictably and its output can be reconstructed from a
+            // handful of observed codes.
+            code = RandomNumberGenerator.GetString(inviteChars, 8);
             exists = await _db.PlanetInvites.AnyAsync(x => x.Id == code);
         }
         while (exists);

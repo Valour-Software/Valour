@@ -130,6 +130,12 @@ public interface ISharedPlanet : ISharedModel<long>
     /// Set only via the vanity endpoint.
     /// </summary>
     string? Vanity { get; set; }
+
+    /// <summary>
+    /// Owner-chosen default cadence for channel activity notifications.
+    /// Applies to members who have not set their own cooldown preference.
+    /// </summary>
+    ChannelActivityCadence ActivityNotificationCadence { get; set; }
     
     private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
     {

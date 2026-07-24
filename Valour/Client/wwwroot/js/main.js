@@ -320,10 +320,6 @@ async function playSound(name, volume = 0.4, layer = "effects") {
         playSoundFallback(name, volume);
 }
 
-function SetCardTitle(id, name) {
-   document.getElementById('text-' + id).firstElementChild.firstElementChild.innerHTML = name;
-}
-
 /* Content upload handling */
 
 // Creates a blob and returns the location

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Valour.Shared;
@@ -113,6 +114,12 @@ public class S3ObjectStorage : IObjectStorage
 
     public async Task<string> GetSignedUrlAsync(string key, string mimeType, string fileName, TimeSpan expiry)
     {
+        // Uploads store the client-supplied MIME type. Serving HTML or SVG
+        // inline would run attacker script on a Valour origin, so active
+        // content is downgraded to an opaque download. Uploading these is also
+        // blocked, but this covers anything stored before that check existed.
+        var isActiveContent = CdnUtils.IsActiveContentUpload(fileName, mimeType);
+
         var request = new GetPreSignedUrlRequest
         {
             Key = key,
@@ -121,12 +128,36 @@ public class S3ObjectStorage : IObjectStorage
             Verb = HttpVerb.GET,
             ResponseHeaderOverrides = new ResponseHeaderOverrides
             {
-                ContentType = mimeType,
-                ContentDisposition = $"inline; filename=\"{fileName}\""
+                ContentType = isActiveContent ? "application/octet-stream" : mimeType,
+                ContentDisposition = isActiveContent
+                    ? $"attachment; filename=\"{EscapeHeaderFileName(fileName)}\""
+                    : $"inline; filename=\"{EscapeHeaderFileName(fileName)}\""
             }
         };
 
         return await _client.GetPreSignedURLAsync(request);
+    }
+
+    /// <summary>
+    /// Makes a user-supplied filename safe to embed in a quoted header value.
+    /// Quotes, backslashes, and control characters would otherwise let the
+    /// filename break out and inject extra header directives.
+    /// </summary>
+    private static string EscapeHeaderFileName(string fileName)
+    {
+        if (string.IsNullOrEmpty(fileName))
+            return "download";
+
+        var builder = new StringBuilder(fileName.Length);
+        foreach (var c in fileName)
+        {
+            if (c is '"' or '\\' || char.IsControl(c))
+                continue;
+
+            builder.Append(c);
+        }
+
+        return builder.Length == 0 ? "download" : builder.ToString();
     }
 
     private async Task<PutObjectResponse> PutObjectWithRetryAsync(PutObjectRequest request, string key)

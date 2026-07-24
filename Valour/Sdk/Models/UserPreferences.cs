@@ -13,6 +13,7 @@ public class UserPreferences : ClientModel<UserPreferences, long>, ISharedUserPr
     public long EnabledNotificationSources { get; set; }
     public DmPolicy DmPolicy { get; set; }
     public bool ForceGpuAcceleration { get; set; }
+    public int? ActivityCooldownSeconds { get; set; }
 
     [JsonConstructor]
     private UserPreferences() : base() { }

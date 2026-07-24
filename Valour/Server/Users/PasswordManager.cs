@@ -17,15 +17,38 @@ namespace Valour.Server.Users;
 public static class PasswordManager
 {
     static readonly HashAlgorithmName HashName = HashAlgorithmName.SHA256;
-    const int Iterations = 30000;
     const int HASH_SIZE = 32;
 
-    public static byte[] GetHashForPassword(string password, byte[] salt)
+    /// <summary>
+    /// Iteration count for newly created and re-hashed passwords, per OWASP
+    /// guidance for PBKDF2-HMAC-SHA256.
+    /// </summary>
+    public const int CurrentIterations = 600_000;
+
+    /// <summary>
+    /// The original iteration count. Credentials predating iteration tracking
+    /// were hashed with this, and are transparently upgraded on next login.
+    /// </summary>
+    public const int LegacyIterations = 30_000;
+
+    public static byte[] GetHashForPassword(string password, byte[] salt, int iterations)
     {
         byte[] passBytes = Encoding.Unicode.GetBytes(password);
 
-        return Rfc2898DeriveBytes.Pbkdf2(passBytes, salt, Iterations, HashName, HASH_SIZE);
+        return Rfc2898DeriveBytes.Pbkdf2(passBytes, salt, iterations, HashName, HASH_SIZE);
     }
+
+    /// <summary>
+    /// Hashes at the current iteration count. Use when creating or changing a password.
+    /// </summary>
+    public static byte[] GetHashForPassword(string password, byte[] salt) =>
+        GetHashForPassword(password, salt, CurrentIterations);
+
+    /// <summary>
+    /// Constant-time comparison of two password hashes.
+    /// </summary>
+    public static bool HashesMatch(byte[] a, byte[] b) =>
+        CryptographicOperations.FixedTimeEquals(a, b);
 
     /// <summary>
     /// Generates random salt for use in passwords

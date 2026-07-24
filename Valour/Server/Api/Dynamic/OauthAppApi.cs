@@ -215,6 +215,7 @@ public class OauthAppApi
         return ValourResult.Json($"{model.RedirectUri}?code={model.Code}&state={model.State}&node={NodeConfig.Instance.Name}");
     }
 
+    [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/oauth/token")]
     public static async Task<IResult> TokenAsync(
         ValourDb db,
@@ -249,7 +250,10 @@ public class OauthAppApi
             return ValourResult.Forbid("Parameters are invalid.");
 
         var app = await db.OauthApps.FindAsync(request.ClientId);
-        if (app is null || app.Secret != request.ClientSecret)
+        // Constant-time: the attacker fully controls one side of this comparison
+        // and the other is a stable server secret, which is the classic shape
+        // for a timing side channel.
+        if (app is null || !SecretComparer.Equals(app.Secret, request.ClientSecret))
             return ValourResult.Forbid("Parameters are invalid.");
 
         // Remove the code from cache - codes are single-use per RFC 6749

@@ -59,7 +59,11 @@ namespace Valour.Server.Cdn.Api
             if (!response.IsSuccessStatusCode)
                 return Results.StatusCode((int)response.StatusCode);
 
-            var data = await response.Content.ReadAsByteArrayAsync();
+            // This route is unauthenticated and the origin is third-party, so
+            // the body must be bounded rather than buffered whole.
+            var data = await CdnLimits.ReadBoundedAsync(response.Content, CdnLimits.MaxProxyResponseBytes);
+            if (data is null)
+                return Results.StatusCode(StatusCodes.Status502BadGateway);
 
             // Cache the data
             cache.Cache.Set(hash, data, new MemoryCacheEntryOptions

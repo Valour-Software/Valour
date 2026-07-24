@@ -1,5 +1,6 @@
 using Valour.Sdk.Client;
 using Valour.Shared;
+using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
@@ -89,14 +90,20 @@ public class NotificationService
         return result;
     }
     
+    // Channel activity notifications are excluded from badge counts on
+    // purpose: the red badge is reserved for direct relevance (mentions,
+    // replies). Activity entries live in the inbox and the unread dot only.
+
     public int GetPlanetNotifications(long planetId)
     {
-        return UnreadNotifications.Count(x => x.PlanetId == planetId);
+        return UnreadNotifications.Count(x => x.PlanetId == planetId
+                                              && x.Source != NotificationSource.ChannelActivity);
     }
 
     public int GetChannelNotifications(long channelId)
     {
-        return UnreadNotifications.Count(x => x.ChannelId == channelId);
+        return UnreadNotifications.Count(x => x.ChannelId == channelId
+                                              && x.Source != NotificationSource.ChannelActivity);
     }
 
     public void OnNotificationReceived(Notification notification)
@@ -105,10 +112,19 @@ public class NotificationService
         
         if (cached.TimeRead is null)
         {
-            if (_unreadNotifications.Any(x => x.Id == cached.Id))
-                return;
-
-            _unreadNotifications.Add(cached);
+            // Coalesced notifications (channel activity) re-relay the same id
+            // with updated content. Notifications have no model cache, so
+            // replace the list entry in place (keeping its position) and let
+            // the event fire so the inbox re-renders
+            var existingIndex = _unreadNotifications.FindIndex(x => x.Id == cached.Id);
+            if (existingIndex >= 0)
+            {
+                _unreadNotifications[existingIndex] = cached;
+            }
+            else
+            {
+                _unreadNotifications.Add(cached);
+            }
 
             if (cached.SourceId is not null)
             {

@@ -184,6 +184,12 @@ public class Planet : ISharedPlanet
     /// </summary>
     public bool LockedForMigration { get; set; }
 
+    /// <summary>
+    /// Owner-chosen default cadence for channel activity notifications.
+    /// Mapped fluently in SetupDbModel.
+    /// </summary>
+    public ChannelActivityCadence ActivityNotificationCadence { get; set; } = ChannelActivityCadence.Standard;
+
     // Only to fulfill contract
     [NotMapped]
     public string NodeName { get; set; }
@@ -205,6 +211,11 @@ public class Planet : ISharedPlanet
             e.Property(x => x.LockedForMigration)
                 .HasColumnName("locked_for_migration")
                 .HasDefaultValue(false)
+                .IsRequired();
+
+            e.Property(x => x.ActivityNotificationCadence)
+                .HasColumnName("activity_notification_cadence")
+                .HasDefaultValue(ChannelActivityCadence.Standard)
                 .IsRequired();
 
             e.Property(x => x.Vanity)

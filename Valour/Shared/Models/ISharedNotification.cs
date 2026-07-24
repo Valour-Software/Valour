@@ -28,6 +28,9 @@ public enum NotificationSource
     // Threads
     ThreadComment =          0x8000,
     ThreadReply =            0x10000,
+
+    // Non-ping channel activity (see Docs/ChannelActivityNotifications.md)
+    ChannelActivity =        0x20000,
 }
 
 public interface ISharedNotification : ISharedModel<Guid>

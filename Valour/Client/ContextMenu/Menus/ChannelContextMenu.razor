@@ -54,6 +54,23 @@
         </ContextMenuItem>
     }
 }
+@if (HasActivityAlerts && _activityAlertsLoaded)
+{
+    if (_activityAlerts == ChannelActivityAlerts.Off)
+    {
+        <ContextMenuItem OnClickAsync="@(() => SetActivityAlerts(ChannelActivityAlerts.Auto))">
+            <Label>Enable Activity Alerts</Label>
+            <Icon><i class="bi bi-bell"></i></Icon>
+        </ContextMenuItem>
+    }
+    else
+    {
+        <ContextMenuItem OnClickAsync="@(() => SetActivityAlerts(ChannelActivityAlerts.Off))">
+            <Label>Mute Activity Alerts</Label>
+            <Icon><i class="bi bi-bell-slash"></i></Icon>
+        </ContextMenuItem>
+    }
+}
 <ContextMenuItem OnClickAsync="@OnClickCopyId">
     <Label>Copy ID</Label>
     <Icon><i class="bi bi-database-fill"></i></Icon>
@@ -66,6 +83,14 @@
     private bool CanFavorite =>
         Data.Channel.PlanetId is not null &&
         Data.Channel.ChannelType != ChannelTypeEnum.PlanetCategory;
+
+    // Activity notifications only exist for planet chat channels
+    private bool HasActivityAlerts =>
+        Data.Channel.PlanetId is not null &&
+        Data.Channel.ChannelType == ChannelTypeEnum.PlanetChat;
+
+    private bool _activityAlertsLoaded;
+    private ChannelActivityAlerts _activityAlerts;
 
 
     public class ChannelContextParams
@@ -94,8 +119,27 @@
 
             _canModify = await Data.Channel.HasPermissionAsync(Data.Channel.Planet.MyMember, managePerm);
         }
-        
+
         StateHasChanged();
+
+        if (HasActivityAlerts)
+        {
+            _activityAlerts = await Data.Channel.FetchActivityAlertsAsync();
+            _activityAlertsLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetActivityAlerts(ChannelActivityAlerts setting)
+    {
+        await CloseAsync();
+
+        var result = await Data.Channel.SetActivityAlertsAsync(setting);
+        if (!result.Success)
+        {
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Failed to update activity alerts", result.Message, ToastProgressState.Failure));
+        }
     }
     
     private async Task FavoriteChannel()

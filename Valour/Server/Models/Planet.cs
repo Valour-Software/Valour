@@ -106,6 +106,11 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// </summary>
     public string Vanity { get; set; }
 
+    /// <summary>
+    /// Owner-chosen default cadence for channel activity notifications
+    /// </summary>
+    public ChannelActivityCadence ActivityNotificationCadence { get; set; } = ChannelActivityCadence.Standard;
+
     public List<PlanetTag> Tags { get; set; } = new();
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>

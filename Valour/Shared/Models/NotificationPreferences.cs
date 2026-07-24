@@ -30,7 +30,8 @@ public static class NotificationPreferences
         NotificationSource.TradeDeclined,
         NotificationSource.DirectMessage,
         NotificationSource.ThreadComment,
-        NotificationSource.ThreadReply
+        NotificationSource.ThreadReply,
+        NotificationSource.ChannelActivity
     ];
 
     public static readonly long AllNotificationSourcesMask = ConfigurableSources

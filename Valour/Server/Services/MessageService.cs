@@ -25,6 +25,7 @@ public class MessageService
     private readonly AutomodService _automodService;
     private readonly ProxyHandler _proxyHandler;
     private readonly PlanetStorageService _planetStorageService;
+    private readonly ChannelActivityService _channelActivityService;
 
     public MessageService(
         ILogger<MessageService> logger,
@@ -37,7 +38,8 @@ public class MessageService
         HostedPlanetService hostedPlanetService,
         AutomodService automodService,
         ProxyHandler proxyHandler,
-        PlanetStorageService planetStorageService)
+        PlanetStorageService planetStorageService,
+        ChannelActivityService channelActivityService)
     {
         _logger = logger;
         _db = db;
@@ -50,6 +52,7 @@ public class MessageService
         _automodService = automodService;
         _proxyHandler = proxyHandler;
         _planetStorageService = planetStorageService;
+        _channelActivityService = channelActivityService;
     }
     
     /// <summary>
@@ -330,6 +333,20 @@ public class MessageService
         if (channel.PlanetId is not null)
         {
             _coreHubService.NotifyChannelStateUpdate(channel.PlanetId.Value, channel.Id, message.TimeSent);
+
+            if (channel.ChannelType == ChannelTypeEnum.PlanetChat)
+            {
+                try
+                {
+                    await _channelActivityService.RecordMessageAsync(
+                        channel.Id, channel.PlanetId.Value, message.Id, message.AuthorUserId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Failed to record channel activity for channel {ChannelId}", channel.Id);
+                }
+            }
         }
 
         if (scanResult?.ActionsToRun.Count > 0 && memberModel is not null)

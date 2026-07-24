@@ -13,7 +13,8 @@ public static class UserChannelStateMapper
             UserId = state.UserId,
             PlanetId = state.PlanetId,
             PlanetMemberId = state.PlanetMemberId,
-            LastViewedTime = state.LastViewedTime
+            LastViewedTime = state.LastViewedTime,
+            ActivityAlerts = state.ActivityAlerts
         };
     }
     
@@ -28,7 +29,8 @@ public static class UserChannelStateMapper
             UserId = state.UserId,
             PlanetId = state.PlanetId,
             PlanetMemberId = state.PlanetMemberId,
-            LastViewedTime = state.LastViewedTime
+            LastViewedTime = state.LastViewedTime,
+            ActivityAlerts = state.ActivityAlerts
         };
     }
 }

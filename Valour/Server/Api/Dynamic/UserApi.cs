@@ -183,6 +183,7 @@ public class UserApi
         return Results.NoContent();
     }
 
+    [UserRequired]
     [ValourRoute(HttpVerbs.Post, "api/users/me/logout")]
     public static async Task<IResult> LogOutRouteAsync(UserService userService)
     {
@@ -190,33 +191,42 @@ public class UserApi
         return Results.Ok("Come back soon!");
     }
 
+    // Session management is FullControl-only: a narrow-scope OAuth token must never
+    // be able to enumerate or revoke the account's other sessions.
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Get, "api/users/me/tokens")]
-    public static async Task<IResult> GetTokensRouteAsync(UserService userService)
+    public static async Task<IResult> GetTokensRouteAsync(
+        UserService userService,
+        TokenService tokenService)
     {
         var user = await userService.GetCurrentUserAsync();
         if (user is null)
             return ValourResult.NotFound<User>();
 
-        var tokens = await userService.GetUserTokensAsync(user.Id);
+        var currentToken = await tokenService.GetCurrentTokenAsync();
+
+        var tokens = await userService.GetUserTokensAsync(user.Id, currentToken?.Id);
         return Results.Json(tokens);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/users/me/tokens/{tokenId}")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Delete, "api/users/me/tokens/{handle}")]
     public static async Task<IResult> RevokeTokenRouteAsync(
-        string tokenId,
+        string handle,
         UserService userService)
     {
         var user = await userService.GetCurrentUserAsync();
         if (user is null)
             return ValourResult.NotFound<User>();
 
-        var result = await userService.RevokeTokenAsync(user.Id, tokenId);
+        var result = await userService.RevokeTokenAsync(user.Id, handle);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
         return Results.Ok("Token revoked successfully");
     }
 
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Delete, "api/users/me/tokens")]
     public static async Task<IResult> RevokeAllOtherTokensRouteAsync(
         UserService userService,
@@ -279,6 +289,7 @@ public class UserApi
         return ValourResult.Ok(result.Message);
     }
 
+    [UserRequired(UserPermissionsEnum.View)]
     [ValourRoute(HttpVerbs.Get, "api/users/me")]
     public static async Task<IResult> SelfRouteAsync(
         UserService userService)
@@ -292,6 +303,7 @@ public class UserApi
         return Results.Json(user);
     }
 
+    [UserRequired(UserPermissionsEnum.Membership)]
     [ValourRoute(HttpVerbs.Get, "api/users/me/channelstates")]
     public static async Task<IResult> ChannelStatesRouteAsync(
         UserService userService)
@@ -301,6 +313,7 @@ public class UserApi
         return Results.Json(channelStates);
     }
 
+    [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/users/token")]
     public static async Task<IResult> GetTokenRouteAsync(
         [FromBody] TokenRequest tokenRequest,
@@ -374,6 +387,7 @@ public class UserApi
         });
     }
 
+    [RateLimit(RateLimitPolicies.Email)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/recovery")]
     public static async Task<IResult> RecoverPasswordRouteAsync(
         [FromBody] PasswordRecoveryRequest request,
@@ -402,6 +416,7 @@ public class UserApi
         return Results.NoContent();
     }
 
+    [RateLimit(RateLimitPolicies.Register)]
     [ValourRoute(HttpVerbs.Post, "api/users/register")]
     public static async Task<IResult> RegisterUserRouteAsync(
         [FromBody] RegisterUserRequest request, 
@@ -430,6 +445,7 @@ public class UserApi
         return ValourResult.Ok(GenericRegistrationResponse);
     }
 
+    [RateLimit(RateLimitPolicies.Email)]
     [ValourRoute(HttpVerbs.Post, "api/users/resendemail")]
     public static async Task<IResult> ResendRegistrationEmail(
         [FromBody] RegisterUserRequest request,
@@ -456,6 +472,7 @@ public class UserApi
         return ValourResult.Ok(GenericRecoveryResponse);
     }
 
+    [RateLimit(RateLimitPolicies.Email)]
     [ValourRoute(HttpVerbs.Post, "api/users/resetpassword")]
     public static async Task<IResult> ResetPasswordRouteAsync(
         [FromBody] string email,
@@ -841,6 +858,28 @@ public class UserApi
         var userId = await userService.GetCurrentUserIdAsync();
         var prefs = await EnsurePreferencesAsync(userId, db);
         prefs.DmPolicy = policy;
+
+        await db.SaveChangesAsync();
+        return Results.Json(prefs.ToModel());
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/users/me/preferences/activityCooldown/{seconds}")]
+    [UserRequired]
+    public static async Task<IResult> SetActivityCooldownAsync(
+        int seconds,
+        UserService userService,
+        ValourDb db)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var prefs = await EnsurePreferencesAsync(userId, db);
+
+        // 0 clears the personal cooldown (inherit each planet's cadence)
+        prefs.ActivityCooldownSeconds = seconds == 0
+            ? null
+            : Math.Clamp(
+                seconds,
+                ChannelActivityPreferences.MinCooldownSeconds,
+                ChannelActivityPreferences.MaxCooldownSeconds);
 
         await db.SaveChangesAsync();
         return Results.Json(prefs.ToModel());

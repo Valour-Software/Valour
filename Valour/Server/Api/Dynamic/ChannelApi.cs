@@ -381,7 +381,65 @@ public class ChannelApi
 
         return ValourResult.Json(updated.Data);
     }
-    
+
+    [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/activityAlerts")]
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/{channelId}/activityAlerts")]
+    [UserRequired]
+    public static async Task<IResult> GetActivityAlertsAsync(
+        long? planetId,
+        long channelId,
+        ValourDb db,
+        TokenService tokenService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+
+        var setting = await db.UserChannelStates.AsNoTracking()
+            .Where(x => x.UserId == token.UserId && x.ChannelId == channelId)
+            .Select(x => (ChannelActivityAlerts?)x.ActivityAlerts)
+            .FirstOrDefaultAsync();
+
+        return Results.Json(setting ?? ChannelActivityAlerts.Auto);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/{channelId}/activityAlerts/{setting}")]
+    [ValourRoute(HttpVerbs.Post, "api/channels/direct/{channelId}/activityAlerts/{setting}")]
+    [UserRequired]
+    public static async Task<IResult> SetActivityAlertsAsync(
+        long? planetId,
+        long channelId,
+        int setting,
+        ChannelActivityService activityService,
+        ChannelService channelService,
+        PlanetMemberService memberService,
+        TokenService tokenService)
+    {
+        if (!Enum.IsDefined(typeof(ChannelActivityAlerts), setting))
+            return ValourResult.BadRequest("Invalid activity alert setting.");
+
+        var token = await tokenService.GetCurrentTokenAsync();
+
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+
+        if (!await channelService.HasAccessAsync(channel, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+
+        long? memberId = null;
+        if (channel.PlanetId is not null)
+        {
+            var planetMember = await memberService.GetCurrentAsync(channel.PlanetId.Value);
+            memberId = planetMember?.Id;
+        }
+
+        var updated = await activityService.SetActivityAlertsAsync(
+            channelId, token.UserId, channel.PlanetId, memberId, (ChannelActivityAlerts)setting);
+        if (!updated.Success)
+            return ValourResult.Problem(updated.Message);
+
+        return ValourResult.Json(updated.Data);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/messages")]
     [ValourRoute(HttpVerbs.Get, "api/channels/direct/{channelId}/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]

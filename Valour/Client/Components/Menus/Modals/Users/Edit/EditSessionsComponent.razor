@@ -143,7 +143,7 @@
                                 }
                             </span>
                         </div>
-                        @if (token.Id == Client.AuthService.Token)
+                        @if (token.IsCurrent)
                         {
                             <div class="current-session">
                                 <span class="badge badge-primary">Current Session</span>
@@ -167,23 +167,23 @@
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
-    private List<AuthToken> Tokens { get; set; }
+    private List<AuthTokenInfo> Tokens { get; set; }
     private bool IsLoading { get; set; } = true;
     private Dictionary<string, PublicOauthAppData> _appInfoCache = new();
 
     private List<string> _multiAuthMethods;
 
-    private bool IsExpired(AuthToken token)
+    private bool IsExpired(AuthTokenInfo token)
     {
         return token.TimeExpires < DateTime.UtcNow;
     }
 
-    private bool ExpiresSoon(AuthToken token)
+    private bool ExpiresSoon(AuthTokenInfo token)
     {
         return !IsExpired(token) && token.TimeExpires < DateTime.UtcNow.AddDays(1);
     }
 
-    private string GetTimeRemainingString(AuthToken token)
+    private string GetTimeRemainingString(AuthTokenInfo token)
     {
         var remaining = token.TimeExpires - DateTime.UtcNow;
         if (remaining.TotalDays > 1)
@@ -275,9 +275,9 @@
         }
     }
 
-    private void RevokeToken(AuthToken token)
+    private void RevokeToken(AuthTokenInfo token)
     {
-        if (token.Id == Client.AuthService.Token)
+        if (token.IsCurrent)
         {
             ModalRoot.OpenModal<InfoModalComponent>(new InfoModalComponent.ModalParams(
             "Cannot Revoke Current Session",
@@ -295,7 +295,7 @@
             IsRevokeAll = false,
             OnConfirmAsync = async () =>
             {
-                var result = await Client.AuthService.RevokeTokenAsync(token.Id);
+                var result = await Client.AuthService.RevokeTokenAsync(token.Handle);
                 if (result.Success)
                 {
                     await LoadTokens();

@@ -2,6 +2,7 @@
 
 using System.Text.RegularExpressions;
 using Markdig;
+using Valour.Client.Markdig;
 using Microsoft.EntityFrameworkCore;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
@@ -21,6 +22,8 @@ public static partial class PublicThreadPageHelpers
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
         .DisableHtml()
+        // Thread and comment bodies are user-authored and served publicly.
+        .UseSafeLinks()
         .Build();
 
     [GeneratedRegex("«@[mu]-([0-9]{1,20})»")]

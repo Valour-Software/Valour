@@ -170,6 +170,7 @@ public class RegisterService
                 Identifier = request.Email,
                 Salt = salt,
                 Secret = hash,
+                Iterations = PasswordManager.CurrentIterations,
                 UserId = user.Id
             };
 

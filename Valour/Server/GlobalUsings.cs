@@ -11,6 +11,7 @@ global using Valour.Server.Mapping.Economy;
 global using Valour.Server.EndpointFilters;
 global using Valour.Server.EndpointFilters.Attributes;
 global using Valour.Server.Services;
+global using Valour.Server.Utilities;
 global using Valour.Database.Context;
 global using Valour.Database.Extensions;
 global using Valour.Shared.Utilities;

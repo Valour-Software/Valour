@@ -331,7 +331,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         {
             UpdateTime = updateTime ?? DateTime.UtcNow
         };
-        
+
         var result = await Node.PostAsyncWithResponse<UserChannelState>($"{IdRoute}/state", request);
 
         if (result.Success)
@@ -342,6 +342,31 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         {
             Client.Logger.Log("Channel", "Failed to update user state: " + result.Message, "yellow");
         }
+    }
+
+    /// <summary>
+    /// Returns the user's activity alert override for this channel
+    /// </summary>
+    public async Task<ChannelActivityAlerts> FetchActivityAlertsAsync()
+    {
+        var result = await Node.GetJsonAsync<ChannelActivityAlerts>($"{IdRoute}/activityAlerts");
+        return result.Success ? result.Data : ChannelActivityAlerts.Auto;
+    }
+
+    /// <summary>
+    /// Sets the user's activity alert override for this channel
+    /// </summary>
+    public async Task<TaskResult> SetActivityAlertsAsync(ChannelActivityAlerts setting)
+    {
+        var result = await Node.PostAsyncWithResponse<UserChannelState>(
+            $"{IdRoute}/activityAlerts/{(int)setting}", null);
+
+        if (result.Success)
+        {
+            Client.ChannelStateService.OnUserChannelStateUpdated(result.Data);
+        }
+
+        return result.WithoutData();
     }
 
     /// <summary>

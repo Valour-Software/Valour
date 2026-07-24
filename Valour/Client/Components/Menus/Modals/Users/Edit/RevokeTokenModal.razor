@@ -43,7 +43,7 @@
 @code {
     public class Params
     {
-        public AuthToken Token { get; set; }
+        public AuthTokenInfo Token { get; set; }
         public bool ShowTokenInfo { get; set; } = true;
         public bool IsRevokeAll { get; set; } = false;
         public Func<Task<TaskResult>> OnConfirmAsync { get; set; }

@@ -7,4 +7,10 @@ public interface ISharedUserPreferences : ISharedModel<long>
     long EnabledNotificationSources { get; set; }
     DmPolicy DmPolicy { get; set; }
     bool ForceGpuAcceleration { get; set; }
+
+    /// <summary>
+    /// Personal per-channel cooldown for activity notifications, in seconds.
+    /// Null inherits each planet's cadence default.
+    /// </summary>
+    int? ActivityCooldownSeconds { get; set; }
 }

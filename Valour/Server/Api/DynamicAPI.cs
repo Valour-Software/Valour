@@ -48,6 +48,7 @@ public static class DynamicAPI
         var attributes = method.GetCustomAttributes(false);
         var userRequired = attributes.OfType<UserRequiredAttribute>().FirstOrDefault();
         var staffRequired = attributes.OfType<StaffRequiredAttribute>().Any();
+        var rateLimit = attributes.OfType<RateLimitAttribute>().FirstOrDefault();
 
         UserAccessFilter accessFilter = null;
         if (userRequired is not null || staffRequired)
@@ -80,6 +81,9 @@ public static class DynamicAPI
 
             if (accessFilter is not null)
                 builder.AddEndpointFilter(accessFilter);
+
+            if (rateLimit is not null)
+                builder.RequireRateLimiting(rateLimit.Policy);
 
             builder.AddEndpointFilter(NotHostedFilter);
         }

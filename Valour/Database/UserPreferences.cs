@@ -28,4 +28,7 @@ public class UserPreferences : ISharedUserPreferences
 
     [Column("force_gpu_acceleration")]
     public bool ForceGpuAcceleration { get; set; }
+
+    [Column("activity_cooldown_seconds")]
+    public int? ActivityCooldownSeconds { get; set; }
 }

@@ -19,10 +19,13 @@ public class ImageSizeFetcher
             return null;
 
         var ownsClient = client is null;
-        client ??= new HttpClient(new SocketsHttpHandler
+        // IsSafeAsync resolves the host to validate it, but a plain handler
+        // resolves again at connect - so the fallback client must pin to the
+        // validated address or the check can be defeated by DNS rebinding.
+        client ??= new HttpClient(SsrfSafeConnect.CreateHandler(allowPrivate: false))
         {
-            AllowAutoRedirect = false
-        });
+            Timeout = TimeSpan.FromSeconds(15)
+        };
 
         var buffer = ArrayPool<byte>.Shared.Rent(maxBytes);
         int bytesFetched = 0;

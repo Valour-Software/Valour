@@ -46,6 +46,49 @@ namespace Valour.Shared.Cdn
             "application/x-shellscript"
         };
 
+        private static readonly HashSet<string> ActiveContentExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".html", ".htm", ".xhtml", ".xht", ".shtml", ".svg", ".svgz",
+            ".xml", ".xsl", ".xslt", ".mhtml", ".mht", ".htc"
+        };
+
+        private static readonly HashSet<string> ActiveContentMimeTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "text/html",
+            "application/xhtml+xml",
+            "image/svg+xml",
+            "text/xml",
+            "application/xml",
+            "application/xslt+xml",
+            "multipart/related",
+            "text/xsl"
+        };
+
+        /// <summary>
+        /// Returns true when a browser would treat the upload as active content -
+        /// HTML, SVG, or XML that can carry script. Serving one of these inline
+        /// from a Valour host means attacker script runs on a Valour origin, so
+        /// these are rejected at upload rather than relying on the serve headers
+        /// alone.
+        /// </summary>
+        public static bool IsActiveContentUpload(string? fileName, string? contentType)
+        {
+            var extension = Path.GetExtension(Path.GetFileName(fileName ?? string.Empty).TrimEnd(' ', '.'));
+            if (ActiveContentExtensions.Contains(extension))
+                return true;
+
+            var normalizedContentType = contentType?.Split(';', 2)[0].Trim();
+            if (normalizedContentType is null)
+                return false;
+
+            if (ActiveContentMimeTypes.Contains(normalizedContentType))
+                return true;
+
+            // Any +xml subtype is XML, and XML can carry script via XSLT or
+            // embedded namespaces, so treat the whole family as active.
+            return normalizedContentType.EndsWith("+xml", StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>
         /// Returns true when an attachment is executable by its name, declared MIME type,
         /// or native executable signature. The signature check prevents a PE, ELF, or

@@ -120,7 +120,8 @@ public class EcoApi
     public static async Task<IResult> GetAccountAsync(
         long id,
         EcoService ecoService,
-        TokenService tokenService)
+        TokenService tokenService,
+        PlanetMemberService memberService)
     {
         var account = await ecoService.GetAccountAsync(id);
         if (account is null)
@@ -128,37 +129,56 @@ public class EcoApi
 
         var authToken = await tokenService.GetCurrentTokenAsync();
 
+        // Resolving an account by id stays open so integrations can be built
+        // against it, but the balance is owner-only. Account ids are
+        // discoverable from a username via the byname route, so returning a
+        // balance here would expose every user's holdings.
+        var isOwner = account.UserId == authToken.UserId;
+
         if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
         {
             if (!authToken.HasScope(UserPermissions.EconomyViewGlobal))
                 return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
-            
-            // Only the owner of a global account can view it
-            /*
-            if (account.UserId != authToken.UserId)
-                return ValourResult.Forbid("You cannot access this account");
-                */
-            // We are going to allow this so integrations can be built. You need the id anyways.
-            
+
+            if (!isOwner)
+                return Results.Json(WithoutBalance(account));
         }
         else
         {
             if (!authToken.HasScope(UserPermissions.EconomyViewPlanet))
                 return ValourResult.LacksPermission(UserPermissions.EconomyViewPlanet);
 
-            // It's not actually an issue if someone simply wants to look at their account but doesnt have
-            // planet eco perms. They just shouldn't be able to *use* it.
-            
-            //var member = await memberService.GetCurrentAsync(account.PlanetId);
-            //if (member is null)
-            //    return ValourResult.NotPlanetMember();
-
-            //if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
-            //    return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+            // Planet accounts are shared community funds, so members who can use
+            // the economy may see them; everyone else gets metadata only.
+            if (!isOwner)
+            {
+                var member = await memberService.GetCurrentAsync(account.PlanetId);
+                if (member is null ||
+                    !await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+                {
+                    return Results.Json(WithoutBalance(account));
+                }
+            }
         }
 
         return Results.Json(account);
     }
+
+    /// <summary>
+    /// Copy of an account with the balance stripped, for callers allowed to
+    /// resolve the account but not to see what is in it.
+    /// </summary>
+    private static EcoAccount WithoutBalance(EcoAccount account) => new()
+    {
+        Id = account.Id,
+        Name = account.Name,
+        AccountType = account.AccountType,
+        UserId = account.UserId,
+        PlanetId = account.PlanetId,
+        PlanetMemberId = account.PlanetMemberId,
+        CurrencyId = account.CurrencyId,
+        BalanceValue = 0,
+    };
 
     // Returns all planet accounts of the planet
     [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}/planet")]

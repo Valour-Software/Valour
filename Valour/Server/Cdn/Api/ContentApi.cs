@@ -112,6 +112,15 @@ public class ContentApi : Controller
              );
         }
 
+        // Same reasoning as the signed-URL path: never hand a browser active
+        // content it would render inline on a Valour origin.
+        if (CdnUtils.IsActiveContentUpload(bucketItemRecord.FileName, bucketItemRecord.MimeType))
+        {
+            return Results.File(data, "application/octet-stream",
+                string.IsNullOrWhiteSpace(bucketItemRecord.FileName) ? "download" : bucketItemRecord.FileName,
+                enableRangeProcessing: true);
+        }
+
         return Results.File(data, bucketItemRecord.MimeType, bucketItemRecord.FileName, enableRangeProcessing: true);
     }
 

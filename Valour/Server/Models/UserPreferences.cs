@@ -10,4 +10,5 @@ public class UserPreferences : ISharedUserPreferences
     public long EnabledNotificationSources { get; set; }
     public DmPolicy DmPolicy { get; set; }
     public bool ForceGpuAcceleration { get; set; }
+    public int? ActivityCooldownSeconds { get; set; }
 }

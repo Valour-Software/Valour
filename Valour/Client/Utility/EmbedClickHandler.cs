@@ -5,6 +5,7 @@ using Valour.Client.Components.Menus.Modals;
 using Valour.Client.Modals;
 using Valour.Sdk.Models.Embeds;
 using Valour.Sdk.Models.Embeds.Items;
+using Valour.Shared.Utilities;
 
 namespace Valour.Client.Utility;
 
@@ -50,6 +51,19 @@ internal static class EmbedClickHandler
 
     private static void ConfirmAndOpenLink(EmbedLinkTarget link, IJSRuntime jsRuntime)
     {
+        // Href is embed-author controlled. window.open('javascript:...') executes
+        // script in some browsers, so the scheme is checked before we ever open it.
+        if (!SafeUrl.IsSafe(link.Href))
+        {
+            ModalRoot.Instance.OpenModal<InfoModalComponent>(new InfoModalComponent.ModalParams(
+                "Blocked Link",
+                "This embed tried to open a link using an unsupported and potentially unsafe address.",
+                "OK",
+                () => Task.CompletedTask
+            ));
+            return;
+        }
+
         var modalData = new ConfirmModalComponent.ModalParams(
             $"This link will take you to {link.Href}",
             "Are you sure?",

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Channels;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
@@ -19,6 +20,7 @@ public class UserChannelState : ISharedUserChannelState
     public long? PlanetId { get; set; } 
     public long? PlanetMemberId { get; set; } // Null if not a planet channel
     public DateTime LastViewedTime { get; set; }
+    public ChannelActivityAlerts ActivityAlerts { get; set; }
     
     public static void SetupDbModel(ModelBuilder modelBuilder)
     {
@@ -38,6 +40,11 @@ public class UserChannelState : ISharedUserChannelState
                     x => x,
                     x => new DateTime(x.Ticks, DateTimeKind.Utc)
                 );
+
+            e.Property(x => x.ActivityAlerts)
+                .HasColumnName("activity_alerts")
+                .HasDefaultValue(ChannelActivityAlerts.Auto)
+                .IsRequired();
 
             e.HasOne(x => x.User)
                 .WithMany(x => x.ChannelStates)

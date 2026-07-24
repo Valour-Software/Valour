@@ -6,11 +6,13 @@ namespace Valour.Server.Services;
 public class UnreadService
 {
     private readonly ValourDb _db;
+    private readonly ChannelActivityService _channelActivityService;
     private readonly ILogger<UnreadService> _logger;
 
-    public UnreadService(ValourDb db, ILogger<UnreadService> logger)
+    public UnreadService(ValourDb db, ChannelActivityService channelActivityService, ILogger<UnreadService> logger)
     {
         _db = db;
+        _channelActivityService = channelActivityService;
         _logger = logger;
     }
 
@@ -112,6 +114,11 @@ public class UnreadService
                     member_id = EXCLUDED.member_id
             ");
         }
+
+        // Viewing a channel clears any coalesced activity notification for it
+        // and resets its activity cooldown (not on explicit mark-unread)
+        if (onlyMoveForward)
+            await _channelActivityService.HandleChannelViewedAsync(userId, channelId);
 
         var channelState = await _db.UserChannelStates.AsNoTracking()
             .FirstOrDefaultAsync(x => x.UserId == userId && x.ChannelId == channelId);

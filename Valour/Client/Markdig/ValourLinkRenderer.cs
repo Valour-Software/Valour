@@ -40,12 +40,11 @@ public class ValourLinkRenderer : BlazorObjectRenderer<LinkInline>
 
     internal static string GetSafeExternalUrl(string url)
     {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            return "#";
+        // External links must be absolute; a relative URL here would resolve
+        // against the app origin, which is not what an external link means.
+        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+            return SafeUrl.Unsafe;
 
-        return uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
-               uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
-            ? url
-            : "#";
+        return SafeUrl.Sanitize(url);
     }
 }

@@ -2,6 +2,7 @@
 
 using System.Text;
 using Markdig;
+using Valour.Client.Markdig;
 using Markdig.Extensions.AutoIdentifiers;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
@@ -39,6 +40,9 @@ public static class PublicWikiPageHelpers
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
         .UseAdvancedExtensions()
         .DisableHtml()
+        // Wiki pages are user-authored and served to anonymous visitors, so
+        // link schemes must be allowlisted (DisableHtml only stops raw tags).
+        .UseSafeLinks()
         .Build();
 
     /// <summary>

@@ -407,6 +407,7 @@ public class UserService
 
             cred.Salt = salt;
             cred.Secret = hash;
+            cred.Iterations = PasswordManager.CurrentIterations;
 
             _db.Credentials.Update(cred);
             await _db.SaveChangesAsync();
@@ -612,29 +613,53 @@ public class UserService
     /// <summary>
     /// Gets all tokens for a user
     /// </summary>
-    public async Task<List<AuthToken>> GetUserTokensAsync(long userId)
+    /// <summary>
+    /// Lists the user's sessions for session management. Returns a projection that
+    /// omits the token id: the id IS the bearer secret, so returning it here would
+    /// let any token read every other session key on the account.
+    /// </summary>
+    public async Task<List<AuthTokenInfo>> GetUserTokensAsync(long userId, string currentTokenId)
     {
         var tokens = await _db.AuthTokens
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.TimeCreated)
-            .Select(x => x.ToModel())
+            .Select(x => new { x.Id, x.AppId, x.Scope, x.TimeCreated, x.TimeExpires })
             .ToListAsync();
 
-        return tokens;
+        return tokens.Select(x => new AuthTokenInfo()
+        {
+            Handle = AuthTokenInfo.GetHandle(x.Id),
+            AppId = x.AppId,
+            Scope = x.Scope,
+            TimeCreated = x.TimeCreated,
+            TimeExpires = x.TimeExpires,
+            IsCurrent = currentTokenId is not null && x.Id == currentTokenId,
+        }).ToList();
     }
 
     /// <summary>
-    /// Revokes a specific token
+    /// Revokes a specific session, addressed by its public handle rather than by
+    /// the token secret (which is never given to clients). The handle is a hash,
+    /// so the match is done in memory over the caller's own tokens.
     /// </summary>
-    public async Task<TaskResult> RevokeTokenAsync(long userId, string tokenId)
+    public async Task<TaskResult> RevokeTokenAsync(long userId, string handle)
     {
         try
         {
-            var token = await _db.AuthTokens
-                .FirstOrDefaultAsync(x => x.Id == tokenId && x.UserId == userId);
+            if (string.IsNullOrWhiteSpace(handle))
+                return new TaskResult(false, "Token not found");
+
+            var userTokens = await _db.AuthTokens
+                .Where(x => x.UserId == userId)
+                .ToListAsync();
+
+            var token = userTokens.FirstOrDefault(x =>
+                string.Equals(AuthTokenInfo.GetHandle(x.Id), handle, StringComparison.OrdinalIgnoreCase));
 
             if (token is null)
                 return new TaskResult(false, "Token not found");
+
+            var tokenId = token.Id;
 
             _db.AuthTokens.Remove(token);
             await _db.SaveChangesAsync();
@@ -771,13 +796,35 @@ public class UserService
             return new TaskResult<User>(false, "The credentials were incorrect.", null);
         }
 
-        // Use salt to validate secret hash
-        byte[] hash = PasswordManager.GetHashForPassword(secret, credential.Salt);
+        // Rows written before iteration tracking existed have 0 here and were
+        // hashed with the legacy count.
+        var iterations = credential.Iterations > 0
+            ? credential.Iterations
+            : PasswordManager.LegacyIterations;
 
-        // Spike needs to remember how reference types work 
-        if (!hash.SequenceEqual(credential.Secret))
+        // Use salt to validate secret hash
+        byte[] hash = PasswordManager.GetHashForPassword(secret, credential.Salt, iterations);
+
+        if (!PasswordManager.HashesMatch(hash, credential.Secret))
         {
             return new TaskResult<User>(false, "The credentials were incorrect.", null);
+        }
+
+        // The password is correct and we have the plaintext here, so this is the
+        // only moment we can raise the work factor without a reset.
+        if (iterations < PasswordManager.CurrentIterations)
+        {
+            try
+            {
+                credential.Secret = PasswordManager.GetHashForPassword(secret, credential.Salt);
+                credential.Iterations = PasswordManager.CurrentIterations;
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                // An upgrade failure must never block a valid login.
+                _logger.LogError(e, "Failed to upgrade password hash for user {UserId}", credential.UserId);
+            }
         }
 
         User user = await GetAsync(credential.UserId);
@@ -830,6 +877,7 @@ public class UserService
         
         cred.Salt = salt;
         cred.Secret = hash;
+        cred.Iterations = PasswordManager.CurrentIterations;
         
         try
         {
