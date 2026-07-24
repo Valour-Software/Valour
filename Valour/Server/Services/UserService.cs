@@ -678,14 +678,15 @@ public class UserService
     }
 
     /// <summary>
-    /// Revokes all tokens for a user except the current one
+    /// Revokes all active (non-expired) tokens for a user except the current one.
+    /// Expired tokens are left alone; use RevokeExpiredTokensAsync to clear those.
     /// </summary>
     public async Task<TaskResult> RevokeAllOtherTokensAsync(long userId, string currentTokenId)
     {
         try
         {
             var tokens = await _db.AuthTokens
-                .Where(x => x.UserId == userId && x.Id != currentTokenId)
+                .Where(x => x.UserId == userId && x.Id != currentTokenId && x.TimeExpires > DateTime.UtcNow)
                 .ToListAsync();
 
             _db.AuthTokens.RemoveRange(tokens);
@@ -699,6 +700,35 @@ public class UserService
             }
 
             return new TaskResult(true, $"Revoked {tokens.Count} tokens");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new TaskResult(false, e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Revokes all expired tokens for a user
+    /// </summary>
+    public async Task<TaskResult> RevokeExpiredTokensAsync(long userId)
+    {
+        try
+        {
+            var tokens = await _db.AuthTokens
+                .Where(x => x.UserId == userId && x.TimeExpires < DateTime.UtcNow)
+                .ToListAsync();
+
+            _db.AuthTokens.RemoveRange(tokens);
+            await _db.SaveChangesAsync();
+
+            // Evict after commit to avoid re-cache race
+            foreach (var token in tokens)
+            {
+                _tokenService.RemoveFromQuickCache(token.Id);
+            }
+
+            return new TaskResult(true, $"Revoked {tokens.Count} expired session(s)");
         }
         catch (Exception e)
         {

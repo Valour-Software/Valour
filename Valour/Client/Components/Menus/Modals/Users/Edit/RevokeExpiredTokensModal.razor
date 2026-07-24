@@ -1,0 +1,58 @@
+@inherits Modal<RevokeExpiredTokensModal.Params>
+
+<BasicModalLayout Title="Clear Expired Sessions" Icon="shield-lock-fill" MaxWidth="400px">
+    <MainArea>
+        <p>
+            This will permanently delete @Data.ExpiredCount expired session@(Data.ExpiredCount == 1 ? "" : "s").
+            This cannot be undone.
+        </p>
+
+        @if (Data.RequireMfa)
+        {
+            <div class="form-group">
+                <label>Authenticator code</label>
+                <input class="v-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8"
+                       placeholder="000000" @bind="_mfaCode" />
+                <ResultLabel Style="margin-top: 1em" Result="@_result" />
+            </div>
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            <button @onclick="@OnConfirm" class="v-btn danger" disabled="@(Data.RequireMfa && string.IsNullOrWhiteSpace(_mfaCode))">Clear Expired Sessions</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+        public int ExpiredCount { get; set; }
+        public bool RequireMfa { get; set; }
+        public Func<string, Task<TaskResult>> OnConfirmAsync { get; set; }
+    }
+
+    private string _mfaCode = "";
+    private ITaskResult _result;
+
+    private async Task OnConfirm()
+    {
+        if (Data.OnConfirmAsync is not null)
+        {
+            var result = await Data.OnConfirmAsync.Invoke(_mfaCode);
+            _result = result;
+
+            if (result.Success)
+            {
+                Close();
+            }
+            else
+            {
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void OnCancel() => Close();
+}
