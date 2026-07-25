@@ -2,6 +2,7 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JsRuntime
 @inject Valour.Sdk.Services.VillageService VillageService
+@inject Valour.Client.Components.Calls.GlobalCallSessionService CallSession
 @using System.Text.Json
 @using Valour.Shared.Villages
 @using Channel = Valour.Sdk.Models.Channel
@@ -42,6 +43,24 @@ else
                     <span class="hud-chip">Step To Doors</span>
                     <span class="hud-chip">Click To Inspect</span>
                 </div>
+                <div class="overlay-toggle-row">
+                    <label class="village-toggle">
+                        <input type="checkbox" checked="@_proximityVoice" @onchange="OnToggleProximityVoice" />
+                        <span>Proximity voice</span>
+                    </label>
+                    <label class="village-toggle">
+                        <input type="checkbox" checked="@_autoJoinVoice" @onchange="OnToggleAutoJoin" />
+                        <span>Auto-join rooms</span>
+                    </label>
+                </div>
+                @if (_activeVoiceBuildingName is not null)
+                {
+                    <div class="village-voice-status">
+                        <i class="bi bi-mic-fill"></i>
+                        <span>In voice: @_activeVoiceBuildingName</span>
+                        <button class="v-btn tiny" @onclick="LeaveVoiceAsync">Leave</button>
+                    </div>
+                }
                 <div class="overlay-button-row">
                     <button class="v-btn secondary" @onclick="ResetViewAsync">Center Camera</button>
                     @if (_currentMap?.MapKind == "Interior")
@@ -88,6 +107,10 @@ else
                         {
                             <button class="v-btn secondary" @onclick="OpenSelectedChannelAsync">Open Linked Channel</button>
                         }
+                        @if (CanHostVoice(_selectedBuilding) && _activeVoiceBuildingId != _selectedBuilding.Id)
+                        {
+                            <button class="v-btn secondary" @onclick="() => JoinBuildingVoiceAsync(_selectedBuilding)">Join Voice Here</button>
+                        }
                     </div>
                 }
             </div>
@@ -107,6 +130,11 @@ else
     private bool _initializing;
     private bool _disposed;
     private string? _error;
+    private bool _proximityVoice;
+    private bool _autoJoinVoice;
+    private long? _currentBuildingId;
+    private long? _activeVoiceBuildingId;
+    private string? _activeVoiceBuildingName;
 
     protected override async Task OnInitializedAsync()
     {
@@ -261,13 +289,96 @@ else
     /// Called by the runtime each time the local player finishes a step.
     /// </summary>
     [JSInvokable]
-    public Task OnLocalMoved(int x, int y, int facing, long? buildingId)
+    public async Task OnLocalMoved(int x, int y, int facing, long? buildingId)
     {
         if (_disposed)
-            return Task.CompletedTask;
+            return;
 
         VillageService.ReportMove(x, y, (VillageFacing)facing, buildingId);
-        return Task.CompletedTask;
+
+        if (buildingId == _currentBuildingId)
+            return;
+
+        _currentBuildingId = buildingId;
+        await OnBuildingContextChangedAsync();
+    }
+
+    /// <summary>
+    /// A building can host voice when it is bound to a real channel. Rooms that
+    /// spin up on demand need an ephemeral-channel concept that does not exist
+    /// yet, so those are treated as not hosting rather than silently doing
+    /// nothing on entry.
+    /// </summary>
+    private bool CanHostVoice(VillagePocBuilding building) => building.ChannelId is not null;
+
+    /// <summary>
+    /// Walking in or out of a building follows the voice room, but only once the
+    /// member has opted in. Joining a call the moment someone wanders through a
+    /// door would open their microphone without them asking.
+    /// </summary>
+    private async Task OnBuildingContextChangedAsync()
+    {
+        if (!_autoJoinVoice)
+            return;
+
+        var building = _currentBuildingId is null
+            ? null
+            : _scene?.Maps.SelectMany(x => x.Buildings).FirstOrDefault(x => x.Id == _currentBuildingId);
+
+        if (building is null || !CanHostVoice(building))
+        {
+            if (_activeVoiceBuildingId is not null)
+                await LeaveVoiceAsync();
+
+            return;
+        }
+
+        if (_activeVoiceBuildingId == building.Id)
+            return;
+
+        await JoinBuildingVoiceAsync(building);
+    }
+
+    private async Task JoinBuildingVoiceAsync(VillagePocBuilding building)
+    {
+        if (Data is null || building.ChannelId is null)
+            return;
+
+        var channel = await Data.FetchChannelAsync(building.ChannelId.Value);
+        if (channel is null)
+            return;
+
+        await CallSession.InitializeAsync(channel, videoMode: false);
+
+        _activeVoiceBuildingId = building.Id;
+        _activeVoiceBuildingName = building.Name;
+        await ReRender();
+    }
+
+    private async Task LeaveVoiceAsync()
+    {
+        _activeVoiceBuildingId = null;
+        _activeVoiceBuildingName = null;
+
+        await CallSession.LeaveAsync(clearChannel: true);
+        await ReRender();
+    }
+
+    private async Task OnToggleProximityVoice(ChangeEventArgs e)
+    {
+        _proximityVoice = e.Value is true;
+
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("setSpatialAudioEnabled", _proximityVoice);
+    }
+
+    private async Task OnToggleAutoJoin(ChangeEventArgs e)
+    {
+        _autoJoinVoice = e.Value is true;
+
+        // Entering the toggle while already standing inside a room should take
+        // effect immediately rather than on the next step.
+        await OnBuildingContextChangedAsync();
     }
 
     private async Task ResetViewAsync()
@@ -376,6 +487,11 @@ else
 
         VillageService.PresenceChanged -= OnPresenceChanged;
         await VillageService.LeaveMapAsync();
+
+        // Closing the village must not leave the member sitting in a call they
+        // can no longer see.
+        if (_activeVoiceBuildingId is not null)
+            await CallSession.LeaveAsync(clearChannel: true);
 
         if (Instances.Remove(this))
             SelectionsChanged?.Invoke();
