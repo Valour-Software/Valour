@@ -1,13 +1,25 @@
 .village-window {
     position: relative;
-    height: 100%;
     width: 100%;
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
+    isolation: isolate;
+    color: var(--font-color);
     background:
-        radial-gradient(circle at top left, rgba(255, 231, 187, 0.2), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(85, 124, 76, 0.18), transparent 30%),
-        linear-gradient(180deg, #c6dba4 0%, #88b56a 100%);
-    color: #2c2417;
+        radial-gradient(circle at 20% 12%, rgba(252, 231, 171, 0.22), transparent 25%),
+        linear-gradient(180deg, #8fbe78 0%, #638c56 100%);
+}
+
+.village-window::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    box-shadow:
+        inset 0 0 80px rgba(17, 26, 20, 0.2),
+        inset 0 -80px 100px rgba(18, 28, 22, 0.12);
 }
 
 .village-canvas {
@@ -16,257 +28,870 @@
     width: 100%;
     height: 100%;
     display: block;
-    background: linear-gradient(180deg, #bfdca8 0%, #94c06f 100%);
     image-rendering: pixelated;
-    /* Steering must not pan or zoom the page underneath. */
     touch-action: none;
 }
 
 .village-overlay {
     position: absolute;
-    z-index: 2;
+    z-index: 4;
     pointer-events: none;
+}
+
+.overlay-card,
+.quick-control-bar,
+.village-call-surface,
+.village-chat-composer {
+    border: 1px solid var(--medium-tint);
+    background: var(--modal-dark);
+    box-shadow: 0 18px 50px rgba(9, 14, 11, 0.28);
+    backdrop-filter: blur(18px) saturate(1.25);
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.village-world-header {
+    top: 16px;
+    left: 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-
-.overlay-top-left {
-    top: 16px;
-    left: 16px;
-    max-width: min(420px, calc(100% - 32px));
-}
-
-.overlay-top-right {
-    top: 16px;
-    right: 16px;
-    align-items: flex-end;
-    max-width: min(380px, calc(100% - 32px));
-}
-
-.overlay-bottom-left {
-    left: 16px;
-    bottom: 16px;
-    max-width: min(380px, calc(100% - 32px));
-}
-
-.overlay-bottom-right {
-    right: 16px;
-    bottom: 16px;
-    align-items: flex-end;
-    max-width: min(420px, calc(100% - 32px));
-}
-
-.overlay-card {
-    pointer-events: auto;
-    padding: 14px 16px;
-    border-radius: 18px;
-    background: rgba(28, 25, 18, 0.66);
-    backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 244, 222, 0.16);
-    box-shadow: 0 18px 45px rgba(18, 14, 10, 0.28);
-    color: #f3ead8;
+    gap: 9px;
+    max-width: min(430px, calc(100% - 32px));
 }
 
 .village-brand-card {
-    min-width: 260px;
-}
-
-.village-actions-card,
-.village-lore-card,
-.village-building-card {
-    width: min(100%, 340px);
-}
-
-.overlay-card-title {
-    font-size: 0.74rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: rgba(243, 234, 216, 0.68);
-    margin-bottom: 8px;
-}
-
-.overlay-card-body,
-.sidebar-meta {
-    color: rgba(243, 234, 216, 0.84);
-    line-height: 1.45;
-}
-
-.overlay-inline-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    width: fit-content;
+    min-width: 250px;
+    padding: 13px 16px 14px;
+    border-radius: var(--radius-xl);
     pointer-events: auto;
 }
 
-.overlay-button-row,
-.overlay-button-column {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    pointer-events: auto;
-}
-
-.overlay-button-column {
-    flex-direction: column;
-}
-
-.village-kicker {
-    font-size: 0.72rem;
-    letter-spacing: 0.18em;
+.village-kicker,
+.eyebrow,
+.overlay-card-title,
+.composer-context span {
+    color: var(--font-color-mid);
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.15em;
+    line-height: 1.2;
     text-transform: uppercase;
-    color: rgba(243, 234, 216, 0.62);
 }
 
 .village-title {
     margin-top: 4px;
-    font-size: 1.6rem;
+    color: var(--font-color);
+    font-size: clamp(1.25rem, 2vw, 1.75rem);
+    font-weight: 850;
     line-height: 1.05;
-    font-weight: 800;
-    color: #fff7eb;
+    letter-spacing: -0.03em;
 }
 
 .village-subtitle {
-    margin-top: 6px;
-    color: rgba(243, 234, 216, 0.8);
+    margin-top: 5px;
+    max-width: 360px;
+    color: var(--font-color-mid);
+    font-size: 0.86rem;
+    line-height: 1.35;
+}
+
+.overlay-inline-group,
+.place-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.overlay-inline-group {
+    pointer-events: auto;
+}
+
+.hud-chip,
+.place-fact {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--slight-tint);
+    border-radius: 999px;
+    color: var(--font-color);
+    background: var(--modal-medium);
+    box-shadow: 0 8px 22px rgba(8, 12, 10, 0.18);
 }
 
 .hud-chip {
-    display: inline-flex;
+    min-height: 29px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    backdrop-filter: blur(12px);
+}
+
+.hud-chip.live {
+    color: var(--color-success);
+}
+
+.live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: 0 0 0 4px var(--color-success-soft);
+}
+
+.village-quick-controls {
+    top: 16px;
+    right: 16px;
+}
+
+.quick-control-bar {
+    display: flex;
     align-items: center;
-    padding: 6px 11px;
-    border-radius: 999px;
-    background: rgba(28, 25, 18, 0.62);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 244, 222, 0.14);
-    color: #f7efdf;
-    font-size: 0.84rem;
-    box-shadow: 0 10px 24px rgba(18, 14, 10, 0.18);
+    gap: 5px;
+    padding: 6px;
+    border-radius: 16px;
+    pointer-events: auto;
+}
+
+.village-icon-button,
+.village-icon-toggle,
+.composer-send,
+.village-toast button {
+    border: 0;
+    color: var(--font-color);
+    background: transparent;
+    cursor: pointer;
+    transition: color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.village-icon-button {
+    display: inline-grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border-radius: var(--radius-md);
+    font-size: 1.05rem;
+}
+
+.village-icon-button.compact {
+    width: 34px;
+    height: 34px;
+}
+
+.village-zoom-control {
+    display: flex;
+    height: 40px;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    background: rgba(7, 13, 20, 0.28);
+}
+
+.village-zoom-button,
+.village-zoom-level {
+    border: 0;
+    color: var(--font-color);
+    background: transparent;
+    cursor: pointer;
+    transition: color 140ms ease, background 140ms ease;
+}
+
+.village-zoom-button {
+    display: grid;
+    width: 31px;
+    place-items: center;
+    font-size: 0.9rem;
+}
+
+.village-zoom-level {
+    min-width: 45px;
+    padding: 0 4px;
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+}
+
+.village-zoom-button:hover:not(:disabled),
+.village-zoom-level:hover {
+    color: #fff;
+    background: var(--slight-tint);
+}
+
+.village-zoom-button:disabled {
+    color: var(--font-alt-color);
+    cursor: default;
+}
+
+.village-icon-button:hover,
+.village-icon-toggle:hover {
+    color: #fff;
+    background: var(--slight-tint);
+}
+
+.village-icon-button:active,
+.composer-send:active {
+    transform: scale(0.94);
+}
+
+.village-icon-toggle {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 7px;
+    padding: 0 10px;
+    border-radius: var(--radius-md);
+    font-size: 0.77rem;
+    font-weight: 700;
+}
+
+.village-icon-toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.village-icon-toggle.active {
+    color: var(--color-success);
+    background: var(--color-success-soft);
+    box-shadow: inset 0 0 0 1px var(--color-success-border);
+}
+
+.village-inspector {
+    right: 16px;
+    bottom: 16px;
+    width: min(360px, calc(100% - 32px));
+    pointer-events: auto;
+    transition: right 180ms ease;
+}
+
+.has-call .village-inspector {
+    right: calc(min(390px, 34vw) + 32px);
+}
+
+.village-window:has(.village-chat-composer) .village-inspector {
+    bottom: 88px;
+}
+
+.village-building-card {
+    max-height: min(58vh, 540px);
+    overflow: auto;
+    padding: 15px;
+    border-radius: 20px;
+}
+
+.inspector-heading {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 11px;
+}
+
+.place-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--color-warning-border);
+    border-radius: 13px;
+    color: var(--color-warning);
+    background: var(--color-warning-soft);
+    font-size: 1.1rem;
+}
+
+.place-icon.plot {
+    color: var(--color-primary);
+    border-color: var(--color-primary-border);
+    background: var(--color-primary-soft);
 }
 
 .sidebar-building-name {
-    font-size: 1.08rem;
-    font-weight: 700;
-    color: #fff8ef;
+    margin-top: 2px;
+    color: var(--font-color);
+    font-size: 1.1rem;
+    font-weight: 800;
+    line-height: 1.2;
 }
 
-.village-building-card.is-empty {
-    opacity: 0.92;
+.overlay-card-body {
+    margin: 0 0 12px;
+    color: var(--font-color-mid);
+    font-size: 0.86rem;
+    line-height: 1.48;
+}
+
+.place-facts {
+    margin: 0 0 12px;
+}
+
+.place-fact {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+}
+
+.place-fact.owned {
+    color: var(--color-success);
+    border-color: var(--color-success-border);
+    background: var(--color-success-soft);
+}
+
+.place-fact.sale {
+    color: var(--color-warning);
+    border-color: var(--color-warning-border);
+    background: var(--color-warning-soft);
+}
+
+.manage-toggle {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    color: var(--font-color);
+    background: var(--slight-tint);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.manage-toggle:hover {
+    background: var(--medium-tint);
+}
+
+.manage-toggle.open {
+    color: var(--color-warning);
+    border-color: var(--color-warning-border);
+    background: var(--color-warning-soft);
+}
+
+.manage-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 10px;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    background: var(--slight-tint);
+}
+
+.manage-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+}
+
+.manage-field span {
+    color: var(--font-color-mid);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.manage-field input,
+.manage-field textarea,
+.manage-field select {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    color: var(--font-color);
+    background: rgba(0, 0, 0, 0.22);
+    font: inherit;
+    font-size: 0.8rem;
+    outline: 0;
+    resize: none;
+}
+
+.manage-field select option {
+    color: var(--font-color);
+    background: var(--main-3);
+}
+
+.manage-editor .v-btn {
+    min-height: 36px;
+    border-radius: var(--radius-md);
+}
+
+.listing-editor {
+    display: grid;
+    grid-template-columns: minmax(90px, 1fr) auto auto;
+    gap: 6px;
+    align-items: center;
+    margin: 0 0 12px;
+    padding: 8px;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    background: var(--slight-tint);
+}
+
+.listing-price-field {
+    display: flex;
+    height: 36px;
+    min-width: 0;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    border-radius: var(--radius-md);
+    color: var(--font-color-mid);
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.listing-price-field input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: var(--font-color);
+    background: transparent;
+    font: inherit;
+    font-size: 0.78rem;
+}
+
+.listing-editor .v-btn {
+    min-height: 36px;
+    padding: 0 9px;
+    border-radius: var(--radius-md);
+    white-space: nowrap;
+}
+
+.listing-remove {
+    border: 0;
+    color: var(--color-danger, #ff6b6b);
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.72rem;
+}
+
+.overlay-button-column {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.overlay-button-column .v-btn,
+.village-primary-action {
+    display: flex;
+    min-height: 39px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-md);
+}
+
+.village-primary-action {
+    width: 100%;
+    margin-top: 5px;
+    color: var(--color-success-contrast);
+    border-color: var(--color-success-border);
+    background: var(--color-success);
+    font-weight: 800;
+}
+
+.village-primary-action:hover {
+    color: var(--color-success-contrast);
+    background: var(--color-success);
+}
+
+.village-call-surface {
+    position: absolute;
+    z-index: 5;
+    top: 78px;
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    width: min(390px, 34vw);
+    min-width: 290px;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 20px;
+    transition: bottom 180ms ease, height 180ms ease;
+}
+
+.village-call-surface.collapsed {
+    top: auto;
+    bottom: 16px;
+}
+
+.village-call-titlebar {
+    display: flex;
+    min-height: 58px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 11px 10px 15px;
+    border-bottom: 1px solid var(--slight-tint);
+}
+
+.village-call-titlebar > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.village-call-titlebar strong {
+    overflow: hidden;
+    color: var(--font-color);
+    font-size: 0.92rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.village-call-body {
+    min-height: 0;
+    flex: 1;
+    background: rgba(10, 14, 12, 0.28);
+}
+
+.village-call-body ::deep .call-panel {
+    height: 100%;
+    background: transparent;
+}
+
+.village-call-body ::deep .call-header {
+    display: none;
+}
+
+.village-chat-composer {
+    left: 50%;
+    bottom: 16px;
+    display: flex;
+    width: min(520px, calc(100% - 410px));
+    min-width: 310px;
+    gap: 12px;
+    align-items: center;
+    padding: 7px 8px 7px 13px;
+    border-radius: 17px;
+    pointer-events: auto;
+    transform: translateX(-50%);
+}
+
+.has-call .village-chat-composer {
+    left: calc((100% - min(390px, 34vw)) / 2);
+}
+
+.composer-context {
+    display: flex;
+    min-width: 105px;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.composer-context strong {
+    overflow: hidden;
+    color: var(--font-color);
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.composer-row {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.075);
+}
+
+.composer-row input {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding: 0 5px 0 12px;
+    border: 0;
+    outline: 0;
+    color: #fff;
+    background: transparent;
+    font: inherit;
+    font-size: 0.86rem;
+}
+
+.composer-row input::placeholder {
+    color: rgba(245, 240, 226, 0.4);
+}
+
+.composer-send {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    place-items: center;
+    margin-right: 2px;
+    border-radius: var(--radius-md);
+    color: #d6f9e8;
+    background: rgba(77, 211, 151, 0.18);
+}
+
+.composer-send:hover:not(:disabled) {
+    color: #fff;
+    background: rgba(77, 211, 151, 0.3);
+}
+
+.composer-send:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.village-movement-hint {
+    position: absolute;
+    z-index: 3;
+    left: 16px;
+    bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 10px;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    color: rgba(255, 250, 236, 0.66);
+    background: rgba(16, 23, 19, 0.5);
+    backdrop-filter: blur(10px);
+    font-size: 0.7rem;
+    pointer-events: none;
+}
+
+.keycap {
+    display: inline-grid;
+    width: 19px;
+    height: 19px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 5px;
+    color: rgba(255, 255, 255, 0.85);
+    background: var(--slight-tint);
+    font-size: 0.62rem;
+    font-weight: 800;
+}
+
+.village-toast {
+    position: absolute;
+    z-index: 8;
+    top: 18px;
+    left: 50%;
+    display: flex;
+    width: min(430px, calc(100% - 32px));
+    align-items: center;
+    gap: 9px;
+    padding: 10px 11px 10px 13px;
+    border: 1px solid rgba(113, 231, 176, 0.24);
+    border-radius: 14px;
+    color: #cff8e2;
+    background: rgba(21, 54, 39, 0.92);
+    box-shadow: 0 16px 42px rgba(8, 17, 12, 0.3);
+    font-size: 0.82rem;
+    transform: translateX(-50%);
+}
+
+.village-toast.error {
+    color: #ffd3d3;
+    border-color: rgba(255, 130, 130, 0.24);
+    background: rgba(72, 29, 31, 0.94);
+}
+
+.village-toast span {
+    flex: 1;
+}
+
+.village-toast button {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 8px;
 }
 
 .village-empty-state {
     display: flex;
+    height: 100%;
     flex-direction: column;
-    gap: 10px;
     align-items: center;
     justify-content: center;
-    height: 100%;
-    color: #6b5840;
+    gap: 10px;
+    color: var(--font-color);
+    background: var(--main-2);
 }
 
-@media (max-width: 960px) {
-    .overlay-top-left,
-    .overlay-top-right,
-    .overlay-bottom-left,
-    .overlay-bottom-right {
-        left: 12px;
-        right: 12px;
-        max-width: none;
+@media (max-width: 900px) {
+    .village-world-header {
+        top: 10px;
+        left: 10px;
     }
 
-    .overlay-top-right,
-    .overlay-bottom-right {
-        align-items: stretch;
+    .village-brand-card {
+        min-width: 0;
+        padding: 9px 11px 10px;
+        border-radius: 14px;
     }
 
-    .overlay-top-left {
-        top: 12px;
+    .village-subtitle {
+        display: none;
     }
 
-    .overlay-top-right {
-        top: 132px;
+    .village-title {
+        max-width: 42vw;
+        overflow: hidden;
+        font-size: 1rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
-    .overlay-bottom-left {
-        bottom: 144px;
+    .village-quick-controls {
+        top: 10px;
+        right: 10px;
     }
 
-    .overlay-bottom-right {
-        bottom: 12px;
+    .quick-control-bar {
+        padding: 4px;
+        border-radius: 13px;
     }
 
-    .village-actions-card,
-    .village-lore-card,
+    .village-icon-toggle {
+        min-width: 40px;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .village-icon-toggle span {
+        display: none;
+    }
+
+    .hud-chip {
+        min-height: 25px;
+        padding: 3px 8px;
+        font-size: 0.68rem;
+    }
+
+    .village-call-surface {
+        top: auto;
+        right: 8px;
+        bottom: 8px;
+        left: 8px;
+        width: auto;
+        min-width: 0;
+        height: min(48vh, 430px);
+        border-radius: var(--radius-xl);
+    }
+
+    .village-call-surface.collapsed {
+        height: 58px;
+    }
+
+    .has-call .village-inspector {
+        display: none;
+    }
+
+    .village-inspector {
+        right: 8px;
+        bottom: 78px;
+        width: min(350px, calc(100% - 16px));
+    }
+
+    .village-window:has(.village-chat-composer) .village-inspector {
+        bottom: 78px;
+    }
+
     .village-building-card {
-        width: 100%;
+        max-height: 46vh;
+        border-radius: 17px;
     }
 
-    .overlay-button-row {
-        flex-wrap: wrap;
+    .village-chat-composer,
+    .has-call .village-chat-composer {
+        right: 8px;
+        bottom: 8px;
+        left: 8px;
+        width: auto;
+        min-width: 0;
+        padding-left: 8px;
+        transform: none;
+    }
+
+    .has-call .village-chat-composer {
+        bottom: calc(min(48vh, 430px) + 16px);
+    }
+
+    .composer-context {
+        display: none;
+    }
+
+    .village-movement-hint {
+        right: 10px;
+        bottom: 10px;
+        left: auto;
+        font-size: 0.64rem;
+    }
+
+    .village-window:has(.village-chat-composer) .village-movement-hint,
+    .village-window.has-call .village-movement-hint {
+        display: none;
     }
 }
 
-.overlay-toggle-row {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-bottom: 6px;
+@media (max-width: 520px) {
+    .overlay-inline-group .hud-chip:first-child {
+        max-width: 48vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .village-kicker {
+        font-size: 0.58rem;
+    }
+
+    .village-icon-button,
+    .village-icon-toggle {
+        width: 38px;
+        height: 38px;
+        min-height: 38px;
+    }
+
+    .village-zoom-control {
+        height: 38px;
+    }
+
+    .village-zoom-button {
+        width: 29px;
+    }
+
+    .village-zoom-level {
+        min-width: 42px;
+    }
+
+    .place-facts {
+        gap: 5px;
+    }
+
+    .overlay-button-column {
+        max-height: 165px;
+        overflow-y: auto;
+    }
+
+    .listing-editor {
+        grid-template-columns: 1fr auto;
+    }
+
+    .listing-remove {
+        grid-column: 1 / -1;
+    }
 }
 
-.village-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--font-size-xs);
-    color: rgba(255, 255, 255, 0.82);
-    cursor: pointer;
-}
-
-.village-toggle input {
-    accent-color: var(--p-cyan);
-    cursor: pointer;
-}
-
-.village-voice-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
-    padding: 4px 8px;
-    border-radius: var(--radius-md);
-    background: rgba(64, 200, 160, 0.16);
-    border: 1px solid rgba(64, 200, 160, 0.35);
-    font-size: var(--font-size-xs);
-    color: #b8f2e0;
-}
-
-.village-voice-status .v-btn.tiny {
-    margin-left: auto;
-    padding: 1px 8px;
-    font-size: var(--font-size-xs);
-    line-height: 1.5;
-}
-
-/* The HUD is informational on desktop but competes with the map on a phone,
-   so the prose panels drop away and the rest tightens up. */
-.mobile .village-lore-card,
-.mobile .village-brand-card .village-subtitle {
-    display: none;
-}
-
-.mobile .village-overlay {
-    max-width: 62vw;
-}
-
-.mobile .overlay-card {
-    padding: 6px 8px;
-}
-
-.mobile .hud-chip {
-    font-size: 10px;
-    padding: 1px 6px;
-}
-
-.mobile .village-title {
-    font-size: var(--font-size-sm);
+@media (prefers-reduced-motion: reduce) {
+    .village-icon-button,
+    .village-icon-toggle,
+    .village-zoom-button,
+    .village-zoom-level,
+    .village-call-surface,
+    .village-inspector {
+        transition: none;
+    }
 }

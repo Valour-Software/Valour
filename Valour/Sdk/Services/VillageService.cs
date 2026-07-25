@@ -43,8 +43,61 @@ public class VillageService : ServiceBase
         _client.NodeService.NodeAdded += HookHubEvents;
     }
 
+    // The scene is refetched immediately after purchases and property edits to
+    // show their result, so the node's short GET cache must not satisfy the
+    // refresh with the pre-edit world.
     public Task<TaskResult<VillagePocScene>> FetchProofOfConceptSceneAsync(long planetId) =>
-        _client.PrimaryNode.GetJsonAsync<VillagePocScene>($"api/planets/{planetId}/village/poc");
+        _client.PrimaryNode.GetJsonAsync<VillagePocScene>(
+            $"api/planets/{planetId}/village/poc", cacheDurationMs: null);
+
+    public Task<TaskResult> PurchasePlotAsync(Planet planet, long plotId) =>
+        planet.Node.PostAsync($"api/planets/{planet.Id}/village/plots/{plotId}/purchase", null);
+
+    public Task<TaskResult> PurchaseBuildingAsync(Planet planet, long buildingId) =>
+        planet.Node.PostAsync($"api/planets/{planet.Id}/village/buildings/{buildingId}/purchase", null);
+
+    public Task<TaskResult<VillageEphemeralRoom>> AcquireBuildingRoomAsync(Planet planet, long buildingId) =>
+        planet.Node.PostAsyncWithResponse<VillageEphemeralRoom>(
+            $"api/planets/{planet.Id}/village/buildings/{buildingId}/room");
+
+    public Task<TaskResult> ReleaseBuildingRoomAsync(Planet planet, long buildingId) =>
+        planet.Node.DeleteAsync($"api/planets/{planet.Id}/village/buildings/{buildingId}/room");
+
+    public async Task<TaskResult> SetPlotListingAsync(Planet planet, long plotId, bool forSale, decimal price) =>
+        (await planet.Node.PutAsyncWithResponse<bool>(
+            $"api/planets/{planet.Id}/village/plots/{plotId}/listing",
+            new VillageSaleListingRequest { ForSale = forSale, Price = price })).WithoutData();
+
+    public async Task<TaskResult> SetBuildingListingAsync(Planet planet, long buildingId, bool forSale, decimal price) =>
+        (await planet.Node.PutAsyncWithResponse<bool>(
+            $"api/planets/{planet.Id}/village/buildings/{buildingId}/listing",
+            new VillageSaleListingRequest { ForSale = forSale, Price = price })).WithoutData();
+
+    /// <summary>
+    /// Renames or re-describes a building; when <paramref name="updateChannel"/>
+    /// is set, also rebinds (or clears) the building's linked channel.
+    /// </summary>
+    public async Task<TaskResult> UpdateBuildingAsync(
+        Planet planet,
+        long buildingId,
+        string? name,
+        string? description,
+        bool updateChannel = false,
+        long? channelId = null) =>
+        (await planet.Node.PutAsyncWithResponse<bool>(
+            $"api/planets/{planet.Id}/village/buildings/{buildingId}",
+            new VillageBuildingUpdateRequest
+            {
+                Name = name,
+                Description = description,
+                UpdateChannel = updateChannel,
+                ChannelId = channelId,
+            })).WithoutData();
+
+    public async Task<TaskResult> UpdatePlotAsync(Planet planet, long plotId, string? name) =>
+        (await planet.Node.PutAsyncWithResponse<bool>(
+            $"api/planets/{planet.Id}/village/plots/{plotId}",
+            new VillagePlotUpdateRequest { Name = name })).WithoutData();
 
     /// <summary>
     /// Everyone currently visible on the joined map, excluding this client.
@@ -81,7 +134,12 @@ public class VillageService : ServiceBase
     /// <summary>
     /// Joins a village map's realtime group and seeds the occupancy snapshot.
     /// </summary>
-    public async Task<TaskResult> JoinMapAsync(Planet planet, long mapId, int x, int y)
+    public async Task<TaskResult> JoinMapAsync(
+        Planet planet,
+        long mapId,
+        int x,
+        int y,
+        long? buildingId = null)
     {
         if (planet is null)
             return new TaskResult(false, "No planet.");
@@ -90,7 +148,7 @@ public class VillageService : ServiceBase
             await LeaveMapAsync();
 
         var snapshot = await planet.Node.HubConnection.InvokeAsync<VillagePresenceSnapshot>(
-            "JoinVillageMap", planet.Id, mapId, x, y);
+            "JoinVillageMap", planet.Id, mapId, x, y, buildingId);
 
         if (snapshot is null)
             return new TaskResult(false, "Could not join the village map.");
@@ -145,7 +203,7 @@ public class VillageService : ServiceBase
     /// already applied locally, and a dropped frame corrects itself on the next
     /// step rather than needing a retry.
     /// </summary>
-    public void ReportMove(int x, int y, VillageFacing facing, long? buildingId)
+    public async Task ReportMoveAsync(int x, int y, VillageFacing facing, long? buildingId)
     {
         if (_currentMapId == 0)
             return;
@@ -153,13 +211,21 @@ public class VillageService : ServiceBase
         if (!_client.Cache.Planets.TryGet(_currentPlanetId, out var planet) || planet is null)
             return;
 
-        _ = planet.Node.HubConnection
-            .SendAsync("MoveInVillage", _currentPlanetId, _currentMapId, x, y, (int)facing, buildingId)
-            .ContinueWith(t =>
-            {
-                if (t.IsFaulted)
-                    LogError("Failed to report village movement.", t.Exception);
-            }, TaskContinuationOptions.OnlyOnFaulted);
+        try
+        {
+            await planet.Node.HubConnection.SendAsync(
+                "MoveInVillage",
+                _currentPlanetId,
+                _currentMapId,
+                x,
+                y,
+                (int)facing,
+                buildingId);
+        }
+        catch (Exception ex)
+        {
+            LogError("Failed to report village movement.", ex);
+        }
     }
 
     private void OnPresenceJoined(VillagePresence presence)

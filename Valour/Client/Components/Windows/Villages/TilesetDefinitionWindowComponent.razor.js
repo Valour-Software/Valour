@@ -25,6 +25,10 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
         panning: false,
         dragStart: null,
         panStart: null,
+        // Set while an edge or corner handle of the selection is being
+        // dragged: which sides follow the cursor, and the tile coordinates of
+        // the opposite (anchored) edges.
+        resizing: null,
         keyboardPanSpeed: 24,
         localObjectUrl: null,
         destroyed: false
@@ -71,7 +75,6 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
     };
 
     state.onMouseDown = async (event) => {
-        const point = getSheetPoint(state, event);
         if (event.button === 1 || event.altKey || event.metaKey) {
             state.panning = true;
             state.panStart = {
@@ -83,6 +86,21 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
             return;
         }
 
+        // Grabbing a selection handle resizes the existing bounds instead of
+        // starting a new rubber-band selection.
+        const handle = getResizeHandleAt(state, event);
+        if (handle) {
+            state.resizing = {
+                handle,
+                anchorLeft: state.selection.x,
+                anchorTop: state.selection.y,
+                anchorRight: state.selection.x + state.selection.width - 1,
+                anchorBottom: state.selection.y + state.selection.height - 1
+            };
+            return;
+        }
+
+        const point = getSheetPoint(state, event);
         if (!point) {
             return;
         }
@@ -90,7 +108,7 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
         state.dragging = true;
         state.dragStart = point;
         updateSelectionFromPoints(state, point, point);
-        await notifySelection(state);
+        await notifySelection(state, true);
         draw(state);
     };
 
@@ -102,7 +120,15 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
             return;
         }
 
+        if (state.resizing) {
+            applyResize(state, event);
+            await notifySelection(state, true);
+            draw(state);
+            return;
+        }
+
         if (!state.dragging || !state.dragStart) {
+            updateHoverCursor(state, event);
             return;
         }
 
@@ -112,21 +138,42 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
         }
 
         updateSelectionFromPoints(state, state.dragStart, point);
-        await notifySelection(state);
+        await notifySelection(state, true);
         draw(state);
     };
 
-    state.onMouseUp = () => {
+    state.onMouseUp = async () => {
+        const gestureEnded = state.dragging || state.resizing;
         state.dragging = false;
         state.panning = false;
         state.dragStart = null;
         state.panStart = null;
+        state.resizing = null;
+
+        // The final report is what runs definition matching on the Blazor
+        // side; the live reports during the gesture deliberately do not.
+        if (gestureEnded) {
+            await notifySelection(state, false);
+        }
     };
 
     state.onWheel = (event) => {
         event.preventDefault();
+
+        // Design-tool convention: a plain wheel or two-finger scroll pans in
+        // both axes; a trackpad pinch (delivered as a ctrl-wheel) or an
+        // explicit ctrl/cmd wheel zooms at the cursor.
+        if (!event.ctrlKey && !event.metaKey) {
+            state.offsetX -= event.deltaX;
+            state.offsetY -= event.deltaY;
+            draw(state);
+            return;
+        }
+
         const before = getWorldPoint(state, event);
-        const factor = Math.exp(-event.deltaY * 0.00024);
+        // Pinch events arrive as many tiny deltas, mouse wheels as one large
+        // one; the per-event clamp keeps a single wheel tick from leaping.
+        const factor = clamp(Math.exp(-event.deltaY * 0.005), 0.5, 2);
         state.scale = clamp(state.scale * factor, 0.5, 10);
         const rect = canvas.getBoundingClientRect();
         state.offsetX = event.clientX - rect.left - before.x * state.scale;
@@ -387,17 +434,35 @@ function getDefinitionColor(definition) {
 
 function drawSelection(state, view) {
     const { ctx, selection } = state;
-    const x = view.x + selection.x * state.tileSize * view.scale;
-    const y = view.y + selection.y * state.tileSize * view.scale;
-    const width = selection.width * state.tileSize * view.scale;
-    const height = selection.height * state.tileSize * view.scale;
+    const x = Math.round(view.x + selection.x * state.tileSize * view.scale);
+    const y = Math.round(view.y + selection.y * state.tileSize * view.scale);
+    const width = Math.round(selection.width * state.tileSize * view.scale);
+    const height = Math.round(selection.height * state.tileSize * view.scale);
 
     ctx.save();
     ctx.fillStyle = "rgba(255, 211, 91, 0.22)";
     ctx.strokeStyle = "#ffd35b";
     ctx.lineWidth = 2;
-    ctx.fillRect(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
-    ctx.strokeRect(Math.round(x) + 1, Math.round(y) + 1, Math.round(width) - 2, Math.round(height) - 2);
+    ctx.fillRect(x, y, width, height);
+    ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+
+    // Grab handles at the corners and edge midpoints signal that the bounds
+    // are resizable in place.
+    const half = 3;
+    ctx.fillStyle = "#ffd35b";
+    ctx.strokeStyle = "rgba(21, 25, 34, 0.9)";
+    ctx.lineWidth = 1;
+    for (const hx of [x, x + width / 2, x + width]) {
+        for (const hy of [y, y + height / 2, y + height]) {
+            if (hx === x + width / 2 && hy === y + height / 2) {
+                continue;
+            }
+
+            ctx.fillRect(Math.round(hx) - half, Math.round(hy) - half, half * 2, half * 2);
+            ctx.strokeRect(Math.round(hx) - half + 0.5, Math.round(hy) - half + 0.5, half * 2 - 1, half * 2 - 1);
+        }
+    }
+
     ctx.restore();
 }
 
@@ -415,6 +480,128 @@ function getSheetPoint(state, event) {
         x: clamp(Math.floor(world.x / state.tileSize), 0, Math.floor(state.image.width / state.tileSize) - 1),
         y: clamp(Math.floor(world.y / state.tileSize), 0, Math.floor(state.image.height / state.tileSize) - 1)
     };
+}
+
+/**
+ * Like getSheetPoint, but clamps positions outside the sheet to the nearest
+ * tile instead of returning null. A resize drag that wanders past the sheet
+ * edge should pin the bound to the edge, not freeze.
+ */
+function getClampedSheetPoint(state, event) {
+    if (!state.imageLoaded) {
+        return null;
+    }
+
+    const world = getWorldPoint(state, event);
+    return {
+        x: clamp(Math.floor(world.x / state.tileSize), 0, Math.floor(state.image.width / state.tileSize) - 1),
+        y: clamp(Math.floor(world.y / state.tileSize), 0, Math.floor(state.image.height / state.tileSize) - 1)
+    };
+}
+
+// Screen-pixel reach of a selection handle. Generous enough to grab at a
+// glance, small enough that the selection interior still starts a new
+// rubber-band selection.
+const HANDLE_GRAB_MARGIN = 7;
+
+/**
+ * Which edges of the current selection the cursor is gripping, or null when it
+ * is not on a handle. Corners return two flags. Measured in screen pixels so
+ * the grab area is constant at every zoom level.
+ */
+function getResizeHandleAt(state, event) {
+    if (!state.imageLoaded) {
+        return null;
+    }
+
+    const rect = state.canvas.getBoundingClientRect();
+    const px = event.clientX - rect.left;
+    const py = event.clientY - rect.top;
+
+    const view = getView(state);
+    const left = view.x + state.selection.x * state.tileSize * view.scale;
+    const top = view.y + state.selection.y * state.tileSize * view.scale;
+    const right = left + state.selection.width * state.tileSize * view.scale;
+    const bottom = top + state.selection.height * state.tileSize * view.scale;
+
+    const withinX = px >= left - HANDLE_GRAB_MARGIN && px <= right + HANDLE_GRAB_MARGIN;
+    const withinY = py >= top - HANDLE_GRAB_MARGIN && py <= bottom + HANDLE_GRAB_MARGIN;
+    if (!withinX || !withinY) {
+        return null;
+    }
+
+    const handle = {
+        w: Math.abs(px - left) <= HANDLE_GRAB_MARGIN,
+        e: Math.abs(px - right) <= HANDLE_GRAB_MARGIN,
+        n: Math.abs(py - top) <= HANDLE_GRAB_MARGIN,
+        s: Math.abs(py - bottom) <= HANDLE_GRAB_MARGIN
+    };
+
+    return handle.n || handle.e || handle.s || handle.w ? handle : null;
+}
+
+/**
+ * Moves the gripped edges to the tile under the cursor while the opposite
+ * edges stay anchored. Dragging an edge across its anchor flips the rectangle
+ * rather than jamming at one tile, matching how the rubber-band select feels.
+ */
+function applyResize(state, event) {
+    const point = getClampedSheetPoint(state, event);
+    if (!point) {
+        return;
+    }
+
+    const { handle, anchorLeft, anchorTop, anchorRight, anchorBottom } = state.resizing;
+
+    let left = anchorLeft;
+    let right = anchorRight;
+    if (handle.w) {
+        left = Math.min(point.x, anchorRight);
+        right = Math.max(point.x, anchorRight);
+    } else if (handle.e) {
+        left = Math.min(anchorLeft, point.x);
+        right = Math.max(anchorLeft, point.x);
+    }
+
+    let top = anchorTop;
+    let bottom = anchorBottom;
+    if (handle.n) {
+        top = Math.min(point.y, anchorBottom);
+        bottom = Math.max(point.y, anchorBottom);
+    } else if (handle.s) {
+        top = Math.min(anchorTop, point.y);
+        bottom = Math.max(anchorTop, point.y);
+    }
+
+    state.selection = {
+        x: left,
+        y: top,
+        width: right - left + 1,
+        height: bottom - top + 1
+    };
+}
+
+/**
+ * Resize affordance: the cursor telegraphs the grab before the user commits.
+ */
+function updateHoverCursor(state, event) {
+    const handle = getResizeHandleAt(state, event);
+    let cursor = "";
+    if (handle) {
+        if ((handle.n && handle.w) || (handle.s && handle.e)) {
+            cursor = "nwse-resize";
+        } else if ((handle.n && handle.e) || (handle.s && handle.w)) {
+            cursor = "nesw-resize";
+        } else if (handle.n || handle.s) {
+            cursor = "ns-resize";
+        } else {
+            cursor = "ew-resize";
+        }
+    }
+
+    if (state.canvas.style.cursor !== cursor) {
+        state.canvas.style.cursor = cursor;
+    }
 }
 
 function getWorldPoint(state, event) {
@@ -447,11 +634,17 @@ function updateSelectionFromPoints(state, start, end) {
     };
 }
 
-async function notifySelection(state) {
+/**
+ * Reports the selection to Blazor. Live reports keep the side panel's numbers
+ * current during a gesture; the final report (live = false, sent on release)
+ * is the one allowed to match and load a saved definition.
+ */
+async function notifySelection(state, live) {
     await state.dotNetRef.invokeMethodAsync(
         "OnSelectionChanged",
         state.selection.x,
         state.selection.y,
         state.selection.width,
-        state.selection.height);
+        state.selection.height,
+        !!live);
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Valour.Database.Context;
 using Valour.Server.Models.Economy;
@@ -24,6 +25,10 @@ namespace Valour.Server.Services.Villages;
 /// </summary>
 public class VillageMarketService
 {
+    // Planets are node-pinned, so serializing an asset's purchase on this node
+    // prevents two buyers from both settling before either deed handover lands.
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> PurchaseLocks = new();
+
     private readonly ValourDb _db;
     private readonly EcoService _ecoService;
     private readonly CoreHubService _hubService;
@@ -49,11 +54,20 @@ public class VillageMarketService
     internal static string BuildFingerprint(string kind, long assetId, long buyerMemberId, long? sellerMemberId) =>
         $"village:{kind}:{assetId}:{buyerMemberId}:{sellerMemberId?.ToString() ?? "planet"}";
 
-    public async Task<TaskResult> SetPlotForSaleAsync(long plotId, long planetId, bool forSale, decimal price)
+    public async Task<TaskResult> SetPlotForSaleAsync(
+        long plotId,
+        long planetId,
+        long actorMemberId,
+        bool canManageVillage,
+        bool forSale,
+        decimal price)
     {
         var plot = await _db.VillagePlots.FirstOrDefaultAsync(x => x.Id == plotId && x.PlanetId == planetId);
         if (plot is null)
             return new TaskResult(false, "Plot not found.");
+
+        if (!CanManageListing(plot.OwnerMemberId, actorMemberId, canManageVillage))
+            return new TaskResult(false, "Only the owner or a village manager can list this parcel.");
 
         if (price < 0)
             return new TaskResult(false, "Price cannot be negative.");
@@ -66,11 +80,20 @@ public class VillageMarketService
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> SetBuildingForSaleAsync(long buildingId, long planetId, bool forSale, decimal price)
+    public async Task<TaskResult> SetBuildingForSaleAsync(
+        long buildingId,
+        long planetId,
+        long actorMemberId,
+        bool canManageVillage,
+        bool forSale,
+        decimal price)
     {
         var building = await _db.VillageBuildings.FirstOrDefaultAsync(x => x.Id == buildingId && x.PlanetId == planetId);
         if (building is null)
             return new TaskResult(false, "Building not found.");
+
+        if (!CanManageListing(building.OwnerMemberId, actorMemberId, canManageVillage))
+            return new TaskResult(false, "Only the owner or a village manager can list this building.");
 
         if (price < 0)
             return new TaskResult(false, "Price cannot be negative.");
@@ -84,6 +107,24 @@ public class VillageMarketService
     }
 
     public async Task<TaskResult> PurchasePlotAsync(long plotId, long planetId, long buyerMemberId, long buyerUserId)
+    {
+        var gate = PurchaseLocks.GetOrAdd($"plot:{plotId}", _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        try
+        {
+            return await PurchasePlotCoreAsync(plotId, planetId, buyerMemberId, buyerUserId);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task<TaskResult> PurchasePlotCoreAsync(
+        long plotId,
+        long planetId,
+        long buyerMemberId,
+        long buyerUserId)
     {
         var plot = await _db.VillagePlots.FirstOrDefaultAsync(x => x.Id == plotId && x.PlanetId == planetId);
         if (plot is null)
@@ -108,6 +149,24 @@ public class VillageMarketService
     }
 
     public async Task<TaskResult> PurchaseBuildingAsync(long buildingId, long planetId, long buyerMemberId, long buyerUserId)
+    {
+        var gate = PurchaseLocks.GetOrAdd($"building:{buildingId}", _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        try
+        {
+            return await PurchaseBuildingCoreAsync(buildingId, planetId, buyerMemberId, buyerUserId);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task<TaskResult> PurchaseBuildingCoreAsync(
+        long buildingId,
+        long planetId,
+        long buyerMemberId,
+        long buyerUserId)
     {
         var building = await _db.VillageBuildings.FirstOrDefaultAsync(x => x.Id == buildingId && x.PlanetId == planetId);
         if (building is null)
@@ -141,6 +200,9 @@ public class VillageMarketService
 
         return TaskResult.SuccessResult;
     }
+
+    internal static bool CanManageListing(long? ownerMemberId, long actorMemberId, bool canManageVillage) =>
+        canManageVillage || ownerMemberId == actorMemberId;
 
     /// <summary>
     /// Moves the money, or confirms it has already moved. Returns success for a
@@ -212,7 +274,7 @@ public class VillageMarketService
     /// Unowned property is sold by the planet itself, so the proceeds go to a
     /// shared account rather than vanishing.
     /// </summary>
-    private async Task<EcoAccount> ResolveSellerAccountAsync(long planetId, long? sellerMemberId)
+    private async Task<EcoAccount?> ResolveSellerAccountAsync(long planetId, long? sellerMemberId)
     {
         if (sellerMemberId is not null)
         {
@@ -230,6 +292,6 @@ public class VillageMarketService
         var shared = await _db.EcoAccounts
             .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.AccountType == AccountType.Shared);
 
-        return shared.ToModel();
+        return shared?.ToModel();
     }
 }

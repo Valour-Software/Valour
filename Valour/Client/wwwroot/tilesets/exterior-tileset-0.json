@@ -351,10 +351,10 @@
       "Width": 2,
       "Height": 3,
       "Collision": [
-        true,
-        true,
-        true,
-        true,
+        false,
+        false,
+        false,
+        false,
         true,
         true
       ]
@@ -372,16 +372,16 @@
       "Width": 2,
       "Height": 3,
       "Collision": [
-        true,
-        true,
-        true,
-        true,
+        false,
+        false,
+        false,
+        false,
         true,
         true
       ]
     },
     {
-      "Kind": "Tile",
+      "Kind": "Sprite",
       "Name": "Small Tree Planter",
       "Key": "small-tree-planter",
       "GroupKey": "",
@@ -393,18 +393,18 @@
       "Width": 2,
       "Height": 4,
       "Collision": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
         false,
-        false
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
       ]
     },
     {
-      "Kind": "Tile",
+      "Kind": "Sprite",
       "Name": "Small Tree Planter",
       "Key": "small-tree-planter.square",
       "GroupKey": "",
@@ -416,14 +416,14 @@
       "Width": 2,
       "Height": 4,
       "Collision": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
         false,
-        false
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
       ]
     },
     {
@@ -439,21 +439,21 @@
       "Width": 3,
       "Height": 5,
       "Collision": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        false,
-        true,
         false,
         false,
         false,
-        false
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
       ]
     },
     {
@@ -496,15 +496,15 @@
       "Width": 3,
       "Height": 4,
       "Collision": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
         false,
         true,
         false
@@ -523,21 +523,21 @@
       "Width": 3,
       "Height": 5,
       "Collision": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        false,
-        true,
         false,
         false,
         false,
-        false
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
       ]
     },
     {
@@ -553,15 +553,15 @@
       "Width": 3,
       "Height": 4,
       "Collision": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
         false,
         true,
         false
@@ -1153,6 +1153,179 @@
         false,
         true,
         true,
+        true,
+        true
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "Park Bench",
+      "Key": "furniture.park-bench",
+      "GroupKey": "Street Furniture",
+      "GroupRole": "Base",
+      "VariantKey": "Wood",
+      "Direction": "South",
+      "X": 5,
+      "Y": 11,
+      "Width": 2,
+      "Height": 1,
+      "Collision": [
+        true,
+        true
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "Stone Fountain",
+      "Key": "decor.stone-fountain",
+      "GroupKey": "Civic",
+      "GroupRole": "Base",
+      "VariantKey": "Blue",
+      "Direction": "None",
+      "X": 16,
+      "Y": 15,
+      "Width": 2,
+      "Height": 3,
+      "Collision": [
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "White Flower Bed",
+      "Key": "garden.flowers.white",
+      "GroupKey": "Garden",
+      "GroupRole": "Variant",
+      "VariantKey": "White",
+      "Direction": "None",
+      "X": 52,
+      "Y": 7,
+      "Width": 2,
+      "Height": 2,
+      "Collision": [
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "Pink Flower Bed",
+      "Key": "garden.flowers.pink",
+      "GroupKey": "Garden",
+      "GroupRole": "Variant",
+      "VariantKey": "Pink",
+      "Direction": "None",
+      "X": 54,
+      "Y": 7,
+      "Width": 2,
+      "Height": 2,
+      "Collision": [
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "Red Flower Bed",
+      "Key": "garden.flowers.red",
+      "GroupKey": "Garden",
+      "GroupRole": "Variant",
+      "VariantKey": "Red",
+      "Direction": "None",
+      "X": 56,
+      "Y": 7,
+      "Width": 2,
+      "Height": 2,
+      "Collision": [
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "White Planter",
+      "Key": "garden.planter.white",
+      "GroupKey": "Garden",
+      "GroupRole": "Variant",
+      "VariantKey": "White",
+      "Direction": "None",
+      "X": 58,
+      "Y": 6,
+      "Width": 2,
+      "Height": 2,
+      "Collision": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "Yellow Planter",
+      "Key": "garden.planter.yellow",
+      "GroupKey": "Garden",
+      "GroupRole": "Variant",
+      "VariantKey": "Yellow",
+      "Direction": "None",
+      "X": 60,
+      "Y": 6,
+      "Width": 2,
+      "Height": 2,
+      "Collision": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "Pink Planter",
+      "Key": "garden.planter.pink",
+      "GroupKey": "Garden",
+      "GroupRole": "Variant",
+      "VariantKey": "Pink",
+      "Direction": "None",
+      "X": 60,
+      "Y": 8,
+      "Width": 2,
+      "Height": 2,
+      "Collision": [
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "Kind": "Sprite",
+      "Name": "Market Stall",
+      "Key": "commerce.market-stall",
+      "GroupKey": "Commerce",
+      "GroupRole": "Base",
+      "VariantKey": "Wood",
+      "Direction": "South",
+      "X": 78,
+      "Y": 16,
+      "Width": 2,
+      "Height": 3,
+      "Collision": [
+        false,
+        false,
+        false,
+        false,
         true,
         true
       ]

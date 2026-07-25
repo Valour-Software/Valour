@@ -89,4 +89,27 @@ public class VillageMarketServiceTests
 
         Assert.True(result.Success);
     }
+
+    [Fact]
+    public void Listing_AllowsThePropertyOwner()
+    {
+        Assert.True(VillageMarketService.CanManageListing(
+            ownerMemberId: 7,
+            actorMemberId: 7,
+            canManageVillage: false));
+    }
+
+    [Fact]
+    public void Listing_RejectsUnrelatedMemberButAllowsManager()
+    {
+        Assert.False(VillageMarketService.CanManageListing(
+            ownerMemberId: 7,
+            actorMemberId: 9,
+            canManageVillage: false));
+
+        Assert.True(VillageMarketService.CanManageListing(
+            ownerMemberId: 7,
+            actorMemberId: 9,
+            canManageVillage: true));
+    }
 }

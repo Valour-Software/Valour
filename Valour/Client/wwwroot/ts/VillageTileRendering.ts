@@ -6,6 +6,7 @@ export type TileDefinition = {
     y: number;
     width: number;
     height: number;
+    collision: boolean[];
 };
 
 export type BrushCellDefinition = {
@@ -135,15 +136,107 @@ export function normalizeTileDefinition(definition: any): TileDefinition | null 
         return null;
     }
 
+    const width = Math.max(1, numberValue(source.width ?? source.Width, 1));
+    const height = Math.max(1, numberValue(source.height ?? source.Height, 1));
+    const rawCollision = Array.isArray(source.collision)
+        ? source.collision
+        : Array.isArray(source.Collision)
+            ? source.Collision
+            : [];
+    const collision = rawCollision
+        .slice(0, width * height)
+        .map(value => value === true || value === 1 || value === "true");
+
+    while (collision.length < width * height) {
+        collision.push(false);
+    }
+
     return {
         kind: stringValue(source.kind ?? source.Kind) || "Tile",
         name: stringValue(source.name ?? source.Name) || key,
         key,
         x: numberValue(source.x ?? source.X),
         y: numberValue(source.y ?? source.Y),
-        width: Math.max(1, numberValue(source.width ?? source.Width, 1)),
-        height: Math.max(1, numberValue(source.height ?? source.Height, 1))
+        width,
+        height,
+        collision
     };
+}
+
+export function getVillageRenderScale(viewportWidth: number, mapKind?: string): number {
+    const mobile = viewportWidth < 760;
+    return mapKind === "Interior"
+        ? (mobile ? 2 : 3)
+        : (mobile ? 1 : 2);
+}
+
+export function adjustVillageZoom(currentZoom: number, stepDelta: number): number {
+    const current = Number.isFinite(currentZoom) ? currentZoom : 1;
+    const stepped = Math.round((current + stepDelta * 0.25) * 4) / 4;
+    return clamp(stepped, 0.5, 2);
+}
+
+export type TilePoint = {
+    x: number;
+    y: number;
+};
+
+export type TileBounds = TilePoint & {
+    width: number;
+    height: number;
+};
+
+/**
+ * Village objects store the top-left of their walkable footprint, while tall
+ * sprites include canopy/roof pixels above that footprint. Keeping this
+ * conversion in one place prevents drawing, culling and collision from
+ * disagreeing about where the same authored sprite lives.
+ */
+export function getBottomAnchoredSpriteBounds(
+    tileX: number,
+    tileY: number,
+    footprintHeight: number,
+    spriteWidth: number,
+    spriteHeight: number
+): TileBounds {
+    return {
+        x: tileX,
+        y: tileY + Math.max(1, footprintHeight) - Math.max(1, spriteHeight),
+        width: Math.max(1, spriteWidth),
+        height: Math.max(1, spriteHeight)
+    };
+}
+
+/**
+ * Projects a row-major tileset collision mask into map coordinates using the
+ * same bottom anchor as the renderer. Empty/transparent cells stay walkable.
+ */
+export function getBottomAnchoredCollisionCells(
+    tileX: number,
+    tileY: number,
+    footprintHeight: number,
+    definition: Pick<TileDefinition, "width" | "height" | "collision">
+): TilePoint[] {
+    const bounds = getBottomAnchoredSpriteBounds(
+        tileX,
+        tileY,
+        footprintHeight,
+        definition.width,
+        definition.height);
+    const cells: TilePoint[] = [];
+
+    for (let index = 0; index < definition.width * definition.height; index++) {
+        if (!definition.collision[index]) {
+            continue;
+        }
+
+        cells.push({
+            x: bounds.x + index % definition.width,
+            y: bounds.y + Math.floor(index / definition.width)
+        });
+    }
+
+    return cells;
 }
 
 export function normalizeBrushDefinitions(brushes: any): BrushDefinition[] {
@@ -193,6 +286,21 @@ export function isSpriteDefinition(definition: TileDefinition): boolean {
 
 export function createDefinitionMap(definitions: TileDefinition[]): Map<string, TileDefinition> {
     return new Map(definitions.map(definition => [definition.key, definition]));
+}
+
+/**
+ * Must stay byte-for-byte compatible with CallPanelComponent's element ids.
+ * Peer ids may contain non-ASCII display/provider data, so UTF-8 bytes are
+ * encoded rather than JavaScript UTF-16 code units.
+ */
+export function getCallAudioElementId(peerId: string): string {
+    const bytes = new TextEncoder().encode(peerId || "unknown");
+    let suffix = "";
+    for (const byte of bytes) {
+        suffix += byte.toString(16).padStart(2, "0");
+    }
+
+    return `call-audio-${suffix}`;
 }
 
 export function drawTilesetDefinition(

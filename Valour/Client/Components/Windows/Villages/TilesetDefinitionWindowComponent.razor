@@ -290,18 +290,26 @@
     }
 
     [JSInvokable]
-    public async Task OnSelectionChanged(int x, int y, int width, int height)
+    public async Task OnSelectionChanged(int x, int y, int width, int height, bool live)
     {
         var selection = new SheetSelection { X = x, Y = y, Width = width, Height = height };
-        var matchingDefinition = FindDefinitionForSelection(selection);
-        if (selection.Width == 1 && selection.Height == 1)
-            matchingDefinition = FindContainingDefinition(selection, "Sprite") ?? matchingDefinition;
 
-        matchingDefinition ??= FindContainingDefinition(selection);
-        if (matchingDefinition is not null)
+        // Definition matching only runs when the gesture ends. A drag or a
+        // handle-resize passes through many intermediate rectangles, and one
+        // that happens to equal a saved definition must not hijack the draft
+        // mid-gesture.
+        if (!live)
         {
-            await LoadDefinition(matchingDefinition);
-            return;
+            var matchingDefinition = FindDefinitionForSelection(selection);
+            if (selection.Width == 1 && selection.Height == 1)
+                matchingDefinition = FindContainingDefinition(selection, "Sprite") ?? matchingDefinition;
+
+            matchingDefinition ??= FindContainingDefinition(selection);
+            if (matchingDefinition is not null)
+            {
+                await LoadDefinition(matchingDefinition);
+                return;
+            }
         }
 
         _selection = selection;
@@ -745,8 +753,15 @@
             _definitions.Add(copy);
 
         _selectedBrushTileKey = copy.Key;
-        ClearDraft();
+
+        // The saved definition stays loaded for continued editing. Resetting
+        // the panel here wiped the collision mask and identity fields the
+        // moment they were saved, which read as data loss until the
+        // definition was reselected.
+        _draft = copy.Clone();
+        _keyWasEdited = true;
         await SyncDefinitionOutlinesAsync();
+        await ReRender();
     }
 
     private async Task DeleteSelectedDefinition()

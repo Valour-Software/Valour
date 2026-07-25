@@ -119,12 +119,12 @@ public class VillagePresenceServiceTests
 
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 0, 0);
 
-        var moved = service.Move(planetId, mapId, 1, 7, 8, VillageFacing.Left, buildingId: 42);
+        var moved = service.Move(planetId, mapId, 1, 1, 0, VillageFacing.Left, buildingId: 42);
         Assert.True(moved);
 
         var presence = Assert.Single(service.GetMapOccupants(planetId, mapId));
-        Assert.Equal(7, presence.X);
-        Assert.Equal(8, presence.Y);
+        Assert.Equal(1, presence.X);
+        Assert.Equal(0, presence.Y);
         Assert.Equal(VillageFacing.Left, presence.Facing);
         Assert.Equal(42, presence.BuildingId);
 
@@ -173,6 +173,26 @@ public class VillagePresenceServiceTests
     }
 
     [Fact]
+    public async Task Move_RejectsSameMapTeleport()
+    {
+        using var scope = CreateScope();
+        var service = Resolve(scope);
+
+        const long planetId = 900_011;
+        const long mapId = 1;
+
+        await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 2, 2);
+
+        Assert.False(service.Move(planetId, mapId, 1, 8, 9, VillageFacing.Down, null));
+
+        var presence = Assert.Single(service.GetMapOccupants(planetId, mapId));
+        Assert.Equal(2, presence.X);
+        Assert.Equal(2, presence.Y);
+
+        await service.LeaveAllForUserAsync(1);
+    }
+
+    [Fact]
     public async Task BuildingOccupants_TracksWhoIsInside()
     {
         using var scope = CreateScope();
@@ -185,13 +205,42 @@ public class VillagePresenceServiceTests
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 0, 0);
         await service.JoinMapAsync(planetId, mapId, userId: 2, memberId: 22, "Grace", "g", 5, 5);
 
-        service.Move(planetId, mapId, 1, 1, 1, VillageFacing.Down, buildingId);
+        service.Move(planetId, mapId, 1, 1, 0, VillageFacing.Down, buildingId);
 
         var occupants = service.GetBuildingOccupants(planetId, buildingId);
         Assert.Equal(1, Assert.Single(occupants).UserId);
 
         await service.LeaveAllForUserAsync(1);
         await service.LeaveAllForUserAsync(2);
+    }
+
+    [Fact]
+    public async Task JoinMap_PreservesInteriorBuildingContextImmediately()
+    {
+        using var scope = CreateScope();
+        var service = Resolve(scope);
+
+        const long planetId = 900_012;
+        const long mapId = 2;
+        const long buildingId = 77;
+
+        await service.JoinMapAsync(
+            planetId,
+            mapId,
+            userId: 1,
+            memberId: 11,
+            "Ada",
+            "a",
+            9,
+            11,
+            buildingId);
+
+        var occupant = Assert.Single(service.GetBuildingOccupants(planetId, buildingId));
+        Assert.Equal(mapId, occupant.MapId);
+        Assert.Equal(9, occupant.X);
+        Assert.Equal(11, occupant.Y);
+
+        await service.LeaveAllForUserAsync(1);
     }
 
     [Fact]

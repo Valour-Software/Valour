@@ -522,6 +522,7 @@ public partial class Program
         services.AddScoped<Valour.Server.Services.Villages.VillagePresenceService>();
         services.AddScoped<Valour.Server.Services.Villages.VillageMarketService>();
         services.AddScoped<Valour.Server.Services.Villages.VillageWorldService>();
+        services.AddSingleton<Valour.Server.Services.Villages.VillageRoomService>();
         services.AddScoped<OauthAppService>();
         services.AddScoped<PermissionsNodeService>();
         services.AddScoped<MultiAuthService>();

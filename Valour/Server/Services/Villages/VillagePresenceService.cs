@@ -51,7 +51,8 @@ public class VillagePresenceService
         string name,
         string avatarUrl,
         int x,
-        int y)
+        int y,
+        long? buildingId = null)
     {
         var planetPresences = Presences.GetOrAdd(planetId, _ => new ConcurrentDictionary<long, VillagePresence>());
 
@@ -69,6 +70,7 @@ public class VillagePresenceService
             X = x,
             Y = y,
             Facing = VillageFacing.Down,
+            BuildingId = buildingId,
         };
 
         planetPresences[userId] = presence;
@@ -95,6 +97,14 @@ public class VillagePresenceService
             return false;
 
         if (!planetPresences.TryGetValue(userId, out var presence) || presence.MapId != mapId)
+            return false;
+
+        // A normal step changes exactly one axis by one tile. Door transitions
+        // join a different map instead, so there is no legitimate same-map
+        // teleport to preserve here. Reject before touching the throttle so a
+        // forged jump cannot also suppress the member's next real step.
+        var distance = Math.Abs(x - presence.X) + Math.Abs(y - presence.Y);
+        if (distance != 1)
             return false;
 
         var now = DateTime.UtcNow.Ticks;

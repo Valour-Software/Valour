@@ -30,6 +30,7 @@ public class CoreHub : Hub
     private readonly ChannelWatchingService _channelWatchingService;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly Valour.Server.Services.Villages.VillagePresenceService _villagePresenceService;
+    private readonly Valour.Server.Services.Villages.VillageRoomService _villageRoomService;
 
     public CoreHub(
         ValourDb db, 
@@ -42,7 +43,8 @@ public class CoreHub : Hub
         UserOnlineQueueService onlineQueue,
         ChannelWatchingService channelWatchingService,
         HostedPlanetService hostedPlanetService,
-        Valour.Server.Services.Villages.VillagePresenceService villagePresenceService)
+        Valour.Server.Services.Villages.VillagePresenceService villagePresenceService,
+        Valour.Server.Services.Villages.VillageRoomService villageRoomService)
     {
         _db = db;
         _hubService = hubService;
@@ -55,6 +57,7 @@ public class CoreHub : Hub
         _channelWatchingService = channelWatchingService;
         _hostedPlanetService = hostedPlanetService;
         _villagePresenceService = villagePresenceService;
+        _villageRoomService = villageRoomService;
     }
 
     public async Task<TaskResult> Authorize(string token)
@@ -103,6 +106,7 @@ public class CoreHub : Hub
             // Otherwise a dropped connection leaves a character standing in the
             // village until the node restarts.
             await _villagePresenceService.LeaveAllForUserAsync(authToken.UserId);
+            await _villageRoomService.ReleaseAllForUserAsync(authToken.UserId);
         }
 
         await _connectionTracker.RemovePrimaryConnectionAsync(Context, _redis);
@@ -275,7 +279,12 @@ public class CoreHub : Hub
     /// Presence is scoped to a per-map group so movement on one map does not
     /// reach clients standing on another.
     /// </summary>
-    public async Task<VillagePresenceSnapshot> JoinVillageMap(long planetId, long mapId, int x, int y)
+    public async Task<VillagePresenceSnapshot> JoinVillageMap(
+        long planetId,
+        long mapId,
+        int x,
+        int y,
+        long? buildingId)
     {
         var authToken = await GetValidAuthTokenAsync();
         if (authToken is null)
@@ -297,7 +306,7 @@ public class CoreHub : Hub
             member, Valour.Shared.Models.AvatarFormat.Webp64);
 
         return await _villagePresenceService.JoinMapAsync(
-            planetId, mapId, authToken.UserId, member.Id, name, avatarUrl, x, y);
+            planetId, mapId, authToken.UserId, member.Id, name, avatarUrl, x, y, buildingId);
     }
 
     public async Task LeaveVillageMap(long planetId, long mapId)
@@ -407,4 +416,3 @@ public class CoreHub : Hub
             .AnyAsync(x => x.ChannelId == channelId && x.UserId == userId);
     }
 }
-
