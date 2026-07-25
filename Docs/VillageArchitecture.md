@@ -1,816 +1,226 @@
 # Valour Village Architecture
 
-This document describes the proposed architecture for Valour Villages: a planet-scoped 2D social game runtime embedded inside the existing Valour client.
+Villages are a planet-scoped 2D social world embedded in the Valour client: a
+place members walk around, run into each other, and talk, with buildings that
+surface the planet's existing channels rather than duplicating them.
 
-Villages are not a simple map view or decorative window type. They are a lightweight game subsystem that integrates with Valour planets, channels, voice, permissions, realtime sync, and future creator economies.
+This document describes **what is built**, the reasoning behind decisions that are
+not obvious from reading the code, and what is deliberately still open. Anything
+under "Not built yet" is not in the codebase.
 
-## Overview
-
-Valour Villages should be built as a dedicated vertical slice with its own:
-
-1. Shared models and requests
-2. Database entities
-3. Server services
-4. Dynamic API routes
-5. Client SDK models and services
-6. Client game runtime and docked window
-
-The feature must support:
-
-- Outdoor village maps
-- Interior maps
-- Buildings linked to chat or voice channels
-- Plot ownership and editing
-- Furniture and decorative objects
-- Realtime player presence
-- Custom asset authoring from day one
-- Layered user characters
-- Future community sharing and selling of asset packs
-
-The initial release does not need directional character rendering, but the architecture must support it later without requiring schema or pipeline rewrites.
-
-## Goals
-
-- Fit cleanly into the current planet-scoped reactive model system
-- Keep village logic isolated from `PlanetService` and unrelated core services
-- Support large communities and future map growth
-- Separate persistent world state from ephemeral gameplay state
-- Support official assets first while remaining marketplace-ready
-- Support layered character composition instead of single baked sprite sheets
-
-## Non-Goals For Initial Release
-
-- Deep NPC simulation
-- Farming, combat, or physics-heavy gameplay
-- Public marketplace activation
-- External asset activation for live communities
-- Required directional art for all character parts
-- Per-frame Blazor-driven game rendering
-
-## Architectural Principles
-
-### 1. Villages are a planet-scoped subsystem
-
-Village state belongs to a planet, but it should not be modeled as miscellaneous planet metadata. New village entities should follow the existing planet-owned model pattern used elsewhere in Valour.
-
-This aligns with:
-
-- `ISharedPlanetModel`
-- `ClientPlanetModel`
-- `CoreHubService.NotifyPlanetItemChange`
-
-### 2. Persistent and ephemeral state must be split
-
-Persistent authoritative state:
-
-- Maps
-- Chunks and layers
-- Plots
-- Buildings
-- Interiors
-- Furniture and decor
-- Asset definitions and pack metadata
-- Character appearance selections
-
-Ephemeral realtime state:
-
-- Player positions
-- Facing and animation state
-- Current map occupancy
-- Temporary emotes or effects
-
-This split avoids storing high-frequency gameplay updates in heavyweight persistent models.
-
-### 3. The renderer is a game runtime, not standard UI state
-
-The village window should be a Blazor shell that hosts a dedicated TypeScript canvas runtime.
-
-Blazor owns:
-
-- Window lifecycle
-- Toolbars and inspectors
-- Modal workflows
-- Permissions-aware editing controls
-- Channel and voice integrations
-- Save and load triggers
-
-TypeScript owns:
-
-- Render loop
-- Camera
-- Input handling
-- Animation timing
-- Collision and hit-testing
-- Indoor and outdoor transitions
-- Runtime character composition
-
-### 4. Asset references must be logical, not raw file based
-
-Maps, characters, and objects should reference stable asset identifiers and versions, not direct CDN paths. This supports:
-
-- Version pinning
-- Moderation and takedowns
-- Fallback assets
-- Theme swaps
-- Future marketplace entitlements
-
-## High-Level Architecture
+## Shape of the system
 
 ```text
 SERVER
-Database Entities
-  -> Village Services
-  -> Asset Services
-  -> Character Services
-  -> Dynamic API Routes
-  -> CoreHubService Realtime Broadcasts
+  village_maps / village_map_chunks / village_plots
+  village_buildings / village_objects        persistent world
+    -> VillageWorldService                   load + seed
+    -> VillageMarketService                  ownership and sales
+    -> VillagePresenceService                ephemeral occupancy
+    -> CoreHub                               per-map realtime groups
 
 CLIENT SDK
-Node / SignalR
-  -> Village Models
-  -> Village Services
-  -> Presence State
-  -> Asset Resolution
+  VillageService            scene fetch, presence subscription
+  ModelStores on Planet     maps, plots, buildings, objects
 
-CLIENT UI
-Dock Window Shell
-  -> Canvas Game Runtime
-  -> Inspectors / Editors
-  -> Channel / Voice Integrations
+CLIENT
+  VillageWindowComponent    Blazor shell: HUD, inspectors, voice binding
+    -> .razor.js            canvas runtime: render loop, input, collision
+    -> VillageSpatialAudio  positional voice graph
+    -> VillageTileRendering shared tile/texture helpers
 ```
 
-## Project Structure
-
-Recommended structure:
-
-```text
-Valour/
-├── Docs/
-│   └── VillageArchitecture.md
-├── Valour/
-│   ├── Shared/
-│   │   ├── Villages/
-│   │   ├── VillageAssets/
-│   │   └── Characters/
-│   ├── Database/
-│   │   └── Village*.cs
-│   ├── Server/
-│   │   ├── Api/Dynamic/
-│   │   │   └── VillageApi.cs
-│   │   └── Services/
-│   │       ├── Villages/
-│   │       ├── VillageAssets/
-│   │       └── Characters/
-│   ├── Sdk/
-│   │   ├── Models/Villages/
-│   │   ├── Models/VillageAssets/
-│   │   ├── Models/Characters/
-│   │   └── Services/Villages/
-│   └── Client/
-│       └── Components/Windows/Villages/
-│           ├── VillageWindowComponent.razor
-│           ├── VillageWindowComponent.razor.ts
-│           └── Game/
-```
-
-## Core Domain Areas
-
-### Villages
-
-Owns world structure and gameplay space:
-
-- Outdoor maps
-- Interior maps
-- Plot ownership
-- Buildings
-- Furniture and decor
-- Portals
-
-### Village Assets
-
-Owns the visual and audio content pipeline:
-
-- Asset packs
-- Tilesets
-- Sprite sheets
-- Character parts
-- Metadata definitions
-- Validation and publishing state
-
-### Characters
-
-Owns user avatars in the village runtime:
-
-- Layered appearance
-- Rig compatibility
-- Future directionality support
-- Cosmetic resolution
-
-### Village Presence
-
-Owns map-local ephemeral presence:
-
-- Join and leave map
-- Movement updates
-- Facing and animation state
-- Occupant snapshots
-
-## Data Model
-
-### Persistent World Models
-
-#### `VillageMap`
-
-Represents either an outdoor map or an interior map.
-
-Suggested fields:
-
-- `Id`
-- `PlanetId`
-- `MapType` (`Outdoor`, `Interior`)
-- `Name`
-- `ParentBuildingId` nullable
-- `Width`
-- `Height`
-- `ChunkWidth`
-- `ChunkHeight`
-- `ActiveAssetPackId`
-- `DefaultSpawnPoint`
-- `MusicAssetId` nullable
-- `Version`
-
-Notes:
-
-- A planet can have one primary outdoor map and many interior maps
-- Interiors are first-class maps, not special cases
-
-#### `VillageMapChunk`
-
-Stores chunked map content for scalable persistence.
-
-Suggested fields:
-
-- `Id`
-- `MapId`
-- `ChunkX`
-- `ChunkY`
-- `Version`
-- `LayerData`
-- `CollisionData`
-- `MetadataData`
-
-Notes:
-
-- Chunking should exist from day one
-- Small interiors may still be stored as one chunk
-
-#### `VillagePlot`
-
-Represents a claimable or managed parcel of land.
-
-Suggested fields:
-
-- `Id`
-- `PlanetId`
-- `MapId`
-- `OwnerMemberId` nullable
-- `X`
-- `Y`
-- `Width`
-- `Height`
-- `PlotType`
-- `PermissionsMode`
-- `Name`
-
-#### `VillageBuilding`
-
-Represents a structure placed on a map.
-
-Suggested fields:
-
-- `Id`
-- `PlanetId`
-- `ExteriorMapId`
-- `InteriorMapId` nullable
-- `PlotId` nullable
-- `AssetDefinitionId`
-- `ChannelId` nullable
-- `X`
-- `Y`
-- `Width`
-- `Height`
-- `Rotation`
-- `OwnerMemberId` nullable
-- `Name`
-
-Notes:
-
-- `ChannelId` allows direct integration with existing Valour channels
-- `InteriorMapId` makes enterable buildings straightforward
-
-#### `VillageObject`
-
-Represents placed decor, furniture, or interactables.
-
-Suggested fields:
-
-- `Id`
-- `PlanetId`
-- `MapId`
-- `AssetDefinitionId`
-- `OwnerMemberId` nullable
-- `X`
-- `Y`
-- `Rotation`
-- `ZIndex`
-- `ObjectStateData`
-
-### Ephemeral Models
-
-#### `VillagePresence`
-
-Represents the live state of a player in the runtime.
-
-Suggested fields:
-
-- `PlanetId`
-- `UserId`
-- `MapId`
-- `X`
-- `Y`
-- `FacingDirection`
-- `AnimationState`
-- `EmoteState`
-- `Timestamp`
-
-Notes:
-
-- Presence should not be the source of truth for user appearance
-- Presence updates should be throttled and broadcast as coarse realtime events
-
-### Character Models
-
-#### `VillageCharacterAppearance`
-
-Represents a user’s selected look for villages.
-
-Suggested fields:
-
-- `UserId`
-- `RigId`
-- `BodyVariantId`
-- `PrimaryPalette`
-- `SecondaryPalette`
-- `Version`
-
-#### `VillageCharacterLayerSelection`
-
-Represents one selected layer in the composed character.
-
-Suggested fields:
-
-- `AppearanceId`
-- `Slot`
-- `AssetDefinitionId`
-- `ColorOverrides`
-- `SortOrder`
-
-Supported slots may include:
-
-- Body
-- Hair
-- Eyes
-- Top
-- Bottom
-- Shoes
-- Accessory
-- HeldItem
-- Effect
-
-Important rule:
-
-Character appearance must store logical layer selections, not baked sprite sheets.
-
-## Asset Platform
-
-Village assets should be marketplace-ready even if external activation is disabled initially.
-
-### Core Models
-
-#### `VillageAssetPack`
-
-Top-level pack that groups authored content.
-
-Suggested fields:
-
-- `Id`
-- `OwnerUserId` nullable
-- `OwnerPlanetId` nullable
-- `Name`
-- `Description`
-- `Scope`
-- `Status`
-- `Version`
-
-Possible statuses:
-
-- `Draft`
-- `Private`
-- `PlanetOnly`
-- `Approved`
-- `Published`
-- `Disabled`
-
-#### `VillageAssetDefinition`
-
-The logical asset unit referenced by maps and characters.
-
-Suggested fields:
-
-- `Id`
-- `AssetPackId`
-- `AssetType`
-- `Key`
-- `DisplayName`
-- `DefinitionData`
-- `Version`
-
-Asset types may include:
-
-- Tile
-- Building
-- Object
-- CharacterPart
-- CharacterRig
-- Effect
-- Audio
-
-#### `VillageAssetMedia`
-
-References uploaded source or derived media.
-
-Suggested fields:
-
-- `Id`
-- `AssetDefinitionId`
-- `MediaType`
-- `CdnPath`
-- `Width`
-- `Height`
-- `Hash`
-
-### Asset Rules
-
-- Runtime references use logical asset ids and versions
-- Uploaded media is validated before activation
-- Official and creator-authored content use the same pipeline
-- Public activation can remain disabled by policy while authoring exists
-
-### Future Commerce Readiness
-
-The schema should leave room for:
-
-- Ownership
-- Licensing
-- Entitlements
-- Pricing
-- Sharing
-- Moderation
-- Dependencies between packs or rigs
-
-## Character System
-
-Characters should use layered sprite composition.
-
-### Why layered composition
-
-- Supports customization without exploding sheet counts
-- Supports cosmetics and creator content later
-- Supports recoloring and variants
-- Keeps source-of-truth stable as rendering improves
-
-### Directionality
-
-Initial release requirements:
-
-- Store facing state in presence
-- Allow assets with no directional support
-- Render neutral or non-directional walking and idle animations
-
-Future support requirements:
-
-- Four-direction rendering
-- Eight-direction rendering
-- Mirrored variants where appropriate
-- Layer-aware directional character composition
-
-Character assets should declare metadata such as:
-
-- `SupportsDirectionality`
-- `DirectionCount`
-- `CanMirror`
-- `FrameLayout`
-- `CompatibleRigId`
-
-## Rendering Architecture
-
-### Window Integration
-
-Villages should be opened as a dedicated dock window content type.
-
-Suggested components:
-
-- `VillageWindowContent`
-- `VillageWindowComponent.razor`
-- `VillageWindowComponent.razor.ts`
-
-The window should carry `PlanetId` so it participates in planet connection management in the same way as other planet-scoped windows.
-
-### Runtime Responsibilities
-
-The TypeScript runtime should manage:
-
-- Render loop
-- Asset resolution cache
-- Camera and viewport
-- Input and interaction
-- Collision layers
-- Character composition
-- Map transitions
-- Presence interpolation
-
-### Why canvas
-
-Canvas is the right initial target because it handles:
-
-- Large tile scenes
-- Layered rendering
-- Camera pan and zoom
-- Sprite batching
-- Collision overlays and hit-testing
-- Smooth animation without frequent Blazor rerenders
-
-## Services
-
-### Server Services
-
-Recommended service groups:
-
-#### `VillageMapService`
-
-- Load maps
-- Load chunks
-- Save chunk updates
-- Manage portals and spawn points
-
-#### `VillageBuildingService`
-
-- Place buildings
-- Update links to channels
-- Manage interior associations
-
-#### `VillageInteriorService`
-
-- Create and load interior maps
-- Validate building to interior relationships
-
-#### `VillageObjectService`
-
-- Manage furniture and decor
-- Validate placement and collisions
-
-#### `VillagePresenceService`
-
-- Track current players per map
-- Broadcast join, leave, and move events
-- Throttle updates
-
-#### `VillagePermissionService`
-
-- Validate build and edit rights
-- Integrate with planet membership and future village permissions
-
-#### `VillageAssetService`
-
-- Resolve active asset packs
-- Validate definitions and media
-- Manage publishing state
-
-#### `VillageCharacterService`
-
-- Load and update character appearance
-- Resolve layer selections and rigs
-
-### SDK Services
-
-Recommended client service groups:
-
-- `VillageService`
-- `VillagePresenceService`
-- `VillageAssetService`
-- `VillageCharacterService`
-
-These may begin as one grouped `VillageService` namespace and split further as complexity grows.
-
-## API Shape
-
-Routes should remain map-centric and workflow-oriented.
-
-Examples:
-
-```text
-GET    /api/planets/{planetId}/village
-GET    /api/planets/{planetId}/village/maps/{mapId}
-GET    /api/planets/{planetId}/village/maps/{mapId}/chunks
-PUT    /api/planets/{planetId}/village/maps/{mapId}/chunks/{chunkX}/{chunkY}
-
-POST   /api/planets/{planetId}/village/buildings
-PUT    /api/planets/{planetId}/village/buildings/{buildingId}
-
-POST   /api/planets/{planetId}/village/objects
-PUT    /api/planets/{planetId}/village/objects/{objectId}
-
-POST   /api/planets/{planetId}/village/interiors
-GET    /api/planets/{planetId}/village/interiors/{mapId}
-
-GET    /api/users/me/village-character
-PUT    /api/users/me/village-character
-
-POST   /api/planets/{planetId}/village/presence/join
-POST   /api/planets/{planetId}/village/presence/move
-POST   /api/planets/{planetId}/village/presence/leave
-```
-
-## Realtime Model
-
-### Persistent model updates
-
-Persistent village entities should use the existing planet-scoped realtime model pattern where practical. This keeps the implementation aligned with:
-
-- `ClientPlanetModel`
-- `ModelStore`
-- `CoreHubService.NotifyPlanetItemChange`
-
-Good candidates for standard realtime syncing:
-
-- `VillageMap`
-- `VillagePlot`
-- `VillageBuilding`
-- `VillageObject`
-
-### Presence updates
-
-Presence should use separate lightweight events rather than normal model persistence flows for every movement update.
-
-Recommended event families:
-
-- `VillagePresence-Snapshot`
-- `VillagePresence-Joined`
-- `VillagePresence-Left`
-- `VillagePresence-Moved`
-- `VillageMap-Changed`
-
-Movement events should be throttled and possibly quantized to avoid flooding.
+Blazor owns window lifecycle, HUD, permissions-aware controls and channel
+integration. The canvas runtime owns the render loop, camera, input, collision and
+interpolation. The boundary matters: per-frame work must never round-trip through
+Blazor's render tree.
+
+## Persistent world
+
+Five planet-scoped entities, each following the standard `ISharedPlanetModel` /
+`ClientPlanetModel` pattern so they sync through existing realtime plumbing.
+
+- **`VillageMap`** — an outdoor world or a building interior. Interiors are ordinary
+  maps with a `ParentBuildingId`, not a special case, so neither the renderer nor
+  the persistence layer needs to know the difference.
+- **`VillageMapChunk`** — a fixed 32×32 square of tile content. `LayerData` and
+  `CollisionData` are opaque blobs so the renderer can gain layers without a schema
+  migration.
+- **`VillagePlot`** — the unit of ownership and sale; gates who may build.
+- **`VillageBuilding`** — the bridge to the rest of Valour: optional `ChannelId`,
+  optional `InteriorMapId`, a door tile, and a `VoiceMode`.
+- **`VillageObject`** — props, stored separately from chunk data because they are
+  individually owned, moved, and depth-sorted against characters.
+
+### Why chunks from the start
+
+A map's tiles are the only thing that grows without bound. Chunking lets a large
+world load and save in pieces, and costs nothing for a small interior, which simply
+occupies one chunk. Retrofitting it would have meant rewriting every read and write
+path.
+
+### Why only one foreign key
+
+Every entity has a cascading FK to `Planet` and nothing else. `MapId`, `PlotId`,
+`InteriorMapId`, `OwnerMemberId` and `ChannelId` are plain columns. Wiring those as
+real FKs creates circular cascade paths Postgres rejects — a building points at an
+interior map, which points back at its parent building.
+
+## Presence
+
+Presence is **ephemeral, per-node, and never persisted**.
+
+Planets are node-pinned, so every member of a village is served by the same node
+and an in-memory dictionary suffices. Losing it on restart is correct rather than
+lossy: clients re-announce on reconnect. Writing a position that changes several
+times a second to a table would be write amplification for data that is worthless
+once stale.
+
+Points that are easy to get wrong:
+
+- **Positions are tile-quantized.** A move is two small ints; clients interpolate
+  between tiles. Streaming floats multiplies traffic for no visible gain.
+- **Identity travels on join and in snapshots only, never on movement.** A name and
+  avatar do not change while someone walks, so the client must never overwrite a
+  known name with the blank one a movement-derived record carries.
+- **Groups are per map** (`v-{planetId}-{mapId}`), not per planet. Someone walking
+  around the square should not wake every client on the planet.
+- **Disconnects clear presence**, or a character stands in the world forever.
+- **Facing is carried but not yet rendered**, so directional art can arrive without
+  a protocol change.
+
+## Interiors and movement
+
+- A building's door tile is excluded from its own collision footprint, so doors are
+  reachable without the runtime special-casing them.
+- Every interior gets an exit portal on its spawn tile leading back to the door it
+  was entered through. An interior without one traps the member.
+- Collision is **derived from the authored objects** — an object that blocks, a
+  building footprint, a map-level blocker — rather than a parallel list kept in sync
+  by hand. The proof of concept maintained both and they drifted.
+- Walking through a door moves the client between presence groups as well as maps.
+
+`VillageWorldApiLiveTests` asserts these: spawn and every door are walkable, every
+interior has an exit, every door targets a map that exists.
+
+## Voice
+
+Buildings surface voice in one of three modes (`VillageVoiceMode`):
+
+- `None` — no voice.
+- `LinkedChannel` — bound to an existing planet voice channel.
+- `AutoRoom` — **not implemented.** Valour has no ephemeral channel concept: nothing
+  creates a channel on demand and nothing reaps it. Until that exists, buildings in
+  this mode are treated as not hosting voice rather than silently doing nothing when
+  someone walks in.
+
+### Auto-join is opt-in
+
+Following someone between rooms is the point of the feature, but
+`GlobalCallSessionService` has no start-muted option, so auto-joining would open a
+microphone because a member wandered through a door. Auto-join is a per-session
+toggle; with it off, buildings offer an explicit join button.
+
+Two inherited constraints: the call layer handles one channel at a time, and
+`MinimumRealtimeKitParticipants = 2` means a lone member never connects to the SFU.
+
+### Positional voice
+
+Each remote participant's microphone is routed through its own
+`MediaStreamSource → PannerNode → GainNode`. The listener stays at the origin and
+sources are positioned relative to it, avoiding the need to keep listener
+orientation in sync with a top-down camera that never rotates.
+
+Two non-obvious requirements:
+
+- The `<audio>` element the call layer created is kept **alive but muted**. Browsers
+  stop delivering a remote WebRTC track not attached to a media element, so removing
+  it silences everyone.
+- Positions are applied **per frame from eased render positions**, not per network
+  update, so panning follows what the player sees, and are ramped rather than set so
+  stepping a tile does not click.
+
+## Ownership and sales
+
+Listing requires `ManageVillage`; buying requires only membership, since the economy
+decides affordability. Unowned property is sold by the planet so proceeds reach a
+shared account rather than vanishing.
+
+**Payment and handover are two commits.** `EcoService.CreateTransactionAsync` opens
+and commits its own database transaction and cannot enlist in an ambient one. The
+buyer is charged *first* and the deed moves *second*, so the failure that can
+actually happen is recoverable: a retry completes the sale instead of charging
+again, because the transaction fingerprint is derived from the sale rather than
+random and the existing unique index enforces it. Handing over the deed first and
+then failing to take payment would not be recoverable without clawing property back.
 
 ## Permissions
 
-Village-specific permissions should eventually be introduced rather than overloading general planet management forever.
+`ManageVillage` (`0x400000`) gates map editing and market listings. The tileset
+definition editor is **staff-only**, not per-planet: definitions are shared platform
+content, and anyone able to rename a tile key can break maps on planets they have
+nothing to do with.
 
-Suggested permissions:
+## Mobile
 
-- `ViewVillage`
-- `WalkVillage`
-- `ClaimPlot`
-- `BuildStructures`
-- `EditOwnInterior`
-- `EditVillageMap`
-- `ManageVillageAssets`
-- `ManageVillage`
+Movement is a floating stick that appears wherever the finger lands rather than in a
+fixed corner, so it works in either hand and never covers what the player was
+looking at. A drag past a deadzone steers; a touch that never passes it falls
+through to the building hit-test, so tapping to inspect needs no second gesture.
 
-Early versions may map these checks onto existing planet management permissions, but the architecture should assume proper village permissions later.
+Pointer events with capture rather than raw touch events, so a finger sliding off
+the canvas keeps steering. `pointermove` is the only non-passive listener because it
+is the only one that must `preventDefault`, and the canvas takes
+`touch-action: none` so steering does not pan the page.
 
-## Integration With Existing Valour Features
+Mobile detection is a **user-agent sniff** into a static flag never re-evaluated on
+resize, so a desktop window narrowed to phone width is still treated as desktop.
 
-### Planets
+## Gotchas worth keeping
 
-- Villages are owned by planets
-- Village windows should hold `PlanetId`
-- Planet connection lifecycle should govern village model subscriptions
+- The canvas backing store is measured before the dock lays the pane out, and the
+  `resize` event is on `window`. A `ResizeObserver` **and** a per-frame drift check
+  are both needed: the observer alone stops delivering, leaving a few-pixel backing
+  store stretched across the window.
+- The runtime owns a rAF loop and window-level key listeners, so its JS `dispose()`
+  must be invoked explicitly. Releasing only the .NET reference leaves both running
+  and `preventDefault`-ing WASD, which breaks typing app-wide.
+- Movement keys are captured at the window level and must be gated on not being in a
+  text input and on the canvas being visible. `keyup` must *not* be gated, or a key
+  released after focus moves away leaves the player walking forever.
 
-### Channels
+## Testing
 
-- Buildings may link to a chat or voice channel
-- Entering or interacting with a building can open or focus the linked channel
+- `Valour/Tests/Services/VillagePresenceServiceTests.cs` — presence semantics against
+  the real service resolved from the running server. `CoreHubService` has too many
+  collaborators to fake usefully, and its broadcasts into empty hub groups are
+  harmless in tests.
+- `Valour/Tests/Services/VillageMarketServiceTests.cs` — sale and fingerprint rules.
+- `Valour/Tests/Apis/VillageWorldApiLiveTests.cs` — persistence and playability
+  invariants. Shares one planet per class; the test user has an owned-planet cap and
+  one planet per test method exhausts it.
+- `Valour/Tests/Js/*.test.mjs` — the runtime's texture cache and the positional audio
+  graph, via `node --test`. See that folder's README.
 
-### Voice
+## Not built yet
 
-- Voice-linked buildings create a strong Gather-like social flow
-- Future presence overlays can reflect voice occupancy or speaking state
-
-### Roles and Membership
-
-- Plot ownership and editing rights derive from planet membership
-- Staff or builders can receive elevated village permissions
-
-## Performance and Scale
-
-### Chunking
-
-Chunking is required from the first implementation for outdoor scalability.
-
-### Presence throttling
-
-Player movement updates should be throttled and interpolated client-side.
-
-### Asset caching
-
-Resolved asset packs, sprite sheets, and character layers should be cached aggressively on the client.
-
-### Large communities
-
-Future work may include:
-
-- Region streaming
-- District maps
-- Occupancy-based interest management
-
-The initial architecture should not block those later changes.
-
-## Recommended MVP
-
-First meaningful release:
-
-1. One outdoor village map per planet
-2. Enterable buildings with separate interior maps
-3. Plot ownership
-4. Building placement
-5. Furniture or decor placement in interiors
-6. Layered user characters
-7. Realtime map presence
-8. Building to channel mapping
-9. Official assets only, but through the full asset platform pipeline
-
-## Rollout Phases
-
-### Phase 1: Foundation
-
-- Shared village and asset contracts
-- Core database entities
-- Server and SDK service scaffolding
-- Window shell and canvas runtime bootstrap
-
-### Phase 2: World Runtime
-
-- Outdoor maps
-- Interiors
-- Plot and building systems
-- Basic object placement
-
-### Phase 3: Presence and Characters
-
-- Character appearance pipeline
-- Layered sprite composition
-- Realtime movement and occupancy
-- Non-directional animation support
-
-### Phase 4: Asset Authoring
-
-- Asset definitions
-- Upload and validation pipeline
-- Draft and private pack workflows
-- Admin-only or internal activation
-
-### Phase 5: Creator Economy
-
-- Sharing
-- Marketplace entitlements
-- Planet-scoped adoption of creator packs
-- Moderation workflows
-
-## Open Questions
-
-- Should village presence stay inside `CoreHub`, or should a dedicated village event channel be introduced later?
-- What chunk size best balances persistence cost and editing ergonomics?
-- Which village permissions should map to current planet permissions during transition?
-- Should buildings support multiple interaction targets beyond one primary `ChannelId`?
-- How much of character composition should be cached client-side versus rendered every frame?
-
-## Summary
-
-Valour Villages should be built as a dedicated game subsystem that is:
-
-- Planet-scoped
-- Realtime-aware
-- Canvas-driven
-- Asset-platform-backed
-- Marketplace-ready
-- Character-layer-based
-
-The most important early decisions are:
-
-1. Treat interiors as first-class maps
-2. Separate persistent world state from ephemeral presence state
-3. Build a real asset platform even before public creator activation
-4. Store character appearance as logical layered selections, not baked sheets
-5. Design for future directionality while allowing non-directional art initially
-
+- **Rendering authored tileset art.** The runtime still draws buildings, props and
+  terrain as coloured primitives over a tiled base texture. Tile layers, sprite depth
+  sorting against characters, culling and any lighting pass are open.
+- **A beautiful default map.** The seeded world is functional geometry, not art
+  direction.
+- **Tileset breadth.** The default set covers 54 tiles. The Modern Exteriors sheet is
+  2816×8224 (~90,000 tiles at 16px), packed edge-to-edge with no blank separator rows
+  or columns, so connected-component and guillotine segmentation both fail — sprite
+  bounds cannot be derived automatically. The intended approach is a grid picker over
+  the raw sheet plus curated named definitions for the tiles a map actually uses.
+- **Map editor round-trip.** The editor can export a map but not load one, and its
+  tile/sprite format does not yet bridge to the runtime scene format.
+- **Ephemeral voice rooms** (`AutoRoom`), needing a channel lifecycle Valour lacks.
+- **Voice and video presented inside the world** rather than in the dedicated call
+  window.
+- **Server-side movement validation.** Collision is enforced client-side only;
+  `CollisionData` is stored so the server can validate moves, but it does not yet.
+- **Character appearance.** Characters are member avatars drawn as tokens. Layered
+  sprite composition, and the directionality `VillageFacing` already carries, are
+  open.
