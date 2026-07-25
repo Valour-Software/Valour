@@ -41,9 +41,17 @@ else
             <div class="overlay-card village-actions-card">
                 <div class="overlay-card-title">Controls</div>
                 <div class="overlay-inline-group">
-                    <span class="hud-chip">WASD / Arrows</span>
-                    <span class="hud-chip">Step To Doors</span>
-                    <span class="hud-chip">Click To Inspect</span>
+                    @if (DeviceInfo.IsMobile)
+                    {
+                        <span class="hud-chip">Drag To Walk</span>
+                        <span class="hud-chip">Tap To Inspect</span>
+                    }
+                    else
+                    {
+                        <span class="hud-chip">WASD / Arrows</span>
+                        <span class="hud-chip">Step To Doors</span>
+                        <span class="hud-chip">Click To Inspect</span>
+                    }
                 </div>
                 <div class="overlay-toggle-row">
                     <label class="village-toggle">

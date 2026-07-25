@@ -1,6 +1,9 @@
 import { clamp, isTextInput, loadTexture as loadCachedTexture } from "../../../ts/VillageTileRendering.js";
 import { createSpatialAudio } from "../../../ts/VillageSpatialAudio.js";
 
+// Pixels of drag before a touch counts as steering rather than a tap.
+const TOUCH_DEADZONE = 18;
+
 export function init(canvasId, dotNetRef, scene) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext("2d");
@@ -39,6 +42,7 @@ export function init(canvasId, dotNetRef, scene) {
         collisionByMap: new Map(),
         remotes: new Map(),
         bubbles: new Map(),
+        touch: { active: false, pointerId: null, originX: 0, originY: 0, dx: 0, dy: 0, moved: false, direction: null },
         spatialAudio: createSpatialAudio(),
         spatialAudioEnabled: false,
         textureCache: new Map()
@@ -187,6 +191,10 @@ export function init(canvasId, dotNetRef, scene) {
             window.removeEventListener("keyup", state.onKeyUp);
             window.removeEventListener("blur", state.onBlur);
             canvas.removeEventListener("click", state.onClick);
+            canvas.removeEventListener("pointerdown", state.onPointerDown);
+            canvas.removeEventListener("pointermove", state.onPointerMove);
+            canvas.removeEventListener("pointerup", state.onPointerUp);
+            canvas.removeEventListener("pointercancel", state.onPointerUp);
             state.resizeObserver?.disconnect();
             state.resizeObserver = null;
             if (state.animationFrame) {
@@ -265,10 +273,83 @@ export function init(canvasId, dotNetRef, scene) {
         draw(state);
     };
 
+    // Touch movement: the joystick springs up wherever the finger lands rather
+    // than living in a fixed corner, so it works in either hand and never
+    // covers something the player was trying to look at.
+    state.onPointerDown = (event) => {
+        if (event.pointerType === "mouse") {
+            return;
+        }
+
+        unlockAudio(state);
+        state.touch.active = true;
+        state.touch.pointerId = event.pointerId;
+        state.touch.originX = event.clientX;
+        state.touch.originY = event.clientY;
+        state.touch.dx = 0;
+        state.touch.dy = 0;
+        state.touch.moved = false;
+        state.touch.direction = null;
+
+        canvas.setPointerCapture?.(event.pointerId);
+    };
+
+    state.onPointerMove = (event) => {
+        if (!state.touch.active || event.pointerId !== state.touch.pointerId) {
+            return;
+        }
+
+        // Only claim the gesture once it is clearly a drag, so a tap still
+        // reaches the building hit-test.
+        event.preventDefault();
+
+        state.touch.dx = event.clientX - state.touch.originX;
+        state.touch.dy = event.clientY - state.touch.originY;
+
+        const distance = Math.hypot(state.touch.dx, state.touch.dy);
+        if (distance < TOUCH_DEADZONE) {
+            state.touch.direction = null;
+            return;
+        }
+
+        state.touch.moved = true;
+        const next = Math.abs(state.touch.dx) > Math.abs(state.touch.dy)
+            ? (state.touch.dx > 0 ? "right" : "left")
+            : (state.touch.dy > 0 ? "down" : "up");
+
+        if (next !== state.touch.direction) {
+            state.touch.direction = next;
+            state.moveAccumulatorMs = 0;
+            queueMovement(state, next);
+        }
+    };
+
+    state.onPointerUp = (event) => {
+        if (!state.touch.active || event.pointerId !== state.touch.pointerId) {
+            return;
+        }
+
+        const wasTap = !state.touch.moved;
+
+        state.touch.active = false;
+        state.touch.pointerId = null;
+        state.touch.direction = null;
+        state.moveAccumulatorMs = 0;
+
+        canvas.releasePointerCapture?.(event.pointerId);
+
+        // A tap with no drag behaves like a click: inspect whatever is under it.
+        if (wasTap) {
+            void state.onClick(event);
+        }
+    };
+
     state.onBlur = () => {
         state.keys.clear();
         state.lastDirectionKey = null;
         state.moveAccumulatorMs = 0;
+        state.touch.active = false;
+        state.touch.direction = null;
     };
 
     window.addEventListener("resize", state.onResize);
@@ -276,6 +357,10 @@ export function init(canvasId, dotNetRef, scene) {
     window.addEventListener("keyup", state.onKeyUp);
     window.addEventListener("blur", state.onBlur);
     canvas.addEventListener("click", state.onClick);
+    canvas.addEventListener("pointerdown", state.onPointerDown, { passive: true });
+    canvas.addEventListener("pointermove", state.onPointerMove, { passive: false });
+    canvas.addEventListener("pointerup", state.onPointerUp);
+    canvas.addEventListener("pointercancel", state.onPointerUp);
 
     // The window resize event does not fire when the dock lays this canvas out,
     // so the element itself is observed. Without this, a village opened into a
@@ -409,7 +494,7 @@ function updatePlayer(state, deltaMs) {
         return;
     }
 
-    if (state.keys.size === 0) {
+    if (state.keys.size === 0 && !state.touch.direction) {
         state.moveAccumulatorMs = 0;
         return;
     }
@@ -516,6 +601,7 @@ function draw(state) {
     drawPortalHints(ctx, map, state, px);
     drawCharacters(ctx, state, px);
     drawBubbles(ctx, state, px);
+    drawTouchStick(ctx, state);
 }
 
 function primeMapTextures(state) {
@@ -813,6 +899,44 @@ function drawCharacters(ctx, state, px) {
  * Chat bubbles above whoever said them. Drawn after every character so a bubble
  * is never hidden behind someone standing in front of the speaker.
  */
+/**
+ * The on-screen stick, drawn only while a finger is down. Positions are in
+ * viewport space rather than world space so it does not scroll with the camera.
+ */
+function drawTouchStick(ctx, state) {
+    if (!state.touch.active || !state.touch.moved) {
+        return;
+    }
+
+    const rect = state.canvas.getBoundingClientRect();
+    const originX = state.touch.originX - rect.left;
+    const originY = state.touch.originY - rect.top;
+
+    const maxRadius = 46;
+    const distance = Math.min(maxRadius, Math.hypot(state.touch.dx, state.touch.dy));
+    const angle = Math.atan2(state.touch.dy, state.touch.dx);
+    const knobX = originX + Math.cos(angle) * distance;
+    const knobY = originY + Math.sin(angle) * distance;
+
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+
+    ctx.beginPath();
+    ctx.arc(originX, originY, maxRadius, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(10, 12, 18, 0.5)";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(knobX, knobY, maxRadius * 0.42, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fill();
+
+    ctx.restore();
+}
+
 function drawBubbles(ctx, state, px) {
     const now = performance.now();
     const holdMs = 4500;
@@ -1176,6 +1300,11 @@ function directionToVector(directionKey) {
 }
 
 function getActiveDirectionKey(state) {
+    // A held joystick wins over stale keyboard state.
+    if (state.touch.direction) {
+        return state.touch.direction;
+    }
+
     if (state.lastDirectionKey && state.keys.has(state.lastDirectionKey)) {
         return state.lastDirectionKey;
     }

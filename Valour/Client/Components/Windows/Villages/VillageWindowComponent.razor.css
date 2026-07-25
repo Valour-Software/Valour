@@ -18,6 +18,8 @@
     display: block;
     background: linear-gradient(180deg, #bfdca8 0%, #94c06f 100%);
     image-rendering: pixelated;
+    /* Steering must not pan or zoom the page underneath. */
+    touch-action: none;
 }
 
 .village-overlay {
@@ -243,4 +245,28 @@
     padding: 1px 8px;
     font-size: var(--font-size-xs);
     line-height: 1.5;
+}
+
+/* The HUD is informational on desktop but competes with the map on a phone,
+   so the prose panels drop away and the rest tightens up. */
+.mobile .village-lore-card,
+.mobile .village-brand-card .village-subtitle {
+    display: none;
+}
+
+.mobile .village-overlay {
+    max-width: 62vw;
+}
+
+.mobile .overlay-card {
+    padding: 6px 8px;
+}
+
+.mobile .hud-chip {
+    font-size: 10px;
+    padding: 1px 6px;
+}
+
+.mobile .village-title {
+    font-size: var(--font-size-sm);
 }
