@@ -1,4 +1,5 @@
 import { clamp, isTextInput, loadTexture as loadCachedTexture } from "../../../ts/VillageTileRendering.js";
+import { createSpatialAudio } from "../../../ts/VillageSpatialAudio.js";
 
 export function init(canvasId, dotNetRef, scene) {
     const canvas = document.getElementById(canvasId);
@@ -37,6 +38,8 @@ export function init(canvasId, dotNetRef, scene) {
         localPlayerByMap: new Map(),
         collisionByMap: new Map(),
         remotes: new Map(),
+        spatialAudio: createSpatialAudio(),
+        spatialAudioEnabled: false,
         textureCache: new Map()
     };
 
@@ -122,8 +125,45 @@ export function init(canvasId, dotNetRef, scene) {
 
             draw(state);
         },
+        /**
+         * Turns proximity voice on or off. The graph stays built either way so
+         * toggling is instant and does not renegotiate anything.
+         */
+        setSpatialAudioEnabled(enabled) {
+            state.spatialAudioEnabled = !!enabled;
+            state.spatialAudio.setEnabled(state.spatialAudioEnabled);
+        },
+        /**
+         * Hands the runtime the live voice peers. Called by the call layer, not
+         * by presence: someone can be standing in the village without being in
+         * voice, and vice versa.
+         */
+        setVoicePeers(peers) {
+            const seen = new Set();
+
+            for (const peer of peers ?? []) {
+                seen.add(String(peer.userId));
+                const remote = state.remotes.get(peer.userId);
+                const stream = peer.stream ?? null;
+
+                state.spatialAudio.upsert(
+                    String(peer.userId),
+                    remote ? remote.renderX : (peer.x ?? 0),
+                    remote ? remote.renderY : (peer.y ?? 0),
+                    stream);
+            }
+
+            for (const userId of state.voicePeerIds ?? []) {
+                if (!seen.has(userId)) {
+                    state.spatialAudio.remove(userId);
+                }
+            }
+
+            state.voicePeerIds = seen;
+        },
         dispose() {
             state.destroyed = true;
+            state.spatialAudio.dispose();
             window.removeEventListener("resize", state.onResize);
             window.removeEventListener("keydown", state.onKeyDown);
             window.removeEventListener("keyup", state.onKeyUp);
@@ -152,6 +192,7 @@ export function init(canvasId, dotNetRef, scene) {
         }
 
         event.preventDefault();
+        unlockAudio(state);
         const isNewPress = !state.keys.has(normalizedKey);
         state.keys.add(normalizedKey);
         state.lastDirectionKey = normalizedKey;
@@ -180,6 +221,7 @@ export function init(canvasId, dotNetRef, scene) {
     };
 
     state.onClick = async (event) => {
+        unlockAudio(state);
         const map = getCurrentMap(state);
         if (!map) {
             return;
@@ -244,6 +286,7 @@ export function init(canvasId, dotNetRef, scene) {
         state.lastTimestamp = timestamp;
         updatePlayer(state, delta);
         updateRemotes(state, delta);
+        updateSpatialAudio(state);
         updateCamera(state);
         draw(state);
         state.animationFrame = requestAnimationFrame(frame);
@@ -610,6 +653,41 @@ function drawDoorTile(ctx, tileX, tileY, state, px, color) {
  * arrive at walking cadence rather than per frame, so without this they would
  * visibly teleport a tile at a time.
  */
+/**
+ * Feeds the current geometry to the audio graph. Done per frame rather than per
+ * network update so panning follows the eased positions the player actually
+ * sees, instead of jumping a tile at a time.
+ */
+function updateSpatialAudio(state) {
+    if (!state.spatialAudioEnabled) {
+        return;
+    }
+
+    const player = ensureLocalPlayerPosition(state, state.currentMapId);
+    if (player) {
+        state.spatialAudio.setListener(player.renderX, player.renderY);
+    }
+
+    for (const remote of state.remotes.values()) {
+        // Someone on another map is not audible; presence only ever contains
+        // the current map, so their absence here removes them naturally.
+        state.spatialAudio.upsert(String(remote.userId), remote.renderX, remote.renderY, null);
+    }
+}
+
+/**
+ * Browsers keep an AudioContext suspended until a gesture, so the first key or
+ * click in the village is what actually starts positional voice.
+ */
+function unlockAudio(state) {
+    if (state.audioUnlocked) {
+        return;
+    }
+
+    state.audioUnlocked = true;
+    void state.spatialAudio.resume();
+}
+
 function updateRemotes(state, deltaMs) {
     // Covers one tile in roughly the same time the local player takes to walk
     // it, so remote and local movement read at the same speed.
