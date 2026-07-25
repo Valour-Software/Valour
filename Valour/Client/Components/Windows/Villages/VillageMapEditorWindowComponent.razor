@@ -167,6 +167,8 @@ else
     private int _imageWidth;
     private int _imageHeight;
     private bool _imageFailed;
+    private bool _initializing;
+    private bool _disposed;
     private int _mapWidth = 32;
     private int _mapHeight = 20;
     private int _mapWidthInput = 32;
@@ -197,9 +199,15 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_loading || _runtime is not null)
+        if (_loading || _runtime is not null || _initializing || _disposed)
             return;
 
+        // init calls back into OnMapChanged before it returns, which re-renders
+        // while _runtime is still null - without this guard a second runtime is
+        // created, leaking the first one's window listeners.
+        _initializing = true;
+        try
+        {
         _selfRef = DotNetObjectReference.Create(this);
         _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
             "import",
@@ -218,6 +226,14 @@ else
             tileRadius = _tileRadius,
             tool = _tool
         });
+
+            if (_disposed)
+                await ShutdownRuntimeAsync();
+        }
+        finally
+        {
+            _initializing = false;
+        }
     }
 
     [JSInvokable]
@@ -573,12 +589,47 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        if (_runtime is not null)
-            await _runtime.DisposeAsync();
+        _disposed = true;
+        await ShutdownRuntimeAsync();
 
         if (_module is not null)
-            await _module.DisposeAsync();
+        {
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+
+            _module = null;
+        }
 
         _selfRef?.Dispose();
+        _selfRef = null;
+    }
+
+    /// <summary>
+    /// Tears down the JS runtime. It owns window-level listeners, so releasing
+    /// the .NET reference alone would leave them attached for the page lifetime.
+    /// </summary>
+    private async ValueTask ShutdownRuntimeAsync()
+    {
+        if (_runtime is null)
+            return;
+
+        var runtime = _runtime;
+        _runtime = null;
+
+        try
+        {
+            await runtime.InvokeVoidAsync("dispose");
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+
+        try
+        {
+            await runtime.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
     }
 }
