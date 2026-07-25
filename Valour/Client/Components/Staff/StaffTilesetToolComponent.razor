@@ -1,0 +1,35 @@
+@using Valour.Client.Components.Windows.Villages
+
+<div class="settings-inner">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-grid-3x3-gap"></i>
+            Tileset Definitions
+        </h3>
+
+        <p class="toggle-description">
+            Authors the tile and sprite definitions that village maps are built from:
+            slice a tilesheet into named tiles, set per-tile collision, and group
+            variants into brushes.
+        </p>
+
+        <p class="toggle-description">
+            This is a staff tool because definitions are shared platform content -
+            a village map authored against a tileset breaks if that tileset's keys
+            change underneath it.
+        </p>
+
+        <div class="open-village">
+            <button class="v-btn" @onclick="OpenTilesetToolAsync">
+                <i class="bi bi-grid-3x3-gap"></i> Open Tileset Tool
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private async Task OpenTilesetToolAsync()
+    {
+        await WindowService.OpenWindowAtFocused(TilesetDefinitionWindowComponent.GetDefaultContent());
+    }
+}
