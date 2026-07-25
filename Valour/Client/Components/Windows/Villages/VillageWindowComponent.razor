@@ -3,6 +3,8 @@
 @inject IJSRuntime JsRuntime
 @inject Valour.Sdk.Services.VillageService VillageService
 @inject Valour.Client.Components.Calls.GlobalCallSessionService CallSession
+@inject Valour.Sdk.Services.MessageService MessageService
+@inject ValourClient Client
 @using System.Text.Json
 @using Valour.Shared.Villages
 @using Channel = Valour.Sdk.Models.Channel
@@ -194,6 +196,7 @@ else
             }
 
             VillageService.PresenceChanged += OnPresenceChanged;
+            MessageService.MessageReceived += OnMessageReceived;
             await JoinCurrentMapAsync();
         }
         finally
@@ -247,6 +250,60 @@ else
         var spawn = _currentMap.SpawnTile;
         await VillageService.JoinMapAsync(Data, _currentMap.Id, spawn?.X ?? 0, spawn?.Y ?? 0);
         await PushPresencesAsync();
+    }
+
+    /// <summary>
+    /// Surfaces chat as a bubble above the speaker, but only for people who are
+    /// actually standing in this village. A planet's channels carry far more
+    /// traffic than the map has occupants, so anything else would be noise from
+    /// members who are not even here.
+    /// </summary>
+    private void OnMessageReceived(Message message)
+    {
+        if (_disposed || _runtime is null || message is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(message.Content))
+            return;
+
+        // Only chat from the room the member is standing in, plus their own
+        // messages, belongs on the map.
+        if (!IsMessageAudibleHere(message))
+            return;
+
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                await _runtime.InvokeVoidAsync("pushBubble", message.AuthorUserId, message.Content);
+            }
+            catch (JSDisconnectedException) { }
+            catch (JSException) { }
+        });
+    }
+
+    private bool IsMessageAudibleHere(Message message)
+    {
+        var isLocal = message.AuthorUserId == Client.Me?.Id;
+        var speakerIsHere = isLocal || VillageService.Presences.Any(x => x.UserId == message.AuthorUserId);
+
+        if (!speakerIsHere)
+            return false;
+
+        // A message counts when it was sent in the channel bound to the building
+        // the speaker is standing in.
+        var speakerBuildingId = isLocal
+            ? _currentBuildingId
+            : VillageService.Presences.FirstOrDefault(x => x.UserId == message.AuthorUserId)?.BuildingId;
+
+        if (speakerBuildingId is null)
+            return false;
+
+        var building = _scene?.Maps
+            .SelectMany(x => x.Buildings)
+            .FirstOrDefault(x => x.Id == speakerBuildingId);
+
+        return building?.ChannelId == message.ChannelId;
     }
 
     private void OnPresenceChanged()
@@ -486,6 +543,7 @@ else
         _disposed = true;
 
         VillageService.PresenceChanged -= OnPresenceChanged;
+        MessageService.MessageReceived -= OnMessageReceived;
         await VillageService.LeaveMapAsync();
 
         // Closing the village must not leave the member sitting in a call they

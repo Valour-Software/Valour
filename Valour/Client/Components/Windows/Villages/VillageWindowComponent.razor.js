@@ -38,6 +38,7 @@ export function init(canvasId, dotNetRef, scene) {
         localPlayerByMap: new Map(),
         collisionByMap: new Map(),
         remotes: new Map(),
+        bubbles: new Map(),
         spatialAudio: createSpatialAudio(),
         spatialAudioEnabled: false,
         textureCache: new Map()
@@ -160,6 +161,23 @@ export function init(canvasId, dotNetRef, scene) {
             }
 
             state.voicePeerIds = seen;
+        },
+        /**
+         * Shows a line of chat above a member. Only the most recent line per
+         * member is kept: a wall of stacked bubbles would obscure the map, and
+         * the channel itself is the place to read scrollback.
+         */
+        pushBubble(userId, text) {
+            if (!text) {
+                return;
+            }
+
+            state.bubbles.set(userId, {
+                text: text.length > 120 ? text.slice(0, 119) + "\u2026" : text,
+                bornAt: performance.now()
+            });
+
+            draw(state);
         },
         dispose() {
             state.destroyed = true;
@@ -497,6 +515,7 @@ function draw(state) {
     drawBuildings(ctx, map.buildings, state.selectedBuildingId, state, px);
     drawPortalHints(ctx, map, state, px);
     drawCharacters(ctx, state, px);
+    drawBubbles(ctx, state, px);
 }
 
 function primeMapTextures(state) {
@@ -790,6 +809,125 @@ function drawCharacters(ctx, state, px) {
  * an authored sprite. The accent ring keeps players distinguishable while an
  * avatar is still loading, and stands in for it entirely if the image fails.
  */
+/**
+ * Chat bubbles above whoever said them. Drawn after every character so a bubble
+ * is never hidden behind someone standing in front of the speaker.
+ */
+function drawBubbles(ctx, state, px) {
+    const now = performance.now();
+    const holdMs = 4500;
+    const fadeMs = 900;
+
+    for (const [userId, bubble] of [...state.bubbles.entries()]) {
+        const age = now - bubble.bornAt;
+        if (age > holdMs + fadeMs) {
+            state.bubbles.delete(userId);
+            continue;
+        }
+
+        const position = resolveBubbleAnchor(state, userId);
+        if (!position) {
+            continue;
+        }
+
+        const alpha = age <= holdMs ? 1 : 1 - ((age - holdMs) / fadeMs);
+        drawBubble(ctx, state, px, position.x, position.y, bubble.text, alpha);
+    }
+}
+
+/**
+ * Bubbles follow the eased render position so they travel with the speaker
+ * rather than snapping between tiles.
+ */
+function resolveBubbleAnchor(state, userId) {
+    const localId = state.localAppearance?.userId;
+    if (localId !== undefined && String(userId) === String(localId)) {
+        const player = ensureLocalPlayerPosition(state, state.currentMapId);
+        return player ? { x: player.renderX, y: player.renderY } : null;
+    }
+
+    const remote = state.remotes.get(userId) ?? state.remotes.get(Number(userId));
+    if (remote) {
+        return { x: remote.renderX, y: remote.renderY };
+    }
+
+    return null;
+}
+
+function drawBubble(ctx, state, px, tileX, tileY, text, alpha) {
+    const fontSize = Math.max(10, Math.round(px * 0.24));
+    ctx.font = `500 ${fontSize}px var(--font-family, sans-serif)`;
+
+    const paddingX = fontSize * 0.6;
+    const paddingY = fontSize * 0.42;
+    const maxWidth = px * 6;
+    const lines = wrapBubbleText(ctx, text, maxWidth);
+    const lineHeight = fontSize * 1.25;
+
+    let width = 0;
+    for (const line of lines) {
+        width = Math.max(width, ctx.measureText(line).width);
+    }
+
+    const boxWidth = width + paddingX * 2;
+    const boxHeight = lines.length * lineHeight + paddingY * 2;
+
+    const centerX = (tileX + 0.5) * px - state.renderCameraX;
+    const bottomY = (tileY + 0.35) * px - state.renderCameraY - px * 0.42;
+    const boxX = centerX - boxWidth / 2;
+    const boxY = bottomY - boxHeight;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+
+    ctx.fillStyle = "rgba(16, 18, 26, 0.88)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, boxX, boxY, boxWidth, boxHeight, fontSize * 0.5, true, true);
+
+    // Tail pointing down at the speaker.
+    ctx.beginPath();
+    ctx.moveTo(centerX - fontSize * 0.32, boxY + boxHeight);
+    ctx.lineTo(centerX, boxY + boxHeight + fontSize * 0.45);
+    ctx.lineTo(centerX + fontSize * 0.32, boxY + boxHeight);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#f2f4f8";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], centerX, boxY + paddingY + i * lineHeight);
+    }
+
+    ctx.textAlign = "start";
+    ctx.textBaseline = "alphabetic";
+    ctx.restore();
+}
+
+function wrapBubbleText(ctx, text, maxWidth) {
+    const words = text.split(/\s+/);
+    const lines = [];
+    let current = "";
+
+    for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (ctx.measureText(candidate).width > maxWidth && current) {
+            lines.push(current);
+            current = word;
+        } else {
+            current = candidate;
+        }
+    }
+
+    if (current) {
+        lines.push(current);
+    }
+
+    // Three lines is plenty for a glance; the channel holds the rest.
+    return lines.slice(0, 3);
+}
+
 function drawCharacter(ctx, state, px, x, y, character, isLocalPlayer) {
     const centerX = (x + 0.5) * px - state.renderCameraX;
     const centerY = (y + 0.35) * px - state.renderCameraY;
