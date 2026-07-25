@@ -48,6 +48,8 @@ public class VillagePresenceService
         long mapId,
         long userId,
         long memberId,
+        string name,
+        string avatarUrl,
         int x,
         int y)
     {
@@ -62,6 +64,8 @@ public class VillagePresenceService
             MapId = mapId,
             UserId = userId,
             MemberId = memberId,
+            Name = name,
+            AvatarUrl = avatarUrl,
             X = x,
             Y = y,
             Facing = VillageFacing.Down,

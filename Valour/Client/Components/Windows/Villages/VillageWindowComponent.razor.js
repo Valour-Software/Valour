@@ -36,6 +36,7 @@ export function init(canvasId, dotNetRef, scene) {
         devicePixelRatio: 1,
         localPlayerByMap: new Map(),
         collisionByMap: new Map(),
+        remotes: new Map(),
         textureCache: new Map()
     };
 
@@ -65,6 +66,60 @@ export function init(canvasId, dotNetRef, scene) {
             updateCamera(state);
             await invokeDotNet(state, "OnMapChanged", mapId);
             await invokeDotNet(state, "OnBuildingSelected", null, mapId);
+            draw(state);
+        },
+        /**
+         * Replaces the set of remote players. Positions arrive as target tiles;
+         * each remote eases toward its target here rather than snapping, so a
+         * ~130ms network cadence still reads as smooth walking.
+         */
+        setPresences(presences) {
+            const seen = new Set();
+
+            for (const p of presences ?? []) {
+                seen.add(p.userId);
+                const existing = state.remotes.get(p.userId);
+
+                if (!existing) {
+                    state.remotes.set(p.userId, {
+                        userId: p.userId,
+                        name: p.name,
+                        avatarUrl: p.avatarUrl,
+                        buildingId: p.buildingId ?? null,
+                        tileX: p.x,
+                        tileY: p.y,
+                        renderX: p.x,
+                        renderY: p.y,
+                        facing: p.facing ?? 0
+                    });
+
+                    if (p.avatarUrl) {
+                        loadTexture(state, p.avatarUrl);
+                    }
+
+                    continue;
+                }
+
+                // Identity only arrives on join, so never overwrite it with the
+                // blanks that a movement-derived record carries.
+                if (p.name) existing.name = p.name;
+                if (p.avatarUrl && existing.avatarUrl !== p.avatarUrl) {
+                    existing.avatarUrl = p.avatarUrl;
+                    loadTexture(state, p.avatarUrl);
+                }
+
+                existing.tileX = p.x;
+                existing.tileY = p.y;
+                existing.facing = p.facing ?? existing.facing;
+                existing.buildingId = p.buildingId ?? null;
+            }
+
+            for (const userId of [...state.remotes.keys()]) {
+                if (!seen.has(userId)) {
+                    state.remotes.delete(userId);
+                }
+            }
+
             draw(state);
         },
         dispose() {
@@ -188,6 +243,7 @@ export function init(canvasId, dotNetRef, scene) {
         const delta = state.lastTimestamp === 0 ? 16 : Math.min(40, timestamp - state.lastTimestamp);
         state.lastTimestamp = timestamp;
         updatePlayer(state, delta);
+        updateRemotes(state, delta);
         updateCamera(state);
         draw(state);
         state.animationFrame = requestAnimationFrame(frame);
@@ -286,6 +342,7 @@ function updatePlayer(state, deltaMs) {
             player.tileY = player.targetY;
             player.renderX = player.tileX;
             player.renderY = player.tileY;
+            reportLocalPosition(state);
             void checkPortalTransition(state);
         }
         return;
@@ -548,17 +605,105 @@ function drawDoorTile(ctx, tileX, tileY, state, px, color) {
     ctx.globalAlpha = 1;
 }
 
+/**
+ * Eases each remote toward the tile the server last reported. Remote positions
+ * arrive at walking cadence rather than per frame, so without this they would
+ * visibly teleport a tile at a time.
+ */
+function updateRemotes(state, deltaMs) {
+    // Covers one tile in roughly the same time the local player takes to walk
+    // it, so remote and local movement read at the same speed.
+    const rate = deltaMs / state.stepDurationMs;
+
+    for (const remote of state.remotes.values()) {
+        const dx = remote.tileX - remote.renderX;
+        const dy = remote.tileY - remote.renderY;
+
+        if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
+            remote.renderX = remote.tileX;
+            remote.renderY = remote.tileY;
+            continue;
+        }
+
+        // Snap rather than glide when someone is far away: that is a teleport
+        // through a door or a late join, not a walk.
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            remote.renderX = remote.tileX;
+            remote.renderY = remote.tileY;
+            continue;
+        }
+
+        remote.renderX += Math.sign(dx) * Math.min(Math.abs(dx), rate);
+        remote.renderY += Math.sign(dy) * Math.min(Math.abs(dy), rate);
+    }
+}
+
+/**
+ * Tells Blazor where the local player ended up so it can broadcast the move.
+ */
+function reportLocalPosition(state) {
+    const player = ensureLocalPlayerPosition(state, state.currentMapId);
+    if (!player) {
+        return;
+    }
+
+    const map = getCurrentMap(state);
+    const building = map?.buildings?.find((item) =>
+        player.tileX >= item.x && player.tileX < item.x + item.width &&
+        player.tileY >= item.y && player.tileY < item.y + item.height);
+
+    void invokeDotNet(
+        state,
+        "OnLocalMoved",
+        player.tileX,
+        player.tileY,
+        facingFromDirection(state.lastDirectionKey),
+        building ? building.id : (map?.parentBuildingId ?? null));
+}
+
+function facingFromDirection(directionKey) {
+    if (directionKey === "up") return 3;
+    if (directionKey === "left") return 1;
+    if (directionKey === "right") return 2;
+    return 0;
+}
+
 function drawCharacters(ctx, state, px) {
     const player = ensureLocalPlayerPosition(state, state.currentMapId);
-    const remoteCharacters = state.scene.characters.filter((character) =>
-        !character.isLocalPlayer && character.mapId === state.currentMapId);
 
-    for (const character of remoteCharacters) {
-        drawCharacter(ctx, state, px, character.x, character.y, character, false);
+    // Live members first, then any scene-authored characters standing on this
+    // map. Sorted by Y so someone further down the screen correctly overlaps
+    // someone standing behind them.
+    const drawables = [];
+
+    for (const remote of state.remotes.values()) {
+        drawables.push({
+            y: remote.renderY,
+            draw: () => drawCharacter(ctx, state, px, remote.renderX, remote.renderY, remote, false)
+        });
+    }
+
+    for (const character of state.scene.characters) {
+        if (character.isLocalPlayer || character.mapId !== state.currentMapId) {
+            continue;
+        }
+
+        drawables.push({
+            y: character.y,
+            draw: () => drawCharacter(ctx, state, px, character.x, character.y, character, false)
+        });
     }
 
     if (player) {
-        drawCharacter(ctx, state, px, player.renderX, player.renderY, state.localAppearance, true);
+        drawables.push({
+            y: player.renderY,
+            draw: () => drawCharacter(ctx, state, px, player.renderX, player.renderY, state.localAppearance, true)
+        });
+    }
+
+    drawables.sort((a, b) => a.y - b.y);
+    for (const item of drawables) {
+        item.draw();
     }
 }
 

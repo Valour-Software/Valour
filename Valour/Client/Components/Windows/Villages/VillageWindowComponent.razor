@@ -160,7 +160,13 @@ else
             _runtime = await _module.InvokeAsync<IJSObjectReference>("init", _canvasId, _selfRef, _scene);
 
             if (_disposed)
+            {
                 await ShutdownRuntimeAsync();
+                return;
+            }
+
+            VillageService.PresenceChanged += OnPresenceChanged;
+            await JoinCurrentMapAsync();
         }
         finally
         {
@@ -194,7 +200,74 @@ else
         if (_currentMap?.MapKind == "Outdoor" && _selectedBuilding?.InteriorMapId != mapId)
             _selectedBuilding = null;
 
+        // Presence is per-map, so stepping through a door moves us between
+        // realtime groups as well as between maps.
+        await JoinCurrentMapAsync();
         await ReRender();
+    }
+
+    /// <summary>
+    /// Announces us on the map we are standing on and seeds everyone already
+    /// there. Called on open and again whenever we walk through a door, since
+    /// presence is scoped per map rather than per planet.
+    /// </summary>
+    private async Task JoinCurrentMapAsync()
+    {
+        if (Data is null || _currentMap is null || _disposed)
+            return;
+
+        var spawn = _currentMap.SpawnTile;
+        await VillageService.JoinMapAsync(Data, _currentMap.Id, spawn?.X ?? 0, spawn?.Y ?? 0);
+        await PushPresencesAsync();
+    }
+
+    private void OnPresenceChanged()
+    {
+        // Fired from the hub, so hop back onto the renderer's context.
+        _ = InvokeAsync(async () => await PushPresencesAsync());
+    }
+
+    /// <summary>
+    /// Hands the current occupancy to the canvas runtime. The runtime owns
+    /// interpolation, so it receives target tiles rather than pixel positions.
+    /// </summary>
+    private async Task PushPresencesAsync()
+    {
+        if (_runtime is null || _disposed)
+            return;
+
+        var others = VillageService.Presences
+            .Select(x => new
+            {
+                userId = x.UserId,
+                name = x.Name,
+                avatarUrl = x.AvatarUrl,
+                x = x.X,
+                y = x.Y,
+                facing = (int)x.Facing,
+                buildingId = x.BuildingId,
+            })
+            .ToArray();
+
+        try
+        {
+            await _runtime.InvokeVoidAsync("setPresences", others);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+    }
+
+    /// <summary>
+    /// Called by the runtime each time the local player finishes a step.
+    /// </summary>
+    [JSInvokable]
+    public Task OnLocalMoved(int x, int y, int facing, long? buildingId)
+    {
+        if (_disposed)
+            return Task.CompletedTask;
+
+        VillageService.ReportMove(x, y, (VillageFacing)facing, buildingId);
+        return Task.CompletedTask;
     }
 
     private async Task ResetViewAsync()
@@ -300,6 +373,9 @@ else
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+
+        VillageService.PresenceChanged -= OnPresenceChanged;
+        await VillageService.LeaveMapAsync();
 
         if (Instances.Remove(this))
             SelectionsChanged?.Invoke();

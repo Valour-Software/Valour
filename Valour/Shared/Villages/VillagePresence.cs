@@ -31,6 +31,15 @@ public class VillagePresence
     public long MemberId { get; set; }
 
     /// <summary>
+    /// Display name and avatar are carried on join and in snapshots only, never
+    /// on movement. Identity does not change while someone walks, so repeating
+    /// it eight times a second would be pure overhead on the hot path.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    public string AvatarUrl { get; set; } = string.Empty;
+
+    /// <summary>
     /// Tile coordinates. Movement is tile-quantized, so a move broadcast is a
     /// pair of small ints rather than a stream of floats; clients interpolate
     /// between tiles themselves.
