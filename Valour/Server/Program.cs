@@ -520,6 +520,7 @@ public partial class Program
         services.AddScoped<ChannelWatchingService>();
         services.AddScoped<CurrentlyTypingService>();
         services.AddScoped<Valour.Server.Services.Villages.VillagePresenceService>();
+        services.AddScoped<Valour.Server.Services.Villages.VillageMarketService>();
         services.AddScoped<OauthAppService>();
         services.AddScoped<PermissionsNodeService>();
         services.AddScoped<MultiAuthService>();
