@@ -29,22 +29,41 @@ export function loadTexture(cache, url, onLoaded) {
     }
     const existing = cache.get(url);
     if (existing) {
+        // A cached entry must still notify. Callers use onLoaded to report the
+        // sheet's dimensions back to Blazor, and dropping it on a cache hit
+        // leaves them stuck on their placeholder size.
+        if (onLoaded) {
+            if (existing.loaded || existing.failed) {
+                queueMicrotask(onLoaded);
+            }
+            else {
+                existing.pending.push(onLoaded);
+            }
+        }
         return existing;
     }
     const texture = {
         url,
         image: new Image(),
         loaded: false,
-        failed: false
+        failed: false,
+        pending: onLoaded ? [onLoaded] : []
+    };
+    const settle = () => {
+        const callbacks = texture.pending;
+        texture.pending = [];
+        for (const callback of callbacks) {
+            callback();
+        }
     };
     texture.image.referrerPolicy = "no-referrer";
     texture.image.onload = () => {
         texture.loaded = true;
-        onLoaded?.();
+        settle();
     };
     texture.image.onerror = () => {
         texture.failed = true;
-        onLoaded?.();
+        settle();
     };
     texture.image.src = url;
     cache.set(url, texture);

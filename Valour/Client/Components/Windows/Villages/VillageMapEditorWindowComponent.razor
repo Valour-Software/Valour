@@ -164,8 +164,9 @@ else
     private const string DefaultTilesetDefinitionUrl = "_content/Valour.Client/tilesets/exterior-tileset-0.json";
 
     private string _imageUrl = "https://public-cdn.valour.gg/valour-public/tilesets/official/Modern_Exteriors_Complete_Tileset.png";
-    private int _imageWidth = 32;
-    private int _imageHeight = 32;
+    private int _imageWidth;
+    private int _imageHeight;
+    private bool _imageFailed;
     private int _mapWidth = 32;
     private int _mapHeight = 20;
     private int _mapWidthInput = 32;
@@ -237,6 +238,15 @@ else
     {
         _imageWidth = width;
         _imageHeight = height;
+        _imageFailed = false;
+        await ReRender();
+    }
+
+    [JSInvokable]
+    public async Task OnTilesetImageFailed(string url)
+    {
+        _imageFailed = true;
+        _status = $"Could not load the tilesheet at {url}. Tile previews and the map will stay blank until it loads.";
         await ReRender();
     }
 
@@ -431,13 +441,18 @@ else
 
     private string GetDefinitionPreviewStyle(TilesetDefinitionDraft definition, double previewSize)
     {
+        // Until the sheet reports its real size, any offset computed here would
+        // fall outside the background box and render an unexplained blank.
+        if (_imageWidth <= 0 || _imageHeight <= 0)
+            return "background-image: none;";
+
         var width = Math.Max(1, definition.Width);
         var height = Math.Max(1, definition.Height);
         var scale = previewSize / (double)(Math.Max(width, height) * TileSize);
         var sourceX = definition.X * TileSize * scale;
         var sourceY = definition.Y * TileSize * scale;
-        var backgroundWidth = Math.Max(TileSize, _imageWidth) * scale;
-        var backgroundHeight = Math.Max(TileSize, _imageHeight) * scale;
+        var backgroundWidth = _imageWidth * scale;
+        var backgroundHeight = _imageHeight * scale;
         var imageUrl = (_imageUrl ?? string.Empty).Replace("'", "\\'", StringComparison.Ordinal);
 
         return string.Create(CultureInfo.InvariantCulture,

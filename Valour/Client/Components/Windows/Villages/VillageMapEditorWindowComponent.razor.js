@@ -214,6 +214,13 @@ export async function init(canvasId, dotNetRef, config) {
                 .invokeMethodAsync("OnTilesetImageLoaded", texture.image.width, texture.image.height)
                 .catch(error => console.warn("Failed to report tileset size.", error));
         }
+        else {
+            // Without this the palette silently renders blank swatches and the
+            // canvas stays empty, with nothing explaining why.
+            state.dotNetRef
+                .invokeMethodAsync("OnTilesetImageFailed", state.imageUrl)
+                .catch(error => console.warn("Failed to report tileset load failure.", error));
+        }
         draw(state);
     });
     resizeCanvas(state);
