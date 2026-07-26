@@ -37,6 +37,7 @@
     private RenderFragment OAuthContent => @<EditOAuthComponent />;
     private RenderFragment BotsContent => @<BotManagementComponent />;
     private RenderFragment PlatformBannerContent => @<StaffPlatformBannerComponent />;
+    private RenderFragment StaffDashboardContent => @<StaffDashboardComponent />;
     private RenderFragment StaffToolsContent =>
         @<TabContainerComponent Titles="@_staffTabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
             <TabOne>
@@ -228,6 +229,13 @@
                 Icon = "shield-fill",
                 Items = new List<MainMenu.MenuItem>()
                 {
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Dashboard",
+                        Icon = "activity",
+                        Description = "Realtime platform analytics and health",
+                        Content = StaffDashboardContent
+                    },
                     new MainMenu.MenuItem()
                     {
                         Name = "Staff Tools",

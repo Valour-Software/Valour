@@ -590,6 +590,7 @@ public partial class Program
         services.AddScoped<SubscriptionService>();
         services.AddScoped<ThemeService>();
         services.AddScoped<StaffService>();
+        services.AddScoped<DashboardService>();
         services.AddScoped<PlatformBannerService>();
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<VoiceStateService>();
@@ -600,6 +601,7 @@ public partial class Program
         services.AddHttpClient<DiscordImportService>();
 
         services.AddSingleton<NodeLifecycleService>();
+        services.AddSingleton<DashboardEventService>();
         
         // Register PushNotificationWorker as a singleton.
         services.AddSingleton<PushNotificationWorker>();
@@ -619,6 +621,7 @@ public partial class Program
         services.AddHostedService<FederationPlanetRegistrySyncWorker>();
         services.AddHostedService<UserOnlineWorker>();
         services.AddHostedService<NodeStateWorker>();
+        services.AddHostedService<DashboardBroadcastWorker>();
         services.AddHostedService<SubscriptionWorker>();
         services.AddHostedService<StripeReconciliationWorker>();
         services.AddHostedService<VoiceStateCleanupWorker>();

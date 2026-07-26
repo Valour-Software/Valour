@@ -1,10 +1,16 @@
 using System.Collections.Concurrent;
+using System.Text;
 
 namespace Valour.Server.Services;
 
 public class UserOnlineService
 {
     private static readonly ConcurrentDictionary<long, DateTime?> UserTimeCache = new();
+
+    // Tracks the last UTC day recorded per user so the activity-day rollup
+    // costs one insert per user per day per node
+    private static readonly ConcurrentDictionary<long, DateOnly> ActivityDayCache = new();
+
     private const int BatchSize = 256;
     private static readonly TimeSpan PlanetConnectionRefreshInterval = TimeSpan.FromMinutes(5);
 
@@ -38,6 +44,8 @@ public class UserOnlineService
             // Notify of user activity change
             await _hubService.NotifyUserChange(user.ToModel());
             await _db.SaveChangesAsync();
+
+            await RecordActivityDaysAsync([userId]);
         }
     }
 
@@ -96,9 +104,60 @@ public class UserOnlineService
                     await _hubService.NotifyUserChange(user.ToModel());
                 }
             }
+
+            await RecordActivityDaysAsync(dueIds, cancellationToken);
         }
 
         await UpdatePlanetConnectionTimesAsync(updates, now, cancellationToken);
+    }
+
+    /// <summary>
+    /// Inserts (today-utc, userId) rows into the user_activity_days rollup.
+    /// The cache keeps this to one insert per user per UTC day per node, and
+    /// ON CONFLICT DO NOTHING makes primary-key races between nodes harmless.
+    /// </summary>
+    private async Task RecordActivityDaysAsync(
+        IReadOnlyCollection<long> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        List<long> due = null;
+        foreach (var userId in userIds)
+        {
+            if (ActivityDayCache.TryGetValue(userId, out var recorded) && recorded == today)
+                continue;
+
+            (due ??= new List<long>()).Add(userId);
+        }
+
+        if (due is null)
+            return;
+
+        foreach (var batch in due.Chunk(BatchSize))
+        {
+            var sql = new StringBuilder("INSERT INTO user_activity_days (day, user_id) VALUES ");
+            var parameters = new object[batch.Length + 1];
+            parameters[0] = today;
+
+            for (var i = 0; i < batch.Length; i++)
+            {
+                if (i > 0)
+                    sql.Append(", ");
+
+                sql.Append("({0}, {").Append(i + 1).Append("})");
+                parameters[i + 1] = batch[i];
+            }
+
+            sql.Append(" ON CONFLICT DO NOTHING");
+
+            await _db.Database.ExecuteSqlRawAsync(sql.ToString(), parameters, cancellationToken);
+        }
+
+        // Only mark users recorded after the inserts succeed so a transient
+        // database failure retries on the next activity update
+        foreach (var userId in due)
+            ActivityDayCache[userId] = today;
     }
 
     private async Task UpdatePlanetConnectionTimesAsync(

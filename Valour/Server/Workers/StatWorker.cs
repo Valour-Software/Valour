@@ -20,7 +20,7 @@ public class StatWorker : IHostedService, IDisposable
 
     public static void IncreaseMessageCount()
     {
-        _messageCount += 1;
+        Interlocked.Increment(ref _messageCount);
     }
     
     public Task StartAsync(CancellationToken stoppingToken)
@@ -55,8 +55,7 @@ public class StatWorker : IHostedService, IDisposable
             stats.ChannelCount = await context.Channels.CountAsync(x => x.ChannelType == ChannelTypeEnum.PlanetChat);
             stats.CategoryCount = await context.Channels.CountAsync(x => x.ChannelType == ChannelTypeEnum.PlanetCategory);
             stats.MessageDayCount = await context.Messages.CountAsync();
-            stats.MessagesSent = _messageCount;
-            _messageCount = 0;
+            stats.MessagesSent = Interlocked.Exchange(ref _messageCount, 0);
             
             await context.Stats.AddAsync(stats);
             await context.SaveChangesAsync();
