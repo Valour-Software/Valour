@@ -51,10 +51,12 @@ public interface IVoiceProvider
     Task<TaskResult> CloseMeetingAsync(string meetingId, string reason, long? channelId = null);
 
     /// <summary>
-    /// The backend's authoritative view of who is connected to a channel's meeting.
-    /// Returns the set of Valour user ids, or null when the backend could not be
-    /// queried (in which case reconciliation for that channel is skipped so live
-    /// participants are never wrongly removed).
+    /// The backend's view of who is connected to a channel's meeting. Returns the set
+    /// of Valour user ids, or null when the backend gave no positive evidence — a
+    /// failed query, or a "nobody connected" answer that cannot be distinguished from
+    /// a broken/lagging reporting surface. Callers treat null as "cannot verify" and
+    /// skip reconciliation for that channel; kicking users requires a non-null set.
+    /// Redis heartbeat TTLs remain the fallback cleanup for truly-departed users.
     /// </summary>
     Task<HashSet<long>?> GetConnectedUserIdsAsync(long channelId, string meetingId);
 
