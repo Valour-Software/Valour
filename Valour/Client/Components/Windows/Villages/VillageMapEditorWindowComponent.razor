@@ -53,6 +53,13 @@ else
                 <i class="bi bi-grid-3x3-gap"></i>
                 <span>Tile</span>
             </button>
+            @if (_terrains.Count > 0)
+            {
+                <button class="@GetToolClass("Terrain")" title="Paint terrain with automatic transitions" @onclick='() => SetToolAsync("Terrain")'>
+                    <i class="bi bi-layers"></i>
+                    <span>Terrain</span>
+                </button>
+            }
             <button class="@GetToolClass("Brush")" title="Paint selected brush" @onclick='() => SetToolAsync("Brush")'>
                 <i class="bi bi-brush"></i>
                 <span>Brush</span>
@@ -78,6 +85,13 @@ else
                         <i class="bi bi-grid-3x3-gap"></i>
                         <span>Tiles</span>
                     </button>
+                    @if (_terrains.Count > 0)
+                    {
+                        <button class="@GetPanelTabClass("Terrains")" @onclick='() => SetPanelTab("Terrains")'>
+                            <i class="bi bi-layers"></i>
+                            <span>Terrains</span>
+                        </button>
+                    }
                     <button class="@GetPanelTabClass("Brushes")" @onclick='() => SetPanelTab("Brushes")'>
                         <i class="bi bi-brush"></i>
                         <span>Brushes</span>
@@ -88,7 +102,21 @@ else
                     </button>
                 </div>
 
-                @if (_activePanelTab == "Tiles")
+                @if (_activePanelTab == "Terrains")
+                {
+                    <div class="palette-list">
+                        @foreach (var terrain in _terrains)
+                        {
+                            <button class="@GetPaletteItemClass(_selectedTerrainKey == terrain.Key)"
+                                    title="@terrain.Key"
+                                    @onclick="() => SelectTerrainAsync(terrain.Key)">
+                                <span class="tile-preview" style="@GetTerrainPreviewStyle(terrain)"></span>
+                                <span>@(string.IsNullOrWhiteSpace(terrain.Name) ? terrain.Key : terrain.Name)</span>
+                            </button>
+                        }
+                    </div>
+                }
+                else if (_activePanelTab == "Tiles")
                 {
                     <div class="palette-list">
                         @foreach (var definition in _tileDefinitions)
@@ -182,6 +210,7 @@ else
     private string _selectedTileKey = string.Empty;
     private string _selectedBrushKey = string.Empty;
     private string _selectedSpriteKey = string.Empty;
+    private string _selectedTerrainKey = string.Empty;
     private string _status = string.Empty;
     private string _exportJson = string.Empty;
 
@@ -189,6 +218,7 @@ else
     private readonly List<TilesetDefinitionDraft> _tileDefinitions = new();
     private readonly List<TilesetDefinitionDraft> _spriteDefinitions = new();
     private readonly List<BrushDraft> _brushes = new();
+    private readonly List<TerrainDraft> _terrains = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -218,11 +248,13 @@ else
             image = _imageUrl,
             definitions = _definitions,
             brushes = _brushes,
+            terrains = _terrains,
             mapWidth = _mapWidth,
             mapHeight = _mapHeight,
             selectedTileKey = _selectedTileKey,
             selectedBrushKey = _selectedBrushKey,
             selectedSpriteKey = _selectedSpriteKey,
+            selectedTerrainKey = _selectedTerrainKey,
             tileRadius = _tileRadius,
             tool = _tool
         });
@@ -305,10 +337,18 @@ else
                     _brushes.Add(brush);
             }
 
+            _terrains.Clear();
+            foreach (var terrain in import.Terrains)
+            {
+                if (!string.IsNullOrWhiteSpace(terrain?.Key))
+                    _terrains.Add(terrain);
+            }
+
             _selectedTileKey = _tileDefinitions.FirstOrDefault()?.Key ?? string.Empty;
             _selectedBrushKey = _brushes.FirstOrDefault()?.Key ?? string.Empty;
             _selectedSpriteKey = _spriteDefinitions.FirstOrDefault()?.Key ?? string.Empty;
-            _status = $"Loaded {_definitions.Count} definitions and {_brushes.Count} brushes.";
+            _selectedTerrainKey = _terrains.FirstOrDefault()?.Key ?? string.Empty;
+            _status = $"Loaded {_definitions.Count} definitions, {_brushes.Count} brushes and {_terrains.Count} terrains.";
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or System.IO.IOException or InvalidOperationException or TaskCanceledException)
         {
@@ -321,6 +361,8 @@ else
         _tool = tool;
         if (tool == "Tile")
             _activePanelTab = "Tiles";
+        else if (tool == "Terrain")
+            _activePanelTab = "Terrains";
         else if (tool == "Brush")
             _activePanelTab = "Brushes";
         else if (tool == "Sprite")
@@ -365,6 +407,19 @@ else
         if (_runtime is not null)
         {
             await _runtime.InvokeVoidAsync("setSelectedSprite", key);
+            await _runtime.InvokeVoidAsync("setTool", _tool);
+        }
+
+        await ReRender();
+    }
+
+    private async Task SelectTerrainAsync(string key)
+    {
+        _selectedTerrainKey = key;
+        _tool = "Terrain";
+        if (_runtime is not null)
+        {
+            await _runtime.InvokeVoidAsync("setSelectedTerrain", key);
             await _runtime.InvokeVoidAsync("setTool", _tool);
         }
 
@@ -475,6 +530,15 @@ else
             $"background-image: url('{imageUrl}'); background-size: {backgroundWidth:0.###}px {backgroundHeight:0.###}px; background-position: {-sourceX:0.###}px {-sourceY:0.###}px;");
     }
 
+    private string GetTerrainPreviewStyle(TerrainDraft terrain)
+    {
+        var baseDefinition = _definitions.FirstOrDefault(definition =>
+            string.Equals(definition.TerrainKey, terrain.Key, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(definition.TerrainRole, "Base", StringComparison.OrdinalIgnoreCase));
+
+        return baseDefinition is null ? "background-image: none;" : GetDefinitionPreviewStyle(baseDefinition, 34);
+    }
+
     private static bool IsSpriteDefinition(TilesetDefinitionDraft definition) =>
         string.Equals(definition.Kind, "Sprite", StringComparison.OrdinalIgnoreCase);
 
@@ -540,15 +604,30 @@ else
         }
     }
 
+    // The terrain fields must round-trip through this class: the definitions
+    // are re-serialized into the JS runtime config, and a property missing
+    // here is silently stripped from the ruleset.
     public class TilesetDefinitionDraft
     {
         public string Kind { get; set; } = "Tile";
         public string Name { get; set; } = string.Empty;
         public string Key { get; set; } = string.Empty;
+        public string TerrainKey { get; set; } = string.Empty;
+        public string TerrainRole { get; set; } = "Base";
+        public string TerrainDirection { get; set; } = "None";
+        public string TerrainAgainst { get; set; } = string.Empty;
+        public int TerrainWeight { get; set; } = 1;
         public int X { get; set; }
         public int Y { get; set; }
         public int Width { get; set; } = 1;
         public int Height { get; set; } = 1;
+    }
+
+    public class TerrainDraft
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int Priority { get; set; }
     }
 
     public class BrushDraft
@@ -570,6 +649,7 @@ else
     {
         public int TileSize { get; set; } = 16;
         public string Image { get; set; } = string.Empty;
+        public List<TerrainDraft> Terrains { get; set; } = new();
         public List<TilesetDefinitionDraft> Definitions { get; set; } = new();
         public List<BrushDraft> Brushes { get; set; } = new();
     }

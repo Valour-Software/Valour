@@ -283,6 +283,48 @@ New planets receive a 52×40 landscaped commons rather than three blocks on gras
 Sprite loading is intentionally fail-soft. A missing sheet or unknown key falls back
 to the old primitive, so an incomplete community tileset remains navigable.
 
+## Terrain rulesets
+
+Ground materials are painted as **terrain**, not as concrete tiles. The tileset
+declares terrains (key, name, priority) and annotates tiles with a terrain role:
+`Base` tiles fill the material (several may carry weights — variants are picked
+by a per-cell hash so a recomposite never reshuffles them), while `Edge`,
+`Corner` and `InnerCorner` tiles describe how the material meets a neighbor. An
+edge's direction names the side the *other* material is on, and `Against` limits
+a transition to one specific neighbor — left empty it matches any. The resolver
+(`VillageTileRendering.ts`, shared by the editors and available to the runtime)
+reads each cell's 8-neighbor mask and picks art down a fail-soft ladder: a
+missing piece renders the base tile and a hard seam, never a hole, so a
+partially-authored family stays usable. The curated set has no inner corners
+yet, and tall grass deliberately skips them — its `*1`/`*2` pieces are diagonal
+half-fades that would carve a visible plain bite into a dense field, whereas a
+hard diagonal is invisible in outline-free speckle art.
+
+Exactly one side of a boundary draws transition art, or both materials fringe
+into each other. The rule is art-driven: the side with authored art for the pair
+wins outright; art authored for the specific pair beats a wildcard; then higher
+priority wins, with the key as a deterministic tiebreak. This is why dark grass
+(priority 15, authored specifically against dirt path) out-draws the higher
+priority path (20, wildcard art) — the specific art is the better art.
+
+The map editor's Terrain tool writes material keys into a terrain grid and
+re-resolves the whole grid once per tool application — painting a second stroke
+across an L-bend fixes the seams the fixed 3x3 brush stamps got wrong, which is
+the problem this system replaces. Terrain cells own their tile-layer cell;
+hand-painting a tile evicts the cell from the terrain grid so the resolver
+cannot repaint it, and its neighbors re-resolve because an inert neighbor
+changes their masks. Out-of-bounds and unpainted cells are inert: map edges and
+hand-tiled areas do not sprout fringes. The exported map JSON carries both the
+resolved tile layer (renderable without a resolver) and the terrain grid (so a
+future load keeps painting with rulesets).
+
+Terrain metadata lives in its own `Terrain*` fields rather than overloading the
+existing group fields, whose semantics are already taken: `GroupKey` is a naming
+category ("Grass" spans light grass, dark grass and dirt path) and `Direction`
+is art facing (a bench faces South). The staff tileset editor authors the
+terrain list and per-tile roles, and outlines terrain-annotated tiles in green
+on the sheet.
+
 ## Mobile
 
 Movement is a floating stick that appears wherever the finger lands rather than in a
@@ -320,7 +362,22 @@ is open so the world never collapses under stacked panels.
 - The canvas backing store is measured before the dock lays the pane out, and the
   `resize` event is on `window`. A `ResizeObserver` **and** a per-frame drift check
   are both needed: the observer alone stops delivering, leaving a few-pixel backing
-  store stretched across the window.
+  store stretched across the window. The tileset editor and the map editor need
+  the same treatment, where the symptom is nastier: a stretched canvas draws in
+  one coordinate space while mouse hit-testing computes in another, so clicks
+  select tiles away from the cursor (worst when zoomed in). Neither has a frame
+  loop, so alongside their observers they re-check for drift at the start of
+  every mouse-down and wheel event, before any hit-test runs. In the map editor
+  the drift reached 4x (backing 203px versus 890px laid out) on first open.
+- The map editor's `draw()` used to pass a redraw callback to `loadTexture` on
+  every call. The texture cache fires callbacks for already-loaded textures via
+  microtask, so once the sheet loaded, draw -> callback -> draw starved the main
+  thread and hard-hung the tab - the same endless-microtask loop the runtime's
+  static-layer cache guards against. Subscribe to a texture once at init; per-draw
+  lookups must not register callbacks.
+- Paint tools must interpolate between mouse events. A fast drag jumps several
+  cells per `mousemove` and an uninterpolated stroke leaves diagonal pinholes -
+  invisible with plain tile painting, obvious once terrain fringes every hole.
 - The runtime owns a rAF loop and window-level key listeners, so its JS `dispose()`
   must be invoked explicitly. Releasing only the .NET reference leaves both running
   and `preventDefault`-ing WASD, which breaks typing app-wide.
@@ -357,13 +414,17 @@ is open so the world never collapses under stacked panels.
   Shares one planet per class; the test user has an owned-planet cap and one planet
   per test method exhausts it. Tests that mutate the world restore it, because every
   test in the class reads the same planet.
-- `Valour/Tests/Js/*.test.mjs` — the runtime's texture cache and the positional audio
-  graph, via `node --test`. See that folder's README.
+- `Valour/Tests/Js/*.test.mjs` — the runtime's texture cache, the positional audio
+  graph, and the terrain autotile resolver (side rule, bitmask ladder, fail-soft
+  fallbacks, deterministic variants), via `node --test`. See that folder's README.
 
 ## Not built yet
 
 - **Chunk tile-layer playback.** Ground objects render today, but the opaque
-  `VillageMapChunk.LayerData` format is not yet decoded by the runtime.
+  `VillageMapChunk.LayerData` format is not yet decoded by the runtime. A
+  terrain-key-per-cell grid is the natural format: the resolver already lives in
+  the shared rendering module, so the runtime can adopt it at composite time
+  without new resolution code.
 - **Tileset breadth.** The curated default set covers 63 tiles and sprites.
   The definition editor's selection is adjustable in place: the selection
   rectangle carries corner and edge grab handles (with matching resize
@@ -385,7 +446,9 @@ is open so the world never collapses under stacked panels.
   bounds cannot be derived automatically. Continue with the existing grid picker and
   curated named definitions for art a map actually uses.
 - **Map editor round-trip.** The editor can export a map but not load one, and its
-  tile/sprite format does not yet bridge to the runtime scene format.
+  tile/sprite format does not yet bridge to the runtime scene format. Exports
+  already carry the terrain grid alongside the resolved tiles so loading can
+  restore ruleset painting, not just pixels.
 - **Server-side collision validation.** Same-map teleports are rejected, but object
   and chunk collision is still enforced client-side; `CollisionData` is stored so
   the server can validate it without trusting the renderer.

@@ -47,13 +47,42 @@
                     <i class="bi bi-grid-3x3"></i>
                     <span>Tiles</span>
                 </button>
+                <button class="@GetPanelTabClass("Terrain")" @onclick='() => SetPanelTab("Terrain")'>
+                    <i class="bi bi-layers"></i>
+                    <span>Terrains</span>
+                </button>
                 <button class="@GetPanelTabClass("Brush")" @onclick='() => SetPanelTab("Brush")'>
                     <i class="bi bi-brush"></i>
                     <span>Brushes</span>
                 </button>
             </div>
 
-            @if (_activePanelTab == "Definition")
+            @if (_activePanelTab == "Terrain")
+            {
+                <div class="panel-section">
+                    <div class="section-title">Terrains</div>
+                    <div class="hint-text">Materials the map editor can paint. Higher priority draws its transition art over lower when both sides have art for the pair.</div>
+                    @foreach (var terrain in _terrains)
+                    {
+                        <div class="terrain-row">
+                            <input class="field-input" placeholder="key" @bind="terrain.Key" @bind:event="oninput" />
+                            <input class="field-input" placeholder="name" @bind="terrain.Name" @bind:event="oninput" />
+                            <input class="field-input" type="number" title="Priority" @bind="terrain.Priority" />
+                            <button class="icon-btn mini-btn" title="Remove terrain" @onclick="() => RemoveTerrain(terrain)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <div class="panel-actions">
+                    <button class="primary-action" @onclick="AddTerrain">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>Add Terrain</span>
+                    </button>
+                </div>
+            }
+            else if (_activePanelTab == "Definition")
             {
                 <div class="panel-section">
                     <div class="section-title">Definition</div>
@@ -104,6 +133,58 @@
                         <option>Down</option>
                         <option>Left</option>
                     </select>
+                </div>
+
+                <div class="panel-section">
+                    <div class="section-title">Terrain Ruleset</div>
+                    <label class="field-label">Terrain</label>
+                    <input class="field-input" list="@_terrainDatalistId" placeholder="none"
+                           @bind="_draft.TerrainKey" @bind:event="oninput" />
+
+                    <div class="field-row">
+                        <div>
+                            <label class="field-label">Role</label>
+                            <select class="field-input" @bind="_draft.TerrainRole">
+                                <option>Base</option>
+                                <option>Edge</option>
+                                <option>Corner</option>
+                                <option>InnerCorner</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Side</label>
+                            <select class="field-input" @bind="_draft.TerrainDirection">
+                                <option>None</option>
+                                <option>N</option>
+                                <option>NE</option>
+                                <option>E</option>
+                                <option>SE</option>
+                                <option>S</option>
+                                <option>SW</option>
+                                <option>W</option>
+                                <option>NW</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field-row">
+                        <div>
+                            <label class="field-label">Against</label>
+                            <input class="field-input" list="@_terrainDatalistId" placeholder="any"
+                                   @bind="_draft.TerrainAgainst" @bind:event="oninput" />
+                        </div>
+                        <div>
+                            <label class="field-label">Weight</label>
+                            <input class="field-input" type="number" min="1" @bind="_draft.TerrainWeight" />
+                        </div>
+                    </div>
+                    <div class="hint-text">Edges name the side the other material is on; Against limits the art to one neighbor, empty matches any.</div>
+                    <datalist id="@_terrainDatalistId">
+                        @foreach (var terrain in _terrains)
+                        {
+                            <option value="@terrain.Key"></option>
+                        }
+                    </datalist>
                 </div>
 
                 <div class="panel-section">
@@ -237,6 +318,7 @@
     private readonly string _canvasId = $"tileset-canvas-{Guid.NewGuid():N}";
     private readonly string _fileInputId = $"tileset-file-{Guid.NewGuid():N}";
     private readonly string _importInputId = $"tileset-import-{Guid.NewGuid():N}";
+    private readonly string _terrainDatalistId = $"tileset-terrains-{Guid.NewGuid():N}";
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
     private readonly JsonSerializerOptions _jsonReadOptions = new() { PropertyNameCaseInsensitive = true };
     private IJSObjectReference? _module;
@@ -254,6 +336,7 @@
     private BrushDraft _brushDraft = BrushDraft.CreateDefault();
     private readonly List<TilesetDefinitionDraft> _definitions = new();
     private readonly List<BrushDraft> _brushes = new();
+    private readonly List<TerrainDraft> _terrains = new();
     private bool _keyWasEdited;
     private bool _brushKeyWasEdited;
     private string _activePanelTab = "Definition";
@@ -272,6 +355,7 @@
     {
         tileSize = TileSize,
         image = _imageUrl,
+        terrains = _terrains,
         definitions = _definitions,
         brushes = _brushes
     }, _jsonOptions);
@@ -635,6 +719,22 @@
         ReRender();
     }
 
+    private void AddTerrain()
+    {
+        _terrains.Add(new TerrainDraft
+        {
+            Key = $"terrain-{_terrains.Count + 1}",
+            Priority = _terrains.Count * 10
+        });
+        ReRender();
+    }
+
+    private void RemoveTerrain(TerrainDraft terrain)
+    {
+        _terrains.Remove(terrain);
+        ReRender();
+    }
+
     private string GetBrushCellTitle(int index)
     {
         if (index < 0 || index >= _brushDraft.Cells.Count)
@@ -914,6 +1014,13 @@
             _brushes.Add(brush);
         }
 
+        _terrains.Clear();
+        foreach (var terrain in import.Terrains)
+        {
+            if (!string.IsNullOrWhiteSpace(terrain?.Key))
+                _terrains.Add(terrain);
+        }
+
         var imageStatus = string.Empty;
         var imageReference = ResolveImportImageReference(import.Image, importUrl);
         if (!string.IsNullOrWhiteSpace(imageReference))
@@ -956,7 +1063,7 @@
         if (_runtime is not null)
             await _runtime.InvokeVoidAsync("setSelection", _selection.X, _selection.Y, _selection.Width, _selection.Height);
 
-        _importStatus = $"{statusVerb} {_definitions.Count} definitions and {_brushes.Count} brushes.{imageStatus}";
+        _importStatus = $"{statusVerb} {_definitions.Count} definitions, {_brushes.Count} brushes and {_terrains.Count} terrains.{imageStatus}";
         await ReRender();
     }
 
@@ -1037,6 +1144,11 @@
         definition.GroupRole = string.IsNullOrWhiteSpace(definition.GroupRole) ? "Base" : definition.GroupRole;
         definition.VariantKey ??= string.Empty;
         definition.Direction = string.IsNullOrWhiteSpace(definition.Direction) ? "None" : definition.Direction;
+        definition.TerrainKey ??= string.Empty;
+        definition.TerrainRole = string.IsNullOrWhiteSpace(definition.TerrainRole) ? "Base" : definition.TerrainRole;
+        definition.TerrainDirection = string.IsNullOrWhiteSpace(definition.TerrainDirection) ? "None" : definition.TerrainDirection;
+        definition.TerrainAgainst ??= string.Empty;
+        definition.TerrainWeight = Math.Max(1, definition.TerrainWeight);
         definition.Width = Math.Max(1, definition.Width);
         definition.Height = Math.Max(1, definition.Height);
         definition.Collision ??= new List<bool>();
@@ -1101,7 +1213,7 @@
             kind = definition.Kind,
             name = definition.Name,
             key = definition.Key,
-            hasTerrain = false
+            hasTerrain = !string.IsNullOrWhiteSpace(definition.TerrainKey)
         }).ToList();
 
         await _runtime.InvokeVoidAsync("setDefinitions", outlines);
@@ -1134,6 +1246,11 @@
         public string GroupRole { get; set; } = "Base";
         public string VariantKey { get; set; } = string.Empty;
         public string Direction { get; set; } = "None";
+        public string TerrainKey { get; set; } = string.Empty;
+        public string TerrainRole { get; set; } = "Base";
+        public string TerrainDirection { get; set; } = "None";
+        public string TerrainAgainst { get; set; } = string.Empty;
+        public int TerrainWeight { get; set; } = 1;
         public int X { get; set; }
         public int Y { get; set; }
         public int Width { get; set; } = 1;
@@ -1151,12 +1268,24 @@
             GroupRole = GroupRole,
             VariantKey = VariantKey,
             Direction = Direction,
+            TerrainKey = TerrainKey,
+            TerrainRole = TerrainRole,
+            TerrainDirection = TerrainDirection,
+            TerrainAgainst = TerrainAgainst,
+            TerrainWeight = TerrainWeight,
             X = X,
             Y = Y,
             Width = Width,
             Height = Height,
             Collision = Collision.ToList()
         };
+    }
+
+    public class TerrainDraft
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int Priority { get; set; }
     }
 
     public class BrushDraft
@@ -1235,6 +1364,7 @@
     {
         public int TileSize { get; set; } = 16;
         public string Image { get; set; } = string.Empty;
+        public List<TerrainDraft> Terrains { get; set; } = new();
         public List<TilesetDefinitionDraft> Definitions { get; set; } = new();
         public List<BrushDraft> Brushes { get; set; } = new();
     }

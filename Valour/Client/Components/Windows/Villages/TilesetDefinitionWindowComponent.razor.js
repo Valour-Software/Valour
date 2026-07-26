@@ -57,6 +57,8 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
         },
         dispose() {
             state.destroyed = true;
+            state.resizeObserver?.disconnect();
+            state.resizeObserver = null;
             window.removeEventListener("resize", state.onResize);
             canvas.removeEventListener("mousedown", state.onMouseDown);
             canvas.removeEventListener("mousemove", state.onMouseMove);
@@ -75,6 +77,9 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
     };
 
     state.onMouseDown = async (event) => {
+        // Heal any layout drift BEFORE the hit-test, or the click computes
+        // against a stretched canvas and selects the wrong tile.
+        ensureCanvasSize(state);
         if (event.button === 1 || event.altKey || event.metaKey) {
             state.panning = true;
             state.panStart = {
@@ -159,6 +164,7 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
 
     state.onWheel = (event) => {
         event.preventDefault();
+        ensureCanvasSize(state);
 
         // Design-tool convention: a plain wheel or two-finger scroll pans in
         // both axes; a trackpad pinch (delivered as a ctrl-wheel) or an
@@ -213,6 +219,19 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
             console.error("Failed to load local tilesheet.", error);
         }
     };
+
+    // The dock lays panes out without firing window resize, so the element
+    // itself is observed; the ensureCanvasSize calls in the handlers cover
+    // anything the observer misses between deliveries.
+    if (typeof ResizeObserver !== "undefined") {
+        state.resizeObserver = new ResizeObserver(() => {
+            if (!state.destroyed) {
+                ensureCanvasSize(state);
+                draw(state);
+            }
+        });
+        state.resizeObserver.observe(canvas);
+    }
 
     window.addEventListener("resize", state.onResize);
     canvas.addEventListener("mousedown", state.onMouseDown);
@@ -278,6 +297,10 @@ function loadImage(state, url) {
 
 function resizeCanvas(state) {
     const rect = state.canvas.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) {
+        return;
+    }
+
     state.viewportWidth = Math.max(1, Math.floor(rect.width));
     state.viewportHeight = Math.max(1, Math.floor(rect.height));
     state.devicePixelRatio = Math.max(1, window.devicePixelRatio || 1);
@@ -285,6 +308,27 @@ function resizeCanvas(state) {
     state.canvas.height = Math.floor(state.viewportHeight * state.devicePixelRatio);
     state.ctx.setTransform(state.devicePixelRatio, 0, 0, state.devicePixelRatio, 0, 0);
     state.ctx.imageSmoothingEnabled = false;
+}
+
+/**
+ * Re-measures when the backing store has drifted from the element's real
+ * size. The window resize event does not fire when the dock re-lays the pane
+ * out, and a stretched canvas renders in one coordinate space while the
+ * mouse hit-tests in another - which is exactly a "clicks select the wrong
+ * tile" bug, most visible when zoomed in.
+ */
+function ensureCanvasSize(state) {
+    const rect = state.canvas.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) {
+        return;
+    }
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const targetWidth = Math.floor(Math.floor(rect.width) * dpr);
+    const targetHeight = Math.floor(Math.floor(rect.height) * dpr);
+    if (state.canvas.width !== targetWidth || state.canvas.height !== targetHeight) {
+        resizeCanvas(state);
+    }
 }
 
 function fitImage(state) {

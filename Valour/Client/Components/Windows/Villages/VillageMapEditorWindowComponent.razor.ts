@@ -1,6 +1,8 @@
 import DotnetObject = DotNet.DotnetObject;
 import type {
     BrushDefinition,
+    TerrainDefinition,
+    TerrainIndex,
     TileDefinition,
     TextureCache
 } from "../../../wwwroot/ts/VillageTileRendering.js";
@@ -30,11 +32,13 @@ type EditorConfig = {
     image: string;
     definitions: TileDefinition[];
     brushes: BrushDefinition[];
+    terrains: TerrainDefinition[];
     mapWidth: number;
     mapHeight: number;
     selectedTileKey: string;
     selectedBrushKey: string;
     selectedSpriteKey: string;
+    selectedTerrainKey: string;
     tileRadius: number;
     tool: string;
 };
@@ -52,6 +56,9 @@ type EditorState = {
     tileBrushWeights: number[];
     tileBrushKeys: string[];
     tileBrushStrokeIds: number[];
+    terrainGrid: string[];
+    terrainIndex: TerrainIndex;
+    terrainDirty: boolean;
     sprites: MapSprite[];
     nextSpriteId: number;
     nextBrushStrokeId: number;
@@ -63,6 +70,7 @@ type EditorState = {
     selectedTileKey: string;
     selectedBrushKey: string;
     selectedSpriteKey: string;
+    selectedTerrainKey: string;
     tileRadius: number;
     tool: string;
     rendering: RenderingModule;
@@ -76,8 +84,10 @@ type EditorState = {
     dragging: boolean;
     panning: boolean;
     dragStart: { x: number; y: number; offsetX: number; offsetY: number } | null;
+    lastPaintTile: { x: number; y: number } | null;
     hoverTile: { x: number; y: number } | null;
     destroyed: boolean;
+    resizeObserver: ResizeObserver | null;
     onResize: () => void;
     onMouseDown: (event: MouseEvent) => void;
     onMouseMove: (event: MouseEvent) => void;
@@ -91,6 +101,7 @@ type MapEditorRuntime = {
     setSelectedTile: (key: string) => void;
     setSelectedBrush: (key: string) => void;
     setSelectedSprite: (key: string) => void;
+    setSelectedTerrain: (key: string) => void;
     setTileRadius: (radius: number) => void;
     resizeMap: (width: number, height: number) => void;
     clearMap: () => void;
@@ -112,6 +123,8 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
 
     const definitions = rendering.normalizeTileDefinitions(config.definitions);
     const brushes = rendering.normalizeBrushDefinitions(config.brushes);
+    const terrains = rendering.normalizeTerrainDefinitions(config.terrains);
+    const terrainIndex = rendering.buildTerrainIndex(terrains, definitions);
 
     const state: EditorState = {
         canvas,
@@ -126,6 +139,9 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
         tileBrushWeights: [],
         tileBrushKeys: [],
         tileBrushStrokeIds: [],
+        terrainGrid: [],
+        terrainIndex,
+        terrainDirty: false,
         sprites: [],
         nextSpriteId: 1,
         nextBrushStrokeId: 1,
@@ -137,6 +153,7 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
         selectedTileKey: config.selectedTileKey || definitions.find(definition => definition.kind.toLowerCase() !== "sprite")?.key || "",
         selectedBrushKey: config.selectedBrushKey || brushes[0]?.key || "",
         selectedSpriteKey: config.selectedSpriteKey || definitions.find(definition => definition.kind.toLowerCase() === "sprite")?.key || "",
+        selectedTerrainKey: config.selectedTerrainKey || terrains[0]?.key || "",
         tileRadius: rendering.clamp(Math.round(Number(config.tileRadius) || 0), 0, 24),
         tool: config.tool || "Tile",
         rendering,
@@ -150,8 +167,10 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
         dragging: false,
         panning: false,
         dragStart: null,
+        lastPaintTile: null,
         hoverTile: null,
         destroyed: false,
+        resizeObserver: null,
         onResize: () => undefined,
         onMouseDown: () => undefined,
         onMouseMove: () => undefined,
@@ -165,6 +184,7 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
     state.tileBrushWeights = new Array(state.tiles.length).fill(0);
     state.tileBrushKeys = new Array(state.tiles.length).fill("");
     state.tileBrushStrokeIds = new Array(state.tiles.length).fill(0);
+    state.terrainGrid = new Array(state.tiles.length).fill("");
 
     const runtime: MapEditorRuntime = {
         setTool(tool) {
@@ -183,6 +203,10 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
             state.selectedSpriteKey = key || "";
             draw(state);
         },
+        setSelectedTerrain(key) {
+            state.selectedTerrainKey = key || "";
+            draw(state);
+        },
         setTileRadius(radius) {
             state.tileRadius = state.rendering.clamp(Math.round(Number(radius) || 0), 0, 24);
             draw(state);
@@ -198,6 +222,7 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
             state.tileBrushWeights.fill(0);
             state.tileBrushKeys.fill("");
             state.tileBrushStrokeIds.fill(0);
+            state.terrainGrid.fill("");
             state.sprites = [];
             draw(state);
             notifyMapChanged(state);
@@ -208,6 +233,8 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
         },
         dispose() {
             state.destroyed = true;
+            state.resizeObserver?.disconnect();
+            state.resizeObserver = null;
             window.removeEventListener("resize", state.onResize);
             window.removeEventListener("keydown", state.onKeyDown);
             canvas.removeEventListener("mousedown", state.onMouseDown);
@@ -224,6 +251,10 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
     };
 
     state.onMouseDown = (event) => {
+        // Heal layout drift BEFORE the hit-test: the canvas is measured before
+        // the dock lays the pane out, so a stretched backing store draws in
+        // one coordinate space while clicks compute in another.
+        ensureCanvasSize(state);
         if (event.button === 1 || event.altKey || event.metaKey) {
             state.panning = true;
             state.dragStart = {
@@ -247,6 +278,7 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
         state.dragging = true;
         state.currentBrushStrokeId = state.nextBrushStrokeId++;
         applyToolAt(state, point.x, point.y);
+        state.lastPaintTile = { x: point.x, y: point.y };
         draw(state);
         notifyMapChanged(state);
     };
@@ -263,7 +295,11 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
         state.hoverTile = point;
 
         if (state.dragging && point) {
-            applyToolAt(state, point.x, point.y);
+            // Mouse events arrive at discrete points; a fast drag jumps
+            // multiple cells between events and an uninterpolated stroke
+            // leaves pinholes - obvious once autotiling fringes them.
+            applyToolAlong(state, state.lastPaintTile, point);
+            state.lastPaintTile = { x: point.x, y: point.y };
             notifyMapChanged(state);
         }
 
@@ -274,11 +310,13 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
         state.dragging = false;
         state.panning = false;
         state.dragStart = null;
+        state.lastPaintTile = null;
         state.currentBrushStrokeId = 0;
     };
 
     state.onWheel = (event) => {
         event.preventDefault();
+        ensureCanvasSize(state);
         const before = getWorldPoint(state, event);
         const factor = Math.exp(-event.deltaY * 0.00024);
         state.scale = rendering.clamp(state.scale * factor, 0.75, 8);
@@ -306,6 +344,14 @@ export async function init(canvasId: string, dotNetRef: DotnetObject, config: Ed
     };
 
     window.addEventListener("resize", state.onResize);
+    if (typeof ResizeObserver !== "undefined") {
+        state.resizeObserver = new ResizeObserver(() => {
+            if (!state.destroyed) {
+                ensureCanvasSize(state);
+            }
+        });
+        state.resizeObserver.observe(canvas);
+    }
     window.addEventListener("keydown", state.onKeyDown);
     canvas.addEventListener("mousedown", state.onMouseDown);
     canvas.addEventListener("mousemove", state.onMouseMove);
@@ -352,6 +398,26 @@ function resizeCanvas(state: EditorState): void {
     state.ctx.imageSmoothingEnabled = false;
 }
 
+/**
+ * The editor has no frame loop to self-heal in, so drift between the backing
+ * store and the laid-out size is re-checked before input handling.
+ */
+function ensureCanvasSize(state: EditorState): void {
+    const rect = state.canvas.getBoundingClientRect();
+    const width = Math.max(1, Math.floor(rect.width));
+    const height = Math.max(1, Math.floor(rect.height));
+    const devicePixelRatio = Math.max(1, window.devicePixelRatio || 1);
+    if (width === state.viewportWidth &&
+        height === state.viewportHeight &&
+        devicePixelRatio === state.devicePixelRatio) {
+        return;
+    }
+
+    resizeCanvas(state);
+    fitMap(state);
+    draw(state);
+}
+
 function fitMap(state: EditorState): void {
     const fitX = (state.viewportWidth - 48) / Math.max(1, state.mapWidth * state.tileSize);
     const fitY = (state.viewportHeight - 48) / Math.max(1, state.mapHeight * state.tileSize);
@@ -369,6 +435,7 @@ function resizeMap(state: EditorState, width: number, height: number): void {
     const nextBrushWeights = new Array(nextWidth * nextHeight).fill(0);
     const nextBrushKeys = new Array(nextWidth * nextHeight).fill("");
     const nextBrushStrokeIds = new Array(nextWidth * nextHeight).fill(0);
+    const nextTerrainGrid = new Array(nextWidth * nextHeight).fill("");
 
     for (let y = 0; y < Math.min(state.mapHeight, nextHeight); y++) {
         for (let x = 0; x < Math.min(state.mapWidth, nextWidth); x++) {
@@ -379,6 +446,7 @@ function resizeMap(state: EditorState, width: number, height: number): void {
             nextBrushWeights[nextIndex] = state.tileBrushWeights[previousIndex] || 0;
             nextBrushKeys[nextIndex] = state.tileBrushKeys[previousIndex] || "";
             nextBrushStrokeIds[nextIndex] = state.tileBrushStrokeIds[previousIndex] || 0;
+            nextTerrainGrid[nextIndex] = state.terrainGrid[previousIndex] || "";
         }
     }
 
@@ -389,8 +457,31 @@ function resizeMap(state: EditorState, width: number, height: number): void {
     state.tileBrushWeights = nextBrushWeights;
     state.tileBrushKeys = nextBrushKeys;
     state.tileBrushStrokeIds = nextBrushStrokeIds;
+    state.terrainGrid = nextTerrainGrid;
+    // Cropping can expose new boundaries (terrain that used to continue past
+    // the cut now ends at the map edge), so every terrain cell re-resolves.
+    resolveTerrainTiles(state);
     state.sprites = state.sprites.filter(sprite => sprite.x < nextWidth && sprite.y < nextHeight);
     fitMap(state);
+}
+
+function applyToolAlong(
+    state: EditorState,
+    from: { x: number; y: number } | null,
+    to: { x: number; y: number }
+): void {
+    if (!from) {
+        applyToolAt(state, to.x, to.y);
+        return;
+    }
+
+    const steps = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
+    for (let step = 1; step <= steps; step++) {
+        applyToolAt(
+            state,
+            Math.round(from.x + (to.x - from.x) * step / steps),
+            Math.round(from.y + (to.y - from.y) * step / steps));
+    }
 }
 
 function applyToolAt(state: EditorState, x: number, y: number): void {
@@ -400,20 +491,61 @@ function applyToolAt(state: EditorState, x: number, y: number): void {
 
     if (state.tool === "Erase") {
         eraseAt(state, x, y);
-        return;
-    }
-
-    if (state.tool === "Brush") {
+    } else if (state.tool === "Brush") {
         paintBrushAt(state, x, y);
-        return;
-    }
-
-    if (state.tool === "Sprite") {
+    } else if (state.tool === "Sprite") {
         placeSpriteAt(state, x, y);
+    } else if (state.tool === "Terrain") {
+        paintTerrainRadiusAt(state, x, y, state.selectedTerrainKey);
+    } else {
+        paintTileRadiusAt(state, x, y, state.selectedTileKey);
+    }
+
+    // Any change to the terrain grid shifts neighbor masks well beyond the
+    // touched cells, so resolution runs once per tool application over the
+    // whole grid rather than per painted cell.
+    if (state.terrainDirty) {
+        state.terrainDirty = false;
+        resolveTerrainTiles(state);
+    }
+}
+
+function paintTerrainRadiusAt(state: EditorState, x: number, y: number, terrainKey: string): void {
+    if (!terrainKey || !state.terrainIndex.has(terrainKey)) {
         return;
     }
 
-    paintTileRadiusAt(state, x, y, state.selectedTileKey);
+    forEachTileInRadius(state, x, y, state.tileRadius, (tileX, tileY) => {
+        const index = tileY * state.mapWidth + tileX;
+        if (state.terrainGrid[index] === terrainKey) {
+            return;
+        }
+
+        state.terrainGrid[index] = terrainKey;
+        state.tileBrushStrengths[index] = 0;
+        state.tileBrushWeights[index] = 0;
+        state.tileBrushKeys[index] = "";
+        state.tileBrushStrokeIds[index] = 0;
+        state.terrainDirty = true;
+    });
+}
+
+/**
+ * Terrain cells own their tile: the resolver's pick overwrites the tile layer
+ * for every cell with terrain, and leaves hand-painted cells alone.
+ */
+function resolveTerrainTiles(state: EditorState): void {
+    const resolved = state.rendering.resolveTerrainGrid(
+        state.terrainGrid,
+        state.mapWidth,
+        state.mapHeight,
+        state.terrainIndex);
+
+    for (let index = 0; index < resolved.length; index++) {
+        if (state.terrainGrid[index]) {
+            state.tiles[index] = resolved[index]?.key ?? "";
+        }
+    }
 }
 
 function paintTileRadiusAt(state: EditorState, x: number, y: number, tileKey: string): void {
@@ -438,6 +570,21 @@ function paintTileAt(state: EditorState, x: number, y: number, tileKey: string):
     state.tileBrushWeights[index] = 0;
     state.tileBrushKeys[index] = "";
     state.tileBrushStrokeIds[index] = 0;
+    clearTerrainAt(state, index);
+}
+
+/**
+ * A hand-painted tile overrides terrain: the cell leaves the terrain grid so
+ * the resolver cannot repaint it, and its neighbors go dirty because an inert
+ * neighbor changes their masks.
+ */
+function clearTerrainAt(state: EditorState, index: number): void {
+    if (!state.terrainGrid[index]) {
+        return;
+    }
+
+    state.terrainGrid[index] = "";
+    state.terrainDirty = true;
 }
 
 function forEachTileInRadius(
@@ -535,6 +682,7 @@ function paintBrushCellAt(state: EditorState, x: number, y: number, brushKey: st
     state.tileBrushWeights[index] = brushWeight;
     state.tileBrushKeys[index] = brushKey;
     state.tileBrushStrokeIds[index] = strokeId;
+    clearTerrainAt(state, index);
 }
 
 function isLowerBrushPriority(priority: number, weight: number, currentPriority: number, currentWeight: number): boolean {
@@ -573,6 +721,7 @@ function eraseAt(state: EditorState, x: number, y: number): void {
     state.tileBrushWeights[index] = 0;
     state.tileBrushKeys[index] = "";
     state.tileBrushStrokeIds[index] = 0;
+    clearTerrainAt(state, index);
 }
 
 function findTopSpriteIndexAt(state: EditorState, x: number, y: number): number {
@@ -601,7 +750,11 @@ function draw(state: EditorState): void {
     ctx.fillStyle = "#181d27";
     ctx.fillRect(0, 0, mapWidthPx, mapHeightPx);
 
-    const texture = state.rendering.loadTexture(state.textureCache, state.imageUrl, () => draw(state));
+    // No redraw callback here: the cache fires callbacks for already-loaded
+    // textures via microtask, so a per-draw subscription becomes an endless
+    // draw -> callback -> draw loop that hangs the tab. The init-time
+    // subscription already redraws once when the sheet finishes loading.
+    const texture = state.rendering.loadTexture(state.textureCache, state.imageUrl);
     if (texture?.loaded) {
         drawTileLayer(state, texture.image, cellSize);
         drawSprites(state, texture.image, cellSize);
@@ -705,13 +858,17 @@ function drawHover(state: EditorState, cellSize: number): void {
         height = definition?.height ?? 1;
     } else if (state.tool === "Tile") {
         definition = state.definitionsByKey.get(state.selectedTileKey);
+    } else if (state.tool === "Terrain") {
+        // The ghost previews the terrain's base look; the resolver picks the
+        // real transition tiles once the paint lands.
+        definition = state.terrainIndex.get(state.selectedTerrainKey)?.baseTiles[0];
     }
 
     const originX = state.tool === "Brush" ? x - Math.floor(width / 2) : x;
     const originY = state.tool === "Brush" ? y - Math.floor(height / 2) : y;
-    const texture = state.rendering.loadTexture(state.textureCache, state.imageUrl, () => draw(state));
+    const texture = state.rendering.loadTexture(state.textureCache, state.imageUrl);
 
-    if (state.tool === "Tile") {
+    if (state.tool === "Tile" || state.tool === "Terrain") {
         drawTileRadiusGhost(state, texture?.loaded ? texture.image : null, definition, x, y, cellSize);
     } else if (state.tool === "Erase" || !texture?.loaded) {
         ctx.fillStyle = state.tool === "Erase" ? "rgba(255, 100, 100, 0.22)" : "rgba(255, 211, 91, 0.16)";
@@ -722,7 +879,7 @@ function drawHover(state: EditorState, cellSize: number): void {
         drawDefinitionGhost(state, texture.image, definition, originX, originY, cellSize, 0.58);
     }
 
-    if (state.tool !== "Tile") {
+    if (state.tool !== "Tile" && state.tool !== "Terrain") {
         ctx.strokeRect(originX * cellSize + 1, originY * cellSize + 1, width * cellSize - 2, height * cellSize - 2);
     }
     ctx.restore();
@@ -839,6 +996,9 @@ function exportMap(state: EditorState) {
         tileSize: state.tileSize,
         tileset: state.imageUrl,
         tiles: state.tiles.map(tileKey => tileKey || null),
+        // The tile layer above is already fully resolved; the terrain grid
+        // rides along so a future load can keep painting with rulesets.
+        terrains: state.terrainGrid.map(terrainKey => terrainKey || null),
         sprites: state.sprites.map(sprite => ({
             key: sprite.key,
             x: sprite.x,

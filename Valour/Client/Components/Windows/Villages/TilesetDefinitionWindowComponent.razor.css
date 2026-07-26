@@ -286,6 +286,14 @@
     gap: 8px;
 }
 
+.terrain-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 64px 30px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
 .collision-grid {
     display: grid;
     gap: 4px;
