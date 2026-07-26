@@ -1,0 +1,76 @@
+@namespace Valour.Client.Components.Staff.Dashboard.Charts
+
+<div class="dash-stat-tile">
+    <div class="tile-label">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <i class="bi bi-@Icon" aria-hidden="true"></i>
+        }
+        <span>@Label</span>
+    </div>
+    <div class="tile-body">
+        <div class="tile-main">
+            <div class="tile-value">@Value</div>
+        </div>
+        @if (Spark is { Count: >= 2 })
+        {
+            var coords = SparkCoords();
+            <svg class="tile-spark" width="@F(SparkW)" height="@F(SparkH)" aria-hidden="true" focusable="false">
+                <polyline points="@PointsAttr(coords)" fill="none" stroke="@DashChartPalette.DeEmphasis"
+                          stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+                <line x1="@F(coords[^2].X)" y1="@F(coords[^2].Y)" x2="@F(coords[^1].X)" y2="@F(coords[^1].Y)"
+                      stroke="@AccentColor" stroke-width="2" stroke-linecap="round" />
+                <circle cx="@F(coords[^1].X)" cy="@F(coords[^1].Y)" r="2.5" fill="@AccentColor" />
+            </svg>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(Delta))
+    {
+        <div class="tile-delta @DeltaClass">@Delta</div>
+    }
+</div>
+
+@code {
+    private const double SparkW = 88;
+    private const double SparkH = 30;
+    private const double SparkPad = 4;
+
+    [Parameter] public string Label { get; set; }
+    [Parameter] public string Value { get; set; }
+    [Parameter] public string Delta { get; set; }
+
+    /// <summary>
+    /// Colors the delta by direction: true = success, false = danger,
+    /// null = neutral (for informational subtitles that aren't deltas).
+    /// </summary>
+    [Parameter] public bool? DeltaGood { get; set; }
+
+    private string DeltaClass => DeltaGood is null ? "neutral" : DeltaGood.Value ? "good" : "bad";
+    [Parameter] public IReadOnlyList<double> Spark { get; set; }
+    [Parameter] public string Icon { get; set; }
+    [Parameter] public string AccentColor { get; set; } = DashChartPalette.Series1;
+
+    private static string F(double value) => DashChartMath.F(value);
+
+    private List<(double X, double Y)> SparkCoords()
+    {
+        var count = Spark.Count;
+        var min = Spark.Min();
+        var max = Spark.Max();
+        var range = max - min;
+
+        var coords = new List<(double X, double Y)>(count);
+        for (var i = 0; i < count; i++)
+        {
+            var x = SparkPad + i * (SparkW - SparkPad * 2) / (count - 1);
+            var fraction = range <= 0 ? 0.5 : (Spark[i] - min) / range;
+            var y = SparkPad + (1 - fraction) * (SparkH - SparkPad * 2);
+            coords.Add((x, y));
+        }
+
+        return coords;
+    }
+
+    private static string PointsAttr(List<(double X, double Y)> coords) =>
+        string.Join(' ', coords.Select(c => $"{F(c.X)},{F(c.Y)}"));
+}

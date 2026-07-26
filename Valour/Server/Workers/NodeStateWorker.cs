@@ -31,6 +31,7 @@ public class NodeStateWorker : IHostedService, IDisposable
     {
         _logger.LogInformation("Updating node state");
         _ = _nodeLifecycleService.UpdateNodeAliveAsync();
+        _ = _nodeLifecycleService.PublishNodeStatsAsync();
     }
     
     public Task StopAsync(CancellationToken stoppingToken)

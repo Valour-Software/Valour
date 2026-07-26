@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Valour.Database;
 
@@ -14,6 +15,7 @@ namespace Valour.Database;
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
 [Table("stat_objects")]
+[Index(nameof(TimeCreated))]
 public class StatObject
 {
     ///////////////////////

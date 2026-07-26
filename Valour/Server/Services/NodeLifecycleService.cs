@@ -1,5 +1,6 @@
 ﻿#nullable enable annotations
 
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
@@ -98,6 +99,60 @@ public class NodeLifecycleService
         await _nodeRecords.StringSetAsync(_nodeAliveKey, DateTime.UtcNow.ToString("O"), flags: CommandFlags.FireAndForget);
     }
     
+    // Cached previous CPU sample so usage can be computed between publishes
+    private TimeSpan _lastCpuTotal;
+    private DateTime _lastCpuSampleUtc;
+
+    /// <summary>
+    /// Publishes this node's runtime stats to Redis so any node can assemble a
+    /// cluster-wide view for the staff dashboard. The short TTL means a dead
+    /// node's stats disappear on their own.
+    /// </summary>
+    public async Task PublishNodeStatsAsync()
+    {
+        try
+        {
+            var process = Process.GetCurrentProcess();
+            var now = DateTime.UtcNow;
+            var cpuTotal = process.TotalProcessorTime;
+
+            double cpuPercent = -1;
+            if (_lastCpuSampleUtc != default)
+            {
+                var elapsedMs = (now - _lastCpuSampleUtc).TotalMilliseconds;
+                if (elapsedMs > 0)
+                    cpuPercent = (cpuTotal - _lastCpuTotal).TotalMilliseconds / elapsedMs / Environment.ProcessorCount * 100;
+            }
+
+            _lastCpuTotal = cpuTotal;
+            _lastCpuSampleUtc = now;
+
+            var stats = new NodeRuntimeStats
+            {
+                Name = Name,
+                Version = Version,
+                Connections = SignalRConnectionService.TotalConnections,
+                PrimaryConnections = SignalRConnectionService.TotalPrimaryConnections,
+                Groups = SignalRConnectionService.TotalGroups,
+                HostedPlanets = _cache.HostedPlanets.Ids.Length,
+                CpuPercent = cpuPercent,
+                MemoryMb = process.WorkingSet64 / (1024.0 * 1024.0),
+                UptimeSeconds = (now - process.StartTime.ToUniversalTime()).TotalSeconds,
+                TimeUtc = now,
+            };
+
+            await _nodeRecords.StringSetAsync(
+                $"nodestats:{Name}",
+                JsonSerializer.Serialize(stats),
+                TimeSpan.FromSeconds(120),
+                flags: CommandFlags.FireAndForget);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to publish node runtime stats");
+        }
+    }
+
     /// <summary>
     /// Returns whether a node is alive or not - note that this is not a guarantee that the node is
     /// dead, but rather that it has not updated its alive time in the last 60 seconds

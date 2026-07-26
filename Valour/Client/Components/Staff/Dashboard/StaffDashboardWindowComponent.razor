@@ -1,0 +1,551 @@
+@inherits WindowContentComponentBase
+@implements IAsyncDisposable
+@inject ValourClient Client
+@inject StaffService StaffService
+@using Valour.Client.Components.Staff.Dashboard.Charts
+@using Valour.Shared.Models.Staff
+@namespace Valour.Client.Components.Staff.Dashboard
+
+<div class="dashboard">
+
+    @if (_snapshot is null)
+    {
+        <div class="dash-loading">
+            @if (_loadError is not null)
+            {
+                <i class="bi bi-cloud-slash"></i>
+                <span>@_loadError</span>
+            }
+            else
+            {
+                <span>Loading platform data...</span>
+            }
+        </div>
+    }
+    else
+    {
+
+    <header class="dash-header">
+        <div class="dash-title-block">
+            <h2>Platform Dashboard</h2>
+            <span class="dash-updated">Updated @_lastUpdate.ToLocalTime().ToString("HH:mm:ss")</span>
+        </div>
+        <div class="live-badge @(_live ? "on" : "")">
+            <span class="live-dot"></span>
+            @(_live ? "Live" : "Connecting")
+        </div>
+    </header>
+
+    @* ---------- Right now ---------- *@
+    <section class="dash-section">
+        <div class="kpi-band">
+            <div class="hero-tile">
+                <span class="hero-label">Online now</span>
+                <span class="hero-value">@DashFormat.Compact(Live.OnlineUsers)</span>
+                <span class="hero-sub">@DashFormat.Compact(Live.Connections) realtime connections</span>
+            </div>
+            <div class="kpi-grid">
+                <DashStatTile Label="Active today" Icon="person-check-fill"
+                              Value="@DashFormat.Compact(_snapshot.DailyActiveUsers)"
+                              Delta="@_dauDelta" DeltaGood="@_dauDeltaGood"
+                              Spark="@_dauSpark" />
+                <DashStatTile Label="Active this month" Icon="people-fill"
+                              Value="@DashFormat.Compact(_snapshot.MonthlyActiveUsers)" />
+                <DashStatTile Label="Messages / min" Icon="chat-dots-fill"
+                              Value="@DashFormat.Compact(Live.MessagesPerMinute)"
+                              Spark="@_messageSpark" />
+                <DashStatTile Label="In voice" Icon="mic-fill"
+                              Value="@DashFormat.Compact(Live.VoiceParticipants)"
+                              Delta="@VoiceChannelText" />
+                <DashStatTile Label="Active communities" Icon="globe2"
+                              Value="@DashFormat.Compact(_snapshot.ActivePlanets)" />
+                <DashStatTile Label="New accounts today" Icon="person-plus-fill"
+                              Value="@DashFormat.Compact(_snapshot.SignupsToday)" />
+                <DashStatTile Label="Monthly recurring revenue" Icon="currency-dollar"
+                              Value="@DashFormat.Usd(_snapshot.Revenue?.MrrCents ?? 0)"
+                              Delta="@SubscriberText" />
+                <DashStatTile Label="Total users" Icon="person-fill"
+                              Value="@DashFormat.Compact(_snapshot.TotalUsers)" />
+            </div>
+        </div>
+    </section>
+
+    @* ---------- Live sphere + presence feed ---------- *@
+    <section class="dash-section globe-section">
+        <div class="dash-card globe-card">
+            <div class="card-title">The Valour universe</div>
+            <DashGlobe @ref="_globe" Planets="@_snapshot.GlobePlanets" />
+        </div>
+        <div class="dash-card ticker-card">
+            <div class="card-title">Presence</div>
+            @if (_presenceEvents.Count == 0)
+            {
+                <div class="ticker-empty">Waiting for users to come online...</div>
+            }
+            <div class="ticker-list">
+                @foreach (var evt in _presenceEvents)
+                {
+                    <div class="ticker-row @(evt.Online ? "online" : "offline")">
+                        <span class="ticker-dot"></span>
+                        <span class="ticker-name">@evt.Name</span>
+                        <span class="ticker-action">@(evt.Online ? "came online" : "went offline")</span>
+                        <span class="ticker-time">@evt.TimeUtc.ToLocalTime().ToString("HH:mm:ss")</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    @* ---------- Trends ---------- *@
+    <section class="dash-section">
+        <div class="section-head">
+            <h3>Trends</h3>
+            <div class="range-row" role="group" aria-label="Date range">
+                @foreach (var preset in RangePresets)
+                {
+                    <button class="range-btn @(_rangeDays == preset ? "active" : "")"
+                            @onclick="() => SetRangeAsync(preset)">
+                        @preset days
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if (_analytics is null)
+        {
+            <div class="dash-loading small"><span>Loading trends...</span></div>
+        }
+        else
+        {
+            <div class="chart-grid @(_analyticsLoading ? "refetching" : "")">
+                <div class="dash-card">
+                    <DashLineChart Title="Active users"
+                                   Series="@_activeUserSeries"
+                                   XMode="day" />
+                </div>
+                <div class="dash-card">
+                    <DashLineChart Title="Messages per day"
+                                   Series="@_messageSeries"
+                                   Area="true"
+                                   XMode="day" />
+                </div>
+                <div class="dash-card">
+                    <DashBarChart Title="Revenue per day"
+                                  Series="@_revenueSeries"
+                                  YFormat="@FormatCentsAxis"
+                                  XMode="day" />
+                </div>
+                <div class="dash-card">
+                    <DashBarChart Title="New accounts per day"
+                                  Series="@_signupSeries"
+                                  XMode="day" />
+                </div>
+            </div>
+        }
+    </section>
+
+    @* ---------- Top communities ---------- *@
+    <section class="dash-section">
+        <div class="section-head"><h3>Top communities</h3></div>
+        <div class="dash-card table-card">
+            <table class="dash-table">
+                <thead>
+                <tr>
+                    <th></th>
+                    <th>Community</th>
+                    <th class="num">Members</th>
+                    <th class="num">Active now</th>
+                    <th class="num">Active today</th>
+                    <th class="num">Messages today</th>
+                </tr>
+                </thead>
+                <tbody>
+                @{ var rank = 0; }
+                @foreach (var planet in _snapshot.TopPlanets ?? EmptyTopPlanets)
+                {
+                    rank++;
+                    <tr>
+                        <td class="rank">@rank</td>
+                        <td>
+                            <div class="planet-cell">
+                                @if (planet.IconUrl is not null)
+                                {
+                                    <img class="planet-icon" src="@planet.IconUrl" alt="" />
+                                }
+                                else
+                                {
+                                    <div class="planet-icon fallback">@PlanetInitial(planet.Name)</div>
+                                }
+                                <span class="planet-name">@planet.Name</span>
+                            </div>
+                        </td>
+                        <td class="num">@DashFormat.Compact(planet.MemberCount)</td>
+                        <td class="num highlight">@DashFormat.Compact(planet.ActiveNow)</td>
+                        <td class="num">@DashFormat.Compact(planet.ActiveToday)</td>
+                        <td class="num">@DashFormat.Compact(planet.MessagesToday)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    @* ---------- Infrastructure ---------- *@
+    <section class="dash-section">
+        <div class="section-head"><h3>Infrastructure</h3></div>
+        <div class="infra-grid">
+            <div class="dash-card nodes-card">
+                <div class="card-title">Official nodes · @AliveNodeCount online</div>
+                <div class="node-list">
+                    @foreach (var node in _snapshot.ClusterNodes ?? EmptyNodes)
+                    {
+                        <div class="node-row">
+                            <div class="node-head">
+                                <span class="node-alive @(node.Alive ? "up" : "down")"
+                                      title="@(node.Alive ? "Online" : "Offline")"></span>
+                                <span class="node-name">@node.Name</span>
+                                @if (node.IsSelf)
+                                {
+                                    <span class="node-self">serving you</span>
+                                }
+                                <span class="node-version">@node.Version</span>
+                            </div>
+                            <div class="node-stats">
+                                <span title="Connections"><i class="bi bi-plug-fill"></i> @DashFormat.Compact(node.Connections)</span>
+                                <span title="Hosted communities"><i class="bi bi-globe2"></i> @DashFormat.Compact(node.HostedPlanets)</span>
+                                <span title="Memory">@FormatMemory(node.MemoryMb)</span>
+                                <span title="Uptime">@FormatUptime(node.UptimeSeconds)</span>
+                            </div>
+                            @if (node.CpuPercent >= 0)
+                            {
+                                <DashMeter Label="CPU" Value="@node.CpuPercent" Max="100" />
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="dash-card federation-card">
+                <div class="card-title">Community-hosted nodes</div>
+                <div class="fed-grid">
+                    <DashStatTile Label="Verified" Value="@DashFormat.Compact(Federation.VerifiedNodes)" Icon="patch-check-fill" />
+                    <DashStatTile Label="Active this week" Value="@DashFormat.Compact(Federation.ActiveLast7Days)" Icon="activity" />
+                    <DashStatTile Label="Pending" Value="@DashFormat.Compact(Federation.PendingNodes)" Icon="hourglass-split" />
+                    <DashStatTile Label="Suspended" Value="@DashFormat.Compact(Federation.SuspendedNodes)" Icon="slash-circle" />
+                </div>
+            </div>
+
+            <div class="dash-card voice-card">
+                <div class="card-title">Live voice channels</div>
+                @if ((_snapshot.ActiveVoiceChannels?.Count ?? 0) == 0)
+                {
+                    <div class="ticker-empty">No active calls right now</div>
+                }
+                <div class="voice-list">
+                    @foreach (var channel in _snapshot.ActiveVoiceChannels ?? EmptyVoice)
+                    {
+                        <div class="voice-row">
+                            <i class="bi bi-volume-up-fill"></i>
+                            <div class="voice-names">
+                                <span class="voice-channel">@channel.ChannelName</span>
+                                <span class="voice-planet">@channel.PlanetName</span>
+                            </div>
+                            <span class="voice-count">@channel.ParticipantCount</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="dash-footer">
+        No location or device data is collected — presence pulses land on each user's own community.
+    </footer>
+
+    }
+</div>
+
+@code {
+
+    private static readonly int[] RangePresets = { 7, 30, 90, 180 };
+    private static readonly List<DashboardTopPlanet> EmptyTopPlanets = new();
+    private static readonly List<DashboardNodeInfo> EmptyNodes = new();
+    private static readonly List<DashboardVoiceChannel> EmptyVoice = new();
+
+    private DashboardSnapshot _snapshot;
+    private DashboardAnalytics _analytics;
+    private string _loadError;
+    private bool _live;
+    private bool _analyticsLoading;
+    private int _rangeDays = 30;
+    private DateTime _lastUpdate = DateTime.UtcNow;
+
+    private DashGlobe _globe;
+    private readonly List<DashboardPresenceEvent> _presenceEvents = new();
+
+    private List<DashChartSeries> _activeUserSeries;
+    private List<DashChartSeries> _messageSeries;
+    private List<DashChartSeries> _revenueSeries;
+    private List<DashChartSeries> _signupSeries;
+    private List<double> _dauSpark;
+    private List<double> _messageSpark;
+    private string _dauDelta;
+    private bool _dauDeltaGood = true;
+
+    private PeriodicTimer _refreshTimer;
+    private CancellationTokenSource _cts;
+
+    private DashboardLiveStats Live => _snapshot.Live ?? new DashboardLiveStats();
+    private DashboardFederationInfo Federation => _snapshot.Federation ?? new DashboardFederationInfo();
+
+    private string VoiceChannelText =>
+        Live.VoiceChannels == 1 ? "in 1 channel" : $"in {Live.VoiceChannels} channels";
+
+    private string SubscriberText
+    {
+        get
+        {
+            var count = _snapshot.Revenue?.ActiveStripeSubscriptions ?? 0;
+            return count == 1 ? "1 subscriber" : $"{count} subscribers";
+        }
+    }
+
+    private int AliveNodeCount => _snapshot.ClusterNodes?.Count(n => n.Alive) ?? 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+
+        try
+        {
+            var snapshotTask = StaffService.GetDashboardSnapshotAsync();
+            var analyticsTask = StaffService.GetDashboardAnalyticsAsync(_rangeDays);
+
+            _snapshot = await snapshotTask;
+            _analytics = await analyticsTask;
+        }
+        catch (Exception ex)
+        {
+            _loadError = "Failed to load dashboard data. Are you staff on this node? (" + ex.Message + ")";
+            await ReRender();
+            return;
+        }
+
+        if (_snapshot is null)
+        {
+            _loadError = "Failed to load dashboard data.";
+            await ReRender();
+            return;
+        }
+
+        _lastUpdate = _snapshot.TimeUtc;
+        RebuildChartData();
+
+        StaffService.DashboardLiveUpdated += OnLiveStats;
+        StaffService.DashboardPresence += OnPresence;
+        var joinResult = await StaffService.JoinDashboardAsync();
+        _live = joinResult.Success;
+
+        // Slow refresh keeps top planets / nodes / revenue honest while the
+        // 5-second live channel handles the fast counters
+        _cts = new CancellationTokenSource();
+        _refreshTimer = new PeriodicTimer(TimeSpan.FromSeconds(60));
+        _ = RefreshLoopAsync();
+
+        // The base class suppresses renders after the first (loading) frame,
+        // so the data render must be requested explicitly
+        await ReRender();
+    }
+
+    private async Task RefreshLoopAsync()
+    {
+        try
+        {
+            while (await _refreshTimer.WaitForNextTickAsync(_cts.Token))
+            {
+                var snapshot = await StaffService.GetDashboardSnapshotAsync();
+                if (snapshot is not null)
+                {
+                    _snapshot = snapshot;
+                    _lastUpdate = snapshot.TimeUtc;
+                    await ReRender();
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task OnLiveStats(DashboardLiveStats stats)
+    {
+        if (_snapshot is null || stats is null)
+            return;
+
+        _snapshot.Live = stats;
+        _lastUpdate = stats.TimeUtc;
+        _live = true;
+        await ReRender();
+    }
+
+    private async Task OnPresence(DashboardPresenceEvent evt)
+    {
+        if (evt is null)
+            return;
+
+        _presenceEvents.Insert(0, evt);
+        if (_presenceEvents.Count > 40)
+            _presenceEvents.RemoveAt(_presenceEvents.Count - 1);
+
+        if (_globe is not null)
+            await _globe.PulseAsync(evt.PlanetId, evt.Online);
+
+        await ReRender();
+    }
+
+    private async Task SetRangeAsync(int days)
+    {
+        if (_rangeDays == days || _analyticsLoading)
+            return;
+
+        _rangeDays = days;
+        _analyticsLoading = true;
+        await ReRender();
+
+        try
+        {
+            // Old charts stay visible (dimmed) while the new slice loads
+            var analytics = await StaffService.GetDashboardAnalyticsAsync(days);
+            if (analytics is not null)
+            {
+                _analytics = analytics;
+                RebuildChartData();
+            }
+        }
+        finally
+        {
+            _analyticsLoading = false;
+            await ReRender();
+        }
+    }
+
+    private void RebuildChartData()
+    {
+        if (_analytics is null)
+            return;
+
+        _activeUserSeries = new List<DashChartSeries>
+        {
+            BuildSeries("Daily", DashChartPalette.Series1, _analytics.DailyActiveUsers),
+            BuildSeries("30-day", DashChartPalette.Series2, _analytics.MonthlyActiveUsers),
+        };
+
+        _messageSeries = new List<DashChartSeries>
+        {
+            BuildSeries("Messages", DashChartPalette.Series1, _analytics.MessagesPerDay),
+        };
+
+        _revenueSeries = new List<DashChartSeries>
+        {
+            new()
+            {
+                Name = "Subscriptions",
+                Color = DashChartPalette.Series1,
+                Points = (_analytics.RevenuePerDay ?? new List<DashboardRevenuePoint>())
+                    .Select(p => new DashChartPoint { Time = p.TimeUtc, Value = p.SubscriptionCents })
+                    .ToList(),
+            },
+            new()
+            {
+                Name = "Credit packs",
+                Color = DashChartPalette.Series2,
+                Points = (_analytics.RevenuePerDay ?? new List<DashboardRevenuePoint>())
+                    .Select(p => new DashChartPoint { Time = p.TimeUtc, Value = p.OneTimeCents })
+                    .ToList(),
+            },
+        };
+
+        _signupSeries = new List<DashChartSeries>
+        {
+            BuildSeries("Accounts", DashChartPalette.Series1, _analytics.Signups),
+        };
+
+        _dauSpark = (_analytics.DailyActiveUsers ?? new List<DashboardTimePoint>())
+            .TakeLast(14).Select(p => (double)p.Value).ToList();
+        _messageSpark = (_analytics.MessagesPerHour ?? new List<DashboardTimePoint>())
+            .TakeLast(24).Select(p => (double)p.Value).ToList();
+
+        var dau = _analytics.DailyActiveUsers;
+        if (dau is { Count: >= 2 })
+        {
+            var today = dau[^1].Value;
+            var yesterday = dau[^2].Value;
+            if (yesterday > 0)
+            {
+                var pct = (today - yesterday) * 100.0 / yesterday;
+                _dauDelta = $"{(pct >= 0 ? "+" : "")}{pct:0.#}% vs yesterday";
+                _dauDeltaGood = pct >= 0;
+            }
+        }
+    }
+
+    private static DashChartSeries BuildSeries(string name, string color, List<DashboardTimePoint> points) =>
+        new()
+        {
+            Name = name,
+            Color = color,
+            Points = (points ?? new List<DashboardTimePoint>())
+                .Select(p => new DashChartPoint { Time = p.TimeUtc, Value = p.Value })
+                .ToList(),
+        };
+
+    private static string FormatCentsAxis(double cents) => DashFormat.Usd((long)cents);
+
+    private static string PlanetInitial(string name) =>
+        string.IsNullOrEmpty(name) ? "?" : name[..1].ToUpperInvariant();
+
+    private static string FormatUptime(double seconds)
+    {
+        if (seconds <= 0) return "—";
+        var span = TimeSpan.FromSeconds(seconds);
+        if (span.TotalDays >= 1) return $"{(int)span.TotalDays}d {span.Hours}h";
+        if (span.TotalHours >= 1) return $"{(int)span.TotalHours}h {span.Minutes}m";
+        return $"{span.Minutes}m";
+    }
+
+    private static string FormatMemory(double memoryMb)
+    {
+        if (memoryMb < 0) return "—";
+        if (memoryMb >= 1024) return $"{memoryMb / 1024:0.0} GB";
+        return $"{memoryMb:0} MB";
+    }
+
+    public class Content : WindowContent<StaffDashboardWindowComponent>
+    {
+    }
+
+    public static WindowContent GetDefaultContent()
+    {
+        return new Content
+        {
+            Icon = "./_content/Valour.Client/media/logo/logo-64.png",
+            Title = "Platform Dashboard"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _cts?.Cancel();
+        _refreshTimer?.Dispose();
+
+        StaffService.DashboardLiveUpdated -= OnLiveStats;
+        StaffService.DashboardPresence -= OnPresence;
+
+        try
+        {
+            await StaffService.LeaveDashboardAsync();
+        }
+        catch
+        {
+            // Leaving the hub group is best-effort during teardown
+        }
+    }
+}
