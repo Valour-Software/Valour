@@ -767,6 +767,17 @@ public class AuthService : ServiceBase
     }
 
     /// <summary>
+    /// Revokes all expired tokens. If MFA is enabled on the account, a valid authenticator
+    /// code must be provided.
+    /// </summary>
+    public async Task<TaskResult> RevokeExpiredTokensAsync(string mfaCode = null)
+    {
+        return await _client.PrimaryNode.PostAsync(
+            "api/users/me/tokens/expired/revoke",
+            new RevokeExpiredTokensRequest { MultiFactorCode = mfaCode });
+    }
+
+    /// <summary>
     /// Logs out the current user (revokes current token) and clears local auth state.
     /// The server call is best-effort: local state is cleared even if it fails so the
     /// device never keeps using a token the user asked to revoke.

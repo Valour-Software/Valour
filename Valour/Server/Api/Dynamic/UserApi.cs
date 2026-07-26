@@ -247,6 +247,31 @@ public class UserApi
         return Results.Ok(result.Message);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/users/me/tokens/expired/revoke")]
+    public static async Task<IResult> RevokeExpiredTokensRouteAsync(
+        [FromBody] RevokeExpiredTokensRequest request,
+        UserService userService,
+        MultiAuthService multiAuthService)
+    {
+        var user = await userService.GetCurrentUserAsync();
+        if (user is null)
+            return ValourResult.NotFound<User>();
+
+        var mfaMethods = await multiAuthService.GetAppMultiAuthTypes(user.Id);
+        if (mfaMethods.Count > 0)
+        {
+            var mfa = await multiAuthService.VerifyEstablishedAppMultiAuth(user.Id, request?.MultiFactorCode);
+            if (!mfa.Success)
+                return ValourResult.BadRequest(mfa.Message);
+        }
+
+        var result = await userService.RevokeExpiredTokensAsync(user.Id);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok(result.Message);
+    }
+
     /// <summary>
     /// Returns when a staff-scheduled MFA removal will execute for the
     /// current account, or 404 if none is pending.
