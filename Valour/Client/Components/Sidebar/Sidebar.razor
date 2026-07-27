@@ -1,6 +1,7 @@
 @inject IJSRuntime JsRuntime
 @inject IAppStorage LocalStorage
 @inject PlanetService PlanetService
+@inject ValourClient Client
 @implements IAsyncDisposable
 
 <div class="sidebar-container @ActiveClass @FlipClass">
@@ -210,6 +211,17 @@
 		});
 
 		return closed;
+	}
+
+	/// <summary>
+	/// Called from JS whenever the mobile sidebar transitions to open —
+	/// dismisses the swipe coach overlay once the gesture is discovered
+	/// </summary>
+	[JSInvokable]
+	public async Task OnMobileSidebarOpened()
+	{
+		if (DeviceInfo.IsMobile)
+			await TutorialHints.CompleteAsync(Client, UserTutorials.MobileSidebarSwipe);
 	}
 
 	private async Task OnOpenTabClicked()

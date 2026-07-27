@@ -250,6 +250,7 @@ public class PlanetService
         
         var skip = queryRequest.Skip;
         var search = queryRequest.Options?.Filters?.GetValueOrDefault("search");
+        var tagsFilter = queryRequest.Options?.Filters?.GetValueOrDefault("tags");
 
         var query = _db.Planets.AsNoTracking()
             .Where(x => x.Discoverable && x.Public && !x.Nsfw);
@@ -257,9 +258,24 @@ public class PlanetService
         if (!string.IsNullOrWhiteSpace(search))
         {
             var lowered = search.ToLower();
-            query = query.Where(x => 
+            query = query.Where(x =>
                 EF.Functions.ILike(x.Name.ToLower(), $"%{lowered}%") ||
                 EF.Functions.ILike(x.Description.ToLower(), $"%{lowered}%"));
+        }
+
+        // "tags" is a comma-separated list of tag ids; a planet matches if it
+        // has any of them
+        List<long> filterTagIds = null;
+        if (!string.IsNullOrWhiteSpace(tagsFilter))
+        {
+            filterTagIds = tagsFilter
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => long.TryParse(s, out var id) ? id : -1)
+                .Where(id => id > 0)
+                .ToList();
+
+            if (filterTagIds.Count > 0)
+                query = query.Where(x => x.Tags.Any(t => filterTagIds.Contains(t.Id)));
         }
 
         var sortDesc = queryRequest.Options?.Sort?.Descending ?? false;
@@ -284,8 +300,9 @@ public class PlanetService
 
         // Surface community-hosted planets alongside official ones. They live in
         // a separate stub table, so (for now) they're merged onto the first
-        // page rather than interleaved across pagination.
-        if (skip == 0)
+        // page rather than interleaved across pagination. Stubs carry no tags,
+        // so a tag-filtered query excludes them entirely.
+        if (skip == 0 && (filterTagIds is null || filterTagIds.Count == 0))
         {
             var federated = await GetFederatedDiscoveryAsync(50);
             if (!string.IsNullOrWhiteSpace(search))

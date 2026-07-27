@@ -780,6 +780,28 @@ public class UserApi
         return Results.Json(prefs.ToModel());
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/users/me/tutorials/{tutorialId}/complete")]
+    [UserRequired]
+    public static async Task<IResult> CompleteTutorialAsync(
+        int tutorialId,
+        UserService userService,
+        ValourDb db)
+    {
+        // TutorialState is a long bitmask; bit 63 stays reserved to avoid sign games
+        if (tutorialId is < 0 or > 62)
+            return ValourResult.BadRequest("Invalid tutorial id.");
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var dbUser = await db.Users.FindAsync(userId);
+        if (dbUser is null)
+            return ValourResult.NotFound("User not found.");
+
+        dbUser.TutorialState = UserTutorials.WithCompleted(dbUser.TutorialState, tutorialId);
+        await db.SaveChangesAsync();
+
+        return Results.Json(dbUser.TutorialState);
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/users/me/preferences/errorReporting/{state}")]
     [UserRequired]
     public static async Task<IResult> SetErrorReportingAsync(

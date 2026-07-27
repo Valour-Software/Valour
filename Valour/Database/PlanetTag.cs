@@ -75,7 +75,22 @@ public class PlanetTag : ISharedPlanetTag
                new PlanetTag { Id = 7, Name = "Manga", Slug = "manga", Created = seedDate },
                new PlanetTag { Id = 8, Name = "Geek Culture", Slug = "geek-culture", Created = seedDate },
                new PlanetTag { Id = 9, Name = "Events", Slug = "events", Created = seedDate },
-               new PlanetTag { Id = 10, Name = "Indie Games", Slug = "indie-games", Created = seedDate }
+               new PlanetTag { Id = 10, Name = "Indie Games", Slug = "indie-games", Created = seedDate },
+               new PlanetTag { Id = 11, Name = "Music", Slug = "music", Created = seedDate },
+               new PlanetTag { Id = 12, Name = "Art", Slug = "art", Created = seedDate },
+               new PlanetTag { Id = 13, Name = "Technology", Slug = "technology", Created = seedDate },
+               new PlanetTag { Id = 14, Name = "Programming", Slug = "programming", Created = seedDate },
+               new PlanetTag { Id = 15, Name = "Science", Slug = "science", Created = seedDate },
+               new PlanetTag { Id = 16, Name = "Movies & TV", Slug = "movies-tv", Created = seedDate },
+               new PlanetTag { Id = 17, Name = "Books & Writing", Slug = "books-writing", Created = seedDate },
+               new PlanetTag { Id = 18, Name = "Memes", Slug = "memes", Created = seedDate },
+               new PlanetTag { Id = 19, Name = "Sports", Slug = "sports", Created = seedDate },
+               new PlanetTag { Id = 20, Name = "Fitness", Slug = "fitness", Created = seedDate },
+               new PlanetTag { Id = 21, Name = "Food & Cooking", Slug = "food-cooking", Created = seedDate },
+               new PlanetTag { Id = 22, Name = "Roleplay", Slug = "roleplay", Created = seedDate },
+               new PlanetTag { Id = 23, Name = "Pets & Animals", Slug = "pets-animals", Created = seedDate },
+               new PlanetTag { Id = 24, Name = "Education", Slug = "education", Created = seedDate },
+               new PlanetTag { Id = 25, Name = "Travel", Slug = "travel", Created = seedDate }
            );
 
            builder.Entity<PlanetTag>()

@@ -351,7 +351,12 @@
         transform: translateY(0);
     }
 
+    /* In the column layout height:100% would include the sticky toggle's
+       space, pushing the bottom past the clipped container so nothing
+       scrolls — let flex size the pane to the remaining space instead */
     .v-menu-content {
+        height: auto;
+        min-height: 0;
         padding-top: 0.75rem;
     }
 

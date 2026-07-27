@@ -56,6 +56,10 @@
                     <i class="bi bi-compass"></i>
                     <span>Discover Planets</span>
                 </button>
+                <button class="action-btn" @onclick="OnClickGetStarted">
+                    <i class="bi bi-stars"></i>
+                    <span>Get Started</span>
+                </button>
             </div>
         </TabOne>
 
@@ -223,6 +227,12 @@
     private async Task OnClickDiscover()
     {
         await WindowService.OpenWindowAtFocused(new DiscoveryPageWindowContent(), WindowCtx.Tab);
+    }
+
+    private async Task OnClickGetStarted()
+    {
+        OnboardingWindowComponent.NextOpenIsManual = true;
+        await WindowService.OpenWindowAtFocused(OnboardingWindowComponent.GetDefaultContent(), WindowCtx.Tab);
     }
 
     private void OnClickAddFriend()

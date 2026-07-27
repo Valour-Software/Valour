@@ -1,0 +1,234 @@
+/* NebulaBackground's container wants min-height:100vh, which overflows the
+   window pane with nothing scrollable — pin the whole chain to the pane's
+   height so the onboarding surface scrolls internally */
+.onboarding-root {
+    height: 100%;
+    overflow: hidden;
+}
+
+.onboarding-root ::deep .complex-nebula-container {
+    min-height: 100%;
+    height: 100%;
+}
+
+.onboarding-root ::deep .nebula-content {
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    overflow: hidden;
+    padding: 0;
+}
+
+.onboarding-window {
+    display: flex;
+    justify-content: center;
+    overflow-y: auto;
+    height: 100%;
+    flex: 1;
+    padding: 24px 16px;
+}
+
+.onboarding-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 860px;
+    margin: auto 0;
+    padding: 32px 24px;
+    background: color-mix(in srgb, var(--main-2) 82%, transparent);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-xl);
+    text-align: center;
+}
+
+.step-dots {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-full);
+    background-color: var(--slight-tint);
+    border: 1px solid var(--font-alt-color);
+}
+
+.step-dot.active {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.step-dot.done {
+    background-color: var(--font-alt-color);
+}
+
+h1 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--font-color);
+    margin: 0 0 8px 0;
+}
+
+.subtitle {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-md);
+    margin: 0 0 24px 0;
+}
+
+.loading-text {
+    color: var(--font-alt-color);
+    margin: 32px 0;
+}
+
+.spin {
+    display: inline-block;
+    animation: onboarding-spin 1s linear infinite;
+}
+
+@keyframes onboarding-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.chip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    max-width: 640px;
+}
+
+.chip {
+    padding: 8px 18px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--slight-tint);
+    background: var(--main-3);
+    color: var(--font-color);
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.chip:hover {
+    background: var(--main-4);
+    border-color: var(--medium-tint);
+    transform: translateY(-1px);
+}
+
+.chip.selected {
+    background: color-mix(in srgb, var(--color-primary) 18%, var(--main-3));
+    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--slight-tint));
+    color: color-mix(in srgb, var(--color-primary) 42%, white);
+}
+
+.joined-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.joined-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    background-color: var(--slight-tint);
+    color: var(--font-color);
+    font-size: var(--font-size-sm);
+}
+
+.joined-pill i {
+    color: var(--color-primary);
+}
+
+.planet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    width: 100%;
+    text-align: left;
+}
+
+.path-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.path-card {
+    flex: 1 1 260px;
+    max-width: 340px;
+    padding: 28px 20px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--slight-tint);
+    background: var(--main-3);
+    color: var(--font-color);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+}
+
+.path-card:hover {
+    background: var(--main-4);
+    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--medium-tint));
+    transform: translateY(-2px);
+}
+
+.path-card.primary-path {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--main-3));
+    border-color: color-mix(in srgb, var(--color-primary) 32%, var(--slight-tint));
+}
+
+.path-card i {
+    font-size: var(--font-size-2xl);
+    color: var(--color-primary);
+}
+
+.path-card h3 {
+    margin: 12px 0 8px 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+}
+
+.path-card p {
+    margin: 0;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+.footer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--slight-tint);
+    width: 100%;
+    max-width: 640px;
+}
+
+.skip-btn {
+    background: transparent;
+    color: var(--font-alt-color);
+}
+
+.skip-btn:hover {
+    color: var(--font-color);
+}
+
+.onboarding-window.mobile .onboarding-card {
+    padding: 20px 12px;
+}
+
+.onboarding-window.mobile .planet-grid {
+    grid-template-columns: 1fr;
+}

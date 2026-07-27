@@ -1,8 +1,15 @@
 @*
-    Demo reel director for recording marketing/demo videos.
-    Inert unless the page is loaded with ?demo=1 (the JS module is only imported then).
-    Optional: &planet=Some%20Planet to target a specific planet (default "Valour Central").
-    Only drives the viewer's own session - synthetic input runs as the logged-in user.
+    Demo engine loader for recording marketing/demo videos.
+    Inert unless the page is loaded with ?demo=1 (the JS modules are only imported then).
+
+    URL params:
+      &planet=Some%20Planet  target planet (default "Valour Central")
+      &scene=ad              auto-play a scene once the app shell is ready
+      &deck=0                hide the director control deck
+
+    The engine lives in wwwroot/demo/ (camera rig, exploded layers, overlay
+    kit, timeline + scenes). Only drives the viewer's own session - synthetic
+    input runs as the logged-in user.
 *@
 @inject NavigationManager NavManager
 @inject IJSRuntime JsRuntime
@@ -21,15 +28,11 @@
         if (query["demo"] != "1")
             return;
 
-        var planetName = query["planet"];
-        if (string.IsNullOrWhiteSpace(planetName))
-            planetName = "Valour Central";
-
         _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
             "import",
-            "./_content/Valour.Client/Components/Demo/DemoDirector.razor.js");
+            "./_content/Valour.Client/demo/director.js");
 
-        await _module.InvokeVoidAsync("init", planetName);
+        await _module.InvokeVoidAsync("init", query["planet"]);
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()

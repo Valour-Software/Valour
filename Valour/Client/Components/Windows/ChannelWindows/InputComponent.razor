@@ -12,6 +12,12 @@
 <InputFile id="@DropUploadInputId" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" onclick="this.value='';" OnChange="@LoadFiles"></InputFile>
 
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")' style="@(_loading ? "pointer-events: none; opacity: 0.8" : string.Empty)">
+    @if (CanUserPost && !_loading)
+    {
+        <TutorialHint TutorialId="@UserTutorials.FirstChatMessage"
+                      After="@UserTutorials.OpenPlanetChat"
+                      Text="This chat is live — say hi 👋" />
+    }
     <div class="preview-message">
         @{
             if (PreviewMessage is not null && !PreviewMessage.IsEmpty())
@@ -450,6 +456,9 @@
     {
         if (firstRender)
         {
+            if (ChatComponent?.Channel?.PlanetId is not null)
+                _ = TutorialHints.CompleteAsync(Client, UserTutorials.OpenPlanetChat);
+
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
             _jsCtx = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, InnerInputRef);
@@ -1001,6 +1010,8 @@
 
     public async Task PostMessage(Message message)
     {
+        _ = TutorialHints.CompleteAsync(Client, UserTutorials.FirstChatMessage);
+
         // New message
         if (message.Id == 0)
         {
