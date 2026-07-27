@@ -124,6 +124,11 @@ public interface ISharedPlanet : ISharedModel<long>
     bool PublicWiki { get; set; }
 
     /// <summary>
+    /// True if the community calendar is enabled for this planet
+    /// </summary>
+    bool EnableCalendar { get; set; }
+
+    /// <summary>
     /// The planet's claimed vanity name, if any — identifies the planet in
     /// public URLs (wiki pages, the public planet page, and future surfaces
     /// like invites). Lowercase, unique across planets, never all digits.

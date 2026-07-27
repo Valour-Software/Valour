@@ -31,6 +31,9 @@ public enum NotificationSource
 
     // Non-ping channel activity (see Docs/ChannelActivityNotifications.md)
     ChannelActivity =        0x20000,
+
+    // Planet calendar event reminders
+    EventReminder =          0x40000,
 }
 
 public interface ISharedNotification : ISharedModel<Guid>

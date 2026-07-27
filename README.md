@@ -4,41 +4,49 @@
 
 # Valour
 
-### Valour is an open-source, modern chat client designed by communities for communities.
-## Try it at: [https://valour.gg/](https://valour.gg/)
-<br/>
+### Valour is an open-source community platform with real-time chat, thread feeds, wikis, and voice, designed by communities for communities.
 
-![Open Planet Platform View](Valour/Client/wwwroot/media/platform/overview.png)
+## Try it at [app.valour.gg](https://app.valour.gg) · Learn more at [valour.gg](https://valour.gg/)
 
-## Design 
+[▶ Watch the platform reel](Valour/Web/wwwroot/media/videos/platform-reel.mp4)
 
-Valour is designed to be as flexible as possible - with a client built atop an official API for use in bots and applications. Valour is open-source, and your personal client can be as creative as your imagination allows. We believe in an open ecosystem for Valour - and hold bot authors to follow in our transparency to respect user data and privacy.
+![The Valour platform](Valour/Web/wwwroot/media/images/platform-lg.webp)
 
-<br/>
+## What Valour is
 
-### Windows and Multi-chat
+Communities on Valour live on **planets**, spaces with real-time chat channels, a reddit-style post feed, a publishable wiki, voice channels, roles and per-channel permissions, and their own economy. The client is built atop the same official API available to bots and applications, and the whole platform, client and server alike, is open source under AGPL.
 
-Valour's client allows you to open multiple chats at once - even across several communities. Valour's flexible in-built window system allows you to multitask, and for moderation teams to keep an eye on the action. Every chat window is dynamic and responsive, allowing you to resize and space your chats how you want. It's your client, after all.
+- **No ads. No data selling. No ID or phone verification.** An email address is all it takes to join.
+- Web app, plus Windows and Android apps ([download](https://github.com/Valour-Software/Valour/releases/latest)).
+- Move an existing community over with the built-in Discord importer.
 
-<br/>
+### Windows and multi-chat
 
-### Planets and Communities
+Open multiple chats at once, even across communities. Valour's window system gives you tabs, splits, and resizable panes, letting you multitask and letting moderation teams keep an eye on everything at once. It's your client, after all.
 
-Planets are the communities of Valour, allowing you to build your ideas and foster strong interactions. With role management and per-channel permissions, you can ensure that your community is managed how you see fit.
+### Threads: posts that persist
 
-![Open Planet Platform View](Valour/Client/wwwroot/media/platform/homescreen.png)
+Every planet can enable a thread feed of lasting posts with comments, boosts, and hot/new/top sorting, so the good conversations don't scroll away. Public thread feeds get their own server-rendered pages at `threads.valour.gg`, visible to the whole web.
 
-<br/>
+### Wikis with public pages
 
-### Economies and Items
+Build your community's knowledge base with a full revision history, search, and a tree of pages, then publish it to the web at `wiki.valour.gg/your-vanity-url` as a real documentation site.
 
-Planets can deploy a currency and economic system in two clicks. Why? Don't bother managing 20 different 'coins' and 'xp' from different bots, and use one built-in system to handle user value tracking. Users can send your currency to each other in the community, and even trade it for community-defined items. You can even hook the API into your own systems, allowing your community members to pay for custom perks and be rewarded for anything!
+### Voice channels
 
-<br/>
+Drop into voice with your community. Voice runs on managed infrastructure by default, and self-hosted instances (or individual planets) can bring their own LiveKit server instead.
 
-### Total-Outage-proof Node System
+### Economies
 
-Valour Nodes are designed to be able to run independently of any central server or service. One node failing has no effect on other nodes, allowing Valour to scale safely and efficiently. Our logical-server based system, rather than depending on cloud services, also allows us to be provider-agnostic, hosting Valour across different providers and giving us the ability to dedicate resources to large communities that need it.
+Planets can deploy a currency in two clicks. Skip managing twenty different bot 'coins' and XP systems. One built-in currency tracks value, lets members pay each other, and hooks into your own systems through the API so your community can reward anything.
+
+### Themes, bots, and automation
+
+Restyle the entire client with community-made themes from the theme marketplace. Automate with bots and OAuth apps on the official API, pipe external services in with incoming webhooks, and let the built-in automod handle spam, blocklists, and raids.
+
+### Node-based backend
+
+Valour runs as a set of nodes that scale horizontally, so large communities get dedicated resources without losing features. The provider-agnostic design also keeps Valour independent of any single cloud vendor.
 
 ## Federation
 
@@ -74,7 +82,7 @@ operator steps, security properties, and migration limits.
 
 ## Self-hosting
 
-Run your own Valour instance with Docker Compose — Postgres, Redis, local-disk
+Run your own Valour instance with Docker Compose: Postgres, Redis, local-disk
 media storage, and automatic HTTPS via Caddy, all on a single domain:
 
 ```sh
@@ -88,7 +96,7 @@ MinIO, Garage, B2) works via the `CDN__*` environment variables, and an
 optional bundled MinIO is available with `docker compose --profile minio up`.
 Optional services (Stripe payments, SendGrid email, Cloudflare RealtimeKit
 voice, push notifications) activate when configured and the UI adapts
-automatically — see [Config/appsettings.helper.json](Config/appsettings.helper.json)
+automatically. See [Config/appsettings.helper.json](Config/appsettings.helper.json)
 for every section. Production-cluster deployment (blue/green, nginx) is
 documented in [Docs/Deployment/](Docs/Deployment/README.md).
 
@@ -140,6 +148,7 @@ dotnet restore
    - `Notifications` for push notifications
    - `Cloudflare` for Cloudflare-backed features
      - For RealtimeKit voice, set `RealtimeAccountId`, `RealtimeAppId`, and `RealtimeApiToken`
+   - `Voice` for self-hosted LiveKit voice instead of RealtimeKit (see [Docs/Deployment/SelfHostVoice.md](Docs/Deployment/SelfHostVoice.md))
 
 ### 4) Database setup
 
@@ -172,7 +181,7 @@ dotnet test
 
 - The active web app flow is centered on `Valour.Client.Blazor` + server-hosted assets.
 - You generally should not need to manually edit `ValourClient.cs` `BaseAddress` for normal local development.
-- Docker images are published by CI, but still require valid appsettings and backing services (Postgres/Redis/etc.).
+- Docker images are published by CI to `ghcr.io/valour-software/valour`, but still require valid appsettings and backing services (Postgres/Redis/etc.).
 
 ## Trademark Notice
 

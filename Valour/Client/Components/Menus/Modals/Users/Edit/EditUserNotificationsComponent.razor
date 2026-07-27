@@ -291,6 +291,7 @@
             NotificationSource.ThreadComment => "Thread Comments",
             NotificationSource.ThreadReply => "Thread Replies",
             NotificationSource.ChannelActivity => "Channel Activity",
+            NotificationSource.EventReminder => "Event Reminders",
             _ => source.ToString()
         };
 
@@ -315,6 +316,7 @@
             NotificationSource.ThreadComment => "When someone comments on your thread.",
             NotificationSource.ThreadReply => "When someone replies to your comment.",
             NotificationSource.ChannelActivity => "When channels you care about become active, without being pinged.",
+            NotificationSource.EventReminder => "When a calendar event you RSVP'd to is about to start.",
             _ => string.Empty
         };
 }

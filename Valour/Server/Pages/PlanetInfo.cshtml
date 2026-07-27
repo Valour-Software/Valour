@@ -40,20 +40,14 @@
         <meta property="twitter:image" content="@ISharedPlanet.GetIconUrl(Model.PlanetInfo, IconFormat.Webp256)" />
         
         <!-- Structured Data -->
-        <script type="application/ld+json">
-        {
-            "@@context": "https://schema.org",
-            "@@type": "Organization",
-            "name": "@Model.PlanetInfo.Name",
-            "description": "@Model.PlanetInfo.Description",
-            "url": "@Model.RequestUrl",
-            "logo": "@ISharedPlanet.GetIconUrl(Model.PlanetInfo, IconFormat.Webp256)",
-            "memberOf": {
-                "@@type": "Organization",
-                "name": "Valour"
-            }
-        }
-        </script>
+        <script type="application/ld+json">@Html.Raw(Model.JsonLd)</script>
+
+        <link rel="canonical" href="@Model.CanonicalUrl" />
+    }
+    else
+    {
+        @* Error/missing states must not enter the index *@
+        <meta name="robots" content="noindex" />
     }
     
     <link id="bundled-css" href="_content/Valour.Client/css/bundled.min.css?version=$(SHORTHASH)" rel="stylesheet" />

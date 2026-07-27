@@ -1,5 +1,7 @@
 ﻿@{
-    ViewData["Title"] = "Valour: Community First Platform";
+    ViewData["Title"] = "Valour: The Open-Source Community Platform";
+    ViewData["Description"] = "Real-time chat, thread feeds, community wikis, and voice: one open-source home for your community. No ads, no data selling, no ID checks.";
+    ViewData["Keywords"] = "Community Platform, Discord Alternative, Open Source Chat, Privacy, No ID Verification, Self-Hosted Chat, Threads, Community Wiki, Voice Chat, Federation";
     ViewData["main-class"] = "homepage-content";
 }
 
@@ -8,7 +10,7 @@
         <div class="row justify-content-center">
             <div class="col-xl-8 col-lg-10 hero-content text-center" data-aos="fade-up">
                 <h1 class="title-gradient">Community first.</h1>
-                <p class="hero-subtitle">Join the movement for a more flexible, transparent, and open platform made by communities for communities.</p>
+                <p class="hero-subtitle">Real-time chat, thread feeds, wikis, and voice: one open-source home for your community. No ads, no data selling, no ID checks.</p>
                 <div class="hero-download-panel" data-download-picker>
                     <p class="hero-platform-note" data-platform-note>Recommended for your device</p>
                     <div class="hero-actions">
@@ -66,8 +68,8 @@
     <div class="container">
         <div class="section-header text-center" data-aos="fade-up">
             <span class="section-subtitle">PLATFORM</span>
-            <h2 class="title-gradient">Powerful Features</h2>
-            <p class="section-description">Take advantage of advanced features made capable by our unique tech stack.</p>
+            <h2 class="title-gradient">Everything your community needs</h2>
+            <p class="section-description">Chat is just the beginning. Valour gives your community a full home.</p>
         </div>
 
         <div class="row features-grid">
@@ -77,7 +79,34 @@
                         <i class="bi bi-window-stack"></i>
                     </div>
                     <h3>Multi-window Chat</h3>
-                    <p>Chat in multiple channels at once, even across communities with our in-app window management system.</p>
+                    <p>Open multiple channels at once (even across communities!) with resizable windows, splits, and tabs. Your layout, your way.</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-stars"></i>
+                    </div>
+                    <h3>Thread Feeds</h3>
+                    <p>Every community gets a post feed with hot, new, and top sorting: lasting discussions that don't scroll away like chat.</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-journal-text"></i>
+                    </div>
+                    <h3>Community Wikis</h3>
+                    <p>Build a knowledge base with revisions and search, and publish it to the web at your own custom URL.</p>
+                </div>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-mic"></i>
+                    </div>
+                    <h3>Voice Channels</h3>
+                    <p>Drop into voice with your community: on our infrastructure, or bring your own server for full control.</p>
                 </div>
             </div>
             <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
@@ -86,22 +115,23 @@
                         <i class="bi bi-coin"></i>
                     </div>
                     <h3>Economy System</h3>
-                    <p>Reward your community members and create engaging experiences with our integrated economy system.</p>
+                    <p>Launch a community currency in two clicks! Reward members, run events, and hook the API into your own systems.</p>
                 </div>
             </div>
             <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="bi bi-award"></i>
+                        <i class="bi bi-palette"></i>
                     </div>
-                    <h3>Item System</h3>
-                    <p>Show off your accomplishments and be immersed like never before with our customizable item system.</p>
+                    <h3>Themes &amp; Customization</h3>
+                    <p>Restyle the entire app with community-made themes, or publish your own to the theme marketplace.</p>
                 </div>
             </div>
         </div>
-
+        
         <div class="platform-preview" data-aos="fade-up">
-            <img src="media/images/platform-lg.webp" alt="The Valour platform" class="img-fluid rounded-image">
+            <h3 class="text-center">"Your Yandere" theme by Wyvern</h3>
+            <img src="media/images/platform-themes.webp" alt="The Valour platform" class="img-fluid rounded-image">
         </div>
     </div>
 </section>
@@ -163,21 +193,21 @@
                         <i class="bi bi-shield-check"></i>
                         <div>
                             <h4>Privacy First</h4>
-                            <p>Valour will never sell your data, and holds your privacy as critical to our mission.</p>
+                            <p>No ads, no data selling, no ID or phone verification. An email is all you need.</p>
                         </div>
                     </div>
                     <div class="value-item">
                         <i class="bi bi-eye"></i>
                         <div>
                             <h4>Fully Transparent</h4>
-                            <p>If you don't trust us, you can go look at the code yourself!</p>
+                            <p>Client and server are open source under AGPL. If you don't trust us, read the code yourself.</p>
                         </div>
                     </div>
                     <div class="value-item">
-                        <i class="bi bi-people"></i>
+                        <i class="bi bi-hdd-network"></i>
                         <div>
-                            <h4>Community Driven</h4>
-                            <p>We are always ready for new team members to make this a reality.</p>
+                            <h4>Yours to Host</h4>
+                            <p>Run your own instance with one docker compose command, or host your data on your own servers.</p>
                         </div>
                     </div>
                 </div>
@@ -232,8 +262,8 @@
 <section class="cta-section">
     <div class="container">
         <div class="cta-card" data-aos="zoom-in">
-            <h2 class="title-gradient">Ready to join our community?</h2>
-            <p>Experience a more flexible, transparent, and open platform today.</p>
+            <h2 class="title-gradient">Ready to bring your community home?</h2>
+            <p>Start in your browser in seconds! (...and bring your existing community over with the built-in Discord importer)</p>
             <div class="cta-buttons">
                 <a href="https://app.valour.gg" class="btn btn-gradient btn-lg">
                     Open on Web <i class="bi bi-arrow-right"></i>

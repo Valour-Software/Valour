@@ -43,6 +43,44 @@ public class WikiPageViewModel : PageModel
     public Models.PlanetWikiPage? NextPage { get; set; }
 
     public string CanonicalUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Article structured data. The default serializer encoder escapes
+    /// HTML-sensitive characters, keeping this safe for an inline script.
+    /// </summary>
+    public string JsonLd
+    {
+        get
+        {
+            if (Doc is null || Planet is null)
+                return "{}";
+
+            var data = new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "Article",
+                ["headline"] = Doc.Title,
+                ["url"] = CanonicalUrl,
+                ["datePublished"] = Doc.TimeCreated.ToString("o"),
+                ["dateModified"] = (Doc.LastEdited ?? Doc.TimeCreated).ToString("o"),
+                ["description"] = Snippet,
+                ["image"] = PlanetIcon,
+                ["author"] = new Dictionary<string, object?>
+                {
+                    ["@type"] = "Person",
+                    ["name"] = LastEditorName ?? "Valour member",
+                },
+                ["publisher"] = new Dictionary<string, object?>
+                {
+                    ["@type"] = "Organization",
+                    ["name"] = $"{Planet.Name} Wiki on Valour",
+                    ["url"] = PublicWikiPageHelpers.GetHomeUrl(Planet),
+                },
+            };
+
+            return System.Text.Json.JsonSerializer.Serialize(data);
+        }
+    }
     public string HomeUrl { get; set; } = string.Empty;
     public string AppLink { get; set; } = string.Empty;
 

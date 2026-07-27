@@ -1,29 +1,65 @@
 @{
-    ViewData["Title"] = "Frequently Asked Questions";
-    ViewData["Description"] = "See what makes Valour different from other chat platforms.";
+    ViewData["Title"] = "Valour FAQ | Frequently Asked Questions";
+    ViewData["Description"] = "What Valour is, how it protects your privacy, and what makes it different from other community platforms.";
+
+    var faqs = new (string Question, string Answer)[]
+    {
+        ("What is Valour?",
+         "Valour is an open-source community platform that combines real-time chat, thread feeds, community wikis, and voice channels in one place. Communities live on planets, spaces you shape with roles, permissions, themes, and your own economy."),
+
+        ("How do I use Valour?",
+         "Use Valour in any browser at app.valour.gg, or download the Windows and Android apps from our GitHub releases. Your account works everywhere."),
+
+        ("Is Valour free?",
+         "Yes. Valour is free to use. Optional Stargazer subscriptions add perks like larger upload limits and profile flair, and help fund the platform."),
+
+        ("Do I need to show ID or a phone number?",
+         "No. Valour only requires an email address to register. We do not ask for government ID, face scans, or phone verification."),
+
+        ("What does open source mean for Valour?",
+         "The complete source code for both the client and server is public under the AGPL license. Anyone can audit how Valour works, contribute improvements, or run their own instance."),
+
+        ("Can I host Valour myself?",
+         "Yes. A single docker compose command runs a full instance with automatic HTTPS. Communities on official infrastructure can also migrate to independently operated community nodes through federation."),
+
+        ("Is Valour a Discord knock-off?",
+         "Nope! Valour is built on a different stack and a broader idea. Multi-window chat, reddit-style thread feeds, public community wikis, and built-in economies aren't things a chat clone does. We want to be a home for your community, not just a room."),
+
+        ("Can I bring my existing community?",
+         "Yes. Valour has a built-in Discord importer, incoming webhooks, an open API, and bot support, so moving and integrating an existing community is straightforward."),
+
+        ("How do you protect my privacy?",
+         "We don't sell your data, we don't run ads, and we only use vetted partners where absolutely necessary (such as email delivery). Valour is funded by optional subscriptions, not by your data."),
+    };
+
+    var faqJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "FAQPage",
+        ["mainEntity"] = faqs.Select(f => new Dictionary<string, object?>
+        {
+            ["@type"] = "Question",
+            ["name"] = f.Question,
+            ["acceptedAnswer"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "Answer",
+                ["text"] = f.Answer,
+            },
+        }).ToList(),
+    });
 }
+
+<script type="application/ld+json">@Html.Raw(faqJsonLd)</script>
 
 <div class="container">
     <div class="row">
         <div class="col-8 mx-auto">
-            <h3 class="title-gradient text-center p-2">Valour Frequently Asked Questions</h3>
-            <h5 class="text-center p-2">What is Valour?</h5>
-            <p class="text-center p-2">Valour is an Open Source, privacy-focused community chat application built by a group of volunteers to give online communities an immersive place to call home.</p>
-            
-            <h5 class="text-center p-2">How do I use Valour?</h5>
-            <p class="text-center p-2">You can try the Valour Alpha at any time at app.valour.gg</p>
-            
-            <h5 class="text-center p-2">What does Open Source mean?</h5>
-            <p class="text-center p-2">Open Source means that the code used to create Valour, both on the client and server, is public. This also means you can modify the client or learn how the platform works with our blessing.</p>
-            
-            <h5 class="text-center p-2">Is Valour a Discord knock-off?</h5>
-            <p class="text-center p-2">Unlike other competitors, Valour uses an entirely different tech stack and methodology than Discord. Besides our technical features like chat windowing and our node system, we aim to build social media features you see across many different popular apps today. We're just starting with community chat because that's what we know best.</p>
-            
-            <h5 class="text-center p-2">What's your incentive to build Valour?</h5>
-            <p class="text-center p-2">Our founders have had a rocky experience with other platforms, between lack of transparency, technical issues, and a general disappointment in the lack of innovation currently facing social media. Currently none of our volunteers, including the founders, make any profit from Valour, and all hosting costs are currently borne by the team. We hope to gain support and eventually use Valour as a full time source of employment.</p>
-            
-            <h5 class="text-center p-2">How do you protect my privacy?</h5>
-            <p class="text-center p-2">Along with using the top industry standards of data storage, we do not sell your data to any third parties and only use vetted, trusted, and absolutely necessary partners in relation to your data (such as email providers).</p>
+            <h1 class="title-gradient text-center p-2 h3">Valour Frequently Asked Questions</h1>
+            @foreach (var faq in faqs)
+            {
+                <h2 class="text-center p-2 h5">@faq.Question</h2>
+                <p class="text-center p-2">@faq.Answer</p>
+            }
         </div>
     </div>
 </div>

@@ -57,12 +57,53 @@ public class ThreadViewModel : PageModel
     public string AppLink => $"{HostingConfig.Current.AppBaseUrl}/planetthreads/{PlanetId}/{ThreadId}";
     public string PlanetLink => $"{HostingConfig.Current.ThreadsBaseUrl}/{PlanetId}";
 
+    /// <summary>
+    /// DiscussionForumPosting structured data. Serialized with the default
+    /// encoder, which escapes HTML-sensitive characters, so it is safe to
+    /// emit inside an inline script block.
+    /// </summary>
+    public string JsonLd
+    {
+        get
+        {
+            if (Thread is null)
+                return "{}";
+
+            var data = new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "DiscussionForumPosting",
+                ["headline"] = Thread.Title,
+                ["url"] = RequestUrl,
+                ["datePublished"] = Thread.TimeCreated.ToString("o"),
+                ["dateModified"] = (Thread.EditedTime ?? Thread.TimeCreated).ToString("o"),
+                ["description"] = Snippet,
+                ["image"] = OgImage ?? PlanetIcon,
+                ["author"] = new Dictionary<string, object?>
+                {
+                    ["@type"] = "Person",
+                    ["name"] = Post?.AuthorName ?? "Valour member",
+                },
+                ["publisher"] = new Dictionary<string, object?>
+                {
+                    ["@type"] = "Organization",
+                    ["name"] = "Valour",
+                    ["url"] = "https://valour.gg",
+                },
+                ["commentCount"] = Thread.CommentCount,
+            };
+
+            return System.Text.Json.JsonSerializer.Serialize(data);
+        }
+    }
+
     public async Task<IActionResult> OnGetAsync()
     {
         Planet = await _db.Planets.AsNoTracking().FirstOrDefaultAsync(x => x.Id == PlanetId);
         if (Planet is null)
         {
             ErrorMessage = "This planet doesn't exist.";
+            Response.StatusCode = 404;
             return Page();
         }
 
@@ -79,6 +120,7 @@ public class ThreadViewModel : PageModel
         {
             Thread = null;
             ErrorMessage = "This thread doesn't exist or was deleted.";
+            Response.StatusCode = 404;
             return Page();
         }
 

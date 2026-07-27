@@ -156,6 +156,12 @@ public class Planet : ISharedPlanet
     public bool PublicWiki { get; set; }
 
     /// <summary>
+    /// True if the community calendar is enabled for this planet
+    /// </summary>
+    [Column("enable_calendar")]
+    public bool EnableCalendar { get; set; } = true;
+
+    /// <summary>
     /// The vanity name claimed for this planet's public docs site, if any.
     /// Lowercase, unique across planets, never all digits. Length and index
     /// configured in SetupDbModel.
@@ -216,6 +222,10 @@ public class Planet : ISharedPlanet
             e.Property(x => x.ActivityNotificationCadence)
                 .HasColumnName("activity_notification_cadence")
                 .HasDefaultValue(ChannelActivityCadence.Standard)
+                .IsRequired();
+
+            e.Property(x => x.EnableCalendar)
+                .HasDefaultValue(true)
                 .IsRequired();
 
             e.Property(x => x.Vanity)

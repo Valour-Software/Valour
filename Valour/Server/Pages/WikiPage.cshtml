@@ -42,6 +42,13 @@
         {
             <meta name="rating" content="adult"/>
         }
+
+        <script type="application/ld+json">@Html.Raw(Model.JsonLd)</script>
+    }
+    else
+    {
+        @* Private/missing interstitials must not enter the index *@
+        <meta name="robots" content="noindex"/>
     }
 
     <link id="bundled-css" href="/_content/Valour.Client/css/bundled.min.css" rel="stylesheet"/>

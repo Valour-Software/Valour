@@ -102,6 +102,11 @@ public class Planet : ServerModel<long>, ISharedPlanet
     public bool PublicWiki { get; set; }
 
     /// <summary>
+    /// True if the community calendar is enabled for this planet
+    /// </summary>
+    public bool EnableCalendar { get; set; } = true;
+
+    /// <summary>
     /// The vanity name claimed for this planet's public docs site, if any
     /// </summary>
     public string Vanity { get; set; }

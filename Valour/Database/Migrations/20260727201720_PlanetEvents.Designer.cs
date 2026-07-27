@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using Valour.Database.Context;
 namespace Valour.Database.Migrations
 {
     [DbContext(typeof(ValourDb))]
-    partial class ValourDbModelSnapshot : ModelSnapshot
+    [Migration("20260727201720_PlanetEvents")]
+    partial class PlanetEvents
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1851,12 +1854,6 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("discoverable");
 
-                    b.Property<bool>("EnableCalendar")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("enable_calendar");
-
                     b.Property<bool>("EnableThreads")
                         .HasColumnType("boolean")
                         .HasColumnName("enable_threads");
@@ -2092,22 +2089,11 @@ namespace Valour.Database.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
 
-                    b.Property<int?>("ReminderMinutes")
-                        .HasColumnType("integer")
-                        .HasColumnName("reminder_minutes");
-
-                    b.Property<DateTime?>("ReminderSentAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reminder_sent_at");
-
                     b.Property<DateTime>("TimeCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("time_created");
 
                     b.HasKey("EventId", "UserId");
-
-                    b.HasIndex("ReminderSentAt")
-                        .HasFilter("reminder_minutes IS NOT NULL AND reminder_sent_at IS NULL");
 
                     b.ToTable("planet_event_rsvps", (string)null);
                 });

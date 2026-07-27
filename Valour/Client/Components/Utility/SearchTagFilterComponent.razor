@@ -10,7 +10,7 @@
                 @onblur="HideDropdownWithDelay"
                 type="text"
                 class="form-control mb-2 v-bg-medium"
-                placeholder=@(ShowCreateButton ?"Search or Create your own tag... ": "Search (# for tags)...")
+                placeholder=@(ShowCreateButton ? "Search or create your own tag..." : "Search tags...")
                 aria-label="Search tags"/>
             
             @if (ShowCreateButton && _filteredTags.Count == 0)
@@ -45,8 +45,8 @@
                         tabindex="0"
                         @onmousedown="() => HandleDropdownTagClick(tag)">
                         @(tag.Created.Day != DateTime.Today.Day
-                            ? $"#{tag.Slug}"
-                            : $"[new] #{tag.Slug}")
+                            ? tag.Slug
+                            : $"[new] {tag.Slug}")
                     </div>
                 }
             </div>
@@ -59,7 +59,7 @@
             @foreach (var tag in _selectedTags)
             {
                 <ValourPill id="@tag.Id"
-                            Text="@("#" + tag.Slug)"
+                            Text="@tag.Slug"
                             Variant="soft"
                             Tone="accent"
                             Removable="true"
@@ -193,26 +193,26 @@
     
     private async Task HandleTagInput()
     {
-        if (_currentInput.StartsWith("#"))
+        // No prefix needed; a pasted "#tag" still works
+        var searchTerm = _currentInput.TrimStart('#').Trim();
+
+        if (searchTerm.Length > 0)
         {
-            var searchTerm = _currentInput.Substring(1);
             _filteredTags = _allTags
                 .Where(t => _selectedTags.All(s => s.Id != t.Id))
                 .Where(t => t.Slug.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             _isDropdownVisible = _filteredTags.Count > 0;
-            await OnFilterChanged.InvokeAsync((_currentInput, _selectedTags.Select(t => t.Id).ToList()));
-            StateHasChanged();
-            
         }
         else
         {
             _filteredTags.Clear();
             _isDropdownVisible = false;
-            await OnFilterChanged.InvokeAsync((_currentInput, _selectedTags.Select(t => t.Id).ToList()));
-            StateHasChanged();
         }
+
+        await OnFilterChanged.InvokeAsync((_currentInput, _selectedTags.Select(t => t.Id).ToList()));
+        StateHasChanged();
     }
 
 

@@ -1,7 +1,9 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /account/
-Disallow: /settings/
+Disallow: /authorize
+Disallow: /oauth
+Disallow: /Verify/
+Disallow: /RecoverPassword/
 
 Sitemap: https://valour.gg/sitemap.xml
