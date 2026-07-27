@@ -7,9 +7,21 @@
 # only emulate the final runtime stage, which runs nothing at build time.
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.3 AS dependencies
 
-# Install Node.js (replace with the latest LTS version)
-RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
-    && apt-get install -y nodejs
+# Install Node.js (needed for the TypeScript compile during publish) from the
+# official dist tarballs. The NodeSource apt script broke when the SDK image
+# moved to Ubuntu 26.04, and a curl failure piped into bash passes silently;
+# nodejs.org is distro-agnostic and -f makes any fetch failure fail the build.
+ARG NODE_VERSION=24.18.0
+RUN ARCH=$(dpkg --print-architecture) \
+    && case "$ARCH" in \
+        amd64) NODE_ARCH=x64 ;; \
+        arm64) NODE_ARCH=arm64 ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac \
+    && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" -o /tmp/node.tar.gz \
+    && tar -xzf /tmp/node.tar.gz -C /usr/local --strip-components=1 \
+    && rm /tmp/node.tar.gz \
+    && node --version
 
 # Set the working directory to the app's source code directory
 WORKDIR /app
