@@ -34,6 +34,11 @@ else
                 if (fetchedCount is not null)
                     _memberCount = fetchedCount.Value;
                 BuildPlanetInfo();
+
+                // The controlled-render base gates ShouldRender after first
+                // paint, so the fetched count needs an explicit ReRender or
+                // the stale cached count stays on screen
+                await ReRender();
             }
         }
     }
@@ -41,13 +46,13 @@ else
     private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData)
     {
         BuildPlanetInfo();
-        _ = InvokeAsync(StateHasChanged);
+        _ = ReRender();
     }
 
     private Task OnMembersChanged(IModelEvent<PlanetMember> eventData)
     {
         BuildPlanetInfo();
-        return InvokeAsync(StateHasChanged);
+        return ReRender();
     }
 
     private void BuildPlanetInfo()

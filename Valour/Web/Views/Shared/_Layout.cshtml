@@ -12,18 +12,24 @@
     <link rel="icon" href="/favicon.ico"/>
 
     @{
+        /* Canonical: trailing-slash form matches the static-export redirects */
+        var canonicalPath = Context.Request.Path.Value ?? "/";
+        if (canonicalPath != "/" && !canonicalPath.EndsWith('/'))
+            canonicalPath += "/";
+        var canonicalUrl = $"https://valour.gg{(canonicalPath == "/" ? "" : canonicalPath)}";
+
         /* Title */
         ViewData.TryGetValue("Title", out var title);
         title ??= "Valour: Built for Communities";
         <title>@title</title>
-        <meta name="og:title" content="@title">
+        <meta property="og:title" content="@title">
         <meta name="twitter:title" content="@title">
 
         /* Description */
         ViewData.TryGetValue("Description", out var description);
         description ??= "Join the movement for a more flexible, transparent, and open platform made by communities for communities.";
         <meta name="description" content="@description">
-        <meta name="og:description" content="@description">
+        <meta property="og:description" content="@description">
         <meta name="twitter:description" content="@description">
 
         /* Keywords */
@@ -39,16 +45,36 @@
         /* Image */
         ViewData.TryGetValue("Image", out var image);
         image ??= "https://valour.gg/media/twitter-card.png";
-        <meta name="og:image" content="@image">
+        <meta property="og:image" content="@image">
         <meta name="twitter:image" content="@image">
 
         /* Image Alt */
         ViewData.TryGetValue("ImageAlt", out var imageAlt);
         imageAlt ??= "The Valour logo";
         <meta name="twitter:image:alt" content="@imageAlt">
+
+        <meta property="og:url" content="@canonicalUrl">
+        <link rel="canonical" href="@canonicalUrl">
     }
 
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Valour">
+    <meta property="og:locale" content="en_US">
     <meta name="twitter:site" content="@@valourapp">
+
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "Organization",
+        "name": "Valour",
+        "url": "https://valour.gg",
+        "logo": "https://valour.gg/media/logo/logo-256.png",
+        "sameAs": [
+            "https://github.com/Valour-Software/Valour",
+            "https://x.com/valourapp"
+        ]
+    }
+    </script>
     <meta name="msapplication-TileColor" content="#2d89ef">
     <meta name="theme-color" content="#00FAFF">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css"/>

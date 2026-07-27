@@ -25,14 +25,28 @@
         <meta property="og:type" content="website"/>
         <meta property="og:url" content="@Model.RequestUrl"/>
         <meta property="og:title" content="Threads - @planetName"/>
+        <meta property="og:site_name" content="Valour"/>
         <meta property="og:description" content="Browse threads from @planetName on Valour."/>
         <meta property="og:image" content="@Model.PlanetIcon"/>
+
+        <meta property="twitter:card" content="summary"/>
+        <meta property="twitter:title" content="Threads - @planetName"/>
+        <meta property="twitter:description" content="Browse threads from @planetName on Valour."/>
+        <meta property="twitter:image" content="@Model.PlanetIcon"/>
+    }
+    else
+    {
+        @* Private/missing interstitials must not enter the index *@
+        <meta name="robots" content="noindex"/>
     }
 
     <link id="bundled-css" href="/_content/Valour.Client/css/bundled.min.css" rel="stylesheet"/>
     <link href="/_content/Valour.Client/css/public-threads.css" rel="stylesheet"/>
 
-    <link rel="canonical" href="@Model.RequestUrl"/>
+    @if (Model.Planet is not null && !Model.IsPrivate)
+    {
+        <link rel="canonical" href="@Model.RequestUrl"/>
+    }
 </head>
 <body>
 <div class="pt-page">

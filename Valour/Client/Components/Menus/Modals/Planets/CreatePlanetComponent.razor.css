@@ -1,10 +1,184 @@
-﻿.modal-bg {
-    background-color: var(--main-3);
-    padding: 20px;
+.create-modal {
+    width: min(92vw, 420px);
+    max-height: min(88vh, 720px);
+    overflow-y: auto;
+    padding: 28px 28px 24px;
+    background: var(--main-2);
+    border: 1px solid var(--slight-tint);
     border-radius: var(--radius-xl);
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Header --- */
+
+.modal-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.modal-header lottie-player {
+    width: 150px;
+    height: 120px;
+    margin-bottom: 4px;
+}
+
+.modal-header h2 {
+    margin: 0 0 4px 0;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--font-color);
+}
+
+.subtitle {
+    margin: 0;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+/* --- Fields --- */
+
+.field {
+    margin-bottom: 14px;
+}
+
+.field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--font-color);
+}
+
+.field ::deep input.form-control,
+.field > input.form-control {
+    width: 100%;
+    background: var(--main-1);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    color: var(--font-color);
+    padding: 9px 12px;
+    font-size: var(--font-size-sm);
+    transition: border-color 0.15s ease;
+}
+
+.field ::deep input.form-control:focus,
+.field > input.form-control:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary) 60%, var(--slight-tint));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.field ::deep input.form-control::placeholder {
+    color: var(--font-alt-color);
+    opacity: 0.7;
+}
+
+.label-hint {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    font-weight: normal;
+}
+
+.form-error {
+    margin: 0 0 12px 0;
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+.submit-btn {
+    margin-top: 4px;
+}
+
+/* --- Create/import mode switching --- */
+
+.mode-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0 12px;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+}
+
+.mode-divider::before,
+.mode-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--slight-tint);
+}
+
+.mode-switch {
+    display: block;
+    margin: 0 auto;
+    background: none;
+    border: none;
+    padding: 4px;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.mode-switch:hover {
+    color: var(--color-primary);
+}
+
+.import-steps {
+    margin: 0 0 16px 0;
+    padding-left: 20px;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+
+.import-steps li {
+    margin-bottom: 6px;
+}
+
+.import-steps b {
+    color: var(--font-color);
+}
+
+.import-steps code {
+    background: var(--slight-tint);
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+}
+
+.import-note {
+    margin: 0 0 14px 0;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    line-height: 1.6;
+}
+
+/* Import mode gets a back link below the button */
+.submit-btn + .mode-switch {
+    margin-top: 12px;
+}
+
+/* --- Success state --- */
+
+.welcome-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 0;
+}
+
+.welcome-state lottie-player {
+    width: 240px;
+    height: 200px;
 }
 
 .welcome {
+    margin: 8px 0 0 0;
+    font-size: var(--font-size-xl);
+    color: var(--font-color);
     animation-name: animate-pop;
     animation-timing-function: cubic-bezier(0.24, 0.5, 0.74, 2);
     animation-duration: 0.25s;

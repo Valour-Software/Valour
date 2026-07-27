@@ -100,7 +100,9 @@ public sealed class StaticSiteExporter
         var routes = Pages.Select(page => page.RequestPath).ToArray();
         var urls = routes.Select(route =>
         {
-            var loc = $"{siteBaseUrl}{(route == "/" ? string.Empty : route.TrimEnd('/'))}";
+            // Trailing-slash form matches the _redirects rules, so sitemap
+            // URLs resolve directly instead of through a 301 hop
+            var loc = $"{siteBaseUrl}{(route == "/" ? string.Empty : route.TrimEnd('/') + "/")}";
             var changeFrequency = route == "/" ? "weekly" : "monthly";
             var priority = route == "/" ? "1.0" : "0.7";
 

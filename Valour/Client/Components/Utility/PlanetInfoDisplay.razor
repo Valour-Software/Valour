@@ -29,7 +29,7 @@
                 <div class="planet-stats">
                     <div class="stat-item">
                         <i class="bi bi-people-fill"></i>
-                        <span class="stat-value">@PlanetInfo.MemberCount</span>
+                        <span class="stat-value">@PlanetInfo.MemberCount.ToString("N0")</span>
                         <span class="stat-label">Members</span>
                     </div>
                     @if (PlanetInfo.Nsfw)
@@ -66,7 +66,7 @@
                     <div class="tags-container">
                         @foreach (var tag in _tagSlugs)
                         {
-                            <ValourPill Text="@("#" + tag.ToUpper())"
+                            <ValourPill Text="@tag.ToUpper()"
                                         Variant="soft"
                                         Tone="accent" />
                         }

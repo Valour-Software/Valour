@@ -235,6 +235,8 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<PlanetEmoji> PlanetEmojis { get; set; }
     public DbSet<PlanetRule> PlanetRules { get; set; }
     public DbSet<PlanetReport> PlanetReports { get; set; }
+    public DbSet<PlanetEvent> PlanetEvents { get; set; }
+    public DbSet<PlanetEventRsvp> PlanetEventRsvps { get; set; }
 
     public DbSet<PlanetThread> PlanetThreads { get; set; }
     public DbSet<ThreadComment> ThreadComments { get; set; }
@@ -356,6 +358,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         PlanetEmoji.SetupDbModel(modelBuilder);
         PlanetRule.SetupDbModel(modelBuilder);
         PlanetReport.SetupDbModel(modelBuilder);
+        PlanetEvent.SetupDbModel(modelBuilder);
         PlanetThread.SetupDbModel(modelBuilder);
         PlanetWikiPage.SetupDbModel(modelBuilder);
         PlanetWikiRevision.SetupDbModel(modelBuilder);

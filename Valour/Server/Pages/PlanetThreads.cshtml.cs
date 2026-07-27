@@ -68,6 +68,7 @@ public class PlanetThreadsModel : PageModel
         if (Planet is null)
         {
             ErrorMessage = "This planet doesn't exist.";
+            Response.StatusCode = 404;
             return Page();
         }
 

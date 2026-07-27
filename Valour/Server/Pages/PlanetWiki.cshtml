@@ -42,6 +42,16 @@
         {
             <meta name="rating" content="adult"/>
         }
+        @if (!string.IsNullOrWhiteSpace(Model.Query))
+        {
+            @* Search-results views are infinite-URL duplicates of the home page *@
+            <meta name="robots" content="noindex"/>
+        }
+    }
+    else
+    {
+        @* Private/missing interstitials must not enter the index *@
+        <meta name="robots" content="noindex"/>
     }
 
     <link id="bundled-css" href="/_content/Valour.Client/css/bundled.min.css" rel="stylesheet"/>

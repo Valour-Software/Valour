@@ -212,6 +212,15 @@ public class PlanetService : ServiceBase
         _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
 
     /// <summary>
+    /// Imports a Discord server template (discord.new link or plain code) as a
+    /// new planet owned by the current user
+    /// </summary>
+    public Task<TaskResult<Planet>> ImportFromDiscordAsync(string templateCodeOrUrl, string planetName = null) =>
+        _client.PrimaryNode.PostAsyncWithResponse<Planet>(
+            "api/planets/import/discord",
+            new { TemplateCodeOrUrl = templateCodeOrUrl, PlanetName = planetName });
+
+    /// <summary>
     /// Fetches public planet information by ID (no membership required)
     /// </summary>
     public async Task<TaskResult<PlanetListInfo>> FetchPlanetInfoAsync(long planetId)

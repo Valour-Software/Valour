@@ -97,6 +97,25 @@
 
     <div class="editor-section">
         <h3 class="editor-section-title">
+            <i class="bi bi-calendar-event"></i>
+            Calendar
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Enable Calendar</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckEnableCalendar" checked="@_enableCalendarValue" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Give this planet a community calendar where members can see and RSVP to events. Creating events is controlled by the <b>Manage Calendar</b> role permission.</p>
+            <ResultLabel Result="@_enableCalendarResult" />
+        </div>
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
             <i class="bi bi-bell"></i>
             Notifications
         </h3>
@@ -184,6 +203,9 @@
     private ChannelActivityCadence _activityCadenceValue;
     private ITaskResult _activityCadenceResult;
 
+    private bool _enableCalendarValue;
+    private ITaskResult _enableCalendarResult;
+
     protected override Task OnInitializedAsync()
     {
         _nameValue = Planet.Name;
@@ -192,6 +214,7 @@
         _vanityValue = Planet.Vanity ?? string.Empty;
         _enableThreadsValue = Planet.EnableThreads;
         _publicThreadsValue = Planet.PublicThreads;
+        _enableCalendarValue = Planet.EnableCalendar;
         _activityCadenceValue = Planet.ActivityNotificationCadence;
         StateHasChanged();
         return Task.CompletedTask;
@@ -298,6 +321,22 @@
         {
             _enableThreadsValue = !_enableThreadsValue;
             Planet.EnableThreads = _enableThreadsValue;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnCheckEnableCalendar()
+    {
+        _enableCalendarValue = !_enableCalendarValue;
+
+        Planet.EnableCalendar = _enableCalendarValue;
+        _enableCalendarResult = await Planet.UpdateAsync();
+
+        if (!_enableCalendarResult.Success)
+        {
+            _enableCalendarValue = !_enableCalendarValue;
+            Planet.EnableCalendar = _enableCalendarValue;
         }
 
         StateHasChanged();
