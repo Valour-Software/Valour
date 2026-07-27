@@ -63,14 +63,21 @@ export function init(ref, id) {
         }
     }
     
+    const notifyOpened = () => {
+        try {
+            ref.invokeMethodAsync('OnMobileSidebarOpened');
+        } catch { /* dotnet ref torn down */ }
+    };
+
     const onTouchEnd = function (e) {
-        
+
         if (!dragging) {
             return;
         }
-        
+
         if (Math.abs(slideDistance) < width / 2) {
             sidebar.style.transform = `translateX(0px)`;
+            if (!open) notifyOpened();
             open = true;
         } else {
             sidebar.style.transform = null;
@@ -91,6 +98,7 @@ export function init(ref, id) {
             open = false;
         } else {
             sidebar.style.transform = `translateX(0px)`;
+            notifyOpened();
             open = true;
         }
     };

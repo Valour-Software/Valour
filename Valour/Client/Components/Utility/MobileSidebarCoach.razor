@@ -1,0 +1,53 @@
+@implements IDisposable
+@inject ValourClient Client
+
+@* One-time full-screen coach for mobile: the sidebar starts hidden there,
+   so nothing on screen suggests where the planets live. Dismissed by tap,
+   or automatically the first time the sidebar actually opens. *@
+
+@if (_visible)
+{
+    <div class="swipe-coach" @onclick="DismissAsync">
+        <div class="coach-edge"></div>
+        <div class="coach-body">
+            <div class="coach-arrow" aria-hidden="true">
+                <i class="bi bi-chevron-right c1"></i>
+                <i class="bi bi-chevron-right c2"></i>
+                <i class="bi bi-chevron-right c3"></i>
+            </div>
+            <p class="coach-title">Swipe right</p>
+            <p class="coach-text">Your planets and chats live in the sidebar — swipe from the left edge anytime.</p>
+            <button class="v-btn primary coach-btn">Got it</button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _visible;
+
+    protected override void OnInitialized()
+    {
+        TutorialHints.StateChanged += OnStateChanged;
+        _visible = ComputeVisible();
+    }
+
+    private bool ComputeVisible() =>
+        DeviceInfo.IsMobile &&
+        TutorialHints.ShouldShow(Client, UserTutorials.MobileSidebarSwipe);
+
+    private void OnStateChanged()
+    {
+        var show = ComputeVisible();
+        if (show == _visible)
+            return;
+
+        _visible = show;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DismissAsync() =>
+        await TutorialHints.CompleteAsync(Client, UserTutorials.MobileSidebarSwipe);
+
+    public void Dispose() =>
+        TutorialHints.StateChanged -= OnStateChanged;
+}

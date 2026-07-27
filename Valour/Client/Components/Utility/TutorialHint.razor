@@ -1,0 +1,74 @@
+@implements IDisposable
+@inject ValourClient Client
+
+@if (_visible)
+{
+    <div class="tutorial-hint @Class">
+        <span class="hint-dot"></span>
+        <span class="hint-text">@Text</span>
+        <button class="hint-dismiss" title="Dismiss" aria-label="Dismiss hint"
+                @onclick="DismissAsync" @onclick:stopPropagation="true">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+}
+
+@code {
+
+    /// <summary>
+    /// The UserTutorials bit this hint tracks
+    /// </summary>
+    [Parameter]
+    public int TutorialId { get; set; }
+
+    [Parameter]
+    public string Text { get; set; }
+
+    /// <summary>
+    /// Optional prerequisite bit — the hint stays hidden until it completes,
+    /// so nudges arrive one step at a time
+    /// </summary>
+    [Parameter]
+    public int? After { get; set; }
+
+    [Parameter]
+    public string Class { get; set; }
+
+    private bool _visible;
+
+    protected override void OnInitialized()
+    {
+        TutorialHints.StateChanged += OnStateChanged;
+        _visible = ComputeVisible();
+    }
+
+    protected override void OnParametersSet()
+    {
+        _visible = ComputeVisible();
+    }
+
+    private bool ComputeVisible()
+    {
+        if (After is not null &&
+            !UserTutorials.IsCompleted(Client?.Me?.TutorialState ?? 0, After.Value))
+            return false;
+
+        return TutorialHints.ShouldShow(Client, TutorialId);
+    }
+
+    private void OnStateChanged()
+    {
+        var show = ComputeVisible();
+        if (show == _visible)
+            return;
+
+        _visible = show;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DismissAsync() =>
+        await TutorialHints.CompleteAsync(Client, TutorialId);
+
+    public void Dispose() =>
+        TutorialHints.StateChanged -= OnStateChanged;
+}

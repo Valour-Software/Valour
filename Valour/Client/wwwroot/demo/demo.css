@@ -1,0 +1,425 @@
+/* Valour Demo Engine stylesheet.
+   Loaded only when the app runs with ?demo=1 — never ships in normal sessions. */
+
+/* ---------------------------------------------------------------- stage -- */
+
+body.demo-stage {
+    background: radial-gradient(120% 130% at 18% 0%, #14283f 0%, #070d18 55%, #02050a 100%) !important;
+    overflow: hidden;
+}
+
+body.demo-stage .mobile-holder {
+    position: relative;
+    z-index: 1;
+    will-change: transform;
+}
+
+/* Never let update banners / platform notices photobomb a take */
+body.demo-stage [aria-label="Platform notices"] {
+    display: none !important;
+}
+
+/* Framed look whenever the camera is off the default shot */
+body.demo-stage.demo-framed .mobile-holder {
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 70px 130px -50px rgba(0, 0, 0, 0.85),
+                0 0 0 1px rgba(255, 255, 255, 0.07),
+                0 0 90px -20px rgba(64, 140, 255, 0.18);
+}
+
+/* In explode mode the holder must not clip or flatten its 3D children */
+body.demo-stage.demo-exploded .mobile-holder {
+    overflow: visible !important;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* -------------------------------------------------------------- backdrop -- */
+
+#demo-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1200ms ease;
+    overflow: hidden;
+}
+
+#demo-backdrop.on {
+    opacity: 1;
+}
+
+#demo-backdrop .demo-aurora {
+    position: absolute;
+    width: 55vmax;
+    height: 55vmax;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.5;
+    animation: demo-aurora-drift 26s ease-in-out infinite alternate;
+}
+
+#demo-backdrop .demo-aurora.a {
+    top: -20%;
+    left: -12%;
+    background: radial-gradient(circle, rgba(48, 108, 232, 0.55), transparent 65%);
+}
+
+#demo-backdrop .demo-aurora.b {
+    bottom: -25%;
+    right: -10%;
+    background: radial-gradient(circle, rgba(129, 78, 235, 0.45), transparent 65%);
+    animation-delay: -9s;
+    animation-duration: 32s;
+}
+
+#demo-backdrop .demo-aurora.c {
+    top: 30%;
+    left: 55%;
+    width: 34vmax;
+    height: 34vmax;
+    background: radial-gradient(circle, rgba(46, 196, 182, 0.30), transparent 65%);
+    animation-delay: -17s;
+    animation-duration: 22s;
+}
+
+@keyframes demo-aurora-drift {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(9vmax, -6vmax, 0) scale(1.25); }
+}
+
+/* --------------------------------------------------------------- cursor -- */
+
+body.demo-running,
+body.demo-running * {
+    cursor: none !important;
+}
+
+body.demo-picking,
+body.demo-picking * {
+    cursor: crosshair !important;
+}
+
+#demo-cursor {
+    position: fixed;
+    z-index: 100000;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    transform: translate3d(-100px, -100px, 0);
+}
+
+#demo-cursor.pressed {
+    background: rgba(120, 190, 255, 0.95);
+}
+
+.demo-ripple {
+    position: fixed;
+    z-index: 99999;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    border: 2px solid rgba(140, 200, 255, 0.9);
+    pointer-events: none;
+    animation: demo-ripple 600ms ease-out forwards;
+}
+
+@keyframes demo-ripple {
+    from { transform: scale(1); opacity: 1; }
+    to   { transform: scale(4.5); opacity: 0; }
+}
+
+/* -------------------------------------------------------------- overlay -- */
+
+#demo-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100010;
+    pointer-events: none;
+}
+
+#demo-overlay svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ------------------------------------------------------------- letterbox -- */
+
+.demo-bar {
+    position: absolute;
+    background: #000;
+    transition: width 1100ms cubic-bezier(0.22, 1, 0.36, 1),
+                height 1100ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.demo-bar.top    { top: 0;    left: 0; right: 0;  height: 0; }
+.demo-bar.bottom { bottom: 0; left: 0; right: 0;  height: 0; }
+.demo-bar.left   { left: 0;   top: 0;  bottom: 0; width: 0; }
+.demo-bar.right  { right: 0;  top: 0;  bottom: 0; width: 0; }
+
+/* -------------------------------------------------------------- vignette -- */
+
+#demo-vignette {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 900ms ease;
+    background: radial-gradient(115% 115% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+#demo-vignette.on {
+    opacity: 1;
+}
+
+/* -------------------------------------------------------------- captions -- */
+
+.demo-caption {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    font-family: 'Ubuntu', 'Segoe UI', system-ui, sans-serif;
+    max-width: min(80vw, 900px);
+}
+
+/* Dark scrim behind the text so titles stay readable over busy UI */
+.demo-caption::before {
+    content: '';
+    position: absolute;
+    inset: -18% -22%;
+    z-index: -1;
+    background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(2, 6, 14, 0.78), transparent 72%);
+    opacity: 0;
+    transition: opacity 700ms ease;
+}
+
+.demo-caption.shown::before {
+    opacity: 1;
+}
+
+.demo-caption.leaving::before {
+    opacity: 0;
+    transition-duration: 500ms;
+}
+
+.demo-caption.center { top: 42%; transform: translate(-50%, -50%); }
+.demo-caption.lower  { bottom: 12%; }
+.demo-caption.upper  { top: 9%; }
+
+.demo-caption .demo-caption-title {
+    font-size: clamp(34px, 5.2vw, 74px);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.12;
+    color: #f4f8ff;
+    background: linear-gradient(100deg, #ffffff 15%, #9cc4ff 55%, #c2a8ff 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* text-shadow paints over gradient-clipped text, so shadows must be
+       drop-shadow filters — they apply to the composited glyphs instead */
+    opacity: 0;
+    transform: translateY(26px);
+    filter: blur(6px) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.95)) drop-shadow(0 12px 34px rgba(0, 0, 0, 0.55));
+    transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+                filter 900ms cubic-bezier(0.22, 1, 0.36, 1),
+                letter-spacing 1400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.demo-caption .demo-caption-sub {
+    margin-top: 14px;
+    font-size: clamp(15px, 1.7vw, 24px);
+    font-weight: 400;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(210, 226, 250, 0.95);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 0.8);
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1) 180ms,
+                transform 900ms cubic-bezier(0.22, 1, 0.36, 1) 180ms;
+}
+
+.demo-caption.shown .demo-caption-title {
+    opacity: 1;
+    transform: translateY(0);
+    letter-spacing: 0.015em;
+}
+
+.demo-caption.shown .demo-caption-sub {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.demo-caption.shown .demo-caption-title {
+    filter: blur(0) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.95)) drop-shadow(0 12px 34px rgba(0, 0, 0, 0.55));
+}
+
+.demo-caption.leaving .demo-caption-title {
+    opacity: 0;
+    transform: translateY(-20px);
+    filter: blur(5px) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.95)) drop-shadow(0 12px 34px rgba(0, 0, 0, 0.55));
+    transition-duration: 600ms;
+    transition-delay: 0ms;
+}
+
+.demo-caption.leaving .demo-caption-sub {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition-duration: 600ms;
+    transition-delay: 0ms;
+}
+
+/* -------------------------------------------------------------- callouts -- */
+
+.demo-callout {
+    position: absolute;
+    padding: 7px 14px;
+    border-radius: 10px;
+    background: rgba(10, 18, 32, 0.88);
+    border: 1px solid rgba(140, 200, 255, 0.35);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(80, 150, 255, 0.35);
+    color: #dbe9ff;
+    font-family: 'Ubuntu', 'Segoe UI', system-ui, sans-serif;
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+    transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.demo-callout.shown {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+#demo-overlay .demo-leader {
+    stroke: rgba(140, 200, 255, 0.55);
+    stroke-width: 1.5;
+    fill: none;
+    stroke-dasharray: 4 5;
+}
+
+#demo-overlay .demo-leader-dot {
+    fill: rgba(160, 210, 255, 0.9);
+}
+
+/* ------------------------------------------------------------- spotlight -- */
+
+#demo-overlay .demo-dim {
+    fill: rgba(1, 4, 10, 0.72);
+    transition: opacity 500ms ease;
+}
+
+#demo-overlay .demo-spot-ring {
+    fill: none;
+    stroke: rgba(150, 200, 255, 0.65);
+    stroke-width: 1.5;
+}
+
+/* -------------------------------------------------------- exploded layers -- */
+
+.demo-layer-card {
+    outline: 1px solid rgba(150, 200, 255, 0.38);
+    outline-offset: -1px;
+    border-radius: 10px;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8),
+                0 0 44px -10px rgba(80, 150, 255, 0.30);
+    background-color: rgba(16, 24, 40, 0.35);
+}
+
+/* ------------------------------------------------------------------ deck -- */
+
+#demo-deck {
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
+    z-index: 100020;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(8, 14, 24, 0.92);
+    border: 1px solid rgba(140, 200, 255, 0.22);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+    font-family: monospace;
+    font-size: 11px;
+    color: #cfe2ff;
+    transition: opacity 500ms ease, transform 500ms ease;
+    user-select: none;
+}
+
+#demo-deck.hidden,
+body.demo-running #demo-deck {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+}
+
+#demo-deck .deck-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    max-width: 340px;
+}
+
+#demo-deck .deck-label {
+    width: 44px;
+    opacity: 0.55;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 9px;
+}
+
+#demo-deck button {
+    appearance: none;
+    border: 1px solid rgba(140, 200, 255, 0.25);
+    background: rgba(30, 48, 76, 0.55);
+    color: #cfe2ff;
+    border-radius: 7px;
+    font: inherit;
+    padding: 4px 9px;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+#demo-deck button:hover {
+    background: rgba(58, 92, 140, 0.75);
+    border-color: rgba(160, 210, 255, 0.55);
+}
+
+#demo-deck button.active {
+    background: rgba(64, 120, 200, 0.85);
+    border-color: rgba(180, 220, 255, 0.8);
+    color: #ffffff;
+}
+
+#demo-deck input[type="range"] {
+    width: 110px;
+    accent-color: #6fa8ff;
+}
+
+#demo-deck .deck-hint {
+    opacity: 0.45;
+    font-size: 9.5px;
+    letter-spacing: 0.03em;
+    white-space: pre;
+}

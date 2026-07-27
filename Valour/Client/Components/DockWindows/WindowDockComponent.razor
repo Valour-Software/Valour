@@ -113,6 +113,17 @@
 
         await TryOpenStartTargetAsync();
 
+        // First-run onboarding: opens until the user completes or skips it. A
+        // restored layout may already hold the tab from a previous session.
+        if (WindowService.MainDock == this && Client.Me is not null &&
+            !UserTutorials.IsCompleted(Client.Me.TutorialState, UserTutorials.Onboarding))
+        {
+            var existingTabs = new List<WindowTab>();
+            Layout.GetTabs(existingTabs);
+            if (!existingTabs.Any(t => t.Content is OnboardingWindowComponent.Content))
+                await Layout.AddTab(OnboardingWindowComponent.GetDefaultContent());
+        }
+
         // The main dock owns deep-link routing: it's the surface that opens
         // channels/threads. Registering here also drains any link that arrived
         // before the app was ready (e.g. a cold start from a notification tap).

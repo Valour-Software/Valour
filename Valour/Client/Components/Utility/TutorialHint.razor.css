@@ -1,0 +1,76 @@
+.tutorial-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    margin: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--main-3));
+    border: 1px solid color-mix(in srgb, var(--color-primary) 45%, var(--slight-tint));
+    color: var(--font-color);
+    font-size: var(--font-size-sm);
+    animation: hint-enter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+               hint-glow 2.4s ease-in-out infinite,
+               hint-nudge 5s ease-in-out 1.5s infinite;
+}
+
+.hint-dot {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    flex-shrink: 0;
+}
+
+/* Radar ping ring */
+.hint-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--color-primary);
+    animation: hint-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.hint-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.hint-dismiss {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    line-height: 1;
+    color: var(--font-alt-color);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.hint-dismiss:hover {
+    color: var(--font-color);
+}
+
+@keyframes hint-ping {
+    0% { transform: scale(1); opacity: 0.8; }
+    80%, 100% { transform: scale(3.4); opacity: 0; }
+}
+
+@keyframes hint-enter {
+    from { opacity: 0; transform: translateY(6px) scale(0.96); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes hint-glow {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent); }
+    50% { box-shadow: 0 0 12px 1px color-mix(in srgb, var(--color-primary) 35%, transparent); }
+}
+
+/* Periodic little wiggle to catch the eye without being a popup */
+@keyframes hint-nudge {
+    0%, 86%, 100% { translate: 0 0; }
+    89% { translate: 4px 0; }
+    92% { translate: -3px 0; }
+    95% { translate: 2px 0; }
+}
