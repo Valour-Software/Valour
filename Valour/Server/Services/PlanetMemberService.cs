@@ -96,6 +96,34 @@ public class PlanetMemberService
     }
 
     /// <summary>
+    /// Returns the requested members that belong to a specific planet in one query.
+    /// Callers are responsible for authorizing access to the planet.
+    /// </summary>
+    public async Task<List<PlanetMember>> GetByIdsAsync(
+        long planetId,
+        IReadOnlyCollection<long> memberIds)
+    {
+        if (memberIds is null || memberIds.Count == 0)
+            return [];
+
+        var ids = memberIds
+            .Where(x => x > 0)
+            .Distinct()
+            .ToArray();
+
+        if (ids.Length == 0)
+            return [];
+
+        var members = await _db.PlanetMembers
+            .AsNoTracking()
+            .Include(x => x.User)
+            .Where(x => x.PlanetId == planetId && ids.Contains(x.Id))
+            .ToListAsync();
+
+        return members.Select(x => x.ToModel()).ToList();
+    }
+
+    /// <summary>
     /// Returns the current user's PlanetMember for the given planet id
     /// </summary>
     public async Task<PlanetMember> GetCurrentAsync(long planetId)

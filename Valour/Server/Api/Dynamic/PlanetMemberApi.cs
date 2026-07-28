@@ -6,6 +6,8 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetMemberApi
 {
+    private const int MaxMemberBatchSize = 1024;
+
      // Helpful route to return the member for the authorizing user
     [ValourRoute(HttpVerbs.Get, "api/members/me/{planetId}")]
     [UserRequired(UserPermissionsEnum.Membership)]
@@ -19,7 +21,28 @@ public class PlanetMemberApi
 
         return Results.Json(member);
     }
-        
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/members/byids")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetMembersByIdsRouteAsync(
+        [FromBody] long[] memberIds,
+        long planetId,
+        PlanetMemberService service)
+    {
+        if (memberIds is null)
+            return ValourResult.BadRequest("Include member ids in body.");
+
+        if (memberIds.Length > MaxMemberBatchSize)
+            return ValourResult.BadRequest($"A maximum of {MaxMemberBatchSize} member ids may be requested.");
+
+        var self = await service.GetCurrentAsync(planetId);
+        if (self is null)
+            return ValourResult.NotPlanetMember();
+
+        var members = await service.GetByIdsAsync(planetId, memberIds);
+        return Results.Json(members);
+    }
+
 
     [ValourRoute(HttpVerbs.Get, "api/members/{id}")]
     [UserRequired(UserPermissionsEnum.Membership)]

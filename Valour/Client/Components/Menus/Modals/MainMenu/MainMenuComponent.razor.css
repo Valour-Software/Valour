@@ -348,6 +348,10 @@
     .v-menu-sidebar.open .v-menu-sidebar-content {
         max-height: 70vh; /* Limit maximum height */
         opacity: 1;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
         transform: translateY(0);
     }
 

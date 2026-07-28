@@ -78,4 +78,32 @@ public class ChatWindowComponentTests : IClassFixture<LoginTestFixture>
         Assert.Null(ChatWindowComponent.ApplyMessageEditToDisplayedMessage(displayed, edit));
         Assert.Equal("message", displayed.Content);
     }
+
+    [Fact]
+    public void GetMissingRecoveredAuthorIds_ReturnsOnlyUniqueUncachedAuthors()
+    {
+        var planet = new Planet(_fixture.Client)
+        {
+            Id = IdManager.Generate()
+        };
+        var cachedMemberId = IdManager.Generate();
+        planet.Members.Put(new PlanetMember(_fixture.Client)
+        {
+            Id = cachedMemberId,
+            PlanetId = planet.Id
+        });
+
+        var missingMemberId = IdManager.Generate();
+        var messages = new[]
+        {
+            new Message("cached", planet.Id, cachedMemberId, 1, 2, _fixture.Client),
+            new Message("missing one", planet.Id, missingMemberId, 2, 2, _fixture.Client),
+            new Message("missing two", planet.Id, missingMemberId, 2, 2, _fixture.Client),
+            new Message("direct", null, null, 3, 2, _fixture.Client),
+        };
+
+        var missing = ChatWindowComponent.GetMissingRecoveredAuthorIds(messages, planet);
+
+        Assert.Equal(missingMemberId, Assert.Single(missing));
+    }
 }
