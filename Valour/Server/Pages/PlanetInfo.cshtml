@@ -40,7 +40,7 @@
         <meta property="twitter:image" content="@ISharedPlanet.GetIconUrl(Model.PlanetInfo, IconFormat.Webp256)" />
         
         <!-- Structured Data -->
-        <script type="application/ld+json">@Html.Raw(Model.JsonLd)</script>
+        @Html.Raw("<script type=\"application/ld+json\">" + Model.JsonLd + "</script>")
 
         <link rel="canonical" href="@Model.CanonicalUrl" />
     }

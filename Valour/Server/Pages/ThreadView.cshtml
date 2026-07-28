@@ -43,7 +43,7 @@
         <meta property="twitter:description" content="@Model.Snippet"/>
         <meta property="twitter:image" content="@(Model.OgImage ?? Model.PlanetIcon)"/>
 
-        <script type="application/ld+json">@Html.Raw(Model.JsonLd)</script>
+        @Html.Raw("<script type=\"application/ld+json\">" + Model.JsonLd + "</script>")
     }
     else
     {

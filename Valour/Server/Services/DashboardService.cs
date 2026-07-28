@@ -573,6 +573,8 @@ public class DashboardService
             });
         }
 
+        var retention = await BuildRetentionCohortsAsync();
+
         return new DashboardAnalytics
         {
             Days = days,
@@ -582,7 +584,72 @@ public class DashboardService
             MessagesPerDay = messagesPerDay,
             MessagesPerHour = messagesPerHour,
             RevenuePerDay = revenuePerDay,
+            RetentionCohorts = retention,
         };
+    }
+
+    private sealed class RetentionRow
+    {
+        public DateTime Week { get; set; }
+        public long Size { get; set; }
+        public long D1 { get; set; }
+        public long D7 { get; set; }
+        public long D14 { get; set; }
+        public long D30 { get; set; }
+    }
+
+    /// <summary>
+    /// Weekly signup cohorts with came-back-after-day-N counts from the
+    /// user_activity_days rollup. "Retained past day N" means any activity on
+    /// a later calendar day than signup day + N, so a user who returns weeks
+    /// later still counts for every earlier window.
+    /// </summary>
+    private async Task<List<DashboardRetentionCohort>> BuildRetentionCohortsAsync()
+    {
+        const int cohortWeeks = 12;
+
+        var startTs = DateTime.SpecifyKind(
+            DateTime.UtcNow.Date.AddDays(-(int)((int)DateTime.UtcNow.DayOfWeek + 6) % 7)
+                .AddDays(-7 * (cohortWeeks - 1)),
+            DateTimeKind.Utc);
+
+        var rows = await _db.Database.SqlQuery<RetentionRow>($"""
+            WITH cohort AS (
+                SELECT u.id,
+                       (u.time_joined AT TIME ZONE 'UTC')::date AS jday,
+                       (date_trunc('week', u.time_joined AT TIME ZONE 'UTC'))::timestamp AS week
+                  FROM users u
+                 WHERE u.time_joined >= {startTs}
+                   AND NOT u.disabled
+            )
+            SELECT c.week AS "Week",
+                   COUNT(*)::bigint AS "Size",
+                   COUNT(*) FILTER (WHERE EXISTS (
+                       SELECT 1 FROM user_activity_days a
+                        WHERE a.user_id = c.id AND a.day >= c.jday + 1))::bigint AS "D1",
+                   COUNT(*) FILTER (WHERE EXISTS (
+                       SELECT 1 FROM user_activity_days a
+                        WHERE a.user_id = c.id AND a.day >= c.jday + 7))::bigint AS "D7",
+                   COUNT(*) FILTER (WHERE EXISTS (
+                       SELECT 1 FROM user_activity_days a
+                        WHERE a.user_id = c.id AND a.day >= c.jday + 14))::bigint AS "D14",
+                   COUNT(*) FILTER (WHERE EXISTS (
+                       SELECT 1 FROM user_activity_days a
+                        WHERE a.user_id = c.id AND a.day >= c.jday + 30))::bigint AS "D30"
+              FROM cohort c
+             GROUP BY c.week
+             ORDER BY c.week
+            """).ToListAsync();
+
+        return rows.Select(r => new DashboardRetentionCohort
+        {
+            WeekStartUtc = DateTime.SpecifyKind(r.Week, DateTimeKind.Utc),
+            Size = (int)r.Size,
+            RetainedD1 = (int)r.D1,
+            RetainedD7 = (int)r.D7,
+            RetainedD14 = (int)r.D14,
+            RetainedD30 = (int)r.D30,
+        }).ToList();
     }
 
     /// <summary>
