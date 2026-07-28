@@ -40,6 +40,35 @@ public class DashboardAnalytics
     /// Real-money revenue per day, split by source.
     /// </summary>
     public List<DashboardRevenuePoint> RevenuePerDay { get; set; }
+
+    /// <summary>
+    /// Weekly signup cohorts with came-back-after-day-N retention counts.
+    /// Fixed 12-week window, independent of the chart range selector.
+    /// </summary>
+    public List<DashboardRetentionCohort> RetentionCohorts { get; set; }
+}
+
+public class DashboardRetentionCohort
+{
+    /// <summary>
+    /// UTC Monday the cohort week starts on.
+    /// </summary>
+    public DateTime WeekStartUtc { get; set; }
+
+    /// <summary>
+    /// Users who signed up during the week.
+    /// </summary>
+    public int Size { get; set; }
+
+    /// <summary>
+    /// Members active on any day at least N days after their signup day,
+    /// counted as of now. The client dims windows the whole cohort hasn't
+    /// aged through yet.
+    /// </summary>
+    public int RetainedD1 { get; set; }
+    public int RetainedD7 { get; set; }
+    public int RetainedD14 { get; set; }
+    public int RetainedD30 { get; set; }
 }
 
 public class DashboardTimePoint

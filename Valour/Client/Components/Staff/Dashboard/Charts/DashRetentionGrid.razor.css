@@ -1,0 +1,86 @@
+.retention-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-family: var(--font-family-app, sans-serif);
+}
+
+.chart-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--font-alt-color);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.retention-empty {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    padding: 16px 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 4px;
+    table-layout: fixed;
+}
+
+/* globals.css boxes every td/th in a light border; this is a heatmap, not a
+   spreadsheet — reset all of it */
+th, td {
+    border: none;
+    padding: 0;
+    text-align: center;
+}
+
+th {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--font-alt-color);
+    padding-bottom: 4px;
+}
+
+th.week-col, td.week-col {
+    text-align: left;
+    width: 88px;
+}
+
+th.size-col, td.size-col {
+    text-align: right;
+    width: 60px;
+    padding-right: 12px;
+}
+
+td.week-col {
+    color: var(--font-color);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+td.size-col {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+td.cell {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--font-color);
+    font-variant-numeric: tabular-nums;
+    padding: 9px 0;
+    border-radius: var(--radius-sm);
+    /* --heat set inline per cell: 0%..60% primary tint by retention rate */
+    background: color-mix(in srgb, var(--color-primary) var(--heat, 0%),
+                color-mix(in srgb, var(--slight-tint) 60%, transparent));
+}
+
+td.cell.immature {
+    opacity: 0.4;
+}
+
+.retention-note {
+    font-size: var(--font-size-xs);
+    color: var(--font-alt-color);
+}

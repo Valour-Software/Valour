@@ -140,6 +140,10 @@
                                   Series="@_signupSeries"
                                   XMode="day" />
                 </div>
+                <div class="dash-card retention-card">
+                    <DashRetentionGrid Title="Retention by signup cohort (12 weeks)"
+                                       Cohorts="@_analytics.RetentionCohorts" />
+                </div>
             </div>
         }
     </section>
