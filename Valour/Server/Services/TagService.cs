@@ -33,6 +33,8 @@ public class TagService : ITagService
         
         var tag = model.ToDatabase();
         tag.Created = DateTime.UtcNow;
+        // Belt and braces: user-created tags are never curated
+        tag.Curated = false;
         try 
         {
             await _db.Tags.AddAsync(tag);
