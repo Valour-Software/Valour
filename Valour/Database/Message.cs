@@ -184,6 +184,7 @@ public class Message : ISharedMessage
             // Indices
             e.HasIndex(x => x.PlanetId);
             e.HasIndex(x => x.ChannelId);
+            e.HasIndex(x => x.TimeSent);
         });
     }
 }

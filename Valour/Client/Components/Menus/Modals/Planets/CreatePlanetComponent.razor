@@ -2,72 +2,137 @@
 @inject ValourClient Client
 @inject PlanetService PlanetService
 
-<section class="v-bg-dark" style="padding: 2em; border-radius: var(--radius-xl)">
- <h2>Create a Planet</h2>
-
+<section class="create-modal">
  <LottiePlayerLoader />
- <lottie-player @ref="@_lottieRef" src="./_content/Valour.Client/media/animations/create_planet.json" background="transparent" speed="1" style="width: 240px; height: 200px;"></lottie-player>
 
- @if (_result is null || !_result.Success)
- {
-
-  <div class="form-group mt-4">
-   <label>Community Name</label>
-   <input class="form-control" @bind-value="@_name" />
-  </div>
-
-  <div class="form-group mt-4">
-   <label>Description</label>
-   <input class="form-control" @bind-value="@_desc"/>
-  </div>
-  
-  <div class="form-group mt-4" style="width: 250px">
-   <label>Search #Tags and add to your planet</label>
-   <SearchTagFilterComponent OnTagSelected="OnTagAdded"/>
-  </div>
-  
-  
-  <div class="form-group mt-4">
-   <button class="v-btn primary large mt-2" @onclick="OnClickSubmit">Create your Community!</button>
-  </div>
-  
-  
- }
- 
  @if (_showWelcome)
  {
-  <h4 class="welcome" style="text-align: center">
-   We have landed!
-  </h4>
+  <div class="welcome-state">
+   <lottie-player @ref="@_lottieRef" src="./_content/Valour.Client/media/animations/create_planet.json" background="transparent" speed="1"></lottie-player>
+   <h2 class="welcome">We have landed!</h2>
+  </div>
+ }
+ else
+ {
+  <div class="modal-header">
+   <lottie-player @ref="@_lottieRef" src="./_content/Valour.Client/media/animations/create_planet.json" background="transparent" speed="1"></lottie-player>
+   <h2>@(_importMode ? "Import from Discord" : "Create a Planet")</h2>
+   <p class="subtitle">
+    @(_importMode
+     ? "Bring your server's layout with you."
+     : "A new home for your community.")
+   </p>
+  </div>
+
+  @if (!_importMode)
+  {
+   <div class="field">
+    <label>Community name</label>
+    <input class="form-control" placeholder="The Cool Zone" @bind-value="@_name" />
+   </div>
+
+   <div class="field">
+    <label>Description</label>
+    <input class="form-control" placeholder="What are you about?" @bind-value="@_desc"/>
+   </div>
+
+   <div class="field">
+    <label>Add tags so people can find you</label>
+    <SearchTagFilterComponent OnTagSelected="OnTagAdded"/>
+   </div>
+
+   @if (_result is not null && !_result.Success)
+   {
+    <p class="form-error">@_result.Message</p>
+   }
+
+   <button class="v-btn primary large submit-btn" @onclick="OnClickSubmit" disabled="@_working">
+    @(_working ? "Creating..." : "Create your community")
+   </button>
+
+   <div class="mode-divider"><span>or</span></div>
+
+   <button class="mode-switch" @onclick="() => SetImportMode(true)">
+    <i class="bi bi-box-arrow-in-down"></i>
+    Coming from Discord? Import your server
+   </button>
+  }
+  else
+  {
+   <ol class="import-steps">
+    <li>In Discord, open <b>Server Settings&nbsp;&rarr;&nbsp;Server Template</b> and create a template. Already have one? Hit <b>Sync</b> first so it matches your latest layout.</li>
+    <li>Copy the template link. It looks like <code>discord.new/abc123</code>.</li>
+    <li>Paste it here and we'll rebuild your server as a planet.</li>
+   </ol>
+
+   <div class="field">
+    <label>Template link or code</label>
+    <input class="form-control" placeholder="https://discord.new/..." @bind-value="@_templateCode" />
+   </div>
+
+   <div class="field">
+    <label>Planet name <span class="label-hint">(optional, uses your server's name)</span></label>
+    <input class="form-control" @bind-value="@_name" />
+   </div>
+
+   <p class="import-note">
+    This brings over your channels, categories, roles, and permissions.
+    Messages and members don't transfer, so invite everyone once you land!
+   </p>
+
+   @if (_result is not null && !_result.Success)
+   {
+    <p class="form-error">@_result.Message</p>
+   }
+
+   <button class="v-btn primary large submit-btn" @onclick="OnClickImport" disabled="@_working">
+    @(_working ? "Importing..." : "Import my community")
+   </button>
+
+   <button class="mode-switch" @onclick="() => SetImportMode(false)">
+    <i class="bi bi-arrow-left"></i>
+    Start fresh instead
+   </button>
+  }
  }
 </section>
 
 @code {
 
     private ElementReference _lottieRef;
-    
+
 
     private bool _showWelcome = false;
-    
+    private bool _importMode = false;
+    private bool _working = false;
+
     public class ModalParams
     {
      public WindowTab Window { get; set; }
     }
-    
+
     private ITaskResult _result;
 
     private string _name;
     private string _desc;
+    private string _templateCode;
     private readonly List<PlanetTag> _selectedTags = [];
 
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
-    
+
     [Parameter]
     public ModalParams Data { get; set; }
-    
+
     [Parameter]
     public string ModalId { get; set; }
+
+    private void SetImportMode(bool value)
+    {
+     _importMode = value;
+     _result = null;
+     StateHasChanged();
+    }
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
@@ -84,36 +149,76 @@
       Tags = _selectedTags.ToList()
      };
 
+     _working = true;
      var result = await newPlanet.CreateAsync();
+     _working = false;
      _result = result;
-     
+
      if (!_result.Success)
      {
       StateHasChanged();
       return;
      }
 
+     await FinishAsync(result.Data);
+    }
+
+    private async Task OnClickImport(MouseEventArgs e)
+    {
+     if (string.IsNullOrWhiteSpace(_templateCode))
+     {
+      _result = new TaskResult(false, "Please paste your template link or code.");
+      return;
+     }
+
+     _working = true;
+     _result = null;
+     StateHasChanged();
+
+     var result = await PlanetService.ImportFromDiscordAsync(_templateCode, _name);
+     _working = false;
+     _result = result;
+
+     if (!result.Success)
+     {
+      StateHasChanged();
+      return;
+     }
+
+     await FinishAsync(result.Data);
+    }
+
+    private async Task FinishAsync(Planet created)
+    {
      _showWelcome = true;
      StateHasChanged();
-     
+
      await Task.Delay(200);
 
      await JsRuntime.InvokeVoidAsync("playLottie", _lottieRef);
-     
+
      await Task.Delay(3000);
-     
+
      ModalRoot.CloseModal(ModalId);
 
-     var planet = result.Data.Sync(Client);
+     var planet = created.Sync(Client);
      PlanetService.AddJoinedPlanet(planet);
 
      await planet.FetchInitialDataAsync();
      var mainChannel = planet.PrimaryChatChannel;
+     if (mainChannel is null)
+      return;
 
-     await Data.Window.Layout.AddTab(await ChatWindowComponent.GetDefaultContent(mainChannel));
+     var chatContent = await ChatWindowComponent.GetDefaultContent(mainChannel);
+
+     // The sidebar entry point opens this modal without a window reference
+     if (Data?.Window is not null)
+      await Data.Window.Layout.AddTab(chatContent);
+     else
+      await WindowService.OpenWindowAtFocused(chatContent);
     }
-    
-    
+
+
     private async Task OnTagAdded(PlanetTag planetTag)
     {
      if (planetTag == null)

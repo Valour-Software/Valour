@@ -212,6 +212,15 @@ public class PlanetService : ServiceBase
         _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
 
     /// <summary>
+    /// Imports a Discord server template (discord.new link or plain code) as a
+    /// new planet owned by the current user
+    /// </summary>
+    public Task<TaskResult<Planet>> ImportFromDiscordAsync(string templateCodeOrUrl, string planetName = null) =>
+        _client.PrimaryNode.PostAsyncWithResponse<Planet>(
+            "api/planets/import/discord",
+            new { TemplateCodeOrUrl = templateCodeOrUrl, PlanetName = planetName });
+
+    /// <summary>
     /// Fetches public planet information by ID (no membership required)
     /// </summary>
     public async Task<TaskResult<PlanetListInfo>> FetchPlanetInfoAsync(long planetId)
@@ -838,6 +847,41 @@ public class PlanetService : ServiceBase
         var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}", true)).Data;
 
         return member?.Sync(_client);
+    }
+
+    /// <summary>
+    /// Fetches a specific set of members from one planet in a single request.
+    /// Cached ids are omitted unless skipCache is requested.
+    /// </summary>
+    public async Task<TaskResult<List<PlanetMember>>> FetchMembersAsync(
+        IEnumerable<long> ids,
+        Planet planet,
+        bool skipCache = false)
+    {
+        if (planet is null)
+            return TaskResult<List<PlanetMember>>.FromFailure("Planet is required.");
+
+        var missingIds = (ids ?? [])
+            .Where(x => x > 0 && (skipCache || !planet.Members.ContainsId(x)))
+            .Distinct()
+            .ToArray();
+
+        if (missingIds.Length == 0)
+            return TaskResult<List<PlanetMember>>.FromData([]);
+
+        var result = await planet.Node.PostAsyncWithResponse<List<PlanetMember>>(
+            $"api/planets/{planet.Id}/members/byids",
+            missingIds);
+
+        if (!result.Success)
+        {
+            LogError($"Failed to fetch {missingIds.Length} members from planet {planet.Id}: {result.Message}");
+            return TaskResult<List<PlanetMember>>.FromFailure(result);
+        }
+
+        result.Data ??= [];
+        result.Data.SyncAll(_client);
+        return TaskResult<List<PlanetMember>>.FromData(result.Data);
     }
 
     public async Task<TaskResult> AddMemberRoleAsync(long memberId, long roleId, long planetId, bool skipCache = false)

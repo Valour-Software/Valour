@@ -1,0 +1,70 @@
+@using Valour.Shared.Models.Staff
+
+<div class="retention-grid">
+    <div class="chart-title">@Title</div>
+
+    @if (Cohorts is null || Cohorts.Count == 0)
+    {
+        <div class="retention-empty">No signup cohorts in range yet.</div>
+    }
+    else
+    {
+        <table>
+            <thead>
+            <tr>
+                <th class="week-col">Cohort week</th>
+                <th class="size-col">Signups</th>
+                @foreach (var window in Windows)
+                {
+                    <th>D@(window)</th>
+                }
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var cohort in Cohorts.OrderByDescending(c => c.WeekStartUtc))
+            {
+                <tr>
+                    <td class="week-col">@cohort.WeekStartUtc.ToString("MMM d")</td>
+                    <td class="size-col">@cohort.Size</td>
+                    @foreach (var window in Windows)
+                    {
+                        var retained = RetainedFor(cohort, window);
+                        var pct = cohort.Size > 0 ? 100.0 * retained / cohort.Size : 0;
+                        var mature = IsMature(cohort, window);
+                        var tooltip = $"{retained} of {cohort.Size} returned on/after day {window}"
+                                      + (mature ? "" : " (cohort still aging)");
+                        <td class="cell @(mature ? "" : "immature")"
+                            style="--heat: @(((int)Math.Min(pct, 60)))%"
+                            title="@tooltip">
+                            @(cohort.Size == 0 ? "–" : $"{pct:0}%")
+                        </td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+        <div class="retention-note">
+            % of each week's signups seen again on or after day N. Dimmed cells are still aging.
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly int[] Windows = { 1, 7, 14, 30 };
+
+    [Parameter] public string Title { get; set; } = "Retention";
+    [Parameter] public List<DashboardRetentionCohort> Cohorts { get; set; }
+
+    private static int RetainedFor(DashboardRetentionCohort c, int window) => window switch
+    {
+        1 => c.RetainedD1,
+        7 => c.RetainedD7,
+        14 => c.RetainedD14,
+        _ => c.RetainedD30,
+    };
+
+    // A window is mature once even the youngest member of the cohort (joined
+    // at week end) has aged through it
+    private static bool IsMature(DashboardRetentionCohort c, int window) =>
+        c.WeekStartUtc.AddDays(7 + window) <= DateTime.UtcNow;
+}

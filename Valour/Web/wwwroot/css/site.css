@@ -689,35 +689,82 @@ a:hover {
 
 .features-grid {
   margin-bottom: var(--space-lg);
+  row-gap: 1.5rem;
 }
 
+/* Each card gets its own accent along the cyan→purple brand range */
+.features-grid > :nth-child(6n + 1) { --card-accent: #00faff; }
+.features-grid > :nth-child(6n + 2) { --card-accent: #4fc9ff; }
+.features-grid > :nth-child(6n + 3) { --card-accent: #7f9dff; }
+.features-grid > :nth-child(6n + 4) { --card-accent: #a97eff; }
+.features-grid > :nth-child(6n + 5) { --card-accent: #d15dff; }
+.features-grid > :nth-child(6n + 6) { --card-accent: #ff4fd8; }
+
 .feature-card {
-  background-color: rgba(19, 30, 41, 0.7);
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(19, 30, 41, 0.7) 45%);
   backdrop-filter: blur(10px);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  padding: 1.75rem 1.75rem 1.5rem;
   height: 100%;
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* Accent hairline across the top, revealed on hover */
+.feature-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--card-accent, var(--accent-cyan)), transparent);
+  opacity: 0.35;
+  transition: opacity var(--transition-normal);
 }
 
 .feature-card:hover {
-  transform: translateY(-10px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--card-accent, var(--accent-cyan)) 45%, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4),
+              0 0 24px color-mix(in srgb, var(--card-accent, var(--accent-cyan)) 18%, transparent);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
+}
+
+.feature-card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text-tertiary);
+  margin-bottom: 0;
 }
 
 .feature-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--space-sm);
-  background: var(--gradient-primary);
-  font-size: 1.75rem;
-  color: var(--primary-dark);
+  margin-bottom: 1.1rem;
+  background: color-mix(in srgb, var(--card-accent, var(--accent-cyan)) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--card-accent, var(--accent-cyan)) 35%, transparent);
+  font-size: 1.4rem;
+  color: var(--card-accent, var(--accent-cyan));
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.feature-card:hover .feature-icon {
+  transform: scale(1.06);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--card-accent, var(--accent-cyan)) 30%, transparent);
 }
 
 .platform-preview {

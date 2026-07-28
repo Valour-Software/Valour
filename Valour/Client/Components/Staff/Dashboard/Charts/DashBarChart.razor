@@ -1,0 +1,142 @@
+@namespace Valour.Client.Components.Staff.Dashboard.Charts
+
+<div class="dash-chart">
+    <div class="chart-header">
+        <span class="chart-title">@Title</span>
+        @if (!IsEmpty && _series.Count == 2)
+        {
+            <div class="chart-legend">
+                @foreach (var series in _series)
+                {
+                    <span class="legend-entry">
+                        <span class="legend-swatch" style="background-color: @series.Color"></span>
+                        <span class="legend-name">@series.Name</span>
+                    </span>
+                }
+            </div>
+        }
+        <button type="button" class="chart-table-toggle @(_showTable ? "active" : null)"
+                title="Toggle table view" aria-pressed="@(_showTable ? "true" : "false")"
+                disabled="@IsEmpty" @onclick="ToggleTable">
+            <i class="bi bi-table" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    @if (IsEmpty)
+    {
+        <div class="chart-empty" style="height: @(F(TotalHeight))px">No data yet</div>
+    }
+    else if (_showTable)
+    {
+        <div class="chart-table-wrap" style="max-height: @(F(TotalHeight))px">
+            <table class="chart-table" aria-label="@Title">
+                <thead>
+                <tr>
+                    <th>Time</th>
+                    @foreach (var series in _series)
+                    {
+                        <th class="num">@series.Name</th>
+                    }
+                    @if (_series.Count == 2)
+                    {
+                        <th class="num">Total</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < PointCount; i++)
+                {
+                    var row = i;
+                    <tr>
+                        <td>@TableTimeAt(row)</td>
+                        @foreach (var series in _series)
+                        {
+                            <td class="num">@(row < series.Points.Count ? Format(series.Points[row].Value) : "—")</td>
+                        }
+                        @if (_series.Count == 2)
+                        {
+                            <td class="num">@Format(TotalAt(row))</td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="chart-body">
+            <svg class="gutter-svg" width="@F(_yGutterWidth)" height="@F(TotalHeight)" aria-hidden="true" focusable="false">
+                @foreach (var tick in _ticks)
+                {
+                    @SvgText(F(_yGutterWidth - 6), YPx(tick), "end", Format(tick), middle: true)
+                }
+            </svg>
+            <div class="plot-wrap" @onpointerleave="ClearHover">
+                <svg class="plot-svg" style="height: @(F(TotalHeight))px" role="img" aria-label="@Title">
+                    @foreach (var tick in _ticks)
+                    {
+                        <line x1="0" y1="@F(YPx(tick))" x2="100%" y2="@F(YPx(tick))"
+                              class="@(tick == 0 ? "axis-baseline" : "gridline")" />
+                    }
+
+                    @for (var i = 0; i < PointCount; i++)
+                    {
+                        var idx = i;
+                        <g class="chart-col @(_hoverIndex == idx ? "lift" : null)">
+                            @foreach (var seg in Segments(idx))
+                            {
+                                @if (seg.Rounded && seg.H >= 6)
+                                {
+                                    <rect style="@SegStyle(idx)" y="@F(seg.Y)" height="@F(seg.H)" rx="4" fill="@seg.Color" />
+                                    <rect style="@SegStyle(idx)" y="@F(seg.Y + seg.H - 4)" height="4" fill="@seg.Color" />
+                                }
+                                else
+                                {
+                                    <rect style="@SegStyle(idx)" y="@F(seg.Y)" height="@F(Math.Max(seg.H, 0.5))" fill="@seg.Color" />
+                                }
+                            }
+                        </g>
+                    }
+
+                    @foreach (var xi in XLabelIndices())
+                    {
+                        @SvgText(XCenterPct(xi), PlotHeight + 16, XAnchorAt(xi), XLabelAt(xi))
+                    }
+
+                    @for (var i = 0; i < PointCount; i++)
+                    {
+                        var idx = i;
+                        <rect class="hit-band" x="@Pct((double)idx / PointCount)" y="0"
+                              width="@Pct(1.0 / PointCount)" height="@F(PlotHeight)" fill="transparent"
+                              @onpointermove="e => OnBandPointer(idx, e)" />
+                    }
+                </svg>
+
+                @if (_hoverIndex is { } tipIndex)
+                {
+                    <div class="chart-tooltip @(TooltipFlip ? "flip" : null)"
+                         style="left: @XCenterPct(tipIndex); top: @(F(TooltipTop))px">
+                        <div class="tooltip-time">@TableTimeAt(tipIndex)</div>
+                        @foreach (var row in TooltipRows(tipIndex))
+                        {
+                            <div class="tooltip-row">
+                                <span class="tooltip-key" style="background-color: @row.Color"></span>
+                                <span class="tooltip-value">@row.Value</span>
+                                <span class="tooltip-name">@row.Name</span>
+                            </div>
+                        }
+                        @if (_series.Count == 2)
+                        {
+                            <div class="tooltip-row">
+                                <span class="tooltip-key spacer"></span>
+                                <span class="tooltip-value">@Format(TotalAt(tipIndex))</span>
+                                <span class="tooltip-name">Total</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

@@ -72,6 +72,8 @@
     public class ModalParams
     {
         public byte[] Bytes { get; set; }
+        public IBrowserFile File { get; set; }
+        public ElementReference FileInputElement { get; set; }
         public Func<Task> OnConfirm;
         public Message Message;
         public MessageAttachment Attachment;
@@ -84,7 +86,7 @@
         /// uploads (bring-your-own-storage). Receives the modal's UploadService
         /// so progress and cancellation flow through the same UI.
         /// </summary>
-        public Func<UploadService, byte[], Action<UploadProgressInfo>, CancellationToken, Task<UploadResult>> CustomUploader { get; set; }
+        public Func<UploadService, Action<UploadProgressInfo>, CancellationToken, Task<UploadResult>> CustomUploader { get; set; }
     }
 
     private DotNetObjectReference<FileUploadComponent> _thisRef;
@@ -96,6 +98,7 @@
     private string _uploadError;
 
     private CancellationTokenSource? _uploadCts;
+    private string _blobUrl;
 
     protected override async Task OnInitializedAsync()
     {
@@ -104,15 +107,17 @@
         _thisRef = DotNetObjectReference.Create(this);
         
         // Load into blob form and get url
-        var blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", Data.Bytes, Data.Attachment.MimeType);
+        _blobUrl = Data.Bytes is not null
+            ? await JsRuntime.InvokeAsync<string>("createBlob", Data.Bytes, Data.Attachment.MimeType)
+            : await UploadSvc.CreateObjectUrlFromInputAsync(Data.FileInputElement);
 
         // Build attachment object
-        Data.Attachment.Location = blobUrl;
+        Data.Attachment.Location = _blobUrl;
 
         if (Data.Attachment.Type == MessageAttachmentType.Image)
         {
             _imageReady = false;
-            await JsRuntime.InvokeVoidAsync("getImageSize", blobUrl, _thisRef);
+            await JsRuntime.InvokeVoidAsync("getImageSize", _blobUrl, _thisRef);
         }
         
         _loaded = true;
@@ -164,15 +169,23 @@
             };
 
             var result = Data.CustomUploader is not null
-                ? await Data.CustomUploader(UploadSvc, Data.Bytes, onProgress, _uploadCts.Token)
-                : await UploadSvc.UploadAsync(
-                    Data.UploadUrl,
-                    Data.Bytes,
-                    Data.Attachment.MimeType,
-                    Data.Attachment.FileName,
-                    Data.AuthToken,
-                    onProgress: onProgress,
-                    cancellationToken: _uploadCts.Token);
+                ? await Data.CustomUploader(UploadSvc, onProgress, _uploadCts.Token)
+                : Data.Bytes is not null
+                    ? await UploadSvc.UploadAsync(
+                        Data.UploadUrl,
+                        Data.Bytes,
+                        Data.Attachment.MimeType,
+                        Data.Attachment.FileName,
+                        Data.AuthToken,
+                        onProgress: onProgress,
+                        cancellationToken: _uploadCts.Token)
+                    : await UploadSvc.UploadFileAsync(
+                        Data.UploadUrl,
+                        Data.FileInputElement,
+                        Data.Attachment.FileName,
+                        Data.AuthToken,
+                        onProgress: onProgress,
+                        cancellationToken: _uploadCts.Token);
 
             _isUploading = false;
             _uploadCts.Dispose();
@@ -204,5 +217,20 @@
         _uploadCts?.Cancel();
         _uploadCts?.Dispose();
         _thisRef?.Dispose();
+        _ = RevokePreviewUrlAsync();
+    }
+
+    private async Task RevokePreviewUrlAsync()
+    {
+        try
+        {
+            await UploadSvc.RevokeObjectUrlAsync(_blobUrl);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (JSException)
+        {
+        }
     }
 }

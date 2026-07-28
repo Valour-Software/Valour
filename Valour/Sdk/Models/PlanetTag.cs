@@ -9,7 +9,8 @@ public class PlanetTag : ClientModel<PlanetTag, long>, ISharedPlanetTag
     public string Name { get; set; }
     public DateTime Created { get; set; }
     public string Slug { get; set; }
-    
+    public bool Curated { get; set; }
+
     public override PlanetTag AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         return Client.Cache.Tags.Put(this, flags);

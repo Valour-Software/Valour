@@ -1,0 +1,66 @@
+.globe-root {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+    overflow: hidden;
+}
+
+.globe-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: grab;
+}
+
+.globe-canvas:active {
+    cursor: grabbing;
+}
+
+.globe-tooltip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+    background-color: var(--main-1);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-sm);
+    padding: 0.45em 0.7em;
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--font-color);
+    white-space: nowrap;
+    max-width: 220px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.globe-tooltip .tt-name {
+    font-weight: var(--font-weight-medium, 500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.globe-tooltip .tt-members {
+    color: var(--font-color-mid);
+}
+
+.globe-tooltip .tt-online {
+    color: var(--color-success, #58c48b);
+}
+
+.globe-tooltip .tt-online.zero {
+    color: var(--font-alt-color);
+}
+
+.globe-note {
+    position: absolute;
+    bottom: 0.5em;
+    right: 0.75em;
+    font-size: var(--font-size-3xs, 0.5rem);
+    color: var(--font-alt-color);
+    pointer-events: none;
+    user-select: none;
+}

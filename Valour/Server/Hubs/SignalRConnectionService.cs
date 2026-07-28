@@ -18,6 +18,13 @@ public class SignalRConnectionService : IDisposable
     public static int TotalGroups => GroupRegistry.Count;
     public static int TotalPrimaryConnections => PrimaryConnections.Count;
     
+    /// <summary>
+    /// Raised when a user's first primary connection anywhere in the cluster
+    /// opens (true) or their last one closes (false). Handlers must never
+    /// throw into connection handling; raises are wrapped accordingly.
+    /// </summary>
+    public event Action<long, bool> PrimaryPresenceChanged;
+
     // Authentication data
     private static readonly ConcurrentDictionary<string, AuthToken> ConnectionIdentities = new();
 
@@ -518,7 +525,12 @@ public class SignalRConnectionService : IDisposable
                 rdb.SetAddAsync($"node:{nodeName}", connectionValue),
                 rdb.SetAddAsync($"user:{userIdStr}", nodeValue)
             );
-            
+
+            // Exactly one entry means this was the user's first primary
+            // connection anywhere in the cluster: they just came online
+            if (await rdb.SetLengthAsync($"user:{userIdStr}") == 1)
+                RaisePrimaryPresenceChanged(userId, true);
+
             _logger?.LogTrace($"Added primary connection {connectionId} for user {userId}");
         }
         catch (Exception ex)
@@ -571,7 +583,12 @@ public class SignalRConnectionService : IDisposable
                 rdb.SetRemoveAsync($"node:{nodeName}", $"{userIdStr}:{connectionId}"),
                 rdb.SetRemoveAsync($"user:{userIdStr}", $"{nodeName}:{connectionId}")
             );
-            
+
+            // No entries left means the user's last primary connection
+            // anywhere in the cluster just closed: they went offline
+            if (await rdb.SetLengthAsync($"user:{userIdStr}") == 0)
+                RaisePrimaryPresenceChanged(userId, false);
+
             _logger?.LogTrace($"Removed primary connection {connectionId} for user {userId}");
         }
         catch (Exception ex)
@@ -581,6 +598,22 @@ public class SignalRConnectionService : IDisposable
         }
     }
     
+    /// <summary>
+    /// Raises <see cref="PrimaryPresenceChanged"/> without ever letting a
+    /// handler exception break connection handling
+    /// </summary>
+    private void RaisePrimaryPresenceChanged(long userId, bool online)
+    {
+        try
+        {
+            PrimaryPresenceChanged?.Invoke(userId, online);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, $"Error in primary presence handler for user {userId}");
+        }
+    }
+
     /// <summary>
     /// Gets all registered group IDs without creating a copy
     /// </summary>

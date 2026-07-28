@@ -525,6 +525,8 @@ public enum PlanetPermissionsEnum
     ManageWiki,
 
     ManageWebhooks,
+
+    ManageCalendar,
 }
 
 /// <summary>
@@ -579,6 +581,8 @@ public static class PlanetPermissions
                 ManageWiki,
 
                 ManageWebhooks,
+
+                ManageCalendar,
         };
     }
 
@@ -615,6 +619,8 @@ public static class PlanetPermissions
     public static readonly PlanetPermission ManageWiki = new PlanetPermission(0x100000, "Manage Wiki", "Allow members to manage wiki folders, ordering, deletion, revisions, and wiki settings.");
 
     public static readonly PlanetPermission ManageWebhooks = new PlanetPermission(0x200000, "Manage Webhooks", "Allow members to create, edit, and delete webhooks for the planet's channels.");
+
+    public static readonly PlanetPermission ManageCalendar = new PlanetPermission(0x400000, "Manage Calendar", "Allow members to create, edit, and delete events on the planet's calendar.");
 }
 
 public enum PermissionState

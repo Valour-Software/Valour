@@ -33,6 +33,7 @@ public static class PlanetMapper
             PinnedThreadId = planet.PinnedThreadId,
             EnableWiki = planet.EnableWiki,
             PublicWiki = planet.PublicWiki,
+            EnableCalendar = planet.EnableCalendar,
             Vanity = planet.Vanity,
             ActivityNotificationCadence = planet.ActivityNotificationCadence,
             Tags = planet.Tags?.Select(x => x.ToModel()).ToList() ?? new ()
@@ -64,6 +65,7 @@ public static class PlanetMapper
         dbPlanet.PinnedThreadId = planet.PinnedThreadId;
         dbPlanet.EnableWiki = planet.EnableWiki;
         dbPlanet.PublicWiki = planet.PublicWiki;
+        dbPlanet.EnableCalendar = planet.EnableCalendar;
         dbPlanet.ActivityNotificationCadence = planet.ActivityNotificationCadence;
         // Vanity is intentionally NOT copied here: it is set exclusively by
         // the docs vanity endpoint so a stale planet update can never clobber

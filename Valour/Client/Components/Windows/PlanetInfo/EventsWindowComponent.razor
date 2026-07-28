@@ -1,0 +1,429 @@
+@inherits WindowContentComponent<PlanetEventsWindowData>
+@implements IAsyncDisposable
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+
+<div class="events-window inner-window">
+    @if (_planet is null)
+    {
+        <p class="events-loading">Loading events...</p>
+    }
+    else
+    {
+        <div class="events-header">
+            <div class="month-nav">
+                <button class="v-btn nav-btn" title="Previous month" @onclick="() => ShiftMonth(-1)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <span class="month-label">@_monthStart.ToString("MMMM yyyy")</span>
+                <button class="v-btn nav-btn" title="Next month" @onclick="() => ShiftMonth(1)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+            @if (_canManage)
+            {
+                <button class="v-btn primary" @onclick="ToggleCompose">
+                    <i class="bi bi-plus-lg"></i> New Event
+                </button>
+            }
+        </div>
+
+        @if (_composeOpen)
+        {
+            <div class="event-compose">
+                <input class="form-control" placeholder="Event title" maxlength="128" @bind="_composeTitle"/>
+                <textarea class="form-control" placeholder="What's happening?" maxlength="2048" rows="3" @bind="_composeDescription"></textarea>
+                <input class="form-control" placeholder="Location (a channel, link, or place)" maxlength="256" @bind="_composeLocation"/>
+                <div class="compose-times">
+                    <label>Starts <input class="form-control" type="datetime-local" @bind="_composeStart"/></label>
+                    <label>Ends <input class="form-control" type="datetime-local" @bind="_composeEnd"/></label>
+                </div>
+                @if (_composeError is not null)
+                {
+                    <p class="compose-error">@_composeError</p>
+                }
+                <div class="compose-actions">
+                    <button class="v-btn" @onclick="ToggleCompose">Cancel</button>
+                    <button class="v-btn primary" @onclick="SaveEventAsync">@(_editingId is null ? "Create Event" : "Save Changes")</button>
+                </div>
+            </div>
+        }
+
+        <div class="calendar-grid">
+            @foreach (var dayName in DayNames)
+            {
+                <div class="cal-dayname">@dayName</div>
+            }
+            @foreach (var cell in BuildCells())
+            {
+                var cellDate = cell;
+                var dayEvents = EventsOn(cellDate);
+                <button class="cal-cell @(cellDate.Month != _monthStart.Month ? "other-month" : "")
+                                        @(cellDate == DateTime.Today ? "today" : "")
+                                        @(cellDate == _selectedDay ? "selected" : "")
+                                        @(dayEvents.Count > 0 ? "has-events" : "")"
+                        @onclick="() => SelectDay(cellDate)">
+                    <span class="cal-daynum">@cellDate.Day</span>
+                    @if (dayEvents.Count > 0)
+                    {
+                        <span class="cal-dots">
+                            @foreach (var _ in dayEvents.Take(3))
+                            {
+                                <span class="cal-dot"></span>
+                            }
+                        </span>
+                    }
+                </button>
+            }
+        </div>
+
+        <div class="events-list">
+            @if (VisibleEvents.Count == 0)
+            {
+                <p class="events-empty">
+                    @(_selectedDay is null ? "No events this month — yet." : $"Nothing on {_selectedDay.Value:MMMM d}.")
+                </p>
+            }
+            @foreach (var planetEvent in VisibleEvents)
+            {
+                <div class="event-card @(planetEvent.StartsAt.ToLocalTime() < DateTime.Now ? "past" : "")">
+                    <div class="event-date-badge">
+                        <span class="event-month">@planetEvent.StartsAt.ToLocalTime().ToString("MMM")</span>
+                        <span class="event-day">@planetEvent.StartsAt.ToLocalTime().Day</span>
+                    </div>
+                    <div class="event-body">
+                        <h4 class="event-title">@planetEvent.Title</h4>
+                        <p class="event-time">
+                            <i class="bi bi-clock"></i>
+                            @planetEvent.StartsAt.ToLocalTime().ToString("ddd, MMM d · h:mm tt")
+                            @if (planetEvent.EndsAt is not null)
+                            {
+                                <span> – @planetEvent.EndsAt.Value.ToLocalTime().ToString("h:mm tt")</span>
+                            }
+                        </p>
+                        @if (!string.IsNullOrWhiteSpace(planetEvent.Location))
+                        {
+                            <p class="event-location"><i class="bi bi-geo-alt"></i> @planetEvent.Location</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(planetEvent.Description))
+                        {
+                            <p class="event-desc">@planetEvent.Description</p>
+                        }
+                    </div>
+                    <div class="event-actions">
+                        <button class="v-btn going-btn @(planetEvent.SelfGoing ? "primary" : "")"
+                                @onclick="() => ToggleGoingAsync(planetEvent)">
+                            <i class="bi @(planetEvent.SelfGoing ? "bi-check-circle-fill" : "bi-person-plus")"></i>
+                            @(planetEvent.SelfGoing ? "Going" : "Join")
+                            @if (planetEvent.GoingCount > 0)
+                            {
+                                <span class="going-count">@planetEvent.GoingCount</span>
+                            }
+                        </button>
+                        @if (planetEvent.SelfGoing)
+                        {
+                            <select class="v-input reminder-select" title="Remind me before this event"
+                                    value="@(planetEvent.SelfReminderMinutes?.ToString() ?? "")"
+                                    @onchange="e => SetReminderAsync(planetEvent, e)">
+                                <option value="">No reminder</option>
+                                <option value="0">At start</option>
+                                <option value="10">10 min before</option>
+                                <option value="30">30 min before</option>
+                                <option value="60">1 hour before</option>
+                                <option value="1440">1 day before</option>
+                            </select>
+                        }
+                        <button class="v-btn icon-btn" title="Add to your calendar" @onclick="() => AddToCalendarAsync(planetEvent)">
+                            <i class="bi bi-calendar-plus"></i>
+                        </button>
+                        @if (_canManage)
+                        {
+                            <button class="v-btn icon-btn" title="Edit" @onclick="() => EditEvent(planetEvent)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="v-btn icon-btn danger" title="Delete" @onclick="() => DeleteEventAsync(planetEvent)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+
+    private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+    private Planet _planet;
+    private bool _canManage;
+    private List<PlanetEventData> _events = new();
+    private DateTime _monthStart = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? _selectedDay;
+
+    private bool _composeOpen;
+    private long? _editingId;
+    private string _composeTitle;
+    private string _composeDescription;
+    private string _composeLocation;
+    private DateTime _composeStart = DateTime.Today.AddDays(1).AddHours(18);
+    private DateTime? _composeEnd;
+    private string _composeError;
+
+    private List<PlanetEventData> VisibleEvents =>
+        (_selectedDay is null
+            ? _events.Where(x => x.StartsAt.ToLocalTime().Date >= _monthStart &&
+                                 x.StartsAt.ToLocalTime().Date < _monthStart.AddMonths(1))
+            : _events.Where(x => x.StartsAt.ToLocalTime().Date == _selectedDay.Value))
+        .OrderBy(x => x.StartsAt)
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Data is null)
+            return;
+
+        _planet = await Client.PlanetService.FetchPlanetAsync(Data.PlanetId);
+        if (_planet is null)
+            return;
+
+        // MyMember may not be cached yet if the planet is still connecting
+        var myMember = _planet.MyMember ?? await _planet.FetchMemberByUserAsync(Client.Me.Id);
+        _canManage = myMember?.HasPermission(PlanetPermissions.ManageCalendar) ?? false;
+        await RefreshEventsAsync();
+        await ReRender();
+    }
+
+    private async Task RefreshEventsAsync()
+    {
+        var response = await _planet.Node.GetJsonAsync<List<PlanetEventData>>(
+            $"api/planets/{_planet.Id}/events");
+        if (response.Success && response.Data is not null)
+            _events = response.Data;
+    }
+
+    private List<DateTime> BuildCells()
+    {
+        var firstCell = _monthStart.AddDays(-(int)_monthStart.DayOfWeek);
+        return Enumerable.Range(0, 42).Select(i => firstCell.AddDays(i)).ToList();
+    }
+
+    private List<PlanetEventData> EventsOn(DateTime day) =>
+        _events.Where(x => x.StartsAt.ToLocalTime().Date == day.Date).ToList();
+
+    private async Task ShiftMonth(int delta)
+    {
+        _monthStart = _monthStart.AddMonths(delta);
+        _selectedDay = null;
+        await ReRender();
+    }
+
+    private async Task SelectDay(DateTime day)
+    {
+        _selectedDay = _selectedDay == day.Date ? null : day.Date;
+        await ReRender();
+    }
+
+    private async Task ToggleCompose()
+    {
+        _composeOpen = !_composeOpen;
+        if (!_composeOpen)
+        {
+            _editingId = null;
+            _composeError = null;
+        }
+        await ReRender();
+    }
+
+    private async Task EditEvent(PlanetEventData planetEvent)
+    {
+        _composeOpen = true;
+        _editingId = planetEvent.Id;
+        _composeTitle = planetEvent.Title;
+        _composeDescription = planetEvent.Description;
+        _composeLocation = planetEvent.Location;
+        _composeStart = planetEvent.StartsAt.ToLocalTime();
+        _composeEnd = planetEvent.EndsAt?.ToLocalTime();
+        await ReRender();
+    }
+
+    private async Task SaveEventAsync()
+    {
+        _composeError = null;
+
+        var payload = new PlanetEventData
+        {
+            Id = _editingId ?? 0,
+            PlanetId = _planet.Id,
+            Title = _composeTitle,
+            Description = _composeDescription,
+            Location = _composeLocation,
+            StartsAt = _composeStart.ToUniversalTime(),
+            EndsAt = _composeEnd?.ToUniversalTime(),
+        };
+
+        var result = _editingId is null
+            ? await _planet.Node.PostAsyncWithResponse<PlanetEventData>($"api/planets/{_planet.Id}/events", payload)
+            : await _planet.Node.PutAsyncWithResponse<PlanetEventData>($"api/planets/{_planet.Id}/events/{_editingId}", payload);
+
+        if (!result.Success)
+        {
+            _composeError = result.Message;
+            await ReRender();
+            return;
+        }
+
+        _composeOpen = false;
+        _editingId = null;
+        _composeTitle = _composeDescription = _composeLocation = null;
+        _composeEnd = null;
+        await RefreshEventsAsync();
+        await ReRender();
+    }
+
+    private async Task DeleteEventAsync(PlanetEventData planetEvent)
+    {
+        var result = await _planet.Node.DeleteAsync($"api/planets/{_planet.Id}/events/{planetEvent.Id}");
+        if (result.Success)
+        {
+            _events.RemoveAll(x => x.Id == planetEvent.Id);
+            await ReRender();
+        }
+    }
+
+    private IJSObjectReference _jsModule;
+
+    private async Task AddToCalendarAsync(PlanetEventData planetEvent)
+    {
+        _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/Components/Windows/PlanetInfo/EventsWindowComponent.razor.js");
+
+        var fileName = new string(planetEvent.Title
+            .Where(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-')
+            .ToArray()).Trim();
+        if (string.IsNullOrEmpty(fileName))
+            fileName = "event";
+
+        await _jsModule.InvokeVoidAsync("downloadIcs", fileName + ".ics", BuildIcs(planetEvent));
+    }
+
+    private string BuildIcs(PlanetEventData planetEvent)
+    {
+        // RFC 5545: escape backslash, semicolon, comma, and newlines in text values
+        static string Esc(string value) =>
+            (value ?? string.Empty)
+                .Replace("\\", "\\\\")
+                .Replace(";", "\\;")
+                .Replace(",", "\\,")
+                .Replace("\r\n", "\\n")
+                .Replace("\n", "\\n");
+
+        static string Stamp(DateTime utc) => utc.ToString("yyyyMMdd'T'HHmmss'Z'");
+
+        var start = planetEvent.StartsAt.ToUniversalTime();
+        var end = planetEvent.EndsAt?.ToUniversalTime() ?? start.AddHours(1);
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("BEGIN:VCALENDAR\r\n");
+        sb.Append("VERSION:2.0\r\n");
+        sb.Append("PRODID:-//Valour//Planet Calendar//EN\r\n");
+        sb.Append("BEGIN:VEVENT\r\n");
+        sb.Append("UID:planet-event-").Append(planetEvent.Id).Append("@valour.gg\r\n");
+        sb.Append("DTSTAMP:").Append(Stamp(DateTime.UtcNow)).Append("\r\n");
+        sb.Append("DTSTART:").Append(Stamp(start)).Append("\r\n");
+        sb.Append("DTEND:").Append(Stamp(end)).Append("\r\n");
+        sb.Append("SUMMARY:").Append(Esc(planetEvent.Title)).Append("\r\n");
+        if (!string.IsNullOrWhiteSpace(planetEvent.Description))
+            sb.Append("DESCRIPTION:").Append(Esc(planetEvent.Description)).Append("\r\n");
+        if (!string.IsNullOrWhiteSpace(planetEvent.Location))
+            sb.Append("LOCATION:").Append(Esc(planetEvent.Location)).Append("\r\n");
+        sb.Append("END:VEVENT\r\n");
+        sb.Append("END:VCALENDAR\r\n");
+        return sb.ToString();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+        }
+    }
+
+    private async Task ToggleGoingAsync(PlanetEventData planetEvent)
+    {
+        var route = $"api/planets/{_planet.Id}/events/{planetEvent.Id}/rsvp";
+        var result = planetEvent.SelfGoing
+            ? await _planet.Node.DeleteAsync(route)
+            : await _planet.Node.PostAsync(route, null);
+
+        if (result.Success)
+        {
+            planetEvent.GoingCount += planetEvent.SelfGoing ? -1 : 1;
+            planetEvent.SelfGoing = !planetEvent.SelfGoing;
+            if (!planetEvent.SelfGoing)
+                planetEvent.SelfReminderMinutes = null;
+            await ReRender();
+        }
+    }
+
+    private async Task SetReminderAsync(PlanetEventData planetEvent, ChangeEventArgs e)
+    {
+        int? minutes = int.TryParse(e.Value?.ToString(), out var parsed) ? parsed : null;
+
+        var route = $"api/planets/{_planet.Id}/events/{planetEvent.Id}/rsvp";
+        if (minutes is not null)
+            route += $"?reminderMinutes={minutes}";
+
+        var result = await _planet.Node.PostAsync(route, null);
+        if (result.Success)
+        {
+            planetEvent.SelfReminderMinutes = minutes;
+            await ReRender();
+        }
+    }
+
+    public class Content : WindowContent<EventsWindowComponent, PlanetEventsWindowData>
+    {
+        public override async Task ImportData(string data, ValourClient client)
+        {
+            AutoScroll = true;
+            Data = JsonSerializer.Deserialize<PlanetEventsWindowData>(data);
+            if (Data is not null)
+            {
+                var planet = await client.PlanetService.FetchPlanetAsync(Data.PlanetId);
+                if (planet is not null)
+                {
+                    Title = "Calendar - " + planet.Name;
+                    Icon = planet.GetIconUrl(IconFormat.Webp64);
+                    PlanetId = planet.Id;
+                }
+            }
+        }
+
+        public override string ExportData(ValourClient client)
+        {
+            return JsonSerializer.Serialize(Data);
+        }
+    }
+
+    public static WindowContent<EventsWindowComponent, PlanetEventsWindowData> GetDefaultContent(Planet planet)
+    {
+        return new Content()
+        {
+            Title = "Calendar - " + planet.Name,
+            Icon = planet.GetIconUrl(IconFormat.Webp64),
+            Data = new PlanetEventsWindowData { PlanetId = planet.Id },
+            PlanetId = planet.Id,
+            AutoScroll = true
+        };
+    }
+}

@@ -55,6 +55,16 @@ public static class MauiProgram
             webView.Settings.MediaPlaybackRequiresUserGesture = false;
             webView.Settings.SetSupportMultipleWindows(true);
             webView.SetWebChromeClient(new AudioPermissionChromeClient());
+
+            // This mapping runs after MAUI installs its own WebViewClient, so we
+            // can wrap it to recover when Android kills the WebView renderer
+            // (screen-off while foregrounded, long-backgrounded memory pressure).
+            // The WebViewClient getter and OnRenderProcessGone both need API 26.
+            if (OperatingSystem.IsAndroidVersionAtLeast(26) &&
+                webView.WebViewClient is { } innerClient and not RendererCrashRecoveryWebViewClient)
+            {
+                webView.SetWebViewClient(new RendererCrashRecoveryWebViewClient(innerClient));
+            }
         });
 #endif
 

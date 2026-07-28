@@ -1,0 +1,296 @@
+@inherits WindowContentComponentBase
+@inject ValourClient Client
+@inject PlanetService PlanetService
+@inject PlanetTagService PlanetTagService
+
+<div class="onboarding-root">
+<NebulaBackground>
+    <div class="onboarding-window inner-window @_mobileTag">
+        <div class="onboarding-card">
+
+            <div class="step-dots">
+                @for (var i = 0; i < StepCount; i++)
+                {
+                    var step = i;
+                    <span class="step-dot @(step == (int)_step ? "active" : "") @(step < (int)_step ? "done" : "")"></span>
+                }
+            </div>
+
+            @switch (_step)
+            {
+                case OnboardingStep.Interests:
+                    <h1>Welcome to Valour</h1>
+                    <p class="subtitle">Pick a few interests and we'll find your people.</p>
+
+                    @if (_tagsLoading)
+                    {
+                        <p class="loading-text"><i class="bi bi-arrow-clockwise spin"></i> Loading interests...</p>
+                    }
+                    else
+                    {
+                        <div class="chip-grid">
+                            @foreach (var tag in _tags)
+                            {
+                                var tagId = tag.Id;
+                                <button class="chip @(_selectedTagIds.Contains(tagId) ? "selected" : "")"
+                                        @onclick="() => ToggleTag(tagId)">
+                                    @tag.Name
+                                </button>
+                            }
+                        </div>
+                    }
+
+                    <div class="footer-actions">
+                        <button class="v-btn skip-btn" @onclick="SkipAsync">Skip for now</button>
+                        <button class="v-btn primary" disabled="@(_selectedTagIds.Count == 0)"
+                                @onclick="GoToPlanetsAsync">
+                            Continue <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                    break;
+
+                case OnboardingStep.Planets:
+                    <h1>Communities for you</h1>
+                    <p class="subtitle">Join a few — their posts and chats become your Home feed.</p>
+
+                    @if (_planetsLoading)
+                    {
+                        <p class="loading-text"><i class="bi bi-arrow-clockwise spin"></i> Finding communities...</p>
+                    }
+                    else
+                    {
+                        @if (_joinedNames.Count > 0)
+                        {
+                            <div class="joined-pills">
+                                @foreach (var name in _joinedNames)
+                                {
+                                    <span class="joined-pill"><i class="bi bi-check-circle-fill"></i> @name</span>
+                                }
+                            </div>
+                        }
+
+                        @if (_suggested.Count > 0)
+                        {
+                            <div class="planet-grid">
+                                @foreach (var planet in _suggested)
+                                {
+                                    <DiscoveryPlanetCard @key="@planet.PlanetId" PlanetInfo="@planet" OnJoin="@HandleJoinAsync" />
+                                }
+                            </div>
+                        }
+                        else if (_joinedNames.Count > 0)
+                        {
+                            <p class="loading-text">You're in! Continue when you're ready.</p>
+                        }
+                        else
+                        {
+                            <p class="loading-text">No open communities match those interests yet — you can explore more later.</p>
+                        }
+                    }
+
+                    <div class="footer-actions">
+                        <button class="v-btn skip-btn" @onclick="() => SetStep(OnboardingStep.Interests)">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </button>
+                        <button class="v-btn primary" @onclick="() => SetStep(OnboardingStep.Path)">
+                            Continue <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                    break;
+
+                case OnboardingStep.Path:
+                    <h1>How do you want to start?</h1>
+                    <p class="subtitle">You can always do both.</p>
+
+                    <div class="path-cards">
+                        <button class="path-card primary-path" @onclick="() => FinishAsync(false)">
+                            <i class="bi bi-people-fill"></i>
+                            <h3>Find my people</h3>
+                            <p>Jump into the communities you joined and start chatting.</p>
+                        </button>
+                        <button class="path-card" @onclick="() => FinishAsync(true)">
+                            <i class="bi bi-rocket-takeoff"></i>
+                            <h3>Bring my community</h3>
+                            <p>Create your own planet and invite your members.</p>
+                        </button>
+                    </div>
+
+                    <div class="footer-actions">
+                        <button class="v-btn skip-btn" @onclick="() => SetStep(OnboardingStep.Planets)">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    break;
+            }
+        </div>
+    </div>
+</NebulaBackground>
+</div>
+
+@code {
+
+    private enum OnboardingStep
+    {
+        Interests = 0,
+        Planets = 1,
+        Path = 2,
+    }
+
+    private const int StepCount = 3;
+
+    /// <summary>
+    /// One-shot flag: set before opening to bypass the already-completed
+    /// guard for deliberate re-onboarding
+    /// </summary>
+    public static bool NextOpenIsManual;
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private string _mobileTag = "";
+    private OnboardingStep _step = OnboardingStep.Interests;
+
+    private bool _tagsLoading = true;
+    private List<PlanetTag> _tags = new();
+    private readonly HashSet<long> _selectedTagIds = new();
+
+    private bool _planetsLoading;
+    private List<PlanetListInfo> _suggested = new();
+    private readonly List<string> _joinedNames = new();
+    private HashSet<long> _joinedIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // A restored tab can outlive completion (e.g. onboarding finished on
+        // another device) — swap it out rather than re-onboarding. The Home
+        // window's Get Started button bypasses this via NextOpenIsManual.
+        var manual = NextOpenIsManual;
+        NextOpenIsManual = false;
+        if (!manual && Client.Me is not null &&
+            UserTutorials.IsCompleted(Client.Me.TutorialState, UserTutorials.Onboarding))
+        {
+            _ = InvokeAsync(async () => await WindowCtx.Tab.SetContent(ThreadsWindowComponent.DefaultContent));
+            return;
+        }
+
+        if (DeviceInfo.IsMobile)
+            _mobileTag = "mobile";
+
+        var tagResult = await PlanetTagService.FetchTagsAsync();
+        if (tagResult.Success && tagResult.Data is not null)
+        {
+            // First-run surface: only the official curated tags belong here,
+            // never user-created ones
+            _tags = tagResult.Data.Where(t => t.Curated).ToList();
+        }
+
+        _tagsLoading = false;
+        await ReRender();
+    }
+
+    private void ToggleTag(long tagId)
+    {
+        if (!_selectedTagIds.Remove(tagId))
+            _selectedTagIds.Add(tagId);
+
+        _ = ReRender();
+    }
+
+    private async Task SetStep(OnboardingStep step)
+    {
+        _step = step;
+        await ReRender();
+    }
+
+    private async Task GoToPlanetsAsync()
+    {
+        _step = OnboardingStep.Planets;
+        _planetsLoading = true;
+        await ReRender();
+
+        try
+        {
+            await PlanetService.FetchJoinedPlanetsAsync();
+            _joinedIds = PlanetService.JoinedPlanets.Select(p => p.Id).ToHashSet();
+
+            var engine = PlanetService.CreateDiscoverablePlanetsQueryEngine();
+            engine.SetPageSize(24);
+            engine.SetFilter("tags", string.Join(',', _selectedTagIds), apply: false);
+            await engine.GetPageAsync(0, 24);
+
+            _suggested = engine.CurrentPage
+                .Where(p => !_joinedIds.Contains(p.PlanetId))
+                .ToList();
+
+            // Thin tag coverage shouldn't leave the step empty — pad with the
+            // most popular open communities
+            if (_suggested.Count < 3)
+            {
+                var popular = await PlanetService.FetchDiscoverablePlanetsAsync();
+                foreach (var planet in popular)
+                {
+                    if (_suggested.Count >= 6)
+                        break;
+                    if (_joinedIds.Contains(planet.PlanetId) ||
+                        _suggested.Any(p => p.PlanetId == planet.PlanetId))
+                        continue;
+                    _suggested.Add(planet);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Onboarding: failed to load suggested planets: " + ex.Message);
+        }
+
+        _planetsLoading = false;
+        await ReRender();
+    }
+
+    private async Task HandleJoinAsync(PlanetListInfo planet)
+    {
+        var result = await PlanetService.JoinPlanetAsync(planet.PlanetId);
+        if (!result.Success)
+        {
+            Console.WriteLine("Onboarding: join failed: " + result.Message);
+            return;
+        }
+
+        _joinedIds.Add(planet.PlanetId);
+        _joinedNames.Add(planet.Name);
+        _suggested.RemoveAll(p => p.PlanetId == planet.PlanetId);
+        await ReRender();
+    }
+
+    private Task SkipAsync() => FinishAsync(false);
+
+    private async Task FinishAsync(bool openCreate)
+    {
+        await CompleteTutorialAsync();
+
+        var tab = WindowCtx.Tab;
+        await tab.SetContent(ThreadsWindowComponent.DefaultContent);
+
+        if (openCreate)
+        {
+            var data = new CreatePlanetComponent.ModalParams { Window = tab };
+            var root = ModalRoot ?? ModalRoot.Instance;
+            root.OpenModal<CreatePlanetComponent>(data);
+        }
+    }
+
+    private Task CompleteTutorialAsync() =>
+        // Routes through the shared helper so StateChanged fires and waiting
+        // hints (like the mobile swipe coach) appear without a reload
+        TutorialHints.CompleteAsync(Client, UserTutorials.Onboarding);
+
+    public class Content : WindowContent<OnboardingWindowComponent>
+    {
+    }
+
+    public static Content GetDefaultContent() => new()
+    {
+        Title = "Get Started",
+        Icon = "./_content/Valour.Client/media/logo/logo-128.png",
+    };
+}

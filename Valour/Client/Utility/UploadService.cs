@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Valour.Shared.Utilities;
 
@@ -41,7 +42,8 @@ public class UploadService : IAsyncDisposable
         // If there's a previous upload running, cancel it
         CancelCurrent();
 
-        var tcs = new TaskCompletionSource<UploadResult>();
+        var tcs = new TaskCompletionSource<UploadResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         var callbacks = new UploadCallbacks(tcs, onProgress);
@@ -55,6 +57,9 @@ public class UploadService : IAsyncDisposable
             fileName,
             _currentDotnetRef,
             authToken);
+        var uploadReference = _currentUpload;
+        var dotnetReference = _currentDotnetRef;
+        var cancellationSource = _cts;
 
         // Wire up cancellation
         _cts.Token.Register(() =>
@@ -68,10 +73,34 @@ public class UploadService : IAsyncDisposable
         if (cancellationToken.IsCancellationRequested)
         {
             CancelCurrent();
-            return new UploadResult(false, null, "Upload cancelled");
+            tcs.TrySetResult(new UploadResult(false, null, "Upload cancelled"));
         }
 
-        return await tcs.Task;
+        return await AwaitUploadAndCleanupAsync(
+            tcs,
+            uploadReference,
+            dotnetReference,
+            cancellationSource);
+    }
+
+    /// <summary>
+    /// Uploads the selected browser file directly from its input element.
+    /// The file remains a browser Blob and is never copied through .NET or JS
+    /// interop, which is essential for large uploads in Android WebView.
+    /// </summary>
+    public async Task<UploadResult> UploadFileAsync(
+        string url,
+        ElementReference input,
+        string fileName,
+        string? authToken = null,
+        Action<UploadProgressInfo>? onProgress = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await StartBrowserFileUploadAsync(
+            "startFromInput",
+            [url, input, fileName, authToken],
+            onProgress,
+            cancellationToken);
     }
 
     /// <summary>
@@ -90,7 +119,8 @@ public class UploadService : IAsyncDisposable
 
         CancelCurrent();
 
-        var tcs = new TaskCompletionSource<UploadResult>();
+        var tcs = new TaskCompletionSource<UploadResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         var callbacks = new UploadCallbacks(tcs, onProgress);
@@ -102,6 +132,9 @@ public class UploadService : IAsyncDisposable
             data,
             mimeType,
             _currentDotnetRef);
+        var uploadReference = _currentUpload;
+        var dotnetReference = _currentDotnetRef;
+        var cancellationSource = _cts;
 
         _cts.Token.Register(() =>
         {
@@ -113,10 +146,134 @@ public class UploadService : IAsyncDisposable
         if (cancellationToken.IsCancellationRequested)
         {
             CancelCurrent();
-            return new UploadResult(false, null, "Upload cancelled");
+            tcs.TrySetResult(new UploadResult(false, null, "Upload cancelled"));
         }
 
-        return await tcs.Task;
+        return await AwaitUploadAndCleanupAsync(
+            tcs,
+            uploadReference,
+            dotnetReference,
+            cancellationSource);
+    }
+
+    /// <summary>
+    /// Direct-to-bucket PUT using the browser File as the request body.
+    /// </summary>
+    public async Task<UploadResult> UploadFilePutAsync(
+        string url,
+        ElementReference input,
+        string mimeType,
+        Action<UploadProgressInfo>? onProgress = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await StartBrowserFileUploadAsync(
+            "startPutFromInput",
+            [url, input, mimeType],
+            onProgress,
+            cancellationToken);
+    }
+
+    public async Task<string> CreateObjectUrlFromInputAsync(ElementReference input)
+    {
+        _module ??= await _js.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/ts/UploadService.js");
+        return await _module.InvokeAsync<string>("createObjectUrlFromInput", input);
+    }
+
+    public async ValueTask RevokeObjectUrlAsync(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return;
+
+        _module ??= await _js.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/ts/UploadService.js");
+        await _module.InvokeVoidAsync("revokeObjectUrl", url);
+    }
+
+    private async Task<UploadResult> StartBrowserFileUploadAsync(
+        string method,
+        object?[] args,
+        Action<UploadProgressInfo>? onProgress,
+        CancellationToken cancellationToken)
+    {
+        _module ??= await _js.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/ts/UploadService.js");
+
+        CancelCurrent();
+
+        var tcs = new TaskCompletionSource<UploadResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        var callbacks = new UploadCallbacks(tcs, onProgress);
+        _currentDotnetRef = DotNetObjectReference.Create(callbacks);
+
+        var invokeArgs = new object?[args.Length + 1];
+        Array.Copy(args, invokeArgs, args.Length);
+        invokeArgs[^1] = _currentDotnetRef;
+
+        try
+        {
+            _currentUpload = await _module.InvokeAsync<IJSObjectReference>(method, invokeArgs);
+        }
+        catch (Exception e)
+        {
+            CleanupDotnetRef();
+            _cts.Dispose();
+            _cts = null;
+            return new UploadResult(false, null, e.Message);
+        }
+        var uploadReference = _currentUpload;
+        var dotnetReference = _currentDotnetRef;
+        var cancellationSource = _cts;
+
+        _cts.Token.Register(() =>
+        {
+            CancelCurrent();
+            tcs.TrySetResult(new UploadResult(false, null, "Upload cancelled"));
+        });
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            CancelCurrent();
+            tcs.TrySetResult(new UploadResult(false, null, "Upload cancelled"));
+        }
+
+        return await AwaitUploadAndCleanupAsync(
+            tcs,
+            uploadReference,
+            dotnetReference,
+            cancellationSource);
+    }
+
+    private async Task<UploadResult> AwaitUploadAndCleanupAsync(
+        TaskCompletionSource<UploadResult> completion,
+        IJSObjectReference uploadReference,
+        DotNetObjectReference<UploadCallbacks> dotnetReference,
+        CancellationTokenSource cancellationSource)
+    {
+        try
+        {
+            return await completion.Task;
+        }
+        finally
+        {
+            if (ReferenceEquals(_currentUpload, uploadReference))
+                _currentUpload = null;
+
+            if (ReferenceEquals(_currentDotnetRef, dotnetReference))
+            {
+                _currentDotnetRef = null;
+                dotnetReference.Dispose();
+            }
+
+            if (ReferenceEquals(_cts, cancellationSource))
+                _cts = null;
+            cancellationSource.Dispose();
+        }
     }
 
     /// <summary>

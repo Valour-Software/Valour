@@ -59,6 +59,10 @@ be revoked and reissued.
 
 The SDK keeps the passport key pair in memory, and exposes explicit export and
 import methods for clients that need offline joining after an app restart.
+Proof-key generation, ES256 signing, and hub-signature verification use the
+same portable managed P-256 implementation in browser WebAssembly, MAUI
+clients, desktop clients, and SDK consumers; clients must not fall back to a
+platform `ECDsa` API that can be unavailable at runtime.
 Production clients must persist that pair and its unexpired passport in
 platform-secure storage. Never persist it in a plaintext preference, export,
 log, analytics record, cloud backup, or send the private key to a hub or node.

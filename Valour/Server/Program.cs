@@ -197,10 +197,24 @@ public partial class Program
             if (string.Equals(context.Request.Host.Host, threadsHost, StringComparison.OrdinalIgnoreCase) &&
                 !context.Request.Path.StartsWithSegments("/threads", StringComparison.OrdinalIgnoreCase))
             {
+                if (context.Request.Path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync(
+                        $"User-agent: *\nAllow: /\nSitemap: {HostingConfig.Current.ThreadsBaseUrl}/sitemap.xml\n");
+                    return;
+                }
+
                 var segments = context.Request.Path.Value?
                     .Split('/', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
 
-                if (segments.Length is 1 or 2 && segments.All(s => long.TryParse(s, out _)))
+                var isSitemap = segments.Length > 0 &&
+                                string.Equals(segments[^1], "sitemap.xml", StringComparison.OrdinalIgnoreCase);
+
+                if (segments.Length is 1 or 2 &&
+                    segments.All(s => long.TryParse(s, out _) ||
+                                      string.Equals(s, "sitemap.xml", StringComparison.OrdinalIgnoreCase)) &&
+                    (isSitemap || segments.All(s => long.TryParse(s, out _))))
                     context.Request.Path = "/threads/" + string.Join('/', segments);
             }
 
@@ -228,7 +242,8 @@ public partial class Program
                     if (context.Request.Path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase))
                     {
                         context.Response.ContentType = "text/plain";
-                        await context.Response.WriteAsync("User-agent: *\nAllow: /\n");
+                        await context.Response.WriteAsync(
+                            $"User-agent: *\nAllow: /\nSitemap: {HostingConfig.Current.WikiBaseUrl}/sitemap.xml\n");
                         return;
                     }
 
@@ -590,6 +605,7 @@ public partial class Program
         services.AddScoped<SubscriptionService>();
         services.AddScoped<ThemeService>();
         services.AddScoped<StaffService>();
+        services.AddScoped<DashboardService>();
         services.AddScoped<PlatformBannerService>();
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<VoiceStateService>();
@@ -600,6 +616,7 @@ public partial class Program
         services.AddHttpClient<DiscordImportService>();
 
         services.AddSingleton<NodeLifecycleService>();
+        services.AddSingleton<DashboardEventService>();
         
         // Register PushNotificationWorker as a singleton.
         services.AddSingleton<PushNotificationWorker>();
@@ -619,11 +636,13 @@ public partial class Program
         services.AddHostedService<FederationPlanetRegistrySyncWorker>();
         services.AddHostedService<UserOnlineWorker>();
         services.AddHostedService<NodeStateWorker>();
+        services.AddHostedService<DashboardBroadcastWorker>();
         services.AddHostedService<SubscriptionWorker>();
         services.AddHostedService<StripeReconciliationWorker>();
         services.AddHostedService<VoiceStateCleanupWorker>();
         services.AddHostedService<HostedPlanetCleanupWorker>();
         services.AddHostedService<NotificationCleanupWorker>();
+        services.AddHostedService<CalendarReminderWorker>();
         services.AddHostedService<MigrationWorker>();
         services.AddEndpointsApiExplorer();
 

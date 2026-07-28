@@ -389,15 +389,26 @@ public class RealtimeKitService : IVoiceProvider
     }
 
     /// <summary>
-    /// The backend's authoritative connected-user set for a meeting: unions the
-    /// live sessions' participants (excluding those that have left). Returns null
-    /// when Cloudflare could not be queried, so the caller skips reconciliation
-    /// rather than removing live participants.
+    /// The backend's connected-user set for a meeting: unions the live sessions'
+    /// participants (excluding those that have left). Returns null whenever Cloudflare
+    /// gives no positive evidence of who is connected — query failure, zero live
+    /// sessions, a failed per-session participant fetch, or zero parsed users — so the
+    /// caller skips reconciliation rather than removing live participants.
+    ///
+    /// The sessions endpoint is a reporting API, not the SFU itself, and it has been
+    /// observed returning success with an empty session list for meetings that had
+    /// multiple connected users (no sessions recorded app-wide after 2026-03-13).
+    /// Treating that empty answer as truth kicked every participant of every active
+    /// call on each reconciliation pass. Truly-departed users are still cleaned up by
+    /// the Redis heartbeat TTL, so skipping here loses nothing.
     /// </summary>
     public async Task<HashSet<long>?> GetConnectedUserIdsAsync(long channelId, string meetingId)
     {
         var sessionsResult = await GetLiveSessionsForMeetingAsync(meetingId);
         if (!sessionsResult.Success || sessionsResult.Data is null)
+            return null;
+
+        if (sessionsResult.Data.Count == 0)
             return null;
 
         var userIds = new HashSet<long>();
@@ -408,7 +419,7 @@ public class RealtimeKitService : IVoiceProvider
 
             var participantsResult = await GetSessionParticipantsAsync(session.Id);
             if (!participantsResult.Success || participantsResult.Data is null)
-                continue;
+                return null;
 
             foreach (var participant in participantsResult.Data)
             {
@@ -420,6 +431,9 @@ public class RealtimeKitService : IVoiceProvider
                     userIds.Add(userId.Value);
             }
         }
+
+        if (userIds.Count == 0)
+            return null;
 
         return userIds;
     }
@@ -453,8 +467,10 @@ public class RealtimeKitService : IVoiceProvider
 
     private static bool IsPastOrphanSessionGracePeriod(CloudflareSessionInfo session)
     {
+        // An unparseable timestamp means the grace period cannot be evaluated;
+        // keep the session rather than risk closing one that just started.
         if (!DateTimeOffset.TryParse(session.CreatedAt, out var createdAt))
-            return true;
+            return false;
 
         return DateTimeOffset.UtcNow - createdAt.ToUniversalTime() >= OrphanSessionGracePeriod;
     }

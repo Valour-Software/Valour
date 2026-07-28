@@ -124,6 +124,34 @@ public class PlanetMemberServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetByIds_ReturnsOnlyRequestedMembersFromTargetPlanet()
+    {
+        var newUser = await RegisterNewUserAsync();
+        var addResult = await _memberService.AddMemberAsync(_planet.Id, newUser.Id);
+        Assert.True(addResult.Success, addResult.Message);
+        _createdMembers.Add(addResult.Data.Id);
+
+        var result = await _memberService.GetByIdsAsync(
+            _planet.Id,
+            [addResult.Data.Id, addResult.Data.Id, long.MaxValue]);
+
+        var member = Assert.Single(result);
+        Assert.Equal(addResult.Data.Id, member.Id);
+        Assert.Equal(_planet.Id, member.PlanetId);
+        Assert.NotNull(member.User);
+        Assert.Equal(newUser.Id, member.User.Id);
+
+        var apiResult = await _client.PrimaryNode.PostAsyncWithResponse<List<Valour.Sdk.Models.PlanetMember>>(
+            $"api/planets/{_planet.Id}/members/byids",
+            new[] { addResult.Data.Id, addResult.Data.Id, long.MaxValue });
+
+        Assert.True(apiResult.Success, apiResult.Message);
+        var apiMember = Assert.Single(apiResult.Data);
+        Assert.Equal(addResult.Data.Id, apiMember.Id);
+        Assert.Equal(newUser.Id, apiMember.User.Id);
+    }
+
+    [Fact]
     public async Task UpdateMember_InvalidNicknameFails()
     {
         var member = await _memberService.GetByUserAsync(_client.Me.Id, _planet.Id);

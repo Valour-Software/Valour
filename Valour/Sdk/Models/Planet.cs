@@ -250,6 +250,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public bool PublicWiki { get; set; }
 
     /// <summary>
+    /// True if the community calendar is enabled for this planet
+    /// </summary>
+    public bool EnableCalendar { get; set; } = true;
+
+    /// <summary>
     /// The vanity name claimed for this planet's public docs site, if any
     /// </summary>
     public string Vanity { get; set; }
@@ -292,6 +297,14 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public async ValueTask<PlanetMember> FetchMemberAsync(long id, bool skipCache = false) =>
         await Client.PlanetService.FetchMemberAsync(id, this, skipCache);
+
+    /// <summary>
+    /// Returns a specific set of members in one request.
+    /// </summary>
+    public Task<TaskResult<List<PlanetMember>>> FetchMembersAsync(
+        IEnumerable<long> ids,
+        bool skipCache = false) =>
+        Client.PlanetService.FetchMembersAsync(ids, this, skipCache);
 
     /// <summary>
     /// Returns the member for the given id

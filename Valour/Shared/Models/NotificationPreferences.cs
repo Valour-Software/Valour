@@ -31,7 +31,8 @@ public static class NotificationPreferences
         NotificationSource.DirectMessage,
         NotificationSource.ThreadComment,
         NotificationSource.ThreadReply,
-        NotificationSource.ChannelActivity
+        NotificationSource.ChannelActivity,
+        NotificationSource.EventReminder
     ];
 
     public static readonly long AllNotificationSourcesMask = ConfigurableSources

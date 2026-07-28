@@ -1,0 +1,29 @@
+@using Valour.Client.Components.Staff.Dashboard
+
+<div class="settings-inner">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-activity"></i>
+            Platform Dashboard
+        </h3>
+
+        <p class="toggle-description">
+            Realtime view of the whole platform: who's online, community activity,
+            messaging volume, voice calls, revenue, and node health — updated live
+            over the realtime connection.
+        </p>
+
+        <div class="open-dashboard">
+            <button class="v-btn primary" @onclick="OpenDashboardAsync">
+                <i class="bi bi-activity"></i> Open Dashboard
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private async Task OpenDashboardAsync()
+    {
+        await WindowService.OpenWindowAtFocused(StaffDashboardWindowComponent.GetDefaultContent());
+    }
+}

@@ -187,7 +187,8 @@ public class VoiceStateCleanupWorker : BackgroundService
     /// removing users from Redis/HostedPlanet that the backend no longer sees. The
     /// backend's live truth is fetched provider-agnostically via
     /// <see cref="IVoiceProvider.GetConnectedUserIdsAsync"/>; a null result (backend
-    /// unreachable) skips that channel so live participants are never wrongly removed.
+    /// unreachable, or no positive evidence of who is connected) skips that channel
+    /// so live participants are never wrongly removed.
     /// </summary>
     private async Task ReconcileWithProviderAsync()
     {
@@ -319,6 +320,14 @@ public class VoiceStateCleanupWorker : BackgroundService
     {
         var trackedMeetings = await _voiceProvider.LoadOpenMeetingMappingsAsync();
         var participantCountsByChannel = await GetRedisParticipantCountsByChannelAsync();
+        if (participantCountsByChannel is null)
+        {
+            _logger.LogWarning(
+                "Skipping voice meeting cleanup ({Reason}): Redis participant counts are unavailable",
+                reason);
+            return;
+        }
+
         var checkedMeetings = 0;
         var keptMeetings = 0;
         var closedMeetings = 0;
@@ -362,7 +371,11 @@ public class VoiceStateCleanupWorker : BackgroundService
             failedMeetings);
     }
 
-    private async Task<Dictionary<long, int>> GetRedisParticipantCountsByChannelAsync()
+    /// <summary>
+    /// Returns null when Redis cannot be read — the caller must skip cleanup rather
+    /// than treat every meeting as empty and close live calls.
+    /// </summary>
+    private async Task<Dictionary<long, int>?> GetRedisParticipantCountsByChannelAsync()
     {
         var result = new Dictionary<long, int>();
 
@@ -371,7 +384,7 @@ public class VoiceStateCleanupWorker : BackgroundService
             var db = _redis.GetDatabase(RedisDbTypes.Cluster);
             var servers = _redis.GetServers();
             if (servers.Length == 0)
-                return result;
+                return null;
 
             var channelKeys = servers
                 .SelectMany(server => server.Keys(RedisDbTypes.Cluster, "voice:channel:*"))
@@ -408,9 +421,9 @@ public class VoiceStateCleanupWorker : BackgroundService
         {
             _logger.LogWarning(
                 ex,
-                "Could not read Redis voice participant counts for meeting cleanup; treating all active meetings as unused");
+                "Could not read Redis voice participant counts for meeting cleanup; skipping this cleanup pass");
+            return null;
         }
-
 
         return result;
     }

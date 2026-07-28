@@ -1,0 +1,86 @@
+@namespace Valour.Client.Components.Staff.Dashboard
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+@using Valour.Shared.Models.Staff
+
+<div class="globe-root" @ref="_container">
+    <canvas class="globe-canvas" @ref="_canvas"></canvas>
+    @* Fixed structure filled by JS via textContent — JS-created children would
+       miss the CSS-isolation scope attribute, so the lines live here instead *@
+    <div class="globe-tooltip" style="display:none">
+        <span class="tt-name"></span>
+        <span class="tt-members"></span>
+        <span class="tt-online"></span>
+    </div>
+    <div class="globe-note">Each dot is a community, sized by members — positions are abstract, not places</div>
+</div>
+
+@code {
+
+    /// <summary>
+    /// Communities rendered as dots. Position is derived deterministically from
+    /// the planet id inside the JS module, so the same community always sits on
+    /// the same spot of the sphere.
+    /// </summary>
+    [Parameter]
+    public IReadOnlyList<DashboardGlobePlanet> Planets { get; set; }
+
+    private ElementReference _container;
+    private ElementReference _canvas;
+    private IJSObjectReference _module;
+    private IJSObjectReference _instance;
+    private IReadOnlyList<DashboardGlobePlanet> _sentPlanets;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import",
+                "./_content/Valour.Client/Components/Staff/Dashboard/DashGlobe.razor.js");
+            _instance = await _module.InvokeAsync<IJSObjectReference>("init", _container, _canvas);
+        }
+
+        if (_instance is not null && Planets is not null && !ReferenceEquals(Planets, _sentPlanets))
+        {
+            _sentPlanets = Planets;
+            // Ids cross to JS as strings: snowflake ids overflow JS number precision
+            await _instance.InvokeVoidAsync("setPlanets",
+                Planets.Select(p => new GlobeDot(p.PlanetId.ToString(), p.Name, p.MemberCount, p.OnlineCount)));
+        }
+    }
+
+    /// <summary>
+    /// Fires a presence pulse on the sphere. Online pulses expand in the success
+    /// hue, offline in the danger hue. When the user has no community the pulse
+    /// lands on a random point of the sphere.
+    /// </summary>
+    public async Task PulseAsync(long? planetId, bool online)
+    {
+        if (_instance is null)
+            return;
+
+        try
+        {
+            await _instance.InvokeVoidAsync("pulse", planetId?.ToString(), online);
+        }
+        catch (JSDisconnectedException) { }
+    }
+
+    private record GlobeDot(string Id, string Name, int Members, int Online);
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_instance is not null)
+            {
+                await _instance.InvokeVoidAsync("dispose");
+                await _instance.DisposeAsync();
+            }
+
+            if (_module is not null)
+                await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+    }
+}

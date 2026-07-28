@@ -1286,6 +1286,8 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("ReplyToId");
 
+                    b.HasIndex("TimeSent");
+
                     b.ToTable("messages", (string)null);
                 });
 
@@ -1849,6 +1851,12 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("discoverable");
 
+                    b.Property<bool>("EnableCalendar")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("enable_calendar");
+
                     b.Property<bool>("EnableThreads")
                         .HasColumnType("boolean")
                         .HasColumnName("enable_threads");
@@ -2017,6 +2025,91 @@ namespace Valour.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("planet_emojis", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime?>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("location");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<DateTime>("TimeCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("time_created");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId", "StartsAt");
+
+                    b.ToTable("planet_events", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetEventRsvp", b =>
+                {
+                    b.Property<long>("EventId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("event_id");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<int?>("ReminderMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("reminder_minutes");
+
+                    b.Property<DateTime?>("ReminderSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reminder_sent_at");
+
+                    b.Property<DateTime>("TimeCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("time_created");
+
+                    b.HasKey("EventId", "UserId");
+
+                    b.HasIndex("ReminderSentAt")
+                        .HasFilter("reminder_minutes IS NOT NULL AND reminder_sent_at IS NULL");
+
+                    b.ToTable("planet_event_rsvps", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetInvite", b =>
@@ -2418,6 +2511,12 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_date");
 
+                    b.Property<bool>("Curated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("curated");
+
                     b.Property<string>("Name")
                         .HasColumnType("text")
                         .HasColumnName("name");
@@ -2436,6 +2535,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 1L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Gaming",
                             Slug = "gaming"
                         },
@@ -2443,6 +2543,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 2L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Anime",
                             Slug = "anime"
                         },
@@ -2450,6 +2551,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 3L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Debates",
                             Slug = "debates"
                         },
@@ -2457,6 +2559,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 4L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "News",
                             Slug = "news"
                         },
@@ -2464,6 +2567,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 5L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Strategy",
                             Slug = "strategy"
                         },
@@ -2471,6 +2575,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 6L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Action",
                             Slug = "action"
                         },
@@ -2478,6 +2583,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 7L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Manga",
                             Slug = "manga"
                         },
@@ -2485,6 +2591,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 8L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Geek Culture",
                             Slug = "geek-culture"
                         },
@@ -2492,6 +2599,7 @@ namespace Valour.Database.Migrations
                         {
                             Id = 9L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Events",
                             Slug = "events"
                         },
@@ -2499,8 +2607,129 @@ namespace Valour.Database.Migrations
                         {
                             Id = 10L,
                             Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
                             Name = "Indie Games",
                             Slug = "indie-games"
+                        },
+                        new
+                        {
+                            Id = 11L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Music",
+                            Slug = "music"
+                        },
+                        new
+                        {
+                            Id = 12L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Art",
+                            Slug = "art"
+                        },
+                        new
+                        {
+                            Id = 13L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Technology",
+                            Slug = "technology"
+                        },
+                        new
+                        {
+                            Id = 14L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Programming",
+                            Slug = "programming"
+                        },
+                        new
+                        {
+                            Id = 15L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Science",
+                            Slug = "science"
+                        },
+                        new
+                        {
+                            Id = 16L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Movies & TV",
+                            Slug = "movies-tv"
+                        },
+                        new
+                        {
+                            Id = 17L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Books & Writing",
+                            Slug = "books-writing"
+                        },
+                        new
+                        {
+                            Id = 18L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Memes",
+                            Slug = "memes"
+                        },
+                        new
+                        {
+                            Id = 19L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Sports",
+                            Slug = "sports"
+                        },
+                        new
+                        {
+                            Id = 20L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Fitness",
+                            Slug = "fitness"
+                        },
+                        new
+                        {
+                            Id = 21L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Food & Cooking",
+                            Slug = "food-cooking"
+                        },
+                        new
+                        {
+                            Id = 22L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Roleplay",
+                            Slug = "roleplay"
+                        },
+                        new
+                        {
+                            Id = 23L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Pets & Animals",
+                            Slug = "pets-animals"
+                        },
+                        new
+                        {
+                            Id = 24L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Education",
+                            Slug = "education"
+                        },
+                        new
+                        {
+                            Id = 25L,
+                            Created = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Curated = true,
+                            Name = "Travel",
+                            Slug = "travel"
                         });
                 });
 
@@ -3175,6 +3404,8 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TimeCreated");
+
                     b.ToTable("stat_objects");
                 });
 
@@ -3754,6 +3985,23 @@ namespace Valour.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.UserActivityDay", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Day", "UserId");
+
+                    b.HasIndex("Day");
+
+                    b.ToTable("user_activity_days", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.UserBlock", b =>
@@ -4452,6 +4700,28 @@ namespace Valour.Database.Migrations
                     b.Navigation("CreatorUser");
 
                     b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetEvent", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetEventRsvp", b =>
+                {
+                    b.HasOne("Valour.Database.PlanetEvent", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetInvite", b =>

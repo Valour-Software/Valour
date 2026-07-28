@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Valour.Sdk.Client;
+using Valour.Sdk.Utility;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
@@ -33,7 +33,7 @@ public class AuthService : ServiceBase
     /// The internal token for this client
     /// </summary>
     private string _token;
-    private ECDsa _federationPassportKey;
+    private FederationProofKey _federationPassportKey;
     private FederationPassportResponse _federationPassport;
     private string _federationHubJwks;
     private DateTime _federationHubJwksFetchedAt;
@@ -104,7 +104,6 @@ public class AuthService : ServiceBase
     private void ClearFederationPassportState()
     {
         _federationPassport = null;
-        _federationPassportKey?.Dispose();
         _federationPassportKey = null;
         _federationHubJwks = null;
         _federationHubJwksFetchedAt = default;
@@ -118,27 +117,18 @@ public class AuthService : ServiceBase
     /// </summary>
     public async Task<TaskResult<FederationPassportResponse>> GetFederationPassportAsync()
     {
-        if (_federationPassport?.Token is not null &&
-            _federationPassport.ExpiresAt > DateTime.UtcNow.AddMinutes(5))
-            return TaskResult<FederationPassportResponse>.FromData(_federationPassport);
-
-        if (string.IsNullOrWhiteSpace(_token))
-            return TaskResult<FederationPassportResponse>.FromFailure("Log in before requesting a federation passport.");
-
-        _federationPassportKey ??= ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var publicParameters = _federationPassportKey.ExportParameters(false);
-        var publicJwk = JsonSerializer.Serialize(new Dictionary<string, string>
-        {
-            ["kty"] = "EC",
-            ["crv"] = "P-256",
-            ["x"] = Base64UrlEncode(publicParameters.Q.X),
-            ["y"] = Base64UrlEncode(publicParameters.Q.Y),
-            ["alg"] = "ES256",
-            ["use"] = "sig",
-        });
-
         try
         {
+            if (_federationPassport?.Token is not null &&
+                _federationPassport.ExpiresAt > DateTime.UtcNow.AddMinutes(5))
+                return TaskResult<FederationPassportResponse>.FromData(_federationPassport);
+
+            if (string.IsNullOrWhiteSpace(_token))
+                return TaskResult<FederationPassportResponse>.FromFailure("Log in before requesting a federation passport.");
+
+            _federationPassportKey ??= FederationProofKey.Generate();
+            var publicJwk = _federationPassportKey.ExportPublicJwk();
+
             using var response = await _client.Http.PostAsJsonAsync(
                 "api/federation/passport",
                 new FederationPassportRequest { PublicJwk = publicJwk });
@@ -178,7 +168,7 @@ public class AuthService : ServiceBase
         {
             Passport = _federationPassport.Token,
             ExpiresAt = _federationPassport.ExpiresAt,
-            PrivateKeyPkcs8 = Convert.ToBase64String(_federationPassportKey.ExportPkcs8PrivateKey()),
+            PrivateKeyPkcs8 = Convert.ToBase64String(_federationPassportKey.ExportPkcs8()),
             HubJwks = _federationHubJwks,
             HubJwksFetchedAt = _federationHubJwksFetchedAt,
         };
@@ -203,15 +193,10 @@ public class AuthService : ServiceBase
             if (!long.TryParse(subject, out var userId) || userId != _client.Me.Id || string.IsNullOrWhiteSpace(passportJwk))
                 return TaskResult.FromFailure("The federation passport belongs to a different account.");
 
-            var key = ECDsa.Create();
-            key.ImportPkcs8PrivateKey(Convert.FromBase64String(cache.PrivateKeyPkcs8), out _);
-            if (!PublicJwkMatches(key, passportJwk))
-            {
-                key.Dispose();
+            var key = FederationProofKey.ImportPkcs8(Convert.FromBase64String(cache.PrivateKeyPkcs8));
+            if (!key.MatchesPublicJwk(passportJwk))
                 return TaskResult.FromFailure("The federation passport key does not match its proof key.");
-            }
 
-            _federationPassportKey?.Dispose();
             _federationPassportKey = key;
             _federationPassport = new FederationPassportResponse
             {
@@ -259,7 +244,7 @@ public class AuthService : ServiceBase
 
         var proofPayload = ValourFederation.BuildInviteProofPayload(
             grantId, nodeDomain, planetId, recipientId, maxUses, passportId, userId);
-        var signature = _federationPassportKey.SignData(Encoding.UTF8.GetBytes(proofPayload), HashAlgorithmName.SHA256);
+        var signature = _federationPassportKey.SignData(Encoding.UTF8.GetBytes(proofPayload));
         return TaskResult<FederatedInviteRedeemRequest>.FromData(new FederatedInviteRedeemRequest
         {
             Grant = grant,
@@ -400,7 +385,7 @@ public class AuthService : ServiceBase
         return false;
     }
 
-    private static bool TryGetFederationSigningKey(string jwks, string keyId, out ECParameters parameters)
+    private static bool TryGetFederationSigningKey(string jwks, string keyId, out FederationPublicKey parameters)
     {
         parameters = default;
         try
@@ -430,7 +415,7 @@ public class AuthService : ServiceBase
         return false;
     }
 
-    private static bool TryGetFederationSigningKey(JsonElement key, out ECParameters parameters)
+    private static bool TryGetFederationSigningKey(JsonElement key, out FederationPublicKey parameters)
     {
         parameters = default;
         if (!HasStringClaim(key, "kty", "EC") || !HasStringClaim(key, "crv", "P-256") ||
@@ -447,11 +432,7 @@ public class AuthService : ServiceBase
             if (qx.Length != 32 || qy.Length != 32)
                 return false;
 
-            parameters = new ECParameters
-            {
-                Curve = ECCurve.NamedCurves.nistP256,
-                Q = new ECPoint { X = qx, Y = qy },
-            };
+            parameters = new FederationPublicKey(qx, qy);
             return true;
         }
         catch
@@ -460,7 +441,10 @@ public class AuthService : ServiceBase
         }
     }
 
-    private static bool VerifyEs256Signature(string signingInput, string signature, ECParameters parameters)
+    private static bool VerifyEs256Signature(
+        string signingInput,
+        string signature,
+        FederationPublicKey parameters)
     {
         try
         {
@@ -468,12 +452,11 @@ public class AuthService : ServiceBase
             if (signatureBytes.Length != 64)
                 return false;
 
-            using var key = ECDsa.Create(parameters);
-            return key.VerifyData(
+            return FederationProofKey.VerifyData(
                 Encoding.ASCII.GetBytes(signingInput),
                 signatureBytes,
-                HashAlgorithmName.SHA256,
-                DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+                parameters.X,
+                parameters.Y);
         }
         catch
         {
@@ -556,23 +539,7 @@ public class AuthService : ServiceBase
         return Convert.FromBase64String(base64);
     }
 
-    private static bool PublicJwkMatches(ECDsa key, string passportJwk)
-    {
-        try
-        {
-            using var document = JsonDocument.Parse(passportJwk);
-            var root = document.RootElement;
-            var parameters = key.ExportParameters(false);
-            return root.TryGetProperty("kty", out var kty) && kty.GetString() == "EC" &&
-                   root.TryGetProperty("crv", out var crv) && crv.GetString() == "P-256" &&
-                   root.TryGetProperty("x", out var x) && x.GetString() == Base64UrlEncode(parameters.Q.X) &&
-                   root.TryGetProperty("y", out var y) && y.GetString() == Base64UrlEncode(parameters.Q.Y);
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    private readonly record struct FederationPublicKey(byte[] X, byte[] Y);
 
     public async Task<AuthResult> LoginAsync(string email, string password, string multiFactorCode = null)
     {
@@ -632,11 +599,27 @@ public class AuthService : ServiceBase
         // Best-effort prefetch while the hub is available. This leaves a
         // recently logged-in client ready to redeem a recipient-bound invite
         // if the hub goes down before it reaches the community node.
-        _ = GetFederationPassportAsync();
+        _ = PrefetchFederationPassportAsync();
         
         LoggedIn?.Invoke(_client.Me);
 
         return new TaskResult(true, "Success");
+    }
+
+    private async Task PrefetchFederationPassportAsync()
+    {
+        try
+        {
+            var result = await GetFederationPassportAsync();
+            if (!result.Success)
+                LogWarning($"Federation passport prefetch failed: {result.Message}");
+        }
+        catch (Exception e)
+        {
+            // Login must never surface a best-effort federation prefetch as an
+            // unobserved task exception.
+            LogWarning($"Federation passport prefetch failed: {e.Message}");
+        }
     }
 
     public async Task<TaskResult> RegisterAsync(RegisterUserRequest request)

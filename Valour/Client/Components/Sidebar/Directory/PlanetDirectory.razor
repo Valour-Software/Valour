@@ -63,6 +63,15 @@
                         Rules
                     </p>
                 </div>
+                @if (Planet.EnableCalendar)
+                {
+                    <div class="channel planet-events" @onclick="OnClickPlanetEvents">
+                        <i class="bi bi-calendar-event planet-pseudo-icon"></i>
+                        <p class="name">
+                            Calendar
+                        </p>
+                    </div>
+                }
                 <FavoritesDirectorySection Planet="@Planet"/>
                 @if (Planet.EnableWiki)
                 {
@@ -280,6 +289,12 @@
     private async Task OnClickPlanetRules()
     {
         var newWindowContent = PlanetRulesWindowComponent.GetDefaultContent(Planet);
+        await WindowService.OpenWindowAtFocused(newWindowContent);
+    }
+
+    private async Task OnClickPlanetEvents()
+    {
+        var newWindowContent = EventsWindowComponent.GetDefaultContent(Planet);
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }
 

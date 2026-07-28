@@ -1,0 +1,229 @@
+.dash-chart {
+    width: 100%;
+    background: transparent;
+    font-family: var(--font-family-app, sans-serif);
+    color: var(--font-color, #ffffff);
+}
+
+.chart-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    min-height: 24px;
+}
+
+.chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--font-color, #ffffff);
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.legend-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+}
+
+.legend-name {
+    font-size: 11px;
+    color: var(--font-color-mid, #aaaaaa);
+}
+
+.chart-table-toggle {
+    background: transparent;
+    border: none;
+    padding: 3px 5px;
+    border-radius: 4px;
+    color: var(--font-alt-color, #7a7a7a);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    flex: 0 0 auto;
+}
+
+.chart-table-toggle:hover {
+    color: var(--font-color, #ffffff);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.chart-table-toggle.active {
+    color: var(--font-color, #ffffff);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.chart-table-toggle:disabled {
+    opacity: 0.4;
+    cursor: default;
+    background: transparent;
+}
+
+.chart-body {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.gutter-svg {
+    display: block;
+    flex: 0 0 auto;
+    overflow: visible;
+}
+
+.plot-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+    position: relative;
+}
+
+.plot-svg {
+    display: block;
+    width: 100%;
+    overflow: visible;
+}
+
+.gridline {
+    stroke: rgba(255, 255, 255, 0.07);
+    stroke-width: 1;
+    pointer-events: none;
+}
+
+.axis-baseline {
+    stroke: rgba(255, 255, 255, 0.14);
+    stroke-width: 1;
+    pointer-events: none;
+}
+
+.chart-col {
+    pointer-events: none;
+}
+
+.chart-col.lift {
+    filter: brightness(1.18);
+}
+
+.hit-band {
+    pointer-events: all;
+}
+
+.chart-tooltip {
+    position: absolute;
+    z-index: 5;
+    pointer-events: none;
+    transform: translateX(10px);
+    background: var(--main-1, #040d14);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 7px 10px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    min-width: 110px;
+    white-space: nowrap;
+}
+
+.chart-tooltip.flip {
+    transform: translateX(calc(-100% - 10px));
+}
+
+.tooltip-time {
+    font-size: 11px;
+    color: var(--font-color-mid, #aaaaaa);
+    margin-bottom: 4px;
+}
+
+.tooltip-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.6;
+}
+
+.tooltip-key {
+    width: 10px;
+    height: 2px;
+    border-radius: 1px;
+    flex: 0 0 auto;
+}
+
+.tooltip-key.spacer {
+    background: transparent;
+}
+
+.tooltip-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--font-color, #ffffff);
+}
+
+.tooltip-name {
+    font-size: 11px;
+    color: var(--font-color-mid, #aaaaaa);
+}
+
+.chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--font-alt-color, #7a7a7a);
+}
+
+.chart-table-wrap {
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+}
+
+.chart-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.chart-table th,
+.chart-table td {
+    padding: 5px 10px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.chart-table th {
+    position: sticky;
+    top: 0;
+    background: var(--main-2, #0b151d);
+    color: var(--font-color-mid, #aaaaaa);
+    font-weight: 500;
+    font-size: 11px;
+    z-index: 1;
+}
+
+.chart-table td {
+    color: var(--font-color, #ffffff);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chart-table td:first-child {
+    color: var(--font-color-mid, #aaaaaa);
+}
+
+.chart-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

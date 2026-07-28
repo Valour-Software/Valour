@@ -64,6 +64,9 @@
         </div>
 
         <div class="threads-feed">
+            <TutorialHint TutorialId="@UserTutorials.FirstThread"
+                          After="@UserTutorials.FirstChatMessage"
+                          Text="Threads are posts — they show up in everyone's Home feed" />
             <ThreadComposeInline @ref="@_composer" Planet="@_planet" OnPosted="@OnThreadPosted"/>
 
             <PullToRefresh OnRefresh="@OnPullRefresh">
@@ -358,6 +361,8 @@
 
     private async Task OnThreadPosted(PlanetThread thread)
     {
+        _ = TutorialHints.CompleteAsync(Client, UserTutorials.FirstThread);
+
         // Refresh the feed so the new post is visible
         await RebuildFeedAsync();
     }

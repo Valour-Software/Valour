@@ -4,6 +4,7 @@ using Valour.Shared.Authorization;
 using Valour.Shared;
 using Valour.Server.Hubs;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Staff;
 
 /*  Valour (TM) - A free and secure chat client
  *  Copyright (C) 2025 Valour Software LLC
@@ -27,18 +28,20 @@ public class CoreHub : Hub
     private readonly UserOnlineQueueService _onlineQueue;
     private readonly ChannelWatchingService _channelWatchingService;
     private readonly HostedPlanetService _hostedPlanetService;
+    private readonly UserService _userService;
 
     public CoreHub(
-        ValourDb db, 
-        CoreHubService hubService, 
+        ValourDb db,
+        CoreHubService hubService,
         PlanetMemberService memberService,
         UnreadService unreadService,
         TokenService tokenService,
-        IConnectionMultiplexer redis, 
+        IConnectionMultiplexer redis,
         SignalRConnectionService connectionTracker,
         UserOnlineQueueService onlineQueue,
         ChannelWatchingService channelWatchingService,
-        HostedPlanetService hostedPlanetService)
+        HostedPlanetService hostedPlanetService,
+        UserService userService)
     {
         _db = db;
         _hubService = hubService;
@@ -50,6 +53,7 @@ public class CoreHub : Hub
         _onlineQueue = onlineQueue;
         _channelWatchingService = channelWatchingService;
         _hostedPlanetService = hostedPlanetService;
+        _userService = userService;
     }
 
     public async Task<TaskResult> Authorize(string token)
@@ -235,6 +239,32 @@ public class CoreHub : Hub
         return TaskResult.SuccessResult;
     }
 
+
+    /// <summary>
+    /// Joins the staff dashboard realtime group. Gated on the live ValourStaff
+    /// flag rather than anything carried by the token, so revoking staff takes
+    /// effect within the flag cache TTL.
+    /// </summary>
+    public async Task<TaskResult> JoinStaffDashboard()
+    {
+        var authToken = await GetValidAuthTokenAsync();
+        if (authToken == null) return new TaskResult(false, "Failed to join dashboard: SignalR was not authenticated.");
+
+        var flags = await _userService.GetAccessFlagsAsync(authToken.UserId);
+        if (flags is null || !flags.Value.ValourStaff)
+            return new TaskResult(false, "Failed to join dashboard: You are not staff.");
+
+        await _connectionTracker.TrackGroupMembershipAsync(DashboardHub.Group, Context);
+        await Groups.AddToGroupAsync(Context.ConnectionId, DashboardHub.Group);
+
+        return new TaskResult(true, "Connected to staff dashboard.");
+    }
+
+    public async Task LeaveStaffDashboard()
+    {
+        await _connectionTracker.UntrackGroupMembershipAsync(DashboardHub.Group, Context);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, DashboardHub.Group);
+    }
 
     public async Task JoinInteractionGroup(long planetId)
     {

@@ -1791,6 +1791,8 @@
             if (toAdd.Count == 0)
                 return;
 
+            await HydrateRecoveredMessageAuthorsAsync(toAdd);
+
             var atBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
             await AddMessages(toAdd, render: false, scroll: false);
 
@@ -1809,6 +1811,46 @@
         {
             _recoveringMessages = false;
         }
+    }
+
+    /// <summary>
+    /// Restores only the planet members needed to render the recovered chat
+    /// batch, using one exact-id request regardless of the number of authors.
+    /// </summary>
+    private async Task HydrateRecoveredMessageAuthorsAsync(IReadOnlyCollection<Message> messages)
+    {
+        var planet = Channel?.Planet;
+        if (planet is null)
+            return;
+
+        var missingAuthorIds = GetMissingRecoveredAuthorIds(messages, planet);
+
+        if (missingAuthorIds.Count == 0)
+            return;
+
+        var result = await planet.FetchMembersAsync(missingAuthorIds);
+
+        if (!result.Success)
+        {
+            Client.Logger.Log<ChatWindowComponent>(
+                $"Failed hydrating recovered message authors: {result.Message}",
+                "yellow");
+        }
+    }
+
+    internal static List<long> GetMissingRecoveredAuthorIds(
+        IEnumerable<Message> messages,
+        Planet planet)
+    {
+        if (messages is null || planet is null)
+            return [];
+
+        return messages
+            .Where(x => x?.AuthorMemberId.HasValue == true &&
+                        !planet.Members.ContainsId(x.AuthorMemberId.Value))
+            .Select(x => x.AuthorMemberId!.Value)
+            .Distinct()
+            .ToList();
     }
 
     private async Task<List<Message>> GetRecoveryCandidates(long maxDisplayedId)

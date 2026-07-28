@@ -54,6 +54,11 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<UserSubscription> UserSubscriptions { get; set; }
 
     /// <summary>
+    /// Table for per-day user activity rollups
+    /// </summary>
+    public DbSet<UserActivityDay> UserActivityDays { get; set; }
+
+    /// <summary>
     /// Table for Valour user profiles
     /// </summary>
     public DbSet<UserProfile> UserProfiles { get; set; }
@@ -230,6 +235,8 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<PlanetEmoji> PlanetEmojis { get; set; }
     public DbSet<PlanetRule> PlanetRules { get; set; }
     public DbSet<PlanetReport> PlanetReports { get; set; }
+    public DbSet<PlanetEvent> PlanetEvents { get; set; }
+    public DbSet<PlanetEventRsvp> PlanetEventRsvps { get; set; }
 
     public DbSet<PlanetThread> PlanetThreads { get; set; }
     public DbSet<ThreadComment> ThreadComments { get; set; }
@@ -343,6 +350,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         Message.SetupDbModel(modelBuilder);
         User.SetupDbModel(modelBuilder);
         UserSubscription.SetupDbModel(modelBuilder);
+        UserActivityDay.SetupDbModel(modelBuilder);
         UserChannelState.SetupDbModel(modelBuilder);
         UserPlanetSetting.SetupDbModel(modelBuilder);
         PlanetMember.SetupDbModel(modelBuilder);
@@ -350,6 +358,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         PlanetEmoji.SetupDbModel(modelBuilder);
         PlanetRule.SetupDbModel(modelBuilder);
         PlanetReport.SetupDbModel(modelBuilder);
+        PlanetEvent.SetupDbModel(modelBuilder);
         PlanetThread.SetupDbModel(modelBuilder);
         PlanetWikiPage.SetupDbModel(modelBuilder);
         PlanetWikiRevision.SetupDbModel(modelBuilder);

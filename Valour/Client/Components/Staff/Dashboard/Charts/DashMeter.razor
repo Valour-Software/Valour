@@ -1,0 +1,37 @@
+@namespace Valour.Client.Components.Staff.Dashboard.Charts
+@using System.Globalization
+
+<div class="dash-meter">
+    <div class="meter-head">
+        <span class="meter-label">@Label</span>
+        <span class="meter-value">@DisplayValue</span>
+    </div>
+    <div class="meter-track" style="background-color: @TrackColor">
+        <div class="meter-fill" style="width: @(DashChartMath.F(Ratio * 100))%; background-color: @FillColor"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; }
+    [Parameter] public double Value { get; set; }
+    [Parameter] public double Max { get; set; } = 100;
+    [Parameter] public string Format { get; set; } = "percent";
+    [Parameter] public string AccentColor { get; set; } = DashChartPalette.Series1;
+
+    private double Ratio => Max <= 0 ? 0 : Math.Clamp(Value / Max, 0, 1);
+
+    private string FillColor => Ratio > 0.95
+        ? DashChartPalette.Critical
+        : Ratio > 0.8
+            ? DashChartPalette.Warning
+            : AccentColor;
+
+    private string TrackColor => $"color-mix(in srgb, {FillColor} 16%, transparent)";
+
+    private string DisplayValue => Format switch
+    {
+        "ratio" => DashFormat.Compact(Value) + " / " + DashFormat.Compact(Max),
+        "raw" => DashFormat.Compact(Value),
+        _ => Math.Round(Ratio * 100).ToString("0", CultureInfo.InvariantCulture) + "%",
+    };
+}

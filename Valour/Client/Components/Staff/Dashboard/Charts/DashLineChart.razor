@@ -1,0 +1,150 @@
+@namespace Valour.Client.Components.Staff.Dashboard.Charts
+
+<div class="dash-chart">
+    <div class="chart-header">
+        <span class="chart-title">@Title</span>
+        @if (!IsEmpty && _series.Count >= 2)
+        {
+            <div class="chart-legend">
+                @foreach (var series in _series)
+                {
+                    <span class="legend-entry">
+                        <span class="legend-line" style="background-color: @series.Color"></span>
+                        <span class="legend-name">@series.Name</span>
+                    </span>
+                }
+            </div>
+        }
+        <button type="button" class="chart-table-toggle @(_showTable ? "active" : null)"
+                title="Toggle table view" aria-pressed="@(_showTable ? "true" : "false")"
+                disabled="@IsEmpty" @onclick="ToggleTable">
+            <i class="bi bi-table" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    @if (IsEmpty)
+    {
+        <div class="chart-empty" style="height: @(F(TotalHeight))px">No data yet</div>
+    }
+    else if (_showTable)
+    {
+        <div class="chart-table-wrap" style="max-height: @(F(TotalHeight))px">
+            <table class="chart-table" aria-label="@Title">
+                <thead>
+                <tr>
+                    <th>Time</th>
+                    @foreach (var series in _series)
+                    {
+                        <th class="num">@series.Name</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < PointCount; i++)
+                {
+                    var row = i;
+                    <tr>
+                        <td>@TableTimeAt(row)</td>
+                        @foreach (var series in _series)
+                        {
+                            <td class="num">@(row < series.Points.Count ? Format(series.Points[row].Value) : "—")</td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="chart-body">
+            <svg class="gutter-svg" width="@F(_yGutterWidth)" height="@F(TotalHeight)" aria-hidden="true" focusable="false">
+                @foreach (var tick in _ticks)
+                {
+                    @SvgText(F(_yGutterWidth - 6), YPx(tick), "end", Format(tick), middle: true)
+                }
+            </svg>
+            <div class="plot-wrap" @onpointerleave="ClearHover">
+                <svg class="plot-svg" style="height: @(F(TotalHeight))px" role="img" aria-label="@Title">
+                    @foreach (var tick in _ticks)
+                    {
+                        <line x1="0" y1="@F(YPx(tick))" x2="100%" y2="@F(YPx(tick))"
+                              class="@(tick == _baselineTick ? "axis-baseline" : "gridline")" />
+                    }
+
+                    <svg class="line-layer" width="100%" height="@F(PlotHeight)"
+                         viewBox="0 0 1000 @F(PlotHeight)" preserveAspectRatio="none">
+                        @if (Area && _series.Count == 1 && PointCount >= 2)
+                        {
+                            <path d="@AreaPath(_series[0])" fill="@_series[0].Color" fill-opacity="0.1" stroke="none" />
+                        }
+                        @foreach (var series in _series)
+                        {
+                            @if (series.Points.Count >= 2)
+                            {
+                                <polyline points="@LinePoints(series)" fill="none" stroke="@series.Color"
+                                          stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+                                          vector-effect="non-scaling-stroke" />
+                            }
+                        }
+                    </svg>
+
+                    @if (_hoverIndex is { } crossIndex)
+                    {
+                        <line class="crosshair" x1="@XPct(crossIndex)" y1="@F(PadTop)"
+                              x2="@XPct(crossIndex)" y2="@F(PlotHeight)" />
+                        @foreach (var series in _series)
+                        {
+                            @if (crossIndex < series.Points.Count)
+                            {
+                                <circle class="marker" cx="@XPct(crossIndex)"
+                                        cy="@F(YPx(series.Points[crossIndex].Value))" r="4" fill="@series.Color" />
+                            }
+                        }
+                    }
+
+                    @foreach (var series in _series)
+                    {
+                        <circle class="marker" cx="@XPct(series.Points.Count - 1)"
+                                cy="@F(YPx(series.Points[^1].Value))" r="4" fill="@series.Color" />
+                    }
+
+                    @foreach (var xi in XLabelIndices())
+                    {
+                        @SvgText(XPct(xi), PlotHeight + 16, XAnchorAt(xi), XLabelAt(xi))
+                    }
+
+                    @for (var i = 0; i < PointCount; i++)
+                    {
+                        var idx = i;
+                        <rect class="hit-band" x="@BandLeftPct(idx)" y="0"
+                              width="@BandWidthPct(idx)" height="@F(PlotHeight)" fill="transparent"
+                              @onpointermove="e => OnBandPointer(idx, e)" />
+                    }
+                </svg>
+
+                @if (_hoverIndex is { } tipIndex)
+                {
+                    <div class="chart-tooltip @(TooltipFlip ? "flip" : null)"
+                         style="left: @XPct(tipIndex); top: @(F(TooltipTop))px">
+                        <div class="tooltip-time">@TableTimeAt(tipIndex)</div>
+                        @foreach (var row in TooltipRows(tipIndex))
+                        {
+                            <div class="tooltip-row">
+                                <span class="tooltip-key" style="background-color: @row.Color"></span>
+                                <span class="tooltip-value">@row.Value</span>
+                                <span class="tooltip-name">@row.Name</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="end-gutter" style="width: @(F(_endGutterWidth))px; height: @(F(TotalHeight))px">
+                @foreach (var label in _endLabels)
+                {
+                    <span class="end-label" style="top: @(F(label.Y - 8))px">@label.Text</span>
+                }
+            </div>
+        </div>
+    }
+</div>

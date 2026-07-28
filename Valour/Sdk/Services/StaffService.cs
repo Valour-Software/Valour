@@ -1,9 +1,12 @@
-﻿using Valour.Sdk.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
+using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Staff;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
 
@@ -15,9 +18,25 @@ public class StaffService : ServiceBase
         "#fc0356",
         "#fc8403"
     );
-    
+
     private readonly ValourClient _client;
-    
+
+    /// <summary>
+    /// Fired for every live-counter push while the dashboard group is joined
+    /// </summary>
+    public HybridEvent<DashboardLiveStats> DashboardLiveUpdated;
+
+    /// <summary>
+    /// Fired when any user's first primary connection opens or last one closes
+    /// </summary>
+    public HybridEvent<DashboardPresenceEvent> DashboardPresence;
+
+    // The primary node's HubConnection is replaced on token refresh, so the
+    // registration guard tracks which connection currently has our handlers
+    private HubConnection _dashboardHookedConnection;
+    private bool _dashboardJoined;
+    private bool _dashboardReconnectHooked;
+
     public StaffService(ValourClient client)
     {
         _client = client;
@@ -120,5 +139,83 @@ public class StaffService : ServiceBase
         };
 
         return await _client.PrimaryNode.PostAsync("api/staff/reports/resolve", request);
+    }
+
+    public async Task<DashboardSnapshot> GetDashboardSnapshotAsync()
+    {
+        var result = await _client.PrimaryNode.GetJsonAsync<DashboardSnapshot>("api/staff/dashboard/snapshot");
+        return result.Data;
+    }
+
+    public async Task<DashboardAnalytics> GetDashboardAnalyticsAsync(int days = 30)
+    {
+        var result = await _client.PrimaryNode.GetJsonAsync<DashboardAnalytics>($"api/staff/dashboard/analytics?days={days}");
+        return result.Data;
+    }
+
+    /// <summary>
+    /// Joins the staff dashboard realtime group on the primary node. Events
+    /// arrive via <see cref="DashboardLiveUpdated"/> and
+    /// <see cref="DashboardPresence"/>; the group is rejoined automatically
+    /// when the node reconnects.
+    /// </summary>
+    public async Task<TaskResult> JoinDashboardAsync()
+    {
+        RegisterDashboardHandlers();
+        HookDashboardReconnect();
+
+        var result = await _client.PrimaryNode.HubConnection
+            .InvokeAsync<TaskResult>("JoinStaffDashboard");
+
+        if (result.Success)
+            _dashboardJoined = true;
+
+        return result;
+    }
+
+    public async Task LeaveDashboardAsync()
+    {
+        _dashboardJoined = false;
+        await _client.PrimaryNode.HubConnection.InvokeAsync("LeaveStaffDashboard");
+    }
+
+    private void RegisterDashboardHandlers()
+    {
+        var hubConnection = _client.PrimaryNode.HubConnection;
+        if (ReferenceEquals(_dashboardHookedConnection, hubConnection))
+            return;
+
+        _dashboardHookedConnection = hubConnection;
+
+        hubConnection.On<DashboardLiveStats>(DashboardHub.LiveEvent,
+            stats => DashboardLiveUpdated?.Invoke(stats));
+        hubConnection.On<DashboardPresenceEvent>(DashboardHub.PresenceEvent,
+            presence => DashboardPresence?.Invoke(presence));
+    }
+
+    private void HookDashboardReconnect()
+    {
+        if (_dashboardReconnectHooked)
+            return;
+
+        _dashboardReconnectHooked = true;
+        _client.NodeService.NodeReconnected += OnNodeReconnected;
+    }
+
+    private async Task OnNodeReconnected(Node node)
+    {
+        if (!_dashboardJoined || !ReferenceEquals(node, _client.PrimaryNode))
+            return;
+
+        try
+        {
+            var result = await JoinDashboardAsync();
+            if (!result.Success)
+                LogError($"Failed to rejoin staff dashboard after reconnect: {result.Message}");
+        }
+        catch (Exception ex)
+        {
+            LogError("Error rejoining staff dashboard after reconnect", ex);
+        }
     }
 }
