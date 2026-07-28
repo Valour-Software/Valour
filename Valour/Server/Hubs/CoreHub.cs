@@ -309,7 +309,7 @@ public class CoreHub : Hub
     /// Presence is scoped to a per-map group so movement on one map does not
     /// reach clients standing on another.
     /// </summary>
-    public async Task<VillagePresenceSnapshot> JoinVillageMap(
+    public async Task<VillagePresenceSnapshot?> JoinVillageMap(
         long planetId,
         long mapId,
         int x,
@@ -324,10 +324,6 @@ public class CoreHub : Hub
         if (member is null)
             return null;
 
-        var groupId = Valour.Server.Services.Villages.VillagePresenceService.GetGroupId(planetId, mapId);
-        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
-        await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
-
         var name = string.IsNullOrWhiteSpace(member.Nickname)
             ? member.User?.Name ?? "Member"
             : member.Nickname;
@@ -335,8 +331,16 @@ public class CoreHub : Hub
         var avatarUrl = Valour.Shared.Models.ISharedPlanetMember.GetAvatar(
             member, Valour.Shared.Models.AvatarFormat.Webp64);
 
-        return await _villagePresenceService.JoinMapAsync(
+        var snapshot = await _villagePresenceService.JoinMapAsync(
             planetId, mapId, authToken.UserId, member.Id, name, avatarUrl, x, y, buildingId);
+        if (snapshot is null)
+            return null;
+
+        var groupId = Valour.Server.Services.Villages.VillagePresenceService.GetGroupId(planetId, mapId);
+        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
+
+        return snapshot;
     }
 
     public async Task LeaveVillageMap(long planetId, long mapId)

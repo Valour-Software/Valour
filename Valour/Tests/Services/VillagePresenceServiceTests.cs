@@ -28,6 +28,16 @@ public class VillagePresenceServiceTests
     private static VillagePresenceService Resolve(IServiceScope scope) =>
         scope.ServiceProvider.GetRequiredService<VillagePresenceService>();
 
+    private static void PrepareMap(
+        IServiceScope scope,
+        long planetId,
+        long mapId,
+        long? parentBuildingId = null,
+        IEnumerable<(int X, int Y)>? blocked = null) =>
+        scope.ServiceProvider
+            .GetRequiredService<VillageCollisionService>()
+            .SetMapForTesting(planetId, mapId, parentBuildingId: parentBuildingId, blocked: blocked);
+
     [Fact]
     public async Task JoinMap_PlacesMemberAndReturnsOccupancy()
     {
@@ -36,9 +46,11 @@ public class VillagePresenceServiceTests
 
         const long planetId = 900_001;
         const long mapId = 1;
+        PrepareMap(scope, planetId, mapId);
 
         var snapshot = await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "avatar-a", 4, 5);
 
+        Assert.NotNull(snapshot);
         Assert.Equal(planetId, snapshot.PlanetId);
         Assert.Equal(mapId, snapshot.MapId);
 
@@ -59,6 +71,7 @@ public class VillagePresenceServiceTests
 
         const long planetId = 900_002;
         const long mapId = 1;
+        PrepareMap(scope, planetId, mapId);
 
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 1, 1);
         var snapshot = await service.JoinMapAsync(planetId, mapId, userId: 2, memberId: 22, "Grace", "g", 2, 2);
@@ -78,6 +91,8 @@ public class VillagePresenceServiceTests
         var service = Resolve(scope);
 
         const long planetId = 900_003;
+        PrepareMap(scope, planetId, 1);
+        PrepareMap(scope, planetId, 2);
 
         await service.JoinMapAsync(planetId, 1, userId: 1, memberId: 11, "Ada", "a", 0, 0);
         await service.JoinMapAsync(planetId, 2, userId: 2, memberId: 22, "Grace", "g", 0, 0);
@@ -97,6 +112,8 @@ public class VillagePresenceServiceTests
         var service = Resolve(scope);
 
         const long planetId = 900_004;
+        PrepareMap(scope, planetId, 1);
+        PrepareMap(scope, planetId, 2);
 
         await service.JoinMapAsync(planetId, 1, userId: 1, memberId: 11, "Ada", "a", 0, 0);
         await service.JoinMapAsync(planetId, 2, userId: 1, memberId: 11, "Ada", "a", 3, 3);
@@ -109,13 +126,14 @@ public class VillagePresenceServiceTests
     }
 
     [Fact]
-    public async Task Move_UpdatesPositionFacingAndBuilding()
+    public async Task Move_UpdatesPositionAndFacingWithoutTrustingBuildingId()
     {
         using var scope = CreateScope();
         var service = Resolve(scope);
 
         const long planetId = 900_005;
         const long mapId = 1;
+        PrepareMap(scope, planetId, mapId);
 
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 0, 0);
 
@@ -126,7 +144,7 @@ public class VillagePresenceServiceTests
         Assert.Equal(1, presence.X);
         Assert.Equal(0, presence.Y);
         Assert.Equal(VillageFacing.Left, presence.Facing);
-        Assert.Equal(42, presence.BuildingId);
+        Assert.Null(presence.BuildingId);
 
         await service.LeaveAllForUserAsync(1);
     }
@@ -139,6 +157,7 @@ public class VillagePresenceServiceTests
 
         const long planetId = 900_006;
         const long mapId = 1;
+        PrepareMap(scope, planetId, mapId);
 
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 0, 0);
 
@@ -161,6 +180,8 @@ public class VillagePresenceServiceTests
         var service = Resolve(scope);
 
         const long planetId = 900_007;
+        PrepareMap(scope, planetId, 1);
+        PrepareMap(scope, planetId, 2);
 
         Assert.False(service.Move(planetId, 1, userId: 99, 1, 1, VillageFacing.Down, null));
 
@@ -180,6 +201,7 @@ public class VillagePresenceServiceTests
 
         const long planetId = 900_011;
         const long mapId = 1;
+        PrepareMap(scope, planetId, mapId);
 
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 2, 2);
 
@@ -193,7 +215,7 @@ public class VillagePresenceServiceTests
     }
 
     [Fact]
-    public async Task BuildingOccupants_TracksWhoIsInside()
+    public async Task BuildingOccupants_TracksEveryoneOnTheInteriorMap()
     {
         using var scope = CreateScope();
         var service = Resolve(scope);
@@ -201,14 +223,15 @@ public class VillagePresenceServiceTests
         const long planetId = 900_008;
         const long mapId = 1;
         const long buildingId = 7;
+        PrepareMap(scope, planetId, mapId, parentBuildingId: buildingId);
 
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 0, 0);
         await service.JoinMapAsync(planetId, mapId, userId: 2, memberId: 22, "Grace", "g", 5, 5);
 
-        service.Move(planetId, mapId, 1, 1, 0, VillageFacing.Down, buildingId);
-
         var occupants = service.GetBuildingOccupants(planetId, buildingId);
-        Assert.Equal(1, Assert.Single(occupants).UserId);
+        Assert.Equal(2, occupants.Count);
+        Assert.Contains(occupants, x => x.UserId == 1);
+        Assert.Contains(occupants, x => x.UserId == 2);
 
         await service.LeaveAllForUserAsync(1);
         await service.LeaveAllForUserAsync(2);
@@ -223,6 +246,7 @@ public class VillagePresenceServiceTests
         const long planetId = 900_012;
         const long mapId = 2;
         const long buildingId = 77;
+        PrepareMap(scope, planetId, mapId, parentBuildingId: buildingId);
 
         await service.JoinMapAsync(
             planetId,
@@ -251,6 +275,7 @@ public class VillagePresenceServiceTests
 
         const long planetId = 900_009;
         const long mapId = 3;
+        PrepareMap(scope, planetId, mapId);
 
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 0, 0);
         Assert.Single(service.GetMapOccupants(planetId, mapId));
@@ -269,6 +294,7 @@ public class VillagePresenceServiceTests
 
         const long planetId = 900_010;
         const long mapId = 1;
+        PrepareMap(scope, planetId, mapId);
 
         await service.JoinMapAsync(planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 0, 0);
         await service.JoinMapAsync(planetId, mapId, userId: 2, memberId: 22, "Grace", "g", 1, 1);
@@ -289,5 +315,55 @@ public class VillagePresenceServiceTests
         Assert.NotEqual(
             VillagePresenceService.GetGroupId(5, 9),
             VillagePresenceService.GetGroupId(5, 10));
+    }
+
+    [Fact]
+    public async Task Move_RejectsBlockedAndOutOfBoundsDestinations()
+    {
+        using var scope = CreateScope();
+        var service = Resolve(scope);
+
+        const long planetId = 900_013;
+        const long mapId = 1;
+        PrepareMap(scope, planetId, mapId, blocked: [(2, 1)]);
+
+        await service.JoinMapAsync(
+            planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 1, 1);
+
+        Assert.False(service.Move(
+            planetId, mapId, 1, 2, 1, VillageFacing.Right, null));
+
+        var presence = Assert.Single(service.GetMapOccupants(planetId, mapId));
+        Assert.Equal(1, presence.X);
+        Assert.Equal(1, presence.Y);
+
+        await service.LeaveAllForUserAsync(1);
+
+        const long edgeMapId = 2;
+        PrepareMap(scope, planetId, edgeMapId);
+        await service.JoinMapAsync(
+            planetId, edgeMapId, userId: 2, memberId: 22, "Grace", "g", 0, 0);
+
+        Assert.False(service.Move(
+            planetId, edgeMapId, 2, -1, 0, VillageFacing.Left, null));
+
+        await service.LeaveAllForUserAsync(2);
+    }
+
+    [Fact]
+    public async Task JoinMap_RejectsUnknownOrBlockedMapLocation()
+    {
+        using var scope = CreateScope();
+        var service = Resolve(scope);
+
+        const long planetId = 900_014;
+        const long mapId = 1;
+        PrepareMap(scope, planetId, mapId, blocked: [(4, 5)]);
+
+        Assert.Null(await service.JoinMapAsync(
+            planetId, mapId, userId: 1, memberId: 11, "Ada", "a", 4, 5));
+        Assert.Null(await service.JoinMapAsync(
+            planetId, mapId: 99, userId: 1, memberId: 11, "Ada", "a", 1, 1));
+        Assert.Empty(service.GetMapOccupants(planetId, mapId));
     }
 }

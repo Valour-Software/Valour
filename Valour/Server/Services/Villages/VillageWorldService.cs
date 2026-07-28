@@ -180,7 +180,7 @@ public class VillageWorldService
 
             foreach (var item in objects.Where(x => x.MapId == map.Id))
             {
-                var footprint = GetObjectFootprint(item.DefinitionKey);
+                var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
                 var decoration = new VillagePocDecoration
                 {
                     Kind = item.DefinitionKey,
@@ -298,29 +298,6 @@ public class VillageWorldService
 
         return scene;
     }
-
-    private static (int Width, int Height) GetObjectFootprint(string definitionKey) =>
-        definitionKey switch
-        {
-            "small-tree" or
-            "small-tree.with-grass" or
-            "small-tree-planter" or
-            "small-tree-planter.square" => (2, 1),
-            "trees.large-tree" or
-            "trees.large-tree.with-grass" or
-            "trees.large-tree-planter" or
-            "large-tree-planter.square" => (3, 1),
-            "furniture.park-bench" => (2, 1),
-            "decor.stone-fountain" => (2, 2),
-            "garden.flowers.white" or
-            "garden.flowers.pink" or
-            "garden.flowers.red" or
-            "garden.planter.white" or
-            "garden.planter.yellow" or
-            "garden.planter.pink" => (2, 1),
-            "commerce.market-stall" => (2, 1),
-            _ => (1, 1),
-        };
 
     private static string? ResolveOwnerName(
         IReadOnlyDictionary<long, PlanetMemberEntity> owners,

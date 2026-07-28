@@ -101,14 +101,22 @@ Points that are easy to get wrong:
 - Collision is **derived from the authored objects** — an object that blocks, a
   building footprint, a map-level blocker — rather than a parallel list kept in sync
   by hand. The proof of concept maintained both and they drifted.
+- Map joins warm a process-wide immutable collision snapshot derived from bounds,
+  object tileset masks, building footprints, authored doors, and chunk
+  `CollisionData`; movement packets perform only an in-memory lookup. Chunk
+  collision is JSON containing either a row-major 32×32 boolean array or
+  `{ "blocked": [tileIndex, ...] }`. Malformed chunks are blocked fail-closed.
+  Map-authoring writes must call `VillageCollisionService.InvalidateMap` after
+  committing a collision-affecting change.
 - Walking through a door moves the client between presence groups as well as maps.
 - Interiors use a distinct stone floor and arrive furnished as meeting rooms. The
   parent building remains the room context while the member is inside, so chat,
   voice, occupancy, and the exit all agree about where the member is.
-- Map transitions send the runtime's actual destination tile and building context
-  back to presence. Rejoining at the default spawn instead makes the next legitimate
-  step look like a forged teleport. Interiors render one integer zoom step closer
-  than outdoors so their smaller maps retain a camera-follow range.
+- Map transitions send the runtime's actual destination tile back to presence.
+  Building context is derived from the persisted map rather than trusted from the
+  client. Rejoining at the default spawn instead makes the next legitimate step
+  look like a forged teleport. Interiors render one integer zoom step closer than
+  outdoors so their smaller maps retain a camera-follow range.
 - The toolbar buttons step zoom through the familiar 25% levels, while the mouse
   wheel and trackpad steer a continuous multiplicative target; both ease toward
   their destination in the frame loop rather than snapping. Relative zoom is
@@ -449,9 +457,6 @@ is open so the world never collapses under stacked panels.
   tile/sprite format does not yet bridge to the runtime scene format. Exports
   already carry the terrain grid alongside the resolved tiles so loading can
   restore ruleset painting, not just pixels.
-- **Server-side collision validation.** Same-map teleports are rejected, but object
-  and chunk collision is still enforced client-side; `CollisionData` is stored so
-  the server can validate it without trusting the renderer.
 - **Character appearance.** Characters are member avatars drawn as tokens. Layered
   sprite composition, and the directionality `VillageFacing` already carries, are
   open.

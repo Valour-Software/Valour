@@ -15,6 +15,7 @@ namespace Valour.Server.Services.Villages;
 public class VillagePresenceService
 {
     private readonly CoreHubService _hubService;
+    private readonly VillageCollisionService _collisionService;
 
     /// <summary>
     /// PlanetId -> UserId -> presence. Keyed by user rather than by map so a
@@ -32,9 +33,12 @@ public class VillagePresenceService
 
     private static readonly ConcurrentDictionary<long, long> LastMoveTicks = new();
 
-    public VillagePresenceService(CoreHubService hubService)
+    public VillagePresenceService(
+        CoreHubService hubService,
+        VillageCollisionService collisionService)
     {
         _hubService = hubService;
+        _collisionService = collisionService;
     }
 
     public static string GetGroupId(long planetId, long mapId) => $"v-{planetId}-{mapId}";
@@ -43,7 +47,7 @@ public class VillagePresenceService
     /// Places a member on a map and returns the occupancy they should see.
     /// Joining a map implicitly leaves whichever map they were on before.
     /// </summary>
-    public async Task<VillagePresenceSnapshot> JoinMapAsync(
+    public async Task<VillagePresenceSnapshot?> JoinMapAsync(
         long planetId,
         long mapId,
         long userId,
@@ -54,6 +58,10 @@ public class VillagePresenceService
         int y,
         long? buildingId = null)
     {
+        var collisionMap = await _collisionService.GetMapAsync(planetId, mapId);
+        if (collisionMap is null || !collisionMap.IsWalkable(x, y))
+            return null;
+
         var planetPresences = Presences.GetOrAdd(planetId, _ => new ConcurrentDictionary<long, VillagePresence>());
 
         if (planetPresences.TryGetValue(userId, out var existing) && existing.MapId != mapId)
@@ -70,7 +78,10 @@ public class VillagePresenceService
             X = x,
             Y = y,
             Facing = VillageFacing.Down,
-            BuildingId = buildingId,
+            // Spatial context belongs to the map, not to an untrusted packet.
+            // In particular this prevents claiming an auto-room lease merely
+            // by sending a building id while standing outside.
+            BuildingId = collisionMap.ParentBuildingId,
         };
 
         planetPresences[userId] = presence;
@@ -107,6 +118,12 @@ public class VillagePresenceService
         if (distance != 1)
             return false;
 
+        if (!_collisionService.IsWalkable(planetId, mapId, x, y))
+            return false;
+
+        if (!Enum.IsDefined(facing))
+            return false;
+
         var now = DateTime.UtcNow.Ticks;
         var last = LastMoveTicks.GetValueOrDefault(userId);
         if (last != 0 && (now - last) < TimeSpan.TicksPerMillisecond * MinMoveIntervalMs)
@@ -117,7 +134,9 @@ public class VillagePresenceService
         presence.X = x;
         presence.Y = y;
         presence.Facing = facing;
-        presence.BuildingId = buildingId;
+        // Building context is invariant for a map: outdoor maps have none and
+        // an interior carries its persisted ParentBuildingId.
+        var authoritativeBuildingId = presence.BuildingId;
 
         _hubService.NotifyVillagePresenceMoved(planetId, mapId, new VillagePresenceMove
         {
@@ -127,7 +146,7 @@ public class VillagePresenceService
             X = x,
             Y = y,
             Facing = facing,
-            BuildingId = buildingId,
+            BuildingId = authoritativeBuildingId,
         });
 
         return true;
