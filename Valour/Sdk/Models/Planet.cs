@@ -299,6 +299,14 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         await Client.PlanetService.FetchMemberAsync(id, this, skipCache);
 
     /// <summary>
+    /// Returns a specific set of members in one request.
+    /// </summary>
+    public Task<TaskResult<List<PlanetMember>>> FetchMembersAsync(
+        IEnumerable<long> ids,
+        bool skipCache = false) =>
+        Client.PlanetService.FetchMembersAsync(ids, this, skipCache);
+
+    /// <summary>
     /// Returns the member for the given id
     /// </summary>
     public ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, bool skipCache = false) =>

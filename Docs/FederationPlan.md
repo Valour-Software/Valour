@@ -210,7 +210,10 @@ community nodes.
    so `content-length-range` can enforce size caps server-side; key prefix
    scoped per planet/user; short expiry).
 3. Client uploads **directly to the owner's bucket**. Valour transfers zero
-   bytes.
+   bytes. Browser and hybrid clients keep the selected file as a browser-native
+   `File` and upload it directly rather than materializing one or more complete
+   managed byte-array copies. SHA-256 reporting is computed as a bounded-memory
+   stream before upload.
 4. Client attaches the resulting public URL; the client also reports the
    file's SHA-256, stored on the attachment record for forensics/reporting
    (client-asserted, not verified — cheap and useful for abuse reports).

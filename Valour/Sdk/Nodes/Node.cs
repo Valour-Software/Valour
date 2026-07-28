@@ -900,7 +900,7 @@ public class Node : ServiceBase // each node acts like a service
             var completed = await Task.WhenAny(pingTask, Task.Delay(TimeSpan.FromSeconds(6)));
 
             if (completed != pingTask)
-                throw new TimeoutException("SignalR ping timed out.");
+                throw new HeartbeatTimeoutException("SignalR ping timed out.");
 
             var response = await pingTask;
             if (response != "pong")
@@ -929,11 +929,14 @@ public class Node : ServiceBase // each node acts like a service
         }
     }
 
-    private static bool ShouldForceReconnectForHeartbeatException(Exception ex)
+    internal static bool ShouldForceReconnectForHeartbeatException(Exception ex)
     {
         // Heartbeat checks should only force reconnect for transport-level failures.
         // Server-side invocation errors can be transient business-logic issues and
         // reconnecting repeatedly causes message loss windows.
+        if (ex is HeartbeatTimeoutException)
+            return true;
+
         if (IsPingInvocationFailure(ex))
             return false;
 
@@ -941,6 +944,13 @@ public class Node : ServiceBase // each node acts like a service
             return false;
 
         return true;
+    }
+
+    internal sealed class HeartbeatTimeoutException : TimeoutException
+    {
+        public HeartbeatTimeoutException(string message) : base(message)
+        {
+        }
     }
 
     private static bool IsPingInvocationFailure(Exception ex)

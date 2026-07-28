@@ -233,14 +233,10 @@
                 }
 
                 await using var stream = file.OpenReadStream(MaxUploadBytes);
-                using var ms = new MemoryStream();
-                await stream.CopyToAsync(ms);
-                var bytes = ms.ToArray();
-
                 using var content = new MultipartFormDataContent();
-                var byteContent = new ByteArrayContent(bytes);
-                byteContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
-                content.Add(byteContent, file.Name, file.Name);
+                using var streamContent = new StreamContent(stream);
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+                content.Add(streamContent, file.Name, file.Name);
 
                 var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/{uploadPath}", content);
                 if (!result.Success)
@@ -256,12 +252,14 @@
                     FileName = file.Name
                 };
 
+                var url = await attachment.GetSignedUrl(Client, Client.PrimaryNode);
+
                 // Displays size images from this metadata - without it the
-                // attachment preview renders 0x0
-                if (type == MessageAttachmentType.Image)
+                // attachment preview renders 0x0. Read dimensions from the
+                // uploaded URL rather than retaining a complete byte[] copy.
+                if (type == MessageAttachmentType.Image && url is not null)
                 {
-                    var blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", bytes, mime);
-                    var size = await JsRuntime.InvokeAsync<int[]>("getImageSizeAsync", blobUrl);
+                    var size = await JsRuntime.InvokeAsync<int[]>("getImageSizeAsync", url);
                     if (size is { Length: 2 })
                     {
                         attachment.Width = size[0];
@@ -271,7 +269,6 @@
 
                 _attachments.Add(attachment);
 
-                var url = await attachment.GetSignedUrl(Client, Client.PrimaryNode);
                 if (url is not null)
                     _attachmentUrls[attachment] = url;
             }

@@ -618,7 +618,7 @@
             }
             
             Console.WriteLine($"[Upload] Opening stream for {file.Name}...");
-            await ShowUploadMenu(file.OpenReadStream(maxSize), (int)file.Size, attachmentType, mime, file.Name, uploadPath);
+            await ShowUploadMenu(file, attachmentType, mime, file.Name, uploadPath);
             Console.WriteLine($"[Upload] ShowUploadMenu completed for {file.Name}");
 
             Refresh();
@@ -662,16 +662,54 @@
         };
     }
 
-    public async Task ShowUploadMenu(Stream data, int dataLength, MessageAttachmentType type, string mime, string name, string path)
+    private Task ShowUploadMenu(
+        IBrowserFile file,
+        MessageAttachmentType type,
+        string mime,
+        string name,
+        string path)
+    {
+        return ShowUploadMenuCore(
+            file,
+            _inputFileRef.Element!.Value,
+            null,
+            checked((int)file.Size),
+            type,
+            mime,
+            name,
+            path);
+    }
+
+    public async Task ShowUploadMenu(
+        Stream data,
+        int dataLength,
+        MessageAttachmentType type,
+        string mime,
+        string name,
+        string path)
+    {
+        // Processed images (for example RequestImageFileAsync compression) no
+        // longer correspond to the original input File, so retain the byte
+        // path for those comparatively small payloads.
+        await using (data)
+        {
+            using var ms = new MemoryStream();
+            await data.CopyToAsync(ms);
+            await ShowUploadMenuCore(null, default, ms.ToArray(), dataLength, type, mime, name, path);
+        }
+    }
+
+    private async Task ShowUploadMenuCore(
+        IBrowserFile file,
+        ElementReference fileInputElement,
+        byte[] bytes,
+        int dataLength,
+        MessageAttachmentType type,
+        string mime,
+        string name,
+        string path)
     {
         Console.WriteLine($"[Upload] ShowUploadMenu called: {name}, {dataLength} bytes, type={type}, path={path}");
-        
-        // Convert stream to byte array
-        using var ms = new MemoryStream();
-        await data.CopyToAsync(ms);
-        var bytes = ms.ToArray();
-        
-        Console.WriteLine($"[Upload] Stream copied, {bytes.Length} bytes read");
 
         MessageAttachment newAttachment = new(type)
         {
@@ -684,8 +722,8 @@
         var authToken = Client.AuthService.Token;
 
         // Bring-your-own-storage: uploads go directly to the planet owner's
-        // bucket, so Valour never sees the bytes. Metadata stripping must
-        // therefore happen here, client-side, before anything leaves the device.
+        // bucket, so Valour never sees the bytes. JPEG metadata stripping must
+        // therefore happen here before anything leaves the device.
         var storagePlanet = ChatComponent?.Channel?.Planet;
         var usePlanetStorage = storagePlanet is not null && storagePlanet.SelfHostedMedia;
 
@@ -694,13 +732,24 @@
             if (!await EnsurePlanetMediaConsentAsync(storagePlanet))
                 return;
 
-            if (mime is "image/jpeg" or "image/jpg")
+            if (bytes is null && mime is ("image/jpeg" or "image/jpg"))
+            {
+                await using var source = file.OpenReadStream(dataLength);
+                using var ms = new MemoryStream(dataLength);
+                await source.CopyToAsync(ms);
+                bytes = JpegMetadataStripper.Strip(ms.ToArray());
+            }
+            else if (bytes is not null && mime is ("image/jpeg" or "image/jpg"))
+            {
                 bytes = JpegMetadataStripper.Strip(bytes);
+            }
         }
 
         var modalData = new FileUploadComponent.ModalParams()
         {
             Bytes = bytes,
+            File = file,
+            FileInputElement = fileInputElement,
             Attachment = newAttachment,
             Message = PreviewMessage,
             UploadUrl = uploadUrl,
@@ -713,17 +762,17 @@
             },
             OnConfirm = async () =>
             {
-                // Fallback for old upload path (no progress)
-                var content = new MultipartFormDataContent();
-                var byteContent = new ByteArrayContent(bytes);
+                // Compatibility fallback when the progress uploader is unavailable.
+                await using var source = bytes is null ? file.OpenReadStream(dataLength) : null;
+                using var content = new MultipartFormDataContent();
+                using HttpContent fileContent = bytes is not null
+                    ? new ByteArrayContent(bytes)
+                    : new StreamContent(source);
                 if (!string.IsNullOrWhiteSpace(mime))
-                {
-                    byteContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
-                }
-                content.Add(byteContent, name, name);
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+                content.Add(fileContent, name, name);
 
                 var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/{path}", content);
-
                 if (result.Success)
                 {
                     newAttachment.Location = result.Data;
@@ -736,28 +785,50 @@
                 }
             }
         };
-        
+
         if (usePlanetStorage)
         {
             var grantChannelId = ChatComponent.Channel.Id;
-            modalData.CustomUploader = async (uploadSvc, uploadBytes, onProgress, ct) =>
+            modalData.CustomUploader = async (uploadSvc, onProgress, ct) =>
             {
-                var sha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(uploadBytes)).ToLowerInvariant();
+                byte[] hash;
+                if (bytes is not null)
+                {
+                    hash = System.Security.Cryptography.SHA256.HashData(bytes);
+                }
+                else
+                {
+                    await using var hashStream = file.OpenReadStream(dataLength);
+                    hash = await System.Security.Cryptography.SHA256.HashDataAsync(hashStream, ct);
+                }
 
+                var sha = Convert.ToHexString(hash).ToLowerInvariant();
+                var uploadSize = bytes?.LongLength ?? file.Size;
                 var grantResult = await storagePlanet.CreateMediaUploadGrantAsync(new PlanetMediaUploadRequest
                 {
                     ChannelId = grantChannelId,
                     FileName = name,
                     MimeType = mime,
-                    SizeBytes = uploadBytes.Length,
+                    SizeBytes = uploadSize,
                     Sha256 = sha,
                 });
 
                 if (!grantResult.Success || grantResult.Data is null)
                     return new UploadResult(false, null, grantResult.Message);
 
-                var putResult = await uploadSvc.UploadPutAsync(
-                    grantResult.Data.UploadUrl, uploadBytes, grantResult.Data.ContentType, onProgress, ct);
+                var putResult = bytes is not null
+                    ? await uploadSvc.UploadPutAsync(
+                        grantResult.Data.UploadUrl,
+                        bytes,
+                        grantResult.Data.ContentType,
+                        onProgress,
+                        ct)
+                    : await uploadSvc.UploadFilePutAsync(
+                        grantResult.Data.UploadUrl,
+                        fileInputElement,
+                        grantResult.Data.ContentType,
+                        onProgress,
+                        ct);
 
                 if (!putResult.Success)
                     return putResult;
@@ -768,9 +839,10 @@
             };
         }
 
-        Console.WriteLine($"[Upload] Opening FileUploadComponent modal, bytes={bytes.Length}, url={uploadUrl}, planetStorage={usePlanetStorage}");
+        Console.WriteLine(
+            $"[Upload] Opening FileUploadComponent modal, bytes={(bytes?.Length ?? 0)}, url={uploadUrl}, planetStorage={usePlanetStorage}");
         ModalRoot.OpenModal<FileUploadComponent>(modalData);
-        Console.WriteLine($"[Upload] Modal open called");
+        Console.WriteLine("[Upload] Modal open called");
     }
 
     /// <summary>
