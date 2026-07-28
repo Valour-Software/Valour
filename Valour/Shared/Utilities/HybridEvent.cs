@@ -107,12 +107,21 @@ public class HybridEvent<TEventData> : IDisposable
 
         try
         {
-            // Invoke all handlers
+            // Invoke all handlers. One throwing handler must not stop the rest
+            // or escape to the caller (on fire-and-forget paths that becomes an
+            // unobserved exception, or worse, a fatal one on some hosts).
             for (int i = 0; i < handlersCopy.Count; i++)
             {
                 if (handlersCopy[i] is not null)
                 {
-                    handlersCopy[i].Invoke(data); // No allocations, just iterating over the pooled list
+                    try
+                    {
+                        handlersCopy[i].Invoke(data); // No allocations, just iterating over the pooled list
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("[HybridEvent] Sync handler threw: " + ex);
+                    }
                 }
             }
         }
@@ -145,11 +154,29 @@ public class HybridEvent<TEventData> : IDisposable
             {
                 if (handlersCopy[i] is not null)
                 {
-                    tasks.Add(handlersCopy[i].Invoke(data));  // Add tasks to list
+                    try
+                    {
+                        var task = handlersCopy[i].Invoke(data);
+                        if (task is not null)
+                            tasks.Add(task);  // Add tasks to list
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("[HybridEvent] Async handler threw synchronously: " + ex);
+                    }
                 }
             }
 
-            await Task.WhenAll(tasks);  // Wait for all async handlers to complete
+            try
+            {
+                await Task.WhenAll(tasks);  // Wait for all async handlers to complete
+            }
+            catch (Exception ex)
+            {
+                // Invoke() fire-and-forgets this method, so a faulted handler task
+                // would otherwise surface as an unobserved exception.
+                Console.WriteLine("[HybridEvent] Async handler threw: " + ex);
+            }
         }
         finally
         {
@@ -349,12 +376,21 @@ public class HybridEvent : IDisposable
 
         try
         {
-            // Invoke all handlers
+            // Invoke all handlers. One throwing handler must not stop the rest
+            // or escape to the caller (on fire-and-forget paths that becomes an
+            // unobserved exception, or worse, a fatal one on some hosts).
             for (int i = 0; i < handlersCopy.Count; i++)
             {
                 if (handlersCopy[i] is not null)
                 {
-                    handlersCopy[i].Invoke(); // No allocations, just iterating over the pooled list
+                    try
+                    {
+                        handlersCopy[i].Invoke(); // No allocations, just iterating over the pooled list
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("[HybridEvent] Sync handler threw: " + ex);
+                    }
                 }
             }
         }
@@ -387,11 +423,29 @@ public class HybridEvent : IDisposable
             {
                 if (handlersCopy[i] is not null)
                 {
-                    tasks.Add(handlersCopy[i].Invoke());  // Add tasks to list
+                    try
+                    {
+                        var task = handlersCopy[i].Invoke();
+                        if (task is not null)
+                            tasks.Add(task);  // Add tasks to list
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("[HybridEvent] Async handler threw synchronously: " + ex);
+                    }
                 }
             }
 
-            await Task.WhenAll(tasks);  // Wait for all async handlers to complete
+            try
+            {
+                await Task.WhenAll(tasks);  // Wait for all async handlers to complete
+            }
+            catch (Exception ex)
+            {
+                // Invoke() fire-and-forgets this method, so a faulted handler task
+                // would otherwise surface as an unobserved exception.
+                Console.WriteLine("[HybridEvent] Async handler threw: " + ex);
+            }
         }
         finally
         {

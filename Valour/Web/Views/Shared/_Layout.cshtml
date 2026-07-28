@@ -62,19 +62,37 @@
     <meta property="og:locale" content="en_US">
     <meta name="twitter:site" content="@@valourapp">
 
-    <script type="application/ld+json">
-    {
-        "@@context": "https://schema.org",
-        "@@type": "Organization",
-        "name": "Valour",
-        "url": "https://valour.gg",
-        "logo": "https://valour.gg/media/logo/logo-256.png",
-        "sameAs": [
-            "https://github.com/Valour-Software/Valour",
-            "https://x.com/valourapp"
-        ]
+    @{
+        // Emitted via Html.Raw: Razor entity-encodes the + in "ld+json" when
+        // the element is treated as dynamic, which breaks structured-data
+        // parsing. WebSite is what Google's site-name feature reads.
+        var structuredData = """
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@type": "Organization",
+                    "name": "Valour",
+                    "url": "https://valour.gg",
+                    "logo": "https://valour.gg/media/logo/logo-256.png",
+                    "sameAs": [
+                        "https://github.com/Valour-Software/Valour",
+                        "https://x.com/valourapp"
+                    ]
+                },
+                {
+                    "@type": "WebSite",
+                    "name": "Valour",
+                    "alternateName": ["valour.gg", "Valour Chat"],
+                    "url": "https://valour.gg"
+                }
+            ]
+        }
+        </script>
+        """;
     }
-    </script>
+    @Html.Raw(structuredData)
     <meta name="msapplication-TileColor" content="#2d89ef">
     <meta name="theme-color" content="#00FAFF">
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css"/>
