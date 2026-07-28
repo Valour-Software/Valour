@@ -161,6 +161,31 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<PlanetWebhook> PlanetWebhooks { get; set; }
 
     /// <summary>
+    /// Table for village maps
+    /// </summary>
+    public DbSet<VillageMap> VillageMaps { get; set; }
+
+    /// <summary>
+    /// Table for village map chunks
+    /// </summary>
+    public DbSet<VillageMapChunk> VillageMapChunks { get; set; }
+
+    /// <summary>
+    /// Table for village plots
+    /// </summary>
+    public DbSet<VillagePlot> VillagePlots { get; set; }
+
+    /// <summary>
+    /// Table for village buildings
+    /// </summary>
+    public DbSet<VillageBuilding> VillageBuildings { get; set; }
+
+    /// <summary>
+    /// Table for village objects
+    /// </summary>
+    public DbSet<VillageObject> VillageObjects { get; set; }
+
+    /// <summary>
     /// Table for automod triggers
     /// </summary>
     public DbSet<AutomodTrigger> AutomodTriggers { get; set; }
@@ -369,6 +394,11 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         Report.SetupDbModel(modelBuilder);
         PlanetInvite.SetupDbModel(modelBuilder);
         PlanetWebhook.SetupDbModel(modelBuilder);
+        VillageMap.SetupDbModel(modelBuilder);
+        VillageMapChunk.SetupDbModel(modelBuilder);
+        VillagePlot.SetupDbModel(modelBuilder);
+        VillageBuilding.SetupDbModel(modelBuilder);
+        VillageObject.SetupDbModel(modelBuilder);
         AuthToken.SetupDbModel(modelBuilder);
         OauthApp.SetupDbModel(modelBuilder);
         Channel.SetupDbModel(modelBuilder);

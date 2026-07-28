@@ -81,6 +81,10 @@
                 {
                     <ThreadsDirectorySection Planet="@Planet"/>
                 }
+                @if (Planet.EnableVillage)
+                {
+                    <VillageDirectorySection Planet="@Planet"/>
+                }
 
                 @foreach (var root in RootChannels)
                 {
@@ -219,6 +223,11 @@
 
     public bool ShouldShowChannel(Channel channel)
     {
+        // Village area rooms are transport channels, not permanent navigation.
+        // They only surface inside the village meeting/chat UI.
+        if (ISharedChannel.IsVillageEphemeral(channel))
+            return false;
+
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
             return true;
 

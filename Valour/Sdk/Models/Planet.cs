@@ -80,6 +80,31 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public readonly ModelStore<PlanetWebhook, long> Webhooks = new();
 
     /// <summary>
+    /// The loaded village maps of this planet
+    /// </summary>
+    public readonly ModelStore<VillageMap, long> VillageMaps = new();
+
+    /// <summary>
+    /// The loaded village map chunks of this planet. Will not contain all chunks.
+    /// </summary>
+    public readonly ModelStore<VillageMapChunk, long> VillageMapChunks = new();
+
+    /// <summary>
+    /// The loaded village plots of this planet
+    /// </summary>
+    public readonly ModelStore<VillagePlot, long> VillagePlots = new();
+
+    /// <summary>
+    /// The loaded village buildings of this planet
+    /// </summary>
+    public readonly ModelStore<VillageBuilding, long> VillageBuildings = new();
+
+    /// <summary>
+    /// The loaded village objects of this planet
+    /// </summary>
+    public readonly ModelStore<VillageObject, long> VillageObjects = new();
+
+    /// <summary>
     /// The loaded permission nodes of this planet
     /// </summary>
     public readonly ModelStore<PermissionsNode, long> PermissionsNodes = new();
@@ -243,6 +268,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// True if the docs/wiki is enabled for this planet
     /// </summary>
     public bool EnableWiki { get; set; }
+
+    /// <summary>
+    /// True if the village is enabled for this planet
+    /// </summary>
+    public bool EnableVillage { get; set; }
 
     /// <summary>
     /// True if this planet's docs can be read publicly without an account
@@ -475,6 +505,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Threads.Dispose();
         ThreadComments.Dispose();
         WikiPages.Dispose();
+        VillageMaps.Dispose();
+        VillageMapChunks.Dispose();
+        VillagePlots.Dispose();
+        VillageBuildings.Dispose();
+        VillageObjects.Dispose();
     }
 
     public async Task EnsureReadyAsync()

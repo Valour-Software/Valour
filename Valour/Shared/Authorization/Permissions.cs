@@ -527,6 +527,7 @@ public enum PlanetPermissionsEnum
     ManageWebhooks,
 
     ManageCalendar,
+    ManageVillage,
 }
 
 /// <summary>
@@ -583,6 +584,7 @@ public static class PlanetPermissions
                 ManageWebhooks,
 
                 ManageCalendar,
+                ManageVillage,
         };
     }
 
@@ -621,6 +623,9 @@ public static class PlanetPermissions
     public static readonly PlanetPermission ManageWebhooks = new PlanetPermission(0x200000, "Manage Webhooks", "Allow members to create, edit, and delete webhooks for the planet's channels.");
 
     public static readonly PlanetPermission ManageCalendar = new PlanetPermission(0x400000, "Manage Calendar", "Allow members to create, edit, and delete events on the planet's calendar.");
+
+    // Village Permissions
+    public static readonly PlanetPermission ManageVillage = new PlanetPermission(0x800000, "Manage Village", "Allow members to edit the planet's village map, buildings, and village settings.");
 }
 
 public enum PermissionState

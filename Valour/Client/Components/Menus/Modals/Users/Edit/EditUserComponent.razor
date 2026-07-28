@@ -38,6 +38,7 @@
     private RenderFragment BotsContent => @<BotManagementComponent />;
     private RenderFragment PlatformBannerContent => @<StaffPlatformBannerComponent />;
     private RenderFragment StaffDashboardContent => @<StaffDashboardComponent />;
+    private RenderFragment TilesetToolContent => @<StaffTilesetToolComponent />;
     private RenderFragment StaffToolsContent =>
         @<TabContainerComponent Titles="@_staffTabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
             <TabOne>
@@ -249,6 +250,13 @@
                         Icon = "megaphone-fill",
                         Description = "Publish platform-wide alerts and announcements",
                         Content = PlatformBannerContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Tileset Tool",
+                        Icon = "grid-3x3-gap",
+                        Description = "Author village tile and sprite definitions",
+                        Content = TilesetToolContent
                     }
                 }
             });

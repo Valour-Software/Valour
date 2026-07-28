@@ -249,6 +249,24 @@ public class CoreHubService
     public void NotifyVoiceChannelParticipants(long planetId, VoiceChannelParticipantsUpdate update) =>
         _ = _hub.Clients.Group($"p-{planetId}").SendAsync("Voice-Channel-Participants", update);
 
+    // Village presence is scoped to a map group rather than the whole planet:
+    // a member walking around an outdoor map should not wake up every client
+    // connected to the planet. Fire-and-forget for the same reason the other
+    // high-frequency notifies are - a failed movement frame is not worth an
+    // exception, and the next one is milliseconds away.
+
+    public void NotifyVillagePresenceJoined(long planetId, long mapId, Valour.Shared.Villages.VillagePresence presence) =>
+        _ = _hub.Clients.Group(Villages.VillagePresenceService.GetGroupId(planetId, mapId))
+            .SendAsync("Village-Presence-Joined", presence);
+
+    public void NotifyVillagePresenceMoved(long planetId, long mapId, Valour.Shared.Villages.VillagePresenceMove move) =>
+        _ = _hub.Clients.Group(Villages.VillagePresenceService.GetGroupId(planetId, mapId))
+            .SendAsync("Village-Presence-Moved", move);
+
+    public void NotifyVillagePresenceLeft(long planetId, long mapId, Valour.Shared.Villages.VillagePresenceLeft left) =>
+        _ = _hub.Clients.Group(Villages.VillagePresenceService.GetGroupId(planetId, mapId))
+            .SendAsync("Village-Presence-Left", left);
+
     public void NotifyPlanetItemChange<T>(long planetId, T model, int flags = 0) =>
         _ = _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
     

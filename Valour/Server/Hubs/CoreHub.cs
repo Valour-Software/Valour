@@ -12,6 +12,8 @@ using Valour.Shared.Models.Staff;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using Valour.Shared.Villages;
+
 namespace Valour.Server.Hubs;
 
 public class CoreHub : Hub
@@ -29,6 +31,8 @@ public class CoreHub : Hub
     private readonly ChannelWatchingService _channelWatchingService;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly UserService _userService;
+    private readonly Valour.Server.Services.Villages.VillagePresenceService _villagePresenceService;
+    private readonly Valour.Server.Services.Villages.VillageRoomService _villageRoomService;
 
     public CoreHub(
         ValourDb db,
@@ -41,7 +45,9 @@ public class CoreHub : Hub
         UserOnlineQueueService onlineQueue,
         ChannelWatchingService channelWatchingService,
         HostedPlanetService hostedPlanetService,
-        UserService userService)
+        UserService userService,
+        Valour.Server.Services.Villages.VillagePresenceService villagePresenceService,
+        Valour.Server.Services.Villages.VillageRoomService villageRoomService)
     {
         _db = db;
         _hubService = hubService;
@@ -54,6 +60,8 @@ public class CoreHub : Hub
         _channelWatchingService = channelWatchingService;
         _hostedPlanetService = hostedPlanetService;
         _userService = userService;
+        _villagePresenceService = villagePresenceService;
+        _villageRoomService = villageRoomService;
     }
 
     public async Task<TaskResult> Authorize(string token)
@@ -96,7 +104,14 @@ public class CoreHub : Hub
     {
         var authToken = _connectionTracker.GetToken(Context.ConnectionId);
         if (authToken is not null)
+        {
             await _channelWatchingService.ClearConnectionAsync(authToken.UserId, Context.ConnectionId);
+
+            // Otherwise a dropped connection leaves a character standing in the
+            // village until the node restarts.
+            await _villagePresenceService.LeaveAllForUserAsync(authToken.UserId);
+            await _villageRoomService.ReleaseAllForUserAsync(authToken.UserId);
+        }
 
         await _connectionTracker.RemovePrimaryConnectionAsync(Context, _redis);
         await _connectionTracker.RemoveAllMembershipsAsync(Context);
@@ -289,6 +304,75 @@ public class CoreHub : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
     }
 
+    /// <summary>
+    /// Places the caller onto a village map and returns everyone already there.
+    /// Presence is scoped to a per-map group so movement on one map does not
+    /// reach clients standing on another.
+    /// </summary>
+    public async Task<VillagePresenceSnapshot> JoinVillageMap(
+        long planetId,
+        long mapId,
+        int x,
+        int y,
+        long? buildingId)
+    {
+        var authToken = await GetValidAuthTokenAsync();
+        if (authToken is null)
+            return null;
+
+        var member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
+        if (member is null)
+            return null;
+
+        var groupId = Valour.Server.Services.Villages.VillagePresenceService.GetGroupId(planetId, mapId);
+        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
+
+        var name = string.IsNullOrWhiteSpace(member.Nickname)
+            ? member.User?.Name ?? "Member"
+            : member.Nickname;
+
+        var avatarUrl = Valour.Shared.Models.ISharedPlanetMember.GetAvatar(
+            member, Valour.Shared.Models.AvatarFormat.Webp64);
+
+        return await _villagePresenceService.JoinMapAsync(
+            planetId, mapId, authToken.UserId, member.Id, name, avatarUrl, x, y, buildingId);
+    }
+
+    public async Task LeaveVillageMap(long planetId, long mapId)
+    {
+        var authToken = await GetValidAuthTokenAsync();
+        if (authToken is null)
+            return;
+
+        var groupId = Valour.Server.Services.Villages.VillagePresenceService.GetGroupId(planetId, mapId);
+        await _connectionTracker.UntrackGroupMembershipAsync(groupId, Context);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
+
+        await _villagePresenceService.LeaveMapAsync(planetId, mapId, authToken.UserId);
+    }
+
+    /// <summary>
+    /// Reports the caller's new tile. Deliberately returns nothing: this is the
+    /// hot path, and a client that has already moved locally has no use for an
+    /// ack it would have to reconcile against.
+    /// </summary>
+    public async Task MoveInVillage(long planetId, long mapId, int x, int y, int facing, long? buildingId)
+    {
+        var authToken = await GetValidAuthTokenAsync();
+        if (authToken is null)
+            return;
+
+        _villagePresenceService.Move(
+            planetId,
+            mapId,
+            authToken.UserId,
+            x,
+            y,
+            (VillageFacing)facing,
+            buildingId);
+    }
+
     public async Task<TaskResult> RefreshActiveChannelView(long channelId)
     {
         var authToken = await GetValidAuthTokenAsync();
@@ -362,4 +446,3 @@ public class CoreHub : Hub
             .AnyAsync(x => x.ChannelId == channelId && x.UserId == userId);
     }
 }
-

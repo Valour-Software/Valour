@@ -119,6 +119,11 @@ public interface ISharedPlanet : ISharedModel<long>
     bool EnableWiki { get; set; }
 
     /// <summary>
+    /// True if the village is enabled for this planet
+    /// </summary>
+    bool EnableVillage { get; set; }
+
+    /// <summary>
     /// True if this planet's docs can be read publicly without an account
     /// </summary>
     bool PublicWiki { get; set; }

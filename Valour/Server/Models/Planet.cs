@@ -97,6 +97,11 @@ public class Planet : ServerModel<long>, ISharedPlanet
     public bool EnableWiki { get; set; }
 
     /// <summary>
+    /// True if the village is enabled for this planet
+    /// </summary>
+    public bool EnableVillage { get; set; }
+
+    /// <summary>
     /// True if this planet's docs can be read publicly without an account
     /// </summary>
     public bool PublicWiki { get; set; }

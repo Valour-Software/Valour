@@ -32,6 +32,7 @@ public static class PlanetMapper
             PublicThreads = planet.PublicThreads,
             PinnedThreadId = planet.PinnedThreadId,
             EnableWiki = planet.EnableWiki,
+            EnableVillage = planet.EnableVillage,
             PublicWiki = planet.PublicWiki,
             EnableCalendar = planet.EnableCalendar,
             Vanity = planet.Vanity,
@@ -64,6 +65,7 @@ public static class PlanetMapper
         dbPlanet.PublicThreads = planet.PublicThreads;
         dbPlanet.PinnedThreadId = planet.PinnedThreadId;
         dbPlanet.EnableWiki = planet.EnableWiki;
+        dbPlanet.EnableVillage = planet.EnableVillage;
         dbPlanet.PublicWiki = planet.PublicWiki;
         dbPlanet.EnableCalendar = planet.EnableCalendar;
         dbPlanet.ActivityNotificationCadence = planet.ActivityNotificationCadence;

@@ -1861,6 +1861,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("enable_threads");
 
+                    b.Property<bool>("EnableVillage")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enable_village");
+
                     b.Property<bool>("EnableWiki")
                         .HasColumnType("boolean")
                         .HasColumnName("enable_wiki");
@@ -4318,6 +4322,327 @@ namespace Valour.Database.Migrations
                     b.ToTable("user_subscriptions", (string)null);
                 });
 
+            modelBuilder.Entity("Valour.Database.VillageBuilding", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("DoorX")
+                        .HasColumnType("integer")
+                        .HasColumnName("door_x");
+
+                    b.Property<int>("DoorY")
+                        .HasColumnType("integer")
+                        .HasColumnName("door_y");
+
+                    b.Property<bool>("ForSale")
+                        .HasColumnType("boolean")
+                        .HasColumnName("for_sale");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<long?>("InteriorMapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("interior_map_id");
+
+                    b.Property<long>("MapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("map_id");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("OwnerMemberId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_member_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<long?>("PlotId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("plot_id");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric")
+                        .HasColumnName("price");
+
+                    b.Property<string>("SpriteKey")
+                        .HasColumnType("text")
+                        .HasColumnName("sprite_key");
+
+                    b.Property<int>("VoiceMode")
+                        .HasColumnType("integer")
+                        .HasColumnName("voice_mode");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.Property<int>("X")
+                        .HasColumnType("integer")
+                        .HasColumnName("x");
+
+                    b.Property<int>("Y")
+                        .HasColumnType("integer")
+                        .HasColumnName("y");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("village_buildings", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageMap", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AmbientColor")
+                        .HasColumnType("text")
+                        .HasColumnName("ambient_color");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<int>("MapType")
+                        .HasColumnType("integer")
+                        .HasColumnName("map_type");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("ParentBuildingId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("parent_building_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<int>("SpawnX")
+                        .HasColumnType("integer")
+                        .HasColumnName("spawn_x");
+
+                    b.Property<int>("SpawnY")
+                        .HasColumnType("integer")
+                        .HasColumnName("spawn_y");
+
+                    b.Property<int>("TileSize")
+                        .HasColumnType("integer")
+                        .HasColumnName("tile_size");
+
+                    b.Property<string>("TilesetKey")
+                        .HasColumnType("text")
+                        .HasColumnName("tileset_key");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("village_maps", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageMapChunk", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ChunkX")
+                        .HasColumnType("integer")
+                        .HasColumnName("chunk_x");
+
+                    b.Property<int>("ChunkY")
+                        .HasColumnType("integer")
+                        .HasColumnName("chunk_y");
+
+                    b.Property<string>("CollisionData")
+                        .HasColumnType("text")
+                        .HasColumnName("collision_data");
+
+                    b.Property<string>("LayerData")
+                        .HasColumnType("text")
+                        .HasColumnName("layer_data");
+
+                    b.Property<long>("MapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("map_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("MapId", "ChunkX", "ChunkY")
+                        .IsUnique();
+
+                    b.ToTable("village_map_chunks", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageObject", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("BlocksMovement")
+                        .HasColumnType("boolean")
+                        .HasColumnName("blocks_movement");
+
+                    b.Property<string>("DefinitionKey")
+                        .HasColumnType("text")
+                        .HasColumnName("definition_key");
+
+                    b.Property<long>("MapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("map_id");
+
+                    b.Property<long?>("OwnerMemberId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_member_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<int>("Rotation")
+                        .HasColumnType("integer")
+                        .HasColumnName("rotation");
+
+                    b.Property<int>("X")
+                        .HasColumnType("integer")
+                        .HasColumnName("x");
+
+                    b.Property<int>("Y")
+                        .HasColumnType("integer")
+                        .HasColumnName("y");
+
+                    b.Property<int>("ZIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("z_index");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("village_objects", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillagePlot", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("EditMode")
+                        .HasColumnType("integer")
+                        .HasColumnName("edit_mode");
+
+                    b.Property<bool>("ForSale")
+                        .HasColumnType("boolean")
+                        .HasColumnName("for_sale");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<long>("MapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("map_id");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("OwnerMemberId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_member_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric")
+                        .HasColumnName("price");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.Property<int>("X")
+                        .HasColumnType("integer")
+                        .HasColumnName("x");
+
+                    b.Property<int>("Y")
+                        .HasColumnType("integer")
+                        .HasColumnName("y");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("village_plots", (string)null);
+                });
+
             modelBuilder.Entity("planet_tags", b =>
                 {
                     b.Property<long>("planet_id")
@@ -5094,6 +5419,61 @@ namespace Valour.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageBuilding", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageMap", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageMapChunk", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageObject", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillagePlot", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
                 });
 
             modelBuilder.Entity("planet_tags", b =>

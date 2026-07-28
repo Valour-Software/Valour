@@ -64,6 +64,7 @@ public class ValourClient
     public readonly AttachmentService AttachmentService;
     public readonly ThreadService ThreadService;
     public readonly WikiService WikiService;
+    public readonly VillageService VillageService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -145,6 +146,7 @@ public class ValourClient
         AttachmentService = new AttachmentService(this);
         ThreadService = new ThreadService(this);
         WikiService = new WikiService(this);
+        VillageService = new VillageService(this);
 
         KlipyService = new KlipyService(this);
     }

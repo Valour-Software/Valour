@@ -747,6 +747,34 @@ function clearVideoElement(videoElement) {
     videoElement.srcObject = null;
 }
 
+/**
+ * Returns a participant's microphone stream so it can be routed through a Web
+ * Audio graph, which is how the village does positional voice. Returns null
+ * when the participant is not publishing audio, is muted, or is the local user
+ * - hearing yourself panned around the map would be worse than useless.
+ */
+export function getParticipantAudioStream(participantId) {
+    if (!isInitialized()) {
+        return null;
+    }
+
+    const participant = getParticipantBySid(participantId);
+    if (!participant || participant.sid === getLocalParticipant()?.sid) {
+        return null;
+    }
+
+    if (!participant.isMicrophoneEnabled) {
+        return null;
+    }
+
+    const track = getMicMediaStreamTrack(participant);
+    if (!track) {
+        return null;
+    }
+
+    return new MediaStream([track]);
+}
+
 export function syncParticipantVideo(elementId, participantId, preferScreenShare = true) {
     getRoomOrThrow();
     const videoElement = getVideoElement(elementId);

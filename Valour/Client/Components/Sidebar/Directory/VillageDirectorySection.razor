@@ -1,0 +1,47 @@
+@implements IDisposable
+@inject ValourClient Client
+@using Valour.Client.Components.Windows.Villages
+
+<div class="channel planet-village @(_isOpen ? "open" : "")" @onclick="OnClickHeader">
+    <i class="bi bi-house-heart planet-pseudo-icon"></i>
+    <p class="name">Village</p>
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _isOpen;
+
+    protected override void OnInitialized()
+    {
+        VillageWindowComponent.SelectionsChanged += OnVillageWindowsChanged;
+        _isOpen = VillageWindowComponent.IsOpenForPlanet(Planet.Id);
+    }
+
+    /// <summary>
+    /// Lights the row up like an open channel while any village window for this
+    /// planet is open
+    /// </summary>
+    private void OnVillageWindowsChanged()
+    {
+        var open = VillageWindowComponent.IsOpenForPlanet(Planet.Id);
+        if (open == _isOpen)
+            return;
+
+        _isOpen = open;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnClickHeader()
+    {
+        var content = VillageWindowComponent.GetDefaultContent(Planet);
+        await WindowService.OpenWindowAtFocused(content);
+        await Sidebar.ToggleMobileSidebar();
+    }
+
+    public void Dispose()
+    {
+        VillageWindowComponent.SelectionsChanged -= OnVillageWindowsChanged;
+    }
+}

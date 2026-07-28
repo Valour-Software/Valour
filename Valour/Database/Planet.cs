@@ -150,6 +150,12 @@ public class Planet : ISharedPlanet
     public bool EnableWiki { get; set; }
 
     /// <summary>
+    /// True if the village is enabled for this planet
+    /// </summary>
+    [Column("enable_village")]
+    public bool EnableVillage { get; set; }
+
+    /// <summary>
     /// True if this planet's docs can be read publicly without an account
     /// </summary>
     [Column("public_wiki")]

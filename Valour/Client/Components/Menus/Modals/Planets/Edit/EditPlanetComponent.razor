@@ -41,6 +41,7 @@
     private RenderFragment StorageContent => @<EditPlanetStorageComponent Planet="@Data.Planet" />;
     private RenderFragment VoiceContent => @<EditPlanetVoiceComponent Planet="@Data.Planet" />;
     private RenderFragment WikiContent => @<EditPlanetWikiComponent Planet="@Data.Planet" />;
+    private RenderFragment VillageContent => @<EditPlanetVillageComponent Planet="@Data.Planet" />;
     private RenderFragment WebhooksContent => @<EditPlanetWebhooksComponent Planet="@Data.Planet" />;
     private RenderFragment FederationContent => @<EditPlanetFederationComponent Planet="@Data.Planet" />;
     private RenderFragment OwnershipContent => @<EditPlanetOwnershipComponent Planet="@Data.Planet" />;
@@ -139,6 +140,13 @@
                         Icon = "journal-text",
                         Description = "Community wiki settings",
                         Content = WikiContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Village",
+                        Icon = "house-heart",
+                        Description = "2D village members can walk around",
+                        Content = VillageContent
                     },
                     new MainMenu.MenuItem()
                     {
