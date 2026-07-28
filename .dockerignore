@@ -12,3 +12,8 @@
 .git/
 .claude/
 media-storage/
+
+# Some tooling occasionally writes Windows-style paths on macOS, creating a
+# literal "bin\Debug" directory that **/bin/ does not match. Its backslash
+# breaks MSBuild's glob walker inside Linux containers (MSB3552).
+**/bin\\Debug/

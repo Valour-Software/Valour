@@ -178,7 +178,11 @@
 
         var tagResult = await PlanetTagService.FetchTagsAsync();
         if (tagResult.Success && tagResult.Data is not null)
-            _tags = tagResult.Data;
+        {
+            // First-run surface: only the official curated tags belong here,
+            // never user-created ones
+            _tags = tagResult.Data.Where(t => t.Curated).ToList();
+        }
 
         _tagsLoading = false;
         await ReRender();

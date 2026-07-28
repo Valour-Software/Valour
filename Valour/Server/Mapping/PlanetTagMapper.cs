@@ -15,7 +15,8 @@ public static class PlanetTagMapper
             Id = planetTag.Id,
             Name = planetTag.Name,
             Slug = planetTag.Slug,
-            Created = planetTag.Created
+            Created = planetTag.Created,
+            Curated = planetTag.Curated
         };
     }
     
@@ -24,6 +25,8 @@ public static class PlanetTagMapper
         if (planetTag is null)
             return null;
         
+        // Curated is intentionally NOT copied: only seed data sets it, so a
+        // user-created tag can never mark itself curated.
         return new Valour.Database.PlanetTag()
         {
             Id = IdManager.Generate(),
