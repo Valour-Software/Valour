@@ -54,18 +54,18 @@ public class MessageService : ServiceBase
         if (!skipCache && _client.Cache.Messages.TryGet(id, out var cached))
             return cached;
         
-        var response = await _client.PrimaryNode.GetJsonAsync<Message>($"api/message/{id}");
+        var response = await _client.PrimaryNode.GetJsonAsync<Message>($"api/messages/{id}");
 
         return response.Data.Sync(_client);
     }
-    
+
     public async ValueTask<Message> FetchMessageAsync(long id, Planet planet, bool skipCache = false)
     {
         var scope = planet?.Node?.IsExternal == true ? planet.Node.Name : null;
         if (!skipCache && _client.Cache.Messages.TryGet(id, scope, out var cached))
             return cached;
-        
-        var response = await (planet?.Node ?? _client.PrimaryNode).GetJsonAsync<Message>($"api/message/{id}");
+
+        var response = await (planet?.Node ?? _client.PrimaryNode).GetJsonAsync<Message>($"api/messages/{id}");
 
         return response.Data.Sync(_client);
     }
