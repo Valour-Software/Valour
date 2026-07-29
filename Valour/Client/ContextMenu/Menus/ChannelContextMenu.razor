@@ -54,6 +54,13 @@
         </ContextMenuItem>
     }
 }
+@if (Data.Channel.PlanetId is not null)
+{
+    <ContextMenuItem OnClickAsync="@MarkAsRead">
+        <Label>Mark as Read</Label>
+        <Icon><i class="bi bi-check2-circle"></i></Icon>
+    </ContextMenuItem>
+}
 @if (HasActivityAlerts && _activityAlertsLoaded)
 {
     if (_activityAlerts == ChannelActivityAlerts.Off)
@@ -127,6 +134,42 @@
             _activityAlerts = await Data.Channel.FetchActivityAlertsAsync();
             _activityAlertsLoaded = true;
             StateHasChanged();
+        }
+    }
+
+    private async Task MarkAsRead()
+    {
+        await CloseAsync();
+
+        var channels = new List<Channel>();
+
+        if (Data.Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            CollectChannelsInCategory(Data.Channel.Id, channels);
+        }
+        else
+        {
+            channels.Add(Data.Channel);
+        }
+
+        foreach (var channel in channels)
+        {
+            Client.UnreadService.MarkChannelRead(channel.PlanetId, channel.Id);
+            _ = channel.UpdateUserState(DateTime.UtcNow);
+        }
+    }
+
+    private void CollectChannelsInCategory(long categoryId, List<Channel> results)
+    {
+        foreach (var channel in Data.Channel.Planet.Channels)
+        {
+            if (channel.ParentId != categoryId)
+                continue;
+
+            if (channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+                CollectChannelsInCategory(channel.Id, results);
+            else
+                results.Add(channel);
         }
     }
 
