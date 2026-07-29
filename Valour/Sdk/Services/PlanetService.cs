@@ -108,6 +108,16 @@ public class PlanetService : ServiceBase
     }
 
     /// <summary>
+    /// Public-facing screens (e.g. invite/discover) can be reached before login,
+    /// when SetupPrimaryNodeAsync has not yet run as part of the auth flow. This
+    /// ensures a primary node connection exists so those requests don't NRE.
+    /// </summary>
+    private Task EnsurePrimaryNodeAsync() =>
+        _client.PrimaryNode is null
+            ? _client.NodeService.SetupPrimaryNodeAsync()
+            : Task.CompletedTask;
+
+    /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
     public async ValueTask<Planet> FetchPlanetAsync(long id, bool skipCache = false)
@@ -208,8 +218,11 @@ public class PlanetService : ServiceBase
         return invite.Sync(_client);
     }
 
-    public Task<TaskResult<PlanetListInfo>> FetchInviteScreenDataAsync(string code) =>
-        _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
+    public async Task<TaskResult<PlanetListInfo>> FetchInviteScreenDataAsync(string code)
+    {
+        await EnsurePrimaryNodeAsync();
+        return await _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
+    }
 
     /// <summary>
     /// Imports a Discord server template (discord.new link or plain code) as a
@@ -225,6 +238,7 @@ public class PlanetService : ServiceBase
     /// </summary>
     public async Task<TaskResult<PlanetListInfo>> FetchPlanetInfoAsync(long planetId)
     {
+        await EnsurePrimaryNodeAsync();
         var response = await _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"api/planets/{planetId}/info");
         if (!response.Success)
             return TaskResult<PlanetListInfo>.FromFailure(response.Message);
