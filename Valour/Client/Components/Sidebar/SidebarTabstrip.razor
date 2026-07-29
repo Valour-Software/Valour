@@ -10,7 +10,9 @@
         var item = TabItems[i];
         var index = i;
 
-        <div @key="@item" class="@GetItemClass(index)" @onclick="@(async () => await OnClick(index, item))">
+        <div @key="@item" class="@GetItemClass(index)" @onclick="@(async () => await OnClick(index, item))"
+             @oncontextpress:stopPropagation="true"
+             @oncontextpress="@(async () => await OnContextPress(item))">
             <TooltipTrigger>
                 <ChildContent>
                     <div class="icon-holder">
@@ -80,6 +82,14 @@
     private string GetItemClass(int index)
     {
         return index == Sidebar.SelectedTab ? "item selected" : "item";
+    }
+
+    private async Task OnContextPress(TabStripItem item)
+    {
+        if (item.Name != "Notifications")
+            return;
+
+        await NotificationService.ClearNotificationsAsync();
     }
 
 }
