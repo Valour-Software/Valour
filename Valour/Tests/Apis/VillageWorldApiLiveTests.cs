@@ -368,6 +368,191 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Scene_ProvidesAnInGameBuildCatalogAndEditableScopes()
+    {
+        var scene = await LoadSceneAsync();
+
+        Assert.NotNull(scene);
+        Assert.False(string.IsNullOrWhiteSpace(scene!.BuildCatalogImageUrl));
+        Assert.Contains(scene.BuildCatalog, x => x.Kind == "Tile");
+        Assert.Contains(scene.BuildCatalog, x => x.Kind == "Sprite" && x.Key == "furniture.park-bench");
+
+        // This fixture owns the planet and therefore holds ManageVillage. A
+        // regular property owner receives individual CanEdit plot bounds
+        // outdoors and a whole-map grant only for their owned interiors.
+        Assert.All(scene.Maps, map => Assert.True(map.CanEdit));
+    }
+
+    [Fact]
+    public async Task BuildMode_PaintsFurnishesAndErasesPersistently()
+    {
+        var scene = await LoadSceneAsync();
+        var outdoor = scene!.Maps.Single(x => x.MapKind == "Outdoor");
+        var plot = outdoor.Plots.First(x => x.Name == "Founder's Grove");
+        var paintX = plot.X + 1;
+        var paintY = plot.Y + 1;
+        var furnitureX = plot.X + 1;
+        var furnitureY = plot.Y + 3;
+        var createdIds = new List<long>();
+
+        try
+        {
+            var outsideMap = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Furnish,
+                    DefinitionKey = "furniture.park-bench",
+                    X = int.MaxValue,
+                    Y = furnitureY,
+                });
+            Assert.False(outsideMap.Success);
+
+            var painted = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Paint,
+                    DefinitionKey = "grass.flat-grass-dark",
+                    X = paintX,
+                    Y = paintY,
+                });
+            Assert.True(painted.Success, painted.Message);
+            Assert.NotNull(painted.Data.Decoration);
+            createdIds.Add(painted.Data.Decoration.Id);
+
+            var furnished = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Furnish,
+                    DefinitionKey = "furniture.park-bench",
+                    X = furnitureX,
+                    Y = furnitureY,
+                });
+            Assert.True(furnished.Success, furnished.Message);
+            Assert.NotNull(furnished.Data.Decoration);
+            Assert.True(furnished.Data.Decoration.BlocksMovement);
+            createdIds.Add(furnished.Data.Decoration.Id);
+
+            var persisted = await LoadSceneAsync();
+            var persistedMap = persisted!.Maps.Single(x => x.Id == outdoor.Id);
+            Assert.Contains(persistedMap.GroundTiles, x => x.Id == painted.Data.Decoration.Id);
+            Assert.Contains(persistedMap.Decorations, x => x.Id == furnished.Data.Decoration.Id);
+
+            foreach (var objectId in createdIds.ToArray())
+            {
+                var erased = await _fixture.Client.VillageService.EditMapAsync(
+                    _planet,
+                    outdoor.Id,
+                    new VillageBuildRequest
+                    {
+                        Action = VillageBuildAction.Erase,
+                        ObjectId = objectId,
+                    });
+                Assert.True(erased.Success, erased.Message);
+                createdIds.Remove(objectId);
+            }
+
+            var afterErase = await LoadSceneAsync();
+            Assert.DoesNotContain(
+                afterErase!.Maps.Single(x => x.Id == outdoor.Id).GroundTiles,
+                x => x.Id == painted.Data.Decoration.Id);
+            Assert.DoesNotContain(
+                afterErase.Maps.Single(x => x.Id == outdoor.Id).Decorations,
+                x => x.Id == furnished.Data.Decoration.Id);
+        }
+        finally
+        {
+            // Keep the shared planet clean if an assertion after placement
+            // fails; later tests should never inherit editor furniture.
+            foreach (var objectId in createdIds)
+            {
+                await _fixture.Client.VillageService.EditMapAsync(
+                    _planet,
+                    outdoor.Id,
+                    new VillageBuildRequest
+                    {
+                        Action = VillageBuildAction.Erase,
+                        ObjectId = objectId,
+                    });
+            }
+        }
+    }
+
+    [Fact]
+    public async Task PropertyOwner_CanEditTheirPlotAndBuildingInteriorWithoutManagerPermission()
+    {
+        var scene = await LoadSceneAsync();
+        var outdoor = scene!.Maps.Single(x => x.MapKind == "Outdoor");
+        var plot = outdoor.Plots.First(x => x.Name == "Founder's Grove");
+        var building = outdoor.Buildings.First();
+        var interior = scene.Maps.Single(x => x.Id == building.InteriorMapId);
+        var memberId = _planet.MyMember!.Id;
+        var createdIds = new List<(long MapId, long ObjectId)>();
+
+        using var scope = _fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        var worldService = scope.ServiceProvider
+            .GetRequiredService<Valour.Server.Services.Villages.VillageWorldService>();
+        var storedPlot = await db.VillagePlots.SingleAsync(x => x.Id == plot.Id);
+        var storedBuilding = await db.VillageBuildings.SingleAsync(x => x.Id == building.Id);
+        var originalPlotOwner = storedPlot.OwnerMemberId;
+        var originalBuildingOwner = storedBuilding.OwnerMemberId;
+
+        try
+        {
+            storedPlot.OwnerMemberId = memberId;
+            storedBuilding.OwnerMemberId = memberId;
+            await db.SaveChangesAsync();
+
+            var outdoors = await worldService.EditMapAsync(
+                _planet.Id, outdoor.Id, memberId, canManageVillage: false,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Paint,
+                    DefinitionKey = "grass.flat-grass-dark",
+                    X = plot.X + 1,
+                    Y = plot.Y + 1,
+                });
+            Assert.True(outdoors.Success, outdoors.Message);
+            createdIds.Add((outdoor.Id, outdoors.Data.Decoration!.Id));
+
+            var indoors = await worldService.EditMapAsync(
+                _planet.Id, interior.Id, memberId, canManageVillage: false,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Furnish,
+                    DefinitionKey = "furniture.park-bench",
+                    X = 2,
+                    Y = 2,
+                });
+            Assert.True(indoors.Success, indoors.Message);
+            createdIds.Add((interior.Id, indoors.Data.Decoration!.Id));
+        }
+        finally
+        {
+            foreach (var (mapId, objectId) in createdIds)
+            {
+                await worldService.EditMapAsync(
+                    _planet.Id, mapId, memberId, canManageVillage: false,
+                    new VillageBuildRequest
+                    {
+                        Action = VillageBuildAction.Erase,
+                        ObjectId = objectId,
+                    });
+            }
+
+            storedPlot.OwnerMemberId = originalPlotOwner;
+            storedBuilding.OwnerMemberId = originalBuildingOwner;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    [Fact]
     public async Task Manager_CanRenameAndRedescribeABuilding()
     {
         var scene = await LoadSceneAsync();
@@ -540,6 +725,20 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
             plot.Id, _planet.Id, actorMemberId: -1, canManageVillage: false,
             new VillagePlotUpdateRequest { Name = "Hijacked" });
         Assert.False(plotResult.Success);
+
+        var buildResult = await worldService.EditMapAsync(
+            _planet.Id,
+            outdoor.Id,
+            actorMemberId: -1,
+            canManageVillage: false,
+            new VillageBuildRequest
+            {
+                Action = VillageBuildAction.Furnish,
+                DefinitionKey = "furniture.park-bench",
+                X = plot.X,
+                Y = plot.Y,
+            });
+        Assert.False(buildResult.Success);
 
         var after = await LoadSceneAsync();
         Assert.Equal(building.Name, after!.Maps.SelectMany(x => x.Buildings).Single(x => x.Id == building.Id).Name);

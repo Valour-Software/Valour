@@ -227,6 +227,16 @@
     background: var(--slight-tint);
 }
 
+.village-icon-button.active {
+    color: var(--color-warning);
+    background: var(--color-warning-soft);
+    box-shadow: inset 0 0 0 1px var(--color-warning-border);
+}
+
+.village-canvas.build-mode {
+    cursor: crosshair;
+}
+
 .village-icon-button:active,
 .composer-send:active {
     transform: scale(0.94);
@@ -573,6 +583,318 @@
     transform: translateX(-50%);
 }
 
+.village-build-panel {
+    position: absolute;
+    z-index: 7;
+    right: 50%;
+    bottom: 16px;
+    display: flex;
+    width: min(820px, calc(100% - 32px));
+    max-height: min(390px, 52vh);
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--medium-tint);
+    border-radius: 22px;
+    color: var(--font-color);
+    background: var(--modal-dark);
+    box-shadow: 0 22px 70px rgba(5, 9, 7, 0.42);
+    backdrop-filter: blur(22px) saturate(1.2);
+    transform: translateX(50%);
+}
+
+.build-panel-header,
+.build-panel-footer,
+.build-tool-row,
+.build-catalog-controls {
+    flex: 0 0 auto;
+}
+
+.build-panel-header {
+    display: flex;
+    min-height: 56px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px 8px 15px;
+    border-bottom: 1px solid var(--slight-tint);
+}
+
+.build-panel-header > div:first-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.build-panel-header strong {
+    overflow: hidden;
+    font-size: 0.9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.build-panel-actions,
+.build-saving {
+    display: flex;
+    align-items: center;
+}
+
+.build-panel-actions {
+    gap: 8px;
+}
+
+.build-saving {
+    gap: 5px;
+    color: var(--font-color-mid);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.build-saving i {
+    animation: build-spin 900ms linear infinite;
+}
+
+@keyframes build-spin {
+    to { transform: rotate(360deg); }
+}
+
+.build-tool-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--slight-tint);
+}
+
+.build-tool {
+    display: flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    color: var(--font-color-mid);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.build-tool:hover {
+    color: var(--font-color);
+    background: var(--slight-tint);
+}
+
+.build-tool.active {
+    color: var(--color-warning);
+    border-color: var(--color-warning-border);
+    background: var(--color-warning-soft);
+}
+
+.build-catalog-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px 0;
+}
+
+.build-search {
+    display: flex;
+    width: min(230px, 38%);
+    height: 34px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+    padding: 0 10px;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    color: var(--font-color-mid);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.build-search input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: var(--font-color);
+    background: transparent;
+    font: inherit;
+    font-size: 0.76rem;
+}
+
+.build-categories {
+    display: flex;
+    min-width: 0;
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.build-categories::-webkit-scrollbar {
+    display: none;
+}
+
+.build-categories button {
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--slight-tint);
+    border-radius: 999px;
+    color: var(--font-color-mid);
+    background: var(--slight-tint);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.build-categories button.active {
+    color: var(--color-success);
+    border-color: var(--color-success-border);
+    background: var(--color-success-soft);
+}
+
+.build-catalog {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 7px;
+    overflow-y: auto;
+    padding: 8px 10px 10px;
+}
+
+.build-catalog-item {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 102px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 7px 6px 8px;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    color: var(--font-color-mid);
+    background: rgba(255, 255, 255, 0.035);
+    cursor: pointer;
+    font: inherit;
+}
+
+.build-catalog-item:hover {
+    color: var(--font-color);
+    border-color: var(--medium-tint);
+    background: var(--slight-tint);
+}
+
+.build-catalog-item.active {
+    color: var(--font-color);
+    border-color: var(--color-warning-border);
+    background: var(--color-warning-soft);
+    box-shadow: inset 0 0 0 1px var(--color-warning-border);
+}
+
+.build-item-preview {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    place-items: center;
+    overflow: hidden;
+    image-rendering: pixelated;
+}
+
+.build-item-sprite {
+    display: block;
+    flex: 0 0 auto;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    transform-origin: center;
+}
+
+.build-item-name {
+    width: 100%;
+    overflow: hidden;
+    font-size: 0.69rem;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.build-item-size {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 2px 4px;
+    border-radius: 5px;
+    color: var(--font-color-mid);
+    background: rgba(0, 0, 0, 0.42);
+    font-size: 0.56rem;
+    font-weight: 800;
+}
+
+.build-empty,
+.build-erase-hint {
+    color: var(--font-color-mid);
+    font-size: 0.78rem;
+}
+
+.build-empty {
+    grid-column: 1 / -1;
+    padding: 24px;
+    text-align: center;
+}
+
+.build-erase-hint {
+    display: flex;
+    min-height: 112px;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 20px;
+}
+
+.build-erase-hint i {
+    color: var(--color-danger);
+}
+
+.build-panel-footer {
+    display: flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 11px;
+    border-top: 1px solid var(--slight-tint);
+    color: var(--font-color-mid);
+    font-size: 0.66rem;
+}
+
+.build-panel-footer > span {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 5px;
+}
+
+.build-status {
+    overflow: hidden;
+    color: var(--color-success);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.village-movement-hint.building {
+    color: rgba(193, 255, 224, 0.82);
+    border-color: var(--color-success-border);
+    background: rgba(21, 61, 43, 0.68);
+}
+
 .has-call .village-chat-composer {
     left: calc((100% - min(390px, 34vw)) / 2);
 }
@@ -815,6 +1137,29 @@
         transform: none;
     }
 
+    .village-build-panel {
+        right: 8px;
+        bottom: 8px;
+        left: 8px;
+        width: auto;
+        max-height: min(420px, 56vh);
+        border-radius: 18px;
+        transform: none;
+    }
+
+    .build-catalog-controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .build-search {
+        width: 100%;
+    }
+
+    .village-movement-hint.building {
+        display: none;
+    }
+
     .has-call .village-chat-composer {
         bottom: calc(min(48vh, 430px) + 16px);
     }
@@ -882,6 +1227,28 @@
 
     .listing-remove {
         grid-column: 1 / -1;
+    }
+
+    .build-panel-header {
+        min-height: 50px;
+    }
+
+    .build-tool-row {
+        padding: 6px 8px;
+    }
+
+    .build-catalog {
+        grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+        padding-right: 8px;
+        padding-left: 8px;
+    }
+
+    .build-catalog-item {
+        min-height: 94px;
+    }
+
+    .build-panel-footer > span:first-child {
+        display: none;
     }
 }
 

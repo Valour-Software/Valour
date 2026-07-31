@@ -247,6 +247,32 @@ payment as though the final purchase were a retry. Listing changes and purchases
 are serialized through the same per-asset lock on the planet-pinned node,
 preventing terms or ownership from changing while a buyer settles.
 
+## In-world build mode
+
+Property editing lives in the village window rather than requiring owners to open
+the standalone authoring tool. The bottom catalog is generated from the same
+embedded tileset definitions the collision service trusts, so its thumbnails,
+footprints, and blocking behavior cannot drift from server movement validation.
+Owners can furnish and paint wholly inside their editable outdoor plots and can
+edit the whole interior map of a building they own. `ManageVillage` retains a
+whole-map override. Every mutation repeats those checks server-side; the green
+client preview is guidance, never authorization.
+
+Painted surfaces are negative-Z `VillageObject` records. This matches the seeded
+world's existing ground overlays and makes a paint action atomic: it replaces the
+surface object at one tile without rewriting a 32×32 chunk or racing unrelated
+edits elsewhere in that chunk. Furniture is a normal non-negative-Z object and
+therefore participates in depth sorting and derived collision. The edit response
+carries the created decoration and removed ids, allowing the initiating client to
+patch its scene without a second GET. The ordinary planet model event still
+notifies other open village windows, which coalesce a scene refresh.
+
+Placement is serialized per map. The server rejects unknown definitions, objects
+outside map or property bounds, furnishings over entrances/buildings/other
+furniture, and erase attempts outside the actor's editable scope. Any successful
+edit invalidates the map's immutable collision snapshot before subsequent movement
+is accepted.
+
 ## Permissions
 
 `ManageVillage` (`0x800000`) gates map editing and listing property the member does

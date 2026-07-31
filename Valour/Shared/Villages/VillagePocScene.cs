@@ -28,6 +28,9 @@ public class VillagePocScene
     public long StartingMapId { get; set; }
     public List<VillagePocMap> Maps { get; set; } = new();
     public List<VillagePocCharacter> Characters { get; set; } = new();
+    public string BuildCatalogImageUrl { get; set; } = string.Empty;
+    public int BuildCatalogTileSize { get; set; } = 16;
+    public List<VillagePocCatalogItem> BuildCatalog { get; set; } = new();
 }
 
 public class VillagePocMap
@@ -50,6 +53,12 @@ public class VillagePocMap
     /// rather than rendering nothing.
     /// </summary>
     public string? TilesetKey { get; set; }
+    /// <summary>
+    /// True when the local member may edit the whole map. Outdoor property
+    /// owners normally edit individual <see cref="VillagePocPlot.CanEdit"/>
+    /// bounds instead.
+    /// </summary>
+    public bool CanEdit { get; set; }
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public long? ParentBuildingId { get; set; }
     public VillagePocPoint? SpawnTile { get; set; }
@@ -98,6 +107,7 @@ public class VillagePocPlot
     public long? OwnerMemberId { get; set; }
     public string? OwnerName { get; set; }
     public bool IsOwnedByLocalMember { get; set; }
+    public bool CanEdit { get; set; }
     public bool ForSale { get; set; }
     public decimal Price { get; set; }
     public int X { get; set; }
@@ -110,6 +120,8 @@ public class VillagePocPlot
 
 public class VillagePocDecoration
 {
+    [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
+    public long Id { get; set; }
     public string Kind { get; set; } = string.Empty;
 
     /// <summary>
@@ -123,6 +135,25 @@ public class VillagePocDecoration
     public int ZIndex { get; set; }
     public string Color { get; set; } = "#ffffff";
     public string? TextureUrl { get; set; }
+    public bool BlocksMovement { get; set; }
+    public int Rotation { get; set; }
+    [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
+    public long? OwnerMemberId { get; set; }
+    public bool IsOwnedByLocalMember { get; set; }
+}
+
+public class VillagePocCatalogItem
+{
+    public string Kind { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Key { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; } = 1;
+    public int Height { get; set; } = 1;
+    public int FootprintWidth { get; set; } = 1;
+    public int FootprintHeight { get; set; } = 1;
     public bool BlocksMovement { get; set; }
 }
 

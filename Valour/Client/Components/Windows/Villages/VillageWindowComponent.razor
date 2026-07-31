@@ -40,9 +40,15 @@ else
 
         <div class="village-overlay village-quick-controls">
             <div class="quick-control-bar">
-                <button class="village-icon-button" @onclick="ResetViewAsync" title="Center camera" aria-label="Center camera">
-                    <i class="bi bi-crosshair"></i>
-                </button>
+                @if (CanBuildCurrentMap)
+                {
+                    <button class="village-icon-button @(_buildMode ? "active" : string.Empty)"
+                            @onclick="ToggleBuildModeAsync"
+                            title="@(_buildMode ? "Close build mode" : "Furnish and paint")"
+                            aria-label="@(_buildMode ? "Close build mode" : "Open build mode")">
+                        <i class="bi bi-hammer"></i>
+                    </button>
+                }
                 <div class="village-zoom-control" role="group" aria-label="Map zoom">
                     <button class="village-zoom-button"
                             disabled="@(_zoomPercent <= 50)"
@@ -109,7 +115,7 @@ else
             </aside>
         }
 
-        @if (_selectedBuilding is not null || _selectedPlot is not null)
+        @if (!_buildMode && (_selectedBuilding is not null || _selectedPlot is not null))
         {
             <aside class="village-overlay village-inspector">
                 <div class="overlay-card village-building-card">
@@ -342,7 +348,100 @@ else
             </aside>
         }
 
-        @if (_activeChatChannel is not null)
+        @if (_buildMode)
+        {
+            <section class="village-build-panel" aria-label="Village build mode">
+                <div class="build-panel-header">
+                    <div>
+                        <span class="eyebrow">Build mode</span>
+                        <strong>@GetBuildScopeLabel()</strong>
+                    </div>
+                    <div class="build-panel-actions">
+                        @if (_buildEditInProgress)
+                        {
+                            <span class="build-saving"><i class="bi bi-arrow-repeat"></i> Saving</span>
+                        }
+                        <button class="village-icon-button compact" @onclick="ToggleBuildModeAsync" title="Done building">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="build-tool-row" role="tablist" aria-label="Build tools">
+                    <button class="@GetBuildToolClass("Furnish")" @onclick='() => SetBuildToolAsync("Furnish")'>
+                        <i class="bi bi-lamp-fill"></i><span>Furnish</span>
+                    </button>
+                    <button class="@GetBuildToolClass("Paint")" @onclick='() => SetBuildToolAsync("Paint")'>
+                        <i class="bi bi-paint-bucket"></i><span>Paint</span>
+                    </button>
+                    <button class="@GetBuildToolClass("Erase")" @onclick='() => SetBuildToolAsync("Erase")'>
+                        <i class="bi bi-eraser-fill"></i><span>Erase</span>
+                    </button>
+                </div>
+
+                @if (_buildTool == "Erase")
+                {
+                    <div class="build-erase-hint">
+                        <i class="bi bi-cursor-fill"></i>
+                        <span>Select furniture or a painted tile in your editable area to remove it.</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="build-catalog-controls">
+                        <label class="build-search">
+                            <i class="bi bi-search"></i>
+                            <input value="@_buildSearch"
+                                   @oninput="e => _buildSearch = e.Value?.ToString() ?? string.Empty"
+                                   placeholder="Search the catalog…"
+                                   aria-label="Search build catalog" />
+                        </label>
+                        @if (_buildTool == "Furnish")
+                        {
+                            <div class="build-categories">
+                                @foreach (var category in GetBuildCategories())
+                                {
+                                    <button class="@(_buildCategory == category ? "active" : string.Empty)"
+                                            @onclick="() => SetBuildCategory(category)">@category</button>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="build-catalog">
+                        @foreach (var item in GetVisibleBuildItems())
+                        {
+                            <button class="build-catalog-item @(_selectedBuildKey == item.Key ? "active" : string.Empty)"
+                                    title="@item.Name"
+                                    @onclick="() => SelectBuildItemAsync(item)">
+                                <span class="build-item-preview">
+                                    <span class="build-item-sprite" style="@GetBuildPreviewStyle(item)"></span>
+                                </span>
+                                <span class="build-item-name">@item.Name</span>
+                                @if (item.FootprintWidth > 1 || item.FootprintHeight > 1)
+                                {
+                                    <span class="build-item-size">@item.FootprintWidth×@item.FootprintHeight</span>
+                                }
+                            </button>
+                        }
+                        @if (!GetVisibleBuildItems().Any())
+                        {
+                            <div class="build-empty">No catalog items match that search.</div>
+                        }
+                    </div>
+                }
+
+                <div class="build-panel-footer">
+                    <span><i class="bi bi-cursor-fill"></i> Click a tile to @_buildTool.ToLowerInvariant()</span>
+                    @if (!string.IsNullOrWhiteSpace(_buildStatus))
+                    {
+                        <span class="build-status">@_buildStatus</span>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (!_buildMode && _activeChatChannel is not null)
         {
             <div class="village-overlay village-chat-composer">
                 <div class="composer-context">
@@ -375,8 +474,12 @@ else
             </div>
         }
 
-        <div class="village-movement-hint">
-            @if (DeviceInfo.IsMobile)
+        <div class="village-movement-hint @(_buildMode ? "building" : string.Empty)">
+            @if (_buildMode)
+            {
+                <i class="bi bi-grid-3x3-gap-fill"></i><span>Editable tiles glow · choose Done to walk normally</span>
+            }
+            else if (DeviceInfo.IsMobile)
             {
                 <i class="bi bi-hand-index-thumb-fill"></i><span>Drag anywhere to move · tap places to inspect</span>
             }
@@ -427,6 +530,14 @@ else
     private string _editChannelValue = string.Empty;
     private string? _actionMessage;
     private bool _actionIsError;
+    private bool _buildMode;
+    private bool _buildEditInProgress;
+    private string _buildTool = "Furnish";
+    private string _buildCategory = "All";
+    private string _buildSearch = string.Empty;
+    private string _selectedBuildKey = string.Empty;
+    private string _buildStatus = string.Empty;
+    private DateTime _ignoreObjectRefreshUntil;
 
     protected override async Task OnInitializedAsync()
     {
@@ -456,6 +567,10 @@ else
 
         _scene = result.Data;
         _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == _scene.StartingMapId);
+        _selectedBuildKey = _scene.BuildCatalog
+            .FirstOrDefault(x => string.Equals(x.Kind, "Sprite", StringComparison.OrdinalIgnoreCase))?.Key
+            ?? _scene.BuildCatalog.FirstOrDefault()?.Key
+            ?? string.Empty;
 
         // A restored window can reach this point before the planet's channel
         // list has loaded, and the manage panel's channel picker needs it.
@@ -497,6 +612,7 @@ else
             MessageService.MessageReceived += OnMessageReceived;
             Data.VillageBuildings.Changed += OnVillageBuildingChanged;
             Data.VillagePlots.Changed += OnVillagePlotChanged;
+            Data.VillageObjects.Changed += OnVillageObjectChanged;
             await JoinCurrentMapAsync();
             await OnBuildingContextChangedAsync();
             await PushVoicePeersAsync();
@@ -573,6 +689,10 @@ else
 
         _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == mapId) ?? _currentMap;
         _currentBuildingId = _currentMap?.ParentBuildingId;
+
+        if (_buildMode && !CanBuildCurrentMap)
+            _buildMode = false;
+        await SyncBuildModeAsync();
 
         // The room endpoint only leases to members who are actually present in
         // the area. Join at the runtime's real destination before resolving the
@@ -686,6 +806,15 @@ else
 
     private void OnVillagePlotChanged(Valour.Sdk.ModelLogic.IModelEvent<VillagePlot> _) =>
         QueueSceneRefresh();
+
+    private void OnVillageObjectChanged(
+        Valour.Sdk.ModelLogic.IModelEvent<Valour.Sdk.Models.VillageObject> _)
+    {
+        // The edit response already contains the exact local delta. Ignore our
+        // own immediately echoed model event; remote edits still refresh once.
+        if (DateTime.UtcNow >= _ignoreObjectRefreshUntil)
+            QueueSceneRefresh();
+    }
 
     /// <summary>
     /// Property changes arrive over the realtime hub whenever anyone buys,
@@ -1422,10 +1551,203 @@ else
         if (_runtime is not null)
             await _runtime.InvokeVoidAsync("replaceScene", _scene);
 
+        if (_buildMode && !CanBuildCurrentMap)
+            _buildMode = false;
+        await SyncBuildModeAsync();
+
         // Channel bindings and voice mode are scene data. Reconcile the live
         // area context after replacing them so chat/calls cannot remain on a
         // room that was just retired by a manager edit.
         await OnBuildingContextChangedAsync();
+    }
+
+    private bool CanBuildCurrentMap =>
+        _currentMap?.CanEdit == true || _currentMap?.Plots.Any(x => x.CanEdit) == true;
+
+    private VillagePocCatalogItem? SelectedBuildItem =>
+        _scene?.BuildCatalog.FirstOrDefault(x => x.Key == _selectedBuildKey);
+
+    private async Task ToggleBuildModeAsync()
+    {
+        if (!_buildMode && !CanBuildCurrentMap)
+            return;
+
+        _buildMode = !_buildMode;
+        _buildStatus = _buildMode
+            ? "Choose an item, then place it in the glowing area."
+            : string.Empty;
+        _selectedBuilding = null;
+        _selectedPlot = null;
+        await SyncBuildModeAsync();
+        await ReRender();
+    }
+
+    private async Task SetBuildToolAsync(string tool)
+    {
+        _buildTool = tool;
+        _buildStatus = tool == "Erase"
+            ? "Select an item or painted tile to remove it."
+            : string.Empty;
+
+        if (tool != "Erase" &&
+            !GetBuildItemsForTool(tool).Any(x => x.Key == _selectedBuildKey))
+        {
+            _selectedBuildKey = GetBuildItemsForTool(tool).FirstOrDefault()?.Key ?? string.Empty;
+        }
+
+        await SyncBuildModeAsync();
+        await ReRender();
+    }
+
+    private async Task SelectBuildItemAsync(VillagePocCatalogItem item)
+    {
+        _selectedBuildKey = item.Key;
+        _buildStatus = $"{item.Name} selected.";
+        await SyncBuildModeAsync();
+        await ReRender();
+    }
+
+    private Task SetBuildCategory(string category)
+    {
+        _buildCategory = category;
+        return ReRender();
+    }
+
+    private IEnumerable<VillagePocCatalogItem> GetBuildItemsForTool(string tool)
+    {
+        var kind = tool == "Paint" ? "Tile" : "Sprite";
+        return (_scene?.BuildCatalog ?? [])
+            .Where(x => string.Equals(x.Kind, kind, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private IEnumerable<VillagePocCatalogItem> GetVisibleBuildItems()
+    {
+        var items = GetBuildItemsForTool(_buildTool);
+        if (_buildTool == "Furnish" && _buildCategory != "All")
+            items = items.Where(x => x.Category == _buildCategory);
+        if (!string.IsNullOrWhiteSpace(_buildSearch))
+        {
+            var search = _buildSearch.Trim();
+            items = items.Where(x =>
+                x.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                x.Key.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return items.OrderBy(x => x.Category).ThenBy(x => x.Name);
+    }
+
+    private IEnumerable<string> GetBuildCategories() =>
+        new[] { "All" }.Concat(GetBuildItemsForTool("Furnish")
+            .Select(x => x.Category)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .OrderBy(x => x));
+
+    private string GetBuildToolClass(string tool) =>
+        _buildTool == tool ? "build-tool active" : "build-tool";
+
+    private string GetBuildScopeLabel()
+    {
+        if (_currentMap?.MapKind == "Interior")
+            return $"Furnishing {_currentMap.Name}";
+        if (_currentMap?.CanEdit == true)
+            return $"Editing all of {_currentMap.Name}";
+
+        var count = _currentMap?.Plots.Count(x => x.CanEdit) ?? 0;
+        return count == 1 ? "Editing your parcel" : $"Editing {count} parcels";
+    }
+
+    private string GetBuildPreviewStyle(VillagePocCatalogItem item)
+    {
+        var tileSize = Math.Max(1, _scene?.BuildCatalogTileSize ?? 16);
+        var sourceWidth = Math.Max(1, item.Width) * tileSize;
+        var sourceHeight = Math.Max(1, item.Height) * tileSize;
+        var scale = Math.Min(2d, 52d / Math.Max(sourceWidth, sourceHeight));
+        var image = (_scene?.BuildCatalogImageUrl ?? string.Empty)
+            .Replace("'", "\\'", StringComparison.Ordinal);
+
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"width:{sourceWidth}px;height:{sourceHeight}px;background-image:url('{image}');background-position:{-item.X * tileSize}px {-item.Y * tileSize}px;transform:scale({scale:0.###});");
+    }
+
+    private async Task SyncBuildModeAsync()
+    {
+        if (_runtime is null)
+            return;
+
+        await _runtime.InvokeVoidAsync("setBuildMode", new
+        {
+            enabled = _buildMode,
+            tool = _buildTool,
+            definition = SelectedBuildItem,
+        });
+    }
+
+    [JSInvokable]
+    public async Task OnBuildTileSelected(int x, int y, string? objectIdRaw)
+    {
+        if (!_buildMode || _buildEditInProgress || Data is null || _currentMap is null)
+            return;
+
+        var selected = SelectedBuildItem;
+        if (_buildTool != "Erase" && selected is null)
+            return;
+
+        _buildEditInProgress = true;
+        _buildStatus = "Saving…";
+        await ReRender();
+
+        var request = new VillageBuildRequest
+        {
+            Action = _buildTool switch
+            {
+                "Paint" => VillageBuildAction.Paint,
+                "Erase" => VillageBuildAction.Erase,
+                _ => VillageBuildAction.Furnish,
+            },
+            DefinitionKey = selected?.Key,
+            X = x,
+            Y = y,
+            ObjectId = ParseId(objectIdRaw),
+        };
+
+        // Suppress the realtime echo before sending; it can arrive a few
+        // milliseconds before the HTTP response that carries the same delta.
+        _ignoreObjectRefreshUntil = DateTime.UtcNow.AddSeconds(1);
+        var result = await VillageService.EditMapAsync(Data, _currentMap.Id, request);
+        _buildEditInProgress = false;
+        if (!result.Success || result.Data is null)
+        {
+            _ignoreObjectRefreshUntil = DateTime.MinValue;
+            _buildStatus = result.Message ?? "That edit could not be applied.";
+            ShowActionMessage(_buildStatus, isError: true);
+            await ReRender();
+            return;
+        }
+
+        ApplyBuildResult(_currentMap, result.Data);
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("applyBuildResult", result.Data);
+
+        _buildStatus = request.Action == VillageBuildAction.Erase
+            ? "Item removed."
+            : $"{selected?.Name ?? "Surface"} placed.";
+        await ReRender();
+    }
+
+    private static void ApplyBuildResult(VillagePocMap map, VillageBuildResult result)
+    {
+        var removed = result.RemovedObjectIds.ToHashSet();
+        map.GroundTiles.RemoveAll(x => removed.Contains(x.Id));
+        map.Decorations.RemoveAll(x => removed.Contains(x.Id));
+
+        if (result.Decoration is null)
+            return;
+
+        if (result.Decoration.ZIndex < 0)
+            map.GroundTiles.Add(result.Decoration);
+        else
+            map.Decorations.Add(result.Decoration);
     }
 
     private string FormatPrice(decimal price)
@@ -1469,12 +1791,6 @@ else
         _actionMessage = null;
         _actionIsError = false;
         await ReRender();
-    }
-
-    private async Task ResetViewAsync()
-    {
-        if (_runtime is not null)
-            await _runtime.InvokeVoidAsync("resetView");
     }
 
     private async Task ZoomOutAsync()
@@ -1614,6 +1930,7 @@ else
         {
             Data.VillageBuildings.Changed -= OnVillageBuildingChanged;
             Data.VillagePlots.Changed -= OnVillagePlotChanged;
+            Data.VillageObjects.Changed -= OnVillageObjectChanged;
         }
 
         await VillageService.LeaveMapAsync();

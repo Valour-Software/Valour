@@ -68,6 +68,16 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         // pinch that steers the eased zoom target.
         pointers: new Map(),
         pinch: { active: false, startDistance: 1, startZoom: 1 },
+        build: {
+            enabled: false,
+            tool: "Furnish",
+            definition: null,
+            hoverX: null,
+            hoverY: null,
+            pointerId: null,
+            lastSubmitKey: null,
+            lastSubmitAt: 0,
+        },
         // Whether to draw the resting joystick affordance. The stick itself
         // works from any touch; the ghost exists so touch players can SEE that
         // it exists. Any real touch also flips this on, which covers touch
@@ -92,13 +102,6 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     }
 
     const runtime = {
-        resetView() {
-            state.selectedBuildingId = null;
-            state.selectedPlotId = null;
-            updateCamera(state);
-            notifySelection(state);
-            draw(state);
-        },
         // The buttons still step through the familiar 25% levels; the easing
         // in the frame loop makes the step glide rather than snap.
         zoomIn() {
@@ -109,6 +112,36 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         },
         resetZoom() {
             setTargetZoom(state, 1);
+        },
+        setBuildMode(config) {
+            state.build.enabled = config?.enabled === true;
+            state.build.tool = config?.tool ?? "Furnish";
+            state.build.definition = config?.definition ?? null;
+            state.build.pointerId = null;
+            if (!state.build.enabled) {
+                state.build.hoverX = null;
+                state.build.hoverY = null;
+            }
+            canvas.classList.toggle("build-mode", state.build.enabled);
+            draw(state);
+        },
+        applyBuildResult(result) {
+            const map = getCurrentMap(state);
+            if (!map || !result) {
+                return;
+            }
+
+            const removed = new Set((result.removedObjectIds ?? []).map(String));
+            map.groundTiles = (map.groundTiles ?? []).filter(item => !removed.has(String(item.id)));
+            map.decorations = (map.decorations ?? []).filter(item => !removed.has(String(item.id)));
+            if (result.decoration) {
+                const target = result.decoration.zIndex < 0 ? map.groundTiles : map.decorations;
+                target.push(result.decoration);
+            }
+
+            state.collisionByMap.delete(map.id);
+            state.staticLayer = null;
+            draw(state);
         },
         async replaceScene(nextScene) {
             if (!nextScene) {
@@ -347,6 +380,20 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         const tileX = Math.floor(worldX / px);
         const tileY = Math.floor(worldY / px);
 
+        if (state.build.enabled) {
+            const object = state.build.tool === "Erase"
+                ? findBuildObjectAt(state, map, tileX, tileY)
+                : null;
+            const submitKey = `${tileX},${tileY},${object?.id ?? ""},${state.build.tool}`;
+            const now = performance.now();
+            if (submitKey !== state.build.lastSubmitKey || now - state.build.lastSubmitAt > 350) {
+                state.build.lastSubmitKey = submitKey;
+                state.build.lastSubmitAt = now;
+                await invokeDotNet(state, "OnBuildTileSelected", tileX, tileY, object?.id ?? null);
+            }
+            return;
+        }
+
         const building = map.buildings.find((item) =>
             buildingContainsTile(state, map, item, tileX, tileY));
 
@@ -365,6 +412,18 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     // than living in a fixed corner, so it works in either hand and never
     // covers something the player was trying to look at.
     state.onPointerDown = (event) => {
+        if (state.build.enabled) {
+            unlockAudio(state);
+            updateBuildHover(state, event);
+            if (event.pointerType !== "mouse") {
+                state.build.pointerId = event.pointerId;
+                try {
+                    canvas.setPointerCapture?.(event.pointerId);
+                } catch { }
+            }
+            return;
+        }
+
         if (event.pointerType === "mouse") {
             return;
         }
@@ -420,6 +479,12 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     };
 
     state.onPointerMove = (event) => {
+        if (state.build.enabled) {
+            updateBuildHover(state, event);
+            event.preventDefault();
+            return;
+        }
+
         const tracked = state.pointers.get(event.pointerId);
         if (tracked) {
             tracked.x = event.clientX;
@@ -470,6 +535,17 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     };
 
     state.onPointerUp = (event) => {
+        if (state.build.enabled) {
+            if (event.pointerId === state.build.pointerId) {
+                state.build.pointerId = null;
+                try {
+                    canvas.releasePointerCapture?.(event.pointerId);
+                } catch { }
+                void state.onClick(event);
+            }
+            return;
+        }
+
         state.pointers.delete(event.pointerId);
 
         try {
@@ -513,6 +589,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         state.touch.direction = null;
         state.pointers.clear();
         state.pinch.active = false;
+        state.build.pointerId = null;
     };
 
     state.onWheel = (event) => {
@@ -987,6 +1064,7 @@ function draw(state) {
     drawPlots(ctx, map.plots, state.selectedPlotId, state, px);
     drawPortalHints(ctx, map, state, px);
     drawWorldSorted(ctx, map, state, px);
+    drawBuildOverlay(ctx, map, state, px);
     drawBubbles(ctx, state, px);
     drawTouchStick(ctx, state);
 }
@@ -1284,6 +1362,125 @@ function drawPlots(ctx, plots, selectedPlotId, state, px) {
         ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
         ctx.setLineDash([]);
     }
+}
+
+function updateBuildHover(state, event) {
+    const rect = state.canvas.getBoundingClientRect();
+    const px = tilePixelSize(state);
+    state.build.hoverX = Math.floor((event.clientX - rect.left + state.renderCameraX) / px);
+    state.build.hoverY = Math.floor((event.clientY - rect.top + state.renderCameraY) / px);
+    draw(state);
+}
+
+function drawBuildOverlay(ctx, map, state, px) {
+    if (!state.build.enabled) {
+        return;
+    }
+
+    ctx.save();
+    const editableAreas = map.canEdit
+        ? [{ x: 0, y: 0, width: map.width, height: map.height }]
+        : (map.plots ?? []).filter(plot => plot.canEdit);
+
+    ctx.fillStyle = "rgba(84, 220, 159, 0.075)";
+    ctx.strokeStyle = "rgba(119, 239, 187, 0.8)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([7, 5]);
+    for (const area of editableAreas) {
+        const x = area.x * px - state.renderCameraX;
+        const y = area.y * px - state.renderCameraY;
+        ctx.fillRect(x, y, area.width * px, area.height * px);
+        ctx.strokeRect(x + 1, y + 1, area.width * px - 2, area.height * px - 2);
+    }
+    ctx.setLineDash([]);
+
+    if (state.build.hoverX === null || state.build.hoverY === null) {
+        ctx.restore();
+        return;
+    }
+
+    const object = state.build.tool === "Erase"
+        ? findBuildObjectAt(state, map, state.build.hoverX, state.build.hoverY)
+        : null;
+    const definition = state.build.definition;
+    const tileX = object?.x ?? state.build.hoverX;
+    const tileY = object?.y ?? state.build.hoverY;
+    const width = object?.width ?? (state.build.tool === "Paint" ? 1 : definition?.footprintWidth ?? 1);
+    const height = object?.height ?? (state.build.tool === "Paint" ? 1 : definition?.footprintHeight ?? 1);
+    const valid = object
+        ? isEditableBuildBounds(map, tileX, tileY, width, height)
+        : isValidBuildPlacement(state, map, tileX, tileY, width, height);
+
+    if (!object && definition && state.build.tool !== "Erase") {
+        const sprite = resolveSprite(state, map, definition.key);
+        if (sprite) {
+            ctx.globalAlpha = valid ? 0.68 : 0.35;
+            drawSpriteAtBase(ctx, state, px, sprite, tileX, tileY, height);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    const screenX = tileX * px - state.renderCameraX;
+    const screenY = tileY * px - state.renderCameraY;
+    ctx.fillStyle = valid ? "rgba(83, 226, 157, 0.2)" : "rgba(255, 100, 112, 0.22)";
+    ctx.strokeStyle = valid ? "#83f0b9" : "#ff7b87";
+    ctx.lineWidth = 3;
+    ctx.fillRect(screenX, screenY, width * px, height * px);
+    ctx.strokeRect(screenX + 1.5, screenY + 1.5, width * px - 3, height * px - 3);
+    ctx.restore();
+}
+
+function isValidBuildPlacement(state, map, x, y, width, height) {
+    if (!isEditableBuildBounds(map, x, y, width, height)) {
+        return false;
+    }
+    if (state.build.tool !== "Furnish") {
+        return true;
+    }
+    if (x < 0 || y < 0 || x + width > map.width || y + height > map.height) {
+        return false;
+    }
+    if (rectanglesOverlap(x, y, width, height, map.spawnTile?.x ?? -1, map.spawnTile?.y ?? -1, 1, 1)) {
+        return false;
+    }
+    if ((map.buildings ?? []).some(item =>
+        rectanglesOverlap(x, y, width, height, item.x, item.y, item.width, item.height))) {
+        return false;
+    }
+    return !(map.decorations ?? []).some(item =>
+        rectanglesOverlap(x, y, width, height, item.x, item.y, item.width, item.height));
+}
+
+function isEditableBuildBounds(map, x, y, width, height) {
+    if (map.canEdit) {
+        return x >= 0 && y >= 0 && x + width <= map.width && y + height <= map.height;
+    }
+    return (map.plots ?? []).some(plot =>
+        plot.canEdit &&
+        x >= plot.x && y >= plot.y &&
+        x + width <= plot.x + plot.width &&
+        y + height <= plot.y + plot.height);
+}
+
+function rectanglesOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+function findBuildObjectAt(state, map, tileX, tileY) {
+    const decorations = [...(map.decorations ?? [])].reverse();
+    for (const item of decorations) {
+        const sprite = resolveSprite(state, map, item.definitionKey);
+        const bounds = sprite
+            ? getBottomAnchoredSpriteBounds(
+                item.x, item.y, item.height, sprite.tilesWide, sprite.tilesHigh)
+            : item;
+        if (rectContains(bounds, tileX, tileY)) {
+            return item;
+        }
+    }
+
+    return [...(map.groundTiles ?? [])].reverse().find(item =>
+        tileX === item.x && tileY === item.y) ?? null;
 }
 
 /**

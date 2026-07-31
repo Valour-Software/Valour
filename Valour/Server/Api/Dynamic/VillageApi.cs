@@ -26,9 +26,29 @@ public class VillageApi
             return ValourResult.NotFound("Planet not found");
 
         var channels = await planetService.GetAllChannelsAsync(id);
-        var scene = await worldService.GetOrCreateSceneAsync(planet, channels, member);
-        scene.CanManageVillage = await memberService.HasPermissionAsync(member, PlanetPermissions.ManageVillage);
+        var canManage = await memberService.HasPermissionAsync(member, PlanetPermissions.ManageVillage);
+        var scene = await worldService.GetOrCreateSceneAsync(planet, channels, member, canManage);
         return Results.Json(scene);
+    }
+
+    [ValourRoute(HttpVerbs.Put, "api/planets/{id}/village/maps/{mapId}/build")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> EditMapRouteAsync(
+        long id,
+        long mapId,
+        [FromBody] VillageBuildRequest request,
+        PlanetMemberService memberService,
+        VillageWorldService worldService)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var canManage = await memberService.HasPermissionAsync(member, PlanetPermissions.ManageVillage);
+        var result = await worldService.EditMapAsync(id, mapId, member.Id, canManage, request);
+        return result.Success && result.Data is not null
+            ? Results.Json(result.Data)
+            : ValourResult.BadRequest(result.Message ?? "The village edit could not be applied.");
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planets/{id}/village/buildings/{buildingId}")]

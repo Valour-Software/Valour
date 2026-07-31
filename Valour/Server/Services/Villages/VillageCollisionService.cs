@@ -21,6 +21,8 @@ public sealed class VillageCollisionService
     private readonly ILogger<VillageCollisionService> _logger;
     private readonly ConcurrentDictionary<(long PlanetId, long MapId), Lazy<Task<VillageCollisionMap?>>> _maps = new();
     private readonly IReadOnlyDictionary<string, CollisionDefinition> _defaultDefinitions;
+    private readonly string _defaultImageUrl;
+    private readonly int _defaultTileSize;
 
     public VillageCollisionService(
         IServiceScopeFactory scopeFactory,
@@ -28,7 +30,38 @@ public sealed class VillageCollisionService
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
-        _defaultDefinitions = LoadDefinitions();
+        (_defaultDefinitions, _defaultImageUrl, _defaultTileSize) = LoadDefinitions();
+    }
+
+    internal string GetBuildCatalogImageUrl(string? tilesetKey) =>
+        string.Equals(tilesetKey, DefaultTileset, StringComparison.Ordinal)
+            ? _defaultImageUrl
+            : string.Empty;
+
+    internal int GetBuildCatalogTileSize(string? tilesetKey) =>
+        string.Equals(tilesetKey, DefaultTileset, StringComparison.Ordinal)
+            ? _defaultTileSize
+            : 16;
+
+    internal IReadOnlyCollection<CollisionDefinition> GetBuildCatalog(string? tilesetKey) =>
+        string.Equals(tilesetKey, DefaultTileset, StringComparison.Ordinal)
+            ? _defaultDefinitions.Values.ToArray()
+            : [];
+
+    internal bool TryGetDefinition(
+        string? tilesetKey,
+        string key,
+        out CollisionDefinition definition)
+    {
+        if (string.Equals(tilesetKey, DefaultTileset, StringComparison.Ordinal) &&
+            _defaultDefinitions.TryGetValue(key, out var found))
+        {
+            definition = found;
+            return true;
+        }
+
+        definition = default!;
+        return false;
     }
 
     internal Task<VillageCollisionMap?> GetMapAsync(long planetId, long mapId)
@@ -97,7 +130,7 @@ public sealed class VillageCollisionService
         return VillageCollisionMap.Build(map, objects, buildings, chunks, definitions, _logger);
     }
 
-    private IReadOnlyDictionary<string, CollisionDefinition> LoadDefinitions()
+    private (IReadOnlyDictionary<string, CollisionDefinition> Definitions, string ImageUrl, int TileSize) LoadDefinitions()
     {
         try
         {
@@ -106,16 +139,24 @@ public sealed class VillageCollisionService
             if (stream is null)
             {
                 _logger.LogError("Embedded village tileset {Resource} was not found.", DefaultTilesetResource);
-                return EmptyDefinitions.Instance;
+                return (EmptyDefinitions.Instance, string.Empty, 16);
             }
 
             using var document = JsonDocument.Parse(stream);
             var definitions = new Dictionary<string, CollisionDefinition>(StringComparer.Ordinal);
+            var imageUrl = document.RootElement.TryGetProperty("image", out var image) &&
+                           image.ValueKind == JsonValueKind.String
+                ? image.GetString() ?? string.Empty
+                : string.Empty;
+            var tileSize = document.RootElement.TryGetProperty("tileSize", out var tileSizeElement) &&
+                           tileSizeElement.TryGetInt32(out var parsedTileSize)
+                ? Math.Max(1, parsedTileSize)
+                : 16;
 
             if (!document.RootElement.TryGetProperty("definitions", out var rawDefinitions) ||
                 rawDefinitions.ValueKind != JsonValueKind.Array)
             {
-                return definitions;
+                return (definitions, imageUrl, tileSize);
             }
 
             foreach (var item in rawDefinitions.EnumerateArray())
@@ -129,7 +170,17 @@ public sealed class VillageCollisionService
                     continue;
                 }
 
+                TryGetString(item, "Kind", "kind", out var kind);
+                TryGetString(item, "Name", "name", out var name);
+                TryGetInt(item, "X", "x", out var x);
+                TryGetInt(item, "Y", "y", out var y);
+
                 definitions[key] = new CollisionDefinition(
+                    key,
+                    string.IsNullOrWhiteSpace(name) ? key : name,
+                    string.IsNullOrWhiteSpace(kind) ? "Tile" : kind,
+                    Math.Max(0, x),
+                    Math.Max(0, y),
                     Math.Max(1, width),
                     Math.Max(1, height),
                     collision.EnumerateArray()
@@ -137,12 +188,12 @@ public sealed class VillageCollisionService
                         .ToArray());
             }
 
-            return definitions;
+            return (definitions, imageUrl, tileSize);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not load authoritative village collision definitions.");
-            return EmptyDefinitions.Instance;
+            return (EmptyDefinitions.Instance, string.Empty, 16);
         }
     }
 
@@ -212,7 +263,15 @@ public sealed class VillageCollisionService
             _defaultDefinitions,
             _logger);
 
-    internal sealed record CollisionDefinition(int Width, int Height, bool[] Collision);
+    internal sealed record CollisionDefinition(
+        string Key,
+        string Name,
+        string Kind,
+        int X,
+        int Y,
+        int Width,
+        int Height,
+        bool[] Collision);
 
     private sealed class EmptyDefinitions : Dictionary<string, CollisionDefinition>
     {

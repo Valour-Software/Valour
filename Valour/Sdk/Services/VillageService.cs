@@ -111,6 +111,14 @@ public class VillageService : ServiceBase
             $"api/planets/{planet.Id}/village/plots/{plotId}",
             new VillagePlotUpdateRequest { Name = name })).WithoutData();
 
+    public Task<TaskResult<VillageBuildResult>> EditMapAsync(
+        Planet planet,
+        long mapId,
+        VillageBuildRequest request) =>
+        planet.Node.PutAsyncWithResponse<VillageBuildResult>(
+            $"api/planets/{planet.Id}/village/maps/{mapId}/build",
+            request);
+
     /// <summary>
     /// Everyone currently visible on the joined map, excluding this client.
     /// </summary>

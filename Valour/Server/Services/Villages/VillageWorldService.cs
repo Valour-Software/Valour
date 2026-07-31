@@ -25,21 +25,25 @@ namespace Valour.Server.Services.Villages;
 public class VillageWorldService
 {
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> SeedGates = new();
+    private static readonly ConcurrentDictionary<(long PlanetId, long MapId), SemaphoreSlim> EditGates = new();
 
     private readonly ValourDb _db;
     private readonly CoreHubService _hubService;
     private readonly VillageRoomService _roomService;
+    private readonly VillageCollisionService _collisionService;
     private readonly ILogger<VillageWorldService> _logger;
 
     public VillageWorldService(
         ValourDb db,
         CoreHubService hubService,
         VillageRoomService roomService,
+        VillageCollisionService collisionService,
         ILogger<VillageWorldService> logger)
     {
         _db = db;
         _hubService = hubService;
         _roomService = roomService;
+        _collisionService = collisionService;
         _logger = logger;
     }
 
@@ -55,7 +59,8 @@ public class VillageWorldService
     public async Task<VillagePocScene> GetOrCreateSceneAsync(
         PlanetModel planet,
         IEnumerable<ChannelModel> channels,
-        PlanetMemberModel member)
+        PlanetMemberModel member,
+        bool canManageVillage)
     {
         var maps = await _db.VillageMaps
             .Where(x => x.PlanetId == planet.Id)
@@ -92,14 +97,15 @@ public class VillageWorldService
                 .ToListAsync();
         }
 
-        return await BuildSceneAsync(planet, maps, channels, member);
+        return await BuildSceneAsync(planet, maps, channels, member, canManageVillage);
     }
 
     private async Task<VillagePocScene> BuildSceneAsync(
         PlanetModel planet,
         List<Valour.Database.VillageMap> maps,
         IEnumerable<ChannelModel> channels,
-        PlanetMemberModel member)
+        PlanetMemberModel member,
+        bool canManageVillage)
     {
         var mapIds = maps.Select(x => x.Id).ToList();
 
@@ -150,6 +156,9 @@ public class VillageWorldService
             DefaultChatChannelId = defaultChat?.Id,
             DefaultChatChannelName = defaultChat?.Name,
             StartingMapId = outdoor.Id,
+            CanManageVillage = canManageVillage,
+            BuildCatalogImageUrl = _collisionService.GetBuildCatalogImageUrl(outdoor.TilesetKey),
+            BuildCatalogTileSize = _collisionService.GetBuildCatalogTileSize(outdoor.TilesetKey),
             Characters =
             {
                 new VillagePocCharacter
@@ -168,6 +177,28 @@ public class VillageWorldService
             },
         };
 
+        foreach (var definition in _collisionService.GetBuildCatalog(outdoor.TilesetKey)
+                     .Where(x => string.Equals(x.Kind, "Tile", StringComparison.OrdinalIgnoreCase) ||
+                                 (string.Equals(x.Kind, "Sprite", StringComparison.OrdinalIgnoreCase) &&
+                                  !x.Key.StartsWith("buildings.", StringComparison.OrdinalIgnoreCase))))
+        {
+            var footprint = VillageObjectGeometry.GetFootprint(definition.Key);
+            scene.BuildCatalog.Add(new VillagePocCatalogItem
+            {
+                Kind = definition.Kind,
+                Name = definition.Name,
+                Key = definition.Key,
+                Category = GetCatalogCategory(definition.Key, definition.Kind),
+                X = definition.X,
+                Y = definition.Y,
+                Width = definition.Width,
+                Height = definition.Height,
+                FootprintWidth = footprint.Width,
+                FootprintHeight = footprint.Height,
+                BlocksMovement = definition.Collision.Any(x => x),
+            });
+        }
+
         foreach (var map in maps)
         {
             var mapBuildings = buildings.Where(x => x.MapId == map.Id).ToList();
@@ -185,6 +216,10 @@ public class VillageWorldService
                     ? GrassTexture
                     : InteriorFloorTexture,
                 TilesetKey = map.TilesetKey,
+                CanEdit = canManageVillage ||
+                    (map.MapType == VillageMapType.Interior &&
+                     map.ParentBuildingId is not null &&
+                     buildings.Any(x => x.Id == map.ParentBuildingId.Value && x.OwnerMemberId == member.Id)),
                 ParentBuildingId = map.ParentBuildingId,
                 SpawnTile = new VillagePocPoint { X = map.SpawnX, Y = map.SpawnY },
             };
@@ -198,6 +233,8 @@ public class VillageWorldService
                     OwnerMemberId = plot.OwnerMemberId,
                     OwnerName = ResolveOwnerName(owners, plot.OwnerMemberId),
                     IsOwnedByLocalMember = plot.OwnerMemberId == member.Id,
+                    CanEdit = canManageVillage || plot.EditMode == VillageEditMode.Everyone ||
+                        (plot.EditMode == VillageEditMode.Owner && plot.OwnerMemberId == member.Id),
                     ForSale = plot.ForSale,
                     Price = plot.Price,
                     X = plot.X,
@@ -212,6 +249,7 @@ public class VillageWorldService
                 var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
                 var decoration = new VillagePocDecoration
                 {
+                    Id = item.Id,
                     Kind = item.DefinitionKey,
                     DefinitionKey = item.DefinitionKey,
                     X = item.X,
@@ -221,6 +259,9 @@ public class VillageWorldService
                     ZIndex = item.ZIndex,
                     Color = "#4e7a43",
                     BlocksMovement = item.BlocksMovement,
+                    Rotation = item.Rotation,
+                    OwnerMemberId = item.OwnerMemberId,
+                    IsOwnedByLocalMember = item.OwnerMemberId == member.Id,
                 };
 
                 if (item.ZIndex < 0)
@@ -338,6 +379,261 @@ public class VillageWorldService
         return string.IsNullOrWhiteSpace(owner.Nickname)
             ? owner.User?.Name
             : owner.Nickname;
+    }
+
+    private static string GetCatalogCategory(string key, string kind)
+    {
+        if (string.Equals(kind, "Tile", StringComparison.OrdinalIgnoreCase))
+            return "Surfaces";
+        if (key.StartsWith("furniture.", StringComparison.OrdinalIgnoreCase))
+            return "Furniture";
+        if (key.StartsWith("garden.", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("tree", StringComparison.OrdinalIgnoreCase))
+            return "Nature";
+        if (key.StartsWith("commerce.", StringComparison.OrdinalIgnoreCase))
+            return "Activities";
+        return "Decor";
+    }
+
+    /// <summary>
+    /// Applies one in-world build action after resolving the editable property
+    /// from persisted ownership. The client only supplies intent and a tile;
+    /// definition shape, collision, map bounds, and edit scope are authoritative.
+    /// </summary>
+    public async Task<TaskResult<VillageBuildResult>> EditMapAsync(
+        long planetId,
+        long mapId,
+        long actorMemberId,
+        bool canManageVillage,
+        VillageBuildRequest request)
+    {
+        var gate = EditGates.GetOrAdd((planetId, mapId), _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        try
+        {
+            var map = await _db.VillageMaps
+                .FirstOrDefaultAsync(x => x.Id == mapId && x.PlanetId == planetId);
+            if (map is null)
+                return TaskResult<VillageBuildResult>.FromFailure("Village map not found.");
+
+            if (request.Action == VillageBuildAction.Erase)
+                return await EraseObjectAsync(map, actorMemberId, canManageVillage, request.ObjectId);
+
+            var key = request.DefinitionKey?.Trim() ?? string.Empty;
+            if (!_collisionService.TryGetDefinition(map.TilesetKey, key, out var definition))
+                return TaskResult<VillageBuildResult>.FromFailure("That catalog item is not available on this map.");
+
+            var isPaint = request.Action == VillageBuildAction.Paint;
+            var isFurnishing = request.Action == VillageBuildAction.Furnish;
+            if (!isPaint && !isFurnishing)
+                return TaskResult<VillageBuildResult>.FromFailure("Unknown village build action.");
+            if (isPaint && !string.Equals(definition.Kind, "Tile", StringComparison.OrdinalIgnoreCase))
+                return TaskResult<VillageBuildResult>.FromFailure("Choose a surface before painting.");
+            if (isFurnishing &&
+                (!string.Equals(definition.Kind, "Sprite", StringComparison.OrdinalIgnoreCase) ||
+                 definition.Key.StartsWith("buildings.", StringComparison.OrdinalIgnoreCase)))
+            {
+                return TaskResult<VillageBuildResult>.FromFailure("That item cannot be placed as furniture.");
+            }
+
+            var footprint = isPaint ? (Width: 1, Height: 1) : VillageObjectGeometry.GetFootprint(key);
+            if (!BoundsInsideMap(map, request.X, request.Y, footprint.Width, footprint.Height))
+                return TaskResult<VillageBuildResult>.FromFailure("That item would extend beyond the map.");
+            if (!await CanEditBoundsAsync(
+                    map, actorMemberId, canManageVillage,
+                    request.X, request.Y, footprint.Width, footprint.Height))
+            {
+                return TaskResult<VillageBuildResult>.FromFailure(
+                    map.MapType == VillageMapType.Interior
+                        ? "Only this building's owner can furnish its interior."
+                        : "Place items entirely inside land you can edit.");
+            }
+
+            var removed = new List<Valour.Database.VillageObject>();
+            if (isPaint)
+            {
+                removed = await _db.VillageObjects
+                    .Where(x => x.PlanetId == planetId && x.MapId == mapId &&
+                                x.ZIndex < 0 && x.X == request.X && x.Y == request.Y)
+                    .ToListAsync();
+                _db.VillageObjects.RemoveRange(removed);
+            }
+            else
+            {
+                var placementError = await ValidateFurnishingPlacementAsync(
+                    map, request.X, request.Y, footprint.Width, footprint.Height);
+                if (placementError is not null)
+                    return TaskResult<VillageBuildResult>.FromFailure(placementError);
+            }
+
+            var item = new Valour.Database.VillageObject
+            {
+                Id = IdManager.Generate(),
+                PlanetId = planetId,
+                MapId = mapId,
+                DefinitionKey = definition.Key,
+                X = request.X,
+                Y = request.Y,
+                ZIndex = isPaint ? -100 : 0,
+                BlocksMovement = isFurnishing && definition.Collision.Any(x => x),
+                OwnerMemberId = actorMemberId,
+            };
+
+            _db.VillageObjects.Add(item);
+            await _db.SaveChangesAsync();
+            _collisionService.InvalidateMap(planetId, mapId);
+
+            foreach (var oldItem in removed)
+                _hubService.NotifyPlanetItemDelete(oldItem.ToModel());
+            _hubService.NotifyPlanetItemChange(planetId, item.ToModel());
+
+            return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+            {
+                Decoration = ToDecoration(item, actorMemberId),
+                RemovedObjectIds = removed.Select(x => x.Id).ToList(),
+            });
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task<TaskResult<VillageBuildResult>> EraseObjectAsync(
+        Valour.Database.VillageMap map,
+        long actorMemberId,
+        bool canManageVillage,
+        long? objectId)
+    {
+        if (objectId is null)
+            return TaskResult<VillageBuildResult>.FromFailure("Choose an item to erase.");
+
+        var item = await _db.VillageObjects.FirstOrDefaultAsync(x =>
+            x.Id == objectId.Value && x.PlanetId == map.PlanetId && x.MapId == map.Id);
+        if (item is null)
+            return TaskResult<VillageBuildResult>.FromFailure("That item is no longer on the map.");
+
+        var footprint = item.ZIndex < 0 ? (Width: 1, Height: 1) : VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+        if (!await CanEditBoundsAsync(
+                map, actorMemberId, canManageVillage,
+                item.X, item.Y, footprint.Width, footprint.Height))
+        {
+            return TaskResult<VillageBuildResult>.FromFailure("You cannot edit the property containing that item.");
+        }
+
+        _db.VillageObjects.Remove(item);
+        await _db.SaveChangesAsync();
+        _collisionService.InvalidateMap(map.PlanetId, map.Id);
+        _hubService.NotifyPlanetItemDelete(item.ToModel());
+
+        return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+        {
+            RemovedObjectIds = [item.Id],
+        });
+    }
+
+    private async Task<bool> CanEditBoundsAsync(
+        Valour.Database.VillageMap map,
+        long actorMemberId,
+        bool canManageVillage,
+        int x,
+        int y,
+        int width,
+        int height)
+    {
+        if (canManageVillage)
+            return true;
+
+        if (map.MapType == VillageMapType.Interior)
+        {
+            return map.ParentBuildingId is not null &&
+                   await _db.VillageBuildings.AnyAsync(building =>
+                       building.PlanetId == map.PlanetId &&
+                       building.Id == map.ParentBuildingId.Value &&
+                       building.OwnerMemberId == actorMemberId);
+        }
+
+        return await _db.VillagePlots.AnyAsync(plot =>
+            plot.PlanetId == map.PlanetId &&
+            plot.MapId == map.Id &&
+            x >= plot.X && y >= plot.Y &&
+            (long)x + width <= (long)plot.X + plot.Width &&
+            (long)y + height <= (long)plot.Y + plot.Height &&
+            (plot.EditMode == VillageEditMode.Everyone ||
+             (plot.EditMode == VillageEditMode.Owner && plot.OwnerMemberId == actorMemberId)));
+    }
+
+    private async Task<string?> ValidateFurnishingPlacementAsync(
+        Valour.Database.VillageMap map,
+        int x,
+        int y,
+        int width,
+        int height)
+    {
+        if (RectanglesOverlap(x, y, width, height, map.SpawnX, map.SpawnY, 1, 1))
+            return "Keep the map's entrance clear.";
+
+        var buildings = await _db.VillageBuildings
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id)
+            .ToListAsync();
+        if (buildings.Any(item => RectanglesOverlap(
+                x, y, width, height, item.X, item.Y, item.Width, item.Height)))
+        {
+            return "That space is occupied by a building.";
+        }
+
+        var objects = await _db.VillageObjects
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex >= 0)
+            .ToListAsync();
+        if (objects.Any(item =>
+            {
+                var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+                return RectanglesOverlap(x, y, width, height, item.X, item.Y, footprint.Width, footprint.Height);
+            }))
+        {
+            return "That space is already furnished.";
+        }
+
+        return null;
+    }
+
+    private static bool BoundsInsideMap(
+        Valour.Database.VillageMap map,
+        int x,
+        int y,
+        int width,
+        int height) =>
+        x >= 0 && y >= 0 && width > 0 && height > 0 &&
+        (long)x + width <= map.Width && (long)y + height <= map.Height;
+
+    private static bool RectanglesOverlap(
+        int firstX, int firstY, int firstWidth, int firstHeight,
+        int secondX, int secondY, int secondWidth, int secondHeight) =>
+        firstX < secondX + secondWidth &&
+        firstX + firstWidth > secondX &&
+        firstY < secondY + secondHeight &&
+        firstY + firstHeight > secondY;
+
+    private static VillagePocDecoration ToDecoration(
+        Valour.Database.VillageObject item,
+        long localMemberId)
+    {
+        var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+        return new VillagePocDecoration
+        {
+            Id = item.Id,
+            Kind = item.DefinitionKey,
+            DefinitionKey = item.DefinitionKey,
+            X = item.X,
+            Y = item.Y,
+            Width = item.ZIndex < 0 ? 1 : footprint.Width,
+            Height = item.ZIndex < 0 ? 1 : footprint.Height,
+            ZIndex = item.ZIndex,
+            BlocksMovement = item.BlocksMovement,
+            Rotation = item.Rotation,
+            OwnerMemberId = item.OwnerMemberId,
+            IsOwnedByLocalMember = item.OwnerMemberId == localMemberId,
+        };
     }
 
     /// <summary>
