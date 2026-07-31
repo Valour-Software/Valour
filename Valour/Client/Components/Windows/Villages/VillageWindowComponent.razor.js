@@ -8,7 +8,8 @@ import {
     getBottomAnchoredSpriteBounds,
     getBottomAnchoredCollisionCells,
     getVillageRenderScale,
-    adjustVillageZoom
+    adjustVillageZoom,
+    getPlayerCenteredCamera
 } from "../../../ts/VillageTileRendering.js";
 import { createSpatialAudio } from "../../../ts/VillageSpatialAudio.js";
 
@@ -916,57 +917,6 @@ function ensureLocalPlayerPosition(state, mapId) {
     return spawn;
 }
 
-/**
- * The floating HUD panels overlap the canvas, so part of the viewport cannot
- * actually show the player. Measures how deep the top panels and the bottom
- * composer/hint reach so the camera can keep the player out from under them.
- * Element refs are cached; the rects are re-read per frame because the
- * composer appears and disappears with chat context.
- */
-function getSafeAreaInsets(state) {
-    const host = state.canvas.parentElement;
-    if (!host) {
-        return { top: 0, bottom: 0 };
-    }
-
-    let elements = state.safeAreaElements;
-    if (!elements || elements.host !== host || elements.list.some((entry) => entry.el && !entry.el.isConnected)) {
-        elements = {
-            host,
-            list: [
-                { el: host.querySelector(":scope > .village-world-header"), edge: "top" },
-                { el: host.querySelector(":scope > .village-quick-controls"), edge: "top" },
-                { el: host.querySelector(":scope > .village-chat-composer"), edge: "bottom" },
-                { el: host.querySelector(":scope > .village-movement-hint"), edge: "bottom" },
-            ],
-        };
-        state.safeAreaElements = elements;
-    }
-
-    const canvasRect = state.canvas.getBoundingClientRect();
-    let top = 0;
-    let bottom = 0;
-    for (const entry of elements.list) {
-        if (!entry.el) {
-            continue;
-        }
-
-        const rect = entry.el.getBoundingClientRect();
-        if (entry.edge === "top") {
-            top = Math.max(top, rect.bottom - canvasRect.top);
-        } else {
-            bottom = Math.max(bottom, canvasRect.bottom - rect.top);
-        }
-    }
-
-    // A panel can never be allowed to eat the whole view; past 40% each the
-    // camera math falls back to plain centring.
-    return {
-        top: clamp(top, 0, state.viewportHeight * 0.4),
-        bottom: clamp(bottom, 0, state.viewportHeight * 0.4),
-    };
-}
-
 function updateCamera(state) {
     const map = getCurrentMap(state);
     const player = ensureLocalPlayerPosition(state, state.currentMapId);
@@ -979,30 +929,18 @@ function updateCamera(state) {
     }
 
     const px = tilePixelSize(state);
-    const mapWidthPx = map.width * px;
-    const mapHeightPx = map.height * px;
-    const insets = getSafeAreaInsets(state);
+    const camera = getPlayerCenteredCamera(
+        player.renderX,
+        player.renderY,
+        px,
+        state.viewportWidth,
+        state.viewportHeight);
 
-    // Centre the player in the strip the HUD leaves clear, not the raw canvas.
-    const clearCenterY = insets.top + (state.viewportHeight - insets.top - insets.bottom) / 2;
-    const targetX = (player.renderX + 0.5) * px - state.viewportWidth / 2;
-    const targetY = (player.renderY + 0.6) * px - clearCenterY;
-
-    state.cameraX = clamp(targetX, 0, Math.max(0, mapWidthPx - state.viewportWidth));
-    state.cameraY = clamp(targetY, 0, Math.max(0, mapHeightPx - state.viewportHeight));
-
-    // Near a map edge the clamp wins over centring and the player can end up
-    // underneath a panel. Overscroll past the edge by exactly as much as it
-    // takes; the letterboxed strip beyond the map is just background fill.
-    const pad = px * 0.35;
-    const playerCenterY = (player.renderY + 0.5) * px;
-    const minVisibleY = state.cameraY + insets.top + pad;
-    const maxVisibleY = state.cameraY + state.viewportHeight - insets.bottom - pad;
-    if (playerCenterY < minVisibleY) {
-        state.cameraY = playerCenterY - insets.top - pad;
-    } else if (playerCenterY > maxVisibleY) {
-        state.cameraY = playerCenterY - state.viewportHeight + insets.bottom + pad;
-    }
+    // Do not clamp to map edges or shift around the HUD. A stable player
+    // position is easier to follow; the renderer already letterboxes any
+    // portion of the viewport that extends beyond the map.
+    state.cameraX = camera.x;
+    state.cameraY = camera.y;
 
     state.renderCameraX = Math.round(state.cameraX);
     state.renderCameraY = Math.round(state.cameraY);
@@ -1023,9 +961,9 @@ function draw(state) {
     const layer = ensureStaticLayer(state, map, px);
     if (layer) {
         // The whole static world is one pre-composited bitmap; blit only the
-        // window the camera can see. The camera may overscroll past the map
-        // edge to keep the player clear of the HUD, so the source rectangle
-        // must be clamped into the layer and the remainder letterboxed. While
+        // window the camera can see. The player-centred camera may extend past
+        // a map edge, so the source rectangle must be clamped into the layer
+        // and the remainder letterboxed. While
         // a zoom glide is in flight the layer may still be composed at the
         // previous scale, in which case the blit stretches it by the ratio
         // rather than recomposing the whole map every frame.
@@ -1615,11 +1553,40 @@ function facingFromDirection(directionKey) {
  * whatever bottom HUD (composer, hint bar) is currently present.
  */
 function getTouchStickAnchor(state) {
-    const insets = getSafeAreaInsets(state);
+    const bottomInset = getBottomHudInset(state);
     return {
         x: 84,
-        y: state.viewportHeight - insets.bottom - 84,
+        y: state.viewportHeight - bottomInset - 84,
     };
+}
+
+function getBottomHudInset(state) {
+    const host = state.canvas.parentElement;
+    if (!host) {
+        return 0;
+    }
+
+    let elements = state.bottomHudElements;
+    if (!elements || elements.host !== host || elements.list.some((element) => element && !element.isConnected)) {
+        elements = {
+            host,
+            list: [
+                host.querySelector(":scope > .village-chat-composer"),
+                host.querySelector(":scope > .village-movement-hint"),
+            ],
+        };
+        state.bottomHudElements = elements;
+    }
+
+    const canvasBottom = state.canvas.getBoundingClientRect().bottom;
+    let bottom = 0;
+    for (const element of elements.list) {
+        if (element) {
+            bottom = Math.max(bottom, canvasBottom - element.getBoundingClientRect().top);
+        }
+    }
+
+    return clamp(bottom, 0, state.viewportHeight * 0.4);
 }
 
 /**

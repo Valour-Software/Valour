@@ -127,6 +127,17 @@ export function adjustVillageZoom(currentZoom, stepDelta) {
     return clamp(stepped, 0.5, 2);
 }
 /**
+ * Returns the camera offset that places the rendered centre of the local
+ * character at the exact centre of the viewport. The vertical anchor matches
+ * drawCharacter rather than the centre of the character's walkable tile.
+ */
+export function getPlayerCenteredCamera(playerX, playerY, tilePixels, viewportWidth, viewportHeight) {
+    return {
+        x: (playerX + 0.5) * tilePixels - viewportWidth / 2,
+        y: (playerY + 0.35) * tilePixels - viewportHeight / 2
+    };
+}
+/**
  * Village objects store the top-left of their walkable footprint, while tall
  * sprites include canopy/roof pixels above that footprint. Keeping this
  * conversion in one place prevents drawing, culling and collision from

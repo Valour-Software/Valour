@@ -25,7 +25,8 @@ const {
   getBottomAnchoredSpriteBounds,
   getBottomAnchoredCollisionCells,
   getVillageRenderScale,
-  adjustVillageZoom
+  adjustVillageZoom,
+  getPlayerCenteredCamera
 } = await import('../../Client/wwwroot/ts/VillageTileRendering.js');
 const wait = (fn,ms=500)=>new Promise(r=>{const t=setTimeout(()=>r('NEVER FIRED'),ms); fn(()=>{clearTimeout(t); r('fired');});});
 
@@ -96,6 +97,20 @@ check('17. village zoom is capped at 200 percent',
 
 check('18. village zoom is capped at 50 percent',
   adjustVillageZoom(0.5, -1), 0.5);
+
+const desktopCamera = getPlayerCenteredCamera(3.25, 4.75, 64, 1280, 720);
+check('19. desktop camera keeps the player horizontally centered',
+  (3.25 + 0.5) * 64 - desktopCamera.x, 640);
+check('20. desktop camera keeps the rendered player vertically centered',
+  (4.75 + 0.35) * 64 - desktopCamera.y, 360);
+
+const mobileCamera = getPlayerCenteredCamera(0, 0, 32, 390, 844);
+check('21. mobile camera keeps the player horizontally centered',
+  (0 + 0.5) * 32 - mobileCamera.x, 195);
+check('22. mobile camera keeps the rendered player vertically centered',
+  (0 + 0.35) * 32 - mobileCamera.y, 422);
+check('23. camera is allowed beyond map origin instead of pushing the player off-center',
+  mobileCamera.x < 0 && mobileCamera.y < 0, true);
 
 
 for (const [name, actual, expected] of checks) {
