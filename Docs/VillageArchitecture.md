@@ -89,6 +89,11 @@ Points that are easy to get wrong:
 - **Groups are per map** (`v-{planetId}-{mapId}`), not per planet. Someone walking
   around the square should not wake every client on the planet.
 - **Disconnects clear presence**, or a character stands in the world forever.
+- **Reconnects rejoin at the last local tile.** SignalR groups and server presence
+  disappear with the old connection, so the SDK re-announces the current map after
+  node authentication is restored. Presence records carry their owning connection
+  id internally: a late disconnect callback from the old socket cannot remove or
+  move the newly restored presence.
 - **Facing is carried but not yet rendered**, so directional art can arrive without
   a protocol change.
 
@@ -141,6 +146,9 @@ Buildings surface voice in one of three modes (`VillageVoiceMode`):
   the channel is soft-deleted twenty seconds after the last occupant leaves, with
   reacquisition cancelling that cleanup. Disconnect cleanup releases every lease,
   and the first room request after a server restart reaps any orphaned channels.
+  An open village reacquires its lease after SignalR presence is restored; if a
+  restart replaced the channel, an active village call follows the replacement.
+  Rebinding a building retires its old temporary room immediately.
 
 These channels deliberately reuse the normal chat and call transports, but the
 directory filters their `◇ ` internal names: to a member they exist only as the
@@ -233,8 +241,11 @@ actually happen is recoverable: a retry completes the sale instead of charging
 again, because the transaction fingerprint is derived from the sale rather than
 random and the existing unique index enforces it. Handing over the deed first and
 then failing to take payment would not be recoverable without clawing property back.
-Purchases are also serialized per asset on its planet-pinned node, preventing two
-buyers from both settling while the listing still appears open.
+Each time a property is newly listed it receives a persisted sale id. That id is
+part of the fingerprint, so a later A→B→A→B ownership cycle cannot reuse the first
+payment as though the final purchase were a retry. Listing changes and purchases
+are serialized through the same per-asset lock on the planet-pinned node,
+preventing terms or ownership from changing while a buyer settles.
 
 ## Permissions
 

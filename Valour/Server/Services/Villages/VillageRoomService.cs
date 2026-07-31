@@ -141,6 +141,34 @@ public sealed class VillageRoomService
             await ReleaseAsync(key.PlanetId, key.BuildingId, userId);
     }
 
+    /// <summary>
+    /// Immediately retires a building's temporary room when its channel
+    /// binding changes. Otherwise an already-created room remains acquirable
+    /// until its last old occupant leaves, even though the building now points
+    /// at a permanent channel.
+    /// </summary>
+    public async Task CloseBuildingRoomAsync(long planetId, long buildingId)
+    {
+        var key = new RoomKey(planetId, buildingId);
+        if (!_roomLocks.TryGetValue(key, out var gate))
+            return;
+
+        VillageEphemeralRoom? room = null;
+        await gate.WaitAsync();
+        try
+        {
+            if (_rooms.TryRemove(key, out var state))
+                room = state.Room;
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        if (room is not null)
+            await DeleteChannelAsync(room.PlanetId, room.ChannelId);
+    }
+
     private async Task DeleteIfStillEmptyAfterGraceAsync(RoomKey key, long generation)
     {
         await Task.Delay(EmptyRoomGracePeriod);

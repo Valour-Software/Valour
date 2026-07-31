@@ -351,6 +351,71 @@ public class VillagePresenceServiceTests
     }
 
     [Fact]
+    public async Task LeaveMap_ForStaleMapDoesNotRemoveCurrentPresence()
+    {
+        using var scope = CreateScope();
+        var service = Resolve(scope);
+
+        const long planetId = 900_015;
+        PrepareMap(scope, planetId, 1);
+        PrepareMap(scope, planetId, 2);
+
+        await service.JoinMapAsync(
+            planetId, 2, userId: 1, memberId: 11, "Ada", "a", 3, 3);
+
+        Assert.False(await service.LeaveMapAsync(planetId, 1, userId: 1));
+        var presence = Assert.Single(service.GetMapOccupants(planetId, 2));
+        Assert.Equal(1, presence.UserId);
+
+        await service.LeaveAllForUserAsync(1);
+    }
+
+    [Fact]
+    public async Task StaleConnectionCannotMoveOrRemoveReconnectedPresence()
+    {
+        using var scope = CreateScope();
+        var service = Resolve(scope);
+
+        const long planetId = 900_016;
+        const long mapId = 1;
+        PrepareMap(scope, planetId, mapId);
+
+        await service.JoinMapAsync(
+            planetId,
+            mapId,
+            userId: 1,
+            memberId: 11,
+            "Ada",
+            "a",
+            3,
+            3,
+            connectionId: "old");
+        await service.JoinMapAsync(
+            planetId,
+            mapId,
+            userId: 1,
+            memberId: 11,
+            "Ada",
+            "a",
+            4,
+            4,
+            connectionId: "new");
+
+        Assert.False(service.Move(
+            planetId, mapId, 1, 4, 3, VillageFacing.Up, null, connectionId: "old"));
+        Assert.False(await service.LeaveAllForUserAsync(1, connectionId: "old"));
+
+        var presence = Assert.Single(service.GetMapOccupants(planetId, mapId));
+        Assert.Equal(4, presence.X);
+        Assert.Equal(4, presence.Y);
+
+        Assert.True(service.Move(
+            planetId, mapId, 1, 5, 4, VillageFacing.Right, null, connectionId: "new"));
+        Assert.True(await service.LeaveAllForUserAsync(1, connectionId: "new"));
+        Assert.Empty(service.GetMapOccupants(planetId, mapId));
+    }
+
+    [Fact]
     public async Task JoinMap_RejectsUnknownOrBlockedMapLocation()
     {
         using var scope = CreateScope();

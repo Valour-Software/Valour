@@ -1581,9 +1581,6 @@ function reportLocalPosition(state) {
     }
 
     const map = getCurrentMap(state);
-    const building = map?.buildings?.find((item) =>
-        player.tileX >= item.x && player.tileX < item.x + item.width &&
-        player.tileY >= item.y && player.tileY < item.y + item.height);
 
     void invokeDotNet(
         state,
@@ -1591,7 +1588,11 @@ function reportLocalPosition(state) {
         player.tileX,
         player.tileY,
         facingFromDirection(state.lastDirectionKey),
-        building ? building.id : (map?.parentBuildingId ?? null));
+        // Building occupancy is authoritative per interior map. Treating the
+        // outdoor doorway row as "inside" races room acquisition ahead of the
+        // portal join, which the server correctly rejects because presence is
+        // still outdoors at that instant.
+        map?.parentBuildingId ?? null);
 }
 
 function facingFromDirection(directionKey) {

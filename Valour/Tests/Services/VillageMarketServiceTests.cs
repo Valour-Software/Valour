@@ -16,8 +16,10 @@ public class VillageMarketServiceTests
     {
         // A retry must produce the same fingerprint, or the unique index will
         // not stop the buyer being charged twice.
-        var first = VillageMarketService.BuildFingerprint("plot", 10, buyerMemberId: 5, sellerMemberId: 7);
-        var second = VillageMarketService.BuildFingerprint("plot", 10, buyerMemberId: 5, sellerMemberId: 7);
+        var first = VillageMarketService.BuildFingerprint(
+            "plot", 10, "sale-a", buyerMemberId: 5, sellerMemberId: 7);
+        var second = VillageMarketService.BuildFingerprint(
+            "plot", 10, "sale-a", buyerMemberId: 5, sellerMemberId: 7);
 
         Assert.Equal(first, second);
     }
@@ -25,8 +27,8 @@ public class VillageMarketServiceTests
     [Fact]
     public void Fingerprint_DiffersPerBuyer()
     {
-        var buyerA = VillageMarketService.BuildFingerprint("plot", 10, buyerMemberId: 5, sellerMemberId: 7);
-        var buyerB = VillageMarketService.BuildFingerprint("plot", 10, buyerMemberId: 6, sellerMemberId: 7);
+        var buyerA = VillageMarketService.BuildFingerprint("plot", 10, "sale-a", buyerMemberId: 5, sellerMemberId: 7);
+        var buyerB = VillageMarketService.BuildFingerprint("plot", 10, "sale-a", buyerMemberId: 6, sellerMemberId: 7);
 
         Assert.NotEqual(buyerA, buyerB);
     }
@@ -34,15 +36,15 @@ public class VillageMarketServiceTests
     [Fact]
     public void Fingerprint_DiffersPerAsset()
     {
-        var plot = VillageMarketService.BuildFingerprint("plot", 10, 5, 7);
-        var building = VillageMarketService.BuildFingerprint("building", 10, 5, 7);
+        var plot = VillageMarketService.BuildFingerprint("plot", 10, "sale-a", 5, 7);
+        var building = VillageMarketService.BuildFingerprint("building", 10, "sale-a", 5, 7);
 
         // Same id in different tables must not collide.
         Assert.NotEqual(plot, building);
 
         Assert.NotEqual(
-            VillageMarketService.BuildFingerprint("plot", 10, 5, 7),
-            VillageMarketService.BuildFingerprint("plot", 11, 5, 7));
+            VillageMarketService.BuildFingerprint("plot", 10, "sale-a", 5, 7),
+            VillageMarketService.BuildFingerprint("plot", 11, "sale-a", 5, 7));
     }
 
     [Fact]
@@ -50,10 +52,26 @@ public class VillageMarketServiceTests
     {
         // Buying a plot, selling it on, then buying it back is a genuinely new
         // sale and must not be mistaken for a retry of the first one.
-        var fromPlanet = VillageMarketService.BuildFingerprint("plot", 10, buyerMemberId: 5, sellerMemberId: null);
-        var fromMember = VillageMarketService.BuildFingerprint("plot", 10, buyerMemberId: 5, sellerMemberId: 9);
+        var fromPlanet = VillageMarketService.BuildFingerprint(
+            "plot", 10, "sale-a", buyerMemberId: 5, sellerMemberId: null);
+        var fromMember = VillageMarketService.BuildFingerprint(
+            "plot", 10, "sale-a", buyerMemberId: 5, sellerMemberId: 9);
 
         Assert.NotEqual(fromPlanet, fromMember);
+    }
+
+    [Fact]
+    public void Fingerprint_DistinguishesARepeatedBuyerSellerCycle()
+    {
+        // A buys from B, sells it back, then later buys from B again. Buyer,
+        // seller, asset and price may all match the first purchase, but this is
+        // a new listing and must create a new charge.
+        var firstListing = VillageMarketService.BuildFingerprint(
+            "plot", 10, "sale-a", buyerMemberId: 5, sellerMemberId: 7);
+        var laterListing = VillageMarketService.BuildFingerprint(
+            "plot", 10, "sale-b", buyerMemberId: 5, sellerMemberId: 7);
+
+        Assert.NotEqual(firstListing, laterListing);
     }
 
     [Fact]

@@ -47,6 +47,12 @@ public class VillagePlot : ISharedVillagePlot
     public bool ForSale { get; set; }
 
     /// <summary>
+    /// Stable identity of the current listing. It survives retries of a
+    /// partially completed purchase and changes when the property is relisted.
+    /// </summary>
+    public string SaleId { get; set; }
+
+    /// <summary>
     /// Asking price in the planet's currency
     /// </summary>
     public decimal Price { get; set; }
@@ -99,6 +105,10 @@ public class VillagePlot : ISharedVillagePlot
 
             e.Property(x => x.ForSale)
                 .HasColumnName("for_sale");
+
+            e.Property(x => x.SaleId)
+                .HasColumnName("sale_id")
+                .HasMaxLength(32);
 
             e.Property(x => x.Price)
                 .HasColumnName("price")

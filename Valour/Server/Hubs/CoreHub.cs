@@ -109,8 +109,11 @@ public class CoreHub : Hub
 
             // Otherwise a dropped connection leaves a character standing in the
             // village until the node restarts.
-            await _villagePresenceService.LeaveAllForUserAsync(authToken.UserId);
-            await _villageRoomService.ReleaseAllForUserAsync(authToken.UserId);
+            var removedVillagePresence = await _villagePresenceService.LeaveAllForUserAsync(
+                authToken.UserId,
+                Context.ConnectionId);
+            if (removedVillagePresence)
+                await _villageRoomService.ReleaseAllForUserAsync(authToken.UserId);
         }
 
         await _connectionTracker.RemovePrimaryConnectionAsync(Context, _redis);
@@ -332,7 +335,16 @@ public class CoreHub : Hub
             member, Valour.Shared.Models.AvatarFormat.Webp64);
 
         var snapshot = await _villagePresenceService.JoinMapAsync(
-            planetId, mapId, authToken.UserId, member.Id, name, avatarUrl, x, y, buildingId);
+            planetId,
+            mapId,
+            authToken.UserId,
+            member.Id,
+            name,
+            avatarUrl,
+            x,
+            y,
+            buildingId,
+            Context.ConnectionId);
         if (snapshot is null)
             return null;
 
@@ -353,7 +365,11 @@ public class CoreHub : Hub
         await _connectionTracker.UntrackGroupMembershipAsync(groupId, Context);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
 
-        await _villagePresenceService.LeaveMapAsync(planetId, mapId, authToken.UserId);
+        await _villagePresenceService.LeaveMapAsync(
+            planetId,
+            mapId,
+            authToken.UserId,
+            Context.ConnectionId);
     }
 
     /// <summary>
@@ -374,7 +390,8 @@ public class CoreHub : Hub
             x,
             y,
             (VillageFacing)facing,
-            buildingId);
+            buildingId,
+            Context.ConnectionId);
     }
 
     public async Task<TaskResult> RefreshActiveChannelView(long channelId)

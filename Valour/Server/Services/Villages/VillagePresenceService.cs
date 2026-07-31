@@ -22,7 +22,7 @@ public class VillagePresenceService
     /// member can only ever occupy one map at a time, and so a disconnect can
     /// clean up without knowing which map they were on.
     /// </summary>
-    private static readonly ConcurrentDictionary<long, ConcurrentDictionary<long, VillagePresence>> Presences = new();
+    private static readonly ConcurrentDictionary<long, ConcurrentDictionary<long, PresenceEntry>> Presences = new();
 
     /// <summary>
     /// Movement is tile-quantized and eased over 130ms client-side, so a member
@@ -56,16 +56,17 @@ public class VillagePresenceService
         string avatarUrl,
         int x,
         int y,
-        long? buildingId = null)
+        long? buildingId = null,
+        string? connectionId = null)
     {
         var collisionMap = await _collisionService.GetMapAsync(planetId, mapId);
         if (collisionMap is null || !collisionMap.IsWalkable(x, y))
             return null;
 
-        var planetPresences = Presences.GetOrAdd(planetId, _ => new ConcurrentDictionary<long, VillagePresence>());
+        var planetPresences = Presences.GetOrAdd(planetId, _ => new ConcurrentDictionary<long, PresenceEntry>());
 
-        if (planetPresences.TryGetValue(userId, out var existing) && existing.MapId != mapId)
-            await LeaveMapInternalAsync(planetId, existing.MapId, userId, removeFromPlanet: false);
+        if (planetPresences.TryGetValue(userId, out var existing) && existing.Presence.MapId != mapId)
+            NotifyPresenceLeft(planetId, existing.Presence.MapId, userId);
 
         var presence = new VillagePresence
         {
@@ -84,7 +85,8 @@ public class VillagePresenceService
             BuildingId = collisionMap.ParentBuildingId,
         };
 
-        planetPresences[userId] = presence;
+        planetPresences[userId] = new PresenceEntry(presence, connectionId);
+        LastMoveTicks.TryRemove(userId, out _);
 
         _hubService.NotifyVillagePresenceJoined(planetId, mapId, presence);
 
@@ -94,7 +96,10 @@ public class VillagePresenceService
             MapId = mapId,
             // The joiner is included so a client can reconcile its own position
             // against what the server believes without a second round trip.
-            Presences = planetPresences.Values.Where(x => x.MapId == mapId).ToList(),
+            Presences = planetPresences.Values
+                .Select(x => x.Presence)
+                .Where(x => x.MapId == mapId)
+                .ToList(),
         };
     }
 
@@ -102,13 +107,27 @@ public class VillagePresenceService
     /// Records a move and broadcasts it to everyone else on the same map.
     /// Returns false when the move was rejected as too frequent.
     /// </summary>
-    public bool Move(long planetId, long mapId, long userId, int x, int y, VillageFacing facing, long? buildingId)
+    public bool Move(
+        long planetId,
+        long mapId,
+        long userId,
+        int x,
+        int y,
+        VillageFacing facing,
+        long? buildingId,
+        string? connectionId = null)
     {
         if (!Presences.TryGetValue(planetId, out var planetPresences))
             return false;
 
-        if (!planetPresences.TryGetValue(userId, out var presence) || presence.MapId != mapId)
+        if (!planetPresences.TryGetValue(userId, out var entry) ||
+            entry.Presence.MapId != mapId ||
+            !entry.IsOwnedBy(connectionId))
+        {
             return false;
+        }
+
+        var presence = entry.Presence;
 
         // A normal step changes exactly one axis by one tile. Door transitions
         // join a different map instead, so there is no legitimate same-map
@@ -152,42 +171,53 @@ public class VillagePresenceService
         return true;
     }
 
-    public Task LeaveMapAsync(long planetId, long mapId, long userId) =>
-        LeaveMapInternalAsync(planetId, mapId, userId, removeFromPlanet: true);
+    public Task<bool> LeaveMapAsync(
+        long planetId,
+        long mapId,
+        long userId,
+        string? connectionId = null) =>
+        LeaveMapInternalAsync(planetId, mapId, userId, connectionId);
 
     /// <summary>
     /// Drops a member from whichever map they were on. Called on disconnect,
     /// where the caller does not know which map that was.
     /// </summary>
-    public async Task LeaveAllAsync(long planetId, long userId)
+    public async Task<bool> LeaveAllAsync(long planetId, long userId, string? connectionId = null)
     {
         if (!Presences.TryGetValue(planetId, out var planetPresences))
-            return;
+            return false;
 
-        if (planetPresences.TryGetValue(userId, out var presence))
-            await LeaveMapInternalAsync(planetId, presence.MapId, userId, removeFromPlanet: true);
+        if (!planetPresences.TryGetValue(userId, out var entry) || !entry.IsOwnedBy(connectionId))
+            return false;
+
+        return await LeaveMapInternalAsync(
+            planetId,
+            entry.Presence.MapId,
+            userId,
+            connectionId);
     }
 
-    private Task LeaveMapInternalAsync(long planetId, long mapId, long userId, bool removeFromPlanet)
+    private Task<bool> LeaveMapInternalAsync(
+        long planetId,
+        long mapId,
+        long userId,
+        string? connectionId)
     {
-        if (Presences.TryGetValue(planetId, out var planetPresences) && removeFromPlanet)
+        if (!Presences.TryGetValue(planetId, out var planetPresences) ||
+            !planetPresences.TryGetValue(userId, out var entry) ||
+            entry.Presence.MapId != mapId ||
+            !entry.IsOwnedBy(connectionId) ||
+            !planetPresences.TryRemove(new KeyValuePair<long, PresenceEntry>(userId, entry)))
         {
-            planetPresences.TryRemove(userId, out _);
-
-            if (planetPresences.IsEmpty)
-                Presences.TryRemove(planetId, out _);
+            return Task.FromResult(false);
         }
 
+        if (planetPresences.IsEmpty)
+            Presences.TryRemove(planetId, out _);
+
         LastMoveTicks.TryRemove(userId, out _);
-
-        _hubService.NotifyVillagePresenceLeft(planetId, mapId, new VillagePresenceLeft
-        {
-            PlanetId = planetId,
-            MapId = mapId,
-            UserId = userId,
-        });
-
-        return Task.CompletedTask;
+        NotifyPresenceLeft(planetId, mapId, userId);
+        return Task.FromResult(true);
     }
 
     /// <summary>
@@ -196,13 +226,16 @@ public class VillagePresenceService
     /// standing in the world would otherwise persist until the node restarts.
     /// The scan is over members currently inside a village, not all members.
     /// </summary>
-    public async Task LeaveAllForUserAsync(long userId)
+    public async Task<bool> LeaveAllForUserAsync(long userId, string? connectionId = null)
     {
+        var removed = false;
         foreach (var (planetId, planetPresences) in Presences)
         {
             if (planetPresences.ContainsKey(userId))
-                await LeaveAllAsync(planetId, userId);
+                removed |= await LeaveAllAsync(planetId, userId, connectionId);
         }
+
+        return removed;
     }
 
     /// <summary>
@@ -214,7 +247,10 @@ public class VillagePresenceService
         if (!Presences.TryGetValue(planetId, out var planetPresences))
             return Array.Empty<VillagePresence>();
 
-        return planetPresences.Values.Where(x => x.BuildingId == buildingId).ToList();
+        return planetPresences.Values
+            .Select(x => x.Presence)
+            .Where(x => x.BuildingId == buildingId)
+            .ToList();
     }
 
     public IReadOnlyList<VillagePresence> GetMapOccupants(long planetId, long mapId)
@@ -222,6 +258,34 @@ public class VillagePresenceService
         if (!Presences.TryGetValue(planetId, out var planetPresences))
             return Array.Empty<VillagePresence>();
 
-        return planetPresences.Values.Where(x => x.MapId == mapId).ToList();
+        return planetPresences.Values
+            .Select(x => x.Presence)
+            .Where(x => x.MapId == mapId)
+            .ToList();
+    }
+
+    private void NotifyPresenceLeft(long planetId, long mapId, long userId) =>
+        _hubService.NotifyVillagePresenceLeft(planetId, mapId, new VillagePresenceLeft
+        {
+            PlanetId = planetId,
+            MapId = mapId,
+            UserId = userId,
+        });
+
+    private sealed class PresenceEntry
+    {
+        public PresenceEntry(VillagePresence presence, string? connectionId)
+        {
+            Presence = presence;
+            ConnectionId = connectionId;
+        }
+
+        public VillagePresence Presence { get; }
+        public string? ConnectionId { get; }
+
+        // A null expected id is reserved for service-level cleanup and tests.
+        // Hub calls always provide their exact connection id.
+        public bool IsOwnedBy(string? connectionId) =>
+            connectionId is null || ConnectionId == connectionId;
     }
 }

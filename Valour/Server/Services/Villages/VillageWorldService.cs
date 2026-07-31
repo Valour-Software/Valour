@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Valour.Database.Context;
 using Valour.Server.Database;
@@ -23,14 +24,22 @@ namespace Valour.Server.Services.Villages;
 /// </summary>
 public class VillageWorldService
 {
+    private static readonly ConcurrentDictionary<long, SemaphoreSlim> SeedGates = new();
+
     private readonly ValourDb _db;
     private readonly CoreHubService _hubService;
+    private readonly VillageRoomService _roomService;
     private readonly ILogger<VillageWorldService> _logger;
 
-    public VillageWorldService(ValourDb db, CoreHubService hubService, ILogger<VillageWorldService> logger)
+    public VillageWorldService(
+        ValourDb db,
+        CoreHubService hubService,
+        VillageRoomService roomService,
+        ILogger<VillageWorldService> logger)
     {
         _db = db;
         _hubService = hubService;
+        _roomService = roomService;
         _logger = logger;
     }
 
@@ -55,7 +64,27 @@ public class VillageWorldService
 
         if (maps.Count == 0)
         {
-            await SeedWorldAsync(planet, channels);
+            // Two first-open requests can arrive together. Without a
+            // planet-scoped gate both observe an empty world and persist a
+            // complete starter village, leaving duplicate outdoor maps and
+            // buildings. Recheck after entering the gate because another
+            // request may have finished seeding while this one waited.
+            var gate = SeedGates.GetOrAdd(planet.Id, _ => new SemaphoreSlim(1, 1));
+            await gate.WaitAsync();
+            try
+            {
+                maps = await _db.VillageMaps
+                    .Where(x => x.PlanetId == planet.Id)
+                    .OrderBy(x => x.Id)
+                    .ToListAsync();
+
+                if (maps.Count == 0)
+                    await SeedWorldAsync(planet, channels);
+            }
+            finally
+            {
+                gate.Release();
+            }
 
             maps = await _db.VillageMaps
                 .Where(x => x.PlanetId == planet.Id)
@@ -329,6 +358,10 @@ public class VillageWorldService
         if (building is null)
             return new TaskResult(false, "Building not found.");
 
+        var retireTemporaryRoom = request.UpdateChannel &&
+                                  building.ChannelId is null &&
+                                  request.ChannelId is not null;
+
         if (!canManageVillage && building.OwnerMemberId != actorMemberId)
             return new TaskResult(false, "Only the owner or a village manager can edit this building.");
 
@@ -386,6 +419,9 @@ public class VillageWorldService
         }
 
         await _db.SaveChangesAsync();
+        if (retireTemporaryRoom)
+            await _roomService.CloseBuildingRoomAsync(planetId, building.Id);
+
         _hubService.NotifyPlanetItemChange(planetId, building.ToModel());
         return TaskResult.SuccessResult;
     }

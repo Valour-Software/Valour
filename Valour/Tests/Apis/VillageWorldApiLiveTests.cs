@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Valour.Database.Context;
 using Valour.Shared.Models;
 using Valour.Shared.Villages;
 
@@ -102,6 +104,100 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
         Assert.Equal(
             first.Maps.SelectMany(x => x.Buildings).Select(x => x.Id).OrderBy(x => x),
             second.Maps.SelectMany(x => x.Buildings).Select(x => x.Id).OrderBy(x => x));
+    }
+
+    [Fact]
+    public async Task NodeReconnect_RestoresVillagePresenceAtTheLastTile()
+    {
+        var scene = await LoadSceneAsync();
+        var outdoor = scene!.Maps.Single(x => x.Id == scene.StartingMapId);
+        var spawn = outdoor.SpawnTile!;
+
+        var joined = await _fixture.Client.VillageService.JoinMapAsync(
+            _planet,
+            outdoor.Id,
+            spawn.X,
+            spawn.Y);
+        Assert.True(joined.Success, joined.Message);
+
+        using var scope = _fixture.Factory.Services.CreateScope();
+        var presenceService = scope.ServiceProvider
+            .GetRequiredService<Valour.Server.Services.Villages.VillagePresenceService>();
+        var userId = _planet.MyMember!.UserId;
+
+        // Model the server-side effect of a dead SignalR connection, then fire
+        // the same client lifecycle event Node raises after authentication is
+        // restored.
+        await presenceService.LeaveAllForUserAsync(userId);
+        Assert.Empty(presenceService.GetMapOccupants(_planet.Id, outdoor.Id));
+
+        _fixture.Client.NodeService.NodeReconnected?.Invoke(_planet.Node);
+
+        VillagePresence? restored = null;
+        for (var attempt = 0; attempt < 40 && restored is null; attempt++)
+        {
+            restored = presenceService
+                .GetMapOccupants(_planet.Id, outdoor.Id)
+                .SingleOrDefault(x => x.UserId == userId);
+            if (restored is null)
+                await Task.Delay(50);
+        }
+
+        Assert.NotNull(restored);
+        Assert.Equal(spawn.X, restored.X);
+        Assert.Equal(spawn.Y, restored.Y);
+
+        await _fixture.Client.VillageService.LeaveMapAsync();
+    }
+
+    [Fact]
+    public async Task RelistingProperty_CreatesANewSaleIdentity()
+    {
+        var scene = await LoadSceneAsync();
+        var plot = scene!.Maps.SelectMany(x => x.Plots).First();
+        var originalForSale = plot.ForSale;
+        var originalPrice = plot.Price;
+
+        Assert.True((await _fixture.Client.VillageService.SetPlotListingAsync(
+            _planet, plot.Id, false, plot.Price)).Success);
+        Assert.True((await _fixture.Client.VillageService.SetPlotListingAsync(
+            _planet, plot.Id, true, plot.Price)).Success);
+
+        string? firstSaleId;
+        using (var scope = _fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            firstSaleId = await db.VillagePlots
+                .AsNoTracking()
+                .Where(x => x.Id == plot.Id)
+                .Select(x => x.SaleId)
+                .SingleAsync();
+        }
+
+        Assert.False(string.IsNullOrWhiteSpace(firstSaleId));
+
+        Assert.True((await _fixture.Client.VillageService.SetPlotListingAsync(
+            _planet, plot.Id, false, plot.Price)).Success);
+        Assert.True((await _fixture.Client.VillageService.SetPlotListingAsync(
+            _planet, plot.Id, true, plot.Price)).Success);
+
+        string? secondSaleId;
+        using (var scope = _fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            secondSaleId = await db.VillagePlots
+                .AsNoTracking()
+                .Where(x => x.Id == plot.Id)
+                .Select(x => x.SaleId)
+                .SingleAsync();
+        }
+
+        Assert.False(string.IsNullOrWhiteSpace(secondSaleId));
+        Assert.NotEqual(firstSaleId, secondSaleId);
+
+        var restore = await _fixture.Client.VillageService.SetPlotListingAsync(
+            _planet, plot.Id, originalForSale, originalPrice);
+        Assert.True(restore.Success, restore.Message);
     }
 
     [Fact]
@@ -305,6 +401,20 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
         var building = scene.Maps
             .SelectMany(x => x.Buildings)
             .First(x => x.ChannelId is null);
+        var interior = scene.Maps.Single(x => x.Id == building.InteriorMapId);
+
+        var joined = await _fixture.Client.VillageService.JoinMapAsync(
+            _planet,
+            interior.Id,
+            interior.SpawnTile!.X,
+            interior.SpawnTile.Y,
+            building.Id);
+        Assert.True(joined.Success, joined.Message);
+
+        var temporaryRoom = await _fixture.Client.VillageService
+            .AcquireBuildingRoomAsync(_planet, building.Id);
+        Assert.True(temporaryRoom.Success, temporaryRoom.Message);
+        Assert.NotNull(temporaryRoom.Data);
 
         var link = await _fixture.Client.VillageService.UpdateBuildingAsync(
             _planet, building.Id, name: null, description: null,
@@ -318,6 +428,14 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
 
         // A chat building surfaces the same channel for nearby text.
         Assert.Equal(scene.DefaultChatChannelId, linked.ChatChannelId);
+
+        // Rebinding retires the temporary channel immediately instead of
+        // leaving a stale private room alive beside the permanent binding.
+        Assert.Null(await _planet.FetchChannelAsync(
+            temporaryRoom.Data.ChannelId,
+            skipCache: true));
+
+        await _fixture.Client.VillageService.LeaveMapAsync();
 
         var unlink = await _fixture.Client.VillageService.UpdateBuildingAsync(
             _planet, building.Id, name: null, description: null,

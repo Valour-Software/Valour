@@ -27,7 +27,7 @@ public class VillageMarketService
 {
     // Planets are node-pinned, so serializing an asset's purchase on this node
     // prevents two buyers from both settling before either deed handover lands.
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> PurchaseLocks = new();
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> AssetLocks = new();
 
     private readonly ValourDb _db;
     private readonly EcoService _ecoService;
@@ -51,8 +51,13 @@ public class VillageMarketService
     /// failure is recognised as the same purchase. The unique index on
     /// Fingerprint is what actually enforces it.
     /// </summary>
-    internal static string BuildFingerprint(string kind, long assetId, long buyerMemberId, long? sellerMemberId) =>
-        $"village:{kind}:{assetId}:{buyerMemberId}:{sellerMemberId?.ToString() ?? "planet"}";
+    internal static string BuildFingerprint(
+        string kind,
+        long assetId,
+        string saleId,
+        long buyerMemberId,
+        long? sellerMemberId) =>
+        $"village:{kind}:{assetId}:{saleId}:{buyerMemberId}:{sellerMemberId?.ToString() ?? "planet"}";
 
     public async Task<TaskResult> SetPlotForSaleAsync(
         long plotId,
@@ -62,22 +67,34 @@ public class VillageMarketService
         bool forSale,
         decimal price)
     {
-        var plot = await _db.VillagePlots.FirstOrDefaultAsync(x => x.Id == plotId && x.PlanetId == planetId);
-        if (plot is null)
-            return new TaskResult(false, "Plot not found.");
+        var gate = GetAssetLock("plot", planetId, plotId);
+        await gate.WaitAsync();
+        try
+        {
+            var plot = await _db.VillagePlots.FirstOrDefaultAsync(x => x.Id == plotId && x.PlanetId == planetId);
+            if (plot is null)
+                return new TaskResult(false, "Plot not found.");
 
-        if (!CanManageListing(plot.OwnerMemberId, actorMemberId, canManageVillage))
-            return new TaskResult(false, "Only the owner or a village manager can list this parcel.");
+            if (!CanManageListing(plot.OwnerMemberId, actorMemberId, canManageVillage))
+                return new TaskResult(false, "Only the owner or a village manager can list this parcel.");
 
-        if (price < 0)
-            return new TaskResult(false, "Price cannot be negative.");
+            if (price < 0)
+                return new TaskResult(false, "Price cannot be negative.");
 
-        plot.ForSale = forSale;
-        plot.Price = price;
-        await _db.SaveChangesAsync();
+            if (forSale && (!plot.ForSale || string.IsNullOrWhiteSpace(plot.SaleId)))
+                plot.SaleId = CreateSaleId();
 
-        _hubService.NotifyPlanetItemChange(planetId, plot.ToModel());
-        return TaskResult.SuccessResult;
+            plot.ForSale = forSale;
+            plot.Price = price;
+            await _db.SaveChangesAsync();
+
+            _hubService.NotifyPlanetItemChange(planetId, plot.ToModel());
+            return TaskResult.SuccessResult;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public async Task<TaskResult> SetBuildingForSaleAsync(
@@ -88,27 +105,39 @@ public class VillageMarketService
         bool forSale,
         decimal price)
     {
-        var building = await _db.VillageBuildings.FirstOrDefaultAsync(x => x.Id == buildingId && x.PlanetId == planetId);
-        if (building is null)
-            return new TaskResult(false, "Building not found.");
+        var gate = GetAssetLock("building", planetId, buildingId);
+        await gate.WaitAsync();
+        try
+        {
+            var building = await _db.VillageBuildings.FirstOrDefaultAsync(x => x.Id == buildingId && x.PlanetId == planetId);
+            if (building is null)
+                return new TaskResult(false, "Building not found.");
 
-        if (!CanManageListing(building.OwnerMemberId, actorMemberId, canManageVillage))
-            return new TaskResult(false, "Only the owner or a village manager can list this building.");
+            if (!CanManageListing(building.OwnerMemberId, actorMemberId, canManageVillage))
+                return new TaskResult(false, "Only the owner or a village manager can list this building.");
 
-        if (price < 0)
-            return new TaskResult(false, "Price cannot be negative.");
+            if (price < 0)
+                return new TaskResult(false, "Price cannot be negative.");
 
-        building.ForSale = forSale;
-        building.Price = price;
-        await _db.SaveChangesAsync();
+            if (forSale && (!building.ForSale || string.IsNullOrWhiteSpace(building.SaleId)))
+                building.SaleId = CreateSaleId();
 
-        _hubService.NotifyPlanetItemChange(planetId, building.ToModel());
-        return TaskResult.SuccessResult;
+            building.ForSale = forSale;
+            building.Price = price;
+            await _db.SaveChangesAsync();
+
+            _hubService.NotifyPlanetItemChange(planetId, building.ToModel());
+            return TaskResult.SuccessResult;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public async Task<TaskResult> PurchasePlotAsync(long plotId, long planetId, long buyerMemberId, long buyerUserId)
     {
-        var gate = PurchaseLocks.GetOrAdd($"plot:{plotId}", _ => new SemaphoreSlim(1, 1));
+        var gate = GetAssetLock("plot", planetId, plotId);
         await gate.WaitAsync();
         try
         {
@@ -134,8 +163,14 @@ public class VillageMarketService
         if (!check.Success)
             return check;
 
+        if (string.IsNullOrWhiteSpace(plot.SaleId))
+        {
+            plot.SaleId = CreateSaleId();
+            await _db.SaveChangesAsync();
+        }
+
         var payment = await SettlePaymentAsync(
-            "plot", plot.Id, planetId, plot.Price, plot.OwnerMemberId, buyerMemberId, buyerUserId, plot.Name);
+            "plot", plot.Id, plot.SaleId, planetId, plot.Price, plot.OwnerMemberId, buyerMemberId, buyerUserId, plot.Name);
 
         if (!payment.Success)
             return payment;
@@ -150,7 +185,7 @@ public class VillageMarketService
 
     public async Task<TaskResult> PurchaseBuildingAsync(long buildingId, long planetId, long buyerMemberId, long buyerUserId)
     {
-        var gate = PurchaseLocks.GetOrAdd($"building:{buildingId}", _ => new SemaphoreSlim(1, 1));
+        var gate = GetAssetLock("building", planetId, buildingId);
         await gate.WaitAsync();
         try
         {
@@ -176,8 +211,14 @@ public class VillageMarketService
         if (!check.Success)
             return check;
 
+        if (string.IsNullOrWhiteSpace(building.SaleId))
+        {
+            building.SaleId = CreateSaleId();
+            await _db.SaveChangesAsync();
+        }
+
         var payment = await SettlePaymentAsync(
-            "building", building.Id, planetId, building.Price, building.OwnerMemberId, buyerMemberId, buyerUserId, building.Name);
+            "building", building.Id, building.SaleId, planetId, building.Price, building.OwnerMemberId, buyerMemberId, buyerUserId, building.Name);
 
         if (!payment.Success)
             return payment;
@@ -212,6 +253,7 @@ public class VillageMarketService
     private async Task<TaskResult> SettlePaymentAsync(
         string kind,
         long assetId,
+        string saleId,
         long planetId,
         decimal price,
         long? sellerMemberId,
@@ -222,7 +264,7 @@ public class VillageMarketService
         if (price <= 0)
             return TaskResult.SuccessResult;
 
-        var fingerprint = BuildFingerprint(kind, assetId, buyerMemberId, sellerMemberId);
+        var fingerprint = BuildFingerprint(kind, assetId, saleId, buyerMemberId, sellerMemberId);
 
         // A matching fingerprint means the buyer was already charged for this
         // exact sale and the previous attempt died before the handover.
@@ -269,6 +311,11 @@ public class VillageMarketService
 
         return TaskResult.SuccessResult;
     }
+
+    private static SemaphoreSlim GetAssetLock(string kind, long planetId, long assetId) =>
+        AssetLocks.GetOrAdd($"{planetId}:{kind}:{assetId}", _ => new SemaphoreSlim(1, 1));
+
+    private static string CreateSaleId() => Guid.NewGuid().ToString("N");
 
     /// <summary>
     /// Unowned property is sold by the planet itself, so the proceeds go to a

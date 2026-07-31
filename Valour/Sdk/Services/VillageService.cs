@@ -27,6 +27,10 @@ public class VillageService : ServiceBase
 
     private long _currentPlanetId;
     private long _currentMapId;
+    private int _currentX;
+    private int _currentY;
+    private long? _currentBuildingId;
+    private readonly SemaphoreSlim _mapLifecycleGate = new(1, 1);
 
     /// <summary>
     /// Fired when someone joins, moves, or leaves the map this client is on.
@@ -35,11 +39,19 @@ public class VillageService : ServiceBase
     /// </summary>
     public HybridEvent PresenceChanged;
 
+    /// <summary>
+    /// Fired after the service restores its map membership following a node
+    /// reconnect. Consumers that lease map-scoped resources (such as temporary
+    /// village rooms) must reacquire those leases at this point.
+    /// </summary>
+    public HybridEvent MapRejoined;
+
     public VillageService(ValourClient client)
     {
         _client = client;
         SetupLogging(client.Logger, new LogOptions("VillageService", "#6f8f4d", "#a3333e", "#a39433"));
 
+        _client.NodeService.NodeReconnected += OnNodeReconnected;
         _client.NodeService.NodeAdded += HookHubEvents;
     }
 
@@ -144,34 +156,47 @@ public class VillageService : ServiceBase
         if (planet is null)
             return new TaskResult(false, "No planet.");
 
-        if (_currentMapId != 0 && (_currentMapId != mapId || _currentPlanetId != planet.Id))
-            await LeaveMapAsync();
-
-        var snapshot = await planet.Node.HubConnection.InvokeAsync<VillagePresenceSnapshot>(
-            "JoinVillageMap", planet.Id, mapId, x, y, buildingId);
-
-        if (snapshot is null)
-            return new TaskResult(false, "Could not join the village map.");
-
-        _currentPlanetId = planet.Id;
-        _currentMapId = mapId;
-
-        _presences.Clear();
-        foreach (var presence in snapshot.Presences)
+        await _mapLifecycleGate.WaitAsync();
+        try
         {
-            // The snapshot includes us; the local player is rendered from local
-            // input rather than from the server's echo of our own position.
-            if (presence.UserId == _client.Me?.Id)
-                continue;
+            if (_currentMapId != 0 && (_currentMapId != mapId || _currentPlanetId != planet.Id))
+                await LeaveMapCoreAsync();
 
-            _presences[presence.UserId] = presence;
+            var snapshot = await planet.Node.HubConnection.InvokeAsync<VillagePresenceSnapshot>(
+                "JoinVillageMap", planet.Id, mapId, x, y, buildingId);
+
+            if (snapshot is null)
+                return new TaskResult(false, "Could not join the village map.");
+
+            _currentPlanetId = planet.Id;
+            _currentMapId = mapId;
+            _currentX = x;
+            _currentY = y;
+            _currentBuildingId = buildingId;
+
+            ReplacePresences(snapshot);
+            return TaskResult.SuccessResult;
         }
-
-        PresenceChanged?.Invoke();
-        return TaskResult.SuccessResult;
+        finally
+        {
+            _mapLifecycleGate.Release();
+        }
     }
 
     public async Task LeaveMapAsync()
+    {
+        await _mapLifecycleGate.WaitAsync();
+        try
+        {
+            await LeaveMapCoreAsync();
+        }
+        finally
+        {
+            _mapLifecycleGate.Release();
+        }
+    }
+
+    private async Task LeaveMapCoreAsync()
     {
         if (_currentMapId == 0)
             return;
@@ -181,6 +206,9 @@ public class VillageService : ServiceBase
 
         _currentPlanetId = 0;
         _currentMapId = 0;
+        _currentX = 0;
+        _currentY = 0;
+        _currentBuildingId = null;
         _presences.Clear();
         PresenceChanged?.Invoke();
 
@@ -208,15 +236,24 @@ public class VillageService : ServiceBase
         if (_currentMapId == 0)
             return;
 
-        if (!_client.Cache.Planets.TryGet(_currentPlanetId, out var planet) || planet is null)
+        var planetId = _currentPlanetId;
+        var mapId = _currentMapId;
+        if (!_client.Cache.Planets.TryGet(planetId, out var planet) || planet is null)
             return;
+
+        // Keep the latest client-side tile even if the send is the packet that
+        // discovers a dead connection. It is the valid destination used to
+        // restore presence once SignalR reconnects.
+        _currentX = x;
+        _currentY = y;
+        _currentBuildingId = buildingId;
 
         try
         {
             await planet.Node.HubConnection.SendAsync(
                 "MoveInVillage",
-                _currentPlanetId,
-                _currentMapId,
+                planetId,
+                mapId,
                 x,
                 y,
                 (int)facing,
@@ -226,6 +263,64 @@ public class VillageService : ServiceBase
         {
             LogError("Failed to report village movement.", ex);
         }
+    }
+
+    private async Task OnNodeReconnected(Node node)
+    {
+        await _mapLifecycleGate.WaitAsync();
+        try
+        {
+            if (_currentMapId == 0 || _currentPlanetId == 0)
+                return;
+
+            if (!_client.Cache.Planets.TryGet(_currentPlanetId, out var planet) ||
+                planet is null ||
+                planet.Node?.Name != node.Name)
+            {
+                return;
+            }
+
+            var snapshot = await node.HubConnection.InvokeAsync<VillagePresenceSnapshot>(
+                "JoinVillageMap",
+                _currentPlanetId,
+                _currentMapId,
+                _currentX,
+                _currentY,
+                _currentBuildingId);
+
+            if (snapshot is null)
+            {
+                LogError("Could not restore village map presence after reconnect.");
+                return;
+            }
+
+            ReplacePresences(snapshot);
+            MapRejoined?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            LogError("Failed to restore village presence after reconnect.", ex);
+        }
+        finally
+        {
+            _mapLifecycleGate.Release();
+        }
+    }
+
+    private void ReplacePresences(VillagePresenceSnapshot snapshot)
+    {
+        _presences.Clear();
+        foreach (var presence in snapshot.Presences)
+        {
+            // The snapshot includes us; the local player is rendered from local
+            // input rather than from the server's echo of our own position.
+            if (presence.UserId == _client.Me?.Id)
+                continue;
+
+            _presences[presence.UserId] = presence;
+        }
+
+        PresenceChanged?.Invoke();
     }
 
     private void OnPresenceJoined(VillagePresence presence)

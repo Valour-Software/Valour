@@ -493,6 +493,7 @@ else
             }
 
             VillageService.PresenceChanged += OnPresenceChanged;
+            VillageService.MapRejoined += OnVillageMapRejoined;
             MessageService.MessageReceived += OnMessageReceived;
             Data.VillageBuildings.Changed += OnVillageBuildingChanged;
             Data.VillagePlots.Changed += OnVillagePlotChanged;
@@ -731,6 +732,55 @@ else
     }
 
     /// <summary>
+    /// A SignalR reconnect drops server-side presence and temporary-room
+    /// occupancy. Presence has already been restored by VillageService; renew
+    /// the room lease as well, and only rebuild the call when the server had to
+    /// replace its ephemeral channel during a restart.
+    /// </summary>
+    private async Task OnVillageMapRejoined()
+    {
+        if (_disposed)
+            return;
+
+        await InvokeAsync(async () =>
+        {
+            var previousVoiceBuildingId = _activeVoiceBuildingId;
+            var previousVoiceChannelId = _activeVoiceChannel?.Id;
+            var currentBuilding = _currentBuildingId is null
+                ? null
+                : _scene?.Maps
+                    .SelectMany(x => x.Buildings)
+                    .FirstOrDefault(x => x.Id == _currentBuildingId.Value);
+            var usesEphemeralRoom = currentBuilding?.VoiceMode == VillageVoiceMode.AutoRoom &&
+                                    currentBuilding.ChannelId is null;
+
+            // The server released this user's lease on disconnect. Clearing
+            // the local handle forces EnsureEphemeralRoomAsync to reacquire it
+            // instead of returning the now-stale cached response.
+            if (usesEphemeralRoom)
+            {
+                _ephemeralRoom = null;
+                _ephemeralRoomBuildingId = null;
+            }
+
+            await OnBuildingContextChangedAsync();
+
+            if (usesEphemeralRoom &&
+                previousVoiceBuildingId is not null &&
+                previousVoiceBuildingId == _currentBuildingId &&
+                previousVoiceChannelId != _ephemeralRoom?.ChannelId)
+            {
+                await LeaveVoiceAsync();
+                if (currentBuilding is not null && _ephemeralRoom is not null)
+                    await JoinBuildingVoiceAsync(currentBuilding);
+            }
+
+            await PushPresencesAsync();
+            await ReRender();
+        });
+    }
+
+    /// <summary>
     /// Hands the current occupancy to the canvas runtime. The runtime owns
     /// interpolation, so it receives target tiles rather than pixel positions.
     /// </summary>
@@ -809,9 +859,12 @@ else
         var building = _currentBuildingId is null
             ? null
             : _scene?.Maps.SelectMany(x => x.Buildings).FirstOrDefault(x => x.Id == _currentBuildingId);
+        var usesEphemeralRoom = building?.VoiceMode == VillageVoiceMode.AutoRoom &&
+                                building.ChannelId is null;
+        var activeVoiceWasHere = building is not null && _activeVoiceBuildingId == building.Id;
 
         if (_ephemeralRoomBuildingId is not null &&
-            _ephemeralRoomBuildingId != building?.Id)
+            (_ephemeralRoomBuildingId != building?.Id || !usesEphemeralRoom))
         {
             if (_activeVoiceBuildingId == _ephemeralRoomBuildingId)
                 await LeaveVoiceAsync();
@@ -823,9 +876,10 @@ else
         _activeChatChannel = null;
 
         long? chatChannelId;
-        if (building?.VoiceMode == VillageVoiceMode.AutoRoom && building.ChannelId is null)
+        VillageEphemeralRoom? room = null;
+        if (usesEphemeralRoom)
         {
-            var room = await EnsureEphemeralRoomAsync(building);
+            room = await EnsureEphemeralRoomAsync(building!);
             chatChannelId = room?.ChatChannelId;
         }
         else
@@ -840,6 +894,22 @@ else
             var contextChannel = await Data.FetchChannelAsync(chatChannelId.Value);
             if (contextChannel?.IsChatChannel == true)
                 _activeChatChannel = contextChannel;
+        }
+
+        var expectedVoiceChannelId = building is null || !CanHostVoice(building)
+            ? null
+            : building.ChannelId ?? room?.ChannelId;
+
+        // A scene refresh can rebind this same building to a different channel.
+        // Building-id equality alone is not enough: preserve the user's active
+        // call intent while moving the call to the new authoritative channel.
+        if (activeVoiceWasHere && _activeVoiceChannel?.Id != expectedVoiceChannelId)
+        {
+            if (_activeVoiceBuildingId is not null)
+                await LeaveVoiceAsync();
+
+            if (building is not null && expectedVoiceChannelId is not null)
+                await JoinBuildingVoiceAsync(building);
         }
 
         if (!_autoJoinVoice)
@@ -1351,6 +1421,11 @@ else
 
         if (_runtime is not null)
             await _runtime.InvokeVoidAsync("replaceScene", _scene);
+
+        // Channel bindings and voice mode are scene data. Reconcile the live
+        // area context after replacing them so chat/calls cannot remain on a
+        // room that was just retired by a manager edit.
+        await OnBuildingContextChangedAsync();
     }
 
     private string FormatPrice(decimal price)
@@ -1531,6 +1606,7 @@ else
         _disposed = true;
 
         VillageService.PresenceChanged -= OnPresenceChanged;
+        VillageService.MapRejoined -= OnVillageMapRejoined;
         MessageService.MessageReceived -= OnMessageReceived;
         CallSession.StateChanged -= OnCallSessionStateChanged;
         _sceneRefreshCts?.Cancel();
