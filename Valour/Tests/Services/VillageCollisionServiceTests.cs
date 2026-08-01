@@ -98,6 +98,28 @@ public class VillageCollisionServiceTests
     }
 
     [Fact]
+    public void BuildingSpriteCollision_UsesItsGroundFootprintNotFacadeHeight()
+    {
+        var collision = Resolve().BuildMapForTesting(
+            Map(),
+            objects:
+            [
+                new Valour.Database.VillageObject
+                {
+                    DefinitionKey = "buildings.apartment-tall-brown",
+                    X = 20,
+                    Y = 20,
+                    BlocksMovement = true,
+                },
+            ]);
+
+        Assert.False(collision.IsWalkable(20, 20));
+        Assert.False(collision.IsWalkable(26, 24));
+        Assert.True(collision.IsWalkable(20, 19));
+        Assert.True(collision.IsWalkable(20, 25));
+    }
+
+    [Fact]
     public void ChunkCollision_AcceptsCompactBlockedIndices()
     {
         var collision = Resolve().BuildMapForTesting(
@@ -150,5 +172,59 @@ public class VillageCollisionServiceTests
         Assert.False(collision.IsWalkable(0, -1));
         Assert.False(collision.IsWalkable(4, 2));
         Assert.False(collision.IsWalkable(3, 3));
+    }
+
+    [Fact]
+    public void TerrainResolver_PicksConnectedCornersFromLogicalNeighbors()
+    {
+        var service = Resolve();
+        var terrain = new Dictionary<(int X, int Y), string>
+        {
+            [(1, 1)] = "dirt-path",
+            [(2, 1)] = "dirt-path",
+            [(1, 2)] = "dirt-path",
+            [(2, 2)] = "dirt-path",
+        };
+        string TerrainAt(int x, int y) => terrain.GetValueOrDefault((x, y), "grass");
+
+        Assert.True(service.TryResolveTerrainDefinition(
+            "exterior-tileset-0", "dirt-path", TerrainAt, 4, 4, 1, 1, out var northWest));
+        Assert.True(service.TryResolveTerrainDefinition(
+            "exterior-tileset-0", "dirt-path", TerrainAt, 4, 4, 2, 1, out var northEast));
+        Assert.True(service.TryResolveTerrainDefinition(
+            "exterior-tileset-0", "dirt-path", TerrainAt, 4, 4, 1, 2, out var southWest));
+        Assert.True(service.TryResolveTerrainDefinition(
+            "exterior-tileset-0", "dirt-path", TerrainAt, 4, 4, 2, 2, out var southEast));
+
+        Assert.Equal("grass.dirt-path-flat-grass-path-nw", northWest.Key);
+        Assert.Equal("grass.dirt-path-flat-grass-path-ne", northEast.Key);
+        Assert.Equal("grass.dirt-path-flat-grass-path-sw", southWest.Key);
+        Assert.Equal("grass.dirt-path-flat-grass-path-se", southEast.Key);
+    }
+
+    [Fact]
+    public void TerrainCatalog_ContainsOnlyLogicalBrushesWithBasePreviews()
+    {
+        var terrains = Resolve().GetBuildTerrains("exterior-tileset-0");
+
+        Assert.Equal(4, terrains.Count);
+        Assert.Contains(terrains, terrain =>
+            terrain.Key == "dirt-path" &&
+            terrain.Name == "Dirt Path" &&
+            terrain.Preview.TerrainRole == "Base");
+        Assert.DoesNotContain(terrains, terrain => terrain.Key.Contains("edge", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ManualBrushCatalog_PreservesAuthoredPatterns()
+    {
+        var brushes = Resolve().GetBuildBrushes("exterior-tileset-0");
+
+        Assert.Equal(3, brushes.Count);
+        var path = Assert.Single(brushes, brush => brush.Key == "brush.path-in-grass.3x3");
+        Assert.Equal("Path in Grass", path.Name);
+        Assert.Equal(3, path.Size);
+        Assert.Equal(9, path.Cells.Count);
+        Assert.All(path.Cells, cell => Assert.False(string.IsNullOrWhiteSpace(cell.DefinitionKey)));
     }
 }

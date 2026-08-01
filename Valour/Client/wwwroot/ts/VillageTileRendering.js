@@ -1,3 +1,32 @@
+export const COLLISION_STATE_EMPTY = "empty";
+export const COLLISION_STATE_SOLID = "solid";
+export const COLLISION_STATE_DOOR = "door";
+export function normalizeCollisionState(value) {
+    if (value === true || value === 1) {
+        return COLLISION_STATE_SOLID;
+    }
+    if (value === false || value === 0 || value === null || value === undefined) {
+        return COLLISION_STATE_EMPTY;
+    }
+    const normalized = String(value).trim().toLowerCase();
+    switch (normalized) {
+        case "":
+        case "false":
+        case "0":
+        case "none":
+            return COLLISION_STATE_EMPTY;
+        case "true":
+        case "1":
+        case "blocked":
+            return COLLISION_STATE_SOLID;
+        default:
+            return normalized;
+    }
+}
+export function collisionStateBlocksMovement(value) {
+    const state = normalizeCollisionState(value);
+    return state !== COLLISION_STATE_EMPTY && state !== COLLISION_STATE_DOOR;
+}
 export function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
@@ -93,12 +122,13 @@ export function normalizeTileDefinition(definition) {
         : Array.isArray(source.Collision)
             ? source.Collision
             : [];
-    const collision = rawCollision
+    const collisionStates = rawCollision
         .slice(0, width * height)
-        .map(value => value === true || value === 1 || value === "true");
-    while (collision.length < width * height) {
-        collision.push(false);
+        .map(normalizeCollisionState);
+    while (collisionStates.length < width * height) {
+        collisionStates.push(COLLISION_STATE_EMPTY);
     }
+    const collision = collisionStates.map(collisionStateBlocksMovement);
     return {
         kind: stringValue(source.kind ?? source.Kind) || "Tile",
         name: stringValue(source.name ?? source.Name) || key,
@@ -107,6 +137,7 @@ export function normalizeTileDefinition(definition) {
         y: numberValue(source.y ?? source.Y),
         width,
         height,
+        collisionStates,
         collision,
         terrainKey: stringValue(source.terrainKey ?? source.TerrainKey),
         terrainRole: normalizeTerrainRole(stringValue(source.terrainRole ?? source.TerrainRole)),
@@ -160,6 +191,25 @@ export function getBottomAnchoredCollisionCells(tileX, tileY, footprintHeight, d
     const cells = [];
     for (let index = 0; index < definition.width * definition.height; index++) {
         if (!definition.collision[index]) {
+            continue;
+        }
+        cells.push({
+            x: bounds.x + index % definition.width,
+            y: bounds.y + Math.floor(index / definition.width)
+        });
+    }
+    return cells;
+}
+/**
+ * Projects cells carrying a semantic state (for example a door) into map
+ * coordinates without collapsing them into the blocking boolean mask.
+ */
+export function getBottomAnchoredStateCells(tileX, tileY, footprintHeight, definition, requestedState) {
+    const bounds = getBottomAnchoredSpriteBounds(tileX, tileY, footprintHeight, definition.width, definition.height);
+    const normalizedState = normalizeCollisionState(requestedState);
+    const cells = [];
+    for (let index = 0; index < definition.width * definition.height; index++) {
+        if (normalizeCollisionState(definition.collisionStates[index]) !== normalizedState) {
             continue;
         }
         cells.push({

@@ -27,6 +27,14 @@ internal static class VillageObjectGeometry
             "garden.planter.yellow" or
             "garden.planter.pink" => (2, 1),
             "commerce.market-stall" => (2, 1),
+            "buildings.house-medium" or
+            "buildings.house-medium.brown" or
+            "buildings.house-medium.blue" => (8, 5),
+            "buildings.police-station.blue" => (7, 5),
+            "buildings.apartment-medium-brown" => (6, 4),
+            "buildings.apartment-small-brown" => (6, 4),
+            "buildings.apartment-tall-brown" => (7, 5),
+            "buildings.apartment-medium-grey" => (6, 5),
             _ => (1, 1),
         };
 }

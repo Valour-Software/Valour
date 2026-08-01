@@ -6,6 +6,7 @@ export type TileDefinition = {
     y: number;
     width: number;
     height: number;
+    collisionStates: string[];
     collision: boolean[];
     terrainKey: string;
     terrainRole: string;
@@ -44,6 +45,39 @@ export type LoadedTexture = {
 export type TextureCache = Map<string, LoadedTexture>;
 
 type UnknownRecord = Record<string, any>;
+
+export const COLLISION_STATE_EMPTY = "empty";
+export const COLLISION_STATE_SOLID = "solid";
+export const COLLISION_STATE_DOOR = "door";
+
+export function normalizeCollisionState(value: any): string {
+    if (value === true || value === 1) {
+        return COLLISION_STATE_SOLID;
+    }
+    if (value === false || value === 0 || value === null || value === undefined) {
+        return COLLISION_STATE_EMPTY;
+    }
+
+    const normalized = String(value).trim().toLowerCase();
+    switch (normalized) {
+        case "":
+        case "false":
+        case "0":
+        case "none":
+            return COLLISION_STATE_EMPTY;
+        case "true":
+        case "1":
+        case "blocked":
+            return COLLISION_STATE_SOLID;
+        default:
+            return normalized;
+    }
+}
+
+export function collisionStateBlocksMovement(value: any): boolean {
+    const state = normalizeCollisionState(value);
+    return state !== COLLISION_STATE_EMPTY && state !== COLLISION_STATE_DOOR;
+}
 
 export function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
@@ -154,13 +188,14 @@ export function normalizeTileDefinition(definition: any): TileDefinition | null 
         : Array.isArray(source.Collision)
             ? source.Collision
             : [];
-    const collision = rawCollision
+    const collisionStates = rawCollision
         .slice(0, width * height)
-        .map(value => value === true || value === 1 || value === "true");
+        .map(normalizeCollisionState);
 
-    while (collision.length < width * height) {
-        collision.push(false);
+    while (collisionStates.length < width * height) {
+        collisionStates.push(COLLISION_STATE_EMPTY);
     }
+    const collision = collisionStates.map(collisionStateBlocksMovement);
 
     return {
         kind: stringValue(source.kind ?? source.Kind) || "Tile",
@@ -170,6 +205,7 @@ export function normalizeTileDefinition(definition: any): TileDefinition | null 
         y: numberValue(source.y ?? source.Y),
         width,
         height,
+        collisionStates,
         collision,
         terrainKey: stringValue(source.terrainKey ?? source.TerrainKey),
         terrainRole: normalizeTerrainRole(stringValue(source.terrainRole ?? source.TerrainRole)),
@@ -261,6 +297,40 @@ export function getBottomAnchoredCollisionCells(
 
     for (let index = 0; index < definition.width * definition.height; index++) {
         if (!definition.collision[index]) {
+            continue;
+        }
+
+        cells.push({
+            x: bounds.x + index % definition.width,
+            y: bounds.y + Math.floor(index / definition.width)
+        });
+    }
+
+    return cells;
+}
+
+/**
+ * Projects cells carrying a semantic state (for example a door) into map
+ * coordinates without collapsing them into the blocking boolean mask.
+ */
+export function getBottomAnchoredStateCells(
+    tileX: number,
+    tileY: number,
+    footprintHeight: number,
+    definition: Pick<TileDefinition, "width" | "height" | "collisionStates">,
+    requestedState: string
+): TilePoint[] {
+    const bounds = getBottomAnchoredSpriteBounds(
+        tileX,
+        tileY,
+        footprintHeight,
+        definition.width,
+        definition.height);
+    const normalizedState = normalizeCollisionState(requestedState);
+    const cells: TilePoint[] = [];
+
+    for (let index = 0; index < definition.width * definition.height; index++) {
+        if (normalizeCollisionState(definition.collisionStates[index]) !== normalizedState) {
             continue;
         }
 

@@ -376,6 +376,15 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
         Assert.False(string.IsNullOrWhiteSpace(scene!.BuildCatalogImageUrl));
         Assert.Contains(scene.BuildCatalog, x => x.Kind == "Tile");
         Assert.Contains(scene.BuildCatalog, x => x.Kind == "Sprite" && x.Key == "furniture.park-bench");
+        Assert.Contains(scene.BuildCatalog, x =>
+            x.Kind == "Sprite" &&
+            x.Key == "buildings.apartment-small-brown" &&
+            x.Category == "Buildings" &&
+            x.FootprintWidth == 6 &&
+            x.FootprintHeight == 4);
+        Assert.Contains(scene.BuildTerrains, x => x.Key == "dirt-path" && x.Name == "Dirt Path");
+        Assert.Contains(scene.BuildBrushes, x =>
+            x.Key == "brush.tall-grass.5x5" && x.Name == "Tall Grass" && x.Cells.Count == 25);
 
         // This fixture owns the planet and therefore holds ManageVillage. A
         // regular property owner receives individual CanEdit plot bounds
@@ -415,7 +424,7 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
                 new VillageBuildRequest
                 {
                     Action = VillageBuildAction.Paint,
-                    DefinitionKey = "grass.flat-grass-dark",
+                    TerrainKey = "grass-dark",
                     X = paintX,
                     Y = paintY,
                 });
@@ -484,6 +493,174 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task BuildMode_PlacesBuildingSpritesAsStructureSizedScenery()
+    {
+        var scene = await LoadSceneAsync();
+        var outdoor = scene!.Maps.Single(x => x.MapKind == "Outdoor");
+        var plot = outdoor.Plots.First(x => x.Name == "Founder's Grove");
+        long? createdId = null;
+
+        try
+        {
+            var result = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Furnish,
+                    DefinitionKey = "buildings.apartment-small-brown",
+                    X = plot.X,
+                    Y = plot.Y,
+                });
+            Assert.True(result.Success, result.Message);
+            Assert.NotNull(result.Data.Decoration);
+            Assert.Equal(6, result.Data.Decoration.Width);
+            Assert.Equal(4, result.Data.Decoration.Height);
+            Assert.True(result.Data.Decoration.BlocksMovement);
+            createdId = result.Data.Decoration.Id;
+
+            var persisted = (await LoadSceneAsync())!.Maps.Single(x => x.Id == outdoor.Id);
+            Assert.Contains(persisted.Decorations, item =>
+                item.Id == createdId && item.DefinitionKey == "buildings.apartment-small-brown");
+        }
+        finally
+        {
+            if (createdId is not null)
+            {
+                await _fixture.Client.VillageService.EditMapAsync(
+                    _planet,
+                    outdoor.Id,
+                    new VillageBuildRequest
+                    {
+                        Action = VillageBuildAction.Erase,
+                        ObjectId = createdId,
+                    });
+            }
+        }
+    }
+
+    [Fact]
+    public async Task TerrainBrush_ResolvesNeighborCornersAtomically()
+    {
+        var scene = await LoadSceneAsync();
+        var outdoor = scene!.Maps.Single(x => x.MapKind == "Outdoor");
+        var plot = outdoor.Plots.First(x => x.Name == "Founder's Grove");
+        var originX = plot.X + 2;
+        var originY = plot.Y + 2;
+        var cells = new[]
+        {
+            (X: originX, Y: originY),
+            (X: originX + 1, Y: originY),
+            (X: originX, Y: originY + 1),
+            (X: originX + 1, Y: originY + 1),
+        };
+        var createdIds = new List<long>();
+
+        try
+        {
+            var result = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Paint,
+                    TerrainKey = "dirt-path",
+                    Cells = cells.Select(cell => new VillageBuildCell
+                    {
+                        X = cell.X,
+                        Y = cell.Y,
+                    }).ToList(),
+                });
+            Assert.True(result.Success, result.Message);
+            Assert.NotNull(result.Data.Decoration);
+            Assert.Equal(4, result.Data.Decorations.Count);
+            createdIds.AddRange(result.Data.Decorations.Select(item => item.Id));
+
+            Assert.Contains(result.Data.Decorations, item =>
+                item.DefinitionKey == "grass.dirt-path-flat-grass-path-nw");
+            Assert.Contains(result.Data.Decorations, item =>
+                item.DefinitionKey == "grass.dirt-path-flat-grass-path-ne");
+            Assert.Contains(result.Data.Decorations, item =>
+                item.DefinitionKey == "grass.dirt-path-flat-grass-path-sw");
+            Assert.Contains(result.Data.Decorations, item =>
+                item.DefinitionKey == "grass.dirt-path-flat-grass-path-se");
+
+            var persisted = (await LoadSceneAsync())!.Maps.Single(x => x.Id == outdoor.Id);
+            var painted = persisted.GroundTiles
+                .Where(item => cells.Contains((item.X, item.Y)))
+                .ToDictionary(item => (item.X, item.Y));
+            Assert.Equal("grass.dirt-path-flat-grass-path-nw", painted[(originX, originY)].DefinitionKey);
+            Assert.Equal("grass.dirt-path-flat-grass-path-ne", painted[(originX + 1, originY)].DefinitionKey);
+            Assert.Equal("grass.dirt-path-flat-grass-path-sw", painted[(originX, originY + 1)].DefinitionKey);
+            Assert.Equal("grass.dirt-path-flat-grass-path-se", painted[(originX + 1, originY + 1)].DefinitionKey);
+        }
+        finally
+        {
+            foreach (var objectId in createdIds.Distinct())
+            {
+                await _fixture.Client.VillageService.EditMapAsync(
+                    _planet,
+                    outdoor.Id,
+                    new VillageBuildRequest
+                    {
+                        Action = VillageBuildAction.Erase,
+                        ObjectId = objectId,
+                    });
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ManualBrush_PersistsItsExactAuthoredPattern()
+    {
+        var scene = await LoadSceneAsync();
+        var outdoor = scene!.Maps.Single(x => x.MapKind == "Outdoor");
+        var plot = outdoor.Plots.First(x => x.Name == "Founder's Grove");
+        var centerX = plot.X + plot.Width / 2;
+        var centerY = plot.Y + plot.Height / 2;
+        var createdIds = new List<long>();
+
+        try
+        {
+            var result = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Paint,
+                    BrushKey = "brush.path-in-grass.3x3",
+                    Cells = [new VillageBuildCell { X = centerX, Y = centerY }],
+                });
+            Assert.True(result.Success, result.Message);
+            var manualTiles = result.Data.Decorations.Where(item => item.ZIndex == -101).ToList();
+            Assert.Equal(9, manualTiles.Count);
+            Assert.Equal(9, manualTiles.Select(item => (item.X, item.Y)).Distinct().Count());
+            Assert.Contains(manualTiles, item => item.DefinitionKey == "grass.dirt-path-flat");
+            createdIds.AddRange(manualTiles.Select(item => item.Id));
+
+            var persisted = (await LoadSceneAsync())!.Maps.Single(x => x.Id == outdoor.Id);
+            Assert.Equal(9, persisted.GroundTiles.Count(item =>
+                item.ZIndex == -101 &&
+                item.X >= centerX - 1 && item.X <= centerX + 1 &&
+                item.Y >= centerY - 1 && item.Y <= centerY + 1));
+        }
+        finally
+        {
+            foreach (var objectId in createdIds.Distinct())
+            {
+                await _fixture.Client.VillageService.EditMapAsync(
+                    _planet,
+                    outdoor.Id,
+                    new VillageBuildRequest
+                    {
+                        Action = VillageBuildAction.Erase,
+                        ObjectId = objectId,
+                    });
+            }
+        }
+    }
+
+    [Fact]
     public async Task PropertyOwner_CanEditTheirPlotAndBuildingInteriorWithoutManagerPermission()
     {
         var scene = await LoadSceneAsync();
@@ -509,14 +686,72 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
             storedBuilding.OwnerMemberId = memberId;
             await db.SaveChangesAsync();
 
+            var rejectedManualBrush = await worldService.EditMapAsync(
+                _planet.Id, outdoor.Id, memberId, canManageVillage: false,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Paint,
+                    BrushKey = "brush.path-in-grass.3x3",
+                    // The center is owned, but the authored 3x3 footprint
+                    // crosses the parcel boundary and must fail atomically.
+                    Cells = [new VillageBuildCell { X = plot.X, Y = plot.Y }],
+                });
+            Assert.False(rejectedManualBrush.Success);
+
+            var insideCell = (X: plot.X + 1, Y: plot.Y + 1);
+            var editablePlots = await db.VillagePlots
+                .Where(item => item.PlanetId == _planet.Id && item.MapId == outdoor.Id &&
+                               (item.EditMode == VillageEditMode.Everyone ||
+                                (item.EditMode == VillageEditMode.Owner && item.OwnerMemberId == memberId)))
+                .ToListAsync();
+            var outsideCell = (
+                from y in Enumerable.Range(0, outdoor.Height)
+                from x in Enumerable.Range(0, outdoor.Width)
+                where !editablePlots.Any(item =>
+                    x >= item.X && y >= item.Y &&
+                    (long)x < (long)item.X + item.Width &&
+                    (long)y < (long)item.Y + item.Height)
+                select (X: x, Y: y)).First();
+            var beforeRejectedStroke = await db.VillageObjects
+                .AsNoTracking()
+                .Where(item => item.PlanetId == _planet.Id && item.MapId == outdoor.Id &&
+                               ((item.X == insideCell.X && item.Y == insideCell.Y) ||
+                                (item.X == outsideCell.X && item.Y == outsideCell.Y)))
+                .Select(item => new { item.Id, item.DefinitionKey, item.X, item.Y })
+                .OrderBy(item => item.Id)
+                .ToListAsync();
+
+            var rejectedStroke = await worldService.EditMapAsync(
+                _planet.Id, outdoor.Id, memberId, canManageVillage: false,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Paint,
+                    TerrainKey = "grass-dark",
+                    Cells =
+                    [
+                        new VillageBuildCell { X = insideCell.X, Y = insideCell.Y },
+                        new VillageBuildCell { X = outsideCell.X, Y = outsideCell.Y },
+                    ],
+                });
+            Assert.False(rejectedStroke.Success);
+            var afterRejectedStroke = await db.VillageObjects
+                .AsNoTracking()
+                .Where(item => item.PlanetId == _planet.Id && item.MapId == outdoor.Id &&
+                               ((item.X == insideCell.X && item.Y == insideCell.Y) ||
+                                (item.X == outsideCell.X && item.Y == outsideCell.Y)))
+                .Select(item => new { item.Id, item.DefinitionKey, item.X, item.Y })
+                .OrderBy(item => item.Id)
+                .ToListAsync();
+            Assert.Equal(beforeRejectedStroke, afterRejectedStroke);
+
             var outdoors = await worldService.EditMapAsync(
                 _planet.Id, outdoor.Id, memberId, canManageVillage: false,
                 new VillageBuildRequest
                 {
                     Action = VillageBuildAction.Paint,
-                    DefinitionKey = "grass.flat-grass-dark",
-                    X = plot.X + 1,
-                    Y = plot.Y + 1,
+                    TerrainKey = "grass-dark",
+                    X = insideCell.X,
+                    Y = insideCell.Y,
                 });
             Assert.True(outdoors.Success, outdoors.Message);
             createdIds.Add((outdoor.Id, outdoors.Data.Decoration!.Id));

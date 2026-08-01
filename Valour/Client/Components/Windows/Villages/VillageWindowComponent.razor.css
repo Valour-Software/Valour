@@ -1,4 +1,5 @@
 .village-window {
+    --village-build-sidebar-width: clamp(320px, 28vw, 380px);
     position: relative;
     width: 100%;
     height: 100%;
@@ -30,6 +31,11 @@
     display: block;
     image-rendering: pixelated;
     touch-action: none;
+}
+
+.village-window.build-mode-active .village-canvas {
+    right: var(--village-build-sidebar-width);
+    width: auto;
 }
 
 .village-overlay {
@@ -140,6 +146,10 @@
 .village-quick-controls {
     top: 16px;
     right: 16px;
+}
+
+.build-mode-active .village-quick-controls {
+    right: calc(var(--village-build-sidebar-width) + 16px);
 }
 
 .quick-control-bar {
@@ -524,6 +534,10 @@
     transition: bottom 180ms ease, height 180ms ease;
 }
 
+.build-mode-active .village-call-surface {
+    right: calc(var(--village-build-sidebar-width) + 16px);
+}
+
 .village-call-surface.collapsed {
     top: auto;
     bottom: 16px;
@@ -586,20 +600,19 @@
 .village-build-panel {
     position: absolute;
     z-index: 7;
-    right: 50%;
-    bottom: 16px;
+    top: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
-    width: min(820px, calc(100% - 32px));
-    max-height: min(390px, 52vh);
+    width: var(--village-build-sidebar-width);
     flex-direction: column;
     overflow: hidden;
-    border: 1px solid var(--medium-tint);
-    border-radius: 22px;
+    border: 0;
+    border-left: 1px solid var(--medium-tint);
     color: var(--font-color);
     background: var(--modal-dark);
-    box-shadow: 0 22px 70px rgba(5, 9, 7, 0.42);
+    box-shadow: -18px 0 55px rgba(5, 9, 7, 0.36);
     backdrop-filter: blur(22px) saturate(1.2);
-    transform: translateX(50%);
 }
 
 .build-panel-header,
@@ -695,14 +708,15 @@
 
 .build-catalog-controls {
     display: flex;
-    align-items: center;
+    align-items: stretch;
+    flex-direction: column;
     gap: 8px;
     padding: 7px 10px 0;
 }
 
 .build-search {
     display: flex;
-    width: min(230px, 38%);
+    width: 100%;
     height: 34px;
     flex: 0 0 auto;
     align-items: center;
@@ -728,13 +742,8 @@
 .build-categories {
     display: flex;
     min-width: 0;
+    flex-wrap: wrap;
     gap: 5px;
-    overflow-x: auto;
-    scrollbar-width: none;
-}
-
-.build-categories::-webkit-scrollbar {
-    display: none;
 }
 
 .build-categories button {
@@ -760,10 +769,35 @@
 .build-catalog {
     display: grid;
     min-height: 0;
-    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    flex: 1 1 auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 7px;
     overflow-y: auto;
     padding: 8px 10px 10px;
+}
+
+.build-catalog-section-title {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 2px 1px;
+    color: var(--font-color);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.build-catalog-section-title:not(:first-child) {
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--slight-tint);
+}
+
+.build-catalog-section-title small {
+    color: var(--font-color-mid);
+    font-size: 0.58rem;
+    font-weight: 650;
 }
 
 .build-catalog-item {
@@ -798,20 +832,40 @@
 }
 
 .build-item-preview {
-    display: grid;
+    position: relative;
+    display: block;
     width: 58px;
     height: 58px;
-    place-items: center;
     overflow: hidden;
     image-rendering: pixelated;
 }
 
 .build-item-sprite {
+    position: absolute;
+    top: 50%;
+    left: 50%;
     display: block;
     flex: 0 0 auto;
     background-repeat: no-repeat;
     image-rendering: pixelated;
     transform-origin: center;
+}
+
+.manual-brush-pattern {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    flex: 0 0 auto;
+    overflow: hidden;
+    image-rendering: pixelated;
+    transform-origin: center;
+}
+
+.manual-brush-pattern > span {
+    display: block;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
 }
 
 .build-item-name {
@@ -835,6 +889,19 @@
     background: rgba(0, 0, 0, 0.42);
     font-size: 0.56rem;
     font-weight: 800;
+}
+
+.build-item-size.terrain {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--color-success);
+    background: rgba(13, 35, 25, 0.78);
+}
+
+.build-item-size.manual {
+    color: var(--color-warning);
+    background: rgba(45, 34, 11, 0.82);
 }
 
 .build-empty,
@@ -880,6 +947,17 @@
     min-width: 0;
     align-items: center;
     gap: 5px;
+}
+
+.build-panel-footer kbd {
+    padding: 1px 5px;
+    border: 1px solid var(--slight-tint);
+    border-bottom-color: var(--medium-tint);
+    border-radius: 4px;
+    color: var(--font-color-mid);
+    background: var(--main-3);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+    font-size: 0.62rem;
 }
 
 .build-status {
@@ -1137,25 +1215,6 @@
         transform: none;
     }
 
-    .village-build-panel {
-        right: 8px;
-        bottom: 8px;
-        left: 8px;
-        width: auto;
-        max-height: min(420px, 56vh);
-        border-radius: 18px;
-        transform: none;
-    }
-
-    .build-catalog-controls {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .build-search {
-        width: 100%;
-    }
-
     .village-movement-hint.building {
         display: none;
     }
@@ -1178,6 +1237,58 @@
     .village-window:has(.village-chat-composer) .village-movement-hint,
     .village-window.has-call .village-movement-hint {
         display: none;
+    }
+}
+
+@media (min-width: 901px) {
+    .build-mode-active .village-world-header {
+        max-width: min(280px, calc(100% - var(--village-build-sidebar-width) - 330px));
+    }
+
+    .build-mode-active .village-brand-card {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .build-mode-active .village-icon-toggle {
+        min-width: 40px;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .build-mode-active .village-icon-toggle span {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .village-window.build-mode-active .village-canvas {
+        right: 0;
+        width: 100%;
+    }
+
+    .build-mode-active .village-quick-controls {
+        right: 10px;
+    }
+
+    .build-mode-active .village-call-surface {
+        right: 8px;
+    }
+
+    .village-build-panel {
+        top: auto;
+        right: 8px;
+        bottom: 8px;
+        left: 8px;
+        width: auto;
+        max-height: min(420px, 56vh);
+        border: 1px solid var(--medium-tint);
+        border-radius: 18px;
+        box-shadow: 0 22px 70px rgba(5, 9, 7, 0.42);
+    }
+
+    .build-catalog {
+        grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
     }
 }
 

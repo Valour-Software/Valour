@@ -106,6 +106,13 @@ Points that are easy to get wrong:
 - Collision is **derived from the authored objects** — an object that blocks, a
   building footprint, a map-level blocker — rather than a parallel list kept in sync
   by hand. The proof of concept maintained both and they drifted.
+- Tileset collision cells are string-backed states rather than a closed boolean
+  flag. The staff editor currently authors `empty`, `solid`, and `door`; legacy
+  boolean masks import as empty/solid, while unknown future state names round-trip
+  unchanged and block movement fail-closed until their behavior is registered.
+  Door cells are walkable but retain their entrance meaning. For structure-sized
+  scenery they carve the authored door out of the compact ground footprint, ready
+  for a later building lifecycle to attach an interior portal.
 - Map joins warm a process-wide immutable collision snapshot derived from bounds,
   object tileset masks, building footprints, authored doors, and chunk
   `CollisionData`; movement packets perform only an in-memory lookup. Chunk
@@ -250,7 +257,8 @@ preventing terms or ownership from changing while a buyer settles.
 ## In-world build mode
 
 Property editing lives in the village window rather than requiring owners to open
-the standalone authoring tool. The bottom catalog is generated from the same
+the standalone authoring tool. The desktop catalog is a full-height right sidebar
+(and becomes a bottom sheet on narrow screens) generated from the same
 embedded tileset definitions the collision service trusts, so its thumbnails,
 footprints, and blocking behavior cannot drift from server movement validation.
 Owners can furnish and paint wholly inside their editable outdoor plots and can
@@ -258,14 +266,48 @@ edit the whole interior map of a building they own. `ManageVillage` retains a
 whole-map override. Every mutation repeats those checks server-side; the green
 client preview is guidance, never authorization.
 
-Painted surfaces are negative-Z `VillageObject` records. This matches the seeded
-world's existing ground overlays and makes a paint action atomic: it replaces the
-surface object at one tile without rewriting a 32×32 chunk or racing unrelated
-edits elsewhere in that chunk. Furniture is a normal non-negative-Z object and
-therefore participates in depth sorting and derived collision. The edit response
-carries the created decoration and removed ids, allowing the initiating client to
-patch its scene without a second GET. The ordinary planet model event still
-notifies other open village windows, which coalesce a scene refresh.
+The furnishing catalog's **All** view includes every authored sprite, including
+the `buildings.*` group, and also exposes a generated **Buildings** category.
+Those sprites place as structure-sized scenery with compact ground footprints;
+they do not create a deed, portal, room, or interior. Enterable property remains
+a `VillageBuilding` and must be created through that lifecycle rather than being
+inferred from decorative sprite placement.
+
+Paint presents logical terrain brushes rather than individual transition tiles.
+The server recovers the logical terrain of existing negative-Z `VillageObject`
+records from their resolved definitions, applies the requested terrain, and
+re-resolves the target plus its eight neighbors in one per-map serialized edit.
+Erasing terrain performs the inverse neighbor repair. This matches the seeded
+world's existing ground overlays without rewriting a 32×32 chunk, while preventing
+clients from choosing impossible edge art. A response carries every created or
+updated decoration plus removed ids, allowing the initiating client to patch all
+affected cells without a second GET. Furniture remains a normal non-negative-Z
+object and therefore participates in depth sorting and derived collision. The
+ordinary planet model event still notifies other open village windows, which
+coalesce a scene refresh.
+
+The paint catalog also has a separate **Manual brushes** section sourced from the
+tileset's authored `brushes` array. These multi-cell patterns are expanded and
+validated by the server from their brush key; clients never choose arbitrary
+transition definitions. Manual ground uses Z index `-101` while auto terrain uses
+`-100`, allowing later auto-resolution to treat exact manual art as inert instead
+of rewriting it. Replacing auto terrain with a manual pattern repairs neighboring
+auto edges once, then leaves the manual cells untouched.
+
+Mouse and pen terrain input is a real stroke: skipped pointer samples are filled
+with a grid line and deduplicated locally. The client immediately resolves and
+draws the same terrain art while the pointer moves, retaining an untouched map
+snapshot for rollback. Pointer-up submits the complete cell list in one request;
+the authoritative response replaces the optimistic tiles, while a rejection
+restores the snapshot. The server authorizes and resolves the complete cell set in
+one transaction-sized save, so stroke cost is one round trip rather than one
+request per tile.
+
+Holding Shift before pointer-down changes the one-cell terrain brush into a
+filled area tool. The starting tile anchors one corner and the live pointer
+anchors the other; expanding or shrinking the rectangle rebuilds the optimistic
+preview from its untouched snapshot. Pointer-up still sends only the final
+deduplicated cell set in the same atomic batch.
 
 Placement is serialized per map. The server rejects unknown definitions, objects
 outside map or property bounds, furnishings over entrances/buildings/other
@@ -289,7 +331,8 @@ members in one bottom-edge-sorted pass. A member can therefore walk behind a can
 or in front of a bench. Building hit targets and selection bounds use the visible
 sprite. Props use one shared bottom-anchor calculation for drawing, culling and
 collision: the scene footprint describes ground contact, while the tileset's
-row-major collision mask selects the exact blocking cells. Tree canopies therefore
+row-major collision-state mask selects exact blocking cells and semantic entrances.
+Tree canopies therefore
 overhang walkable tiles, trunks and planters remain solid, and transparent padding
 cannot shift the visible or physical bounds.
 
@@ -337,7 +380,8 @@ by a per-cell hash so a recomposite never reshuffles them), while `Edge`,
 `Corner` and `InnerCorner` tiles describe how the material meets a neighbor. An
 edge's direction names the side the *other* material is on, and `Against` limits
 a transition to one specific neighbor — left empty it matches any. The resolver
-(`VillageTileRendering.ts`, shared by the editors and available to the runtime)
+(`VillageTileRendering.ts` in the authoring client, with matching authoritative
+logic in `VillageCollisionService` for persisted player edits)
 reads each cell's 8-neighbor mask and picks art down a fail-soft ladder: a
 missing piece renders the base tile and a hard seam, never a hole, so a
 partially-authored family stays usable. The curated set has no inner corners

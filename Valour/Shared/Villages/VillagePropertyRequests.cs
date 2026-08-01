@@ -33,14 +33,18 @@ public enum VillageBuildAction
 }
 
 /// <summary>
-/// One atomic in-world edit. Paint replaces the ground tile at a coordinate,
-/// furnish places a depth-sorted object, and erase removes the supplied object.
-/// The server derives collision and ownership rather than trusting the client.
+/// One atomic in-world edit. Paint applies a logical terrain brush and lets the
+/// server resolve its transition art, furnish places a depth-sorted object, and
+/// erase removes the supplied object. The server derives definitions, collision,
+/// and ownership rather than trusting the client.
 /// </summary>
 public class VillageBuildRequest
 {
     public VillageBuildAction Action { get; set; }
     public string? DefinitionKey { get; set; }
+    public string? TerrainKey { get; set; }
+    public string? BrushKey { get; set; }
+    public List<VillageBuildCell> Cells { get; set; } = new();
     public int X { get; set; }
     public int Y { get; set; }
 
@@ -50,9 +54,25 @@ public class VillageBuildRequest
     public long? ObjectId { get; set; }
 }
 
+public class VillageBuildCell
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
 public class VillageBuildResult
 {
+    /// <summary>
+    /// The primary changed object, retained for older clients and for
+    /// single-object furnish operations.
+    /// </summary>
     public VillagePocDecoration? Decoration { get; set; }
+
+    /// <summary>
+    /// Every object created or updated by the edit. Terrain paint can change
+    /// the resolved art of all eight neighboring cells in the same transaction.
+    /// </summary>
+    public List<VillagePocDecoration> Decorations { get; set; } = new();
 
     [System.Text.Json.Serialization.JsonNumberHandling(
         System.Text.Json.Serialization.JsonNumberHandling.WriteAsString |

@@ -3,10 +3,15 @@ import {
     isTextInput,
     loadTexture as loadCachedTexture,
     normalizeTileDefinitions,
+    normalizeTerrainDefinitions,
+    buildTerrainIndex,
+    resolveTerrainCell,
     createDefinitionMap,
     getCallAudioElementId,
     getBottomAnchoredSpriteBounds,
     getBottomAnchoredCollisionCells,
+    getBottomAnchoredStateCells,
+    COLLISION_STATE_DOOR,
     getVillageRenderScale,
     adjustVillageZoom,
     getPlayerCenteredCamera
@@ -72,11 +77,18 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             enabled: false,
             tool: "Furnish",
             definition: null,
+            brush: null,
+            selectionKey: "",
             hoverX: null,
             hoverY: null,
             pointerId: null,
+            lastDragTile: null,
+            stroke: null,
+            optimisticRollback: null,
+            nextOptimisticId: 1,
             lastSubmitKey: null,
             lastSubmitAt: 0,
+            submitting: false,
         },
         // Whether to draw the resting joystick affordance. The stick itself
         // works from any touch; the ghost exists so touch players can SEE that
@@ -117,8 +129,13 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             state.build.enabled = config?.enabled === true;
             state.build.tool = config?.tool ?? "Furnish";
             state.build.definition = config?.definition ?? null;
+            state.build.brush = config?.brush ?? null;
+            state.build.selectionKey = config?.selectionKey ?? "";
             state.build.pointerId = null;
+            state.build.lastDragTile = null;
+            state.build.stroke = null;
             if (!state.build.enabled) {
+                restoreOptimisticTerrain(state);
                 state.build.hoverX = null;
                 state.build.hoverY = null;
             }
@@ -126,6 +143,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             draw(state);
         },
         applyBuildResult(result) {
+            restoreOptimisticTerrain(state);
             const map = getCurrentMap(state);
             if (!map || !result) {
                 return;
@@ -134,13 +152,23 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             const removed = new Set((result.removedObjectIds ?? []).map(String));
             map.groundTiles = (map.groundTiles ?? []).filter(item => !removed.has(String(item.id)));
             map.decorations = (map.decorations ?? []).filter(item => !removed.has(String(item.id)));
-            if (result.decoration) {
-                const target = result.decoration.zIndex < 0 ? map.groundTiles : map.decorations;
-                target.push(result.decoration);
+            const changed = [...(result.decorations ?? [])];
+            if (result.decoration && !changed.some(item => String(item.id) === String(result.decoration.id))) {
+                changed.push(result.decoration);
+            }
+            for (const decoration of changed) {
+                map.groundTiles = map.groundTiles.filter(item => String(item.id) !== String(decoration.id));
+                map.decorations = map.decorations.filter(item => String(item.id) !== String(decoration.id));
+                const target = decoration.zIndex < 0 ? map.groundTiles : map.decorations;
+                target.push(decoration);
             }
 
             state.collisionByMap.delete(map.id);
             state.staticLayer = null;
+            draw(state);
+        },
+        rollbackBuildPreview() {
+            restoreOptimisticTerrain(state);
             draw(state);
         },
         async replaceScene(nextScene) {
@@ -148,6 +176,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
                 return;
             }
 
+            restoreOptimisticTerrain(state);
             const previousMapId = state.currentMapId;
             state.scene = nextScene;
             state.localAppearance = nextScene.characters?.find((character) => character.isLocalPlayer)
@@ -381,15 +410,8 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         const tileY = Math.floor(worldY / px);
 
         if (state.build.enabled) {
-            const object = state.build.tool === "Erase"
-                ? findBuildObjectAt(state, map, tileX, tileY)
-                : null;
-            const submitKey = `${tileX},${tileY},${object?.id ?? ""},${state.build.tool}`;
-            const now = performance.now();
-            if (submitKey !== state.build.lastSubmitKey || now - state.build.lastSubmitAt > 350) {
-                state.build.lastSubmitKey = submitKey;
-                state.build.lastSubmitAt = now;
-                await invokeDotNet(state, "OnBuildTileSelected", tileX, tileY, object?.id ?? null);
+            if (state.build.tool !== "Paint") {
+                await submitBuildSelection(state, map, tileX, tileY);
             }
             return;
         }
@@ -413,13 +435,31 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     // covers something the player was trying to look at.
     state.onPointerDown = (event) => {
         if (state.build.enabled) {
+            if (state.build.submitting || state.build.pointerId !== null) {
+                return;
+            }
             unlockAudio(state);
             updateBuildHover(state, event);
-            if (event.pointerType !== "mouse") {
-                state.build.pointerId = event.pointerId;
-                try {
-                    canvas.setPointerCapture?.(event.pointerId);
-                } catch { }
+            state.build.pointerId = event.pointerId;
+            state.build.lastDragTile = state.build.hoverX === null || state.build.hoverY === null
+                ? null
+                : { x: state.build.hoverX, y: state.build.hoverY };
+            try {
+                canvas.setPointerCapture?.(event.pointerId);
+            } catch { }
+            if (state.build.tool === "Paint" && state.build.lastDragTile) {
+                const map = getCurrentMap(state);
+                if (map) {
+                    state.build.stroke = {
+                        selectionKey: state.build.selectionKey,
+                        cells: new Map(),
+                        optimisticToken: null,
+                        area: event.shiftKey === true,
+                        origin: { ...state.build.lastDragTile },
+                    };
+                    addBuildStrokeCell(state, map, state.build.lastDragTile.x, state.build.lastDragTile.y);
+                    state.build.stroke.optimisticToken = applyOptimisticTerrainStroke(state, state.build.stroke);
+                }
             }
             return;
         }
@@ -481,6 +521,31 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     state.onPointerMove = (event) => {
         if (state.build.enabled) {
             updateBuildHover(state, event);
+            if (state.build.tool === "Paint" &&
+                event.pointerId === state.build.pointerId &&
+                state.build.hoverX !== null &&
+                state.build.hoverY !== null) {
+                const map = getCurrentMap(state);
+                if (map && state.build.stroke) {
+                    const next = { x: state.build.hoverX, y: state.build.hoverY };
+                    if (state.build.stroke.area) {
+                        if (state.build.lastDragTile?.x !== next.x ||
+                            state.build.lastDragTile?.y !== next.y) {
+                            replaceBuildStrokeArea(state, map, state.build.stroke.origin, next);
+                            restoreOptimisticTerrain(state);
+                            state.build.stroke.optimisticToken = applyOptimisticTerrainStroke(
+                                state,
+                                state.build.stroke);
+                        }
+                    } else {
+                        addBuildStrokeLine(state, map, state.build.lastDragTile, next);
+                        state.build.stroke.optimisticToken = applyOptimisticTerrainStroke(
+                            state,
+                            state.build.stroke);
+                    }
+                    state.build.lastDragTile = next;
+                }
+            }
             event.preventDefault();
             return;
         }
@@ -537,11 +602,23 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     state.onPointerUp = (event) => {
         if (state.build.enabled) {
             if (event.pointerId === state.build.pointerId) {
+                const stroke = state.build.stroke;
                 state.build.pointerId = null;
+                state.build.lastDragTile = null;
+                state.build.stroke = null;
                 try {
                     canvas.releasePointerCapture?.(event.pointerId);
                 } catch { }
-                void state.onClick(event);
+                if (stroke) {
+                    if (event.type === "pointercancel") {
+                        restoreOptimisticTerrain(state);
+                        draw(state);
+                    } else {
+                        void submitBuildStroke(state, stroke);
+                    }
+                } else if (state.build.tool !== "Paint") {
+                    void state.onClick(event);
+                }
             }
             return;
         }
@@ -590,6 +667,8 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         state.pointers.clear();
         state.pinch.active = false;
         state.build.pointerId = null;
+        state.build.lastDragTile = null;
+        state.build.stroke = null;
     };
 
     state.onWheel = (event) => {
@@ -746,7 +825,12 @@ async function loadTilesetsForScene(state) {
 
         // Claim the slot before awaiting so two maps sharing a tileset do not
         // both fetch it.
-        state.tilesets.set(key, { definitions: new Map(), imageUrl: null, tileSize: 16 });
+        state.tilesets.set(key, {
+            definitions: new Map(),
+            terrainIndex: new Map(),
+            imageUrl: null,
+            tileSize: 16,
+        });
 
         try {
             const response = await fetch(`/_content/Valour.Client/tilesets/${encodeURIComponent(key)}.json`);
@@ -759,9 +843,14 @@ async function loadTilesetsForScene(state) {
                 return;
             }
 
-            const definitions = createDefinitionMap(normalizeTileDefinitions(parsed.definitions));
+            const normalizedDefinitions = normalizeTileDefinitions(parsed.definitions);
+            const definitions = createDefinitionMap(normalizedDefinitions);
+            const terrainIndex = buildTerrainIndex(
+                normalizeTerrainDefinitions(parsed.terrains),
+                normalizedDefinitions);
             state.tilesets.set(key, {
                 definitions,
+                terrainIndex,
                 imageUrl: parsed.image ?? null,
                 tileSize: parsed.tileSize > 0 ? parsed.tileSize : 16
             });
@@ -812,7 +901,8 @@ function resolveSprite(state, map, key) {
         sh: Math.max(1, definition.height) * size,
         tilesWide: Math.max(1, definition.width),
         tilesHigh: Math.max(1, definition.height),
-        collision: definition.collision
+        collision: definition.collision,
+        collisionStates: definition.collisionStates
     };
 }
 
@@ -1364,6 +1454,426 @@ function drawPlots(ctx, plots, selectedPlotId, state, px) {
     }
 }
 
+async function submitBuildSelection(state, map, tileX, tileY) {
+    const object = state.build.tool === "Erase"
+        ? findBuildObjectAt(state, map, tileX, tileY)
+        : null;
+    const definition = state.build.definition;
+    const width = object?.width ?? (state.build.tool === "Paint" ? 1 : definition?.footprintWidth ?? 1);
+    const height = object?.height ?? (state.build.tool === "Paint" ? 1 : definition?.footprintHeight ?? 1);
+    const targetX = object?.x ?? tileX;
+    const targetY = object?.y ?? tileY;
+    const valid = object
+        ? isEditableBuildBounds(map, targetX, targetY, width, height)
+        : state.build.tool !== "Erase" &&
+          definition &&
+          isValidBuildPlacement(state, map, targetX, targetY, width, height);
+    if (!valid) {
+        return;
+    }
+
+    const submitKey = `${targetX},${targetY},${object?.id ?? ""},${state.build.tool}`;
+    const now = performance.now();
+    if (state.build.submitting ||
+        (submitKey === state.build.lastSubmitKey && now - state.build.lastSubmitAt <= 350)) {
+        return;
+    }
+
+    state.build.lastSubmitKey = submitKey;
+    state.build.lastSubmitAt = now;
+    state.build.submitting = true;
+    try {
+        await invokeDotNet(state, "OnBuildTileSelected", targetX, targetY, object?.id ?? null);
+    } finally {
+        state.build.submitting = false;
+    }
+}
+
+function addBuildStrokeCell(state, map, tileX, tileY) {
+    if (!state.build.stroke || !state.build.definition) {
+        return;
+    }
+
+    const brushSize = Math.max(1, Number(state.build.brush?.size) || 1);
+    const brushRadius = Math.floor(brushSize / 2);
+    if (!isValidBuildPlacement(
+        state,
+        map,
+        tileX - brushRadius,
+        tileY - brushRadius,
+        brushSize,
+        brushSize)) {
+        return;
+    }
+
+    state.build.stroke.cells.set(`${tileX},${tileY}`, { x: tileX, y: tileY });
+}
+
+function replaceBuildStrokeArea(state, map, start, end) {
+    if (!state.build.stroke || !start || !end) {
+        return;
+    }
+
+    state.build.stroke.cells.clear();
+    const minX = Math.max(0, Math.min(start.x, end.x));
+    const maxX = Math.min(map.width - 1, Math.max(start.x, end.x));
+    const minY = Math.max(0, Math.min(start.y, end.y));
+    const maxY = Math.min(map.height - 1, Math.max(start.y, end.y));
+    for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+            addBuildStrokeCell(state, map, x, y);
+        }
+    }
+}
+
+function addBuildStrokeLine(state, map, start, end) {
+    if (!start) {
+        addBuildStrokeCell(state, map, end.x, end.y);
+        return;
+    }
+
+    let x = start.x;
+    let y = start.y;
+    const dx = Math.abs(end.x - start.x);
+    const dy = Math.abs(end.y - start.y);
+    const stepX = start.x < end.x ? 1 : -1;
+    const stepY = start.y < end.y ? 1 : -1;
+    let error = dx - dy;
+
+    while (true) {
+        addBuildStrokeCell(state, map, x, y);
+        if (x === end.x && y === end.y) {
+            break;
+        }
+
+        const twiceError = error * 2;
+        if (twiceError > -dy) {
+            error -= dy;
+            x += stepX;
+        }
+        if (twiceError < dx) {
+            error += dx;
+            y += stepY;
+        }
+    }
+}
+
+function applyOptimisticTerrainStroke(state, stroke) {
+    const map = getCurrentMap(state);
+    const tileset = map?.tilesetKey ? state.tilesets.get(map.tilesetKey) : null;
+    const manualBrush = state.build.brush?.key === stroke.selectionKey
+        ? state.build.brush
+        : null;
+    if (!map || !tileset ||
+        (!manualBrush && !tileset.terrainIndex?.has(stroke.selectionKey))) {
+        return null;
+    }
+
+    const cells = [...stroke.cells.values()];
+    if (cells.length === 0) {
+        return null;
+    }
+
+    let rollback = state.build.optimisticRollback;
+    if (rollback && String(rollback.mapId) !== String(map.id)) {
+        restoreOptimisticTerrain(state);
+        rollback = null;
+    }
+
+    if (!rollback) {
+        const originalGroundTiles = (map.groundTiles ?? []).map(item => ({ ...item }));
+        const terrainGrid = new Array(map.width * map.height)
+            .fill(map.mapKind === "Outdoor" ? "grass" : "");
+        const originalPositions = new Set();
+        for (const item of originalGroundTiles) {
+            if (item.x < 0 || item.y < 0 || item.x >= map.width || item.y >= map.height) {
+                continue;
+            }
+
+            const positionKey = `${item.x},${item.y}`;
+            if (originalPositions.has(positionKey)) {
+                continue;
+            }
+            originalPositions.add(positionKey);
+            const definition = tileset.definitions.get(item.definitionKey);
+            terrainGrid[item.y * map.width + item.x] = item.zIndex === -100
+                ? definition?.terrainKey ?? ""
+                : "";
+        }
+
+        rollback = {
+            token: state.build.nextOptimisticId++,
+            mapId: map.id,
+            groundTiles: originalGroundTiles,
+            terrainGrid,
+            paintedCells: new Set(),
+            manualChoices: new Map(),
+        };
+        state.build.optimisticRollback = rollback;
+    }
+
+    map.groundTiles ??= [];
+    const byPosition = new Map();
+    for (const item of map.groundTiles ?? []) {
+        const key = `${item.x},${item.y}`;
+        if (!byPosition.has(key)) {
+            byPosition.set(key, item);
+        }
+    }
+
+    if (manualBrush) {
+        return applyOptimisticManualBrush(
+            state,
+            map,
+            tileset,
+            stroke,
+            manualBrush,
+            cells,
+            rollback,
+            byPosition);
+    }
+
+    const newCells = [];
+    for (const cell of cells) {
+        const key = `${cell.x},${cell.y}`;
+        if (rollback.paintedCells.has(key)) {
+            continue;
+        }
+
+        rollback.paintedCells.add(key);
+        rollback.terrainGrid[cell.y * map.width + cell.x] = stroke.selectionKey;
+        newCells.push(cell);
+    }
+
+    if (newCells.length === 0) {
+        return rollback.token;
+    }
+
+    const affected = new Map();
+    for (const cell of newCells) {
+        for (let y = Math.max(0, cell.y - 1); y <= Math.min(map.height - 1, cell.y + 1); y++) {
+            for (let x = Math.max(0, cell.x - 1); x <= Math.min(map.width - 1, cell.x + 1); x++) {
+                affected.set(`${x},${y}`, { x, y });
+            }
+        }
+    }
+
+    for (const [key, position] of affected) {
+        const isTarget = rollback.paintedCells.has(key);
+        let item = byPosition.get(key);
+        if (!isTarget && !item) {
+            continue;
+        }
+
+        const resolved = resolveTerrainCell(
+            rollback.terrainGrid,
+            map.width,
+            map.height,
+            position.x,
+            position.y,
+            tileset.terrainIndex);
+        if (!resolved) {
+            continue;
+        }
+
+        if (!item) {
+            item = {
+                id: `optimistic-terrain-${state.build.nextOptimisticId++}`,
+                kind: resolved.key,
+                definitionKey: resolved.key,
+                x: position.x,
+                y: position.y,
+                width: 1,
+                height: 1,
+                zIndex: -100,
+                blocksMovement: false,
+                rotation: 0,
+                ownerMemberId: state.scene.localMemberId,
+                isOwnedByLocalMember: true,
+            };
+            map.groundTiles.push(item);
+            byPosition.set(key, item);
+        } else {
+            item.kind = resolved.key;
+            item.definitionKey = resolved.key;
+        }
+
+        if (isTarget) {
+            item.zIndex = -100;
+            item.blocksMovement = false;
+            item.ownerMemberId = state.scene.localMemberId;
+            item.isOwnedByLocalMember = true;
+        }
+    }
+
+    state.staticLayer = null;
+    draw(state);
+    return rollback.token;
+}
+
+function applyOptimisticManualBrush(
+    state,
+    map,
+    tileset,
+    stroke,
+    brush,
+    centers,
+    rollback,
+    byPosition) {
+    const changedTargets = new Map();
+    const size = Math.max(1, Number(brush.size) || 1);
+    const radius = Math.floor(size / 2);
+    for (const center of centers) {
+        const centerKey = `${center.x},${center.y}`;
+        if (rollback.paintedCells.has(centerKey)) {
+            continue;
+        }
+        rollback.paintedCells.add(centerKey);
+
+        for (let index = 0; index < (brush.cells?.length ?? 0); index++) {
+            const cell = brush.cells[index];
+            const definitionKey = cell?.definitionKey ?? "";
+            if (!definitionKey) {
+                continue;
+            }
+
+            const x = center.x - radius + index % size;
+            const y = center.y - radius + Math.floor(index / size);
+            if (x < 0 || y < 0 || x >= map.width || y >= map.height) {
+                continue;
+            }
+
+            const key = `${x},${y}`;
+            const choice = {
+                definitionKey,
+                strength: Math.max(1, Number(cell.strength) || 1),
+                weight: Math.max(1, Number(cell.weight) || 1),
+            };
+            const current = rollback.manualChoices.get(key);
+            if (current &&
+                (choice.strength < current.strength ||
+                 (choice.strength === current.strength && choice.weight < current.weight))) {
+                continue;
+            }
+
+            rollback.manualChoices.set(key, choice);
+            rollback.terrainGrid[y * map.width + x] = "";
+            changedTargets.set(key, { x, y });
+        }
+    }
+
+    if (changedTargets.size === 0) {
+        return rollback.token;
+    }
+
+    const affected = new Map();
+    for (const position of changedTargets.values()) {
+        for (let y = Math.max(0, position.y - 1); y <= Math.min(map.height - 1, position.y + 1); y++) {
+            for (let x = Math.max(0, position.x - 1); x <= Math.min(map.width - 1, position.x + 1); x++) {
+                affected.set(`${x},${y}`, { x, y });
+            }
+        }
+    }
+
+    for (const [key, position] of affected) {
+        const manualChoice = rollback.manualChoices.get(key);
+        let item = byPosition.get(key);
+        let resolved = manualChoice
+            ? tileset.definitions.get(manualChoice.definitionKey)
+            : null;
+
+        if (!manualChoice) {
+            if (!item || item.zIndex !== -100) {
+                continue;
+            }
+            resolved = resolveTerrainCell(
+                rollback.terrainGrid,
+                map.width,
+                map.height,
+                position.x,
+                position.y,
+                tileset.terrainIndex);
+        }
+        if (!resolved) {
+            continue;
+        }
+
+        if (!item) {
+            item = {
+                id: `optimistic-terrain-${state.build.nextOptimisticId++}`,
+                kind: resolved.key,
+                definitionKey: resolved.key,
+                x: position.x,
+                y: position.y,
+                width: 1,
+                height: 1,
+                zIndex: manualChoice ? -101 : -100,
+                blocksMovement: manualChoice
+                    ? (resolved.collision ?? []).some(Boolean)
+                    : false,
+                rotation: 0,
+                ownerMemberId: state.scene.localMemberId,
+                isOwnedByLocalMember: true,
+            };
+            map.groundTiles.push(item);
+            byPosition.set(key, item);
+        } else {
+            item.kind = resolved.key;
+            item.definitionKey = resolved.key;
+        }
+
+        if (manualChoice) {
+            item.zIndex = -101;
+            item.blocksMovement = (resolved.collision ?? []).some(Boolean);
+            item.ownerMemberId = state.scene.localMemberId;
+            item.isOwnedByLocalMember = true;
+        }
+    }
+
+    state.collisionByMap.delete(map.id);
+    state.staticLayer = null;
+    draw(state);
+    return rollback.token;
+}
+
+function restoreOptimisticTerrain(state) {
+    const rollback = state.build.optimisticRollback;
+    if (!rollback) {
+        return;
+    }
+
+    const map = state.scene.maps?.find(item => String(item.id) === String(rollback.mapId));
+    if (map) {
+        map.groundTiles = rollback.groundTiles;
+    }
+    state.build.optimisticRollback = null;
+    state.staticLayer = null;
+}
+
+async function submitBuildStroke(state, stroke) {
+    const cells = [...stroke.cells.values()];
+    if (cells.length === 0 || state.build.submitting) {
+        return;
+    }
+
+    const optimisticToken = stroke.optimisticToken ?? applyOptimisticTerrainStroke(state, stroke);
+    state.build.submitting = true;
+    try {
+        await invokeDotNet(
+            state,
+            "OnBuildTerrainStrokeSelected",
+            cells,
+            stroke.selectionKey);
+    } finally {
+        state.build.submitting = false;
+        if (optimisticToken !== null &&
+            state.build.optimisticRollback?.token === optimisticToken) {
+            restoreOptimisticTerrain(state);
+            draw(state);
+        }
+    }
+}
+
 function updateBuildHover(state, event) {
     const rect = state.canvas.getBoundingClientRect();
     const px = tilePixelSize(state);
@@ -1394,6 +1904,18 @@ function drawBuildOverlay(ctx, map, state, px) {
     }
     ctx.setLineDash([]);
 
+    if (state.build.stroke?.cells?.size > 0) {
+        ctx.fillStyle = "rgba(83, 226, 157, 0.32)";
+        ctx.strokeStyle = "rgba(131, 240, 185, 0.9)";
+        ctx.lineWidth = 1.5;
+        for (const cell of state.build.stroke.cells.values()) {
+            const x = cell.x * px - state.renderCameraX;
+            const y = cell.y * px - state.renderCameraY;
+            ctx.fillRect(x, y, px, px);
+            ctx.strokeRect(x + 0.75, y + 0.75, px - 1.5, px - 1.5);
+        }
+    }
+
     if (state.build.hoverX === null || state.build.hoverY === null) {
         ctx.restore();
         return;
@@ -1403,15 +1925,19 @@ function drawBuildOverlay(ctx, map, state, px) {
         ? findBuildObjectAt(state, map, state.build.hoverX, state.build.hoverY)
         : null;
     const definition = state.build.definition;
-    const tileX = object?.x ?? state.build.hoverX;
-    const tileY = object?.y ?? state.build.hoverY;
-    const width = object?.width ?? (state.build.tool === "Paint" ? 1 : definition?.footprintWidth ?? 1);
-    const height = object?.height ?? (state.build.tool === "Paint" ? 1 : definition?.footprintHeight ?? 1);
+    const brushSize = state.build.tool === "Paint"
+        ? Math.max(1, Number(state.build.brush?.size) || 1)
+        : 1;
+    const brushRadius = Math.floor(brushSize / 2);
+    const tileX = object?.x ?? (state.build.hoverX - brushRadius);
+    const tileY = object?.y ?? (state.build.hoverY - brushRadius);
+    const width = object?.width ?? (state.build.tool === "Paint" ? brushSize : definition?.footprintWidth ?? 1);
+    const height = object?.height ?? (state.build.tool === "Paint" ? brushSize : definition?.footprintHeight ?? 1);
     const valid = object
         ? isEditableBuildBounds(map, tileX, tileY, width, height)
         : isValidBuildPlacement(state, map, tileX, tileY, width, height);
 
-    if (!object && definition && state.build.tool !== "Erase") {
+    if (!object && definition && state.build.tool !== "Erase" && !state.build.brush) {
         const sprite = resolveSprite(state, map, definition.key);
         if (sprite) {
             ctx.globalAlpha = valid ? 0.68 : 0.35;
@@ -2096,7 +2622,25 @@ function getCollisionSet(state, map) {
         }
 
         const definition = resolveDefinition(state, map, decoration.definitionKey);
-        if (definition?.collision?.some(Boolean)) {
+        if (decoration.definitionKey?.toLowerCase().startsWith("buildings.")) {
+            // Structure sprites use a compact ground footprint. A semantic
+            // door state carves a reachable entrance without making the tall
+            // facade itself collide.
+            addRect(decoration);
+            if (definition?.collisionStates) {
+                for (const cell of getBottomAnchoredStateCells(
+                    decoration.x,
+                    decoration.y,
+                    decoration.height,
+                    definition,
+                    COLLISION_STATE_DOOR)) {
+                    if (cell.x >= decoration.x && cell.x < decoration.x + decoration.width &&
+                        cell.y >= decoration.y && cell.y < decoration.y + decoration.height) {
+                        blocked.delete(tileKey(cell.x, cell.y));
+                    }
+                }
+            }
+        } else if (definition?.collision?.some(Boolean)) {
             for (const cell of getBottomAnchoredCollisionCells(
                 decoration.x,
                 decoration.y,

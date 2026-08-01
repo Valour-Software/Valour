@@ -24,6 +24,8 @@ namespace Valour.Server.Services.Villages;
 /// </summary>
 public class VillageWorldService
 {
+    private const int AutoTerrainZIndex = -100;
+    private const int ManualTerrainZIndex = -101;
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> SeedGates = new();
     private static readonly ConcurrentDictionary<(long PlanetId, long MapId), SemaphoreSlim> EditGates = new();
 
@@ -179,8 +181,7 @@ public class VillageWorldService
 
         foreach (var definition in _collisionService.GetBuildCatalog(outdoor.TilesetKey)
                      .Where(x => string.Equals(x.Kind, "Tile", StringComparison.OrdinalIgnoreCase) ||
-                                 (string.Equals(x.Kind, "Sprite", StringComparison.OrdinalIgnoreCase) &&
-                                  !x.Key.StartsWith("buildings.", StringComparison.OrdinalIgnoreCase))))
+                                 string.Equals(x.Kind, "Sprite", StringComparison.OrdinalIgnoreCase)))
         {
             var footprint = VillageObjectGeometry.GetFootprint(definition.Key);
             scene.BuildCatalog.Add(new VillagePocCatalogItem
@@ -195,7 +196,51 @@ public class VillageWorldService
                 Height = definition.Height,
                 FootprintWidth = footprint.Width,
                 FootprintHeight = footprint.Height,
-                BlocksMovement = definition.Collision.Any(x => x),
+                BlocksMovement = definition.BlocksMovement,
+            });
+        }
+
+        foreach (var terrain in _collisionService.GetBuildTerrains(outdoor.TilesetKey))
+        {
+            scene.BuildTerrains.Add(new VillagePocTerrainItem
+            {
+                Key = terrain.Key,
+                Name = terrain.Name,
+                PreviewDefinitionKey = terrain.Preview.Key,
+                X = terrain.Preview.X,
+                Y = terrain.Preview.Y,
+                Width = terrain.Preview.Width,
+                Height = terrain.Preview.Height,
+            });
+        }
+
+        foreach (var brush in _collisionService.GetBuildBrushes(outdoor.TilesetKey))
+        {
+            var previewCell = brush.Cells.ElementAtOrDefault((brush.Size * brush.Size) / 2);
+            if (previewCell is null || previewCell.DefinitionKey.Length == 0)
+                previewCell = brush.Cells.FirstOrDefault(x => x.DefinitionKey.Length > 0);
+            if (previewCell is null ||
+                !_collisionService.TryGetDefinition(outdoor.TilesetKey, previewCell.DefinitionKey, out var preview))
+            {
+                continue;
+            }
+
+            scene.BuildBrushes.Add(new VillagePocBrushItem
+            {
+                Key = brush.Key,
+                Name = brush.Name,
+                Size = brush.Size,
+                PreviewDefinitionKey = preview.Key,
+                X = preview.X,
+                Y = preview.Y,
+                Width = preview.Width,
+                Height = preview.Height,
+                Cells = brush.Cells.Select(cell => new VillagePocBrushCell
+                {
+                    DefinitionKey = cell.DefinitionKey,
+                    Strength = cell.Strength,
+                    Weight = cell.Weight,
+                }).ToList(),
             });
         }
 
@@ -385,6 +430,8 @@ public class VillageWorldService
     {
         if (string.Equals(kind, "Tile", StringComparison.OrdinalIgnoreCase))
             return "Surfaces";
+        if (key.StartsWith("buildings.", StringComparison.OrdinalIgnoreCase))
+            return "Buildings";
         if (key.StartsWith("furniture.", StringComparison.OrdinalIgnoreCase))
             return "Furniture";
         if (key.StartsWith("garden.", StringComparison.OrdinalIgnoreCase) ||
@@ -419,24 +466,44 @@ public class VillageWorldService
             if (request.Action == VillageBuildAction.Erase)
                 return await EraseObjectAsync(map, actorMemberId, canManageVillage, request.ObjectId);
 
+            if (request.Action == VillageBuildAction.Paint)
+            {
+                var cells = request.Cells is { Count: > 0 }
+                    ? request.Cells
+                    : [new VillageBuildCell { X = request.X, Y = request.Y }];
+                var brushKey = request.BrushKey?.Trim() ?? string.Empty;
+                if (brushKey.Length > 0)
+                {
+                    if (!_collisionService.TryGetBrush(map.TilesetKey, brushKey, out var brush))
+                        return TaskResult<VillageBuildResult>.FromFailure("That manual brush is not available on this map.");
+                    return await PaintManualBrushAsync(map, actorMemberId, canManageVillage, brush, cells);
+                }
+
+                var terrainKey = request.TerrainKey?.Trim() ?? string.Empty;
+                if (terrainKey.Length == 0 && !string.IsNullOrWhiteSpace(request.DefinitionKey))
+                    terrainKey = _collisionService.GetTerrainKey(map.TilesetKey, request.DefinitionKey.Trim());
+
+                return await PaintTerrainAsync(
+                    map,
+                    actorMemberId,
+                    canManageVillage,
+                    terrainKey,
+                    cells);
+            }
+
+            if (request.Action != VillageBuildAction.Furnish)
+                return TaskResult<VillageBuildResult>.FromFailure("Unknown village build action.");
+
             var key = request.DefinitionKey?.Trim() ?? string.Empty;
             if (!_collisionService.TryGetDefinition(map.TilesetKey, key, out var definition))
                 return TaskResult<VillageBuildResult>.FromFailure("That catalog item is not available on this map.");
 
-            var isPaint = request.Action == VillageBuildAction.Paint;
-            var isFurnishing = request.Action == VillageBuildAction.Furnish;
-            if (!isPaint && !isFurnishing)
-                return TaskResult<VillageBuildResult>.FromFailure("Unknown village build action.");
-            if (isPaint && !string.Equals(definition.Kind, "Tile", StringComparison.OrdinalIgnoreCase))
-                return TaskResult<VillageBuildResult>.FromFailure("Choose a surface before painting.");
-            if (isFurnishing &&
-                (!string.Equals(definition.Kind, "Sprite", StringComparison.OrdinalIgnoreCase) ||
-                 definition.Key.StartsWith("buildings.", StringComparison.OrdinalIgnoreCase)))
+            if (!string.Equals(definition.Kind, "Sprite", StringComparison.OrdinalIgnoreCase))
             {
                 return TaskResult<VillageBuildResult>.FromFailure("That item cannot be placed as furniture.");
             }
 
-            var footprint = isPaint ? (Width: 1, Height: 1) : VillageObjectGeometry.GetFootprint(key);
+            var footprint = VillageObjectGeometry.GetFootprint(key);
             if (!BoundsInsideMap(map, request.X, request.Y, footprint.Width, footprint.Height))
                 return TaskResult<VillageBuildResult>.FromFailure("That item would extend beyond the map.");
             if (!await CanEditBoundsAsync(
@@ -449,22 +516,10 @@ public class VillageWorldService
                         : "Place items entirely inside land you can edit.");
             }
 
-            var removed = new List<Valour.Database.VillageObject>();
-            if (isPaint)
-            {
-                removed = await _db.VillageObjects
-                    .Where(x => x.PlanetId == planetId && x.MapId == mapId &&
-                                x.ZIndex < 0 && x.X == request.X && x.Y == request.Y)
-                    .ToListAsync();
-                _db.VillageObjects.RemoveRange(removed);
-            }
-            else
-            {
-                var placementError = await ValidateFurnishingPlacementAsync(
-                    map, request.X, request.Y, footprint.Width, footprint.Height);
-                if (placementError is not null)
-                    return TaskResult<VillageBuildResult>.FromFailure(placementError);
-            }
+            var placementError = await ValidateFurnishingPlacementAsync(
+                map, request.X, request.Y, footprint.Width, footprint.Height);
+            if (placementError is not null)
+                return TaskResult<VillageBuildResult>.FromFailure(placementError);
 
             var item = new Valour.Database.VillageObject
             {
@@ -474,8 +529,8 @@ public class VillageWorldService
                 DefinitionKey = definition.Key,
                 X = request.X,
                 Y = request.Y,
-                ZIndex = isPaint ? -100 : 0,
-                BlocksMovement = isFurnishing && definition.Collision.Any(x => x),
+                ZIndex = 0,
+                BlocksMovement = definition.BlocksMovement,
                 OwnerMemberId = actorMemberId,
             };
 
@@ -483,20 +538,346 @@ public class VillageWorldService
             await _db.SaveChangesAsync();
             _collisionService.InvalidateMap(planetId, mapId);
 
-            foreach (var oldItem in removed)
-                _hubService.NotifyPlanetItemDelete(oldItem.ToModel());
             _hubService.NotifyPlanetItemChange(planetId, item.ToModel());
+
+            var decoration = ToDecoration(item, actorMemberId);
 
             return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
             {
-                Decoration = ToDecoration(item, actorMemberId),
-                RemovedObjectIds = removed.Select(x => x.Id).ToList(),
+                Decoration = decoration,
+                Decorations = [decoration],
             });
         }
         finally
         {
             gate.Release();
         }
+    }
+
+    private async Task<TaskResult<VillageBuildResult>> PaintTerrainAsync(
+        Valour.Database.VillageMap map,
+        long actorMemberId,
+        bool canManageVillage,
+        string terrainKey,
+        IReadOnlyCollection<VillageBuildCell> cells)
+    {
+        if (string.IsNullOrWhiteSpace(terrainKey))
+            return TaskResult<VillageBuildResult>.FromFailure("Choose a terrain before painting.");
+        var targets = cells
+            .Select(cell => (cell.X, cell.Y))
+            .Distinct()
+            .ToHashSet();
+        if (targets.Count == 0)
+            return TaskResult<VillageBuildResult>.FromFailure("Paint at least one tile.");
+        if (targets.Count > 4096)
+            return TaskResult<VillageBuildResult>.FromFailure("That terrain stroke is too large.");
+        if (targets.Any(cell => !BoundsInsideMap(map, cell.X, cell.Y, 1, 1)))
+            return TaskResult<VillageBuildResult>.FromFailure("That brush is outside the map.");
+        if (!await CanEditTerrainCellsAsync(map, actorMemberId, canManageVillage, targets))
+        {
+            return TaskResult<VillageBuildResult>.FromFailure(
+                map.MapType == VillageMapType.Interior
+                    ? "Only this building's owner can paint its interior."
+                    : "Paint inside land you can edit.");
+        }
+
+        // The logical terrain is recovered from each resolved definition. The
+        // complete client stroke replaces the target cells in this in-memory
+        // grid before any art is picked, so the whole stroke and its border see
+        // one atomic terrain state.
+        var ground = await _db.VillageObjects
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex < 0)
+            .OrderBy(item => item.Id)
+            .ToListAsync();
+        var byPosition = ground
+            .GroupBy(item => (item.X, item.Y))
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        string TerrainAt(int tileX, int tileY)
+        {
+            if (targets.Contains((tileX, tileY)))
+                return terrainKey;
+            if (byPosition.TryGetValue((tileX, tileY), out var items) && items.Count > 0)
+                return items[0].ZIndex == AutoTerrainZIndex
+                    ? _collisionService.GetTerrainKey(map.TilesetKey, items[0].DefinitionKey)
+                    : string.Empty;
+            return map.MapType == VillageMapType.Outdoor ? "grass" : string.Empty;
+        }
+
+        var affected = new HashSet<(int X, int Y)>();
+        foreach (var target in targets)
+        {
+            for (var tileY = Math.Max(0, target.Y - 1); tileY <= Math.Min(map.Height - 1, target.Y + 1); tileY++)
+            {
+                for (var tileX = Math.Max(0, target.X - 1); tileX <= Math.Min(map.Width - 1, target.X + 1); tileX++)
+                    affected.Add((tileX, tileY));
+            }
+        }
+
+        // Resolve first, mutate second. If any requested terrain is unavailable,
+        // the scoped DbContext remains untouched and cannot leak a partial edit
+        // into a later save.
+        var resolvedByPosition = new Dictionary<(int X, int Y), VillageCollisionService.CollisionDefinition>();
+        foreach (var position in affected.OrderBy(cell => cell.Y).ThenBy(cell => cell.X))
+        {
+            var isTarget = targets.Contains(position);
+            byPosition.TryGetValue(position, out var existingAtCell);
+            if (!isTarget && (existingAtCell is null || existingAtCell.Count == 0))
+                continue;
+
+            var logicalTerrain = TerrainAt(position.X, position.Y);
+            if (logicalTerrain.Length == 0 ||
+                !_collisionService.TryResolveTerrainDefinition(
+                    map.TilesetKey,
+                    logicalTerrain,
+                    TerrainAt,
+                    map.Width,
+                    map.Height,
+                    position.X,
+                    position.Y,
+                    out var resolved))
+            {
+                if (isTarget)
+                    return TaskResult<VillageBuildResult>.FromFailure("That terrain is not available on this map.");
+                continue;
+            }
+
+            resolvedByPosition[position] = resolved;
+        }
+
+        // Reuse one object per coordinate so neighboring transition changes
+        // preserve identity and ownership. Old duplicate ground entries are
+        // removed defensively; the result tells clients to discard them too.
+        var changed = new List<Valour.Database.VillageObject>();
+        var removed = new List<Valour.Database.VillageObject>();
+        var paintedByPosition = new Dictionary<(int X, int Y), Valour.Database.VillageObject>();
+        foreach (var (position, resolved) in resolvedByPosition)
+        {
+            var isTarget = targets.Contains(position);
+            byPosition.TryGetValue(position, out var existingAtCell);
+            var item = existingAtCell?.FirstOrDefault();
+            if (item is null)
+            {
+                item = new Valour.Database.VillageObject
+                {
+                    Id = IdManager.Generate(),
+                    PlanetId = map.PlanetId,
+                    MapId = map.Id,
+                    X = position.X,
+                    Y = position.Y,
+                    ZIndex = AutoTerrainZIndex,
+                };
+                _db.VillageObjects.Add(item);
+            }
+            else if (existingAtCell!.Count > 1)
+            {
+                var duplicates = existingAtCell.Skip(1).ToList();
+                removed.AddRange(duplicates);
+                _db.VillageObjects.RemoveRange(duplicates);
+            }
+
+            var definitionChanged = item.DefinitionKey != resolved.Key ||
+                                    item.BlocksMovement ||
+                                    item.ZIndex != AutoTerrainZIndex;
+            var ownerChanged = isTarget && item.OwnerMemberId != actorMemberId;
+            item.DefinitionKey = resolved.Key;
+            item.ZIndex = AutoTerrainZIndex;
+            item.BlocksMovement = false;
+            if (isTarget)
+                item.OwnerMemberId = actorMemberId;
+
+            if (definitionChanged || ownerChanged || isTarget)
+                changed.Add(item);
+            if (isTarget)
+                paintedByPosition[position] = item;
+        }
+
+        var primaryPosition = (cells.First().X, cells.First().Y);
+        if (!paintedByPosition.TryGetValue(primaryPosition, out var primary))
+            return TaskResult<VillageBuildResult>.FromFailure("That terrain could not be painted.");
+
+        await _db.SaveChangesAsync();
+        _collisionService.InvalidateMap(map.PlanetId, map.Id);
+        foreach (var oldItem in removed)
+            _hubService.NotifyPlanetItemDelete(oldItem.ToModel());
+        foreach (var item in changed)
+            _hubService.NotifyPlanetItemChange(map.PlanetId, item.ToModel());
+
+        var decorations = changed
+            .Select(item => ToDecoration(item, actorMemberId))
+            .ToList();
+        return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+        {
+            Decoration = ToDecoration(primary, actorMemberId),
+            Decorations = decorations,
+            RemovedObjectIds = removed.Select(item => item.Id).ToList(),
+        });
+    }
+
+    private async Task<TaskResult<VillageBuildResult>> PaintManualBrushAsync(
+        Valour.Database.VillageMap map,
+        long actorMemberId,
+        bool canManageVillage,
+        VillageCollisionService.BrushDefinition brush,
+        IReadOnlyCollection<VillageBuildCell> centers)
+    {
+        var uniqueCenters = centers
+            .Select(cell => (cell.X, cell.Y))
+            .Distinct()
+            .ToList();
+        if (uniqueCenters.Count == 0)
+            return TaskResult<VillageBuildResult>.FromFailure("Paint at least one brush stamp.");
+        if (uniqueCenters.Count > 4096)
+            return TaskResult<VillageBuildResult>.FromFailure("That brush stroke is too large.");
+
+        var radius = brush.Size / 2;
+        var choices = new Dictionary<
+            (int X, int Y),
+            (VillageCollisionService.BrushCellDefinition Cell, VillageCollisionService.CollisionDefinition Definition)>();
+        foreach (var center in uniqueCenters)
+        {
+            var originX = center.X - radius;
+            var originY = center.Y - radius;
+            for (var index = 0; index < brush.Cells.Count; index++)
+            {
+                var cell = brush.Cells[index];
+                if (cell.DefinitionKey.Length == 0)
+                    continue;
+
+                var position = (X: originX + index % brush.Size, Y: originY + index / brush.Size);
+                if (!BoundsInsideMap(map, position.X, position.Y, 1, 1))
+                    return TaskResult<VillageBuildResult>.FromFailure("Keep the complete manual brush inside the map.");
+                if (!_collisionService.TryGetDefinition(map.TilesetKey, cell.DefinitionKey, out var definition) ||
+                    !string.Equals(definition.Kind, "Tile", StringComparison.OrdinalIgnoreCase))
+                {
+                    return TaskResult<VillageBuildResult>.FromFailure("That manual brush contains an unavailable tile.");
+                }
+
+                if (choices.TryGetValue(position, out var current) &&
+                    (cell.Strength < current.Cell.Strength ||
+                     (cell.Strength == current.Cell.Strength && cell.Weight < current.Cell.Weight)))
+                {
+                    continue;
+                }
+
+                choices[position] = (cell, definition);
+            }
+        }
+
+        if (choices.Count == 0)
+            return TaskResult<VillageBuildResult>.FromFailure("That manual brush has no paintable tiles.");
+        if (choices.Count > 4096)
+            return TaskResult<VillageBuildResult>.FromFailure("That brush stroke is too large.");
+        if (!await CanEditTerrainCellsAsync(map, actorMemberId, canManageVillage, choices.Keys))
+        {
+            return TaskResult<VillageBuildResult>.FromFailure(
+                map.MapType == VillageMapType.Interior
+                    ? "Only this building's owner can paint its interior."
+                    : "Keep the complete manual brush inside land you can edit.");
+        }
+
+        var ground = await _db.VillageObjects
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex < 0)
+            .OrderBy(item => item.Id)
+            .ToListAsync();
+        var byPosition = ground
+            .GroupBy(item => (item.X, item.Y))
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        string TerrainAt(int tileX, int tileY)
+        {
+            if (choices.ContainsKey((tileX, tileY)))
+                return string.Empty;
+            if (byPosition.TryGetValue((tileX, tileY), out var items) && items.Count > 0)
+                return items[0].ZIndex == AutoTerrainZIndex
+                    ? _collisionService.GetTerrainKey(map.TilesetKey, items[0].DefinitionKey)
+                    : string.Empty;
+            return map.MapType == VillageMapType.Outdoor ? "grass" : string.Empty;
+        }
+
+        var resolvedNeighbors = new Dictionary<(int X, int Y), VillageCollisionService.CollisionDefinition>();
+        foreach (var target in choices.Keys)
+        {
+            for (var y = Math.Max(0, target.Y - 1); y <= Math.Min(map.Height - 1, target.Y + 1); y++)
+            {
+                for (var x = Math.Max(0, target.X - 1); x <= Math.Min(map.Width - 1, target.X + 1); x++)
+                {
+                    if (choices.ContainsKey((x, y)) ||
+                        !byPosition.TryGetValue((x, y), out var items) ||
+                        items.Count == 0 || items[0].ZIndex != AutoTerrainZIndex)
+                    {
+                        continue;
+                    }
+
+                    var terrainKey = TerrainAt(x, y);
+                    if (terrainKey.Length > 0 &&
+                        _collisionService.TryResolveTerrainDefinition(
+                            map.TilesetKey, terrainKey, TerrainAt,
+                            map.Width, map.Height, x, y, out var resolved))
+                    {
+                        resolvedNeighbors[(x, y)] = resolved;
+                    }
+                }
+            }
+        }
+
+        var changed = new List<Valour.Database.VillageObject>();
+        var removed = new List<Valour.Database.VillageObject>();
+        Valour.Database.VillageObject? primary = null;
+        foreach (var (position, choice) in choices)
+        {
+            byPosition.TryGetValue(position, out var existingAtCell);
+            var item = existingAtCell?.FirstOrDefault();
+            if (item is null)
+            {
+                item = new Valour.Database.VillageObject
+                {
+                    Id = IdManager.Generate(),
+                    PlanetId = map.PlanetId,
+                    MapId = map.Id,
+                    X = position.X,
+                    Y = position.Y,
+                };
+                _db.VillageObjects.Add(item);
+            }
+            else if (existingAtCell!.Count > 1)
+            {
+                var duplicates = existingAtCell.Skip(1).ToList();
+                removed.AddRange(duplicates);
+                _db.VillageObjects.RemoveRange(duplicates);
+            }
+
+            item.DefinitionKey = choice.Definition.Key;
+            item.ZIndex = ManualTerrainZIndex;
+            item.BlocksMovement = choice.Definition.BlocksMovement;
+            item.OwnerMemberId = actorMemberId;
+            changed.Add(item);
+            primary ??= item;
+        }
+
+        foreach (var (position, definition) in resolvedNeighbors)
+        {
+            var neighbor = byPosition[position][0];
+            if (neighbor.DefinitionKey == definition.Key)
+                continue;
+            neighbor.DefinitionKey = definition.Key;
+            changed.Add(neighbor);
+        }
+
+        await _db.SaveChangesAsync();
+        _collisionService.InvalidateMap(map.PlanetId, map.Id);
+        foreach (var oldItem in removed)
+            _hubService.NotifyPlanetItemDelete(oldItem.ToModel());
+        foreach (var item in changed)
+            _hubService.NotifyPlanetItemChange(map.PlanetId, item.ToModel());
+
+        var decorations = changed.Select(item => ToDecoration(item, actorMemberId)).ToList();
+        return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+        {
+            Decoration = primary is null ? null : ToDecoration(primary, actorMemberId),
+            Decorations = decorations,
+            RemovedObjectIds = removed.Select(item => item.Id).ToList(),
+        });
     }
 
     private async Task<TaskResult<VillageBuildResult>> EraseObjectAsync(
@@ -521,15 +902,130 @@ public class VillageWorldService
             return TaskResult<VillageBuildResult>.FromFailure("You cannot edit the property containing that item.");
         }
 
+        if (item.ZIndex >= 0)
+        {
+            _db.VillageObjects.Remove(item);
+            await _db.SaveChangesAsync();
+            _collisionService.InvalidateMap(map.PlanetId, map.Id);
+            _hubService.NotifyPlanetItemDelete(item.ToModel());
+
+            return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+            {
+                RemovedObjectIds = [item.Id],
+            });
+        }
+
+        if (item.ZIndex == ManualTerrainZIndex)
+        {
+            _db.VillageObjects.Remove(item);
+            await _db.SaveChangesAsync();
+            _collisionService.InvalidateMap(map.PlanetId, map.Id);
+            _hubService.NotifyPlanetItemDelete(item.ToModel());
+            return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+            {
+                RemovedObjectIds = [item.Id],
+            });
+        }
+
+        // Removing terrain reveals the map's base surface. Resolve the eight
+        // surviving neighbors against that new logical value in the same edit,
+        // otherwise their edge art points at a terrain that no longer exists.
+        var ground = await _db.VillageObjects
+            .Where(candidate => candidate.PlanetId == map.PlanetId &&
+                                candidate.MapId == map.Id &&
+                                candidate.ZIndex < 0 &&
+                                candidate.Id != item.Id)
+            .OrderBy(candidate => candidate.Id)
+            .ToListAsync();
+        var byPosition = ground
+            .GroupBy(candidate => (candidate.X, candidate.Y))
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        string TerrainAt(int tileX, int tileY)
+        {
+            if (byPosition.TryGetValue((tileX, tileY), out var items) && items.Count > 0)
+                return items[0].ZIndex == AutoTerrainZIndex
+                    ? _collisionService.GetTerrainKey(map.TilesetKey, items[0].DefinitionKey)
+                    : string.Empty;
+            return map.MapType == VillageMapType.Outdoor ? "grass" : string.Empty;
+        }
+
+        var changed = new List<Valour.Database.VillageObject>();
+        for (var tileY = Math.Max(0, item.Y - 1); tileY <= Math.Min(map.Height - 1, item.Y + 1); tileY++)
+        {
+            for (var tileX = Math.Max(0, item.X - 1); tileX <= Math.Min(map.Width - 1, item.X + 1); tileX++)
+            {
+                if (!byPosition.TryGetValue((tileX, tileY), out var candidates) || candidates.Count == 0)
+                    continue;
+
+                var neighbor = candidates[0];
+                if (neighbor.ZIndex != AutoTerrainZIndex)
+                    continue;
+                var terrainKey = TerrainAt(tileX, tileY);
+                if (terrainKey.Length == 0 ||
+                    !_collisionService.TryResolveTerrainDefinition(
+                        map.TilesetKey,
+                        terrainKey,
+                        TerrainAt,
+                        map.Width,
+                        map.Height,
+                        tileX,
+                        tileY,
+                        out var resolved) ||
+                    neighbor.DefinitionKey == resolved.Key)
+                {
+                    continue;
+                }
+
+                neighbor.DefinitionKey = resolved.Key;
+                changed.Add(neighbor);
+            }
+        }
+
         _db.VillageObjects.Remove(item);
         await _db.SaveChangesAsync();
         _collisionService.InvalidateMap(map.PlanetId, map.Id);
         _hubService.NotifyPlanetItemDelete(item.ToModel());
+        foreach (var neighbor in changed)
+            _hubService.NotifyPlanetItemChange(map.PlanetId, neighbor.ToModel());
 
         return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
         {
+            Decorations = changed.Select(neighbor => ToDecoration(neighbor, actorMemberId)).ToList(),
             RemovedObjectIds = [item.Id],
         });
+    }
+
+    private async Task<bool> CanEditTerrainCellsAsync(
+        Valour.Database.VillageMap map,
+        long actorMemberId,
+        bool canManageVillage,
+        IReadOnlyCollection<(int X, int Y)> cells)
+    {
+        if (canManageVillage)
+            return true;
+
+        if (map.MapType == VillageMapType.Interior)
+        {
+            return map.ParentBuildingId is not null &&
+                   await _db.VillageBuildings.AnyAsync(building =>
+                       building.PlanetId == map.PlanetId &&
+                       building.Id == map.ParentBuildingId.Value &&
+                       building.OwnerMemberId == actorMemberId);
+        }
+
+        var editablePlots = await _db.VillagePlots
+            .Where(plot => plot.PlanetId == map.PlanetId &&
+                           plot.MapId == map.Id &&
+                           (plot.EditMode == VillageEditMode.Everyone ||
+                            (plot.EditMode == VillageEditMode.Owner && plot.OwnerMemberId == actorMemberId)))
+            .Select(plot => new { plot.X, plot.Y, plot.Width, plot.Height })
+            .ToListAsync();
+
+        return cells.All(cell => editablePlots.Any(plot =>
+            cell.X >= plot.X && cell.Y >= plot.Y &&
+            (long)cell.X < (long)plot.X + plot.Width &&
+            (long)cell.Y < (long)plot.Y + plot.Height));
     }
 
     private async Task<bool> CanEditBoundsAsync(

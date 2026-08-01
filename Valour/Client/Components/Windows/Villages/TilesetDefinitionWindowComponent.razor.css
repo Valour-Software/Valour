@@ -302,6 +302,47 @@
     overflow: auto;
 }
 
+.collision-state-picker {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    margin-bottom: 8px;
+}
+
+.collision-state-option {
+    display: inline-flex;
+    min-width: 0;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 7px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: var(--font-color-mid);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 750;
+}
+
+.collision-state-option:hover,
+.collision-state-option.active {
+    color: var(--font-color);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.collision-state-option.state-solid.active {
+    border-color: rgba(255, 100, 100, 0.8);
+    background: rgba(228, 91, 91, 0.22);
+}
+
+.collision-state-option.state-door.active {
+    border-color: rgba(73, 207, 145, 0.85);
+    background: rgba(40, 161, 110, 0.22);
+}
+
 .collision-cell {
     width: 48px;
     height: 48px;
@@ -314,19 +355,42 @@
     outline: 1px solid rgba(255, 255, 255, 0.16);
 }
 
-.collision-cell.active {
+.collision-cell.state-solid {
     outline: 2px solid #ff6464;
 }
 
 .collision-cell span {
     position: absolute;
     inset: 0;
+    display: grid;
+    place-items: center;
     background: rgba(228, 91, 91, 0);
 }
 
-.collision-cell.active span {
+.collision-cell.state-solid span {
     background: rgba(228, 91, 91, 0.48);
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.45);
+}
+
+.collision-cell.state-door {
+    outline: 2px solid #49cf91;
+}
+
+.collision-cell.state-door span {
+    color: #e6fff3;
+    background: rgba(35, 164, 108, 0.46);
+    box-shadow: inset 0 0 0 2px rgba(198, 255, 227, 0.62);
+    font-size: 1.15rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.collision-cell.state-other {
+    outline: 2px solid #c48aff;
+}
+
+.collision-cell.state-other span {
+    background: rgba(151, 88, 214, 0.44);
+    box-shadow: inset 0 0 0 2px rgba(234, 214, 255, 0.5);
 }
 
 .panel-actions {

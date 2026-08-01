@@ -23,7 +23,7 @@ else if (_error is not null)
 }
 else
 {
-    <div class="village-window @(_activeVoiceChannel is not null ? "has-call" : string.Empty)">
+    <div class="village-window @(_activeVoiceChannel is not null ? "has-call" : string.Empty) @(_buildMode ? "build-mode-active" : string.Empty)">
         <canvas id="@_canvasId" class="village-canvas"></canvas>
 
         <div class="village-overlay village-world-header">
@@ -350,7 +350,7 @@ else
 
         @if (_buildMode)
         {
-            <section class="village-build-panel" aria-label="Village build mode">
+            <aside class="village-build-panel" aria-label="Village build mode">
                 <div class="build-panel-header">
                     <div>
                         <span class="eyebrow">Build mode</span>
@@ -409,36 +409,95 @@ else
                     </div>
 
                     <div class="build-catalog">
-                        @foreach (var item in GetVisibleBuildItems())
+                        @if (_buildTool == "Paint")
                         {
-                            <button class="build-catalog-item @(_selectedBuildKey == item.Key ? "active" : string.Empty)"
-                                    title="@item.Name"
-                                    @onclick="() => SelectBuildItemAsync(item)">
-                                <span class="build-item-preview">
-                                    <span class="build-item-sprite" style="@GetBuildPreviewStyle(item)"></span>
-                                </span>
-                                <span class="build-item-name">@item.Name</span>
-                                @if (item.FootprintWidth > 1 || item.FootprintHeight > 1)
-                                {
-                                    <span class="build-item-size">@item.FootprintWidth×@item.FootprintHeight</span>
-                                }
-                            </button>
+                            <div class="build-catalog-section-title">
+                                <span>Auto terrain</span>
+                                <small>Edges connect</small>
+                            </div>
+                            @foreach (var terrain in GetVisibleBuildTerrains())
+                            {
+                                <button class="build-catalog-item @(_selectedBuildKey == terrain.Key ? "active" : string.Empty)"
+                                        title="@terrain.Name terrain brush"
+                                        @onclick="() => SelectBuildTerrainAsync(terrain)">
+                                    <span class="build-item-preview">
+                                        <span class="build-item-sprite" style="@GetBuildPreviewStyle(terrain)"></span>
+                                    </span>
+                                    <span class="build-item-name">@terrain.Name</span>
+                                    <span class="build-item-size terrain"><i class="bi bi-bezier2"></i> Auto</span>
+                                </button>
+                            }
+                            @if (!GetVisibleBuildTerrains().Any())
+                            {
+                                <div class="build-empty">No terrain brushes match that search.</div>
+                            }
+
+                            <div class="build-catalog-section-title">
+                                <span>Manual brushes</span>
+                                <small>Exact authored pattern</small>
+                            </div>
+                            @foreach (var brush in GetVisibleBuildBrushes())
+                            {
+                                <button class="build-catalog-item @(_selectedBuildKey == brush.Key ? "active" : string.Empty)"
+                                        title="@brush.Name manual brush"
+                                        @onclick="() => SelectBuildBrushAsync(brush)">
+                                    <span class="build-item-preview">
+                                        <span class="manual-brush-pattern" style="@GetBuildBrushPreviewStyle(brush)">
+                                            @foreach (var cell in brush.Cells)
+                                            {
+                                                <span style="@GetBuildBrushCellStyle(cell)"></span>
+                                            }
+                                        </span>
+                                    </span>
+                                    <span class="build-item-name">@brush.Name</span>
+                                    <span class="build-item-size manual">@brush.Size×@brush.Size</span>
+                                </button>
+                            }
+                            @if (!GetVisibleBuildBrushes().Any())
+                            {
+                                <div class="build-empty">No manual brushes match that search.</div>
+                            }
                         }
-                        @if (!GetVisibleBuildItems().Any())
+                        else
                         {
-                            <div class="build-empty">No catalog items match that search.</div>
+                            @foreach (var item in GetVisibleBuildItems())
+                            {
+                                <button class="build-catalog-item @(_selectedBuildKey == item.Key ? "active" : string.Empty)"
+                                        title="@item.Name"
+                                        @onclick="() => SelectBuildItemAsync(item)">
+                                    <span class="build-item-preview">
+                                        <span class="build-item-sprite" style="@GetBuildPreviewStyle(item)"></span>
+                                    </span>
+                                    <span class="build-item-name">@item.Name</span>
+                                    @if (item.FootprintWidth > 1 || item.FootprintHeight > 1)
+                                    {
+                                        <span class="build-item-size">@item.FootprintWidth×@item.FootprintHeight</span>
+                                    }
+                                </button>
+                            }
+                            @if (!GetVisibleBuildItems().Any())
+                            {
+                                <div class="build-empty">No catalog items match that search.</div>
+                            }
                         }
                     </div>
                 }
 
                 <div class="build-panel-footer">
-                    <span><i class="bi bi-cursor-fill"></i> Click a tile to @_buildTool.ToLowerInvariant()</span>
+                    @if (_buildTool == "Paint")
+                    {
+                        <span><kbd>Shift</kbd> drag to fill an area</span>
+                    }
+                    else
+                    {
+                        <span><i class="bi bi-cursor-fill"></i> Click a tile to @_buildTool.ToLowerInvariant()</span>
+                    }
                     @if (!string.IsNullOrWhiteSpace(_buildStatus))
                     {
                         <span class="build-status">@_buildStatus</span>
                     }
                 </div>
-            </section>
+            </aside>
         }
 
         @if (!_buildMode && _activeChatChannel is not null)
@@ -1567,6 +1626,18 @@ else
     private VillagePocCatalogItem? SelectedBuildItem =>
         _scene?.BuildCatalog.FirstOrDefault(x => x.Key == _selectedBuildKey);
 
+    private VillagePocTerrainItem? SelectedBuildTerrain =>
+        _scene?.BuildTerrains.FirstOrDefault(x => x.Key == _selectedBuildKey);
+
+    private VillagePocBrushItem? SelectedBuildBrush =>
+        _scene?.BuildBrushes.FirstOrDefault(x => x.Key == _selectedBuildKey);
+
+    private VillagePocCatalogItem? SelectedBuildPreviewItem =>
+        _buildTool == "Paint"
+            ? _scene?.BuildCatalog.FirstOrDefault(x =>
+                x.Key == (SelectedBuildTerrain?.PreviewDefinitionKey ?? SelectedBuildBrush?.PreviewDefinitionKey))
+            : SelectedBuildItem;
+
     private async Task ToggleBuildModeAsync()
     {
         if (!_buildMode && !CanBuildCurrentMap)
@@ -1589,8 +1660,14 @@ else
             ? "Select an item or painted tile to remove it."
             : string.Empty;
 
-        if (tool != "Erase" &&
-            !GetBuildItemsForTool(tool).Any(x => x.Key == _selectedBuildKey))
+        if (tool == "Paint" &&
+            !((_scene?.BuildTerrains.Any(x => x.Key == _selectedBuildKey) ?? false) ||
+              (_scene?.BuildBrushes.Any(x => x.Key == _selectedBuildKey) ?? false)))
+        {
+            _selectedBuildKey = _scene?.BuildTerrains.FirstOrDefault()?.Key ?? string.Empty;
+        }
+        else if (tool == "Furnish" &&
+                 !GetBuildItemsForTool(tool).Any(x => x.Key == _selectedBuildKey))
         {
             _selectedBuildKey = GetBuildItemsForTool(tool).FirstOrDefault()?.Key ?? string.Empty;
         }
@@ -1607,6 +1684,22 @@ else
         await ReRender();
     }
 
+    private async Task SelectBuildTerrainAsync(VillagePocTerrainItem terrain)
+    {
+        _selectedBuildKey = terrain.Key;
+        _buildStatus = $"{terrain.Name} brush selected — edges will connect automatically.";
+        await SyncBuildModeAsync();
+        await ReRender();
+    }
+
+    private async Task SelectBuildBrushAsync(VillagePocBrushItem brush)
+    {
+        _selectedBuildKey = brush.Key;
+        _buildStatus = $"{brush.Name} manual brush selected — its {brush.Size}×{brush.Size} pattern is placed exactly.";
+        await SyncBuildModeAsync();
+        await ReRender();
+    }
+
     private Task SetBuildCategory(string category)
     {
         _buildCategory = category;
@@ -1615,9 +1708,8 @@ else
 
     private IEnumerable<VillagePocCatalogItem> GetBuildItemsForTool(string tool)
     {
-        var kind = tool == "Paint" ? "Tile" : "Sprite";
         return (_scene?.BuildCatalog ?? [])
-            .Where(x => string.Equals(x.Kind, kind, StringComparison.OrdinalIgnoreCase));
+            .Where(x => string.Equals(x.Kind, "Sprite", StringComparison.OrdinalIgnoreCase));
     }
 
     private IEnumerable<VillagePocCatalogItem> GetVisibleBuildItems()
@@ -1634,6 +1726,34 @@ else
         }
 
         return items.OrderBy(x => x.Category).ThenBy(x => x.Name);
+    }
+
+    private IEnumerable<VillagePocTerrainItem> GetVisibleBuildTerrains()
+    {
+        var items = _scene?.BuildTerrains.AsEnumerable() ?? [];
+        if (!string.IsNullOrWhiteSpace(_buildSearch))
+        {
+            var search = _buildSearch.Trim();
+            items = items.Where(x =>
+                x.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                x.Key.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return items.OrderBy(x => x.Name);
+    }
+
+    private IEnumerable<VillagePocBrushItem> GetVisibleBuildBrushes()
+    {
+        var items = _scene?.BuildBrushes.AsEnumerable() ?? [];
+        if (!string.IsNullOrWhiteSpace(_buildSearch))
+        {
+            var search = _buildSearch.Trim();
+            items = items.Where(x =>
+                x.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                x.Key.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return items.OrderBy(x => x.Name);
     }
 
     private IEnumerable<string> GetBuildCategories() =>
@@ -1658,16 +1778,44 @@ else
     }
 
     private string GetBuildPreviewStyle(VillagePocCatalogItem item)
+        => GetBuildPreviewStyle(item.X, item.Y, item.Width, item.Height);
+
+    private string GetBuildPreviewStyle(VillagePocTerrainItem item)
+        => GetBuildPreviewStyle(item.X, item.Y, item.Width, item.Height);
+
+    private string GetBuildBrushPreviewStyle(VillagePocBrushItem brush)
     {
         var tileSize = Math.Max(1, _scene?.BuildCatalogTileSize ?? 16);
-        var sourceWidth = Math.Max(1, item.Width) * tileSize;
-        var sourceHeight = Math.Max(1, item.Height) * tileSize;
+        var sourceSize = Math.Max(1, brush.Size) * tileSize;
+        var scale = Math.Min(2d, 52d / sourceSize);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"width:{sourceSize}px;height:{sourceSize}px;grid-template-columns:repeat({Math.Max(1, brush.Size)},{tileSize}px);grid-auto-rows:{tileSize}px;transform:translate(-50%,-50%) scale({scale:0.###});");
+    }
+
+    private string GetBuildBrushCellStyle(VillagePocBrushCell cell)
+    {
+        var definition = _scene?.BuildCatalog.FirstOrDefault(x => x.Key == cell.DefinitionKey);
+        if (definition is null)
+            return "visibility:hidden;";
+
+        var tileSize = Math.Max(1, _scene?.BuildCatalogTileSize ?? 16);
+        var image = (_scene?.BuildCatalogImageUrl ?? string.Empty)
+            .Replace("'", "\\'", StringComparison.Ordinal);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"width:{tileSize}px;height:{tileSize}px;background-image:url('{image}');background-position:{-definition.X * tileSize}px {-definition.Y * tileSize}px;");
+    }
+
+    private string GetBuildPreviewStyle(int x, int y, int width, int height)
+    {
+        var tileSize = Math.Max(1, _scene?.BuildCatalogTileSize ?? 16);
+        var sourceWidth = Math.Max(1, width) * tileSize;
+        var sourceHeight = Math.Max(1, height) * tileSize;
         var scale = Math.Min(2d, 52d / Math.Max(sourceWidth, sourceHeight));
         var image = (_scene?.BuildCatalogImageUrl ?? string.Empty)
             .Replace("'", "\\'", StringComparison.Ordinal);
 
         return string.Create(System.Globalization.CultureInfo.InvariantCulture,
-            $"width:{sourceWidth}px;height:{sourceHeight}px;background-image:url('{image}');background-position:{-item.X * tileSize}px {-item.Y * tileSize}px;transform:scale({scale:0.###});");
+            $"width:{sourceWidth}px;height:{sourceHeight}px;background-image:url('{image}');background-position:{-x * tileSize}px {-y * tileSize}px;transform:translate(-50%,-50%) scale({scale:0.###});");
     }
 
     private async Task SyncBuildModeAsync()
@@ -1679,7 +1827,9 @@ else
         {
             enabled = _buildMode,
             tool = _buildTool,
-            definition = SelectedBuildItem,
+            definition = SelectedBuildPreviewItem,
+            selectionKey = _selectedBuildKey,
+            brush = SelectedBuildBrush,
         });
     }
 
@@ -1689,49 +1839,121 @@ else
         if (!_buildMode || _buildEditInProgress || Data is null || _currentMap is null)
             return;
 
-        var selected = SelectedBuildItem;
-        if (_buildTool != "Erase" && selected is null)
+        if (_buildTool == "Paint")
+            return;
+
+        var selectedItem = SelectedBuildItem;
+        if (_buildTool == "Furnish" && selectedItem is null)
+            return;
+
+        var request = new VillageBuildRequest
+        {
+            Action = _buildTool == "Erase" ? VillageBuildAction.Erase : VillageBuildAction.Furnish,
+            DefinitionKey = _buildTool == "Furnish" ? selectedItem?.Key : null,
+            X = x,
+            Y = y,
+            ObjectId = ParseId(objectIdRaw),
+        };
+
+        await SubmitBuildRequestAsync(
+            _currentMap,
+            request,
+            request.Action == VillageBuildAction.Erase
+                ? "Item removed."
+                : $"{selectedItem?.Name ?? "Item"} placed.");
+    }
+
+    [JSInvokable]
+    public async Task OnBuildTerrainStrokeSelected(
+        List<VillageBuildCell>? cells,
+        string? selectionKey)
+    {
+        if (!_buildMode || _buildEditInProgress || Data is null || _currentMap is null ||
+            cells is null || cells.Count == 0)
+        {
+            return;
+        }
+
+        var terrain = _scene?.BuildTerrains.FirstOrDefault(x => x.Key == selectionKey);
+        var brush = _scene?.BuildBrushes.FirstOrDefault(x => x.Key == selectionKey);
+        if (terrain is null && brush is null)
+            return;
+
+        await SubmitBuildRequestAsync(
+            _currentMap,
+            new VillageBuildRequest
+            {
+                Action = VillageBuildAction.Paint,
+                TerrainKey = terrain?.Key,
+                BrushKey = brush?.Key,
+                Cells = cells,
+                X = cells[0].X,
+                Y = cells[0].Y,
+            },
+            brush is not null
+                ? $"{brush.Name} stamped {cells.Count} time{(cells.Count == 1 ? string.Empty : "s")} as an exact manual pattern."
+                : $"{terrain!.Name} painted across {cells.Count} tile{(cells.Count == 1 ? string.Empty : "s")} with connected edges.");
+    }
+
+    private async Task SubmitBuildRequestAsync(
+        VillagePocMap map,
+        VillageBuildRequest request,
+        string successStatus)
+    {
+        if (Data is null)
             return;
 
         _buildEditInProgress = true;
         _buildStatus = "Saving…";
         await ReRender();
 
-        var request = new VillageBuildRequest
-        {
-            Action = _buildTool switch
-            {
-                "Paint" => VillageBuildAction.Paint,
-                "Erase" => VillageBuildAction.Erase,
-                _ => VillageBuildAction.Furnish,
-            },
-            DefinitionKey = selected?.Key,
-            X = x,
-            Y = y,
-            ObjectId = ParseId(objectIdRaw),
-        };
-
         // Suppress the realtime echo before sending; it can arrive a few
         // milliseconds before the HTTP response that carries the same delta.
         _ignoreObjectRefreshUntil = DateTime.UtcNow.AddSeconds(1);
-        var result = await VillageService.EditMapAsync(Data, _currentMap.Id, request);
-        _buildEditInProgress = false;
-        if (!result.Success || result.Data is null)
+        TaskResult<VillageBuildResult>? result = null;
+        try
+        {
+            result = await VillageService.EditMapAsync(Data, map.Id, request);
+        }
+        catch
+        {
+            // The JavaScript caller also owns a finally-path rollback, but the
+            // component must clear its busy flag so a transient transport
+            // failure cannot leave build mode permanently locked.
+        }
+        finally
+        {
+            _buildEditInProgress = false;
+        }
+
+        if (result is null)
         {
             _ignoreObjectRefreshUntil = DateTime.MinValue;
-            _buildStatus = result.Message ?? "That edit could not be applied.";
+            if (_runtime is not null)
+                await _runtime.InvokeVoidAsync("rollbackBuildPreview");
+            _buildStatus = "The edit could not reach the server. Your preview was restored.";
             ShowActionMessage(_buildStatus, isError: true);
             await ReRender();
             return;
         }
 
-        ApplyBuildResult(_currentMap, result.Data);
-        if (_runtime is not null)
-            await _runtime.InvokeVoidAsync("applyBuildResult", result.Data);
+        var completedResult = result.Value;
+        if (!completedResult.Success || completedResult.Data is null)
+        {
+            _ignoreObjectRefreshUntil = DateTime.MinValue;
+            if (_runtime is not null)
+                await _runtime.InvokeVoidAsync("rollbackBuildPreview");
+            _buildStatus = completedResult.Message ?? "That edit could not be applied.";
+            ShowActionMessage(_buildStatus, isError: true);
+            await ReRender();
+            return;
+        }
 
-        _buildStatus = request.Action == VillageBuildAction.Erase
-            ? "Item removed."
-            : $"{selected?.Name ?? "Surface"} placed.";
+        ApplyBuildResult(map, completedResult.Data);
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("applyBuildResult", completedResult.Data);
+
+        _buildStatus = successStatus;
         await ReRender();
     }
 
@@ -1741,13 +1963,19 @@ else
         map.GroundTiles.RemoveAll(x => removed.Contains(x.Id));
         map.Decorations.RemoveAll(x => removed.Contains(x.Id));
 
-        if (result.Decoration is null)
-            return;
+        var changed = result.Decorations.ToList();
+        if (result.Decoration is not null && changed.All(x => x.Id != result.Decoration.Id))
+            changed.Add(result.Decoration);
 
-        if (result.Decoration.ZIndex < 0)
-            map.GroundTiles.Add(result.Decoration);
-        else
-            map.Decorations.Add(result.Decoration);
+        foreach (var decoration in changed)
+        {
+            map.GroundTiles.RemoveAll(x => x.Id == decoration.Id);
+            map.Decorations.RemoveAll(x => x.Id == decoration.Id);
+            if (decoration.ZIndex < 0)
+                map.GroundTiles.Add(decoration);
+            else
+                map.Decorations.Add(decoration);
+        }
     }
 
     private string FormatPrice(decimal price)

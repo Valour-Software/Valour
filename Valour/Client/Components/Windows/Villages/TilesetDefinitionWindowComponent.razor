@@ -5,6 +5,8 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Globalization
 @using System.Text.Json
+@using System.Text.Json.Serialization
+@using Valour.Shared.Villages
 
 <div class="tileset-tool">
     <div class="tool-topbar">
@@ -190,23 +192,42 @@
                 <div class="panel-section">
                     <div class="section-title-row">
                         <div class="section-title">Collision</div>
-                        <button class="icon-btn mini-btn" title="Invert collision matrix" @onclick="InvertCollision">
+                        <button class="icon-btn mini-btn" title="Swap empty and solid cells; special states are preserved" @onclick="InvertCollision">
                             <i class="bi bi-arrow-left-right"></i>
                         </button>
+                    </div>
+                    <div class="collision-state-picker" role="radiogroup" aria-label="Collision paint state">
+                        @foreach (var option in CollisionStateOptions)
+                        {
+                            <button class="collision-state-option @GetCollisionStateClass(option.State) @(_selectedCollisionState == option.State ? "active" : string.Empty)"
+                                    role="radio"
+                                    aria-checked="@(_selectedCollisionState == option.State)"
+                                    title="@option.Description"
+                                    @onclick="() => SelectCollisionState(option.State)">
+                                <i class="bi @option.Icon"></i>
+                                <span>@option.Label</span>
+                            </button>
+                        }
                     </div>
                     <div class="collision-grid"
                          style="@CollisionGridStyle">
                         @for (var i = 0; i < _draft.Collision.Count; i++)
                         {
                             var index = i;
-                            <button class="collision-cell @(_draft.Collision[index] ? "active" : string.Empty)"
+                            <button class="collision-cell @GetCollisionStateClass(_draft.Collision[index])"
                                     style="@GetCollisionCellStyle(index)"
-                                    title="Toggle collision"
-                                    @onclick="() => ToggleCollision(index)">
-                                <span></span>
+                                    title="@GetCollisionCellTitle(index)"
+                                    @onclick="() => PaintCollision(index)">
+                                <span>
+                                    @if (VillageCollisionState.IsDoor(_draft.Collision[index]))
+                                    {
+                                        <i class="bi bi-door-open-fill"></i>
+                                    }
+                                </span>
                             </button>
                         }
                     </div>
+                    <div class="hint-text">Door cells stay walkable but retain entrance meaning. Unknown future states are preserved when JSON is imported and exported.</div>
                 </div>
 
                 <div class="panel-actions">
@@ -337,10 +358,17 @@
     private readonly List<TilesetDefinitionDraft> _definitions = new();
     private readonly List<BrushDraft> _brushes = new();
     private readonly List<TerrainDraft> _terrains = new();
+    private static readonly CollisionStateOption[] CollisionStateOptions =
+    [
+        new(VillageCollisionState.Empty, "Empty", "bi-square", "Walkable space with no interaction."),
+        new(VillageCollisionState.Solid, "Solid", "bi-square-fill", "Blocks movement."),
+        new(VillageCollisionState.Door, "Door", "bi-door-open-fill", "Walkable entrance that can link to an interior."),
+    ];
     private bool _keyWasEdited;
     private bool _brushKeyWasEdited;
     private string _activePanelTab = "Definition";
     private string _selectedBrushTileKey = string.Empty;
+    private string _selectedCollisionState = VillageCollisionState.Solid;
     private string _importStatus = string.Empty;
     private string CollisionGridStyle => $"grid-template-columns: repeat({Math.Max(1, _selection.Width)}, {TileSize * CollisionPreviewScale}px);";
     private string BrushGridStyle => $"grid-template-columns: repeat({Math.Max(1, _brushDraft.Size)}, 42px);";
@@ -575,12 +603,35 @@
             $"background-image: url('{imageUrl}'); background-size: {backgroundWidth}px {backgroundHeight}px; background-position: {-sourceX}px {-sourceY}px;");
     }
 
-    private void ToggleCollision(int index)
+    private void SelectCollisionState(string state)
+    {
+        _selectedCollisionState = VillageCollisionState.Normalize(state);
+        ReRender();
+    }
+
+    private void PaintCollision(int index)
     {
         if (index >= 0 && index < _draft.Collision.Count)
-            _draft.Collision[index] = !_draft.Collision[index];
+            _draft.Collision[index] = _selectedCollisionState;
 
         ReRender();
+    }
+
+    private static string GetCollisionStateClass(string? state) =>
+        VillageCollisionState.Normalize(state) switch
+        {
+            VillageCollisionState.Empty => "state-empty",
+            VillageCollisionState.Solid => "state-solid",
+            VillageCollisionState.Door => "state-door",
+            _ => "state-other",
+        };
+
+    private string GetCollisionCellTitle(int index)
+    {
+        var current = index >= 0 && index < _draft.Collision.Count
+            ? VillageCollisionState.Normalize(_draft.Collision[index])
+            : VillageCollisionState.Empty;
+        return $"{current} — paint {_selectedCollisionState}";
     }
 
     private void InvertCollision()
@@ -588,7 +639,14 @@
         EnsureCollisionSize();
 
         for (var i = 0; i < _draft.Collision.Count; i++)
-            _draft.Collision[i] = !_draft.Collision[i];
+        {
+            _draft.Collision[i] = VillageCollisionState.Normalize(_draft.Collision[i]) switch
+            {
+                VillageCollisionState.Empty => VillageCollisionState.Solid,
+                VillageCollisionState.Solid => VillageCollisionState.Empty,
+                var specialState => specialState,
+            };
+        }
 
         ReRender();
     }
@@ -1151,11 +1209,13 @@
         definition.TerrainWeight = Math.Max(1, definition.TerrainWeight);
         definition.Width = Math.Max(1, definition.Width);
         definition.Height = Math.Max(1, definition.Height);
-        definition.Collision ??= new List<bool>();
+        definition.Collision ??= new List<string>();
+        for (var i = 0; i < definition.Collision.Count; i++)
+            definition.Collision[i] = VillageCollisionState.Normalize(definition.Collision[i]);
 
         var collisionCount = Math.Max(1, definition.Width * definition.Height);
         while (definition.Collision.Count < collisionCount)
-            definition.Collision.Add(false);
+            definition.Collision.Add(VillageCollisionState.Empty);
 
         if (definition.Collision.Count > collisionCount)
             definition.Collision.RemoveRange(collisionCount, definition.Collision.Count - collisionCount);
@@ -1223,7 +1283,7 @@
     {
         var count = Math.Max(1, _draft.Width * _draft.Height);
         while (_draft.Collision.Count < count)
-            _draft.Collision.Add(false);
+            _draft.Collision.Add(VillageCollisionState.Empty);
 
         if (_draft.Collision.Count > count)
             _draft.Collision.RemoveRange(count, _draft.Collision.Count - count);
@@ -1255,7 +1315,8 @@
         public int Y { get; set; }
         public int Width { get; set; } = 1;
         public int Height { get; set; } = 1;
-        public List<bool> Collision { get; set; } = new() { false };
+        [JsonConverter(typeof(CollisionStateListJsonConverter))]
+        public List<string> Collision { get; set; } = new() { VillageCollisionState.Empty };
 
         public static TilesetDefinitionDraft CreateDefault() => new();
 
@@ -1279,6 +1340,52 @@
             Height = Height,
             Collision = Collision.ToList()
         };
+    }
+
+    private sealed record CollisionStateOption(
+        string State,
+        string Label,
+        string Icon,
+        string Description);
+
+    public sealed class CollisionStateListJsonConverter : JsonConverter<List<string>>
+    {
+        public override List<string> Read(
+            ref Utf8JsonReader reader,
+            Type typeToConvert,
+            JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartArray)
+                throw new JsonException("Collision must be an array of state names or legacy booleans.");
+
+            var states = new List<string>();
+            while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+            {
+                var state = reader.TokenType switch
+                {
+                    JsonTokenType.True => VillageCollisionState.Solid,
+                    JsonTokenType.False or JsonTokenType.Null => VillageCollisionState.Empty,
+                    JsonTokenType.String => VillageCollisionState.Normalize(reader.GetString()),
+                    JsonTokenType.Number when reader.TryGetInt32(out var value) =>
+                        value == 0 ? VillageCollisionState.Empty : VillageCollisionState.Solid,
+                    _ => throw new JsonException("Collision states must be strings, booleans, or zero/one numbers."),
+                };
+                states.Add(state);
+            }
+
+            return states;
+        }
+
+        public override void Write(
+            Utf8JsonWriter writer,
+            List<string> value,
+            JsonSerializerOptions options)
+        {
+            writer.WriteStartArray();
+            foreach (var state in value)
+                writer.WriteStringValue(VillageCollisionState.Normalize(state));
+            writer.WriteEndArray();
+        }
     }
 
     public class TerrainDraft

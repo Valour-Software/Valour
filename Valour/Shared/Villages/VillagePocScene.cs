@@ -31,6 +31,8 @@ public class VillagePocScene
     public string BuildCatalogImageUrl { get; set; } = string.Empty;
     public int BuildCatalogTileSize { get; set; } = 16;
     public List<VillagePocCatalogItem> BuildCatalog { get; set; } = new();
+    public List<VillagePocTerrainItem> BuildTerrains { get; set; } = new();
+    public List<VillagePocBrushItem> BuildBrushes { get; set; } = new();
 }
 
 public class VillagePocMap
@@ -155,6 +157,37 @@ public class VillagePocCatalogItem
     public int FootprintWidth { get; set; } = 1;
     public int FootprintHeight { get; set; } = 1;
     public bool BlocksMovement { get; set; }
+}
+
+public class VillagePocTerrainItem
+{
+    public string Key { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string PreviewDefinitionKey { get; set; } = string.Empty;
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; } = 1;
+    public int Height { get; set; } = 1;
+}
+
+public class VillagePocBrushItem
+{
+    public string Key { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Size { get; set; } = 1;
+    public string PreviewDefinitionKey { get; set; } = string.Empty;
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; } = 1;
+    public int Height { get; set; } = 1;
+    public List<VillagePocBrushCell> Cells { get; set; } = new();
+}
+
+public class VillagePocBrushCell
+{
+    public string DefinitionKey { get; set; } = string.Empty;
+    public int Strength { get; set; } = 1;
+    public int Weight { get; set; } = 1;
 }
 
 public class VillagePocBuilding

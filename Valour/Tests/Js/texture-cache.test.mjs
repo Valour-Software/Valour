@@ -22,8 +22,11 @@ const {
   loadTexture,
   getCallAudioElementId,
   normalizeTileDefinition,
+  normalizeCollisionState,
+  collisionStateBlocksMovement,
   getBottomAnchoredSpriteBounds,
   getBottomAnchoredCollisionCells,
+  getBottomAnchoredStateCells,
   getVillageRenderScale,
   adjustVillageZoom,
   getPlayerCenteredCamera
@@ -111,6 +114,26 @@ check('22. mobile camera keeps the rendered player vertically centered',
   (0 + 0.35) * 32 - mobileCamera.y, 422);
 check('23. camera is allowed beyond map origin instead of pushing the player off-center',
   mobileCamera.x < 0 && mobileCamera.y < 0, true);
+
+const statefulBuilding = normalizeTileDefinition({
+  Kind: 'Sprite',
+  Key: 'buildings.test',
+  Width: 3,
+  Height: 2,
+  Collision: ['solid', 'door', 'future-hazard', false, true, 'empty']
+});
+check('24. named collision states retain their semantics',
+  statefulBuilding.collisionStates,
+  ['solid', 'door', 'future-hazard', 'empty', 'solid', 'empty']);
+check('25. doors and empty cells are walkable while unknown states fail closed',
+  statefulBuilding.collision,
+  [true, false, true, false, true, false]);
+check('26. semantic door cells use the sprite bottom anchor',
+  getBottomAnchoredStateCells(10, 20, 1, statefulBuilding, 'door'),
+  [{ x: 11, y: 19 }]);
+check('27. legacy aliases normalize without changing the serialized model',
+  [normalizeCollisionState('blocked'), collisionStateBlocksMovement('door')],
+  ['solid', false]);
 
 
 for (const [name, actual, expected] of checks) {
