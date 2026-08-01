@@ -398,6 +398,10 @@ public class MessageService
         Message stagedOld = null;
         
         var dbOld = await _db.Messages
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Attachments)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Mentions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
             .Include(x => x.Reactions)
