@@ -25,7 +25,16 @@
                 @oncontextpress:stopPropagation="true"
                 @oncontextpress="@OnTabContextMenu">
                 <div class="tab-info">
-                    <img alt="tab icon" class="tab-icon @(IsPlanetTab ? "circle" : "")" src="@Icon"/>
+                    @if (IconUser is not null)
+                    {
+                        <div class="tab-icon-avatar">
+                            <UserAvatar User="@IconUser" Size="22" ShowState="true"/>
+                        </div>
+                    }
+                    else
+                    {
+                        <img alt="tab icon" class="tab-icon @(IsPlanetTab ? "circle" : "")" src="@Icon"/>
+                    }
                     <span class="tab-title">@Title</span>
                 </div>
                 <div class="tab-buttons"
@@ -177,7 +186,8 @@
     }
 
     private string Icon => WindowTab.Content?.Icon ?? ThreadsWindowComponent.DefaultContent.Icon;
-    
+    private User IconUser => WindowTab.Content?.IconUser;
+
     /// <summary>
     /// Planet tabs show circular icons; user/app tabs show rounded squares
     /// </summary>

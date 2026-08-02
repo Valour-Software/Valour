@@ -686,32 +686,34 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return "A " + GetHumanReadableName() + " channel";
     }
 
-    public async Task<string> GetIconAsync()
+    /// <summary>
+    /// For a DM channel, the user the icon/avatar should represent - the other
+    /// member, or yourself for a self-DM. Null for planet channels or if member
+    /// data hasn't loaded yet.
+    /// </summary>
+    public async Task<User> GetDmUserAsync()
     {
-        var result = "./_content/Valour.Client/media/logo/logo-128.webp";
-        
+        if (PlanetId is not null || Members is null)
+            return null;
+
+        var otherId = Members.FirstOrDefault(x => x.UserId != Client.Me.Id)?.UserId;
+        if (otherId is null)
+            return Client.Me;
+
+        return await Client.UserService.FetchUserAsync(otherId.Value);
+    }
+
+    /// <summary>
+    /// Pass an already-fetched dmUser (e.g. from GetDmUserAsync) if you have one
+    /// on hand, so this doesn't look it up a second time.
+    /// </summary>
+    public async Task<string> GetIconAsync(User dmUser = null)
+    {
         if (PlanetId is not null)
-        {
-            result = Planet.GetIconUrl(IconFormat.Webp64);
-        }
-        else
-        {
-            // Missing member data is not the same as a self-DM
-            if (Members is null)
-                return result;
+            return Planet.GetIconUrl(IconFormat.Webp64);
 
-            var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
-            if (!others.Any())
-            {
-                return Client.Me.GetAvatar();
-            }
-
-            var other = await Client.UserService.FetchUserAsync(others.First().UserId);
-            if (other is not null)
-                result = other.GetAvatar();
-        }
-
-        return result;
+        dmUser ??= await GetDmUserAsync();
+        return dmUser?.GetAvatar() ?? "./_content/Valour.Client/media/logo/logo-128.webp";
     }
 
     public async Task<string> GetTitleAsync()
