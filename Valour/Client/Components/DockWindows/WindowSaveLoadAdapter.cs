@@ -19,7 +19,6 @@ public class WindowContentState
     /// restored on reload without waiting for the channel's own data to load.
     /// </summary>
     public long? IconUserId { get; set; }
-
     public long? PlanetId { get; set; }
     public bool AutoScroll { get; set; }
     
