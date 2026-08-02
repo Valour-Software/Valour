@@ -1598,6 +1598,8 @@ else
         }
 
         _scene = result.Data;
+        var previousMapWasArchived = currentMapId is not null &&
+                                     _scene.Maps.All(x => x.Id != currentMapId.Value);
         _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == currentMapId)
             ?? _scene.Maps.FirstOrDefault(x => x.Id == _scene.StartingMapId);
         _selectedBuilding = selectedBuildingId is null
@@ -1613,6 +1615,12 @@ else
         if (_buildMode && !CanBuildCurrentMap)
             _buildMode = false;
         await SyncBuildModeAsync();
+
+        if (previousMapWasArchived && _currentMap is not null)
+        {
+            _currentBuildingId = _currentMap.ParentBuildingId;
+            await JoinCurrentMapAsync(_currentMap.SpawnTile?.X, _currentMap.SpawnTile?.Y);
+        }
 
         // Channel bindings and voice mode are scene data. Reconcile the live
         // area context after replacing them so chat/calls cannot remain on a
@@ -1949,9 +1957,16 @@ else
             return;
         }
 
-        ApplyBuildResult(map, completedResult.Data);
-        if (_runtime is not null)
-            await _runtime.InvokeVoidAsync("applyBuildResult", completedResult.Data);
+        if (completedResult.Data.SceneChanged)
+        {
+            await RefreshSceneAsync(null, null);
+        }
+        else
+        {
+            ApplyBuildResult(map, completedResult.Data);
+            if (_runtime is not null)
+                await _runtime.InvokeVoidAsync("applyBuildResult", completedResult.Data);
+        }
 
         _buildStatus = successStatus;
         await ReRender();

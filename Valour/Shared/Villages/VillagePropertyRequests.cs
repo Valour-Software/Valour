@@ -63,6 +63,22 @@ public class VillageBuildCell
 public class VillageBuildResult
 {
     /// <summary>
+    /// True when the edit changed the map graph (for example by creating or
+    /// archiving a building interior) and the client must replace its scene.
+    /// </summary>
+    public bool SceneChanged { get; set; }
+
+    [System.Text.Json.Serialization.JsonNumberHandling(
+        System.Text.Json.Serialization.JsonNumberHandling.WriteAsString |
+        System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString)]
+    public long? BuildingId { get; set; }
+
+    [System.Text.Json.Serialization.JsonNumberHandling(
+        System.Text.Json.Serialization.JsonNumberHandling.WriteAsString |
+        System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString)]
+    public long? InteriorMapId { get; set; }
+
+    /// <summary>
     /// The primary changed object, retained for older clients and for
     /// single-object furnish operations.
     /// </summary>

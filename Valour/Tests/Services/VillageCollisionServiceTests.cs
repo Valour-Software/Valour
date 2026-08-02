@@ -48,7 +48,7 @@ public class VillageCollisionServiceTests
         Assert.False(collision.IsWalkable(2, 2));
         Assert.False(collision.IsWalkable(4, 4));
         Assert.True(collision.IsWalkable(3, 3));
-        Assert.True(collision.IsWalkable(3, 5));
+        Assert.False(collision.IsWalkable(3, 5));
     }
 
     [Fact]
@@ -115,6 +115,8 @@ public class VillageCollisionServiceTests
 
         Assert.False(collision.IsWalkable(20, 20));
         Assert.False(collision.IsWalkable(26, 24));
+        Assert.True(collision.IsWalkable(23, 23));
+        Assert.True(collision.IsWalkable(23, 24));
         Assert.True(collision.IsWalkable(20, 19));
         Assert.True(collision.IsWalkable(20, 25));
     }

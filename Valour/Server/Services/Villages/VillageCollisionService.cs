@@ -92,6 +92,15 @@ public sealed class VillageCollisionService
             ? definition.TerrainKey
             : string.Empty;
 
+    internal IReadOnlyList<(int X, int Y)> GetDoorOffsets(
+        string? tilesetKey,
+        string definitionKey,
+        int footprintWidth,
+        int footprintHeight) =>
+        TryGetDefinition(tilesetKey, definitionKey, out var definition)
+            ? GetDoorOffsets(definition, footprintWidth, footprintHeight)
+            : [];
+
     internal bool TryResolveTerrainDefinition(
         string? tilesetKey,
         string terrainKey,
@@ -652,6 +661,30 @@ public sealed class VillageCollisionService
         _ => VillageCollisionState.Solid,
     };
 
+    private static IReadOnlyList<(int X, int Y)> GetDoorOffsets(
+        CollisionDefinition definition,
+        int footprintWidth,
+        int footprintHeight)
+    {
+        var result = new List<(int X, int Y)>();
+        var originY = Math.Max(1, footprintHeight) - definition.Height;
+        var cellCount = Math.Min(
+            definition.CollisionStates.Length,
+            definition.Width * definition.Height);
+        for (var index = 0; index < cellCount; index++)
+        {
+            if (!VillageCollisionState.IsDoor(definition.CollisionStates[index]))
+                continue;
+
+            var x = index % definition.Width;
+            var y = originY + index / definition.Width;
+            if (x >= 0 && x < footprintWidth && y >= 0 && y < footprintHeight)
+                result.Add((x, y));
+        }
+
+        return result;
+    }
+
     internal void SetMapForTesting(
         long planetId,
         long mapId,
@@ -849,15 +882,21 @@ public sealed class VillageCollisionService
 
             foreach (var building in buildings)
             {
-                AddRect(
-                    blocked,
-                    building.X,
-                    building.Y,
-                    building.Width,
-                    Math.Max(1, building.Height - 1));
+                AddRect(blocked, building.X, building.Y, building.Width, building.Height);
 
-                // The authored door is the only walkable tile in the footprint.
-                blocked.Remove(TileKey(building.DoorX, building.DoorY));
+                var doorOffsets = !string.IsNullOrWhiteSpace(building.SpriteKey) &&
+                                  definitions.TryGetValue(building.SpriteKey, out var definition)
+                    ? GetDoorOffsets(definition, building.Width, building.Height)
+                    : [];
+                if (doorOffsets.Count == 0)
+                {
+                    // Legacy/community buildings may not have semantic states.
+                    blocked.Remove(TileKey(building.DoorX, building.DoorY));
+                    continue;
+                }
+
+                foreach (var door in doorOffsets)
+                    blocked.Remove(TileKey(building.X + door.X, building.Y + door.Y));
             }
 
             foreach (var chunk in chunks)

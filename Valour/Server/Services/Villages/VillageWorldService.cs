@@ -317,6 +317,7 @@ public class VillageWorldService
 
             foreach (var building in mapBuildings)
             {
+                var (entranceTiles, primaryEntrance) = ResolveBuildingEntrances(map, building);
                 channelLookup.TryGetValue(building.ChannelId ?? 0, out var channel);
                 var chatChannelId = channel?.ChannelType == ChannelTypeEnum.PlanetChat
                     ? channel.Id
@@ -353,38 +354,19 @@ public class VillageWorldService
                     IsOwnedByLocalMember = building.OwnerMemberId == member.Id,
                     ForSale = building.ForSale,
                     Price = building.Price,
-                    EntranceTile = new VillagePocPoint { X = building.DoorX, Y = building.DoorY },
+                    EntranceTile = primaryEntrance,
+                    EntranceTiles = entranceTiles,
                     CollisionRects =
                     {
-                        // The doorway row is excluded from collision so the door
-                        // is reachable without special-casing it in the runtime.
                         new VillagePocRect
                         {
                             X = building.X,
                             Y = building.Y,
                             Width = building.Width,
-                            Height = Math.Max(1, building.Height - 1),
+                            Height = building.Height,
                         },
                     },
                 });
-
-                // A door leads in; the interior's own spawn tile leads back out.
-                if (building.InteriorMapId is not null)
-                {
-                    var interior = maps.FirstOrDefault(x => x.Id == building.InteriorMapId.Value);
-
-                    pocMap.Portals.Add(new VillagePocPortal
-                    {
-                        Kind = "Door",
-                        X = building.DoorX,
-                        Y = building.DoorY,
-                        TargetMapId = building.InteriorMapId,
-                        TargetX = interior?.SpawnX,
-                        TargetY = interior?.SpawnY,
-                        BuildingId = building.Id,
-                        Color = "#fff2a8",
-                    });
-                }
             }
 
             // Interiors get an exit on their spawn tile leading back to the door
@@ -394,14 +376,18 @@ public class VillageWorldService
                 var parent = buildings.FirstOrDefault(x => x.Id == map.ParentBuildingId.Value);
                 if (parent is not null)
                 {
+                    var parentMap = maps.FirstOrDefault(candidate => candidate.Id == parent.MapId);
+                    var primaryEntrance = parentMap is null
+                        ? new VillagePocPoint { X = parent.DoorX, Y = parent.DoorY }
+                        : ResolveBuildingEntrances(parentMap, parent).Primary;
                     pocMap.Portals.Add(new VillagePocPortal
                     {
                         Kind = "Exit",
                         X = map.SpawnX,
                         Y = map.SpawnY,
                         TargetMapId = parent.MapId,
-                        TargetX = parent.DoorX,
-                        TargetY = parent.DoorY,
+                        TargetX = primaryEntrance.X,
+                        TargetY = primaryEntrance.Y,
                         BuildingId = parent.Id,
                         Color = "#c9f0ff",
                     });
@@ -412,6 +398,33 @@ public class VillageWorldService
         }
 
         return scene;
+    }
+
+    private (List<VillagePocPoint> Entrances, VillagePocPoint Primary) ResolveBuildingEntrances(
+        Valour.Database.VillageMap map,
+        Valour.Database.VillageBuilding building)
+    {
+        var offsets = _collisionService.GetDoorOffsets(
+            map.TilesetKey,
+            building.SpriteKey,
+            building.Width,
+            building.Height);
+        if (offsets.Count == 0)
+        {
+            var legacy = new VillagePocPoint { X = building.DoorX, Y = building.DoorY };
+            return ([legacy], legacy);
+        }
+
+        var entrances = offsets.Select(offset => new VillagePocPoint
+        {
+            X = building.X + offset.X,
+            Y = building.Y + offset.Y,
+        }).ToList();
+        var primary = entrances
+            .OrderByDescending(entrance => entrance.Y)
+            .ThenBy(entrance => Math.Abs((entrance.X - building.X + 0.5) - building.Width / 2d))
+            .First();
+        return (entrances, primary);
     }
 
     private static string? ResolveOwnerName(
@@ -521,6 +534,18 @@ public class VillageWorldService
             if (placementError is not null)
                 return TaskResult<VillageBuildResult>.FromFailure(placementError);
 
+            if (definition.HasDoors)
+            {
+                return await PlaceBuildingAsync(
+                    map,
+                    actorMemberId,
+                    definition,
+                    footprint.Width,
+                    footprint.Height,
+                    request.X,
+                    request.Y);
+            }
+
             var item = new Valour.Database.VillageObject
             {
                 Id = IdManager.Generate(),
@@ -552,6 +577,103 @@ public class VillageWorldService
         {
             gate.Release();
         }
+    }
+
+    private async Task<TaskResult<VillageBuildResult>> PlaceBuildingAsync(
+        Valour.Database.VillageMap map,
+        long actorMemberId,
+        VillageCollisionService.CollisionDefinition definition,
+        int footprintWidth,
+        int footprintHeight,
+        int x,
+        int y)
+    {
+        var doorOffsets = _collisionService.GetDoorOffsets(
+            map.TilesetKey,
+            definition.Key,
+            footprintWidth,
+            footprintHeight);
+        if (doorOffsets.Count == 0)
+        {
+            return TaskResult<VillageBuildResult>.FromFailure(
+                "That building's authored door does not land inside its ground footprint.");
+        }
+
+        // A multi-cell doorway has one stable return target: the lowest cell,
+        // with the cell closest to horizontal centre breaking ties.
+        var primaryDoor = doorOffsets
+            .OrderByDescending(door => door.Y)
+            .ThenBy(door => Math.Abs((door.X + 0.5) - footprintWidth / 2d))
+            .First();
+        var plotId = await _db.VillagePlots
+            .Where(plot => plot.PlanetId == map.PlanetId &&
+                           plot.MapId == map.Id &&
+                           x >= plot.X && y >= plot.Y &&
+                           (long)x + footprintWidth <= (long)plot.X + plot.Width &&
+                           (long)y + footprintHeight <= (long)plot.Y + plot.Height)
+            .Select(plot => (long?)plot.Id)
+            .FirstOrDefaultAsync();
+        var buildingId = IdManager.Generate();
+        var interiorId = IdManager.Generate();
+        var buildingName = definition.Name.Length <= ISharedVillageBuilding.MaxNameLength
+            ? definition.Name
+            : definition.Name[..ISharedVillageBuilding.MaxNameLength];
+        var interiorName = $"{buildingName} Interior";
+        if (interiorName.Length > ISharedVillageMap.MaxNameLength)
+            interiorName = interiorName[..ISharedVillageMap.MaxNameLength];
+
+        var interior = new Valour.Database.VillageMap
+        {
+            Id = interiorId,
+            PlanetId = map.PlanetId,
+            MapType = VillageMapType.Interior,
+            Name = interiorName,
+            ParentBuildingId = buildingId,
+            Width = 18,
+            Height = 13,
+            TileSize = map.TileSize,
+            SpawnX = 9,
+            SpawnY = 11,
+            TilesetKey = map.TilesetKey,
+            AmbientColor = "#ffe8bd",
+            Version = 1,
+        };
+        var building = new Valour.Database.VillageBuilding
+        {
+            Id = buildingId,
+            PlanetId = map.PlanetId,
+            MapId = map.Id,
+            InteriorMapId = interiorId,
+            PlotId = plotId,
+            Name = buildingName,
+            Description = "A resident-built property.",
+            X = x,
+            Y = y,
+            Width = footprintWidth,
+            Height = footprintHeight,
+            DoorX = x + primaryDoor.X,
+            DoorY = y + primaryDoor.Y,
+            SpriteKey = definition.Key,
+            OwnerMemberId = actorMemberId,
+            VoiceMode = VillageVoiceMode.AutoRoom,
+            ForSale = false,
+            SaleId = string.Empty,
+            Price = 0,
+        };
+
+        _db.VillageMaps.Add(interior);
+        _db.VillageBuildings.Add(building);
+        await _db.SaveChangesAsync();
+        _collisionService.InvalidateMap(map.PlanetId, map.Id);
+        _collisionService.InvalidateMap(map.PlanetId, interior.Id);
+        _hubService.NotifyPlanetItemChange(map.PlanetId, building.ToModel());
+
+        return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+        {
+            SceneChanged = true,
+            BuildingId = building.Id,
+            InteriorMapId = interior.Id,
+        });
     }
 
     private async Task<TaskResult<VillageBuildResult>> PaintTerrainAsync(
@@ -892,7 +1014,13 @@ public class VillageWorldService
         var item = await _db.VillageObjects.FirstOrDefaultAsync(x =>
             x.Id == objectId.Value && x.PlanetId == map.PlanetId && x.MapId == map.Id);
         if (item is null)
-            return TaskResult<VillageBuildResult>.FromFailure("That item is no longer on the map.");
+        {
+            var building = await _db.VillageBuildings.FirstOrDefaultAsync(x =>
+                x.Id == objectId.Value && x.PlanetId == map.PlanetId && x.MapId == map.Id);
+            return building is null
+                ? TaskResult<VillageBuildResult>.FromFailure("That item is no longer on the map.")
+                : await ArchiveBuildingAsync(map, building, actorMemberId, canManageVillage);
+        }
 
         var footprint = item.ZIndex < 0 ? (Width: 1, Height: 1) : VillageObjectGeometry.GetFootprint(item.DefinitionKey);
         if (!await CanEditBoundsAsync(
@@ -993,6 +1121,77 @@ public class VillageWorldService
         {
             Decorations = changed.Select(neighbor => ToDecoration(neighbor, actorMemberId)).ToList(),
             RemovedObjectIds = [item.Id],
+        });
+    }
+
+    private async Task<TaskResult<VillageBuildResult>> ArchiveBuildingAsync(
+        Valour.Database.VillageMap map,
+        Valour.Database.VillageBuilding building,
+        long actorMemberId,
+        bool canManageVillage)
+    {
+        if (!await CanEditBoundsAsync(
+                map,
+                actorMemberId,
+                canManageVillage,
+                building.X,
+                building.Y,
+                building.Width,
+                building.Height))
+        {
+            return TaskResult<VillageBuildResult>.FromFailure(
+                "You cannot remove the property containing that building.");
+        }
+
+        var archivedAt = DateTime.UtcNow;
+        var rootInteriorId = building.InteriorMapId;
+        var archivedMapIds = new HashSet<long>();
+        var archivedBuildingIds = new HashSet<long>();
+        var deletedModels = new List<Valour.Server.Models.VillageBuilding>();
+
+        async Task ArchiveTreeAsync(Valour.Database.VillageBuilding current)
+        {
+            if (!archivedBuildingIds.Add(current.Id))
+                return;
+
+            deletedModels.Add(current.ToModel());
+            if (current.InteriorMapId is not null)
+            {
+                var interior = await _db.VillageMaps.FirstOrDefaultAsync(candidate =>
+                    candidate.PlanetId == map.PlanetId &&
+                    candidate.Id == current.InteriorMapId.Value);
+                if (interior is not null)
+                {
+                    var nested = await _db.VillageBuildings
+                        .Where(candidate => candidate.PlanetId == map.PlanetId &&
+                                            candidate.MapId == interior.Id)
+                        .ToListAsync();
+                    foreach (var child in nested)
+                        await ArchiveTreeAsync(child);
+
+                    interior.ArchivedAt = archivedAt;
+                    archivedMapIds.Add(interior.Id);
+                }
+            }
+
+            current.ArchivedAt = archivedAt;
+            current.ForSale = false;
+            current.SaleId = string.Empty;
+        }
+
+        await ArchiveTreeAsync(building);
+        await _db.SaveChangesAsync();
+        _collisionService.InvalidateMap(map.PlanetId, map.Id);
+        foreach (var archivedMapId in archivedMapIds)
+            _collisionService.InvalidateMap(map.PlanetId, archivedMapId);
+        foreach (var deletedModel in deletedModels)
+            _hubService.NotifyPlanetItemDelete(map.PlanetId, deletedModel);
+
+        return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+        {
+            SceneChanged = true,
+            BuildingId = building.Id,
+            InteriorMapId = rootInteriorId,
         });
     }
 
@@ -1336,8 +1535,18 @@ public class VillageWorldService
             },
         };
 
+        var seededDoors = new List<(int X, int Y)>();
         foreach (var blueprint in blueprints)
         {
+            var authoredDoors = _collisionService.GetDoorOffsets(
+                outdoor.TilesetKey,
+                blueprint.Sprite,
+                blueprint.W,
+                blueprint.H);
+            var primaryDoor = authoredDoors
+                .OrderByDescending(door => door.Y)
+                .ThenBy(door => Math.Abs((door.X + 0.5) - blueprint.W / 2d))
+                .FirstOrDefault((X: blueprint.W / 2, Y: blueprint.H - 1));
             var interior = new Valour.Database.VillageMap
             {
                 Id = IdManager.Generate(),
@@ -1384,9 +1593,8 @@ public class VillageWorldService
                 Y = blueprint.Y,
                 Width = blueprint.W,
                 Height = blueprint.H,
-                // Bottom-centre, so the door sits on the wall facing the square.
-                DoorX = blueprint.X + (blueprint.W / 2),
-                DoorY = blueprint.Y + blueprint.H - 1,
+                DoorX = blueprint.X + primaryDoor.X,
+                DoorY = blueprint.Y + primaryDoor.Y,
                 SpriteKey = blueprint.Sprite,
                 VoiceMode = blueprint.Voice,
                 ChannelId = blueprint.ChannelId,
@@ -1397,6 +1605,7 @@ public class VillageWorldService
             _db.VillageBuildings.Add(building);
             _db.VillagePlots.Add(plot);
             interior.ParentBuildingId = building.Id;
+            seededDoors.Add((building.DoorX, building.DoorY));
 
             // A little furniture makes interiors read as meeting rooms instead
             // of differently coloured empty maps.
@@ -1477,7 +1686,7 @@ public class VillageWorldService
                 AddGround("pathways.cobblestones", x, y);
         }
 
-        foreach (var door in new[] { (8, 17), (44, 17), (8, 34), (44, 34) })
+        foreach (var door in seededDoors)
         {
             var from = Math.Min(door.Item2, 21);
             var to = Math.Max(door.Item2, 21);

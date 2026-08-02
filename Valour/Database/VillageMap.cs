@@ -59,6 +59,12 @@ public class VillageMap : ISharedVillageMap
     /// </summary>
     public int Version { get; set; }
 
+    /// <summary>
+    /// Archived interiors stay persisted with their complete contents but are
+    /// excluded from navigation and ordinary village queries.
+    /// </summary>
+    public DateTime? ArchivedAt { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<VillageMap>(e =>
@@ -113,6 +119,11 @@ public class VillageMap : ISharedVillageMap
 
             e.Property(x => x.Version)
                 .HasColumnName("version");
+
+            e.Property(x => x.ArchivedAt)
+                .HasColumnName("archived_at");
+
+            e.HasQueryFilter(x => x.ArchivedAt == null);
 
             // Relationships
 

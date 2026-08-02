@@ -77,6 +77,12 @@ public class VillageBuilding : ISharedVillageBuilding
 
     public decimal Price { get; set; }
 
+    /// <summary>
+    /// Soft-deleted structures retain their interior and furnishings for
+    /// moderation, restoration, and future inventory workflows.
+    /// </summary>
+    public DateTime? ArchivedAt { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<VillageBuilding>(e =>
@@ -155,6 +161,11 @@ public class VillageBuilding : ISharedVillageBuilding
             e.Property(x => x.Price)
                 .HasColumnName("price")
                 .HasColumnType("numeric");
+
+            e.Property(x => x.ArchivedAt)
+                .HasColumnName("archived_at");
+
+            e.HasQueryFilter(x => x.ArchivedAt == null);
 
             // Relationships
 

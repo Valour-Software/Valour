@@ -1993,6 +1993,17 @@ function rectanglesOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
 }
 
 function findBuildObjectAt(state, map, tileX, tileY) {
+    for (const building of [...(map.buildings ?? [])].reverse()) {
+        const sprite = resolveSprite(state, map, building.spriteKey);
+        const bounds = sprite
+            ? getBottomAnchoredSpriteBounds(
+                building.x, building.y, building.height, sprite.tilesWide, sprite.tilesHigh)
+            : building;
+        if (rectContains(bounds, tileX, tileY)) {
+            return building;
+        }
+    }
+
     const decorations = [...(map.decorations ?? [])].reverse();
     for (const item of decorations) {
         const sprite = resolveSprite(state, map, item.definitionKey);
@@ -2657,6 +2668,9 @@ function getCollisionSet(state, map) {
         for (const rect of building.collisionRects ?? []) {
             addRect(rect);
         }
+        for (const entrance of getBuildingEntrances(building)) {
+            blocked.delete(tileKey(entrance.x, entrance.y));
+        }
     }
 
     // Doorways win over the footprint they sit in, otherwise a building whose
@@ -2680,12 +2694,19 @@ async function checkPortalTransition(state) {
         return;
     }
 
-    const portal = (map.portals ?? []).find((item) => item.x === player.tileX && item.y === player.tileY);
-    if (!portal?.targetMapId) {
+    const entranceBuilding = (map.buildings ?? []).find(building =>
+        building.interiorMapId &&
+        getBuildingEntrances(building).some(entrance =>
+            entrance.x === player.tileX && entrance.y === player.tileY));
+    const portal = entranceBuilding
+        ? null
+        : (map.portals ?? []).find((item) => item.x === player.tileX && item.y === player.tileY);
+    const targetMapId = entranceBuilding?.interiorMapId ?? portal?.targetMapId;
+    if (!targetMapId) {
         return;
     }
 
-    const targetMap = state.scene.maps.find((item) => item.id === portal.targetMapId);
+    const targetMap = state.scene.maps.find((item) => item.id === targetMapId);
     if (!targetMap) {
         return;
     }
@@ -2694,12 +2715,12 @@ async function checkPortalTransition(state) {
     if (targetPlayer) {
         teleportPlayer(
             targetPlayer,
-            portal.targetX ?? targetMap.spawnTile?.x ?? targetPlayer.tileX,
-            portal.targetY ?? targetMap.spawnTile?.y ?? targetPlayer.tileY);
+            portal?.targetX ?? targetMap.spawnTile?.x ?? targetPlayer.tileX,
+            portal?.targetY ?? targetMap.spawnTile?.y ?? targetPlayer.tileY);
     }
 
     state.currentMapId = targetMap.id;
-    state.selectedBuildingId = portal.buildingId ?? targetMap.parentBuildingId ?? null;
+    state.selectedBuildingId = entranceBuilding?.id ?? portal?.buildingId ?? targetMap.parentBuildingId ?? null;
     state.selectedPlotId = null;
     state.moveAccumulatorMs = 0;
     resizeCanvas(state);
@@ -2715,10 +2736,17 @@ async function checkPortalTransition(state) {
 }
 
 function getBuildingEntrance(building) {
-    return building.entranceTile ?? {
+    return building.entranceTile ?? getBuildingEntrances(building)[0];
+}
+
+function getBuildingEntrances(building) {
+    if (Array.isArray(building.entranceTiles) && building.entranceTiles.length > 0) {
+        return building.entranceTiles;
+    }
+    return [building.entranceTile ?? {
         x: building.x + Math.floor(building.width / 2),
         y: building.y + building.height - 1
-    };
+    }];
 }
 
 function rectContains(rect, x, y) {

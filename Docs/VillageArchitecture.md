@@ -99,8 +99,9 @@ Points that are easy to get wrong:
 
 ## Interiors and movement
 
-- A building's door tile is excluded from its own collision footprint, so doors are
-  reachable without the runtime special-casing them.
+- Every authored `door` cell is excluded from its building's collision footprint.
+  The outdoor runtime transitions directly from that semantic entrance into the
+  building's `InteriorMapId`; outdoor doors are not duplicated as portal records.
 - Every interior gets an exit portal on its spawn tile leading back to the door it
   was entered through. An interior without one traps the member.
 - Collision is **derived from the authored objects** — an object that blocks, a
@@ -110,9 +111,8 @@ Points that are easy to get wrong:
   flag. The staff editor currently authors `empty`, `solid`, and `door`; legacy
   boolean masks import as empty/solid, while unknown future state names round-trip
   unchanged and block movement fail-closed until their behavior is registered.
-  Door cells are walkable but retain their entrance meaning. For structure-sized
-  scenery they carve the authored door out of the compact ground footprint, ready
-  for a later building lifecycle to attach an interior portal.
+  Door cells are walkable but retain their entrance meaning. Placing a sprite with
+  at least one in-footprint door creates its real building and interior lifecycle.
 - Map joins warm a process-wide immutable collision snapshot derived from bounds,
   object tileset masks, building footprints, authored doors, and chunk
   `CollisionData`; movement packets perform only an in-memory lookup. Chunk
@@ -139,8 +139,8 @@ Points that are easy to get wrong:
   percent readout is updated at most every 100ms mid-glide, because each report
   re-renders the Blazor side.
 
-`VillageWorldApiLiveTests` asserts these: spawn and every door are walkable, every
-interior has an exit, every door targets a map that exists.
+VillageWorldApiLiveTests asserts these: spawn and every authored door are walkable,
+every interior has an exit, and every building door resolves to a real interior.
 
 ## Voice
 
@@ -268,10 +268,13 @@ client preview is guidance, never authorization.
 
 The furnishing catalog's **All** view includes every authored sprite, including
 the `buildings.*` group, and also exposes a generated **Buildings** category.
-Those sprites place as structure-sized scenery with compact ground footprints;
-they do not create a deed, portal, room, or interior. Enterable property remains
-a `VillageBuilding` and must be created through that lifecycle rather than being
-inferred from decorative sprite placement.
+A sprite with an authored door is placed as a real owned `VillageBuilding` and
+receives an interior map in the same atomic save. Multi-cell doors remain
+individually walkable; the lowest authored door cell is the return target from the
+interior. A building sprite without a door remains ordinary structure-sized
+scenery. Erasing a real building soft-archives both it and its interior, preserving
+the interior's furnishings for restoration or a future inventory workflow while
+removing both from ordinary queries and navigation.
 
 Paint presents logical terrain brushes rather than individual transition tiles.
 The server recovers the logical terrain of existing negative-Z `VillageObject`

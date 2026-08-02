@@ -224,6 +224,7 @@ public class VillagePocBuilding
     public bool ForSale { get; set; }
     public decimal Price { get; set; }
     public VillagePocPoint? EntranceTile { get; set; }
+    public List<VillagePocPoint> EntranceTiles { get; set; } = new();
     public List<VillagePocRect> CollisionRects { get; set; } = new();
 }
 

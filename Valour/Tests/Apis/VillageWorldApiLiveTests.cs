@@ -218,6 +218,9 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
                         blocked.Add((x, y));
                 }
             }
+
+            foreach (var entrance in building.EntranceTiles)
+                blocked.Remove((entrance.X, entrance.Y));
         }
 
         foreach (var decoration in outdoor.Decorations.Where(x => x.BlocksMovement))
@@ -233,8 +236,12 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
         Assert.DoesNotContain((outdoor.SpawnTile!.X, outdoor.SpawnTile.Y), blocked);
 
         // Every door must be steppable, or its building can never be entered.
-        foreach (var portal in outdoor.Portals)
-            Assert.DoesNotContain((portal.X, portal.Y), blocked);
+        foreach (var building in outdoor.Buildings)
+        {
+            Assert.NotEmpty(building.EntranceTiles);
+            foreach (var entrance in building.EntranceTiles)
+                Assert.DoesNotContain((entrance.X, entrance.Y), blocked);
+        }
     }
 
     [Fact]
@@ -331,7 +338,7 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task EveryDoor_LeadsToARealInterior()
+    public async Task EveryBuildingDoor_LeadsToARealInteriorWithoutAnOutdoorPortal()
     {
         var scene = await LoadSceneAsync();
         var mapIds = scene!.Maps.Select(x => x.Id).ToHashSet();
@@ -342,6 +349,14 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
             {
                 Assert.NotNull(portal.TargetMapId);
                 Assert.Contains(portal.TargetMapId!.Value, mapIds);
+            }
+
+            foreach (var building in map.Buildings)
+            {
+                Assert.NotEmpty(building.EntranceTiles);
+                Assert.NotNull(building.InteriorMapId);
+                Assert.Contains(building.InteriorMapId!.Value, mapIds);
+                Assert.DoesNotContain(map.Portals, portal => portal.BuildingId == building.Id);
             }
         }
     }
@@ -493,12 +508,14 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task BuildMode_PlacesBuildingSpritesAsStructureSizedScenery()
+    public async Task BuildMode_DoorSpriteCreatesAndArchivesRealInterior()
     {
         var scene = await LoadSceneAsync();
         var outdoor = scene!.Maps.Single(x => x.MapKind == "Outdoor");
         var plot = outdoor.Plots.First(x => x.Name == "Founder's Grove");
-        long? createdId = null;
+        long? buildingId = null;
+        long? interiorId = null;
+        long? interiorObjectId = null;
 
         try
         {
@@ -513,19 +530,73 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
                     Y = plot.Y,
                 });
             Assert.True(result.Success, result.Message);
-            Assert.NotNull(result.Data.Decoration);
-            Assert.Equal(6, result.Data.Decoration.Width);
-            Assert.Equal(4, result.Data.Decoration.Height);
-            Assert.True(result.Data.Decoration.BlocksMovement);
-            createdId = result.Data.Decoration.Id;
+            Assert.True(result.Data.SceneChanged);
+            buildingId = Assert.IsType<long>(result.Data.BuildingId);
+            interiorId = Assert.IsType<long>(result.Data.InteriorMapId);
+            Assert.Null(result.Data.Decoration);
 
-            var persisted = (await LoadSceneAsync())!.Maps.Single(x => x.Id == outdoor.Id);
-            Assert.Contains(persisted.Decorations, item =>
-                item.Id == createdId && item.DefinitionKey == "buildings.apartment-small-brown");
+            var persistedScene = await LoadSceneAsync();
+            var persistedOutdoor = persistedScene!.Maps.Single(x => x.Id == outdoor.Id);
+            var building = Assert.Single(persistedOutdoor.Buildings, item => item.Id == buildingId);
+            Assert.Equal("buildings.apartment-small-brown", building.SpriteKey);
+            Assert.Equal(6, building.Width);
+            Assert.Equal(4, building.Height);
+            Assert.Equal(2, building.EntranceTiles.Count);
+            Assert.DoesNotContain(persistedOutdoor.Portals, portal => portal.BuildingId == buildingId);
+
+            var interior = persistedScene.Maps.Single(x => x.Id == interiorId);
+            Assert.Equal(buildingId, interior.ParentBuildingId);
+            var exit = Assert.Single(interior.Portals);
+            Assert.Equal(outdoor.Id, exit.TargetMapId);
+            Assert.Equal(building.EntranceTile!.X, exit.TargetX);
+            Assert.Equal(building.EntranceTile.Y, exit.TargetY);
+
+            var furnishing = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                interior.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Furnish,
+                    DefinitionKey = "furniture.park-bench",
+                    X = 2,
+                    Y = 2,
+                });
+            Assert.True(furnishing.Success, furnishing.Message);
+            interiorObjectId = furnishing.Data.Decoration!.Id;
+
+            var archive = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Erase,
+                    ObjectId = buildingId,
+                });
+            Assert.True(archive.Success, archive.Message);
+            Assert.True(archive.Data.SceneChanged);
+
+            var afterArchive = await LoadSceneAsync();
+            Assert.DoesNotContain(afterArchive!.Maps.SelectMany(map => map.Buildings), item => item.Id == buildingId);
+            Assert.DoesNotContain(afterArchive.Maps, map => map.Id == interiorId);
+
+            using var scope = _fixture.Factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            var archivedBuilding = await db.VillageBuildings
+                .IgnoreQueryFilters()
+                .SingleAsync(item => item.Id == buildingId);
+            var archivedInterior = await db.VillageMaps
+                .IgnoreQueryFilters()
+                .SingleAsync(item => item.Id == interiorId);
+            Assert.NotNull(archivedBuilding.ArchivedAt);
+            Assert.Equal(archivedBuilding.ArchivedAt, archivedInterior.ArchivedAt);
+            Assert.True(await db.VillageObjects.AnyAsync(item =>
+                item.Id == interiorObjectId && item.MapId == interiorId));
+
+            buildingId = null;
         }
         finally
         {
-            if (createdId is not null)
+            if (buildingId is not null)
             {
                 await _fixture.Client.VillageService.EditMapAsync(
                     _planet,
@@ -533,7 +604,7 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
                     new VillageBuildRequest
                     {
                         Action = VillageBuildAction.Erase,
-                        ObjectId = createdId,
+                        ObjectId = buildingId,
                     });
             }
         }
