@@ -5,7 +5,7 @@ namespace Valour.Web.Controllers;
 
 public class SitemapController : Controller
 {
-    private static readonly string[] Paths = ["/", "/faq", "/userCount"];
+    private static readonly string[] Paths = ["/", "/faq", "/texas", "/userCount"];
     private const string BaseUrl = "https://valour.gg";
 
     [HttpGet("/sitemap.xml")]

@@ -129,7 +129,8 @@ public class UserServiceTests : IAsyncLifetime
             Email = $"t{randomName}@test.com",
             Password = "TempPass1!",
             DateOfBirth = new DateTime(2000, 1, 1),
-            Source = "test"
+            Source = "test",
+            IsNotTexasResident = true
         };
 
         var ctx = new DefaultHttpContext();
