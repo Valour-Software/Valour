@@ -15,4 +15,9 @@ public class RegisterUserRequest
     public DateTime DateOfBirth { get; set; }
     public string InviteCode { get; set; }
     public string Source { get; set; }
+
+    /// <summary>
+    /// A one-time registration attestation. This value is not persisted.
+    /// </summary>
+    public bool IsNotTexasResident { get; set; }
 }

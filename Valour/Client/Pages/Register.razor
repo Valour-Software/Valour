@@ -47,6 +47,9 @@
                     <div class="form-group mt-4">
                         <div style="display: inline-block">
                             <p>
+                                <input type="checkbox" @bind-value="@_isNotTexasResident" /> &nbsp; I am not a legal resident of the <a href="https://valour.gg/texas/" target="_blank" rel="noopener noreferrer">State of Texas</a>.
+                            </p>
+                            <p>
                                 <input type="checkbox" @bind-value="@_termsAgreed" /> &nbsp; By checking this box, you acknowledge you have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service </a>
                                 and to follow the <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md"> Platform Rules</a> and <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_ECO_RULES.md"> Eco Rules</a>.
                             </p>
@@ -92,6 +95,7 @@
     private bool _lockReferral;
     private DateTime _dob = DateTime.Today;
     private bool _termsAgreed;
+    private bool _isNotTexasResident;
 
     // Spans
     private string _errorSpan;
@@ -111,6 +115,12 @@
     {
         _errorSpan = "";
         _successSpan = "";
+
+        if (!_isNotTexasResident)
+        {
+            _errorSpan = "Valour is not accepting new registrations from legal residents of Texas. Please read the Texas registration notice.";
+            return;
+        }
 
         if (!_termsAgreed)
         {
@@ -171,6 +181,7 @@
             DateOfBirth = _dob,
             InviteCode = InviteCode,
             Source = Source,
+            IsNotTexasResident = _isNotTexasResident,
         };
 
         var result = await AuthService.RegisterAsync(_regRequest);
