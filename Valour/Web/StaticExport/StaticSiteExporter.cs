@@ -8,6 +8,7 @@ public sealed class StaticSiteExporter
     [
         new("Home", "Index", "/", "index.html"),
         new("Home", "Faq", "/faq/", "faq/index.html"),
+        new("Home", "Texas", "/texas/", "texas/index.html"),
         new("Home", "UserCount", "/userCount/", "userCount/index.html")
     ];
 
@@ -126,6 +127,7 @@ public sealed class StaticSiteExporter
     private static string BuildRedirects() =>
         """
         /faq /faq/ 301
+        /texas /texas/ 301
         /userCount /userCount/ 301
         """;
 

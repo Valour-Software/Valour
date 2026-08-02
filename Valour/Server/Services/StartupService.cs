@@ -48,6 +48,7 @@ public class StartupService
                 Password = "T" + Guid.NewGuid().ToString().Substring(0, 10) + "!",
                 Username = "Victor",
                 DateOfBirth = new DateTime(1990, 1, 1),
+                IsNotTexasResident = true,
             }, null, skipEmail: true, forceId: ISharedUser.VictorUserId);
             
             if (!result.Success)
@@ -119,6 +120,7 @@ public class StartupService
             Username = config.AdminUsername,
             DateOfBirth = new DateTime(1990, 1, 1),
             Source = "bootstrap",
+            IsNotTexasResident = true,
         }, null, skipEmail: true);
 
         if (!result.Success || result.Data is null)

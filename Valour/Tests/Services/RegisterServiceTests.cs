@@ -51,8 +51,21 @@ public class RegisterServiceTests : IAsyncLifetime
             Username = $"register-{uid}",
             Password = $"Test-{uid}!",
             DateOfBirth = new DateTime(2000, 1, 1),
-            Source = "test"
+            Source = "test",
+            IsNotTexasResident = true
         };
+    }
+
+    [Fact]
+    public async Task RegisterUser_TexasResidencyAttestationRequired()
+    {
+        var request = BuildValidRequest();
+        request.IsNotTexasResident = false;
+
+        var result = await _registerService.RegisterUserAsync(request, new DefaultHttpContext(), skipEmail: true);
+
+        Assert.False(result.Success);
+        Assert.Equal("New registrations are not available to legal residents of Texas. Visit valour.gg/texas to learn why.", result.Message);
     }
 
     [Fact]
@@ -123,4 +136,3 @@ public class RegisterServiceTests : IAsyncLifetime
         Assert.False(result.Success);
     }
 }
-
