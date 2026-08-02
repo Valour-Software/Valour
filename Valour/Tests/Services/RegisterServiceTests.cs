@@ -136,4 +136,3 @@ public class RegisterServiceTests : IAsyncLifetime
         Assert.False(result.Success);
     }
 }
-
