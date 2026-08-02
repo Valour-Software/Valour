@@ -866,6 +866,7 @@ else
             if (_member is not null) // There is a chance they were deleted
             {
                 _member.Updated += OnMemberUpdated;
+                _member.Planet.Roles.Changed += OnMemberRoleUpdated;
             }
         }
 
@@ -911,9 +912,11 @@ else
         if (_message?.WebhookId is not null)
             return "App";
 
-        // If there's a member, we use the member's planet role
+        // If there's a member, we use their highest displayed role - roles
+        // without the Display Role permission (e.g. organizational separators)
+        // are skipped, same as the member list.
         if (_member is not null)
-            return _member.PrimaryRole?.Name ?? "Unknown Role";
+            return GetChatDisplayedRole()?.Name ?? "Unknown Role";
 
         if (_user is not null)
         {
@@ -935,9 +938,19 @@ else
         if (_message?.WebhookId is not null)
             return "#fff";
 
-        return _member is not null ? (_member.PrimaryRole?.Color ?? "#fff") :
+        return _member is not null ? (GetChatDisplayedRole()?.Color ?? "#fff") :
             (Client.FriendService.FriendLookup.ContainsKey(ParamData.Message.AuthorUserId) ? "#9ffff1" : "#fff");
     }
+
+    /// <summary>
+    /// The role whose name/color shows next to the author's name in chat.
+    /// Unlike PlanetMember.GetDisplayedRoleAsync (used for things like the
+    /// member list, where having no displayable role is fine - they just sit
+    /// under "Online"), chat always needs to show something, so this falls
+    /// back to the default role when no other role is flagged to display.
+    /// </summary>
+    private PlanetRole GetChatDisplayedRole() =>
+        _member?.GetDisplayedRoleAsync() ?? _member?.Roles.FirstOrDefault(x => x.IsDefault);
 
     public string GetAuthorAvatar()
     {
@@ -1052,9 +1065,9 @@ else
         if (eventData.Changes.On(x => x.RoleMembership))
         {
             render = true;
-            
-            _nameTag = _member.PrimaryRole.Name;
-            _nameColor = _member.PrimaryRole.Color;
+
+            _nameTag = GetAuthorRoleTag();
+            _nameColor = GetAuthorColor();
         }
 
         if (render)
@@ -1062,7 +1075,26 @@ else
             _ = ReRender();
         }
     }
-    
+
+    private void OnMemberRoleUpdated(IModelEvent<PlanetRole> eventData)
+    {
+        // A role's own permissions/color can change (e.g. Display Role getting
+        // toggled) without this member's RoleMembership changing at all, so
+        // OnMemberUpdated alone won't catch it.
+        if (eventData is not ModelUpdatedEvent<PlanetRole> updated)
+            return;
+
+        if (!_member.Roles.Any(x => x.Id == updated.Model.Id))
+            return;
+
+        if (!updated.Changes.On(x => x.Permissions) && !updated.Changes.On(x => x.Color))
+            return;
+
+        _nameTag = GetAuthorRoleTag();
+        _nameColor = GetAuthorColor();
+        _ = ReRender();
+    }
+
     public void CheckMinimal()
     {
         if (_lastMessage != null && _message != null)
@@ -1103,6 +1135,7 @@ else
         if (_member is not null)
         {
             _member.Updated -= OnMemberUpdated;
+            _member.Planet.Roles.Changed -= OnMemberRoleUpdated;
         }
 
         if (_user is not null)
