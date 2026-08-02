@@ -17,7 +17,6 @@ public abstract class WindowContent
     /// UserAvatar (with online-state ring) instead of a plain static Icon url.
     /// </summary>
     public User IconUser { get; set; }
-
     public long? PlanetId { get; set; }
     public bool AutoScroll { get; set; }
     
