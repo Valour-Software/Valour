@@ -30,6 +30,38 @@
             <ResultLabel Result="@publicResult" />
         </div>
 
+        @if (publicValue)
+        {
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Use Vanity URL as Invite</span>
+                    <label class="switch">
+                        <input type="checkbox" @oninput="OnCheckVanityInvite" checked="@vanityInviteValue" disabled="@string.IsNullOrWhiteSpace(Planet.Vanity)" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                @if (string.IsNullOrWhiteSpace(Planet.Vanity))
+                {
+                    <p class="toggle-description">
+                        <span class="danger-note">Claim a Vanity URL in the Info tab first to use it as an invite link.</span>
+                    </p>
+                }
+                else if (!vanityInviteValue)
+                {
+                    <p class="toggle-description">
+                        <span>Let <strong>@Planet.Vanity</strong> be used as an invite link too, alongside your regular invite codes.</span>
+                    </p>
+                }
+                <ResultLabel Result="@vanityInviteResult" />
+                @if (vanityInviteValue)
+                {
+                    <button class="v-btn small mt-2" title="Copy vanity invite link" @onclick="CopyVanityInviteLink">
+                        <i class="bi bi-clipboard"></i> Copy Vanity Invite Link
+                    </button>
+                }
+            </div>
+        }
+
         <div class="toggle-item">
             <div class="toggle-header">
                 <span class="toggle-title">Discoverable</span>
@@ -76,7 +108,7 @@
             Invite Links
         </h3>
 
-        @if (!Planet.Invites.Any())
+        @if (!Planet.Invites.Any() && !HasVanityInvite)
         {
             <div class="empty-state">
                 <i class="bi bi-envelope"></i>
@@ -86,6 +118,27 @@
         else
         {
             <div class="invite-list">
+                @if (HasVanityInvite)
+                {
+                    <div class="invite-card">
+                        <div class="invite-info">
+                            <span class="invite-code" title="@Planet.Vanity">@Planet.Vanity</span>
+                            <div class="invite-meta">
+                                <span>Vanity URL</span>
+                                <span class="separator">·</span>
+                                <span>Never expires</span>
+                            </div>
+                        </div>
+                        <div class="invite-actions">
+                            <button class="v-btn small" title="Copy invite link" @onclick="CopyVanityInviteLink">
+                                <i class="bi bi-clipboard"></i> Copy
+                            </button>
+                            <button class="v-btn small danger" title="Turn off the Use Vanity URL as Invite toggle" @onclick="DisableVanityInvite">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
                 @foreach (var invite in Planet.Invites)
                 {
                     <div class="invite-card">
@@ -120,6 +173,10 @@
 
     private ITaskResult publicResult;
 
+    public bool vanityInviteValue;
+
+    private ITaskResult vanityInviteResult;
+
     public bool discoverableValue;
 
     private ITaskResult discoverableResult;
@@ -131,6 +188,7 @@
     protected override async Task OnInitializedAsync()
     {
         publicValue = Planet.Public;
+        vanityInviteValue = Planet.VanityInviteEnabled;
         discoverableValue = Planet.Discoverable;
         nsfwValue = Planet.Nsfw;
         Planet.Invites.Changed += OnPlanetInvitesChange;
@@ -147,6 +205,8 @@
         InvokeAsync(StateHasChanged);
     }
 
+    private bool HasVanityInvite => vanityInviteValue && !string.IsNullOrWhiteSpace(Planet.Vanity);
+
     public async Task OnCheckPublic()
     {
         publicValue = !publicValue;
@@ -160,6 +220,27 @@
         }
 
         StateHasChanged();
+    }
+
+    public async Task OnCheckVanityInvite()
+    {
+        await SetVanityInviteAsync(!vanityInviteValue);
+        StateHasChanged();
+    }
+
+    private async Task<bool> SetVanityInviteAsync(bool enabled)
+    {
+        vanityInviteValue = enabled;
+
+        Planet.VanityInviteEnabled = enabled;
+        vanityInviteResult = await Planet.UpdateAsync();
+
+        if (!vanityInviteResult.Success)
+        {
+            vanityInviteValue = Planet.VanityInviteEnabled;
+        }
+
+        return vanityInviteResult.Success;
     }
 
     public async Task OnCheckDiscoverable()
@@ -197,6 +278,28 @@
         var link = ShareUtils.GetInviteShareUrl(NavManager, invite.Id);
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", link);
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Invite link copied to clipboard", ToastProgressState.Success));
+    }
+
+    private string GetVanityInviteLink() => ShareUtils.GetInviteShareUrl(NavManager, Planet.Vanity);
+
+    private async Task CopyVanityInviteLink()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", GetVanityInviteLink());
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Invite link copied to clipboard", ToastProgressState.Success));
+    }
+
+    private async Task DisableVanityInvite()
+    {
+        var success = await SetVanityInviteAsync(false);
+        StateHasChanged();
+
+        if (!success)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Error", vanityInviteResult.Message, ToastProgressState.Failure));
+            return;
+        }
+
+        ToastContainer.Instance.AddToast(new ToastData("Disabled", "The vanity URL is no longer usable as an invite link", ToastProgressState.Success));
     }
 
     private async Task CopyDiscoverableLink()

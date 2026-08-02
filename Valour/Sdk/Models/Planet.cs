@@ -290,6 +290,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public string Vanity { get; set; }
 
     /// <summary>
+    /// True when the planet's vanity name also works as a permanent invite link
+    /// </summary>
+    public bool VanityInviteEnabled { get; set; }
+
+    /// <summary>
     /// Owner-chosen default cadence for channel activity notifications
     /// </summary>
     public ChannelActivityCadence ActivityNotificationCadence { get; set; } = ChannelActivityCadence.Standard;

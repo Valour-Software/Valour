@@ -142,6 +142,14 @@ public interface ISharedPlanet : ISharedModel<long>
     string? Vanity { get; set; }
 
     /// <summary>
+    /// True when the planet's vanity name also works as a permanent invite
+    /// link (/i/{vanity}), letting a memorable name double as a share link
+    /// instead of a random invite code. Only takes effect while Public and
+    /// Vanity are both set.
+    /// </summary>
+    bool VanityInviteEnabled { get; set; }
+
+    /// <summary>
     /// Owner-chosen default cadence for channel activity notifications.
     /// Applies to members who have not set their own cooldown preference.
     /// </summary>
