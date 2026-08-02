@@ -95,6 +95,15 @@ else
                     if (componentType is null)
                         continue;
 
+                    // Image/Video handle their own blur-and-reveal. Everything else (embeds)
+                    // just doesn't mount its component until revealed, since some of those
+                    // are third-party iframes and we don't want to ping Twitter/YouTube/etc.
+                    // just because the message rendered.
+                    var isHiddenEmbedSpoiler = attachment.IsSpoiler &&
+                                                attachment.Type != MessageAttachmentType.Image &&
+                                                attachment.Type != MessageAttachmentType.Video &&
+                                                !(_revealedSpoilerAttachments?.Contains(id) ?? false);
+
                     <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
                         @if (_ghost && !_isInnerReply)
                         {
@@ -103,7 +112,16 @@ else
                                 <img src="_content/Valour.Client/media/Trash-Can-Icon.svg" alt="" />
                             </button>
                         }
-                        <DynamicComponent Type="componentType" Parameters="par"></DynamicComponent>
+                        @if (isHiddenEmbedSpoiler)
+                        {
+                            <div class="embed-spoiler-placeholder" @onclick="() => RevealSpoilerAttachment(id)" @onclick:stopPropagation="true">
+                                <span>Spoiler &mdash; click to reveal embed</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <DynamicComponent Type="componentType" Parameters="par"></DynamicComponent>
+                        }
                     </div>
                 }
             }
@@ -687,6 +705,18 @@ else
     public void OnClickAttachment(int id)
     {
         if (_ghost) return;
+    }
+
+    // Lazy so the vast majority of messages (no spoilered embeds) don't pay for
+    // an empty set each.
+    private HashSet<int> _revealedSpoilerAttachments;
+
+    private async Task RevealSpoilerAttachment(int id)
+    {
+        (_revealedSpoilerAttachments ??= new()).Add(id);
+        // ShouldRender() is overridden to return false below, so without an
+        // explicit ReRender() this click would just silently do nothing.
+        await ReRender();
     }
 
     public void OnRemoveAttachmentClick(int id)

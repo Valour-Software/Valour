@@ -39,7 +39,7 @@ public static class MarkdownManager
             .UseGridTables()
             .UseListExtras()
             .UseEmphasisExtras()
-            //.UseEmojiAndSmiley(DevicePreferences.AutoEmoji)
+            .UseSpoilerExtension()
             .UseMentionExtension()
             .UseStockExtension()
             .UseValourEmojiExtension(DevicePreferences.AutoEmoji)
@@ -49,6 +49,12 @@ public static class MarkdownManager
         Renderer.ObjectRenderers.Add(new MentionRenderer());
         Renderer.ObjectRenderers.Add(new StockRenderer());
         Renderer.ObjectRenderers.Add(new ValourEmojiRenderer());
+
+        // Must be inserted ahead of the package's built-in EmphasisInlineRenderer -
+        // SpoilerInline derives from EmphasisInline to reuse its delimiter-run
+        // parsing, but that also means the built-in renderer matches it and would
+        // render the spoiler's contents unwrapped, with no span/blur at all.
+        Renderer.ObjectRenderers.Insert(0, new SpoilerRenderer());
 
         // Must be inserted ahead of the package's built-in LinkInlineRenderer so
         // Valour links get in-app navigation instead of opening a new tab.

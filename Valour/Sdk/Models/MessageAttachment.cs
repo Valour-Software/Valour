@@ -64,6 +64,12 @@ public class MessageAttachment : ISharedMessageAttachment
     /// </summary>
     public string ReportedSha256 { get; set; }
 
+    /// <summary>
+    /// True if the uploader marked this attachment as a spoiler - the client
+    /// blurs it until clicked.
+    /// </summary>
+    public bool IsSpoiler { get; set; }
+
     public MessageAttachment()
     {
     }
