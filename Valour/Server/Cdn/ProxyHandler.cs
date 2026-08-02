@@ -74,6 +74,12 @@ public class ProxyHandler
 
         foreach (Match match in urls)
         {
+            // <url> is standard markdown for "link this, but don't embed it" -
+            // it still renders as a normal clickable link, it just shouldn't
+            // also generate a preview card here.
+            if (IsBracketed(url, match))
+                continue;
+
             var attachment = await GetAttachmentFromUrl(match.Value, db);
             if (attachment != null)
             {
@@ -87,6 +93,17 @@ public class ProxyHandler
         }
 
         return attachments;
+    }
+
+    private static bool IsBracketed(string url, Match match)
+    {
+        var start = match.Index - 1;
+        var end = match.Index + match.Length;
+
+        if (start < 0 || end >= url.Length)
+            return false;
+
+        return url[start] == '<' && url[end] == '>';
     }
 
     /// <summary>
