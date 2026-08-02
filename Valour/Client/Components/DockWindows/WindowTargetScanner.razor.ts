@@ -68,5 +68,20 @@ export const init = (): WindowTargetService => {
         }
     };
     
+    // clientX/clientY on the relayed @ondrag event don't track the real
+    // cursor for native drags, so scan() above misses channel drags -
+    // dragover always has the real hovered element. Capture phase because
+    // .drop-targets calls stopPropagation() on the bubble.
+    document.addEventListener('dragover', (e: DragEvent) => {
+        const hit = (e.target as HTMLElement)?.closest?.('.w-drop-target') as HTMLElement | null;
+        if (hit === service.currentTarget) {
+            return;
+        }
+
+        service.currentTarget?.classList.remove('w-target-active');
+        service.currentTarget = hit;
+        service.currentTarget?.classList.add('w-target-active');
+    }, true);
+    
     return service;
 }
