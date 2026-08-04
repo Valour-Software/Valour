@@ -1,0 +1,207 @@
+@using System.Net.Http.Headers
+@inject ValourClient Client
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-person-vcard"></i>
+        Identity Details
+    </h3>
+
+    <div class="identity-preview">
+        <UserAvatar @key="@_previewAvatarKey" User="@Member.User" Member="@Member" Size="48" ShowState="true" />
+        <div class="preview-copy">
+            <strong>@DisplayName</strong>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="@_nicknameInputId">Nickname</label>
+        <input id="@_nicknameInputId" class="v-input" maxlength="32"
+               placeholder="Use account name" @bind="_nickname" @bind:event="oninput" />
+        <div class="field-help">
+            <p class="helper-text">Leave this empty to use <strong>@Member.User.Name</strong>.</p>
+            <span>@_nickname.Length/32</span>
+        </div>
+    </div>
+
+    <div class="actions">
+        <VButton Variant="primary" OnClick="SaveNicknameAsync" Disabled="@_saving">Save Changes</VButton>
+    </div>
+    <ResultLabel Result="@_nicknameResult" />
+</div>
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-image"></i>
+        Planet Avatar
+    </h3>
+
+    <div class="avatar-container">
+        <UserAvatar @key="@_avatarKey" User="@Member.User" Member="@Member" Size="96" />
+        <div class="avatar-info">
+            <div class="avatar-actions">
+                <label for="@_avatarInputId" class="v-btn secondary">
+                    <i class="bi bi-upload"></i><span>Upload Image</span>
+                </label>
+                @if (!string.IsNullOrWhiteSpace(Member.MemberAvatar))
+                {
+                    <VButton Variant="secondary" Icon="arrow-counterclockwise" OnClick="RemoveAvatarAsync" Disabled="@_saving">
+                        Use profile avatar
+                    </VButton>
+                }
+            </div>
+            <p class="helper-text">PNG, JPG, GIF, or WEBP. Square images look best; up to 20 MB.</p>
+            <ResultLabel Result="@_avatarResult" />
+        </div>
+        <div hidden>
+            <InputFile id="@_avatarInputId" accept=".png,.jpg,.jpeg,.gif,.webp" OnChange="LoadAvatarFileAsync" />
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public ModalRoot ModalRoot { get; set; }
+
+    [Parameter] public PlanetMember Member { get; set; }
+
+    private string _nicknameInputId;
+    private string _avatarInputId;
+    private string _avatarKey;
+    private string _previewAvatarKey;
+
+    private string _nickname = string.Empty;
+    private bool _saving;
+    private ITaskResult _nicknameResult;
+    private ITaskResult _avatarResult;
+
+    private string DisplayName => string.IsNullOrWhiteSpace(_nickname) ? Member.User.Name : _nickname.Trim();
+
+    protected override void OnInitialized()
+    {
+        // Member.Id is already a stable unique value for this component's
+        // lifetime, so it doubles as a cheap DOM id without generating a Guid.
+        _nicknameInputId = $"planet-nickname-{Member.Id}";
+        _avatarInputId = $"planet-avatar-upload-{Member.Id}";
+
+        _nickname = Member.Nickname ?? string.Empty;
+        RefreshAvatarKeys();
+    }
+
+    // AvatarKey only actually changes on upload/remove, so it's cached here
+    // instead of being a getter recomputed on every render (e.g. every
+    // keystroke in the nickname field).
+    private void RefreshAvatarKeys()
+    {
+        _avatarKey = $"{Member.Id}:{Member.MemberAvatar}";
+        _previewAvatarKey = $"preview:{_avatarKey}";
+    }
+
+    private async Task SaveNicknameAsync()
+    {
+        if (_saving)
+            return;
+        _saving = true;
+        var old = Member.Nickname;
+        var updated = _nickname?.Trim() ?? string.Empty;
+        Member.Nickname = updated;
+        _nicknameResult = await Member.UpdateAsync();
+        if (!_nicknameResult.Success)
+        {
+            Member.Nickname = old;
+        }
+        else if (old != updated)
+        {
+            // UpdateAsync() PUTs this same cached member, so by the time the
+            // server's realtime echo comes back the diff sees no change and
+            // never fires Updated for our own client - fire it manually so
+            // the member list and chat name tag update without a reload.
+            var changes = ModelUpdateUtils.ChangeDictPool.Get();
+            changes[nameof(PlanetMember.Nickname)] = new Change<string>(old, updated);
+            Member.InvokeUpdatedEvent(new ModelUpdatedEvent<PlanetMember>(Member, new ModelChange<PlanetMember>(changes)));
+        }
+        _saving = false;
+    }
+
+    private async Task LoadAvatarFileAsync(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        if (file.Size > 20_971_520)
+        {
+            _avatarResult = TaskResult.FromFailure("Avatar must be 20 MB or smaller.");
+            return;
+        }
+
+        await using var stream = file.OpenReadStream(20_971_520);
+        using var memory = new MemoryStream((int)file.Size);
+        await stream.CopyToAsync(memory);
+        var contentType = file.ContentType;
+        // GetBuffer() avoids ToArray()'s full extra copy of the (up to 20 MB) file.
+        var dataUrl = $"data:{contentType};base64,{Convert.ToBase64String(memory.GetBuffer(), 0, (int)memory.Length)}";
+        ModalRoot.OpenModal<ImageCropperModal>(new ImageCropperModal.ModalParams
+        {
+            ImageDataUrl = dataUrl,
+            AspectRatio = 1d,
+            OutputMimeType = contentType,
+            OnCropped = UploadCroppedAvatarAsync,
+            OnCancel = () => { }
+        });
+    }
+
+    private async Task UploadCroppedAvatarAsync(string dataUrl)
+    {
+        if (!EditProfileComponent.TryDecodeImageDataUrl(dataUrl, out var bytes, out var contentType))
+        {
+            _avatarResult = TaskResult.FromFailure("The cropped image could not be read.");
+            return;
+        }
+
+        _saving = true;
+        using var multipart = new MultipartFormDataContent();
+        using var stream = new StreamContent(new MemoryStream(bytes));
+        stream.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        multipart.Add(stream, "avatar", "avatar");
+        var response = await Member.Node.PostMultipartDataWithResponse<PlanetMember>(
+            $"upload/memberavatar/{Member.PlanetId}/{Member.Id}", multipart);
+        _avatarResult = response;
+        if (response.Success && response.Data is not null)
+        {
+            Member = response.Data.Sync(Client);
+            RefreshAvatarKeys();
+        }
+        _saving = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveAvatarAsync()
+    {
+        if (_saving)
+            return;
+        _saving = true;
+        var old = Member.MemberAvatar;
+        var result = await Member.Node.DeleteAsync($"api/members/{Member.Id}/avatar");
+        if (result.Success)
+        {
+            Member.MemberAvatar = string.Empty;
+            RefreshAvatarKeys();
+
+            if (!string.IsNullOrEmpty(old))
+            {
+                // Same reasoning as SaveNicknameAsync: the realtime echo won't
+                // detect a change against our own pre-mutated cached member.
+                var changes = ModelUpdateUtils.ChangeDictPool.Get();
+                changes[nameof(PlanetMember.MemberAvatar)] = new Change<string>(old, string.Empty);
+                Member.InvokeUpdatedEvent(new ModelUpdatedEvent<PlanetMember>(Member, new ModelChange<PlanetMember>(changes)));
+            }
+
+            // The route returns the updated member as its body, which isn't a
+            // message - DeleteAsync doesn't deserialize it, so show a plain
+            // success message instead of the raw JSON.
+            _avatarResult = TaskResult.FromSuccess("Reverted to the profile avatar.");
+        }
+        else
+        {
+            _avatarResult = result;
+        }
+        _saving = false;
+    }
+}

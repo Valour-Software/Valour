@@ -358,8 +358,22 @@ public class ValourClient
         var result =  await PrimaryNode.PostAsync("api/users/me/username", model);
 
         if (result.Success)
+        {
+            var old = Me.Name;
             Me.Name = newUsername;
-        
+
+            if (old != newUsername)
+            {
+                // Pre-mutating our own cached user means the realtime echo of
+                // this change won't detect a diff, so other UI watching
+                // User.Updated (member lists, chat name tags) never fires
+                // for our own client without this - see ClientModel.Sync().
+                var changes = ModelUpdateUtils.ChangeDictPool.Get();
+                changes[nameof(User.Name)] = new Change<string>(old, newUsername);
+                Me.InvokeUpdatedEvent(new ModelUpdatedEvent<User>(Me, new ModelChange<User>(changes)));
+            }
+        }
+
         return result;
     }
     
