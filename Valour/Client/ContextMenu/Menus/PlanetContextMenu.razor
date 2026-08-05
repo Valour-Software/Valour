@@ -46,6 +46,10 @@
         </ContextMenuItem>
     }
 }
+<ContextMenuItem OnClickAsync='@OnClickNewFolder'>
+    <Label>New Folder</Label>
+    <Icon><i class="bi bi-folder-plus"></i></Icon>
+</ContextMenuItem>
 <ContextMenuItem OnClickAsync='@OnClickCopyId'>
     <Label>Copy ID</Label>
     <Icon><i class="bi bi-database-fill"></i></Icon>
@@ -146,6 +150,12 @@
     {
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Planet.Id.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Planet ID copied to clipboard", ToastProgressState.Success));
+    }
+
+    private async Task OnClickNewFolder()
+    {
+        await CloseAsync();
+        PlanetService.RequestPlanetFolderCreation(Data.Planet.Id);
     }
 
     private async Task OnClickLeavePlanet()

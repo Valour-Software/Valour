@@ -13,6 +13,8 @@ public class UserPlanetSetting
     public long UserId { get; set; }
     public long PlanetId { get; set; }
     public ChannelActivityAlerts ActivityAlerts { get; set; }
+    public long? FolderId { get; set; }
+    public int? Position { get; set; }
 
     public static void SetupDbModel(ModelBuilder modelBuilder)
     {
@@ -28,6 +30,8 @@ public class UserPlanetSetting
                 .HasColumnName("activity_alerts")
                 .HasDefaultValue(ChannelActivityAlerts.Auto)
                 .IsRequired();
+            e.Property(x => x.FolderId).HasColumnName("folder_id");
+            e.Property(x => x.Position).HasColumnName("position");
 
             // Evaluation queries by planet for muted users
             e.HasIndex(x => x.PlanetId);

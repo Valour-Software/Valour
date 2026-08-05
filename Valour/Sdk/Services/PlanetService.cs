@@ -40,6 +40,12 @@ public class PlanetService : ServiceBase
     public HybridEvent JoinedPlanetsUpdated;
 
     /// <summary>
+    /// Requests that the active planet directory start creating a personal
+    /// list folder containing the supplied planet.
+    /// </summary>
+    public HybridEvent<long> PlanetFolderCreationRequested;
+
+    /// <summary>
     /// Run when a planet is left
     /// </summary>
     public HybridEvent<Planet> PlanetLeft;
@@ -971,6 +977,26 @@ public class PlanetService : ServiceBase
 
         return response.Success ? response.Data : TaskResult.FromFailure(response.Message);
     }
+
+    public void RequestPlanetFolderCreation(long planetId) =>
+        PlanetFolderCreationRequested?.Invoke(planetId);
+
+    public Task<TaskResult<PlanetListLayout>> FetchPlanetListLayoutAsync() =>
+        _client.PrimaryNode.GetJsonAsync<PlanetListLayout>("api/users/me/planet-list-layout");
+
+    public Task<TaskResult<PlanetListFolder>> CreatePlanetListFolderAsync(string name) =>
+        _client.PrimaryNode.PostAsyncWithResponse<PlanetListFolder>("api/users/me/planet-list-folders",
+            new CreatePlanetListFolderRequest { Name = name });
+
+    public Task<TaskResult> RenamePlanetListFolderAsync(long folderId, string name) =>
+        _client.PrimaryNode.PostAsync($"api/users/me/planet-list-folders/{folderId}/rename",
+            new RenamePlanetListFolderRequest { Name = name });
+
+    public Task<TaskResult> DeletePlanetListFolderAsync(long folderId) =>
+        _client.PrimaryNode.DeleteAsync($"api/users/me/planet-list-folders/{folderId}");
+
+    public Task<TaskResult> SavePlanetListLayoutAsync(SavePlanetListLayoutRequest request) =>
+        _client.PrimaryNode.PostAsync("api/users/me/planet-list-layout", request);
 
     public async Task<TaskResult> SetVanityAsync(Planet planet, string name)
     {

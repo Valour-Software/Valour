@@ -275,6 +275,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<UserChannelState> UserChannelStates { get; set; }
 
     public DbSet<UserPlanetSetting> UserPlanetSettings { get; set; }
+    public DbSet<UserPlanetFolder> UserPlanetFolders { get; set; }
 
     public DbSet<NodeStats> NodeStats { get; set; }
     
@@ -378,6 +379,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         UserActivityDay.SetupDbModel(modelBuilder);
         UserChannelState.SetupDbModel(modelBuilder);
         UserPlanetSetting.SetupDbModel(modelBuilder);
+        UserPlanetFolder.SetupDbModel(modelBuilder);
         PlanetMember.SetupDbModel(modelBuilder);
         PlanetRole.SetupDbModel(modelBuilder);
         PlanetEmoji.SetupDbModel(modelBuilder);

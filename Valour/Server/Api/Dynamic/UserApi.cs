@@ -3,6 +3,7 @@ using Valour.Database;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using Valour.Shared.Queries;
+using Valour.Server.Database;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
 using User = Valour.Server.Models.User;
 using UserPrivateInfo = Valour.Server.Models.UserPrivateInfo;
@@ -803,6 +804,116 @@ public class UserApi
         var prefs = await EnsurePreferencesAsync(userId, db);
 
         return Results.Json(prefs.ToModel());
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/users/me/planet-list-layout")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetPlanetListLayoutAsync(UserService userService, ValourDb db)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var folders = await db.UserPlanetFolders.AsNoTracking()
+            .Where(x => x.UserId == userId).OrderBy(x => x.Position)
+            .Select(x => new PlanetListFolder { Id = x.Id, Name = x.Name, Position = x.Position })
+            .ToListAsync();
+        var planets = await db.UserPlanetSettings.AsNoTracking()
+            .Where(x => x.UserId == userId && x.Position != null)
+            .OrderBy(x => x.Position)
+            .Select(x => new PlanetListPlacement { PlanetId = x.PlanetId, FolderId = x.FolderId, Position = x.Position!.Value })
+            .ToListAsync();
+        return Results.Json(new PlanetListLayout { Folders = folders, Planets = planets });
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/users/me/planet-list-folders")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> CreatePlanetListFolderAsync(
+        [FromBody] CreatePlanetListFolderRequest request, UserService userService, ValourDb db)
+    {
+        var name = request?.Name?.Trim();
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 64)
+            return ValourResult.BadRequest("Folder names must be between 1 and 64 characters.");
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var position = await db.UserPlanetFolders.Where(x => x.UserId == userId)
+            .Select(x => (int?)x.Position).MaxAsync() ?? -1;
+        var folder = new UserPlanetFolder
+        {
+            Id = IdManager.Generate(), UserId = userId, Name = name, Position = position + 1
+        };
+        db.UserPlanetFolders.Add(folder);
+        await db.SaveChangesAsync();
+        return Results.Json(new PlanetListFolder { Id = folder.Id, Name = folder.Name, Position = folder.Position });
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/users/me/planet-list-folders/{folderId}/rename")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> RenamePlanetListFolderAsync(
+        long folderId, [FromBody] RenamePlanetListFolderRequest request, UserService userService, ValourDb db)
+    {
+        var name = request?.Name?.Trim();
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 64)
+            return ValourResult.BadRequest("Folder names must be between 1 and 64 characters.");
+        var userId = await userService.GetCurrentUserIdAsync();
+        var folder = await db.UserPlanetFolders.FirstOrDefaultAsync(x => x.Id == folderId && x.UserId == userId);
+        if (folder is null) return ValourResult.NotFound("Folder not found.");
+        folder.Name = name;
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/users/me/planet-list-folders/{folderId}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> DeletePlanetListFolderAsync(
+        long folderId, UserService userService, ValourDb db)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var folder = await db.UserPlanetFolders.FirstOrDefaultAsync(x => x.Id == folderId && x.UserId == userId);
+        if (folder is null) return ValourResult.NotFound("Folder not found.");
+        await db.UserPlanetSettings.Where(x => x.UserId == userId && x.FolderId == folderId)
+            .ExecuteUpdateAsync(x => x.SetProperty(s => s.FolderId, (long?)null));
+        db.UserPlanetFolders.Remove(folder);
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/users/me/planet-list-layout")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> SavePlanetListLayoutAsync(
+        [FromBody] SavePlanetListLayoutRequest request, UserService userService, ValourDb db)
+    {
+        if (request is null) return ValourResult.BadRequest("Include request in body.");
+        var userId = await userService.GetCurrentUserIdAsync();
+        var folderIds = await db.UserPlanetFolders.Where(x => x.UserId == userId).Select(x => x.Id).ToHashSetAsync();
+        if (request.FolderIds.Count != request.FolderIds.Distinct().Count() ||
+            request.FolderIds.Any(x => !folderIds.Contains(x)) ||
+            request.Planets.Select(x => x.PlanetId).Distinct().Count() != request.Planets.Count ||
+            request.Planets.Any(x => x.FolderId is not null && !folderIds.Contains(x.FolderId.Value)))
+            return ValourResult.BadRequest("The layout contains invalid or duplicate entries.");
+
+        var joinedIds = await db.PlanetMembers.Where(x => x.UserId == userId)
+            .Select(x => x.PlanetId).ToHashSetAsync();
+        joinedIds.UnionWith(await db.FederatedMemberships.Where(x => x.UserId == userId)
+            .Select(x => x.PlanetId).ToListAsync());
+        if (request.Planets.Any(x => !joinedIds.Contains(x.PlanetId)))
+            return ValourResult.BadRequest("The layout contains a planet you have not joined.");
+
+        var settings = await db.UserPlanetSettings.Where(x => x.UserId == userId).ToDictionaryAsync(x => x.PlanetId);
+        foreach (var (placement, position) in request.Planets.Select((x, i) => (x, i)))
+        {
+            if (!settings.TryGetValue(placement.PlanetId, out var setting))
+            {
+                setting = new UserPlanetSetting { UserId = userId, PlanetId = placement.PlanetId };
+                db.UserPlanetSettings.Add(setting);
+            }
+            setting.FolderId = placement.FolderId;
+            setting.Position = position;
+        }
+        foreach (var (folderId, position) in request.FolderIds.Select((x, i) => (x, i)))
+        {
+            var folder = await db.UserPlanetFolders.FirstAsync(x => x.Id == folderId && x.UserId == userId);
+            folder.Position = position;
+        }
+        await db.SaveChangesAsync();
+        return Results.NoContent();
     }
 
     [ValourRoute(HttpVerbs.Post, "api/users/me/tutorials/{tutorialId}/complete")]
