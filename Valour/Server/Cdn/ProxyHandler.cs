@@ -78,6 +78,7 @@ public class ProxyHandler
             if (attachment != null)
             {
                 attachment.Inline = true;
+                attachment.IsSpoiler = IsInsideSpoiler(url, match.Index);
 
                 if (attachments is null)
                     attachments = new();
@@ -87,6 +88,31 @@ public class ProxyHandler
         }
 
         return attachments;
+    }
+
+    /// <summary>
+    /// True if the given index falls inside a ||spoiler|| span, so an embed
+    /// generated from a URL there can inherit the spoiler too. Just counts
+    /// '||' pairs up to that point rather than running a full Markdig parse.
+    /// </summary>
+    private static bool IsInsideSpoiler(string url, int index)
+    {
+        var openSpans = 0;
+        var i = 0;
+        while (i < index)
+        {
+            if (url[i] == '|' && i + 1 < url.Length && url[i + 1] == '|')
+            {
+                openSpans++;
+                i += 2;
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        return openSpans % 2 == 1;
     }
 
     /// <summary>

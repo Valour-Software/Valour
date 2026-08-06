@@ -996,6 +996,29 @@ blockquote {
     background-color: rgba(255, 255, 255, 0.01);
 }
 
+.md-spoiler {
+    border-radius: 3px;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.md-spoiler:not(.revealed) {
+    filter: blur(5px);
+    user-select: none;
+}
+
+/* Blur alone is just visual - a link inside would still be clickable through
+   it otherwise. Only disables pointer-events on children, so the span's own
+   onclick to reveal still works. */
+.md-spoiler:not(.revealed) * {
+    pointer-events: none;
+}
+
+.md-spoiler.revealed {
+    cursor: text;
+    background-color: transparent;
+}
+
 /* Fix for safari */
 [contenteditable] {
     -webkit-user-select: text;

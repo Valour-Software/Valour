@@ -6,18 +6,34 @@
 }
 else
 {
-    <video class="video-attachment" controls loop preload="metadata" playsinline src="@_location#t=0.001" type="@Attachment.MimeType"></video>
+    <div class="video-attachment-wrapper @(IsHiddenSpoiler ? "spoiler-hidden" : "")">
+        <video class="video-attachment" controls loop preload="metadata" playsinline src="@_location#t=0.001" type="@Attachment.MimeType"></video>
+        @if (IsHiddenSpoiler)
+        {
+            <div class="spoiler-overlay" @onclick="Reveal">
+                <span>Spoiler &mdash; click to reveal</span>
+            </div>
+        }
+    </div>
 }
 
 @code {
     [Parameter]
     public string CustomStyle { get; set; }
-    
+
     private string _location;
+    private bool _revealed;
+
+    private bool IsHiddenSpoiler => Attachment.IsSpoiler && !_revealed;
 
     protected override async Task OnInitializedAsync()
     {
         _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
+    }
+
+    private void Reveal()
+    {
+        _revealed = true;
     }
 
 }
