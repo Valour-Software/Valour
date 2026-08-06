@@ -36,6 +36,7 @@ public static class PlanetMapper
             PublicWiki = planet.PublicWiki,
             EnableCalendar = planet.EnableCalendar,
             Vanity = planet.Vanity,
+            VanityInviteEnabled = planet.VanityInviteEnabled,
             ActivityNotificationCadence = planet.ActivityNotificationCadence,
             Tags = planet.Tags?.Select(x => x.ToModel()).ToList() ?? new ()
         };
@@ -69,6 +70,7 @@ public static class PlanetMapper
         dbPlanet.PublicWiki = planet.PublicWiki;
         dbPlanet.EnableCalendar = planet.EnableCalendar;
         dbPlanet.ActivityNotificationCadence = planet.ActivityNotificationCadence;
+        dbPlanet.VanityInviteEnabled = planet.VanityInviteEnabled;
         // Vanity is intentionally NOT copied here: it is set exclusively by
         // the docs vanity endpoint so a stale planet update can never clobber
         // or claim a vanity name.

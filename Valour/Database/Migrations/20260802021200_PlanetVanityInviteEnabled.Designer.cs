@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using Valour.Database.Context;
 namespace Valour.Database.Migrations
 {
     [DbContext(typeof(ValourDb))]
-    partial class ValourDbModelSnapshot : ModelSnapshot
+    [Migration("20260802021200_PlanetVanityInviteEnabled")]
+    partial class PlanetVanityInviteEnabled
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4116,36 +4119,6 @@ namespace Valour.Database.Migrations
                     b.ToTable("user_friends");
                 });
 
-            modelBuilder.Entity("Valour.Database.UserPlanetFolder", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("name");
-
-                    b.Property<int>("Position")
-                        .HasColumnType("integer")
-                        .HasColumnName("position");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "Position");
-
-                    b.ToTable("user_planet_folders", (string)null);
-                });
-
             modelBuilder.Entity("Valour.Database.UserPlanetSetting", b =>
                 {
                     b.Property<long>("UserId")
@@ -4161,14 +4134,6 @@ namespace Valour.Database.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0)
                         .HasColumnName("activity_alerts");
-
-                    b.Property<long?>("FolderId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("folder_id");
-
-                    b.Property<int?>("Position")
-                        .HasColumnType("integer")
-                        .HasColumnName("position");
 
                     b.HasKey("UserId", "PlanetId");
 
@@ -4375,10 +4340,6 @@ namespace Valour.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTime?>("ArchivedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("archived_at");
-
                     b.Property<long?>("ChannelId")
                         .HasColumnType("bigint")
                         .HasColumnName("channel_id");
@@ -4479,10 +4440,6 @@ namespace Valour.Database.Migrations
                     b.Property<string>("AmbientColor")
                         .HasColumnType("text")
                         .HasColumnName("ambient_color");
-
-                    b.Property<DateTime?>("ArchivedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("archived_at");
 
                     b.Property<int>("Height")
                         .HasColumnType("integer")
