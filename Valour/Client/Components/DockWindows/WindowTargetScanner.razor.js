@@ -51,6 +51,19 @@ export const init = () => {
             }
         }
     };
+    // clientX/clientY on the relayed @ondrag event don't track the real
+    // cursor for native drags, so scan() above misses channel drags -
+    // dragover always has the real hovered element. Capture phase because
+    // .drop-targets calls stopPropagation() on the bubble.
+    document.addEventListener('dragover', (e) => {
+        const hit = e.target?.closest?.('.w-drop-target');
+        if (hit === service.currentTarget) {
+            return;
+        }
+        service.currentTarget?.classList.remove('w-target-active');
+        service.currentTarget = hit;
+        service.currentTarget?.classList.add('w-target-active');
+    }, true);
     return service;
 };
 //# sourceMappingURL=WindowTargetScanner.razor.js.map
