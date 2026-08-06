@@ -20,23 +20,23 @@
 }
 
 .user-avatar.with-state .user-avatar-img {
-    width: calc(100% - 8px);
-    height: calc(100% - 8px);
-    margin: 4px;
-    border-radius: calc(var(--radius-md) - 2px);
+    width: calc(100% - 4px);
+    height: calc(100% - 4px);
+    margin: 2px;
+    border-radius: calc(var(--radius-md) - 1px);
 }
 
 .user-avatar.with-state .user-avatar-img::after {
-    border-radius: calc(var(--radius-md) + 2px);
+    border-radius: calc(var(--radius-md) + 1px);
 }
 
 .user-avatar-img::after {
     content: '';
     position: absolute;
-    inset: -4px;
-    border-radius: calc(var(--radius-md) + 3px);
+    inset: -2px;
+    border-radius: calc(var(--radius-md) + 1px);
     border: 1px solid var(--state-ring, transparent);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--state-ring, transparent) 45%, transparent);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--state-ring, transparent) 45%, transparent);
     pointer-events: none;
     opacity: 0.8;
 }
@@ -78,7 +78,7 @@
 
 /* When both rings show, keep the outer gradient ring concentric with the inner state ring */
 .user-avatar.with-state.unread::after {
-    border-radius: calc(var(--radius-md) + 6px);
+    border-radius: calc(var(--radius-md) + 5px);
 }
 
 .user-avatar-badges {

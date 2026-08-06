@@ -11,6 +11,12 @@ public abstract class WindowContent
     public string Id { get; private set; } = Guid.NewGuid().ToString();
     public string Title { get; set; }
     public string Icon { get; set; }
+
+    /// <summary>
+    /// Optional - set for DM tabs so the tab icon can render as a live
+    /// UserAvatar (with online-state ring) instead of a plain static Icon url.
+    /// </summary>
+    public User IconUser { get; set; }
     public long? PlanetId { get; set; }
     public bool AutoScroll { get; set; }
     

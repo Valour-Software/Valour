@@ -13,6 +13,12 @@ public class WindowContentState
 {
     public string Title { get; set; }
     public string Icon { get; set; }
+
+    /// <summary>
+    /// Id of the DM tab's IconUser, if it had one - so the status ring can be
+    /// restored on reload without waiting for the channel's own data to load.
+    /// </summary>
+    public long? IconUserId { get; set; }
     public long? PlanetId { get; set; }
     public bool AutoScroll { get; set; }
     
@@ -189,6 +195,7 @@ public class WindowSaveLoadAdapter
                     {
                         Title = tab.Content.Title,
                         Icon = tab.Content.Icon,
+                        IconUserId = tab.Content.IconUser?.Id,
                         PlanetId = tab.Content.PlanetId,
                         AutoScroll = tab.Content.AutoScroll,
                         ComponentType = tab.Content.ComponentType.FullName,
@@ -321,6 +328,9 @@ public class WindowSaveLoadAdapter
         content.Icon = state.ContentState.Icon;
         content.PlanetId = state.ContentState.PlanetId;
         content.AutoScroll = state.ContentState.AutoScroll;
+
+        if (state.ContentState.IconUserId is not null)
+            content.IconUser = await _client.UserService.FetchUserAsync(state.ContentState.IconUserId.Value);
 
         // Does this content type carry data? (WindowContent<TWindow, TData>)
         var importMethod = content.GetType().GetMethod("ImportData");

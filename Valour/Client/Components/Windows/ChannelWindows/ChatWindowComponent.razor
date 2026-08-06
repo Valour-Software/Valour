@@ -1556,9 +1556,12 @@
             await planet.EnsureReadyAsync();
         }
 
+        var dmUser = await channel.GetDmUserAsync();
+
         return new()
         {
-            Icon = await channel.GetIconAsync(),
+            Icon = await channel.GetIconAsync(dmUser),
+            IconUser = dmUser,
             Title = await channel.GetTitleAsync(),
             PlanetId = channel.PlanetId,
             Data = channel
