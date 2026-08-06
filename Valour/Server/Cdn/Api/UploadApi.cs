@@ -12,6 +12,7 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Staff;
 using Valour.Shared.Utilities;
 
 namespace Valour.Server.Cdn.Api;
@@ -123,7 +124,7 @@ public class UploadApi
     public static void AddRoutes(WebApplication app)
     {
         app.MapPost("/upload/profile", AvatarImageRoute);
-        app.MapPost("/upload/memberavatar/{planetId}", MemberAvatarImageRoute);
+        app.MapPost("/upload/memberavatar/{planetId}/{memberId}", MemberAvatarImageRoute);
         app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute);
         app.MapPost("/upload/image", ImageRoute);
         app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
@@ -290,16 +291,33 @@ public class UploadApi
         HttpContext ctx,
         TokenService tokenService,
         PlanetMemberService memberService,
+        ModerationAuditService moderationAuditService,
         CdnBucketService bucketService,
-        long planetId)
+        long planetId,
+        long memberId)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null)
             return ValourResult.InvalidToken();
 
-        var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
-        if (member is null)
+        var targetMember = await memberService.GetAsync(memberId);
+        if (targetMember is null || targetMember.PlanetId != planetId)
+            return ValourResult.NotFound("Member not found.");
+
+        var selfMember = await memberService.GetByUserAsync(authToken.UserId, planetId);
+        if (selfMember is null)
             return ValourResult.NotPlanetMember();
+
+        // You can always edit your own avatar, so we only check permissions
+        // if you are not the same as the target
+        if (selfMember.UserId != targetMember.UserId)
+        {
+            if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.ManageIdentity))
+                return ValourResult.LacksPermission(PlanetPermissions.ManageIdentity);
+
+            if (await memberService.GetAuthorityAsync(selfMember) <= await memberService.GetAuthorityAsync(targetMember))
+                return ValourResult.Forbid("The target has equal or higher authority than you.");
+        }
 
         var file = ctx.Request.Form.Files.FirstOrDefault();
         if (file is null)
@@ -315,15 +333,29 @@ public class UploadApi
             file.OpenReadStream());
         HandleExif(image);
 
-        var imageId = $"{planetId}/{authToken.UserId}";
+        var imageId = $"{planetId}/{targetMember.UserId}";
         var upload = await UploadPublicImageVariants(
             bucketService, image, "memberavatars", imageId, AvatarSizes, 0, true, false);
         if (!upload.Success)
             return ValourResult.Problem(upload.Message);
 
         var fullPath = $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{upload.Message}?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
-        var result = await memberService.UpdateAvatarAsync(member.Id, fullPath);
-        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+        var result = await memberService.UpdateAvatarAsync(targetMember.Id, fullPath);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        if (selfMember.UserId != targetMember.UserId)
+        {
+            await moderationAuditService.LogAsync(
+                targetMember.PlanetId,
+                ModerationActionSource.Manual,
+                ModerationActionType.EditIdentity,
+                actorUserId: selfMember.UserId,
+                targetUserId: targetMember.UserId,
+                targetMemberId: targetMember.Id);
+        }
+
+        return Results.Json(result.Data);
     }
     
     public static ImageSize[] ThemeBannerSizes =

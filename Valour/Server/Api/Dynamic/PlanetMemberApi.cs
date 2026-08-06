@@ -109,7 +109,7 @@ public class PlanetMemberApi
         [FromBody] PlanetMember member, 
         long id, 
         PlanetMemberService service,
-        UserService userService)
+        ModerationAuditService moderationAuditService)
     {
         if (member is null)
             return ValourResult.BadRequest("Include member in body.");
@@ -121,9 +121,20 @@ public class PlanetMemberApi
         if (targetMember is null)
             return ValourResult.NotFound("Member not found");
 
-        var selfId = await userService.GetCurrentUserIdAsync();
-        if (selfId != targetMember.UserId)
-            return ValourResult.Forbid("You can only modify your own membership.");
+        var selfMember = await service.GetCurrentAsync(targetMember.PlanetId);
+        if (selfMember is null)
+            return ValourResult.NotPlanetMember();
+
+        // You can always edit your own membership, so we only check permissions
+        // if you are not the same as the target
+        if (selfMember.UserId != targetMember.UserId)
+        {
+            if (!await service.HasPermissionAsync(selfMember, PlanetPermissions.ManageIdentity))
+                return ValourResult.LacksPermission(PlanetPermissions.ManageIdentity);
+
+            if (await service.GetAuthorityAsync(selfMember) <= await service.GetAuthorityAsync(targetMember))
+                return ValourResult.Forbid("The target has equal or higher authority than you.");
+        }
 
         // Prevent mass-assignment by only allowing nickname updates via this endpoint.
         targetMember.Nickname = member.Nickname;
@@ -132,6 +143,17 @@ public class PlanetMemberApi
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
+        if (selfMember.UserId != targetMember.UserId)
+        {
+            await moderationAuditService.LogAsync(
+                targetMember.PlanetId,
+                ModerationActionSource.Manual,
+                ModerationActionType.EditIdentity,
+                actorUserId: selfMember.UserId,
+                targetUserId: targetMember.UserId,
+                targetMemberId: targetMember.Id);
+        }
+        
         return Results.Json(result.Data);
     }
 
@@ -140,16 +162,41 @@ public class PlanetMemberApi
     public static async Task<IResult> DeleteAvatarRouteAsync(
         long id,
         PlanetMemberService service,
-        UserService userService)
+        ModerationAuditService moderationAuditService)
     {
-        var member = await service.GetAsync(id);
-        if (member is null)
+        var targetMember = await service.GetAsync(id);
+        if (targetMember is null)
             return ValourResult.NotFound("Member not found.");
-        if (member.UserId != await userService.GetCurrentUserIdAsync())
-            return ValourResult.Forbid("You can only modify your own planet avatar.");
+
+        var selfMember = await service.GetCurrentAsync(targetMember.PlanetId);
+        if (selfMember is null)
+            return ValourResult.NotPlanetMember();
+
+        if (selfMember.UserId != targetMember.UserId)
+        {
+            if (!await service.HasPermissionAsync(selfMember, PlanetPermissions.ManageIdentity))
+                return ValourResult.LacksPermission(PlanetPermissions.ManageIdentity);
+
+            if (await service.GetAuthorityAsync(selfMember) <= await service.GetAuthorityAsync(targetMember))
+                return ValourResult.Forbid("The target has equal or higher authority than you.");
+        }
 
         var result = await service.UpdateAvatarAsync(id, string.Empty);
-        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        if (selfMember.UserId != targetMember.UserId)
+        {
+            await moderationAuditService.LogAsync(
+                targetMember.PlanetId,
+                ModerationActionSource.Manual,
+                ModerationActionType.EditIdentity,
+                actorUserId: selfMember.UserId,
+                targetUserId: targetMember.UserId,
+                targetMemberId: targetMember.Id);
+        }
+
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/members/{id}")]
