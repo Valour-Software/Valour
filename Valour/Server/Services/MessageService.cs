@@ -401,6 +401,7 @@ public class MessageService
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
             .Include(x => x.Reactions)
+            .Include(x => x.ReplyToMessage)
             .FirstOrDefaultAsync(x => x.Id == updated.Id);
         if (dbOld is not null)
         {
