@@ -5,12 +5,7 @@
     top: 0;
     left: 0;
     z-index: 100000;
-    /* .context is positioned at the raw click coordinates before the JS
-       boundary check in reposition() runs on the next frame. Without this,
-       that first-paint position can extend past the viewport and inflate
-       the page's scrollable area for a frame (see issue #1624). Since this
-       wrapper is exactly viewport-sized, clipping here is equivalent to
-       clipping at the viewport edge. */
+    /* clips the pre-reposition first-paint overflow, see #1624 */
     overflow: hidden;
 }
 
