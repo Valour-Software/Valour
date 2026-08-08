@@ -1,0 +1,166 @@
+@inherits WindowContentComponentBase
+@implements IDisposable
+
+<div class="theme-editor-window">
+    @if (_theme is not null)
+    {
+        <div class="theme-editor-window-body">
+            @switch (_section)
+            {
+                case Section.Info:
+                    <ThemeInfoSection @ref="_infoSection" Theme="@_theme" />
+                    break;
+                case Section.Colors:
+                    <ThemeColorsSection Theme="@_theme" />
+                    break;
+                case Section.Css:
+                    <div class="editor-section">
+                        <h3 class="editor-section-title">
+                            <i class="bi bi-filetype-css"></i>
+                            Custom CSS
+                        </h3>
+                        <textarea class="v-input theme-editor-css-textarea" value="@_cssText" @oninput="OnCssInput"></textarea>
+                    </div>
+                    break;
+            }
+        </div>
+
+        <div class="theme-editor-window-footer">
+            <div class="theme-editor-window-nav">
+                <button type="button" class="@NavClass(Section.Info)" @onclick="@(() => SetSectionAsync(Section.Info))">Info</button>
+                <button type="button" class="@NavClass(Section.Colors)" @onclick="@(() => SetSectionAsync(Section.Colors))">Colors</button>
+                <button type="button" class="@NavClass(Section.Css)" @onclick="@(() => SetSectionAsync(Section.Css))">CSS</button>
+            </div>
+            <div class="theme-editor-window-actions">
+                <VButton Variant="secondary" OnClick="Preview">Preview</VButton>
+                <VButton Variant="primary" OnClick="SaveAsync">Save & Close</VButton>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private enum Section { Info, Colors, Css }
+
+    private Theme _theme;
+    private Theme _backupTheme;
+    private Section _section = Section.Info;
+    private string _cssText;
+    private bool _saving;
+
+    private ThemeInfoSection _infoSection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var content = (Content)WindowCtx;
+        _theme = content.Theme;
+        _backupTheme = content.BackupTheme;
+
+        // A saved layout can restore this tab after a reload with no live edit
+        // session to attach to (the edit buffer never survives a reload) - close
+        // it rather than show a broken editor.
+        if (_theme is null)
+        {
+            await WindowCtx.Tab.Component.CloseAsync();
+            return;
+        }
+
+        _cssText = _theme.CustomCss ?? string.Empty;
+    }
+
+    private string NavClass(Section section) =>
+        section == _section ? "theme-editor-nav-btn active" : "theme-editor-nav-btn";
+
+    // WindowContentComponentBase suppresses automatic re-rendering after the
+    // first render (see ControlledRenderComponentBase) - switching sections
+    // has to explicitly ask for a render via ReRender() or the click appears
+    // to do nothing.
+    private async Task SetSectionAsync(Section section)
+    {
+        _section = section;
+        await ReRender();
+    }
+
+    private void OnCssInput(ChangeEventArgs e)
+    {
+        _cssText = e.Value?.ToString() ?? string.Empty;
+    }
+
+    private void Preview()
+    {
+        _theme.CustomCss = _cssText;
+        ThemeComponent.Instance.Refresh();
+    }
+
+    // Saves directly through the theme model rather than calling back into
+    // EditThemeComponent, which is disposed the moment the settings modal
+    // closes to open this window - invoking its methods after that would hit
+    // a disposed component's StateHasChanged().
+    private async Task SaveAsync()
+    {
+        if (_saving || _theme is null)
+            return;
+        _saving = true;
+
+        var theme = _theme;
+        Preview();
+
+        var isNew = theme.Id == 0;
+        var result = isNew ? await theme.CreateAsync() : await theme.UpdateAsync();
+        if (!result.Success)
+        {
+            Console.WriteLine("Failed to save theme: " + result.Message);
+            _saving = false;
+            return;
+        }
+
+        var savedTheme = isNew ? result.Data : theme;
+        if (_infoSection is not null)
+            await _infoSection.UploadBannerIfNeededAsync(savedTheme.Id);
+
+        // Cleared so Dispose (fired by the CloseAsync below) knows the save
+        // already resolved this session and skips its revert-to-backup.
+        _theme = null;
+        await WindowCtx.Tab.Component.CloseAsync();
+    }
+
+    // Closing the window without saving - including via its own X button -
+    // should revert the live preview to whatever theme was active before this
+    // editor opened, rather than leaving an unsaved/discarded edit visible.
+    public void Dispose()
+    {
+        if (_theme is not null)
+        {
+            ThemeComponent.Instance.CurrentTheme = _backupTheme ?? Theme.Default;
+            ThemeComponent.Instance.Refresh();
+        }
+    }
+
+    public class Content : WindowContent<ThemeEditorWindowComponent>
+    {
+        public Theme Theme { get; set; }
+        public Theme BackupTheme { get; set; }
+    }
+
+    public static Content BuildContent(Theme theme, Theme backupTheme)
+    {
+        return new Content
+        {
+            Title = $"Theme - {theme.Name}",
+            Icon = "_content/Valour.Client/media/logo/logo-64.png",
+            Theme = theme,
+            BackupTheme = backupTheme
+        };
+    }
+
+    public static FloatingWindowProps GetDefaultFloatingProps()
+    {
+        return new FloatingWindowProps()
+        {
+            Width = 480,
+            Height = 560,
+            X = 120,
+            Y = 80
+        };
+    }
+}
