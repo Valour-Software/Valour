@@ -94,6 +94,29 @@ public class ThemeApi
         return Results.Json(result.Data);
     }
     
+    [ValourRoute(HttpVerbs.Delete, "api/themes/{id}")]
+    [UserRequired]
+    public static async Task<IResult> DeleteTheme(
+        ThemeService themeService,
+        TokenService tokenService,
+        [FromRoute] long id)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+
+        var theme = await themeService.GetTheme(id);
+        if (theme is null)
+            return ValourResult.NotFound("Theme not found");
+
+        if (theme.AuthorId != token.UserId)
+            return ValourResult.Forbid("You do not have permission to delete this theme");
+
+        var result = await themeService.DeleteTheme(id);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok();
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/themes/{id}/votes")]
     [UserRequired]
     public static async Task<IResult> GetThemeVotes(

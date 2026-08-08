@@ -21,7 +21,7 @@
             </div>
         </div>
 
-        <ThemeInfoSection @ref="_infoSection" Theme="@_editingTheme" OnPublishedChanged="@OnPublishedChangedAsync" />
+        <ThemeInfoSection @ref="_infoSection" Theme="@_editingTheme" OnPublishedChanged="@OnPublishedChangedAsync" OnDeleted="@OnThemeDeletedAsync" />
 
         <ThemeColorsSection Theme="@_editingTheme" />
 
@@ -275,6 +275,16 @@ else
     private async Task OnPublishedChangedAsync()
     {
         _myThemes = await ThemeService.GetMyThemes();
+        StateHasChanged();
+    }
+
+    private async Task OnThemeDeletedAsync()
+    {
+        _editingTheme = null;
+        ThemeComponent.Instance.CurrentTheme = _backupTheme;
+        ThemeComponent.Instance.Refresh();
+
+        await GetAllThemes();
         StateHasChanged();
     }
 

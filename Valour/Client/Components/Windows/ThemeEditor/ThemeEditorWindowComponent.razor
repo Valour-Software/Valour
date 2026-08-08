@@ -8,7 +8,7 @@
             @switch (_section)
             {
                 case Section.Info:
-                    <ThemeInfoSection @ref="_infoSection" Theme="@_theme" />
+                    <ThemeInfoSection @ref="_infoSection" Theme="@_theme" OnDeleted="@OnThemeDeletedAsync" />
                     break;
                 case Section.Colors:
                     <ThemeColorsSection Theme="@_theme" />
@@ -121,6 +121,13 @@
         // Cleared so Dispose (fired by the CloseAsync below) knows the save
         // already resolved this session and skips its revert-to-backup.
         _theme = null;
+        await WindowCtx.Tab.Component.CloseAsync();
+    }
+
+    // _theme is intentionally left set so Dispose's revert-to-backup runs,
+    // same as closing without saving - the deleted theme can't stay live.
+    private async Task OnThemeDeletedAsync()
+    {
         await WindowCtx.Tab.Component.CloseAsync();
     }
 

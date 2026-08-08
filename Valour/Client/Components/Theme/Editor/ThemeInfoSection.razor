@@ -190,9 +190,24 @@
     }
 </div>
 
+@if (Theme.Id != 0 && Theme.AuthorId == Client.Me.Id)
+{
+    <div class="editor-section danger-zone">
+        <h3 class="editor-section-title">
+            <i class="bi bi-exclamation-triangle"></i>
+            Danger Zone
+        </h3>
+        <p class="helper-text">Deleting a theme is permanent and cannot be undone.</p>
+        <div class="actions">
+            <VButton Variant="danger" Icon="trash" OnClick="@OnClickDeleteTheme">Delete Theme</VButton>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public Theme Theme { get; set; }
     [Parameter] public EventCallback OnPublishedChanged { get; set; }
+    [Parameter] public EventCallback OnDeleted { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -211,6 +226,34 @@
     {
         Theme.Published = published;
         await OnPublishedChanged.InvokeAsync();
+    }
+
+    private void OnClickDeleteTheme()
+    {
+        var modalData = new ConfirmModalComponent.ModalParams(
+            $"Delete {Theme.Name}?",
+            "This action cannot be undone. The theme will be permanently deleted.",
+            "Delete Theme",
+            "Cancel",
+            DeleteThemeAsync,
+            () => Task.CompletedTask
+        );
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+    }
+
+    private async Task DeleteThemeAsync()
+    {
+        var result = await Theme.DeleteAsync();
+        if (result.Success)
+        {
+            Theme.RemoveFromCache();
+            ToastContainer.Instance.AddToast(new ToastData("Deleted", "Theme has been deleted successfully", ToastProgressState.Success));
+            await OnDeleted.InvokeAsync();
+        }
+        else
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Error", result.Message, ToastProgressState.Failure));
+        }
     }
 
     // Typography
