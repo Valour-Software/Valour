@@ -56,14 +56,33 @@ export function reposition(){
         posY = windowHeight - height;
     }
     
-    // Check the top position of submenus. If above the screen, shift down with margin to fit.
-    // Use boundingbox to get actual position of the element
+    // Check the position of submenus. If they overflow the top or right edge
+    // of the screen, shift them down/left with margin to fit.
+    // Submenus open leftmost to their parent button with no built-in bound,
+    // so on narrow screens or where the .mobile layout is not applied
+    // they can render partially or fully off-screen. (ContextSubMenu.razor.css; #1622)
     for (let i = 0; i < submenus.length; i++){
-        const boundingBox = submenus[i].getBoundingClientRect();
-        const subMenuHeight = submenus[i].offsetHeight;
-        
+        const submenu = submenus[i];
+
+        // Clear any previous correction before measuring, so repeated calls
+        // (e.g. on window resize) compute from the untransformed layout
+        // position instead of compounding on top of the last correction.
+        submenu.style.transform = '';
+        const boundingBox = submenu.getBoundingClientRect();
+
+        let translateX = 0;
+        let translateY = 0;
+
+        if (boundingBox.right > windowWidth){
+            translateX = windowWidth - boundingBox.right - 10;
+        }
+
         if (boundingBox.top < 0){
-            submenus[i].style.transform = `translateY(${Math.abs(boundingBox.top) + 10}px)`;
+            translateY = Math.abs(boundingBox.top) + 10;
+        }
+
+        if (translateX !== 0 || translateY !== 0){
+            submenu.style.transform = `translate(${translateX}px, ${translateY}px)`;
         }
     }
 
