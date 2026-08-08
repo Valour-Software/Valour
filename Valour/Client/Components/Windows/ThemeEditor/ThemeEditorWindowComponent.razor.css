@@ -1,0 +1,69 @@
+.theme-editor-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.theme-editor-window-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 0 0.85rem;
+}
+
+.theme-editor-window-body .editor-section:first-child {
+    padding-top: 0.85rem;
+}
+
+.theme-editor-css-textarea {
+    min-height: 320px;
+    resize: vertical;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+}
+
+.theme-editor-window-footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-top: 1px solid var(--slight-tint);
+    background-color: var(--main-3);
+    overflow-x: auto;
+}
+
+.theme-editor-window-nav {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.4rem;
+}
+
+.theme-editor-nav-btn {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.theme-editor-nav-btn:hover {
+    background-color: var(--medium-tint);
+}
+
+.theme-editor-nav-btn.active {
+    background-color: var(--color-primary-soft);
+    border-color: var(--color-primary-border);
+    color: var(--font-color);
+}
+
+.theme-editor-window-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.5rem;
+}

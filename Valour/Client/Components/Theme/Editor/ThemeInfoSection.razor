@@ -1,0 +1,457 @@
+@using System.Net.Http.Headers
+@using Valour.Shared.Models.Themes
+@inject IJSRuntime JsRuntime
+@inject ValourClient Client
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-card-text"></i>
+        Details
+    </h3>
+
+    <div class="form-group">
+        <label>Name</label>
+        <input class="v-input" @bind-value="@Theme.Name" />
+    </div>
+
+    <div class="form-group">
+        <label>Description</label>
+        <InputTextArea @bind-Value="@Theme.Description" class="v-input" rows="4"></InputTextArea>
+    </div>
+
+    <div class="toggle-item">
+        <div class="toggle-header">
+            <span class="toggle-title">Publishing</span>
+            <span class="@GetPublishedBadgeClass()">@(Theme.Published ? "Published" : "Private")</span>
+        </div>
+        <p class="toggle-description">Published themes are visible to other users in the theme browser.</p>
+        <div class="actions">
+            @if (Theme.Published)
+            {
+                <VButton Variant="danger" OnClick="@(() => SetPublished(false))">Switch to Private</VButton>
+            }
+            else
+            {
+                <VButton Variant="primary" OnClick="@(() => SetPublished(true))">Publish Theme</VButton>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-fonts"></i>
+        Typography & Radius
+    </h3>
+
+    <div class="form-group">
+        <label>App Font</label>
+        <input class="v-input" value="@Theme.FontFamily" @oninput="@OnChangeFontFamily" />
+        <p class="helper-text">Use a normal CSS font stack, or choose an uploaded font below.</p>
+    </div>
+
+    @if (_fontAssets.Count > 0)
+    {
+        <div class="form-group">
+            <label>Uploaded Fonts</label>
+            <select class="v-input" @onchange="@OnFontAssetSelected">
+                <option value="">Choose uploaded font...</option>
+                @foreach (var asset in _fontAssets)
+                {
+                    <option value="@asset.Name">@($"theme-font-{asset.Name}")</option>
+                }
+            </select>
+        </div>
+    }
+
+    <div class="form-group">
+        <label>Rounding Scale</label>
+        <div class="radius-grid">
+            <input class="v-input" value="@Theme.RadiusXs" @oninput="@OnChangeRadiusXs" placeholder="xs" />
+            <input class="v-input" value="@Theme.RadiusSm" @oninput="@OnChangeRadiusSm" placeholder="sm" />
+            <input class="v-input" value="@Theme.RadiusMd" @oninput="@OnChangeRadiusMd" placeholder="md" />
+            <input class="v-input" value="@Theme.RadiusLg" @oninput="@OnChangeRadiusLg" placeholder="lg" />
+            <input class="v-input" value="@Theme.RadiusXl" @oninput="@OnChangeRadiusXl" placeholder="xl" />
+            <input class="v-input" value="@Theme.RadiusFull" @oninput="@OnChangeRadiusFull" placeholder="full" />
+        </div>
+    </div>
+</div>
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-image"></i>
+        Banner
+    </h3>
+
+    @{ var bannerWebpUrl = Theme.HasCustomBanner ? Theme.GetBannerUrl(ThemeBannerFormat.Webp) : null; }
+
+    @if (Theme.HasCustomBanner && Theme.HasAnimatedBanner && _blobUrl is null)
+    {
+        <style>
+            .theme-img-@Theme.Id:hover {
+                background-image: url(@Theme.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@bannerWebpUrl), url(_content/Valour.Client/media/image-not-found.webp) !important;
+            }
+        </style>
+    }
+
+    <div class="theme-banner-row">
+        @if (_blobUrl is not null)
+        {
+            <label class="theme-img theme-img-@Theme.Id" for="@_bannerUploadInputId" style="background-image: url(@_blobUrl)"></label>
+        }
+        else if (Theme.HasCustomBanner)
+        {
+            <label class="theme-img theme-img-@Theme.Id" for="@_bannerUploadInputId" style="background-image: url(@bannerWebpUrl), url(_content/Valour.Client/media/image-not-found.webp)"></label>
+        }
+        else
+        {
+            <label class="theme-img victor-placeholder" for="@_bannerUploadInputId" style="background-color: @Theme.MainColor1">
+                <Victor Style="max-height: 80%; padding: 5px; padding-top: 10px;" Color="@Theme.PastelCyan" />
+            </label>
+        }
+
+        <div class="theme-banner-copy">
+            <label for="@_bannerUploadInputId" class="v-btn secondary">
+                <i class="bi bi-upload"></i>
+                Upload Banner
+            </label>
+            <p class="helper-text">PNG, JPG, GIF, or WEBP. Suggested size: 600x300px.</p>
+        </div>
+    </div>
+
+    <div class="hidden-input">
+        <InputFile OnChange="@LoadBannerFileAsync" accept=".png,.jpg,.jpeg,.gif,.webp" id="@_bannerUploadInputId"></InputFile>
+    </div>
+</div>
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-folder2-open"></i>
+        Theme Assets
+    </h3>
+    <p class="helper-text">Upload images or fonts. Images expose <code>var(--theme-asset-name)</code>; fonts expose <code>"theme-font-name"</code>.</p>
+
+    @if (_themeAssets?.Any() == true)
+    {
+        <div class="assets-list">
+            @foreach (var asset in _themeAssets)
+            {
+                <div class="asset-row">
+                    @if (asset.AssetType == "font")
+                    {
+                        <div class="asset-icon">
+                            <i class="bi bi-fonts"></i>
+                        </div>
+                        <div class="asset-info">
+                            <strong>@asset.Name</strong>
+                            <code>font-family: "theme-font-@asset.Name"</code>
+                        </div>
+                        <VButton Variant="secondary" Size="sm" OnClick="@(() => UseFontAsset(asset))">Use Font</VButton>
+                    }
+                    else
+                    {
+                        <img src="@asset.Url" alt="@asset.Name" class="asset-preview" />
+                        <div class="asset-info">
+                            <strong>@asset.Name</strong>
+                            <code>var(--theme-asset-@asset.Name)</code>
+                        </div>
+                    }
+                    <VButton Variant="danger" Size="sm" Icon="trash" Title="Delete asset" OnClick="@(() => DeleteAssetAsync(asset))" />
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="helper-text">No assets uploaded yet.</p>
+    }
+
+    @if (Theme.Id != 0)
+    {
+        <div class="asset-upload-row">
+            <input class="v-input asset-name-input" @bind="_newAssetName" placeholder="Asset name, e.g. background" />
+            <VButton Variant="secondary" OnClick="@OpenAssetPickerAsync">Choose File</VButton>
+            <span class="selected-file" title="@(_assetFileName ?? "No file selected")">@(_assetFileName ?? "No file selected")</span>
+            <input id="@_assetUploadInputId" type="file" class="hidden-native-input" accept=".png,.jpg,.jpeg,.webp,.gif,.woff2,.woff,.ttf,.otf" />
+        </div>
+        <div class="actions">
+            <VButton Variant="primary" Disabled="@_uploadingAsset" OnClick="@UploadAssetAsync">
+                @(_uploadingAsset ? "Uploading..." : "Upload Asset")
+            </VButton>
+        </div>
+        @if (!string.IsNullOrEmpty(_assetError))
+        {
+            <p class="helper-text error-text">@_assetError</p>
+        }
+    }
+    else
+    {
+        <p class="helper-text">Save the theme first to upload assets.</p>
+    }
+</div>
+
+@code {
+    [Parameter] public Theme Theme { get; set; }
+    [Parameter] public EventCallback OnPublishedChanged { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Theme.Id != 0)
+            await LoadThemeAssetsAsync();
+        else
+            SetAssets(Theme.Assets ?? new());
+    }
+
+    // Details
+
+    private string GetPublishedBadgeClass() =>
+        Theme.Published ? "status-badge enabled" : "status-badge";
+
+    private async Task SetPublished(bool published)
+    {
+        Theme.Published = published;
+        await OnPublishedChanged.InvokeAsync();
+    }
+
+    // Typography
+
+    private void OnChangeFontFamily(ChangeEventArgs e)
+    {
+        Theme.FontFamily = e.Value?.ToString();
+        ThemeComponent.Instance.Refresh();
+    }
+
+    private void OnChangeRadiusXs(ChangeEventArgs e) => UpdateRadius(e, value => Theme.RadiusXs = value);
+    private void OnChangeRadiusSm(ChangeEventArgs e) => UpdateRadius(e, value => Theme.RadiusSm = value);
+    private void OnChangeRadiusMd(ChangeEventArgs e) => UpdateRadius(e, value => Theme.RadiusMd = value);
+    private void OnChangeRadiusLg(ChangeEventArgs e) => UpdateRadius(e, value => Theme.RadiusLg = value);
+    private void OnChangeRadiusXl(ChangeEventArgs e) => UpdateRadius(e, value => Theme.RadiusXl = value);
+    private void OnChangeRadiusFull(ChangeEventArgs e) => UpdateRadius(e, value => Theme.RadiusFull = value);
+
+    private void UpdateRadius(ChangeEventArgs e, Action<string> setRadius)
+    {
+        setRadius(e.Value?.ToString());
+        ThemeComponent.Instance.Refresh();
+    }
+
+    private void OnFontAssetSelected(ChangeEventArgs e)
+    {
+        var assetName = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(assetName))
+            return;
+
+        var asset = _fontAssets.FirstOrDefault(x => x.Name == assetName);
+        if (asset is not null)
+            UseFontAsset(asset);
+    }
+
+    private void UseFontAsset(ThemeAssetInfo asset)
+    {
+        Theme.FontFamily = $"\"theme-font-{asset.Name}\", {ISharedTheme.DefaultFontFamily}";
+        ThemeComponent.Instance.Refresh();
+    }
+
+    // Banner
+
+    private readonly string _bannerUploadInputId = $"theme-banner-upload-{Guid.NewGuid():N}";
+    private IBrowserFile _uploadedImage;
+    private byte[] _uploadedImageBytes;
+    private string _blobUrl;
+
+    private async Task LoadBannerFileAsync(InputFileChangeEventArgs e)
+    {
+        _uploadedImage = e.File;
+
+        using MemoryStream ms = new();
+        var fileStream = e.File.OpenReadStream();
+        await fileStream.CopyToAsync(ms);
+        _uploadedImageBytes = ms.ToArray();
+
+        _blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", _uploadedImageBytes, e.File.ContentType);
+
+        StateHasChanged();
+    }
+
+    // Called by the parent once the theme has a persisted id - a brand-new
+    // theme has no id to upload the banner against until after its first save.
+    public async Task UploadBannerIfNeededAsync(long themeId)
+    {
+        if (_uploadedImage is null)
+            return;
+
+        if (_uploadedImage.Size > 10240000)
+            return;
+
+        using var ms = new MemoryStream(_uploadedImageBytes);
+        var streamContent = new StreamContent(ms);
+        var content = new MultipartFormDataContent();
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(_uploadedImage.ContentType);
+        content.Add(streamContent, _uploadedImage.Name, _uploadedImage.Name);
+
+        var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/themeBanner/{themeId}", content);
+        if (!result.Success)
+            Console.WriteLine("Failed to upload banner: " + result.Message);
+
+        _blobUrl = null;
+    }
+
+    // Assets
+
+    private List<ThemeAssetInfo> _themeAssets = new();
+    private List<ThemeAssetInfo> _fontAssets = new();
+    private string _newAssetName;
+    private string _assetFileName;
+    private string _assetError;
+    private bool _uploadingAsset;
+    private readonly string _assetUploadInputId = $"theme-asset-upload-{Guid.NewGuid():N}";
+
+    private async Task LoadThemeAssetsAsync()
+    {
+        var response = await Client.PrimaryNode.GetJsonAsync<List<ThemeAssetInfo>>($"api/themes/{Theme.Id}/assets");
+        SetAssets(response.Success ? response.Data ?? new() : new());
+    }
+
+    private void SetAssets(List<ThemeAssetInfo> assets)
+    {
+        _themeAssets = assets;
+        _fontAssets = assets.Where(a => a.AssetType == "font").ToList();
+        Theme.Assets = assets;
+        if (ReferenceEquals(ThemeComponent.Instance.CurrentTheme, Theme))
+            ThemeComponent.Instance.Refresh();
+    }
+
+    private async Task OpenAssetPickerAsync()
+    {
+        try
+        {
+            var selectedName = await JsRuntime.InvokeAsync<string>("themeAssetPickFile", _assetUploadInputId);
+            _assetFileName = string.IsNullOrWhiteSpace(selectedName) ? null : selectedName;
+            if (!string.IsNullOrWhiteSpace(_assetFileName))
+                _assetError = null;
+        }
+        catch (Microsoft.JSInterop.JSException)
+        {
+            _assetError = "File picker helper failed to load. Refresh the page and try again.";
+        }
+    }
+
+    private async Task UploadAssetAsync()
+    {
+        _assetError = null;
+
+        if (string.IsNullOrWhiteSpace(_newAssetName))
+        {
+            _assetError = "Please enter an asset name.";
+            return;
+        }
+
+        ThemeAssetBrowserFile selectedFile;
+        try
+        {
+            selectedFile = await JsRuntime.InvokeAsync<ThemeAssetBrowserFile>("themeAssetReadSelectedFile", _assetUploadInputId);
+        }
+        catch (Microsoft.JSInterop.JSException)
+        {
+            _assetError = "File picker helper failed to load. Refresh the page and try again.";
+            return;
+        }
+
+        if (selectedFile is null || string.IsNullOrWhiteSpace(selectedFile.Base64))
+        {
+            _assetError = "Select a file first.";
+            return;
+        }
+
+        if (selectedFile.Size > 20_971_520)
+        {
+            _assetError = "File is too large. Maximum size is 20MB.";
+            return;
+        }
+
+        _uploadingAsset = true;
+
+        try
+        {
+            byte[] bytes;
+            try
+            {
+                bytes = Convert.FromBase64String(selectedFile.Base64);
+            }
+            catch
+            {
+                _assetError = "Failed to read the selected asset file.";
+                return;
+            }
+
+            var fileName = string.IsNullOrWhiteSpace(selectedFile.Name) ? "asset" : selectedFile.Name;
+            var contentType = string.IsNullOrWhiteSpace(selectedFile.ContentType) ? "application/octet-stream" : selectedFile.ContentType;
+
+            var content = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(bytes);
+            try
+            {
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            }
+            catch
+            {
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            }
+
+            content.Add(fileContent, fileName, fileName);
+
+            var result = await Client.PrimaryNode.PostMultipartDataWithResponse<ThemeAssetInfo>(
+                $"upload/themeAsset/{Theme.Id}?name={Uri.EscapeDataString(_newAssetName)}", content);
+
+            if (!result.Success)
+            {
+                _assetError = result.Message ?? "Failed to upload asset.";
+                return;
+            }
+
+            var uploadedAsset = result.Data;
+            _newAssetName = null;
+            _assetFileName = null;
+            try
+            {
+                await JsRuntime.InvokeVoidAsync("themeAssetClearSelection", _assetUploadInputId);
+            }
+            catch (Microsoft.JSInterop.JSException)
+            {
+                // Safe to ignore; this is only for clearing local picker state.
+            }
+
+            await LoadThemeAssetsAsync();
+
+            if (uploadedAsset?.AssetType == "font")
+            {
+                var fontAsset = _themeAssets.FirstOrDefault(x => x.Id == uploadedAsset.Id) ?? uploadedAsset;
+                UseFontAsset(fontAsset);
+            }
+        }
+        finally
+        {
+            _uploadingAsset = false;
+        }
+    }
+
+    private sealed class ThemeAssetBrowserFile
+    {
+        public string Name { get; set; }
+        public string ContentType { get; set; }
+        public long Size { get; set; }
+        public string Base64 { get; set; }
+    }
+
+    private async Task DeleteAssetAsync(ThemeAssetInfo asset)
+    {
+        var result = await Client.PrimaryNode.DeleteAsync($"api/themes/{Theme.Id}/assets/{asset.Id}");
+        if (result.Success)
+        {
+            await LoadThemeAssetsAsync();
+        }
+        else
+        {
+            _assetError = result.Message ?? "Failed to delete asset.";
+        }
+    }
+}
