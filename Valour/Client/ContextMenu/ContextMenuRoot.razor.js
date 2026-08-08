@@ -57,11 +57,10 @@ export function reposition(){
     }
     
     // Check the position of submenus. If they overflow the top or right edge
-    // of the screen, shift them down/left with margin to fit. Submenus open
-    // via `left: 100%` of their parent button with no built-in bound (see
-    // ContextSubMenu.razor.css), so on narrow screens or where the .mobile
-    // layout isn't applied they can render partially or fully off-screen
-    // (issue #1622).
+    // of the screen, shift them down/left with margin to fit.
+    // Submenus open leftmost to their parent button with no built-in bound,
+    // so on narrow screens or where the .mobile layout is not applied
+    // they can render partially or fully off-screen. (ContextSubMenu.razor.css; #1622)
     for (let i = 0; i < submenus.length; i++){
         const submenu = submenus[i];
 
