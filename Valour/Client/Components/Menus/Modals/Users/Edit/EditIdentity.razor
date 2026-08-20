@@ -111,10 +111,10 @@
         }
         else if (old != updated)
         {
-            // UpdateAsync() PUTs this same cached member, so by the time the
-            // server's realtime echo comes back the diff sees no change and
-            // never fires Updated for our own client - fire it manually so
-            // the member list and chat name tag update without a reload.
+            // UpdateAsync() PUTs this same cached member, so by the time
+            // the server's realtime echo comes back the diff sees no change
+            // and never fires Updated for our own client - fire it manually
+            // so the member list and chat name tag update without a reload.
             var changes = ModelUpdateUtils.ChangeDictPool.Get();
             changes[nameof(PlanetMember.Nickname)] = new Change<string>(old, updated);
             Member.InvokeUpdatedEvent(new ModelUpdatedEvent<PlanetMember>(Member, new ModelChange<PlanetMember>(changes)));
