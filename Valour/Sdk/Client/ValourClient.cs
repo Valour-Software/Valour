@@ -364,8 +364,8 @@ public class ValourClient
 
             if (old != newUsername)
             {
-                // Pre-mutating our own cached user means the realtime echo of
-                // this change won't detect a diff, so other UI watching
+                // Pre-mutating our own cached user means the realtime echo
+                // of this change won't detect a diff, so other UI watching
                 // User.Updated (member lists, chat name tags) never fires
                 // for our own client without this - see ClientModel.Sync().
                 var changes = ModelUpdateUtils.ChangeDictPool.Get();
