@@ -193,9 +193,9 @@
                 Member.InvokeUpdatedEvent(new ModelUpdatedEvent<PlanetMember>(Member, new ModelChange<PlanetMember>(changes)));
             }
 
-            // The route returns the updated member as its body, which isn't a
-            // message - DeleteAsync doesn't deserialize it, so show a plain
-            // success message instead of the raw JSON.
+            // The route returns the updated member as its body,
+            // which isn't a message - DeleteAsync doesn't deserialize it,
+            // so show a plain success message instead of the raw JSON.
             _avatarResult = TaskResult.FromSuccess("Reverted to the profile avatar.");
         }
         else
