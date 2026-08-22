@@ -21,6 +21,23 @@ export function clearMenu() {
     currentMenu = null;
 }
 
+export function computeSubmenuTranslate(boundingBox, windowWidth, windowHeight, margin = 10){
+    let translateX = 0;
+    let translateY = 0;
+
+    if (boundingBox.right > windowWidth){
+        translateX = windowWidth - boundingBox.right - margin;
+    }
+
+    if (boundingBox.top < 0){
+        translateY = Math.abs(boundingBox.top) + margin;
+    } else if (boundingBox.bottom > windowHeight){
+        translateY = windowHeight - boundingBox.bottom - margin;
+    }
+
+    return { translateX, translateY };
+}
+
 export function reposition(){
 
     if (!currentMenu)
@@ -70,16 +87,7 @@ export function reposition(){
         submenu.style.transform = '';
         const boundingBox = submenu.getBoundingClientRect();
 
-        let translateX = 0;
-        let translateY = 0;
-
-        if (boundingBox.right > windowWidth){
-            translateX = windowWidth - boundingBox.right - 10;
-        }
-
-        if (boundingBox.top < 0){
-            translateY = Math.abs(boundingBox.top) + 10;
-        }
+        const { translateX, translateY } = computeSubmenuTranslate(boundingBox, windowWidth, windowHeight);
 
         if (translateX !== 0 || translateY !== 0){
             submenu.style.transform = `translate(${translateX}px, ${translateY}px)`;
