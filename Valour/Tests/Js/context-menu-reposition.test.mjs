@@ -1,10 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-// computeSubmenuTranslate must keep submenus fully inside the viewport on
-// all four edges. Submenus anchor via `bottom: -50%` off their parent
-// button, so one near the bottom edge can open a submenu that extends past
-// the viewport bottom.
+// computeSubmenuTranslate must keep submenus fully inside the viewport on all four edges.
+// Submenus anchor via `bottom: -50%` off their parent button, so one
+// near the bottom edge can open a submenu that extends past the viewport bottom.
 const checks = [];
 const check = (name, actual, expected) => checks.push([name, actual, expected]);
 
