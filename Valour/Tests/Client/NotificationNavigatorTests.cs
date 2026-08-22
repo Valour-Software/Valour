@@ -5,10 +5,6 @@ namespace Valour.Tests.Client;
 
 public class NotificationNavigatorTests
 {
-    // #1665: "xx messages from xx people" activity notifications used Source
-    // = ChannelActivity, which NavigateTo's switch didn't recognize, so
-    // clicking "View" always hit the default case ("This notification
-    // doesn't have a destination.") instead of opening the channel.
     [Theory]
     [InlineData(NotificationSource.ChannelActivity)]
     [InlineData(NotificationSource.PlanetMemberMention)]
