@@ -35,9 +35,6 @@ export function computeSubmenuTranslate(boundingBox, windowWidth, windowHeight, 
     if (boundingBox.top < 0){
         translateY = Math.abs(boundingBox.top) + margin;
     } else if (boundingBox.bottom > windowHeight){
-        // Submenus anchor via `bottom: -50%` off their parent button
-        // (ContextSubMenu.razor.css), so one near the bottom edge can
-        // open a submenu that extends past the viewport bottom.
         translateY = windowHeight - boundingBox.bottom - margin;
     }
 
