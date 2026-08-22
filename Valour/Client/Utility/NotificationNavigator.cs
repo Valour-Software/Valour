@@ -57,6 +57,27 @@ public static class NotificationNavigator
         return null;
     }
 
+    /// <summary>
+    /// Notification sources that resolve to a planet channel message and are
+    /// routed by fetching the planet/channel and jumping to SourceId.
+    /// The single source of truth for that routing decision (used by
+    /// NavigateTo's switch and exercised directly by
+    /// NotificationNavigatorTests, since the rest of NavigateTo needs a live
+    /// client/JS runtime to run end-to-end).
+    /// </summary>
+    private static readonly HashSet<NotificationSource> PlanetChannelRouteSources = new()
+    {
+        NotificationSource.PlanetMemberMention,
+        NotificationSource.PlanetRoleMention,
+        NotificationSource.PlanetMemberReply,
+        NotificationSource.PlanetHereMention,
+        NotificationSource.PlanetEveryoneMention,
+        NotificationSource.ChannelActivity,
+    };
+
+    internal static bool IsPlanetChannelRouteSource(NotificationSource source) =>
+        PlanetChannelRouteSources.Contains(source);
+
     public static async Task NavigateTo(Notification notification)
     {
         if (notification?.Client is null)
@@ -71,11 +92,7 @@ public static class NotificationNavigator
         {
             switch (notification.Source)
             {
-                case NotificationSource.PlanetMemberMention:
-                case NotificationSource.PlanetRoleMention:
-                case NotificationSource.PlanetMemberReply:
-                case NotificationSource.PlanetHereMention:
-                case NotificationSource.PlanetEveryoneMention:
+                case var source when IsPlanetChannelRouteSource(source):
                 {
                     var planetId = notification.PlanetId;
                     var channelId = notification.ChannelId;
