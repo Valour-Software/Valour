@@ -57,14 +57,6 @@ public static class NotificationNavigator
         return null;
     }
 
-    /// <summary>
-    /// Notification sources that resolve to a planet channel message and are
-    /// routed by fetching the planet/channel and jumping to SourceId.
-    /// The single source of truth for that routing decision (used by
-    /// NavigateTo's switch and exercised directly by
-    /// NotificationNavigatorTests, since the rest of NavigateTo needs a live
-    /// client/JS runtime to run end-to-end).
-    /// </summary>
     private static readonly HashSet<NotificationSource> PlanetChannelRouteSources = new()
     {
         NotificationSource.PlanetMemberMention,
