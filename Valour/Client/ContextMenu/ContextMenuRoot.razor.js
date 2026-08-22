@@ -24,8 +24,6 @@ export function clearMenu() {
 // Margin kept between a repositioned submenu and the viewport edge.
 const SUBMENU_EDGE_MARGIN = 10;
 
-// Pure geometry helper so the boundary-correction math can be unit tested
-// without a DOM (see Tests/Js/context-menu-reposition.test.mjs).
 export function computeSubmenuTranslate(boundingBox, windowWidth, windowHeight, margin = SUBMENU_EDGE_MARGIN){
     let translateX = 0;
     let translateY = 0;
@@ -38,9 +36,8 @@ export function computeSubmenuTranslate(boundingBox, windowWidth, windowHeight, 
         translateY = Math.abs(boundingBox.top) + margin;
     } else if (boundingBox.bottom > windowHeight){
         // Submenus anchor via `bottom: -50%` off their parent button
-        // (ContextSubMenu.razor.css), so a button near the bottom edge
-        // can open a submenu whose content extends past the viewport
-        // bottom. Mirrors the right-edge check above. (#1622)
+        // (ContextSubMenu.razor.css), so one near the bottom edge can
+        // open a submenu that extends past the viewport bottom.
         translateY = windowHeight - boundingBox.bottom - margin;
     }
 

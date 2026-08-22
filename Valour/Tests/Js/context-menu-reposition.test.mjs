@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Context menu submenu boundary correction: computeSubmenuTranslate must
-// keep submenus fully inside the viewport on all four edges, including the
-// bottom edge (#1622 - submenus hang off screen when their parent button
-// is near the bottom, since they anchor via `bottom: -50%`).
+// computeSubmenuTranslate must keep submenus fully inside the viewport on
+// all four edges. Submenus anchor via `bottom: -50%` off their parent
+// button, so one near the bottom edge can open a submenu that extends past
+// the viewport bottom.
 const checks = [];
 const check = (name, actual, expected) => checks.push([name, actual, expected]);
 
@@ -25,7 +25,7 @@ check('3. submenu overflowing the top edge is pushed down by the overflow plus m
   computeSubmenuTranslate({ right: 500, top: -15, bottom: 300 }, windowWidth, windowHeight),
   { translateX: 0, translateY: 25 });
 
-check('4. submenu overflowing the bottom edge is pulled up by the overflow plus margin (#1622)',
+check('4. submenu overflowing the bottom edge is pulled up by the overflow plus margin',
   computeSubmenuTranslate({ right: 500, top: 650, bottom: 760 }, windowWidth, windowHeight),
   { translateX: 0, translateY: -50 });
 
