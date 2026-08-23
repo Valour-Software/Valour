@@ -21,10 +21,7 @@ export function clearMenu() {
     currentMenu = null;
 }
 
-// Margin kept between a repositioned submenu and the viewport edge.
-const SUBMENU_EDGE_MARGIN = 10;
-
-export function computeSubmenuTranslate(boundingBox, windowWidth, windowHeight, margin = SUBMENU_EDGE_MARGIN){
+export function computeSubmenuTranslate(boundingBox, windowWidth, windowHeight, margin = 10){
     let translateX = 0;
     let translateY = 0;
 
