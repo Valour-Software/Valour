@@ -57,6 +57,19 @@ public static class NotificationNavigator
         return null;
     }
 
+    private static readonly HashSet<NotificationSource> PlanetChannelRouteSources = new()
+    {
+        NotificationSource.PlanetMemberMention,
+        NotificationSource.PlanetRoleMention,
+        NotificationSource.PlanetMemberReply,
+        NotificationSource.PlanetHereMention,
+        NotificationSource.PlanetEveryoneMention,
+        NotificationSource.ChannelActivity,
+    };
+
+    internal static bool IsPlanetChannelRouteSource(NotificationSource source) =>
+        PlanetChannelRouteSources.Contains(source);
+
     public static async Task NavigateTo(Notification notification)
     {
         if (notification?.Client is null)
@@ -71,11 +84,7 @@ public static class NotificationNavigator
         {
             switch (notification.Source)
             {
-                case NotificationSource.PlanetMemberMention:
-                case NotificationSource.PlanetRoleMention:
-                case NotificationSource.PlanetMemberReply:
-                case NotificationSource.PlanetHereMention:
-                case NotificationSource.PlanetEveryoneMention:
+                case var source when IsPlanetChannelRouteSource(source):
                 {
                     var planetId = notification.PlanetId;
                     var channelId = notification.ChannelId;
