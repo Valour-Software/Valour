@@ -33,6 +33,7 @@ public class VillagePocScene
     public List<VillagePocCatalogItem> BuildCatalog { get; set; } = new();
     public List<VillagePocTerrainItem> BuildTerrains { get; set; } = new();
     public List<VillagePocBrushItem> BuildBrushes { get; set; } = new();
+    public List<VillagePocWallSet> BuildWallSets { get; set; } = new();
 }
 
 public class VillagePocMap
@@ -189,6 +190,27 @@ public class VillagePocBrushCell
     public string DefinitionKey { get; set; } = string.Empty;
     public int Strength { get; set; } = 1;
     public int Weight { get; set; } = 1;
+}
+
+/// <summary>
+/// A GameMaker-style 47-shape wall atlas. The atlas occupies the first six
+/// rows of an 8x7, 16px-cell block; frame 47 and the final two cells are kept
+/// free for authored helper pieces and future door/end-cap support.
+/// </summary>
+public class VillagePocWallSet
+{
+    public string Key { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string ImageUrl { get; set; } = string.Empty;
+    public int TileSize { get; set; } = 16;
+    public int OriginX { get; set; }
+    public int OriginY { get; set; }
+    public int Columns { get; set; } = 8;
+    public int Rows { get; set; } = 7;
+    public int FrameCount { get; set; } = VillageWallTopology.FrameCount;
+    public int PreviewFrame { get; set; } = 46;
+    public string TopColor { get; set; } = "#c9d5cf";
+    public string FaceColor { get; set; } = "#758782";
 }
 
 public class VillagePocBuilding

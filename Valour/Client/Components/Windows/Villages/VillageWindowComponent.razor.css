@@ -1182,7 +1182,7 @@
 
 .build-tool-row {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     padding: 7px 10px;
     border-bottom: 1px solid var(--slight-tint);
@@ -1824,6 +1824,28 @@
     .build-catalog {
         grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
     }
+}
+
+.wall-set-preview {
+    --wall-top: #c9d5cf;
+    --wall-face: #758782;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: block;
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgba(10, 19, 21, 0.78);
+    background-color: var(--wall-face);
+    background-repeat: no-repeat;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.28);
+    image-rendering: pixelated;
+    transform: translate(-50%, -50%) scale(3);
+    transform-origin: center;
+}
+
+.wall-set-preview:not([style*="background-image"]) {
+    background: linear-gradient(to bottom, var(--wall-top) 0 31%, var(--wall-face) 31% 100%);
 }
 
 .handheld-controls-active .village-chat-composer,

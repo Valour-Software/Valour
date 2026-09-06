@@ -550,6 +550,9 @@ else
                     <button class="@GetBuildToolClass("Paint")" @onclick='() => SetBuildToolAsync("Paint")'>
                         <i class="bi bi-paint-bucket"></i><span>Paint</span>
                     </button>
+                    <button class="@GetBuildToolClass("Walls")" @onclick='() => SetBuildToolAsync("Walls")'>
+                        <i class="bi bi-bricks"></i><span>Walls</span>
+                    </button>
                     <button class="@GetBuildToolClass("Erase")" @onclick='() => SetBuildToolAsync("Erase")'>
                         <i class="bi bi-eraser-fill"></i><span>Erase</span>
                     </button>
@@ -655,6 +658,29 @@ else
                                 <div class="build-empty">No exact tiles match that search.</div>
                             }
                         }
+                        else if (_buildTool == "Walls")
+                        {
+                            <div class="build-catalog-section-title">
+                                <span>3D wall sets</span>
+                                <small>Joins and corners connect</small>
+                            </div>
+                            @foreach (var wallSet in GetVisibleBuildWallSets())
+                            {
+                                <button class="build-catalog-item @(_selectedBuildKey == wallSet.Key ? "active" : string.Empty)"
+                                        title="@wallSet.Name wall set"
+                                        @onclick="() => SelectBuildWallSetAsync(wallSet)">
+                                    <span class="build-item-preview">
+                                        <span class="wall-set-preview" style="@GetBuildWallPreviewStyle(wallSet)"></span>
+                                    </span>
+                                    <span class="build-item-name">@wallSet.Name</span>
+                                    <span class="build-item-size terrain"><i class="bi bi-bezier2"></i> Auto</span>
+                                </button>
+                            }
+                            @if (!GetVisibleBuildWallSets().Any())
+                            {
+                                <div class="build-empty">No wall sets match that search.</div>
+                            }
+                        }
                         else
                         {
                             @foreach (var item in GetVisibleBuildItems())
@@ -681,7 +707,7 @@ else
                 }
 
                 <div class="build-panel-footer">
-                    @if (_buildTool == "Paint")
+                    @if (_buildTool is "Paint" or "Walls")
                     {
                         <span><kbd>Shift</kbd> drag to fill an area</span>
                     }
@@ -2284,6 +2310,9 @@ else
     private VillagePocBrushItem? SelectedBuildBrush =>
         _scene?.BuildBrushes.FirstOrDefault(x => x.Key == _selectedBuildKey);
 
+    private VillagePocWallSet? SelectedBuildWallSet =>
+        _scene?.BuildWallSets.FirstOrDefault(x => x.Key == _selectedBuildKey);
+
     private VillagePocCatalogItem? SelectedBuildTile =>
         _scene?.BuildCatalog.FirstOrDefault(x =>
             x.Key == _selectedBuildKey &&
@@ -2477,6 +2506,11 @@ else
         {
             _selectedBuildKey = GetBuildItemsForTool(tool).FirstOrDefault()?.Key ?? string.Empty;
         }
+        else if (tool == "Walls" &&
+                 !(_scene?.BuildWallSets.Any(x => x.Key == _selectedBuildKey) ?? false))
+        {
+            _selectedBuildKey = _scene?.BuildWallSets.FirstOrDefault()?.Key ?? string.Empty;
+        }
 
         await SyncBuildModeAsync();
         await ReRender();
@@ -2510,6 +2544,14 @@ else
     {
         _selectedBuildKey = tile.Key;
         _buildStatus = $"{tile.Name} selected — paints that exact tile.";
+        await SyncBuildModeAsync();
+        await ReRender();
+    }
+
+    private async Task SelectBuildWallSetAsync(VillagePocWallSet wallSet)
+    {
+        _selectedBuildKey = wallSet.Key;
+        _buildStatus = $"{wallSet.Name} selected — joins and corners connect automatically.";
         await SyncBuildModeAsync();
         await ReRender();
     }
@@ -2589,6 +2631,20 @@ else
         return items.OrderBy(x => x.Name);
     }
 
+    private IEnumerable<VillagePocWallSet> GetVisibleBuildWallSets()
+    {
+        var items = _scene?.BuildWallSets.AsEnumerable() ?? [];
+        if (!string.IsNullOrWhiteSpace(_buildSearch))
+        {
+            var search = _buildSearch.Trim();
+            items = items.Where(x =>
+                x.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                x.Key.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return items.OrderBy(x => x.Name);
+    }
+
     private IEnumerable<string> GetBuildCategories() =>
         new[] { "All" }.Concat(GetBuildItemsForTool("Furnish")
             .Select(x => x.Category)
@@ -2651,6 +2707,22 @@ else
             $"width:{sourceWidth}px;height:{sourceHeight}px;background-image:url('{image}');background-position:{-x * tileSize}px {-y * tileSize}px;transform:translate(-50%,-50%) scale({scale:0.###});");
     }
 
+    private static string GetBuildWallPreviewStyle(VillagePocWallSet wallSet)
+    {
+        var topColor = wallSet.TopColor.Replace("'", string.Empty, StringComparison.Ordinal);
+        var faceColor = wallSet.FaceColor.Replace("'", string.Empty, StringComparison.Ordinal);
+        if (string.IsNullOrWhiteSpace(wallSet.ImageUrl))
+            return $"--wall-top:{topColor};--wall-face:{faceColor};";
+
+        var image = wallSet.ImageUrl.Replace("'", "\\'", StringComparison.Ordinal);
+        var tileSize = Math.Max(1, wallSet.TileSize);
+        var columns = Math.Max(1, wallSet.Columns);
+        var frame = Math.Clamp(wallSet.PreviewFrame, 0, VillageWallTopology.FrameCount - 1);
+        var x = wallSet.OriginX + frame % columns * tileSize;
+        var y = wallSet.OriginY + frame / columns * tileSize;
+        return $"--wall-top:{topColor};--wall-face:{faceColor};background-image:url('{image}');background-position:{-x}px {-y}px;background-size:auto;image-rendering:pixelated;";
+    }
+
     private async Task SyncBuildModeAsync()
     {
         if (_runtime is null)
@@ -2663,6 +2735,7 @@ else
             definition = SelectedBuildPreviewItem,
             selectionKey = _selectedBuildKey,
             brush = SelectedBuildRuntimeBrush,
+            wallSet = SelectedBuildWallSet,
         });
     }
 
@@ -2672,7 +2745,7 @@ else
         if (!_buildMode || _buildEditInProgress || Data is null || _currentMap is null)
             return;
 
-        if (_buildTool == "Paint")
+        if (_buildTool is "Paint" or "Walls")
             return;
 
         var selectedItem = SelectedBuildItem;
@@ -2730,6 +2803,34 @@ else
                 : brush is not null
                 ? $"{brush.Name} stamped {cells.Count} time{(cells.Count == 1 ? string.Empty : "s")} as an exact manual pattern."
                 : $"{terrain!.Name} painted across {cells.Count} tile{(cells.Count == 1 ? string.Empty : "s")} with connected edges.");
+    }
+
+    [JSInvokable]
+    public async Task OnBuildWallStrokeSelected(
+        List<VillageBuildCell>? cells,
+        string? wallSetKey)
+    {
+        if (!_buildMode || _buildEditInProgress || Data is null || _currentMap is null ||
+            cells is null || cells.Count == 0)
+        {
+            return;
+        }
+
+        var wallSet = _scene?.BuildWallSets.FirstOrDefault(x => x.Key == wallSetKey);
+        if (wallSet is null)
+            return;
+
+        await SubmitBuildRequestAsync(
+            _currentMap,
+            new VillageBuildRequest
+            {
+                Action = VillageBuildAction.Wall,
+                WallSetKey = wallSet.Key,
+                Cells = cells,
+                X = cells[0].X,
+                Y = cells[0].Y,
+            },
+            $"{wallSet.Name} built across {cells.Count} tile{(cells.Count == 1 ? string.Empty : "s")} with connected corners.");
     }
 
     private async Task SubmitBuildRequestAsync(

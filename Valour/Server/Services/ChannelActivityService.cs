@@ -429,8 +429,13 @@ public class ChannelActivityService
 
     private static string GetSenderAvatar(Valour.Database.Message message)
     {
-        if (!string.IsNullOrWhiteSpace(message.OverrideAvatarUrl))
-            return message.OverrideAvatarUrl;
+        var webhookAvatar = ISharedPlanetWebhook.GetAvatar(
+            message.WebhookId,
+            message.WebhookAvatarAssetId,
+            message.WebhookAvatarAnimated,
+            AvatarFormat.Webp128);
+        if (webhookAvatar is not null)
+            return webhookAvatar;
         if (!string.IsNullOrWhiteSpace(message.AuthorMember?.MemberAvatar))
             return ISharedPlanetMember.GetAvatar(message.AuthorMember, AvatarFormat.Webp128);
 

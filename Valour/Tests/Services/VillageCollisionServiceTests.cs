@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Valour.Server.Services.Villages;
+using Valour.Shared.Villages;
 
 namespace Valour.Tests.Services;
 
@@ -95,6 +96,27 @@ public class VillageCollisionServiceTests
         Assert.False(collision.IsWalkable(31, 30));
         Assert.False(collision.IsWalkable(30, 31));
         Assert.False(collision.IsWalkable(31, 31));
+    }
+
+    [Fact]
+    public void SemanticWallObject_BlocksExactlyItsMapCellWithoutAtlasMetadata()
+    {
+        var collision = Resolve().BuildMapForTesting(
+            Map(8, 8),
+            objects:
+            [
+                new Valour.Database.VillageObject
+                {
+                    DefinitionKey = VillageWallTopology.MakeDefinitionKey("modern.green", 46),
+                    X = 3,
+                    Y = 4,
+                    BlocksMovement = true,
+                },
+            ]);
+
+        Assert.False(collision.IsWalkable(3, 4));
+        Assert.True(collision.IsWalkable(3, 3));
+        Assert.True(collision.IsWalkable(4, 4));
     }
 
     [Fact]
@@ -228,5 +250,17 @@ public class VillageCollisionServiceTests
         Assert.Equal(3, path.Size);
         Assert.Equal(9, path.Cells.Count);
         Assert.All(path.Cells, cell => Assert.False(string.IsNullOrWhiteSpace(cell.DefinitionKey)));
+    }
+
+    [Fact]
+    public void WallCatalog_ExposesShapeContractWithoutShippingPurchasedPixels()
+    {
+        var wallSet = Assert.Single(Resolve().GetBuildWallSets("exterior-tileset-0"));
+
+        Assert.Equal("modern.green", wallSet.Key);
+        Assert.Equal(8, wallSet.Columns);
+        Assert.Equal(7, wallSet.Rows);
+        Assert.Equal(VillageWallTopology.FrameCount, wallSet.FrameCount);
+        Assert.Equal(string.Empty, wallSet.ImageUrl);
     }
 }

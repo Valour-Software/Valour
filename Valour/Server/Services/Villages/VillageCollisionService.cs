@@ -24,6 +24,7 @@ public sealed class VillageCollisionService
     private readonly IReadOnlyDictionary<string, CollisionDefinition> _defaultDefinitions;
     private readonly IReadOnlyDictionary<string, TerrainIndexEntry> _defaultTerrainIndex;
     private readonly IReadOnlyDictionary<string, BrushDefinition> _defaultBrushes;
+    private readonly IReadOnlyDictionary<string, WallSetDefinition> _defaultWallSets;
     private readonly string _defaultImageUrl;
     private readonly int _defaultTileSize;
 
@@ -33,7 +34,7 @@ public sealed class VillageCollisionService
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
-        (_defaultDefinitions, _defaultTerrainIndex, _defaultBrushes, _defaultImageUrl, _defaultTileSize) = LoadDefinitions();
+        (_defaultDefinitions, _defaultTerrainIndex, _defaultBrushes, _defaultWallSets, _defaultImageUrl, _defaultTileSize) = LoadDefinitions();
     }
 
     internal string GetBuildCatalogImageUrl(string? tilesetKey) =>
@@ -70,6 +71,27 @@ public sealed class VillageCollisionService
                 .OrderBy(x => x.Name, StringComparer.Ordinal)
                 .ToArray()
             : [];
+
+    internal IReadOnlyCollection<WallSetDefinition> GetBuildWallSets(string? tilesetKey) =>
+        string.Equals(tilesetKey, DefaultTileset, StringComparison.Ordinal)
+            ? _defaultWallSets.Values.OrderBy(x => x.Name, StringComparer.Ordinal).ToArray()
+            : [];
+
+    internal bool TryGetWallSet(
+        string? tilesetKey,
+        string wallSetKey,
+        out WallSetDefinition wallSet)
+    {
+        if (string.Equals(tilesetKey, DefaultTileset, StringComparison.Ordinal) &&
+            _defaultWallSets.TryGetValue(wallSetKey, out var found))
+        {
+            wallSet = found;
+            return true;
+        }
+
+        wallSet = default!;
+        return false;
+    }
 
     internal bool TryGetBrush(
         string? tilesetKey,
@@ -219,6 +241,7 @@ public sealed class VillageCollisionService
         IReadOnlyDictionary<string, CollisionDefinition> Definitions,
         IReadOnlyDictionary<string, TerrainIndexEntry> TerrainIndex,
         IReadOnlyDictionary<string, BrushDefinition> Brushes,
+        IReadOnlyDictionary<string, WallSetDefinition> WallSets,
         string ImageUrl,
         int TileSize) LoadDefinitions()
     {
@@ -229,10 +252,20 @@ public sealed class VillageCollisionService
             if (stream is null)
             {
                 _logger.LogError("Embedded village tileset {Resource} was not found.", DefaultTilesetResource);
-                return (EmptyDefinitions.Instance, EmptyTerrainIndex.Instance, EmptyBrushes.Instance, string.Empty, 16);
+                return (EmptyDefinitions.Instance, EmptyTerrainIndex.Instance, EmptyBrushes.Instance, EmptyWallSets.Instance, string.Empty, 16);
             }
 
             using var document = JsonDocument.Parse(stream);
+            if (!document.RootElement.TryGetProperty("format", out var format) ||
+                format.ValueKind != JsonValueKind.String ||
+                !string.Equals(format.GetString(), "valour.tileset", StringComparison.Ordinal) ||
+                !document.RootElement.TryGetProperty("version", out var version) ||
+                !version.TryGetInt32(out var parsedVersion) ||
+                parsedVersion != 1)
+            {
+                throw new InvalidDataException("The embedded village tileset is not a supported canonical Valour tileset.");
+            }
+
             var definitions = new Dictionary<string, CollisionDefinition>(StringComparer.Ordinal);
             var terrains = new Dictionary<string, TerrainDefinition>(StringComparer.Ordinal);
             var imageUrl = document.RootElement.TryGetProperty("image", out var image) &&
@@ -264,7 +297,7 @@ public sealed class VillageCollisionService
             if (!document.RootElement.TryGetProperty("definitions", out var rawDefinitions) ||
                 rawDefinitions.ValueKind != JsonValueKind.Array)
             {
-                return (definitions, BuildTerrainIndex(terrains.Values, definitions.Values), EmptyBrushes.Instance, imageUrl, tileSize);
+                return (definitions, BuildTerrainIndex(terrains.Values, definitions.Values), EmptyBrushes.Instance, BuildWallSets(document.RootElement), imageUrl, tileSize);
             }
 
             foreach (var item in rawDefinitions.EnumerateArray())
@@ -310,14 +343,62 @@ public sealed class VillageCollisionService
                 definitions,
                 BuildTerrainIndex(terrains.Values, definitions.Values),
                 BuildBrushes(document.RootElement, definitions),
+                BuildWallSets(document.RootElement),
                 imageUrl,
                 tileSize);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not load authoritative village collision definitions.");
-            return (EmptyDefinitions.Instance, EmptyTerrainIndex.Instance, EmptyBrushes.Instance, string.Empty, 16);
+            return (EmptyDefinitions.Instance, EmptyTerrainIndex.Instance, EmptyBrushes.Instance, EmptyWallSets.Instance, string.Empty, 16);
         }
+    }
+
+    private static IReadOnlyDictionary<string, WallSetDefinition> BuildWallSets(JsonElement root)
+    {
+        var wallSets = new Dictionary<string, WallSetDefinition>(StringComparer.Ordinal);
+        if (!root.TryGetProperty("wallSets", out var rawWallSets) ||
+            rawWallSets.ValueKind != JsonValueKind.Array)
+        {
+            return wallSets;
+        }
+
+        foreach (var item in rawWallSets.EnumerateArray())
+        {
+            if (!TryGetString(item, "Key", "key", out var key) ||
+                !VillageWallTopology.IsValidWallSetKey(key))
+            {
+                continue;
+            }
+
+            TryGetString(item, "Name", "name", out var name);
+            TryGetString(item, "Image", "image", out var image);
+            TryGetString(item, "TopColor", "topColor", out var topColor);
+            TryGetString(item, "FaceColor", "faceColor", out var faceColor);
+            TryGetInt(item, "TileSize", "tileSize", out var wallTileSize);
+            TryGetInt(item, "OriginX", "originX", out var originX);
+            TryGetInt(item, "OriginY", "originY", out var originY);
+            TryGetInt(item, "Columns", "columns", out var columns);
+            TryGetInt(item, "Rows", "rows", out var rows);
+            TryGetInt(item, "FrameCount", "frameCount", out var frameCount);
+            TryGetInt(item, "PreviewFrame", "previewFrame", out var previewFrame);
+
+            wallSets[key] = new WallSetDefinition(
+                key,
+                string.IsNullOrWhiteSpace(name) ? key : name,
+                image,
+                Math.Max(1, wallTileSize),
+                Math.Max(0, originX),
+                Math.Max(0, originY),
+                Math.Max(1, columns),
+                Math.Max(1, rows),
+                frameCount == VillageWallTopology.FrameCount ? frameCount : VillageWallTopology.FrameCount,
+                previewFrame is >= 0 and < VillageWallTopology.FrameCount ? previewFrame : 46,
+                string.IsNullOrWhiteSpace(topColor) ? "#c9d5cf" : topColor,
+                string.IsNullOrWhiteSpace(faceColor) ? "#758782" : faceColor);
+        }
+
+        return wallSets;
     }
 
     private static IReadOnlyDictionary<string, BrushDefinition> BuildBrushes(
@@ -752,6 +833,20 @@ public sealed class VillageCollisionService
         int Strength,
         int Weight);
 
+    internal sealed record WallSetDefinition(
+        string Key,
+        string Name,
+        string ImageUrl,
+        int TileSize,
+        int OriginX,
+        int OriginY,
+        int Columns,
+        int Rows,
+        int FrameCount,
+        int PreviewFrame,
+        string TopColor,
+        string FaceColor);
+
     private sealed class TerrainIndexEntry(TerrainDefinition terrain)
     {
         public TerrainDefinition Terrain { get; set; } = terrain;
@@ -782,6 +877,12 @@ public sealed class VillageCollisionService
     {
         public static readonly EmptyBrushes Instance = new();
         private EmptyBrushes() : base(StringComparer.Ordinal) { }
+    }
+
+    private sealed class EmptyWallSets : Dictionary<string, WallSetDefinition>
+    {
+        public static readonly EmptyWallSets Instance = new();
+        private EmptyWallSets() : base(StringComparer.Ordinal) { }
     }
 
     internal sealed class VillageCollisionMap

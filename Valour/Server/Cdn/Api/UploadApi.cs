@@ -129,6 +129,7 @@ public class UploadApi
         app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
         app.MapPost("/upload/planetbg/{planetId}", PlanetBackgroundImageRoute);
         app.MapPost("/upload/planetemoji/{planetId}", PlanetEmojiImageRoute);
+        app.MapPost("/upload/webhook/{webhookId}", WebhookAvatarImageRoute);
         app.MapPost("/upload/app/{appId}", AppImageRoute);
         app.MapPost("/upload/file", FileRoute);
         app.MapPost("upload/themeBanner/{themeId}", ThemeBannerRoute);
@@ -324,6 +325,78 @@ public class UploadApi
         var fullPath = $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{upload.Message}?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
         var result = await memberService.UpdateAvatarAsync(member.Id, fullPath);
         return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+    }
+
+    [FileUploadOperation.FileContentType]
+    [RequestSizeLimit(20_971_520)]
+    private static async Task<IResult> WebhookAvatarImageRoute(
+        HttpContext ctx,
+        TokenService tokenService,
+        PlanetMemberService memberService,
+        PlanetWebhookService webhookService,
+        CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
+        long webhookId)
+    {
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        if (authToken is null)
+            return ValourResult.InvalidToken();
+
+        var webhook = await webhookService.GetAsync(webhookId);
+        if (webhook is null)
+            return ValourResult.NotFound<Valour.Server.Models.PlanetWebhook>();
+
+        var member = await memberService.GetByUserAsync(authToken.UserId, webhook.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageWebhooks))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageWebhooks);
+
+        var file = ctx.Request.Form.Files.FirstOrDefault();
+        if (file is null)
+            return ValourResult.BadRequest("Please attach a file.");
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
+            return ValourResult.BadRequest("Unsupported file type.");
+
+        var oversized = await RejectIfOversizedAsync(file);
+        if (oversized is not null)
+            return oversized;
+
+        using var source = new MemoryStream();
+        await file.CopyToAsync(source);
+        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(
+            source,
+            file.FileName,
+            file.ContentType);
+        if (safetyHashMatch.ShouldBlock)
+            return ValourResult.Forbid("Unable to upload this image.");
+
+        source.Position = 0;
+        using var image = await Image.LoadAsync(
+            new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) },
+            source);
+        HandleExif(image);
+
+        // A fresh path makes the asset immutable. Messages stamp this id at
+        // send time, so replacing a webhook avatar cannot rewrite history.
+        var assetId = Valour.Server.Database.IdManager.Generate();
+        var upload = await UploadPublicImageVariants(
+            bucketService,
+            image,
+            "webhookavatars",
+            $"{webhookId}/{assetId}",
+            AvatarSizes,
+            0,
+            true,
+            false);
+        if (!upload.Success)
+            return ValourResult.Problem(upload.Message);
+
+        var update = await webhookService.SetAvatarAsync(webhookId, assetId, upload.Data);
+        return update.Success
+            ? Results.Json(update.Data)
+            : ValourResult.BadRequest(update.Message);
     }
     
     public static ImageSize[] ThemeBannerSizes =

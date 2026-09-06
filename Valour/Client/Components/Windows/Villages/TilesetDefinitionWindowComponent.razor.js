@@ -1,4 +1,5 @@
 import { clamp, isTextInput, loadStandaloneImage } from "../../../ts/VillageTileRendering.js";
+import { reconstructTilesetSource, renderTilesetPackage } from "../../../ts/VillageTilesetPacking.js";
 
 export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
     const canvas = document.getElementById(canvasId);
@@ -31,6 +32,10 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
         resizing: null,
         keyboardPanSpeed: 24,
         localObjectUrl: null,
+        packageImageUrl: null,
+        packageManifestUrl: null,
+        packageImageFileName: null,
+        packageManifestFileName: null,
         destroyed: false
     };
 
@@ -55,6 +60,52 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
             };
             draw(state);
         },
+        async buildPackage(manifest, baseName, sourceSha256) {
+            if (!state.imageLoaded) {
+                throw new Error("Upload and load a source sheet before building the package.");
+            }
+            revokePackageUrls(state);
+            const safeBaseName = sanitizeFileName(baseName || "tileset");
+            const imageFileName = `${safeBaseName}.png`;
+            const manifestFileName = `${safeBaseName}.tileset.json`;
+            const result = await renderTilesetPackage(state.image, manifest, imageFileName, sourceSha256 || "");
+            state.packageImageUrl = URL.createObjectURL(result.imageBlob);
+            state.packageManifestUrl = URL.createObjectURL(new Blob([result.json], { type: "application/json" }));
+            state.packageImageFileName = imageFileName;
+            state.packageManifestFileName = manifestFileName;
+            return {
+                manifestJson: result.json,
+                imageFileName,
+                manifestFileName,
+                atlasWidth: result.plan.atlasWidth,
+                atlasHeight: result.plan.atlasHeight,
+                regionCount: result.plan.regions.length,
+                imageBytes: result.imageBlob.size
+            };
+        },
+        downloadPackageFile(kind) {
+            if (kind === "image") {
+                downloadUrl(state.packageImageUrl, state.packageImageFileName);
+                return;
+            }
+            if (kind === "manifest") {
+                downloadUrl(state.packageManifestUrl, state.packageManifestFileName);
+            }
+        },
+        async reconstructSource(manifest) {
+            if (!state.imageLoaded) {
+                throw new Error("Load the packed atlas before reconstructing its source layout.");
+            }
+            const result = await reconstructTilesetSource(state.image, manifest);
+            const previousUrl = state.localObjectUrl;
+            const reconstructedUrl = URL.createObjectURL(result.imageBlob);
+            state.localObjectUrl = reconstructedUrl;
+            await loadImage(state, reconstructedUrl);
+            if (previousUrl && previousUrl !== reconstructedUrl) {
+                URL.revokeObjectURL(previousUrl);
+            }
+            return reconstructedUrl;
+        },
         dispose() {
             state.destroyed = true;
             state.resizeObserver?.disconnect();
@@ -68,6 +119,7 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
             window.removeEventListener("keydown", state.onKeyDown);
             fileInput.removeEventListener("change", state.onFileChange);
             revokeLocalObjectUrl(state);
+            revokePackageUrls(state);
         }
     };
 
@@ -202,21 +254,31 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
     };
 
     state.onFileChange = async () => {
-        const file = fileInput.files?.[0];
-        if (!file) {
+        const files = [...(fileInput.files ?? [])];
+        if (files.length === 0) {
             return;
         }
 
-        revokeLocalObjectUrl(state);
-        const url = URL.createObjectURL(file);
-        state.localObjectUrl = url;
         fileInput.value = "";
 
         try {
-            await loadImage(state, url);
-            await dotNetRef.invokeMethodAsync("OnImageChanged", file.name, url);
+            const composed = await composeSourceSheets(files, state.tileSize);
+            const previousUrl = state.localObjectUrl;
+            state.localObjectUrl = composed.url;
+            await loadImage(state, composed.url);
+            if (previousUrl && previousUrl !== composed.url) {
+                URL.revokeObjectURL(previousUrl);
+            }
+            await dotNetRef.invokeMethodAsync(
+                "OnImageChanged",
+                files.length === 1 ? files[0].name : `${files.length} source sheets`,
+                composed.url,
+                composed.sha256,
+                composed.width,
+                composed.height,
+                composed.sheets);
         } catch (error) {
-            console.error("Failed to load local tilesheet.", error);
+            console.error("Failed to load local tilesheet source.", error);
         }
     };
 
@@ -274,6 +336,128 @@ function revokeLocalObjectUrl(state) {
 
     URL.revokeObjectURL(state.localObjectUrl);
     state.localObjectUrl = null;
+}
+
+function revokePackageUrls(state) {
+    if (state.packageImageUrl) {
+        URL.revokeObjectURL(state.packageImageUrl);
+    }
+    if (state.packageManifestUrl) {
+        URL.revokeObjectURL(state.packageManifestUrl);
+    }
+    state.packageImageUrl = null;
+    state.packageManifestUrl = null;
+    state.packageImageFileName = null;
+    state.packageManifestFileName = null;
+}
+
+async function hashFile(file) {
+    if (!globalThis.crypto?.subtle) {
+        return "";
+    }
+    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+    return [...new Uint8Array(digest)]
+        .map(value => value.toString(16).padStart(2, "0"))
+        .join("");
+}
+
+async function hashText(value) {
+    if (!globalThis.crypto?.subtle) {
+        return "";
+    }
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+    return [...new Uint8Array(digest)]
+        .map(item => item.toString(16).padStart(2, "0"))
+        .join("");
+}
+
+async function canvasToBlob(canvas) {
+    return await new Promise((resolve, reject) => {
+        canvas.toBlob(blob => blob
+            ? resolve(blob)
+            : reject(new Error("The browser could not compose the source sheets.")), "image/png");
+    });
+}
+
+async function composeSourceSheets(files, tileSize) {
+    const loaded = [];
+    for (const file of files) {
+        const objectUrl = URL.createObjectURL(file);
+        try {
+            loaded.push({
+                file,
+                image: await loadStandaloneImage(objectUrl),
+                sha256: await hashFile(file)
+            });
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
+    }
+    loaded.sort((left, right) =>
+        (left.sha256 || left.file.name).localeCompare(right.sha256 || right.file.name));
+
+    const align = value => Math.ceil(value / tileSize) * tileSize;
+    const width = align(Math.max(...loaded.map(item => item.image.width)));
+    let height = 0;
+    const sheets = loaded.map((item, index) => {
+        const sheet = {
+            id: item.sha256 ? `sheet-${item.sha256.slice(0, 12)}` : `sheet-${index + 1}`,
+            fileName: item.file.name,
+            sha256: item.sha256,
+            width: item.image.width,
+            height: item.image.height,
+            offsetX: 0,
+            offsetY: height
+        };
+        height += align(item.image.height);
+        return sheet;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = Math.max(tileSize, height);
+    const context = canvas.getContext("2d");
+    if (!context) {
+        throw new Error("Canvas rendering is unavailable.");
+    }
+    context.imageSmoothingEnabled = false;
+    loaded.forEach((item, index) => {
+        const sheet = sheets[index];
+        context.drawImage(item.image, sheet.offsetX, sheet.offsetY);
+    });
+
+    const sha256 = await hashText(sheets
+        .map(sheet => `${sheet.sha256}:${sheet.width}:${sheet.height}:${sheet.offsetX}:${sheet.offsetY}`)
+        .join("|"));
+    const blob = await canvasToBlob(canvas);
+    return {
+        url: URL.createObjectURL(blob),
+        sha256,
+        width: canvas.width,
+        height: canvas.height,
+        sheets
+    };
+}
+
+function sanitizeFileName(value) {
+    return String(value)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "tileset";
+}
+
+function downloadUrl(url, fileName) {
+    if (!url || !fileName) {
+        return;
+    }
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
 }
 
 function loadImage(state, url) {

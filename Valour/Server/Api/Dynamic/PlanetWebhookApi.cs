@@ -158,6 +158,30 @@ public class PlanetWebhookApi
         return Results.Json(result.Data);
     }
 
+    [ValourRoute(HttpVerbs.Delete, "api/planetwebhooks/{id}/avatar")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> DeleteAvatarRouteAsync(
+        long id,
+        PlanetMemberService memberService,
+        PlanetWebhookService webhookService)
+    {
+        var webhook = await webhookService.GetAsync(id);
+        if (webhook is null)
+            return ValourResult.NotFound<PlanetWebhook>();
+
+        var member = await memberService.GetCurrentAsync(webhook.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageWebhooks))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageWebhooks);
+
+        var result = await webhookService.RemoveAvatarAsync(id);
+        return result.Success
+            ? Results.Json(result.Data)
+            : ValourResult.Problem(result.Message);
+    }
+
     ////////////////////////////////////////////////////////////////
     // Execute routes — anonymous; the token in the URL is the
     // credential (invite-code pattern), verified fixed-time

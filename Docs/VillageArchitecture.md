@@ -350,6 +350,22 @@ anchors the other; expanding or shrinking the rectangle rebuilds the optimistic
 preview from its untouched snapshot. Pointer-up still sends only the final
 deduplicated cell set in the same atomic batch.
 
+Walls use the same stroke and Shift-area interaction but persist as blocking,
+positive-Z semantic objects (`wall:{set}:{frame}`), so they depth-sort with
+characters and participate in the ordinary collision snapshot. The server owns
+the frame: it gates diagonals behind their two cardinal neighbors, collapses the
+eight-neighbor mask to the standard 47 GameMaker blob shapes, and re-resolves the
+changed cells plus their eight neighbors after both paint and erase. Different
+wall styles share structural connectivity while retaining their own art.
+
+Each tileset may advertise any number of 8×7 wall-set blocks. The first 47 cells
+are the row-major 8×6 shape table; frame 47 and bottom-row cells 54–55 remain
+reserved for authored helpers such as doors or end caps. Wall-set metadata points
+at an independent image URL and pixel origin rather than embedding purchased art
+or a local source path. Until that URL is populated by the private CDN packing
+workflow, the editor and canvas render a colored 3D fallback, while persistence,
+topology and collision remain fully usable.
+
 Placement is serialized per map. The server rejects unknown definitions, objects
 outside map or property bounds, furnishings over entrances/buildings/other
 furniture, and erase attempts outside the actor's editable scope. Any successful

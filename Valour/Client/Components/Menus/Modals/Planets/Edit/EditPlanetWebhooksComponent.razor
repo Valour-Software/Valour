@@ -38,8 +38,30 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Avatar URL (optional)</label>
-                <input class="v-input" @bind="_createAvatarUrl" maxlength="@ISharedPlanetWebhook.MaxAvatarUrlLength" placeholder="https://..." />
+                <label>Avatar (optional)</label>
+                <div class="webhook-avatar-picker">
+                    <img class="webhook-avatar-preview"
+                         src="@(_createAvatarPreview ?? ISharedUser.DefaultAvatar)"
+                         alt="Webhook avatar preview" />
+                    <div class="webhook-avatar-picker-actions">
+                        <label for="create-webhook-avatar" class="v-btn secondary small">
+                            <i class="bi bi-upload"></i>
+                            @(_createAvatarBytes is null ? "Choose image" : "Change image")
+                        </label>
+                        @if (_createAvatarBytes is not null)
+                        {
+                            <button type="button" class="v-btn small" @onclick="ClearPendingAvatar">
+                                <i class="bi bi-x-lg"></i> Remove
+                            </button>
+                        }
+                        <span class="webhook-avatar-help">Uploaded to Valour and safely re-encoded. PNG, JPG, GIF, or WEBP; 20 MB max.</span>
+                    </div>
+                    <div class="hidden-file-input">
+                        <InputFile id="create-webhook-avatar"
+                                   accept=".png,.jpg,.jpeg,.gif,.webp"
+                                   OnChange="SelectCreateAvatarAsync" />
+                    </div>
+                </div>
             </div>
 
             <button class="v-btn primary mt-2" disabled="@_creating" @onclick="CreateWebhookAsync">
@@ -85,16 +107,45 @@
                 <div class="webhook-list">
                     @foreach (var webhook in Planet.Webhooks)
                     {
+                        var avatarUrl = ISharedPlanetWebhook.GetAvatar(
+                            webhook.Id,
+                            webhook.AvatarAssetId,
+                            webhook.AvatarAnimated,
+                            webhook.AvatarAnimated ? AvatarFormat.WebpAnimated64 : AvatarFormat.Webp64)
+                            ?? ISharedUser.DefaultAvatar;
                         <div class="webhook-card">
-                            <div class="webhook-info">
-                                <span class="webhook-name">@webhook.Name</span>
-                                <div class="webhook-meta">
-                                    <span><i class="bi bi-hash"></i>@(Planet.Channels.Get(webhook.ChannelId)?.Name ?? "Unknown channel")</span>
-                                    <span class="separator">·</span>
-                                    <span>Created @webhook.TimeCreated.ToLocalTime().ToShortDateString()</span>
+                            <div class="webhook-identity">
+                                <img class="webhook-avatar" src="@avatarUrl" alt="" />
+                                <div class="webhook-info">
+                                    <span class="webhook-name">@webhook.Name</span>
+                                    <div class="webhook-meta">
+                                        <span><i class="bi bi-hash"></i>@(Planet.Channels.Get(webhook.ChannelId)?.Name ?? "Unknown channel")</span>
+                                        <span class="separator">·</span>
+                                        <span>Created @webhook.TimeCreated.ToLocalTime().ToShortDateString()</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="webhook-actions">
+                                <label for="webhook-avatar-@webhook.Id"
+                                       class="v-btn small @(_avatarUploads.Contains(webhook.Id) ? "disabled" : "")"
+                                       title="Upload or replace avatar">
+                                    <i class="bi bi-image"></i>
+                                </label>
+                                <div class="hidden-file-input">
+                                    <InputFile id="@($"webhook-avatar-{webhook.Id}")"
+                                               accept=".png,.jpg,.jpeg,.gif,.webp"
+                                               disabled="@_avatarUploads.Contains(webhook.Id)"
+                                               OnChange="args => SelectExistingAvatarAsync(webhook, args)" />
+                                </div>
+                                @if (webhook.AvatarAssetId is not null)
+                                {
+                                    <button class="v-btn small"
+                                            disabled="@_avatarUploads.Contains(webhook.Id)"
+                                            title="Remove avatar"
+                                            @onclick="() => RemoveAvatarAsync(webhook)">
+                                        <i class="bi bi-person-x"></i>
+                                    </button>
+                                }
                                 <button class="v-btn small" title="Copy webhook URL" @onclick="() => CopyWebhookUrl(webhook)">
                                     <i class="bi bi-clipboard"></i> Copy URL
                                 </button>
@@ -121,9 +172,12 @@
 
     private string _createName;
     private long _createChannelId;
-    private string _createAvatarUrl;
+    private byte[] _createAvatarBytes;
+    private string _createAvatarContentType;
+    private string _createAvatarPreview;
     private bool _creating;
     private ITaskResult _createResult;
+    private readonly HashSet<long> _avatarUploads = new();
 
     private string _newWebhookUrl;
 
@@ -172,25 +226,164 @@
             PlanetId = Planet.Id,
             ChannelId = _createChannelId,
             Name = _createName.Trim(),
-            AvatarUrl = string.IsNullOrWhiteSpace(_createAvatarUrl) ? null : _createAvatarUrl.Trim(),
         };
 
         var result = await webhook.CreateAsync();
         _createResult = result;
-        _creating = false;
 
         if (result.Success && result.Data is not null)
         {
             _newWebhookUrl = BuildExecuteUrl(result.Data.Id, result.Data.Token);
+
+            if (_createAvatarBytes is not null)
+            {
+                var avatarResult = await UploadAvatarAsync(
+                    result.Data,
+                    _createAvatarBytes,
+                    _createAvatarContentType);
+                if (!avatarResult.Success)
+                {
+                    _createResult = TaskResult.FromFailure(
+                        $"Webhook created, but its avatar could not be uploaded: {avatarResult.Message}");
+                }
+                else
+                {
+                    _createResult = null;
+                }
+            }
+
             _createName = null;
             _createChannelId = 0;
-            _createAvatarUrl = null;
-            _createResult = null;
+            ClearPendingAvatar();
 
             await Planet.LoadWebhooksAsync();
         }
 
+        _creating = false;
         StateHasChanged();
+    }
+
+    private async Task SelectCreateAvatarAsync(InputFileChangeEventArgs args)
+    {
+        await OpenAvatarCropperAsync(args, (bytes, contentType, preview) =>
+        {
+            _createAvatarBytes = bytes;
+            _createAvatarContentType = contentType;
+            _createAvatarPreview = preview;
+            _createResult = null;
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task SelectExistingAvatarAsync(PlanetWebhook webhook, InputFileChangeEventArgs args)
+    {
+        if (_avatarUploads.Contains(webhook.Id))
+            return;
+
+        await OpenAvatarCropperAsync(args, async (bytes, contentType, _) =>
+        {
+            _avatarUploads.Add(webhook.Id);
+            StateHasChanged();
+
+            var result = await UploadAvatarAsync(webhook, bytes, contentType);
+            _avatarUploads.Remove(webhook.Id);
+
+            ToastContainer.Instance.AddToast(result.Success
+                ? new ToastData("Avatar updated", $"{webhook.Name} has a new avatar", ToastProgressState.Success)
+                : new ToastData("Avatar upload failed", result.Message, ToastProgressState.Failure));
+            StateHasChanged();
+        });
+    }
+
+    private async Task OpenAvatarCropperAsync(
+        InputFileChangeEventArgs args,
+        Func<byte[], string, string, Task> onReady)
+    {
+        const long maxBytes = 20_971_520;
+        var file = args.File;
+        if (file.Size > maxBytes)
+        {
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Image too large",
+                "Webhook avatars must be 20 MB or smaller.",
+                ToastProgressState.Failure));
+            return;
+        }
+
+        await using var stream = file.OpenReadStream(maxBytes);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+        var dataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+
+        ModalRoot.Instance.OpenModal<ImageCropperModal>(new ImageCropperModal.ModalParams
+        {
+            ImageDataUrl = dataUrl,
+            AspectRatio = 1d,
+            OutputMimeType = file.ContentType,
+            OnCropped = async croppedDataUrl =>
+            {
+                if (!EditProfileComponent.TryDecodeImageDataUrl(
+                        croppedDataUrl,
+                        out var bytes,
+                        out var contentType))
+                {
+                    ToastContainer.Instance.AddToast(new ToastData(
+                        "Invalid image",
+                        "The cropped image could not be read.",
+                        ToastProgressState.Failure));
+                    return;
+                }
+
+                await onReady(bytes, contentType, croppedDataUrl);
+            },
+            OnCancel = () => { }
+        });
+    }
+
+    private async Task<TaskResult<PlanetWebhook>> UploadAvatarAsync(
+        PlanetWebhook webhook,
+        byte[] bytes,
+        string contentType)
+    {
+        using var multipart = new MultipartFormDataContent();
+        using var image = new ByteArrayContent(bytes);
+        image.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        multipart.Add(image, "avatar", "avatar");
+
+        var result = await Planet.Node.PostMultipartDataWithResponse<PlanetWebhook>(
+            $"upload/webhook/{webhook.Id}",
+            multipart);
+        if (result.Success && result.Data is not null)
+            result.Data.Sync(Client);
+
+        return result;
+    }
+
+    private async Task RemoveAvatarAsync(PlanetWebhook webhook)
+    {
+        if (!_avatarUploads.Add(webhook.Id))
+            return;
+
+        var result = await Planet.Node.DeleteAsync($"{ISharedPlanetWebhook.BaseRoute}/{webhook.Id}/avatar");
+        _avatarUploads.Remove(webhook.Id);
+        if (result.Success)
+        {
+            webhook.AvatarAssetId = null;
+            webhook.AvatarAnimated = false;
+        }
+
+        ToastContainer.Instance.AddToast(result.Success
+            ? new ToastData("Avatar removed", $"{webhook.Name} now uses the default avatar", ToastProgressState.Success)
+            : new ToastData("Could not remove avatar", result.Message, ToastProgressState.Failure));
+        StateHasChanged();
+    }
+
+    private void ClearPendingAvatar()
+    {
+        _createAvatarBytes = null;
+        _createAvatarContentType = null;
+        _createAvatarPreview = null;
     }
 
     private async Task CopyWebhookUrl(PlanetWebhook webhook)

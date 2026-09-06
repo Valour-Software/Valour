@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Valour.Database.Context;
 using Valour.Sdk.Models;
 using Valour.Sdk.Models.Embeds;
@@ -11,7 +13,7 @@ namespace Valour.Tests.Apis;
 
 /// <summary>
 /// End-to-end tests for planet webhooks against the real server: management
-/// API, anonymous token-URL execution, overrides, spoof protection, token
+/// API, managed avatar upload, anonymous token-URL execution, spoof protection, token
 /// rotation, message edit/delete, and rate limiting.
 /// </summary>
 [Collection("ApiCollection")]
@@ -87,6 +89,29 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         Assert.Equal(_planet.Id, webhook.PlanetId);
         Assert.Equal(_channel.Id, webhook.ChannelId);
 
+        // ---- Avatar upload is authenticated and produces an owned CDN asset ----
+        using var sourceImage = new Image<Rgba32>(2, 2, new Rgba32(38, 198, 218));
+        await using var imageBytes = new MemoryStream();
+        await sourceImage.SaveAsPngAsync(imageBytes);
+        var png = imageBytes.ToArray();
+        using var avatarForm = new MultipartFormDataContent();
+        using var avatarContent = new ByteArrayContent(png);
+        avatarContent.Headers.ContentType = new("image/png");
+        avatarForm.Add(avatarContent, "avatar", "avatar.png");
+        var avatarResponse = await _fixture.Client.Http.PostAsync($"upload/webhook/{webhook.Id}", avatarForm);
+        Assert.True(avatarResponse.IsSuccessStatusCode, await avatarResponse.Content.ReadAsStringAsync());
+        var webhookWithAvatar = await avatarResponse.Content.ReadFromJsonAsync<PlanetWebhook>();
+        Assert.NotNull(webhookWithAvatar?.AvatarAssetId);
+        webhook.AvatarAssetId = webhookWithAvatar.AvatarAssetId;
+        webhook.AvatarAnimated = webhookWithAvatar.AvatarAnimated;
+
+        var avatarUrl = ISharedPlanetWebhook.GetAvatar(
+            webhook.Id,
+            webhook.AvatarAssetId,
+            webhook.AvatarAnimated,
+            AvatarFormat.Webp128);
+        Assert.Contains($"/webhookavatars/{webhook.Id}/{webhook.AvatarAssetId}/128.webp", avatarUrl);
+
         var executeUrl = ISharedPlanetWebhook.GetExecuteRoute(webhook.Id, webhook.Token!);
 
         // ---- Anonymous info fetch does not echo the token ----
@@ -109,6 +134,7 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         Assert.Equal(ISharedUser.VictorUserId, plainMessage.AuthorUserId);
         Assert.Null(plainMessage.AuthorMemberId);
         Assert.Equal(_channel.Id, plainMessage.ChannelId);
+        Assert.Equal(webhook.AvatarAssetId, plainMessage.WebhookAvatarAssetId);
 
         // ---- Execute with overrides + embed ----
         var embed = new EmbedBuilder()
@@ -120,14 +146,13 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         {
             Content = "With overrides",
             OverrideName = "CI Bot",
-            OverrideAvatarUrl = "https://example.com/avatar.png",
         }.WithEmbed(embed));
         Assert.True(overrideResponse.IsSuccessStatusCode, await overrideResponse.Content.ReadAsStringAsync());
 
         var overrideMessage = await overrideResponse.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
         Assert.NotNull(overrideMessage);
         Assert.Equal("CI Bot", overrideMessage.OverrideName);
-        Assert.Equal("https://example.com/avatar.png", overrideMessage.OverrideAvatarUrl);
+        Assert.Equal(webhook.AvatarAssetId, overrideMessage.WebhookAvatarAssetId);
         Assert.NotNull(overrideMessage.EmbedAttachment?.Embed);
         Assert.Equal("Webhook Embed", overrideMessage.EmbedAttachment.Embed.Pages[0].Title);
 
@@ -157,13 +182,15 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
             new WebhookExecuteRequest { Content = "nope" });
         Assert.Equal(HttpStatusCode.Forbidden, badId.StatusCode);
 
-        // ---- Unsafe override avatar is rejected ----
-        var httpAvatar = await _anonymous.PostAsJsonAsync(executeUrl, new WebhookExecuteRequest
+        // ---- Legacy/external avatar fields are ignored and never rendered ----
+        var remoteAvatar = await _anonymous.PostAsJsonAsync(executeUrl, new
         {
             Content = "bad avatar",
             OverrideAvatarUrl = "http://insecure.example/a.png",
         });
-        Assert.False(httpAvatar.IsSuccessStatusCode);
+        Assert.True(remoteAvatar.IsSuccessStatusCode);
+        var remoteAvatarMessage = await remoteAvatar.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
+        Assert.Equal(webhook.AvatarAssetId, remoteAvatarMessage!.WebhookAvatarAssetId);
 
         // ---- Edit via token ----
         await WaitForPersistedAsync(plainMessage.Id);
@@ -199,10 +226,19 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         var oldTokenResponse = await _anonymous.PostAsJsonAsync(executeUrl, new WebhookExecuteRequest { Content = "stale" });
         Assert.Equal(HttpStatusCode.Forbidden, oldTokenResponse.StatusCode);
 
+        // ---- Removing the default avatar affects new messages only ----
+        var removeAvatarResponse = await _fixture.Client.Http.DeleteAsync(
+            $"api/planetwebhooks/{webhook.Id}/avatar");
+        Assert.True(removeAvatarResponse.IsSuccessStatusCode, await removeAvatarResponse.Content.ReadAsStringAsync());
+        var webhookWithoutAvatar = await removeAvatarResponse.Content.ReadFromJsonAsync<PlanetWebhook>();
+        Assert.Null(webhookWithoutAvatar!.AvatarAssetId);
+
         var newTokenResponse = await _anonymous.PostAsJsonAsync(
             ISharedPlanetWebhook.GetExecuteRoute(webhook.Id, rotated.Token!),
             new WebhookExecuteRequest { Content = "fresh token works" });
         Assert.True(newTokenResponse.IsSuccessStatusCode, await newTokenResponse.Content.ReadAsStringAsync());
+        var messageWithoutAvatar = await newTokenResponse.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
+        Assert.Null(messageWithoutAvatar!.WebhookAvatarAssetId);
 
         // ---- Management list + delete ----
         var list = await _fixture.Client.Http.GetFromJsonAsync<List<PlanetWebhook>>($"api/planets/{_planet.Id}/webhooks");
@@ -233,7 +269,8 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
             Fingerprint = Guid.NewGuid().ToString(),
             WebhookId = 999,
             OverrideName = "Fake Admin",
-            OverrideAvatarUrl = "https://example.com/fake.png",
+            WebhookAvatarAssetId = 123,
+            WebhookAvatarAnimated = true,
         };
 
         var result = await _fixture.Client.MessageService.SendMessage(message);
@@ -241,12 +278,27 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
 
         Assert.Null(result.Data.WebhookId);
         Assert.Null(result.Data.OverrideName);
-        Assert.Null(result.Data.OverrideAvatarUrl);
+        Assert.Null(result.Data.WebhookAvatarAssetId);
+        Assert.False(result.Data.WebhookAvatarAnimated);
     }
 
     [Fact]
     public async Task Webhook_CreateValidation()
     {
+        // Avatar asset identity is server-managed and cannot be injected at create time.
+        var spoofedAvatar = await _fixture.Client.Http.PostAsJsonAsync("api/planetwebhooks", new
+        {
+            PlanetId = _planet.Id,
+            ChannelId = _channel.Id,
+            Name = "Asset Spoof",
+            AvatarAssetId = 123L,
+            AvatarAnimated = true,
+        });
+        Assert.True(spoofedAvatar.IsSuccessStatusCode);
+        var created = await spoofedAvatar.Content.ReadFromJsonAsync<PlanetWebhook>();
+        Assert.Null(created!.AvatarAssetId);
+        Assert.False(created.AvatarAnimated);
+
         // Wrong-planet channel binding is rejected: bind to a channel id
         // that isn't in the planet
         var response = await _fixture.Client.Http.PostAsJsonAsync("api/planetwebhooks", new

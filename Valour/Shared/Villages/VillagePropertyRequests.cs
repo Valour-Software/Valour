@@ -47,6 +47,7 @@ public enum VillageBuildAction
     Paint = 0,
     Furnish = 1,
     Erase = 2,
+    Wall = 3,
 }
 
 /// <summary>
@@ -61,6 +62,7 @@ public class VillageBuildRequest
     public string? DefinitionKey { get; set; }
     public string? TerrainKey { get; set; }
     public string? BrushKey { get; set; }
+    public string? WallSetKey { get; set; }
     public List<VillageBuildCell> Cells { get; set; } = new();
     public int X { get; set; }
     public int Y { get; set; }

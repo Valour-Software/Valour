@@ -20,13 +20,13 @@
         </div>
 
         <div class="tool-load-controls">
-            <input class="asset-url-input" @bind="_imageUrl" @bind:event="oninput" />
-            <button class="icon-btn" title="Load image URL" @onclick="@LoadImageUrlAsync">
-                <i class="bi bi-arrow-clockwise"></i>
-            </button>
-            <label class="icon-btn file-btn" title="Open local sheet">
+            <div class="source-file-label" title="The original source sheet stays in this browser session">
+                <i class="bi bi-file-earmark-image"></i>
+                <span>@SourceFileLabel</span>
+            </div>
+            <label class="icon-btn file-btn" title="Open original source sheet locally">
                 <i class="bi bi-folder2-open"></i>
-                <input id="@_fileInputId" type="file" accept=".png,.jpg,.jpeg,.webp" />
+                <input id="@_fileInputId" type="file" accept=".png,.jpg,.jpeg,.webp" multiple />
             </label>
             <label class="icon-btn file-btn" title="Import saved work">
                 <i class="bi bi-box-arrow-in-down"></i>
@@ -332,7 +332,40 @@
         </aside>
     </div>
 
-    <textarea class="json-output" readonly>@ExportJson</textarea>
+    <section class="package-panel">
+        <div class="package-copy">
+            <div class="section-title">Canonical Package</div>
+            <div class="hint-text">
+                The original sheet stays local. Building creates one trimmed atlas and one manifest that retains original and runtime coordinates.
+            </div>
+        </div>
+        <input class="field-input package-name-input" aria-label="Package name" @bind="_packageName" />
+        <button class="primary-action" disabled="@(!_sourceReady)" @onclick="BuildPackageAsync">
+            <i class="bi bi-box-seam"></i>
+            <span>Build</span>
+        </button>
+        <button class="secondary-action" disabled="@(_packageResult is null)" @onclick='() => DownloadPackageFileAsync("image")'>
+            <i class="bi bi-image"></i>
+            <span>Atlas</span>
+        </button>
+        <button class="secondary-action" disabled="@(_packageResult is null)" @onclick='() => DownloadPackageFileAsync("manifest")'>
+            <i class="bi bi-filetype-json"></i>
+            <span>Manifest</span>
+        </button>
+    </section>
+
+    <div class="package-summary">
+        @if (_packageResult is not null)
+        {
+            <span>@($"{_packageResult.RegionCount} regions · {_packageResult.AtlasWidth} × {_packageResult.AtlasHeight} · {FormatBytes(_packageResult.ImageBytes)}")</span>
+        }
+        else
+        {
+            <span>Upload the original sheet, then build the canonical package.</span>
+        }
+    </div>
+
+    <textarea class="json-output" readonly>@DisplayedManifestJson</textarea>
 </div>
 
 @code {
@@ -347,6 +380,15 @@
     private DotNetObjectReference<TilesetDefinitionWindowComponent>? _selfRef;
     private string _imageUrl = "https://public-cdn.valour.gg/valour-public/tilesets/official/Modern_Exteriors_Complete_Tileset.png";
     private string _previewImageUrl = "https://public-cdn.valour.gg/valour-public/tilesets/official/Modern_Exteriors_Complete_Tileset.png";
+    private string _manifestImage = "https://public-cdn.valour.gg/valour-public/tilesets/official/Modern_Exteriors_Complete_Tileset.png";
+    private string _sourceFileName = string.Empty;
+    private string _sourceSha256 = string.Empty;
+    private string _loadedImageSha256 = string.Empty;
+    private int _sourceWidth;
+    private int _sourceHeight;
+    private bool _sourceReady;
+    private string _packageName = "village-tileset";
+    private PackageBuildResult? _packageResult;
     private int _imageWidth = 32;
     private int _imageHeight = 32;
     private const string DefaultTilesetDefinitionUrl = "_content/Valour.Client/tilesets/exterior-tileset-0.json";
@@ -358,6 +400,8 @@
     private readonly List<TilesetDefinitionDraft> _definitions = new();
     private readonly List<BrushDraft> _brushes = new();
     private readonly List<TerrainDraft> _terrains = new();
+    private readonly List<WallSetDraft> _wallSets = new();
+    private readonly List<TilesetSourceSheetMetadata> _sourceSheets = new();
     private static readonly CollisionStateOption[] CollisionStateOptions =
     [
         new(VillageCollisionState.Empty, "Empty", "bi-square", "Walkable space with no interaction."),
@@ -378,15 +422,13 @@
     private string SelectedBrushTileLabel => string.IsNullOrWhiteSpace(_selectedBrushTileKey)
         ? GetDraftDisplayName()
         : GetDefinitionDisplayName(_selectedBrushTileKey);
-
-    private string ExportJson => JsonSerializer.Serialize(new
-    {
-        tileSize = TileSize,
-        image = _imageUrl,
-        terrains = _terrains,
-        definitions = _definitions,
-        brushes = _brushes
-    }, _jsonOptions);
+    private string SourceFileLabel => _sourceSheets.Count > 1
+        ? $"{_sourceSheets.Count} source sheets"
+        : string.IsNullOrWhiteSpace(_sourceFileName)
+        ? "Upload original sheet"
+        : _sourceFileName;
+    private string DisplayedManifestJson => _packageResult?.ManifestJson ??
+        JsonSerializer.Serialize(CreateSourceManifest(), _jsonOptions);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -438,10 +480,26 @@
     }
 
     [JSInvokable]
-    public async Task OnImageChanged(string displayUrl, string previewUrl)
+    public async Task OnImageChanged(
+        string displayUrl,
+        string previewUrl,
+        string sha256,
+        int width,
+        int height,
+        List<TilesetSourceSheetMetadata> sheets)
     {
         _imageUrl = displayUrl;
         _previewImageUrl = previewUrl;
+        _manifestImage = displayUrl;
+        _sourceFileName = displayUrl;
+        _sourceSha256 = sha256;
+        _loadedImageSha256 = sha256;
+        _sourceWidth = Math.Max(1, width);
+        _sourceHeight = Math.Max(1, height);
+        _sourceSheets.Clear();
+        _sourceSheets.AddRange(sheets ?? []);
+        _sourceReady = true;
+        InvalidatePackage();
         await ReRender();
     }
 
@@ -453,18 +511,103 @@
         await ReRender();
     }
 
-    private async Task LoadImageUrlAsync()
-    {
-        _previewImageUrl = _imageUrl;
-        if (_runtime is not null)
-            await _runtime.InvokeVoidAsync("loadImageUrl", _imageUrl);
-    }
-
     private async Task FitSheetAsync()
     {
         if (_runtime is not null)
             await _runtime.InvokeVoidAsync("fit");
     }
+
+    private object CreateSourceManifest()
+    {
+        var width = Math.Max(1, _sourceWidth > 0 ? _sourceWidth : _imageWidth);
+        var height = Math.Max(1, _sourceHeight > 0 ? _sourceHeight : _imageHeight);
+        var definitions = _definitions.Select(definition =>
+        {
+            var copy = definition.Clone();
+            copy.SourceX = copy.X;
+            copy.SourceY = copy.Y;
+            return copy;
+        }).ToList();
+        var wallSets = _wallSets.Select(wallSet =>
+        {
+            var copy = wallSet.Clone();
+            copy.SourceOriginX = copy.OriginX;
+            copy.SourceOriginY = copy.OriginY;
+            return copy;
+        }).ToList();
+
+        return new
+        {
+            format = "valour.tileset",
+            version = 1,
+            tileSize = TileSize,
+            image = _manifestImage,
+            source = new
+            {
+                width,
+                height,
+                sha256 = _sourceSha256,
+                fileName = _sourceFileName,
+                sheets = _sourceSheets
+            },
+            atlas = new
+            {
+                width,
+                height,
+                paddingTiles = 0,
+                packed = false
+            },
+            terrains = _terrains,
+            definitions,
+            brushes = _brushes,
+            wallSets
+        };
+    }
+
+    private async Task BuildPackageAsync()
+    {
+        if (_runtime is null)
+            return;
+        if (!_sourceReady)
+        {
+            _importStatus = "Upload the original source sheet before exporting this tileset.";
+            await ReRender();
+            return;
+        }
+
+        try
+        {
+            _packageResult = await _runtime.InvokeAsync<PackageBuildResult>(
+                "buildPackage",
+                CreateSourceManifest(),
+                _packageName,
+                _sourceSha256);
+            _importStatus = $"Built {_packageResult.RegionCount} packed regions without uploading the original sheet.";
+        }
+        catch (JSException ex)
+        {
+            _packageResult = null;
+            _importStatus = $"Package build failed: {ex.Message}";
+        }
+
+        await ReRender();
+    }
+
+    private async Task DownloadPackageFileAsync(string kind)
+    {
+        await BuildPackageAsync();
+        if (_runtime is not null && _packageResult is not null)
+            await _runtime.InvokeVoidAsync("downloadPackageFile", kind);
+    }
+
+    private void InvalidatePackage() => _packageResult = null;
+
+    private static string FormatBytes(long bytes) => bytes switch
+    {
+        >= 1024 * 1024 => $"{bytes / (1024d * 1024d):0.##} MB",
+        >= 1024 => $"{bytes / 1024d:0.##} KB",
+        _ => $"{bytes} bytes"
+    };
 
     private void SetKind(string kind)
     {
@@ -748,6 +891,7 @@
         else
             _brushes.Add(copy);
 
+        InvalidatePackage();
         ClearBrushDraft();
         await ReRender();
     }
@@ -784,12 +928,14 @@
             Key = $"terrain-{_terrains.Count + 1}",
             Priority = _terrains.Count * 10
         });
+        InvalidatePackage();
         ReRender();
     }
 
     private void RemoveTerrain(TerrainDraft terrain)
     {
         _terrains.Remove(terrain);
+        InvalidatePackage();
         ReRender();
     }
 
@@ -910,6 +1056,7 @@
         else
             _definitions.Add(copy);
 
+        InvalidatePackage();
         _selectedBrushTileKey = copy.Key;
 
         // The saved definition stays loaded for continued editing. Resetting
@@ -930,6 +1077,7 @@
 
         var deletedKey = _definitions[existingIndex].Key;
         _definitions.RemoveAt(existingIndex);
+        InvalidatePackage();
 
         if (!string.IsNullOrWhiteSpace(deletedKey))
             ClearBrushCellsForDefinition(deletedKey);
@@ -1011,7 +1159,9 @@
 
     private async Task CopyJsonAsync()
     {
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", ExportJson);
+        await BuildPackageAsync();
+        if (_packageResult is not null)
+            await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _packageResult.ManifestJson);
     }
 
     private async Task ImportDefinitionsAsync(InputFileChangeEventArgs args)
@@ -1058,9 +1208,30 @@
 
     private async Task ApplyDefinitionsImportAsync(TilesetDefinitionImport import, string statusVerb, string? importUrl = null)
     {
+        if (!string.Equals(import.Format, "valour.tileset", StringComparison.Ordinal) ||
+            import.Version != 1 ||
+            import.Source is null ||
+            import.Atlas is null ||
+            import.TileSize != TileSize)
+        {
+            throw new JsonException("The file is not a supported canonical Valour tileset.");
+        }
+
+        _sourceWidth = Math.Max(1, import.Source.Width);
+        _sourceHeight = Math.Max(1, import.Source.Height);
+        _sourceSha256 = import.Source.Sha256 ?? string.Empty;
+        _sourceFileName = import.Source.FileName ?? string.Empty;
+        _sourceSheets.Clear();
+        _sourceSheets.AddRange(import.Source.Sheets ?? []);
+        _manifestImage = import.Image;
+
         _definitions.Clear();
         foreach (var definition in import.Definitions)
         {
+            if (definition.SourceX is null || definition.SourceY is null)
+                throw new JsonException($"Definition {definition.Key} has no reversible source coordinates.");
+            definition.X = definition.SourceX.Value;
+            definition.Y = definition.SourceY.Value;
             NormalizeImportedDefinition(definition);
             _definitions.Add(definition);
         }
@@ -1079,12 +1250,76 @@
                 _terrains.Add(terrain);
         }
 
-        var imageStatus = string.Empty;
-        var imageReference = ResolveImportImageReference(import.Image, importUrl);
-        if (!string.IsNullOrWhiteSpace(imageReference))
+        _wallSets.Clear();
+        foreach (var wallSet in import.WallSets)
         {
-            imageStatus = await TryLoadImportImageAsync(imageReference);
+            if (wallSet.SourceOriginX is null || wallSet.SourceOriginY is null)
+                throw new JsonException($"Wall set {wallSet.Key} has no reversible source coordinates.");
+            wallSet.OriginX = wallSet.SourceOriginX.Value;
+            wallSet.OriginY = wallSet.SourceOriginY.Value;
+            NormalizeWallSet(wallSet);
+            _wallSets.Add(wallSet);
         }
+
+        var imageStatus = string.Empty;
+        var hasMatchingLocalSource = _sourceReady &&
+            _imageWidth == _sourceWidth &&
+            _imageHeight == _sourceHeight &&
+            (string.IsNullOrWhiteSpace(_sourceSha256) ||
+             string.Equals(_loadedImageSha256, _sourceSha256, StringComparison.OrdinalIgnoreCase));
+        var hasLocalPackedAtlas = _sourceReady &&
+            import.Atlas.Packed &&
+            _imageWidth == import.Atlas.Width &&
+            _imageHeight == import.Atlas.Height;
+        var reconstructed = false;
+        if (!hasMatchingLocalSource)
+        {
+            if (hasLocalPackedAtlas && _runtime is not null)
+            {
+                try
+                {
+                    var reconstructedUrl = await _runtime.InvokeAsync<string>("reconstructSource", import);
+                    _imageUrl = reconstructedUrl;
+                    _previewImageUrl = reconstructedUrl;
+                    reconstructed = true;
+                    imageStatus = " Reconstructed the original sheet layout from the trimmed atlas.";
+                }
+                catch (JSException)
+                {
+                    imageStatus = " Packed atlas was selected, but source-layout reconstruction failed.";
+                }
+            }
+            else
+            {
+                var imageReference = ResolveImportImageReference(import.Image, importUrl);
+                if (!string.IsNullOrWhiteSpace(imageReference))
+                {
+                    imageStatus = await TryLoadImportImageAsync(imageReference);
+                    if (string.IsNullOrWhiteSpace(imageStatus) && import.Atlas.Packed && _runtime is not null)
+                    {
+                        try
+                        {
+                            var reconstructedUrl = await _runtime.InvokeAsync<string>("reconstructSource", import);
+                            _imageUrl = reconstructedUrl;
+                            _previewImageUrl = reconstructedUrl;
+                            reconstructed = true;
+                            imageStatus = " Reconstructed the original sheet layout from the trimmed atlas.";
+                        }
+                        catch (JSException)
+                        {
+                            imageStatus = " Atlas loaded, but source-layout reconstruction failed.";
+                        }
+                    }
+                }
+                else
+                {
+                    imageStatus = " Upload the original source sheet or its packed atlas to continue editing.";
+                }
+            }
+        }
+
+        _sourceReady = hasMatchingLocalSource || reconstructed;
+        InvalidatePackage();
 
         if (_definitions.Count > 0)
         {
@@ -1259,6 +1494,22 @@
             brush.Key = GenerateBrushKey(brush);
     }
 
+    private static void NormalizeWallSet(WallSetDraft wallSet)
+    {
+        wallSet.Key ??= string.Empty;
+        wallSet.Name = string.IsNullOrWhiteSpace(wallSet.Name) ? wallSet.Key : wallSet.Name;
+        wallSet.Image ??= string.Empty;
+        wallSet.TileSize = Math.Max(1, wallSet.TileSize);
+        wallSet.OriginX = Math.Max(0, wallSet.OriginX);
+        wallSet.OriginY = Math.Max(0, wallSet.OriginY);
+        wallSet.Columns = Math.Max(1, wallSet.Columns);
+        wallSet.Rows = Math.Max(1, wallSet.Rows);
+        wallSet.FrameCount = Math.Max(1, wallSet.FrameCount);
+        wallSet.PreviewFrame = Math.Clamp(wallSet.PreviewFrame, 0, wallSet.FrameCount - 1);
+        wallSet.TopColor = string.IsNullOrWhiteSpace(wallSet.TopColor) ? "#c9d5cf" : wallSet.TopColor;
+        wallSet.FaceColor = string.IsNullOrWhiteSpace(wallSet.FaceColor) ? "#758782" : wallSet.FaceColor;
+    }
+
     private async Task SyncDefinitionOutlinesAsync()
     {
         if (_runtime is null)
@@ -1313,6 +1564,8 @@
         public int TerrainWeight { get; set; } = 1;
         public int X { get; set; }
         public int Y { get; set; }
+        public int? SourceX { get; set; }
+        public int? SourceY { get; set; }
         public int Width { get; set; } = 1;
         public int Height { get; set; } = 1;
         [JsonConverter(typeof(CollisionStateListJsonConverter))]
@@ -1336,6 +1589,8 @@
             TerrainWeight = TerrainWeight,
             X = X,
             Y = Y,
+            SourceX = SourceX,
+            SourceY = SourceY,
             Width = Width,
             Height = Height,
             Collision = Collision.ToList()
@@ -1467,13 +1722,93 @@
         };
     }
 
+    public class WallSetDraft
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Image { get; set; } = string.Empty;
+        public int TileSize { get; set; } = 16;
+        public int OriginX { get; set; }
+        public int OriginY { get; set; }
+        public int? SourceOriginX { get; set; }
+        public int? SourceOriginY { get; set; }
+        public int Columns { get; set; } = 8;
+        public int Rows { get; set; } = 7;
+        public int FrameCount { get; set; } = 47;
+        public int PreviewFrame { get; set; } = 46;
+        public string TopColor { get; set; } = "#c9d5cf";
+        public string FaceColor { get; set; } = "#758782";
+
+        public WallSetDraft Clone() => new()
+        {
+            Key = Key,
+            Name = Name,
+            Image = Image,
+            TileSize = TileSize,
+            OriginX = OriginX,
+            OriginY = OriginY,
+            SourceOriginX = SourceOriginX,
+            SourceOriginY = SourceOriginY,
+            Columns = Columns,
+            Rows = Rows,
+            FrameCount = FrameCount,
+            PreviewFrame = PreviewFrame,
+            TopColor = TopColor,
+            FaceColor = FaceColor
+        };
+    }
+
+    private class TilesetSourceMetadata
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public string Sha256 { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public List<TilesetSourceSheetMetadata> Sheets { get; set; } = new();
+    }
+
+    public class TilesetSourceSheetMetadata
+    {
+        public string Id { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public string Sha256 { get; set; } = string.Empty;
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public int OffsetX { get; set; }
+        public int OffsetY { get; set; }
+    }
+
+    private class TilesetAtlasMetadata
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public int PaddingTiles { get; set; }
+        public bool Packed { get; set; }
+    }
+
+    private class PackageBuildResult
+    {
+        public string ManifestJson { get; set; } = string.Empty;
+        public string ImageFileName { get; set; } = string.Empty;
+        public string ManifestFileName { get; set; } = string.Empty;
+        public int AtlasWidth { get; set; }
+        public int AtlasHeight { get; set; }
+        public int RegionCount { get; set; }
+        public long ImageBytes { get; set; }
+    }
+
     private class TilesetDefinitionImport
     {
+        public string Format { get; set; } = string.Empty;
+        public int Version { get; set; }
         public int TileSize { get; set; } = 16;
         public string Image { get; set; } = string.Empty;
+        public TilesetSourceMetadata? Source { get; set; }
+        public TilesetAtlasMetadata? Atlas { get; set; }
         public List<TerrainDraft> Terrains { get; set; } = new();
         public List<TilesetDefinitionDraft> Definitions { get; set; } = new();
         public List<BrushDraft> Brushes { get; set; } = new();
+        public List<WallSetDraft> WallSets { get; set; } = new();
     }
 
     public class Content : WindowContent<TilesetDefinitionWindowComponent>

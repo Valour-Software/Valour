@@ -207,7 +207,8 @@ public class MessageService
         // a client submitting a native message.
         message.WebhookId = writeOptions?.WebhookId;
         message.OverrideName = writeOptions?.OverrideName;
-        message.OverrideAvatarUrl = writeOptions?.OverrideAvatarUrl;
+        message.WebhookAvatarAssetId = writeOptions?.WebhookAvatarAssetId;
+        message.WebhookAvatarAnimated = writeOptions?.WebhookAvatarAnimated ?? false;
         
         var attachments = message.Attachments?.Where(x => x is not null).ToList();
         if (attachments is not null)
@@ -437,7 +438,8 @@ public class MessageService
         updated.ImportSource = old.ImportSource;
         updated.WebhookId = old.WebhookId;
         updated.OverrideName = old.OverrideName;
-        updated.OverrideAvatarUrl = old.OverrideAvatarUrl;
+        updated.WebhookAvatarAssetId = old.WebhookAvatarAssetId;
+        updated.WebhookAvatarAnimated = old.WebhookAvatarAnimated;
         
         // Sanity checks
         if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))

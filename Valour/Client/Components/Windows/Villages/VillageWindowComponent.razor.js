@@ -27,6 +27,8 @@ import {
     normalizeMovementKey,
     distanceToBuildingInteraction
 } from "../../../ts/VillageHandheldControls.js";
+import { parseWallDefinitionKey } from "../../../ts/VillageWallRendering.js";
+import { isCanonicalTilesetManifest } from "../../../ts/VillageTilesetPacking.js";
 
 // Pixels of drag before a touch counts as steering rather than a tap.
 const TOUCH_DEADZONE = 18;
@@ -78,6 +80,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         bubbles: new Map(),
         // Tileset key -> { definitions: Map<key, def>, imageUrl, tileSize }
         tilesets: new Map(),
+        wallSets: new Map(),
         touch: { active: false, pointerId: null, originX: 0, originY: 0, dx: 0, dy: 0, moved: false, direction: null },
         touchControlMode: "floating",
         handheldDirection: null,
@@ -91,6 +94,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             tool: "Furnish",
             definition: null,
             brush: null,
+            wallSet: null,
             selectionKey: "",
             hoverX: null,
             hoverY: null,
@@ -236,6 +240,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             state.build.tool = config?.tool ?? "Furnish";
             state.build.definition = config?.definition ?? null;
             state.build.brush = config?.brush ?? null;
+            state.build.wallSet = config?.wallSet ?? null;
             state.build.selectionKey = config?.selectionKey ?? "";
             state.build.pointerId = null;
             state.build.lastDragTile = null;
@@ -565,7 +570,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         }
 
         if (state.build.enabled) {
-            if (state.build.tool !== "Paint") {
+            if (!isStrokeBuildTool(state.build.tool)) {
                 await submitBuildSelection(state, map, tileX, tileY);
             }
             return;
@@ -615,7 +620,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             try {
                 canvas.setPointerCapture?.(event.pointerId);
             } catch { }
-            if (state.build.tool === "Paint" && state.build.lastDragTile) {
+            if (isStrokeBuildTool(state.build.tool) && state.build.lastDragTile) {
                 const map = getCurrentMap(state);
                 if (map) {
                     state.build.stroke = {
@@ -626,7 +631,9 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
                         origin: { ...state.build.lastDragTile },
                     };
                     addBuildStrokeCell(state, map, state.build.lastDragTile.x, state.build.lastDragTile.y);
-                    state.build.stroke.optimisticToken = applyOptimisticTerrainStroke(state, state.build.stroke);
+                    if (state.build.tool === "Paint") {
+                        state.build.stroke.optimisticToken = applyOptimisticTerrainStroke(state, state.build.stroke);
+                    }
                 }
             }
             return;
@@ -707,7 +714,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
 
         if (state.build.enabled) {
             updateBuildHover(state, event);
-            if (state.build.tool === "Paint" &&
+            if (isStrokeBuildTool(state.build.tool) &&
                 event.pointerId === state.build.pointerId &&
                 state.build.hoverX !== null &&
                 state.build.hoverY !== null) {
@@ -718,16 +725,20 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
                         if (state.build.lastDragTile?.x !== next.x ||
                             state.build.lastDragTile?.y !== next.y) {
                             replaceBuildStrokeArea(state, map, state.build.stroke.origin, next);
-                            restoreOptimisticTerrain(state);
+                            if (state.build.tool === "Paint") {
+                                restoreOptimisticTerrain(state);
+                                state.build.stroke.optimisticToken = applyOptimisticTerrainStroke(
+                                    state,
+                                    state.build.stroke);
+                            }
+                        }
+                    } else {
+                        addBuildStrokeLine(state, map, state.build.lastDragTile, next);
+                        if (state.build.tool === "Paint") {
                             state.build.stroke.optimisticToken = applyOptimisticTerrainStroke(
                                 state,
                                 state.build.stroke);
                         }
-                    } else {
-                        addBuildStrokeLine(state, map, state.build.lastDragTile, next);
-                        state.build.stroke.optimisticToken = applyOptimisticTerrainStroke(
-                            state,
-                            state.build.stroke);
                     }
                     state.build.lastDragTile = next;
                 }
@@ -824,7 +835,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
                     } else {
                         void submitBuildStroke(state, stroke);
                     }
-                } else if (state.build.tool !== "Paint") {
+                } else if (!isStrokeBuildTool(state.build.tool)) {
                     void state.onClick(event);
                 }
             }
@@ -1025,6 +1036,26 @@ function createPlayerState(x, y) {
  * how the world stays legible while art is still being authored.
  */
 async function loadTilesetsForScene(state) {
+    state.wallSets.clear();
+    for (const rawWallSet of state.scene.buildWallSets ?? []) {
+        const key = rawWallSet?.key ?? "";
+        if (!key) {
+            continue;
+        }
+        const wallSet = {
+            ...rawWallSet,
+            tileSize: Math.max(1, Number(rawWallSet.tileSize) || 16),
+            columns: Math.max(1, Number(rawWallSet.columns) || 8),
+            rows: Math.max(1, Number(rawWallSet.rows) || 7),
+            originX: Math.max(0, Number(rawWallSet.originX) || 0),
+            originY: Math.max(0, Number(rawWallSet.originY) || 0),
+        };
+        state.wallSets.set(key, wallSet);
+        if (wallSet.imageUrl) {
+            loadTexture(state, wallSet.imageUrl, () => draw(state));
+        }
+    }
+
     const keys = new Set();
     for (const map of state.scene.maps ?? []) {
         if (map.tilesetKey) {
@@ -1055,6 +1086,10 @@ async function loadTilesetsForScene(state) {
             const parsed = await response.json();
             if (state.destroyed) {
                 return;
+            }
+            if (!isCanonicalTilesetManifest(parsed)) {
+                console.error(`Tileset ${key} is not a supported canonical Valour tileset.`);
+                continue;
             }
 
             const normalizedDefinitions = normalizeTileDefinitions(parsed.definitions);
@@ -1091,6 +1126,30 @@ async function loadTilesetsForScene(state) {
  * the key is unknown or its sheet has not finished loading.
  */
 function resolveSprite(state, map, key) {
+    const wall = parseWallDefinitionKey(key);
+    if (wall) {
+        const wallSet = state.wallSets.get(wall.wallSetKey);
+        if (!wallSet?.imageUrl) {
+            return null;
+        }
+        const texture = loadTexture(state, wallSet.imageUrl);
+        if (!texture?.loaded) {
+            return null;
+        }
+        const size = wallSet.tileSize;
+        return {
+            image: texture.image,
+            sx: wallSet.originX + (wall.frame % wallSet.columns) * size,
+            sy: wallSet.originY + Math.floor(wall.frame / wallSet.columns) * size,
+            sw: size,
+            sh: size,
+            tilesWide: 1,
+            tilesHigh: 1,
+            collision: [true],
+            collisionStates: ["solid"]
+        };
+    }
+
     if (!key || !map?.tilesetKey) {
         return null;
     }
@@ -1708,8 +1767,8 @@ async function submitBuildSelection(state, map, tileX, tileY) {
         ? findBuildObjectAt(state, map, tileX, tileY)
         : null;
     const definition = state.build.definition;
-    const width = object?.width ?? (state.build.tool === "Paint" ? 1 : definition?.footprintWidth ?? 1);
-    const height = object?.height ?? (state.build.tool === "Paint" ? 1 : definition?.footprintHeight ?? 1);
+    const width = object?.width ?? (isStrokeBuildTool(state.build.tool) ? 1 : definition?.footprintWidth ?? 1);
+    const height = object?.height ?? (isStrokeBuildTool(state.build.tool) ? 1 : definition?.footprintHeight ?? 1);
     const targetX = object?.x ?? tileX;
     const targetY = object?.y ?? tileY;
     const valid = object
@@ -1739,7 +1798,9 @@ async function submitBuildSelection(state, map, tileX, tileY) {
 }
 
 function addBuildStrokeCell(state, map, tileX, tileY) {
-    if (!state.build.stroke || !state.build.definition) {
+    if (!state.build.stroke ||
+        (state.build.tool === "Paint" && !state.build.definition) ||
+        (state.build.tool === "Walls" && !state.build.wallSet)) {
         return;
     }
 
@@ -2105,12 +2166,14 @@ async function submitBuildStroke(state, stroke) {
         return;
     }
 
-    const optimisticToken = stroke.optimisticToken ?? applyOptimisticTerrainStroke(state, stroke);
+    const isWallStroke = state.build.tool === "Walls";
+    const optimisticToken = isWallStroke
+        ? null
+        : stroke.optimisticToken ?? applyOptimisticTerrainStroke(state, stroke);
     state.build.submitting = true;
     try {
-        await invokeDotNet(
-            state,
-            "OnBuildTerrainStrokeSelected",
+        await invokeDotNet(state,
+            isWallStroke ? "OnBuildWallStrokeSelected" : "OnBuildTerrainStrokeSelected",
             cells,
             stroke.selectionKey);
     } finally {
@@ -2180,8 +2243,8 @@ function drawBuildOverlay(ctx, map, state, px) {
     const brushRadius = Math.floor(brushSize / 2);
     const tileX = object?.x ?? (state.build.hoverX - brushRadius);
     const tileY = object?.y ?? (state.build.hoverY - brushRadius);
-    const width = object?.width ?? (state.build.tool === "Paint" ? brushSize : definition?.footprintWidth ?? 1);
-    const height = object?.height ?? (state.build.tool === "Paint" ? brushSize : definition?.footprintHeight ?? 1);
+    const width = object?.width ?? (isStrokeBuildTool(state.build.tool) ? brushSize : definition?.footprintWidth ?? 1);
+    const height = object?.height ?? (isStrokeBuildTool(state.build.tool) ? brushSize : definition?.footprintHeight ?? 1);
     const valid = object
         ? isEditableBuildBounds(map, tileX, tileY, width, height)
         : isValidBuildPlacement(state, map, tileX, tileY, width, height);
@@ -2193,6 +2256,12 @@ function drawBuildOverlay(ctx, map, state, px) {
             drawSpriteAtBase(ctx, state, px, sprite, tileX, tileY, height);
             ctx.globalAlpha = 1;
         }
+    }
+
+    if (!object && state.build.tool === "Walls" && state.build.wallSet) {
+        ctx.globalAlpha = valid ? 0.72 : 0.36;
+        drawWallFallback(ctx, state, px, tileX, tileY, state.build.wallSet);
+        ctx.globalAlpha = 1;
     }
 
     const screenX = tileX * px - state.renderCameraX;
@@ -2209,7 +2278,7 @@ function isValidBuildPlacement(state, map, x, y, width, height) {
     if (!isEditableBuildBounds(map, x, y, width, height)) {
         return false;
     }
-    if (state.build.tool !== "Furnish") {
+    if (state.build.tool === "Paint" || state.build.tool === "Erase") {
         return true;
     }
     if (x < 0 || y < 0 || x + width > map.width || y + height > map.height) {
@@ -2223,6 +2292,7 @@ function isValidBuildPlacement(state, map, x, y, width, height) {
         return false;
     }
     return !(map.decorations ?? []).some(item =>
+        (state.build.tool !== "Walls" || !parseWallDefinitionKey(item.definitionKey)) &&
         rectanglesOverlap(x, y, width, height, item.x, item.y, item.width, item.height));
 }
 
@@ -2283,6 +2353,12 @@ function drawDecoration(ctx, item, map, state, px) {
     const x = item.x * px - state.renderCameraX;
     const y = item.y * px - state.renderCameraY;
 
+    const wall = parseWallDefinitionKey(item.definitionKey);
+    if (wall) {
+        drawWallFallback(ctx, state, px, item.x, item.y, state.wallSets.get(wall.wallSetKey));
+        return;
+    }
+
     const texture = item.textureUrl ? loadTexture(state, item.textureUrl) : null;
     if (texture?.loaded) {
         for (let tileY = 0; tileY < item.height; tileY++) {
@@ -2310,6 +2386,34 @@ function drawDecoration(ctx, item, map, state, px) {
 
     ctx.fillStyle = item.color;
     roundRect(ctx, x, y, item.width * px, item.height * px, px * 0.16, true, false);
+}
+
+function drawWallFallback(ctx, state, px, tileX, tileY, wallSet) {
+    const x = tileX * px - state.renderCameraX;
+    const y = tileY * px - state.renderCameraY;
+    const top = wallSet?.topColor || "#c9d5cf";
+    const face = wallSet?.faceColor || "#758782";
+    ctx.save();
+    ctx.fillStyle = "rgba(6, 14, 16, 0.32)";
+    ctx.fillRect(x + px * 0.08, y + px * 0.2, px * 0.9, px * 0.78);
+    ctx.fillStyle = face;
+    ctx.fillRect(x + px * 0.06, y + px * 0.28, px * 0.88, px * 0.66);
+    ctx.fillStyle = top;
+    ctx.beginPath();
+    ctx.moveTo(x + px * 0.06, y + px * 0.28);
+    ctx.lineTo(x + px * 0.22, y + px * 0.08);
+    ctx.lineTo(x + px * 0.94, y + px * 0.08);
+    ctx.lineTo(x + px * 0.94, y + px * 0.28);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(19, 31, 34, 0.58)";
+    ctx.lineWidth = Math.max(1, px * 0.045);
+    ctx.strokeRect(x + px * 0.06, y + px * 0.28, px * 0.88, px * 0.66);
+    ctx.restore();
+}
+
+function isStrokeBuildTool(tool) {
+    return tool === "Paint" || tool === "Walls";
 }
 
 /**

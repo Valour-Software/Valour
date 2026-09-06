@@ -26,6 +26,7 @@ public class VillageWorldService
 {
     private const int AutoTerrainZIndex = -100;
     private const int ManualTerrainZIndex = -101;
+    private const int WallZIndex = 10;
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> SeedGates = new();
     private static readonly ConcurrentDictionary<(long PlanetId, long MapId), SemaphoreSlim> EditGates = new();
 
@@ -241,6 +242,25 @@ public class VillageWorldService
                     Strength = cell.Strength,
                     Weight = cell.Weight,
                 }).ToList(),
+            });
+        }
+
+        foreach (var wallSet in _collisionService.GetBuildWallSets(outdoor.TilesetKey))
+        {
+            scene.BuildWallSets.Add(new VillagePocWallSet
+            {
+                Key = wallSet.Key,
+                Name = wallSet.Name,
+                ImageUrl = wallSet.ImageUrl,
+                TileSize = wallSet.TileSize,
+                OriginX = wallSet.OriginX,
+                OriginY = wallSet.OriginY,
+                Columns = wallSet.Columns,
+                Rows = wallSet.Rows,
+                FrameCount = wallSet.FrameCount,
+                PreviewFrame = wallSet.PreviewFrame,
+                TopColor = wallSet.TopColor,
+                FaceColor = wallSet.FaceColor,
             });
         }
 
@@ -521,6 +541,17 @@ public class VillageWorldService
                     canManageVillage,
                     terrainKey,
                     cells);
+            }
+
+            if (request.Action == VillageBuildAction.Wall)
+            {
+                var cells = request.Cells is { Count: > 0 }
+                    ? request.Cells
+                    : [new VillageBuildCell { X = request.X, Y = request.Y }];
+                var wallSetKey = request.WallSetKey?.Trim() ?? string.Empty;
+                if (!_collisionService.TryGetWallSet(map.TilesetKey, wallSetKey, out _))
+                    return TaskResult<VillageBuildResult>.FromFailure("That wall style is not available on this map.");
+                return await PaintWallsAsync(map, actorMemberId, canManageVillage, wallSetKey, cells);
             }
 
             if (request.Action != VillageBuildAction.Furnish)
@@ -1021,6 +1052,148 @@ public class VillageWorldService
         });
     }
 
+    private async Task<TaskResult<VillageBuildResult>> PaintWallsAsync(
+        Valour.Database.VillageMap map,
+        long actorMemberId,
+        bool canManageVillage,
+        string wallSetKey,
+        IReadOnlyCollection<VillageBuildCell> cells)
+    {
+        var targets = cells
+            .Select(cell => (cell.X, cell.Y))
+            .Distinct()
+            .ToHashSet();
+        if (targets.Count == 0)
+            return TaskResult<VillageBuildResult>.FromFailure("Draw at least one wall tile.");
+        if (targets.Count > 4096)
+            return TaskResult<VillageBuildResult>.FromFailure("That wall stroke is too large.");
+        if (targets.Any(cell => !BoundsInsideMap(map, cell.X, cell.Y, 1, 1)))
+            return TaskResult<VillageBuildResult>.FromFailure("That wall is outside the map.");
+        if (!await CanEditTerrainCellsAsync(map, actorMemberId, canManageVillage, targets))
+        {
+            return TaskResult<VillageBuildResult>.FromFailure(
+                map.MapType == VillageMapType.Interior
+                    ? "Only this building's owner can build walls in its interior."
+                    : "Build walls inside land you can edit.");
+        }
+        if (targets.Contains((map.SpawnX, map.SpawnY)))
+            return TaskResult<VillageBuildResult>.FromFailure("Keep the map's entrance clear.");
+
+        var buildings = await _db.VillageBuildings
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id)
+            .ToListAsync();
+        if (targets.Any(target => buildings.Any(item => RectanglesOverlap(
+                target.X, target.Y, 1, 1, item.X, item.Y, item.Width, item.Height))))
+        {
+            return TaskResult<VillageBuildResult>.FromFailure("A building already occupies part of that wall stroke.");
+        }
+
+        var mapObjects = await _db.VillageObjects
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex >= 0)
+            .OrderBy(item => item.Id)
+            .ToListAsync();
+        var nonWalls = mapObjects
+            .Where(item => !VillageWallTopology.IsWallDefinitionKey(item.DefinitionKey))
+            .ToList();
+        if (targets.Any(target => nonWalls.Any(item =>
+            {
+                var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+                return RectanglesOverlap(
+                    target.X, target.Y, 1, 1,
+                    item.X, item.Y, footprint.Width, footprint.Height);
+            })))
+        {
+            return TaskResult<VillageBuildResult>.FromFailure("Furniture already occupies part of that wall stroke.");
+        }
+
+        var wallsByPosition = mapObjects
+            .Where(item => VillageWallTopology.IsWallDefinitionKey(item.DefinitionKey))
+            .GroupBy(item => (item.X, item.Y))
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var removed = new List<Valour.Database.VillageObject>();
+        var targeted = new Dictionary<(int X, int Y), Valour.Database.VillageObject>();
+
+        foreach (var position in targets)
+        {
+            wallsByPosition.TryGetValue(position, out var existing);
+            var wall = existing?.FirstOrDefault();
+            if (wall is null)
+            {
+                wall = new Valour.Database.VillageObject
+                {
+                    Id = IdManager.Generate(),
+                    PlanetId = map.PlanetId,
+                    MapId = map.Id,
+                    X = position.X,
+                    Y = position.Y,
+                };
+                _db.VillageObjects.Add(wall);
+                wallsByPosition[position] = [wall];
+            }
+            else if (existing!.Count > 1)
+            {
+                var duplicates = existing.Skip(1).ToList();
+                removed.AddRange(duplicates);
+                _db.VillageObjects.RemoveRange(duplicates);
+                wallsByPosition[position] = [wall];
+            }
+
+            wall.DefinitionKey = VillageWallTopology.MakeDefinitionKey(wallSetKey, 46);
+            wall.ZIndex = WallZIndex;
+            wall.BlocksMovement = true;
+            wall.OwnerMemberId = actorMemberId;
+            targeted[position] = wall;
+        }
+
+        var affected = new HashSet<(int X, int Y)>();
+        foreach (var target in targets)
+        {
+            for (var y = Math.Max(0, target.Y - 1); y <= Math.Min(map.Height - 1, target.Y + 1); y++)
+            {
+                for (var x = Math.Max(0, target.X - 1); x <= Math.Min(map.Width - 1, target.X + 1); x++)
+                    affected.Add((x, y));
+            }
+        }
+
+        bool HasWall(int x, int y) => wallsByPosition.ContainsKey((x, y));
+        var changed = new List<Valour.Database.VillageObject>();
+        foreach (var position in affected.OrderBy(cell => cell.Y).ThenBy(cell => cell.X))
+        {
+            if (!wallsByPosition.TryGetValue(position, out var candidates) || candidates.Count == 0)
+                continue;
+
+            var wall = candidates[0];
+            if (!VillageWallTopology.TryParseDefinitionKey(wall.DefinitionKey, out var style, out _))
+                continue;
+            var resolvedKey = VillageWallTopology.MakeDefinitionKey(
+                style,
+                VillageWallTopology.ResolveFrame(HasWall, position.X, position.Y));
+            var wasTargeted = targeted.ContainsKey(position);
+            if (wall.DefinitionKey != resolvedKey || wasTargeted)
+            {
+                wall.DefinitionKey = resolvedKey;
+                changed.Add(wall);
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        _collisionService.InvalidateMap(map.PlanetId, map.Id);
+        foreach (var oldItem in removed)
+            _hubService.NotifyPlanetItemDelete(oldItem.ToModel());
+        foreach (var wall in changed)
+            _hubService.NotifyPlanetItemChange(map.PlanetId, wall.ToModel());
+
+        var decorations = changed.Select(wall => ToDecoration(wall, actorMemberId)).ToList();
+        var primaryPosition = (cells.First().X, cells.First().Y);
+        targeted.TryGetValue(primaryPosition, out var primary);
+        return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+        {
+            Decoration = primary is null ? null : ToDecoration(primary, actorMemberId),
+            Decorations = decorations,
+            RemovedObjectIds = removed.Select(item => item.Id).ToList(),
+        });
+    }
+
     private async Task<TaskResult<VillageBuildResult>> EraseObjectAsync(
         Valour.Database.VillageMap map,
         long actorMemberId,
@@ -1048,6 +1221,9 @@ public class VillageWorldService
         {
             return TaskResult<VillageBuildResult>.FromFailure("You cannot edit the property containing that item.");
         }
+
+        if (VillageWallTopology.IsWallDefinitionKey(item.DefinitionKey))
+            return await EraseWallAsync(map, item, actorMemberId);
 
         if (item.ZIndex >= 0)
         {
@@ -1140,6 +1316,62 @@ public class VillageWorldService
         {
             Decorations = changed.Select(neighbor => ToDecoration(neighbor, actorMemberId)).ToList(),
             RemovedObjectIds = [item.Id],
+        });
+    }
+
+    private async Task<TaskResult<VillageBuildResult>> EraseWallAsync(
+        Valour.Database.VillageMap map,
+        Valour.Database.VillageObject wall,
+        long actorMemberId)
+    {
+        var remainingWalls = await _db.VillageObjects
+            .Where(item => item.PlanetId == map.PlanetId &&
+                           item.MapId == map.Id &&
+                           item.ZIndex >= 0 &&
+                           item.Id != wall.Id &&
+                           item.DefinitionKey.StartsWith(VillageWallTopology.DefinitionPrefix))
+            .OrderBy(item => item.Id)
+            .ToListAsync();
+        remainingWalls = remainingWalls
+            .Where(item => VillageWallTopology.IsWallDefinitionKey(item.DefinitionKey))
+            .ToList();
+        var byPosition = remainingWalls
+            .GroupBy(item => (item.X, item.Y))
+            .ToDictionary(group => group.Key, group => group.ToList());
+        bool HasWall(int x, int y) => byPosition.ContainsKey((x, y));
+
+        var changed = new List<Valour.Database.VillageObject>();
+        for (var y = Math.Max(0, wall.Y - 1); y <= Math.Min(map.Height - 1, wall.Y + 1); y++)
+        {
+            for (var x = Math.Max(0, wall.X - 1); x <= Math.Min(map.Width - 1, wall.X + 1); x++)
+            {
+                if (!byPosition.TryGetValue((x, y), out var candidates) || candidates.Count == 0)
+                    continue;
+                var neighbor = candidates[0];
+                if (!VillageWallTopology.TryParseDefinitionKey(neighbor.DefinitionKey, out var style, out _))
+                    continue;
+
+                var resolvedKey = VillageWallTopology.MakeDefinitionKey(
+                    style,
+                    VillageWallTopology.ResolveFrame(HasWall, x, y));
+                if (neighbor.DefinitionKey == resolvedKey)
+                    continue;
+                neighbor.DefinitionKey = resolvedKey;
+                changed.Add(neighbor);
+            }
+        }
+
+        _db.VillageObjects.Remove(wall);
+        await _db.SaveChangesAsync();
+        _collisionService.InvalidateMap(map.PlanetId, map.Id);
+        _hubService.NotifyPlanetItemDelete(wall.ToModel());
+        foreach (var neighbor in changed)
+            _hubService.NotifyPlanetItemChange(map.PlanetId, neighbor.ToModel());
+
+        return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult
+        {
+            Decorations = changed.Select(neighbor => ToDecoration(neighbor, actorMemberId)).ToList(),
+            RemovedObjectIds = [wall.Id],
         });
     }
 
@@ -1336,7 +1568,9 @@ public class VillageWorldService
         return new VillagePocDecoration
         {
             Id = item.Id,
-            Kind = item.DefinitionKey,
+            Kind = VillageWallTopology.IsWallDefinitionKey(item.DefinitionKey)
+                ? "Wall"
+                : item.DefinitionKey,
             DefinitionKey = item.DefinitionKey,
             X = item.X,
             Y = item.Y,

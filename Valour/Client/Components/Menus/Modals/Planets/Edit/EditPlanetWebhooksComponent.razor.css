@@ -26,6 +26,53 @@
     border-color: var(--medium-tint);
 }
 
+.webhook-identity,
+.webhook-avatar-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.webhook-avatar,
+.webhook-avatar-preview {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--main-4);
+    border: 1px solid var(--medium-tint);
+}
+
+.webhook-avatar-preview {
+    width: 56px;
+    height: 56px;
+    flex-basis: 56px;
+}
+
+.webhook-avatar-picker-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.webhook-avatar-help {
+    width: 100%;
+    color: var(--font-color-mid);
+    font-size: var(--font-size-xs);
+}
+
+.hidden-file-input {
+    display: none;
+}
+
+.webhook-actions .disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 .webhook-info {
     display: flex;
     flex-direction: column;
@@ -72,6 +119,19 @@
     padding: 0.35em 0.75em;
     font-size: var(--font-size-sm);
     white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+    .webhook-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .webhook-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        padding-left: 52px;
+    }
 }
 
 .token-reveal {

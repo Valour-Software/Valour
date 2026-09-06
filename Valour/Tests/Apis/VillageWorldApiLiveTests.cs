@@ -479,11 +479,104 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
         Assert.Contains(scene.BuildTerrains, x => x.Key == "dirt-path" && x.Name == "Dirt Path");
         Assert.Contains(scene.BuildBrushes, x =>
             x.Key == "brush.tall-grass.5x5" && x.Name == "Tall Grass" && x.Cells.Count == 25);
+        Assert.Contains(scene.BuildWallSets, x =>
+            x.Key == "modern.green" &&
+            x.Columns == 8 &&
+            x.Rows == 7 &&
+            x.FrameCount == VillageWallTopology.FrameCount &&
+            string.IsNullOrEmpty(x.ImageUrl));
 
         // This fixture owns the planet and therefore holds ManageVillage. A
         // regular property owner receives individual CanEdit plot bounds
         // outdoors and a whole-map grant only for their owned interiors.
         Assert.All(scene.Maps, map => Assert.True(map.CanEdit));
+    }
+
+    [Fact]
+    public async Task WallStroke_ConnectsPersistsBlocksAndReresolvesAfterErase()
+    {
+        var scene = await LoadSceneAsync();
+        var outdoor = scene!.Maps.Single(x => x.MapKind == "Outdoor");
+        var plot = outdoor.Plots.First(x => x.Name == "Founder's Grove");
+        var occupied = outdoor.Decorations
+            .SelectMany(item => Enumerable.Range(item.Y, Math.Max(1, item.Height))
+                .SelectMany(y => Enumerable.Range(item.X, Math.Max(1, item.Width))
+                    .Select(x => (x, y))))
+            .Concat(outdoor.Buildings.SelectMany(item => Enumerable.Range(item.Y, item.Height)
+                .SelectMany(y => Enumerable.Range(item.X, item.Width).Select(x => (x, y)))))
+            .ToHashSet();
+        var origin = Enumerable.Range(plot.Y, plot.Height)
+            .SelectMany(y => Enumerable.Range(plot.X, Math.Max(0, plot.Width - 2)).Select(x => (x, y)))
+            .First(cell =>
+                !occupied.Contains(cell) &&
+                !occupied.Contains((cell.x + 1, cell.y)) &&
+                !occupied.Contains((cell.x + 2, cell.y)) &&
+                (outdoor.SpawnTile is null ||
+                 (outdoor.SpawnTile.X != cell.x && outdoor.SpawnTile.X != cell.x + 1 && outdoor.SpawnTile.X != cell.x + 2) ||
+                 outdoor.SpawnTile.Y != cell.y));
+        var cells = Enumerable.Range(0, 3)
+            .Select(offset => new VillageBuildCell { X = origin.x + offset, Y = origin.y })
+            .ToList();
+        var createdIds = new List<long>();
+
+        try
+        {
+            var built = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Wall,
+                    WallSetKey = "modern.green",
+                    Cells = cells,
+                });
+            Assert.True(built.Success, built.Message);
+            Assert.Equal(3, built.Data.Decorations.Count);
+            Assert.All(built.Data.Decorations, item =>
+            {
+                Assert.Equal("Wall", item.Kind);
+                Assert.True(item.BlocksMovement);
+            });
+            createdIds.AddRange(built.Data.Decorations.Select(item => item.Id));
+
+            var byX = built.Data.Decorations.ToDictionary(item => item.X);
+            Assert.Equal("wall:modern.green:43", byX[origin.x].DefinitionKey);
+            Assert.Equal("wall:modern.green:33", byX[origin.x + 1].DefinitionKey);
+            Assert.Equal("wall:modern.green:45", byX[origin.x + 2].DefinitionKey);
+
+            var middle = byX[origin.x + 1];
+            var erased = await _fixture.Client.VillageService.EditMapAsync(
+                _planet,
+                outdoor.Id,
+                new VillageBuildRequest
+                {
+                    Action = VillageBuildAction.Erase,
+                    ObjectId = middle.Id,
+                });
+            Assert.True(erased.Success, erased.Message);
+            Assert.Equal(2, erased.Data.Decorations.Count);
+            Assert.All(erased.Data.Decorations, item =>
+                Assert.Equal("wall:modern.green:46", item.DefinitionKey));
+            createdIds.Remove(middle.Id);
+
+            var persisted = (await LoadSceneAsync())!.Maps.Single(x => x.Id == outdoor.Id);
+            Assert.DoesNotContain(persisted.Decorations, item => item.Id == middle.Id);
+            Assert.Equal(2, persisted.Decorations.Count(item => createdIds.Contains(item.Id)));
+        }
+        finally
+        {
+            foreach (var objectId in createdIds)
+            {
+                await _fixture.Client.VillageService.EditMapAsync(
+                    _planet,
+                    outdoor.Id,
+                    new VillageBuildRequest
+                    {
+                        Action = VillageBuildAction.Erase,
+                        ObjectId = objectId,
+                    });
+            }
+        }
     }
 
     [Fact]

@@ -31,7 +31,8 @@ public static class MessageMapper
             ImportSource = message.ImportSource,
             WebhookId = message.WebhookId,
             OverrideName = message.OverrideName,
-            OverrideAvatarUrl = message.OverrideAvatarUrl,
+            WebhookAvatarAssetId = message.WebhookAvatarAssetId,
+            WebhookAvatarAnimated = message.WebhookAvatarAnimated,
             ReplyTo = message.ReplyToMessage?.ToModel(),
             Reactions = message.Reactions?.Select(x => x.ToModel()).ToList(),
             Attachments = attachments,
@@ -58,7 +59,8 @@ public static class MessageMapper
             ImportSource = message.ImportSource,
             WebhookId = message.WebhookId,
             OverrideName = message.OverrideName,
-            OverrideAvatarUrl = message.OverrideAvatarUrl,
+            WebhookAvatarAssetId = message.WebhookAvatarAssetId,
+            WebhookAvatarAnimated = message.WebhookAvatarAnimated,
             Reactions = message.Reactions?.Select(x => x.ToDatabase()).ToList(),
             Attachments = message.Attachments?
                 .Select((x, i) => x.ToDatabase(message.Id, i))

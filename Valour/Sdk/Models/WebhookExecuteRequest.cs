@@ -45,11 +45,6 @@ public class WebhookExecuteRequest
     public string? OverrideName { get; set; }
 
     /// <summary>
-    /// Overrides the webhook's avatar for this message only. Must be https.
-    /// </summary>
-    public string? OverrideAvatarUrl { get; set; }
-
-    /// <summary>
     /// Optional message in the same channel to reply to.
     /// </summary>
     public long? ReplyToId { get; set; }

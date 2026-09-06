@@ -20,9 +20,11 @@ public class PlanetWebhook : ServerModel<long>, ISharedPlanetWebhook
     public string Name { get; set; }
 
     /// <summary>
-    /// The default avatar for messages sent by this webhook
+    /// The immutable CDN asset currently used as this webhook's avatar.
     /// </summary>
-    public string AvatarUrl { get; set; }
+    public long? AvatarAssetId { get; set; }
+
+    public bool AvatarAnimated { get; set; }
 
     /// <summary>
     /// The secret token used to execute the webhook. Stripped before any
@@ -47,7 +49,8 @@ public class PlanetWebhook : ServerModel<long>, ISharedPlanetWebhook
             PlanetId = PlanetId,
             ChannelId = ChannelId,
             Name = Name,
-            AvatarUrl = AvatarUrl,
+            AvatarAssetId = AvatarAssetId,
+            AvatarAnimated = AvatarAnimated,
             Token = null,
             CreatorUserId = CreatorUserId,
             TimeCreated = TimeCreated,
