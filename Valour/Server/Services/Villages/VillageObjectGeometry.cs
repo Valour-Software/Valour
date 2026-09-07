@@ -7,8 +7,13 @@ namespace Valour.Server.Services.Villages;
 /// </summary>
 internal static class VillageObjectGeometry
 {
-    public static (int Width, int Height) GetFootprint(string definitionKey) =>
-        definitionKey switch
+    public static (int Width, int Height) GetFootprint(
+        string definitionKey,
+        VillageCollisionService.CollisionDefinition? definition = null) =>
+        definition is { FootprintWidth: > 0, FootprintHeight: > 0 }
+            ? (Math.Clamp(definition.FootprintWidth, 1, definition.Width),
+               Math.Clamp(definition.FootprintHeight, 1, definition.Height))
+            : definitionKey switch
         {
             "small-tree" or
             "small-tree.with-grass" or

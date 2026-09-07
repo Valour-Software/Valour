@@ -1011,15 +1011,35 @@ public class RealtimeKitService : IVoiceProvider
         if (!IsConfigured)
             return TaskResult<List<CloudflareSessionParticipantInfo>>.FromFailure("RealtimeKit is not configured.");
 
-        var endpoint = BuildEndpoint($"sessions/{sessionId}/participants?per_page=500");
-        var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
-        request.Headers.Authorization =
-            new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+        const int pageSize = 200;
+        var participants = new List<CloudflareSessionParticipantInfo>();
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        for (var page = 1; ; page++)
+        {
+            var endpoint = BuildEndpoint($"sessions/{Uri.EscapeDataString(sessionId)}/participants?per_page={pageSize}&page_no={page}");
+            var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+            var result = await SendAsync<CloudflareSessionParticipantsResult, CloudflareSessionParticipantsResult>(
+                request, data => data, "list session participants");
+            if (!result.Success)
+                return TaskResult<List<CloudflareSessionParticipantInfo>>.FromFailure(result);
 
-        return await SendAsync<CloudflareSessionParticipantsResult, List<CloudflareSessionParticipantInfo>>(
-            request,
-            data => data.Participants ?? new List<CloudflareSessionParticipantInfo>(),
-            "list session participants");
+            var batch = result.Data.Participants ?? [];
+            var previousCount = participants.Count;
+            foreach (var participant in batch)
+            {
+                if (participant is not null && seenIds.Add(participant.Id))
+                    participants.Add(participant);
+            }
+
+            var totalCount = result.Data.Paging?.TotalCount;
+            if (totalCount.HasValue && participants.Count >= totalCount.Value ||
+                !totalCount.HasValue && batch.Count < pageSize)
+                return TaskResult<List<CloudflareSessionParticipantInfo>>.FromData(participants);
+
+            if (participants.Count == previousCount)
+                return TaskResult<List<CloudflareSessionParticipantInfo>>.FromFailure("The participant list was incomplete. Reconciliation was skipped.");
+        }
     }
 
     private async Task<TaskResult<List<CloudflareMeetingParticipantInfo>>> GetMeetingParticipantsAsync(
@@ -1434,6 +1454,9 @@ public class RealtimeKitService : IVoiceProvider
 
     private sealed class CloudflareSessionParticipantsResult
     {
+        [JsonPropertyName("paging")]
+        public CloudflarePaging? Paging { get; set; }
+
         [JsonPropertyName("participants")]
         public List<CloudflareSessionParticipantInfo>? Participants { get; set; }
     }

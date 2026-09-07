@@ -109,7 +109,6 @@ public class PlanetService : ServiceBase
         SetupLogging(client.Logger, _logOptions);
 
         // Setup reconnect logic
-        _client.NodeService.NodeReconnected += OnNodeReconnect;
         _client.NodeService.NodeAdded += HookHubEvents;
     }
 
@@ -937,15 +936,6 @@ public class PlanetService : ServiceBase
             return;
 
         planet.NotifyRoleOrderChange(e);
-    }
-
-    private async Task OnNodeReconnect(Node node)
-    {
-        foreach (var planet in _connectedPlanets.Where(x => x.NodeName == node.Name))
-        {
-            await node.HubConnection.SendAsync("JoinPlanet", planet.Id);
-            Log($"Rejoined SignalR group for planet {planet.Id}");
-        }
     }
 
     private void HookHubEvents(Node node)

@@ -1,4 +1,5 @@
 type WindowTargetService = {
+    dispose: () => void;
     scanTimer: number;
     currentTarget: HTMLElement | null;
     scan: (mouseX: number, mouseY: number) => void;
@@ -6,10 +7,18 @@ type WindowTargetService = {
 };
 
 export const init = (): WindowTargetService => {
+    let disposed = false;
     const service: WindowTargetService = {
+        dispose: () => {
+            disposed = true;
+            document.removeEventListener('dragover', onDragOver, true);
+            service.currentTarget?.classList.remove('w-target-active');
+            service.currentTarget = null;
+        },
         scanTimer: 0,
         currentTarget: null,
         scan: (mouseX: number, mouseY: number) => {
+            if (disposed) return;
             // Optimize scan to only run every 5th frame
             service.scanTimer++;
             if (service.scanTimer < 5) {
@@ -52,6 +61,7 @@ export const init = (): WindowTargetService => {
             
         },
         finalize: (mouseX: number, mouseY: number) => {
+            if (disposed) return;
             if (service.currentTarget) {
                 const ev = new MouseEvent('click', {
                     'view': window,
@@ -72,7 +82,8 @@ export const init = (): WindowTargetService => {
     // cursor for native drags, so scan() above misses channel drags -
     // dragover always has the real hovered element. Capture phase because
     // .drop-targets calls stopPropagation() on the bubble.
-    document.addEventListener('dragover', (e: DragEvent) => {
+    const onDragOver = (e: DragEvent) => {
+        if (disposed) return;
         const hit = (e.target as HTMLElement)?.closest?.('.w-drop-target') as HTMLElement | null;
         if (hit === service.currentTarget) {
             return;
@@ -81,7 +92,8 @@ export const init = (): WindowTargetService => {
         service.currentTarget?.classList.remove('w-target-active');
         service.currentTarget = hit;
         service.currentTarget?.classList.add('w-target-active');
-    }, true);
+    };
+    document.addEventListener('dragover', onDragOver, true);
     
     return service;
 }

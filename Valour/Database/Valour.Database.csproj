@@ -41,6 +41,8 @@
 
     <ItemGroup>
       <Folder Include="Migrations\" />
+      <EmbeddedResource Include="Seeds/Villages/default-world-v1.json"
+                        LogicalName="Valour.Database.Seeds.Villages.default-world-v1.json" />
     </ItemGroup>
 
 </Project>

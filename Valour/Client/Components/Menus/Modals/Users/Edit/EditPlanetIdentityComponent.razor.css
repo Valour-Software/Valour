@@ -18,11 +18,3 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
-.empty-state {
-    padding: 2rem;
-    color: var(--font-alt-color);
-    text-align: center;
-    border: 1px dashed var(--slight-tint);
-    border-radius: var(--radius-lg);
-}

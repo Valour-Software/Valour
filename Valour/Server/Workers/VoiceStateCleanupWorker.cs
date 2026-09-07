@@ -89,7 +89,9 @@ public class VoiceStateCleanupWorker : BackgroundService
         if (server is null)
             return;
 
-        var channelKeys = server.Keys(RedisDbTypes.Cluster, "voice:channel:*").ToList();
+        var channelKeys = new List<RedisKey>();
+        await foreach (var key in server.KeysAsync(RedisDbTypes.Cluster, "voice:channel:*"))
+            channelKeys.Add(key);
 
         using var scope = _serviceProvider.CreateScope();
         var hostedPlanetService = scope.ServiceProvider.GetRequiredService<HostedPlanetService>();
@@ -402,10 +404,12 @@ public class VoiceStateCleanupWorker : BackgroundService
             if (servers.Length == 0)
                 return null;
 
-            var channelKeys = servers
-                .SelectMany(server => server.Keys(RedisDbTypes.Cluster, "voice:channel:*"))
-                .Distinct()
-                .ToList();
+            var channelKeys = new HashSet<RedisKey>();
+            foreach (var server in servers)
+            {
+                await foreach (var key in server.KeysAsync(RedisDbTypes.Cluster, "voice:channel:*"))
+                    channelKeys.Add(key);
+            }
 
             foreach (var channelKey in channelKeys)
             {

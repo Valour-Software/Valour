@@ -94,6 +94,21 @@ public static class WindowService
         Docks.Add(dock);
     }
     
+    internal static void RemoveDock(WindowDockComponent dock)
+    {
+        if (!Docks.Remove(dock)) return;
+        if (MainDock == dock)
+            MainDock = Docks.FirstOrDefault();
+        if (dock.Tabs.Contains(FocusedTab))
+        {
+            FocusedTab = null;
+            FocusedPlanet = null;
+        }
+        if (dock.Tabs.Contains(DraggingTab))
+            DraggingTab = null;
+        NotifyDockLayoutUpdated();
+    }
+
     public static void NotifyTabDragging(WindowTab tab)
     {
         DraggingTab = tab;
@@ -179,9 +194,10 @@ public static class WindowService
             return;
         }
 
-        if (FocusedTab is not null)
+        var focusedLayout = FocusedTab?.Layout;
+        if (focusedLayout is not null)
         {
-            await FocusedTab.Layout.AddTab(tab);
+            await focusedLayout.AddTab(tab);
         }
         else
         {

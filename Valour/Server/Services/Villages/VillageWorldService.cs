@@ -31,28 +31,27 @@ public class VillageWorldService
     private static readonly ConcurrentDictionary<(long PlanetId, long MapId), SemaphoreSlim> EditGates = new();
 
     private readonly ValourDb _db;
+    private readonly VillageTemplateService _templateService;
     private readonly CoreHubService _hubService;
     private readonly VillageRoomService _roomService;
     private readonly VillageCollisionService _collisionService;
-    private readonly ILogger<VillageWorldService> _logger;
+    private readonly VillagePresenceService _presenceService;
 
     public VillageWorldService(
         ValourDb db,
+        VillageTemplateService templateService,
         CoreHubService hubService,
         VillageRoomService roomService,
         VillageCollisionService collisionService,
-        ILogger<VillageWorldService> logger)
+        VillagePresenceService presenceService)
     {
         _db = db;
+        _templateService = templateService;
         _hubService = hubService;
         _roomService = roomService;
         _collisionService = collisionService;
-        _logger = logger;
+        _presenceService = presenceService;
     }
-
-    private const string DefaultTileset = "exterior-tileset-0";
-    private const string GrassTexture = "/_content/Valour.Client/media/villages/default-tileset/terrain/grass-base-32.png";
-    private const string InteriorFloorTexture = "/_content/Valour.Client/media/villages/default-tileset/terrain/stone-path-base-32.png";
 
     /// <summary>
     /// Returns the planet's village, creating a starter world on first open.
@@ -65,42 +64,59 @@ public class VillageWorldService
         PlanetMemberModel member,
         bool canManageVillage)
     {
-        var maps = await _db.VillageMaps
-            .Where(x => x.PlanetId == planet.Id)
-            .OrderBy(x => x.Id)
-            .ToListAsync();
-
-        if (maps.Count == 0)
-        {
-            // Two first-open requests can arrive together. Without a
-            // planet-scoped gate both observe an empty world and persist a
-            // complete starter village, leaving duplicate outdoor maps and
-            // buildings. Recheck after entering the gate because another
-            // request may have finished seeding while this one waited.
-            var gate = SeedGates.GetOrAdd(planet.Id, _ => new SemaphoreSlim(1, 1));
-            await gate.WaitAsync();
-            try
-            {
-                maps = await _db.VillageMaps
-                    .Where(x => x.PlanetId == planet.Id)
-                    .OrderBy(x => x.Id)
-                    .ToListAsync();
-
-                if (maps.Count == 0)
-                    await SeedWorldAsync(planet, channels);
-            }
-            finally
-            {
-                gate.Release();
-            }
-
-            maps = await _db.VillageMaps
-                .Where(x => x.PlanetId == planet.Id)
-                .OrderBy(x => x.Id)
-                .ToListAsync();
-        }
-
+        await EnsureWorldAsync(planet, channels, false);
+        var maps = await _db.VillageMaps.Where(x => x.PlanetId == planet.Id).OrderBy(x => x.Id).ToListAsync();
         return await BuildSceneAsync(planet, maps, channels, member, canManageVillage);
+    }
+
+    public async Task ResetToTemplateAsync(PlanetModel planet, IEnumerable<ChannelModel> channels, long staffId)
+    {
+        await EnsureWorldAsync(planet, channels, true);
+        _templateService.AddAudit(staffId, Valour.Shared.Models.Staff.StaffActionType.ResetVillage,
+            $"Reset village {planet.Id} to the published default template.");
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task EnsureWorldAsync(PlanetModel planet, IEnumerable<ChannelModel> channels, bool forceReset)
+    {
+        var settings = await _templateService.GetSettingsAsync();
+        var currentRevision = await _db.VillageMaps.Where(x => x.PlanetId == planet.Id && x.MapType == VillageMapType.Outdoor)
+            .Select(x => (int?)x.TemplateRevision).FirstOrDefaultAsync();
+        if (!forceReset && currentRevision is not null &&
+            (settings.DraftPlanetId == planet.Id || currentRevision >= settings.ResetBeforeRevision)) return;
+        if (forceReset && settings.DraftPlanetId == planet.Id)
+            throw new InvalidOperationException("Choose another draft before resetting the template workshop.");
+
+        var gate = SeedGates.GetOrAdd(planet.Id, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        var deleted = new List<Valour.Server.Models.VillageBuilding>();
+        try
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({planet.Id})");
+            settings = await _templateService.GetSettingsAsync();
+            if (forceReset && settings.DraftPlanetId == planet.Id)
+                throw new InvalidOperationException("Choose another draft before resetting the template workshop.");
+            currentRevision = await _db.VillageMaps.Where(x => x.PlanetId == planet.Id && x.MapType == VillageMapType.Outdoor)
+                .Select(x => (int?)x.TemplateRevision).FirstOrDefaultAsync();
+            if (!forceReset && currentRevision is not null &&
+                (settings.DraftPlanetId == planet.Id || currentRevision >= settings.ResetBeforeRevision)) return;
+            await _presenceService.LeavePlanetAsync(planet.Id);
+            await _roomService.ClosePlanetRoomsAsync(planet.Id);
+            var oldMaps = await _db.VillageMaps.IgnoreQueryFilters().AsNoTracking().Where(x => x.PlanetId == planet.Id).ToListAsync();
+            deleted = (await _db.VillageBuildings.AsNoTracking().Where(x => x.PlanetId == planet.Id).ToListAsync())
+                .Select(x => x.ToModel()).ToList();
+            await _db.VillageObjects.Where(x => x.PlanetId == planet.Id).ExecuteDeleteAsync();
+            await _db.VillageMapChunks.Where(x => x.PlanetId == planet.Id).ExecuteDeleteAsync();
+            await _db.VillageBuildings.IgnoreQueryFilters().Where(x => x.PlanetId == planet.Id).ExecuteDeleteAsync();
+            await _db.VillagePlots.Where(x => x.PlanetId == planet.Id).ExecuteDeleteAsync();
+            await _db.VillageMaps.IgnoreQueryFilters().Where(x => x.PlanetId == planet.Id).ExecuteDeleteAsync();
+            await _templateService.CopyPublishedAsync(planet.Id, channels, settings);
+            await transaction.CommitAsync();
+            foreach (var map in oldMaps) _collisionService.InvalidateMap(planet.Id, map.Id);
+        }
+        finally { gate.Release(); }
+        foreach (var building in deleted) _hubService.NotifyPlanetItemDelete(planet.Id, building);
     }
 
     private async Task<VillagePocScene> BuildSceneAsync(
@@ -184,7 +200,7 @@ public class VillageWorldService
                      .Where(x => string.Equals(x.Kind, "Tile", StringComparison.OrdinalIgnoreCase) ||
                                  string.Equals(x.Kind, "Sprite", StringComparison.OrdinalIgnoreCase)))
         {
-            var footprint = VillageObjectGeometry.GetFootprint(definition.Key);
+            var footprint = _collisionService.GetFootprint(definition.Key);
             scene.BuildCatalog.Add(new VillagePocCatalogItem
             {
                 Kind = definition.Kind,
@@ -195,6 +211,8 @@ public class VillageWorldService
                 Y = definition.Y,
                 Width = definition.Width,
                 Height = definition.Height,
+                PlacementLayer = definition.PlacementLayer,
+                SupportsItems = definition.SupportsItems,
                 FootprintWidth = footprint.Width,
                 FootprintHeight = footprint.Height,
                 BlocksMovement = definition.BlocksMovement,
@@ -250,6 +268,7 @@ public class VillageWorldService
             scene.BuildWallSets.Add(new VillagePocWallSet
             {
                 Key = wallSet.Key,
+                Layout = wallSet.Layout,
                 Name = wallSet.Name,
                 ImageUrl = wallSet.ImageUrl,
                 TileSize = wallSet.TileSize,
@@ -277,9 +296,8 @@ public class VillageWorldService
                 Height = map.Height,
                 TileSize = map.TileSize,
                 BackgroundColor = map.MapType == VillageMapType.Outdoor ? "#9fcf81" : "#d8c9a8",
-                BaseTileTextureUrl = map.MapType == VillageMapType.Outdoor
-                    ? GrassTexture
-                    : InteriorFloorTexture,
+                BaseTileTextureUrl = null,
+                BaseTileDefinitionKey = map.MapType == VillageMapType.Outdoor ? "grass.short-grass" : "floor.oak",
                 TilesetKey = map.TilesetKey,
                 CanEdit = canManageVillage ||
                     (map.MapType == VillageMapType.Interior &&
@@ -312,7 +330,7 @@ public class VillageWorldService
 
             foreach (var item in objects.Where(x => x.MapId == map.Id))
             {
-                var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+                var footprint = _collisionService.GetFootprint(item.DefinitionKey);
                 var decoration = new VillagePocDecoration
                 {
                     Id = item.Id,
@@ -377,16 +395,12 @@ public class VillageWorldService
                     Price = building.Price,
                     EntranceTile = primaryEntrance,
                     EntranceTiles = entranceTiles,
-                    CollisionRects =
-                    {
-                        new VillagePocRect
+                    CollisionRects = _collisionService.GetBuildingCollisionCells(
+                        map.TilesetKey, building.SpriteKey, building.Width, building.Height)
+                        .Select(cell => new VillagePocRect
                         {
-                            X = building.X,
-                            Y = building.Y,
-                            Width = building.Width,
-                            Height = building.Height,
-                        },
-                    },
+                            X = building.X + cell.X, Y = building.Y + cell.Y, Width = 1, Height = 1,
+                        }).ToList(),
                 });
             }
 
@@ -401,14 +415,15 @@ public class VillageWorldService
                     var primaryEntrance = parentMap is null
                         ? new VillagePocPoint { X = parent.DoorX, Y = parent.DoorY }
                         : ResolveBuildingEntrances(parentMap, parent).Primary;
+                    var returnTile = await ResolveReturnTileAsync(planet.Id, parentMap, primaryEntrance, buildings);
                     pocMap.Portals.Add(new VillagePocPortal
                     {
                         Kind = "Exit",
                         X = map.SpawnX,
                         Y = map.SpawnY,
                         TargetMapId = parent.MapId,
-                        TargetX = primaryEntrance.X,
-                        TargetY = primaryEntrance.Y,
+                        TargetX = returnTile.X,
+                        TargetY = returnTile.Y,
                         BuildingId = parent.Id,
                         Color = "#c9f0ff",
                     });
@@ -419,6 +434,25 @@ public class VillageWorldService
         }
 
         return scene;
+    }
+
+    private async Task<VillagePocPoint> ResolveReturnTileAsync(long planetId, Valour.Database.VillageMap? map,
+        VillagePocPoint entrance, List<Valour.Database.VillageBuilding> buildings)
+    {
+        if (map is null) return new() { X = entrance.X, Y = entrance.Y + 1 };
+        var collision = await _collisionService.GetMapAsync(planetId, map.Id);
+        var doors = buildings.Where(x => x.MapId == map.Id)
+            .SelectMany(x => ResolveBuildingEntrances(map, x).Entrances).Select(x => (x.X, x.Y)).ToHashSet();
+        var visited = new HashSet<(int X, int Y)> { (entrance.X, entrance.Y) };
+        var queue = new Queue<(int X, int Y)>(); queue.Enqueue((entrance.X, entrance.Y));
+        while (queue.TryDequeue(out var point))
+            foreach (var next in new[] { (point.X, point.Y + 1), (point.X - 1, point.Y), (point.X + 1, point.Y), (point.X, point.Y - 1) })
+            {
+                if (collision?.IsWalkable(next.Item1, next.Item2) != true || !visited.Add(next)) continue;
+                if (!doors.Contains(next)) return new() { X = next.Item1, Y = next.Item2 };
+                queue.Enqueue(next);
+            }
+        return new() { X = map.SpawnX, Y = map.SpawnY };
     }
 
     private (List<VillagePocPoint> Entrances, VillagePocPoint Primary) ResolveBuildingEntrances(
@@ -466,6 +500,22 @@ public class VillageWorldService
             return "Surfaces";
         if (key.StartsWith("buildings.", StringComparison.OrdinalIgnoreCase))
             return "Buildings";
+        if (key.StartsWith("office.", StringComparison.OrdinalIgnoreCase))
+            return "Office";
+        if (key.StartsWith("living.", StringComparison.OrdinalIgnoreCase))
+            return "Living room";
+        if (key.StartsWith("bedroom.", StringComparison.OrdinalIgnoreCase))
+            return "Bedroom";
+        if (key.StartsWith("kitchen.", StringComparison.OrdinalIgnoreCase))
+            return "Kitchen";
+        if (key.StartsWith("bathroom.", StringComparison.OrdinalIgnoreCase))
+            return "Bathroom";
+        if (key.StartsWith("studio.", StringComparison.OrdinalIgnoreCase))
+            return "Studio";
+        if (key.StartsWith("music.", StringComparison.OrdinalIgnoreCase))
+            return "Music";
+        if (key.StartsWith("recreation.", StringComparison.OrdinalIgnoreCase))
+            return "Recreation";
         if (key.StartsWith("furniture.", StringComparison.OrdinalIgnoreCase))
             return "Furniture";
         if (key.StartsWith("garden.", StringComparison.OrdinalIgnoreCase) ||
@@ -496,6 +546,9 @@ public class VillageWorldService
                 .FirstOrDefaultAsync(x => x.Id == mapId && x.PlanetId == planetId);
             if (map is null)
                 return TaskResult<VillageBuildResult>.FromFailure("Village map not found.");
+
+            if (request.Action == VillageBuildAction.Move)
+                return await MoveObjectAsync(map, actorMemberId, canManageVillage, request);
 
             if (request.Action == VillageBuildAction.Erase)
                 return await EraseObjectAsync(map, actorMemberId, canManageVillage, request.ObjectId);
@@ -566,7 +619,7 @@ public class VillageWorldService
                 return TaskResult<VillageBuildResult>.FromFailure("That item cannot be placed as furniture.");
             }
 
-            var footprint = VillageObjectGeometry.GetFootprint(key);
+            var footprint = _collisionService.GetFootprint(key);
             if (!BoundsInsideMap(map, request.X, request.Y, footprint.Width, footprint.Height))
                 return TaskResult<VillageBuildResult>.FromFailure("That item would extend beyond the map.");
             if (!await CanEditBoundsAsync(
@@ -580,7 +633,7 @@ public class VillageWorldService
             }
 
             var placementError = await ValidateFurnishingPlacementAsync(
-                map, request.X, request.Y, footprint.Width, footprint.Height);
+                map, request.X, request.Y, footprint.Width, footprint.Height, definition);
             if (placementError is not null)
                 return TaskResult<VillageBuildResult>.FromFailure(placementError);
 
@@ -604,8 +657,8 @@ public class VillageWorldService
                 DefinitionKey = definition.Key,
                 X = request.X,
                 Y = request.Y,
-                ZIndex = 0,
-                BlocksMovement = definition.BlocksMovement,
+                ZIndex = definition.PlacementLayer == "Floor" ? -10 : definition.PlacementLayer == "Surface" ? 5 : 0,
+                BlocksMovement = definition.PlacementLayer == "Furniture" && definition.BlocksMovement,
                 OwnerMemberId = actorMemberId,
             };
 
@@ -626,6 +679,115 @@ public class VillageWorldService
         finally
         {
             gate.Release();
+        }
+    }
+
+    private void SeedInterior(Valour.Database.VillageMap map, bool home, string style = "Home")
+    {
+        if (home) style = "Home";
+        var divider = map.Width / 2;
+        var right = divider + 2;
+        void Add(string key, int x, int y, int zIndex = 0)
+        {
+            _collisionService.TryGetDefinition(map.TilesetKey, key, out var definition);
+            _db.VillageObjects.Add(new Valour.Database.VillageObject
+            {
+                Id = IdManager.Generate(), PlanetId = map.PlanetId, MapId = map.Id,
+                DefinitionKey = key, X = x, Y = y, ZIndex = zIndex,
+                BlocksMovement = VillageWallTopology.IsWallDefinitionKey(key) ||
+                    (zIndex == 0 && definition?.BlocksMovement == true),
+            });
+        }
+        var floor = style switch { "Town Hall" => "floor.walnut", "Studio" => "floor.cream", _ => "floor.oak" };
+        var accent = style switch { "Town Hall" => "floor.cream", "Studio" => "floor.walnut", "Voice Lounge" => "floor.limestone", _ => "floor.parquet" };
+        for (var y = 0; y < map.Height; y++)
+        for (var x = 0; x < map.Width; x++)
+            Add(x > divider && y < map.Height - 4 ? accent : floor, x, y, -100);
+        var walls = new HashSet<(int X, int Y)>();
+        for (var x = 0; x < map.Width; x++)
+        {
+            walls.Add((x, 0));
+            if (Math.Abs(x - map.SpawnX) > 1) walls.Add((x, map.Height - 1));
+        }
+        for (var y = 1; y < map.Height - 1; y++)
+        {
+            walls.Add((0, y)); walls.Add((map.Width - 1, y));
+        }
+        if (style != "Voice Lounge")
+            for (var y = 1; y < map.Height - 5; y++)
+                if (y < 6 || y > 8) walls.Add((divider, y));
+        var wallStyle = style switch { "Town Hall" => "modern.green", "Studio" => "modern.blue", "Voice Lounge" => "modern.oak", _ => "modern.cream" };
+        foreach (var wall in walls)
+            Add(VillageWallTopology.MakeDefinitionKey(wallStyle,
+                VillageWallTopology.ResolveFrame((x, y) => walls.Contains((x, y)), wall.X, wall.Y)), wall.X, wall.Y, WallZIndex);
+        Add("decor.indoor-tree", 1, 3);
+        Add("decor.indoor-plant", map.Width - 3, map.Height - 3);
+        if (style == "Home")
+        {
+            Add("decor.rug.blue", 3, 5, -10);
+            Add("living.sofa.linen", 3, 4);
+            Add("living.coffee-table", 4, 7);
+            Add("living.armchair.slate", 2, 7);
+            Add("living.bookcase", 5, 2);
+            Add("decor.floor-lamp.blue", 7, 4);
+            Add("bedroom.bed.blue", right, 4);
+            Add("bedroom.nightstand", right + 2, 5);
+            Add("bedroom.dresser", right, 9);
+            Add("living.cabinet.oak", right + 3, 2);
+        }
+        else if (style == "Town Hall")
+        {
+            foreach (var x in new[] { 4, 7, right, right + 3 }) Add("living.bookcase", x, 2);
+            Add("decor.rug.red", 3, 7, -10);
+            Add("living.sofa.amber", 3, 6);
+            Add("living.coffee-table", 4, 9);
+            Add("living.armchair.linen", 7, 8);
+            Add("office.copier", 2, 11);
+            Add("office.table.conference", right, 6);
+            foreach (var x in new[] { right, right + 2, right + 4 })
+            {
+                Add("office.chair.padded", x, 5);
+                Add("office.chair.blue.north", x, 9);
+            }
+            Add("decor.indoor-palm", map.Width - 3, 3);
+        }
+        else if (style == "Voice Lounge")
+        {
+            Add("living.sideboard", 4, 2);
+            Add("living.cabinet.glass", 7, 2);
+            Add("decor.rug.red", 3, 6, -10);
+            Add("living.sofa.amber", 3, 5);
+            Add("living.coffee-table", 4, 8);
+            Add("living.armchair.linen", 2, 8);
+            Add("living.armchair.linen", 7, 8);
+            Add("decor.floor-lamp.red", 7, 5);
+            foreach (var y in new[] { 4, 9 })
+            {
+                Add("living.table.birch", right + 1, y);
+                Add("office.chair.light", right, y + 1);
+                Add("office.chair.dark", right + 4, y + 1);
+            }
+            Add("decor.indoor-palm", right, 2);
+            Add("living.sofa.linen", 4, 12);
+        }
+        else
+        {
+            foreach (var y in new[] { 4, 9 })
+            foreach (var x in new[] { 2, 6 })
+            {
+                Add("office.desk.birch", x, y);
+                Add("office.monitor", x, y, 5);
+                Add("office.chair.blue.north", x + 1, y + 2);
+            }
+            Add("office.presentation-screen", right, 2);
+            Add("office.lectern", right + 5, 4);
+            Add("office.table.conference", right, 7);
+            foreach (var x in new[] { right, right + 2, right + 4 })
+            {
+                Add("office.chair.padded", x, 6);
+                Add("office.chair.blue.north", x, 10);
+            }
+            Add("living.sofa.slate", right + 1, 12);
         }
     }
 
@@ -712,6 +874,7 @@ public class VillageWorldService
         };
 
         _db.VillageMaps.Add(interior);
+        SeedInterior(interior, home: true);
         _db.VillageBuildings.Add(building);
         await _db.SaveChangesAsync();
         _collisionService.InvalidateMap(map.PlanetId, map.Id);
@@ -758,7 +921,7 @@ public class VillageWorldService
         // grid before any art is picked, so the whole stroke and its border see
         // one atomic terrain state.
         var ground = await _db.VillageObjects
-            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex < 0)
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex <= -100)
             .OrderBy(item => item.Id)
             .ToListAsync();
         var byPosition = ground
@@ -949,7 +1112,7 @@ public class VillageWorldService
         }
 
         var ground = await _db.VillageObjects
-            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex < 0)
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex <= -100)
             .OrderBy(item => item.Id)
             .ToListAsync();
         var byPosition = ground
@@ -1076,6 +1239,8 @@ public class VillageWorldService
                     ? "Only this building's owner can build walls in its interior."
                     : "Build walls inside land you can edit.");
         }
+        if (_presenceService.GetMapOccupants(map.PlanetId, map.Id).Any(person => targets.Contains((person.X, person.Y))))
+            return TaskResult<VillageBuildResult>.FromFailure("Keep the tiles occupied by people clear.");
         if (targets.Contains((map.SpawnX, map.SpawnY)))
             return TaskResult<VillageBuildResult>.FromFailure("Keep the map's entrance clear.");
 
@@ -1097,7 +1262,7 @@ public class VillageWorldService
             .ToList();
         if (targets.Any(target => nonWalls.Any(item =>
             {
-                var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+                var footprint = _collisionService.GetFootprint(item.DefinitionKey);
                 return RectanglesOverlap(
                     target.X, target.Y, 1, 1,
                     item.X, item.Y, footprint.Width, footprint.Height);
@@ -1194,6 +1359,41 @@ public class VillageWorldService
         });
     }
 
+    private async Task<bool> HasSurfaceItemsAsync(Valour.Database.VillageObject item)
+    {
+        var footprint = _collisionService.GetFootprint(item.DefinitionKey);
+        return item.ZIndex == 0 && await _db.VillageObjects.AnyAsync(other =>
+            other.PlanetId == item.PlanetId && other.MapId == item.MapId && other.ZIndex == 5 &&
+            other.X >= item.X && other.X < item.X + footprint.Width &&
+            other.Y >= item.Y && other.Y < item.Y + footprint.Height);
+    }
+
+    private async Task<TaskResult<VillageBuildResult>> MoveObjectAsync(
+        Valour.Database.VillageMap map, long actorMemberId, bool canManageVillage, VillageBuildRequest request)
+    {
+        var item = await _db.VillageObjects.FirstOrDefaultAsync(item =>
+            item.Id == request.ObjectId && item.PlanetId == map.PlanetId && item.MapId == map.Id);
+        if (item is null || item.ZIndex <= -100 || VillageWallTopology.IsWallDefinitionKey(item.DefinitionKey) ||
+            !_collisionService.TryGetDefinition(map.TilesetKey, item.DefinitionKey, out var definition))
+            return TaskResult<VillageBuildResult>.FromFailure("Choose furniture or a rug to move.");
+        var footprint = _collisionService.GetFootprint(item.DefinitionKey);
+        if (!BoundsInsideMap(map, request.X, request.Y, footprint.Width, footprint.Height) ||
+            !await CanEditBoundsAsync(map, actorMemberId, canManageVillage, item.X, item.Y, footprint.Width, footprint.Height) ||
+            !await CanEditBoundsAsync(map, actorMemberId, canManageVillage, request.X, request.Y, footprint.Width, footprint.Height))
+            return TaskResult<VillageBuildResult>.FromFailure("Keep the furniture inside property you can edit.");
+        if (await HasSurfaceItemsAsync(item))
+            return TaskResult<VillageBuildResult>.FromFailure("Move the items on this desk or table first.");
+        var error = await ValidateFurnishingPlacementAsync(map, request.X, request.Y,
+            footprint.Width, footprint.Height, definition, item.Id);
+        if (error is not null) return TaskResult<VillageBuildResult>.FromFailure(error);
+        item.X = request.X;
+        item.Y = request.Y;
+        await _db.SaveChangesAsync();
+        _collisionService.InvalidateMap(map.PlanetId, map.Id);
+        _hubService.NotifyPlanetItemChange(map.PlanetId, item.ToModel());
+        return TaskResult<VillageBuildResult>.FromData(new VillageBuildResult { Decoration = ToDecoration(item, actorMemberId) });
+    }
+
     private async Task<TaskResult<VillageBuildResult>> EraseObjectAsync(
         Valour.Database.VillageMap map,
         long actorMemberId,
@@ -1214,7 +1414,7 @@ public class VillageWorldService
                 : await ArchiveBuildingAsync(map, building, actorMemberId, canManageVillage);
         }
 
-        var footprint = item.ZIndex < 0 ? (Width: 1, Height: 1) : VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+        var footprint = item.ZIndex <= -100 ? (Width: 1, Height: 1) : _collisionService.GetFootprint(item.DefinitionKey);
         if (!await CanEditBoundsAsync(
                 map, actorMemberId, canManageVillage,
                 item.X, item.Y, footprint.Width, footprint.Height))
@@ -1222,10 +1422,13 @@ public class VillageWorldService
             return TaskResult<VillageBuildResult>.FromFailure("You cannot edit the property containing that item.");
         }
 
+        if (await HasSurfaceItemsAsync(item))
+            return TaskResult<VillageBuildResult>.FromFailure("Move or remove the items on this desk or table first.");
+
         if (VillageWallTopology.IsWallDefinitionKey(item.DefinitionKey))
             return await EraseWallAsync(map, item, actorMemberId);
 
-        if (item.ZIndex >= 0)
+        if (item.ZIndex > -100)
         {
             _db.VillageObjects.Remove(item);
             await _db.SaveChangesAsync();
@@ -1256,7 +1459,7 @@ public class VillageWorldService
         var ground = await _db.VillageObjects
             .Where(candidate => candidate.PlanetId == map.PlanetId &&
                                 candidate.MapId == map.Id &&
-                                candidate.ZIndex < 0 &&
+                                candidate.ZIndex <= -100 &&
                                 candidate.Id != item.Id)
             .OrderBy(candidate => candidate.Id)
             .ToListAsync();
@@ -1511,36 +1714,44 @@ public class VillageWorldService
 
     private async Task<string?> ValidateFurnishingPlacementAsync(
         Valour.Database.VillageMap map,
-        int x,
-        int y,
-        int width,
-        int height)
+        int x, int y, int width, int height,
+        VillageCollisionService.CollisionDefinition definition,
+        long? excludedObjectId = null)
     {
         if (RectanglesOverlap(x, y, width, height, map.SpawnX, map.SpawnY, 1, 1))
             return "Keep the map's entrance clear.";
-
+        if (definition.PlacementLayer == "Furniture" && definition.BlocksMovement &&
+            _presenceService.GetMapOccupants(map.PlanetId, map.Id).Any(person =>
+                RectanglesOverlap(x, y, width, height, person.X, person.Y, 1, 1)))
+            return "Keep the tiles occupied by people clear.";
         var buildings = await _db.VillageBuildings
-            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id)
-            .ToListAsync();
-        if (buildings.Any(item => RectanglesOverlap(
-                x, y, width, height, item.X, item.Y, item.Width, item.Height)))
-        {
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id).ToListAsync();
+        if (buildings.Any(item => RectanglesOverlap(x, y, width, height, item.X, item.Y, item.Width, item.Height)))
             return "That space is occupied by a building.";
-        }
-
         var objects = await _db.VillageObjects
-            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex >= 0)
-            .ToListAsync();
-        if (objects.Any(item =>
-            {
-                var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
-                return RectanglesOverlap(x, y, width, height, item.X, item.Y, footprint.Width, footprint.Height);
-            }))
+            .Where(item => item.PlanetId == map.PlanetId && item.MapId == map.Id && item.ZIndex > -100).ToListAsync();
+        var supported = definition.PlacementLayer != "Surface";
+        foreach (var item in objects)
         {
+            if (item.Id == excludedObjectId) continue;
+            var footprint = _collisionService.GetFootprint(item.DefinitionKey);
+            if (!RectanglesOverlap(x, y, width, height, item.X, item.Y, footprint.Width, footprint.Height)) continue;
+            if (definition.PlacementLayer == "Floor")
+            {
+                if (item.ZIndex == -10) return "There is already a rug in that space.";
+                continue;
+            }
+            if (item.ZIndex < 0) continue;
+            if (definition.PlacementLayer == "Surface" && item.ZIndex == 0 &&
+                _collisionService.TryGetDefinition(map.TilesetKey, item.DefinitionKey, out var support) && support.SupportsItems &&
+                x >= item.X && y >= item.Y && x + width <= item.X + footprint.Width && y + height <= item.Y + footprint.Height)
+            {
+                supported = true;
+                continue;
+            }
             return "That space is already furnished.";
         }
-
-        return null;
+        return supported ? null : "Place this item on a desk or table.";
     }
 
     private static bool BoundsInsideMap(
@@ -1560,11 +1771,11 @@ public class VillageWorldService
         firstY < secondY + secondHeight &&
         firstY + firstHeight > secondY;
 
-    private static VillagePocDecoration ToDecoration(
+    private VillagePocDecoration ToDecoration(
         Valour.Database.VillageObject item,
         long localMemberId)
     {
-        var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+        var footprint = _collisionService.GetFootprint(item.DefinitionKey);
         return new VillagePocDecoration
         {
             Id = item.Id,
@@ -1574,8 +1785,8 @@ public class VillageWorldService
             DefinitionKey = item.DefinitionKey,
             X = item.X,
             Y = item.Y,
-            Width = item.ZIndex < 0 ? 1 : footprint.Width,
-            Height = item.ZIndex < 0 ? 1 : footprint.Height,
+            Width = item.ZIndex <= -100 ? 1 : footprint.Width,
+            Height = item.ZIndex <= -100 ? 1 : footprint.Height,
             ZIndex = item.ZIndex,
             BlocksMovement = item.BlocksMovement,
             Rotation = item.Rotation,
@@ -1814,283 +2025,4 @@ public class VillageWorldService
         FillColor = "#00000000",
     };
 
-    /// <summary>
-    /// Creates an immediately useful social world rather than an empty editor
-    /// canvas: civic chat, voice and video venues surround a landscaped commons,
-    /// while claimable property demonstrates the economy without requiring an
-    /// administrator to author the first map by hand.
-    /// </summary>
-    private async Task SeedWorldAsync(PlanetModel planet, IEnumerable<ChannelModel> channels)
-    {
-        var channelList = channels.ToList();
-
-        var primaryChat = channelList.FirstOrDefault(x => x.IsDefault)
-            ?? channelList.FirstOrDefault(x => x.ChannelType == ChannelTypeEnum.PlanetChat);
-
-        var voiceChannel = channelList.FirstOrDefault(x =>
-            x.ChannelType == ChannelTypeEnum.PlanetVoice);
-
-        var videoChannel = channelList.FirstOrDefault(x =>
-            x.ChannelType == ChannelTypeEnum.PlanetVideo);
-
-        var secondaryChat = channelList.FirstOrDefault(x =>
-            x.ChannelType == ChannelTypeEnum.PlanetChat && x.Id != primaryChat?.Id);
-
-        var hasPlanetCurrency = await _db.Currencies.AnyAsync(x => x.PlanetId == planet.Id);
-        var starterPropertyPrice = hasPlanetCurrency ? 250m : 0m;
-
-        var outdoor = new Valour.Database.VillageMap
-        {
-            Id = IdManager.Generate(),
-            PlanetId = planet.Id,
-            MapType = VillageMapType.Outdoor,
-            Name = $"{planet.Name} Commons",
-            Width = 52,
-            Height = 40,
-            TileSize = 32,
-            SpawnX = 26,
-            SpawnY = 25,
-            TilesetKey = DefaultTileset,
-            AmbientColor = "#fff4cf",
-            Version = 1,
-        };
-
-        _db.VillageMaps.Add(outdoor);
-
-        var blueprints = new[]
-        {
-            new
-            {
-                Name = "Town Hall",
-                Description = "The village hearth: announcements, conversation, and community business.",
-                X = 4, Y = 13, W = 8, H = 5,
-                ChannelId = primaryChat?.Id,
-                Voice = VillageVoiceMode.None,
-                Sprite = "buildings.house-medium",
-                ForSale = false,
-            },
-            new
-            {
-                Name = "Voice Lounge",
-                Description = "A drop-in room built for natural, low-friction conversation.",
-                X = 40, Y = 13, W = 8, H = 5,
-                ChannelId = voiceChannel?.Id,
-                Voice = voiceChannel is null ? VillageVoiceMode.None : VillageVoiceMode.LinkedChannel,
-                Sprite = "buildings.house-medium.brown",
-                ForSale = false,
-            },
-            new
-            {
-                Name = "Maker House",
-                Description = "A claimable workshop for projects, clubs, and resident-led events.",
-                X = 4, Y = 30, W = 8, H = 5,
-                ChannelId = secondaryChat?.Id,
-                Voice = VillageVoiceMode.None,
-                Sprite = "buildings.house-medium.brown",
-                ForSale = true,
-            },
-            new
-            {
-                Name = "Studio",
-                Description = "A presentation-ready video room for stand-ups, demos, and broadcasts.",
-                X = 40, Y = 30, W = 8, H = 5,
-                ChannelId = videoChannel?.Id,
-                Voice = videoChannel is null ? VillageVoiceMode.None : VillageVoiceMode.LinkedChannel,
-                Sprite = "buildings.house-medium",
-                ForSale = false,
-            },
-        };
-
-        var seededDoors = new List<(int X, int Y)>();
-        foreach (var blueprint in blueprints)
-        {
-            var authoredDoors = _collisionService.GetDoorOffsets(
-                outdoor.TilesetKey,
-                blueprint.Sprite,
-                blueprint.W,
-                blueprint.H);
-            var primaryDoor = authoredDoors
-                .OrderByDescending(door => door.Y)
-                .ThenBy(door => Math.Abs((door.X + 0.5) - blueprint.W / 2d))
-                .FirstOrDefault((X: blueprint.W / 2, Y: blueprint.H - 1));
-            var interior = new Valour.Database.VillageMap
-            {
-                Id = IdManager.Generate(),
-                PlanetId = planet.Id,
-                MapType = VillageMapType.Interior,
-                Name = $"{blueprint.Name} Interior",
-                Width = 18,
-                Height = 13,
-                TileSize = 32,
-                SpawnX = 9,
-                SpawnY = 11,
-                TilesetKey = DefaultTileset,
-                AmbientColor = "#ffe8bd",
-                Version = 1,
-            };
-
-            _db.VillageMaps.Add(interior);
-
-            var plot = new Valour.Database.VillagePlot
-            {
-                Id = IdManager.Generate(),
-                PlanetId = planet.Id,
-                MapId = outdoor.Id,
-                Name = $"{blueprint.Name} Grounds",
-                X = blueprint.X - 1,
-                Y = blueprint.Y - 1,
-                Width = blueprint.W + 2,
-                Height = blueprint.H + 2,
-                EditMode = VillageEditMode.Owner,
-                ForSale = false,
-                Price = 0,
-            };
-
-            var building = new Valour.Database.VillageBuilding
-            {
-                Id = IdManager.Generate(),
-                PlanetId = planet.Id,
-                MapId = outdoor.Id,
-                InteriorMapId = interior.Id,
-                PlotId = plot.Id,
-                Name = blueprint.Name,
-                Description = blueprint.Description,
-                X = blueprint.X,
-                Y = blueprint.Y,
-                Width = blueprint.W,
-                Height = blueprint.H,
-                DoorX = blueprint.X + primaryDoor.X,
-                DoorY = blueprint.Y + primaryDoor.Y,
-                SpriteKey = blueprint.Sprite,
-                VoiceMode = blueprint.Voice,
-                ChannelId = blueprint.ChannelId,
-                ForSale = blueprint.ForSale,
-                Price = blueprint.ForSale ? starterPropertyPrice : 0,
-            };
-
-            _db.VillageBuildings.Add(building);
-            _db.VillagePlots.Add(plot);
-            interior.ParentBuildingId = building.Id;
-            seededDoors.Add((building.DoorX, building.DoorY));
-
-            // A little furniture makes interiors read as meeting rooms instead
-            // of differently coloured empty maps.
-            _db.VillageObjects.AddRange(
-                new Valour.Database.VillageObject
-                {
-                    Id = IdManager.Generate(),
-                    PlanetId = planet.Id,
-                    MapId = interior.Id,
-                    DefinitionKey = "furniture.park-bench",
-                    X = 5,
-                    Y = 6,
-                    BlocksMovement = true,
-                },
-                new Valour.Database.VillageObject
-                {
-                    Id = IdManager.Generate(),
-                    PlanetId = planet.Id,
-                    MapId = interior.Id,
-                    DefinitionKey = "furniture.park-bench",
-                    X = 11,
-                    Y = 6,
-                    BlocksMovement = true,
-                });
-        }
-
-        // An empty parcel demonstrates land ownership independently from the
-        // furnished Maker House listing.
-        _db.VillagePlots.Add(new Valour.Database.VillagePlot
-        {
-            Id = IdManager.Generate(),
-            PlanetId = planet.Id,
-            MapId = outdoor.Id,
-            Name = "Founder's Grove",
-            X = 18,
-            Y = 30,
-            Width = 7,
-            Height = 7,
-            EditMode = VillageEditMode.Owner,
-            ForSale = true,
-            Price = hasPlanetCurrency ? 100m : 0m,
-        });
-
-        void AddObject(string key, int x, int y, bool blocksMovement = false, int zIndex = 0)
-        {
-            _db.VillageObjects.Add(new Valour.Database.VillageObject
-            {
-                Id = IdManager.Generate(),
-                PlanetId = planet.Id,
-                MapId = outdoor.Id,
-                DefinitionKey = key,
-                X = x,
-                Y = y,
-                ZIndex = zIndex,
-                BlocksMovement = blocksMovement,
-            });
-        }
-
-        void AddGround(string key, int x, int y) => AddObject(key, x, y, zIndex: -100);
-
-        // A cross-shaped promenade and central plaza make routes legible at a
-        // glance while preserving generous lawns for future construction.
-        for (var y = 0; y < outdoor.Height; y++)
-        {
-            for (var x = 24; x <= 27; x++)
-                AddGround("grass.dirt-path-flat", x, y);
-        }
-
-        for (var x = 0; x < outdoor.Width; x++)
-        {
-            for (var y = 20; y <= 23; y++)
-                AddGround("grass.dirt-path-flat.2", x, y);
-        }
-
-        for (var y = 15; y <= 25; y++)
-        {
-            for (var x = 19; x <= 32; x++)
-                AddGround("pathways.cobblestones", x, y);
-        }
-
-        foreach (var door in seededDoors)
-        {
-            var from = Math.Min(door.Item2, 21);
-            var to = Math.Max(door.Item2, 21);
-            for (var y = from; y <= to; y++)
-            {
-                AddGround("grass.dirt-path-flat.1", door.Item1, y);
-                AddGround("grass.dirt-path-flat.3", door.Item1 + 1, y);
-            }
-        }
-
-        // Mature trees frame the world without creating a solid collision wall.
-        for (var x = 2; x < outdoor.Width - 2; x += 5)
-        {
-            AddObject(x % 10 == 2 ? "trees.large-tree.with-grass" : "trees.large-tree", x, 5, blocksMovement: true);
-            AddObject(x % 10 == 2 ? "large-tree-planter.square" : "trees.large-tree-planter", x, 39, blocksMovement: true);
-        }
-
-        for (var y = 10; y < outdoor.Height - 5; y += 6)
-        {
-            AddObject("small-tree.with-grass", 1, y, blocksMovement: true);
-            AddObject("small-tree-planter.square", 50, y, blocksMovement: true);
-        }
-
-        // The commons has recognisable landmarks and quiet conversational
-        // pockets, which also makes spatial voice distance easy to understand.
-        AddObject("decor.stone-fountain", 25, 20, blocksMovement: true);
-        AddObject("furniture.park-bench", 21, 18, blocksMovement: true);
-        AddObject("furniture.park-bench", 29, 24, blocksMovement: true);
-        AddObject("garden.planter.white", 18, 16);
-        AddObject("garden.planter.yellow", 32, 16);
-        AddObject("garden.planter.pink", 18, 25);
-        AddObject("garden.flowers.white", 14, 20);
-        AddObject("garden.flowers.pink", 34, 20);
-        AddObject("garden.flowers.red", 34, 23);
-        AddObject("commerce.market-stall", 28, 31, blocksMovement: true);
-
-        await _db.SaveChangesAsync();
-
-        _logger.LogInformation("Seeded starter village for planet {PlanetId}.", planet.Id);
-    }
 }

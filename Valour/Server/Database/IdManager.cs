@@ -22,7 +22,7 @@ public static class IdManager
 
         var structure = new IdStructure(45, 10, 8);
 
-        var options = new IdGeneratorOptions(structure, new DefaultTimeSource(epoch));
+        var options = new IdGeneratorOptions(structure, new DefaultTimeSource(epoch), SequenceOverflowStrategy.SpinWait);
 
         // Worker ids identify cooperating official-cluster instances only.
         // Community federation nodes do not participate in this 10-bit space:

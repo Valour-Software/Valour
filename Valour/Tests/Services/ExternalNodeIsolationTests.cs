@@ -221,6 +221,26 @@ public class ExternalNodeIsolationTests
     }
 
     [Fact]
+    public async Task GetJsonCache_ExplicitBypassFetchesAfterACachedRead()
+    {
+        var handler = new OriginEchoHandler();
+        var client = new ValourClient("https://hub.example/", httpProvider: new HandlerProvider(handler));
+        var node = new Node(client);
+        await node.InitializeAsync("hub");
+
+        var route = "api/cache-bypass-" + Guid.NewGuid().ToString("N");
+        var first = await node.GetJsonAsync<Dictionary<string, string>>(route, cacheDurationMs: 60_000);
+        var cached = await node.GetJsonAsync<Dictionary<string, string>>(route);
+        Assert.Same(first.Data, cached.Data);
+        Assert.Equal(1, handler.RequestCount);
+
+        var fresh = await node.GetJsonAsync<Dictionary<string, string>>(route, cacheDurationMs: null);
+        Assert.True(fresh.Success);
+        Assert.NotSame(first.Data, fresh.Data);
+        Assert.Equal(2, handler.RequestCount);
+    }
+
+    [Fact]
     public async Task InviteDestination_MustBeHubSignedBeforePassportProofIsSent()
     {
         using var signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);

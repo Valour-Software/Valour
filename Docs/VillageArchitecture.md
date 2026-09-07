@@ -1,607 +1,346 @@
-# Valour Village Architecture
+# Village architecture
 
-Villages are a planet-scoped 2D social world embedded in the Valour client: a
-place members walk around, run into each other, and talk, with buildings that
-surface the planet's existing channels rather than duplicating them.
+A village is a planet's shared 2D world. Members walk between outdoor spaces and
+building interiors, talk to people nearby, and use buildings to open the planet's
+chat and call spaces. Plots and buildings can belong to members, and authorized
+members can furnish and edit the world.
 
-This document describes **what is built**, the reasoning behind decisions that are
-not obvious from reading the code, and what is deliberately still open. Anything
-under "Not built yet" is not in the codebase.
+## Responsibilities
 
-## Shape of the system
+The server stores the world, checks edits and movement, and distributes presence.
+The SDK loads scenes and maintains model stores and the current presence session.
+`VillageWindowComponent` manages the Blazor window, controls, inspectors, and call
+integration. Its JavaScript runtime handles drawing, camera movement, input,
+collision previews, and position interpolation.
+
+Per-frame work stays in JavaScript. Blazor receives meaningful state changes such
+as selection, room entry, or zoom readouts. The client keeps at most one village
+window active, since `VillageService` owns one current-map presence session.
+Opening another planet's village replaces the content of that window.
+
+`Planet.EnableVillage` is enforced by HTTP routes and hub methods as well as the
+navigation UI. Disabling a village updates the hosted planet, clears live presence,
+retires temporary rooms, and tears down open client runtimes. Re-enabling it allows
+an open window to reload from the planet update.
+
+## Persistent world data
+
+Village entities use the shared planet-model and SDK planet-model patterns:
+
+| Entity | Responsibility |
+| --- | --- |
+| `VillageMap` | Outdoor map or interior, with bounds, spawn, and optional parent building |
+| `VillageMapChunk` | A 32 by 32 block with tile-layer and collision data |
+| `VillagePlot` | Land ownership, build boundaries, and sale terms |
+| `VillageBuilding` | Footprint, entrance, interior link, optional channel, and voice mode |
+| `VillageObject` | An individually placed furnishing, wall, or ground object |
+
+Each entity has a cascading foreign key to its planet. Map, plot, building,
+channel, and owner references are plain columns whose consistency is maintained
+by the services. This includes the two-way relationship between an interior map
+and its parent building.
+
+Chunks divide map data into bounded pieces. The runtime draws ground from
+negative-Z objects; it does not decode `VillageMapChunk.LayerData`. The collision
+service does read chunk `CollisionData`: either a row-major 32 by 32 boolean array
+or a JSON object such as `{ "blocked": [12, 13] }`. Malformed collision data blocks
+movement through the affected chunk.
+
+## Presence and reconnection
+
+`VillagePresenceService` keeps positions in memory on the node hosting the planet.
+Presence is per map and is not saved to the database. Clients announce themselves
+when joining and rejoin after reconnection. Restarting the node therefore clears
+presence until clients restore their sessions.
+
+Map groups use `v-{planetId}-{mapId}`. Movement carries tile coordinates and facing;
+names and avatars arrive on join or in presence snapshots. A movement update must
+preserve the identity already known for that member. Characters render as member
+avatar tokens; facing is carried in the protocol but does not select directional
+character artwork.
+
+Within a map, the server permits one cardinal tile per move and checks collision.
+A portal transition joins a different map. Invalid jumps are rejected before they
+can alter or throttle legitimate presence. Presence records track their owning
+connection ID, so a delayed disconnect from another socket cannot remove a
+restored session.
+
+The SDK rejoins at the last local tile after node authentication. If rejoin fails,
+the window can retain its map as context, but nearby communication and temporary
+room acquisition stay unavailable until a successful retry. Walking through a door
+changes both the map and its real-time group.
+
+## Doors, interiors, and collision
+
+Tileset masks use named states. The editor authors `empty`, `solid`, and `door`.
+Door cells are walkable entrances; unknown states retain their names and block
+movement. A sprite with a door inside its footprint creates a building and an
+interior when placed. A building-shaped sprite without a door is scenery.
+
+Outdoor entrance cells lead directly to the building's interior. Each interior
+has an exit portal on its spawn tile leading back to the entrance. Multiple authored
+door cells remain walkable, and the lowest door cell supplies the return target.
+The persisted map determines building context, which the server does not trust the
+client to choose independently.
+
+`VillageCollisionService` builds an immutable map snapshot from bounds, object
+masks, building footprints, door states, and chunk collision. Joins warm the cache;
+movement uses in-memory lookups. After saving a collision-affecting edit, services
+invalidate the map snapshot before subsequent movement uses it.
+
+Furniture uses bottom-aligned ground footprints, allowing a tree canopy or tall
+sprite to overhang walkable cells. Drawing, selection, and collision use the same
+geometry rules. Movement updates after a map transition use the runtime's actual
+arrival tile so its next step agrees with the server's position.
+
+## Temporary rooms and voice
+
+Buildings select a `VillageVoiceMode`:
+
+| Mode | Behavior |
+| --- | --- |
+| `None` | No voice room |
+| `LinkedChannel` | Use the building's linked planet voice channel |
+| `AutoRoom` | Lease a temporary video-capable channel and its associated chat |
+
+Outdoor maps use temporary rooms keyed by map ID. Building rooms use a distinct
+building scope. Map-room requests are allowed only for maps without a parent
+building, and every acquisition requires matching live presence. The window awaits
+movement/context updates before acquiring the destination room.
+
+Occupants share a lease. Twenty seconds after the last occupant leaves, the channel
+is soft-deleted; reacquiring it cancels that cleanup. Disconnects release leases,
+and room acquisition after restart removes orphaned temporary channels. A restored
+village reacquires its room after presence rejoins and follows a replacement
+channel if an active village call needs one. Rebinding a building retires its room.
+
+Temporary channel names begin with `◇ ` and are filtered out of the ordinary channel
+directory. Members use them through the village's call controls and nearby composer.
+The underlying chat and call services still enforce their normal permissions.
+
+Auto-join is an opt-in setting for the session. With it off, entering another voice
+space leaves the current call and offers a join button. `GlobalCallSessionService`
+has no start-muted option, so automatically joining could open a microphone. The
+call layer handles one channel at a time, and its minimum participant count of two
+keeps a lone member in the waiting state without an SFU connection.
+
+`CallPanelComponent` uses its nearby layout inside villages. Other participants'
+avatars form a translucent vertical list centered on the right. Speaking avatars
+become opaque. With spatial sound enabled, the list includes people on the current
+map within 16 tiles; with it disabled, it includes everyone else in the call.
+Camera and screen-share buttons appear below an avatar when the corresponding
+track is available. Selecting one opens a small video view beside the list. The
+view closes when that track disappears or the person leaves hearing range.
+
+The list does not reserve space for an empty call. An options button exposes call
+controls, while audio hosts stay mounted independently of the visible avatars and
+video. LiveKit video hosts use track `attach()` and `detach()` so stream adaptation
+follows the displayed size. Removing one host must not stop a track still
+displayed in another view.
+
+## Nearby text and spatial audio
+
+The nearby composer uses the outdoor room's associated chat, with the planet's
+default chat as a fallback. Inside a building it uses the building's chat context,
+including the associated chat for voice/video or temporary rooms. The village
+holds its own keyed real-time channel subscription and releases it on room changes
+and disposal.
+
+A message becomes a canvas bubble only when its author is present on the same map
+and its channel matches the spatial context. Bubbles use plain text produced by
+the safe markdown pipeline. Each speaker has at most four bubbles; each is wrapped
+to three lines, held for seven seconds, and then faded. The channel retains the
+message history. The send response and real-time delivery share the confirmed
+message ID, so either can display the bubble without adding a duplicate.
+
+Spatial sound is enabled by default. Each remote microphone uses a Web Audio graph:
 
 ```text
-SERVER
-  village_maps / village_map_chunks / village_plots
-  village_buildings / village_objects        persistent world
-    -> VillageWorldService                   load + seed
-    -> VillageMarketService                  ownership and sales
-    -> VillagePresenceService                ephemeral occupancy
-    -> CoreHub                               per-map realtime groups
-
-CLIENT SDK
-  VillageService            scene fetch, presence subscription
-  ModelStores on Planet     maps, plots, buildings, objects
-
-CLIENT
-  VillageWindowComponent    Blazor shell: HUD, inspectors, voice binding
-    -> .razor.js            canvas runtime: render loop, input, collision
-    -> VillageSpatialAudio  positional voice graph
-    -> VillageTileRendering shared tile/texture helpers
+MediaStreamSource -> PannerNode -> distance GainNode -> output GainNode
 ```
 
-Blazor owns window lifecycle, HUD, permissions-aware controls and channel
-integration. The canvas runtime owns the render loop, camera, input, collision and
-interpolation. The boundary matters: per-frame work must never round-trip through
-Blazor's render tree.
-
-The client owns at most one Village window at a time. Opening a village for another
-planet replaces the existing tab's content, which also prevents two components from
-competing for the SDK's single current-map presence session. Restored/mobile window
-navigation follows the same content identity rule.
-
-`Planet.EnableVillage` is an authoritative feature boundary, not only a navigation
-toggle. Scene, market, build, property and temporary-room HTTP routes and the join/
-move hub methods all reject disabled villages. Disabling an active village updates
-the hosted planet cache before broadcasting, removes its live presences, retires
-temporary rooms, and causes open clients to tear down their runtime. Re-enabling it
-allows the same window to load again from the model update.
-
-## Persistent world
-
-Five planet-scoped entities, each following the standard `ISharedPlanetModel` /
-`ClientPlanetModel` pattern so they sync through existing realtime plumbing.
-
-- **`VillageMap`** — an outdoor world or a building interior. Interiors are ordinary
-  maps with a `ParentBuildingId`, not a special case, so neither the renderer nor
-  the persistence layer needs to know the difference.
-- **`VillageMapChunk`** — a fixed 32×32 square of tile content. `LayerData` and
-  `CollisionData` are opaque blobs so the renderer can gain layers without a schema
-  migration.
-- **`VillagePlot`** — the unit of ownership and sale; gates who may build.
-- **`VillageBuilding`** — the bridge to the rest of Valour: optional `ChannelId`,
-  optional `InteriorMapId`, a door tile, and a `VoiceMode`.
-- **`VillageObject`** — props, stored separately from chunk data because they are
-  individually owned, moved, and depth-sorted against characters.
-
-### Why chunks from the start
-
-A map's tiles are the only thing that grows without bound. Chunking lets a large
-world load and save in pieces, and costs nothing for a small interior, which simply
-occupies one chunk. Retrofitting it would have meant rewriting every read and write
-path.
-
-### Why only one foreign key
-
-Every entity has a cascading FK to `Planet` and nothing else. `MapId`, `PlotId`,
-`InteriorMapId`, `OwnerMemberId` and `ChannelId` are plain columns. Wiring those as
-real FKs creates circular cascade paths Postgres rejects — a building points at an
-interior map, which points back at its parent building.
-
-## Presence
-
-Presence is **ephemeral, per-node, and never persisted**.
-
-Planets are node-pinned, so every member of a village is served by the same node
-and an in-memory dictionary suffices. Losing it on restart is correct rather than
-lossy: clients re-announce on reconnect. Writing a position that changes several
-times a second to a table would be write amplification for data that is worthless
-once stale.
-
-Points that are easy to get wrong:
-
-- **Positions are tile-quantized.** A move is two small ints; clients interpolate
-  between tiles. Streaming floats multiplies traffic for no visible gain.
-- **Same-map movement is server constrained to one cardinal tile.** Portals join a
-  different map, so there is no legitimate same-map teleport; forged jumps are
-  rejected before they can update or throttle the real presence.
-- **Identity travels on join and in snapshots only, never on movement.** A name and
-  avatar do not change while someone walks, so the client must never overwrite a
-  known name with the blank one a movement-derived record carries.
-- **Groups are per map** (`v-{planetId}-{mapId}`), not per planet. Someone walking
-  around the square should not wake every client on the planet.
-- **Disconnects clear presence**, or a character stands in the world forever.
-- **Reconnects rejoin at the last local tile.** SignalR groups and server presence
-  disappear with the old connection, so the SDK re-announces the current map after
-  node authentication is restored. Presence records carry their owning connection
-  id internally: a late disconnect callback from the old socket cannot remove or
-  move the newly restored presence.
-- **A failed rejoin is visible and recoverable.** The rendered map may remain as
-  local context, but nearby chat, temporary room acquisition and voice remain off
-  until a retry successfully restores presence. This avoids presenting spatial
-  communication controls whose server-side occupancy prerequisite is missing.
-- **Facing is carried but not yet rendered**, so directional art can arrive without
-  a protocol change.
-
-## Interiors and movement
-
-- Every authored `door` cell is excluded from its building's collision footprint.
-  The outdoor runtime transitions directly from that semantic entrance into the
-  building's `InteriorMapId`; outdoor doors are not duplicated as portal records.
-- Every interior gets an exit portal on its spawn tile leading back to the door it
-  was entered through. An interior without one traps the member.
-- Collision is **derived from the authored objects** — an object that blocks, a
-  building footprint, a map-level blocker — rather than a parallel list kept in sync
-  by hand. The proof of concept maintained both and they drifted.
-- Tileset collision cells are string-backed states rather than a closed boolean
-  flag. The staff editor currently authors `empty`, `solid`, and `door`; legacy
-  boolean masks import as empty/solid, while unknown future state names round-trip
-  unchanged and block movement fail-closed until their behavior is registered.
-  Door cells are walkable but retain their entrance meaning. Placing a sprite with
-  at least one in-footprint door creates its real building and interior lifecycle.
-- Map joins warm a process-wide immutable collision snapshot derived from bounds,
-  object tileset masks, building footprints, authored doors, and chunk
-  `CollisionData`; movement packets perform only an in-memory lookup. Chunk
-  collision is JSON containing either a row-major 32×32 boolean array or
-  `{ "blocked": [tileIndex, ...] }`. Malformed chunks are blocked fail-closed.
-  Map-authoring writes must call `VillageCollisionService.InvalidateMap` after
-  committing a collision-affecting change.
-- Walking through a door moves the client between presence groups as well as maps.
-- Interiors use a distinct stone floor and arrive furnished as meeting rooms. The
-  parent building remains the room context while the member is inside, so chat,
-  voice, occupancy, and the exit all agree about where the member is.
-- Map transitions send the runtime's actual destination tile back to presence.
-  Building context is derived from the persisted map rather than trusted from the
-  client. Rejoining at the default spawn instead makes the next legitimate step
-  look like a forged teleport. Interiors render one integer zoom step closer than
-  outdoors so their smaller maps retain a camera-follow range.
-- The toolbar buttons step zoom through the familiar 25% levels, while the mouse
-  wheel and trackpad steer a continuous multiplicative target; both ease toward
-  their destination in the frame loop rather than snapping. Relative zoom is
-  bounded from 50% to 200%, with a one-tap 100% reset; the map-specific outdoor
-  or interior render scale remains the baseline. During a glide the static layer
-  is blitted scaled from its previous composite and recomposed once the zoom
-  settles, so animating never recomposes the whole map per frame. The HUD's whole-
-  percent readout is updated at most every 100ms mid-glide, because each report
-  re-renders the Blazor side.
-
-VillageWorldApiLiveTests asserts these: spawn and every authored door are walkable,
-every interior has an exit, and every building door resolves to a real interior.
-
-## Voice
-
-Buildings surface voice in one of three modes (`VillageVoiceMode`):
-
-- `None` — no voice.
-- `LinkedChannel` — bound to an existing planet voice channel.
-- `AutoRoom` — an unlinked building leases a hidden, video-capable planet call
-  channel and its integrated chat on first entry. Occupants share the same lease;
-  the channel is soft-deleted twenty seconds after the last occupant leaves, with
-  reacquisition cancelling that cleanup. Disconnect cleanup releases every lease,
-  and the first room request after a server restart reaps any orphaned channels.
-  An open village reacquires its lease after SignalR presence is restored; if a
-  restart replaced the channel, an active village call follows the replacement.
-  Rebinding a building retires its old temporary room immediately.
-
-Outdoor maps use the same lease mechanism, keyed by map rather than building, so
-the commons and every other top-level map have a real spatial call/chat context.
-Map acquisition is allowed only for maps without a parent building; this prevents a
-caller from bypassing a linked interior by requesting its map id directly. The room
-DTO carries both `MapId` and an optional `BuildingId`, and each scope has a distinct
-lease key even if an exterior footprint and interior transition share context.
-
-These channels deliberately reuse the normal chat and call transports, but the
-directory filters their `◇ ` internal names: to a member they exist only as the
-meeting dock, nearby composer and speech bubbles inside the village. The acquire
-route also checks matching live map/building presence, and movement/context updates
-are awaited before acquisition, so knowing an id does not grant remote access to
-its area room.
-
-### Auto-join is opt-in
-
-Following someone between rooms is the point of the feature, but
-`GlobalCallSessionService` has no start-muted option, so auto-joining would open a
-microphone because a member wandered through a door. Auto-join is a per-session
-toggle; with it off, the current map or building offers an explicit join button and
-walking into a different voice space leaves the old call without opening a new mic.
-
-Two inherited constraints: the call layer handles one channel at a time, and
-`MinimumRealtimeKitParticipants = 2` means a lone member never connects to the SFU.
-
-The village embeds `CallPanelComponent` in a responsive world-side meeting dock.
-Audio rooms show their roster and controls without opening another window; video
-rooms show the existing grid, focus, screen-share and moderation UX in the same
-surface. On phones this becomes a bottom sheet, with nearby chat immediately above
-it.
-
-## Nearby text
-
-The outdoor map room's associated chat is the commons conversation (with the
-planet's default chat as a fail-soft fallback), so members can type without first
-opening a channel window and see the result immediately above their avatar. Inside
-a building, the composer follows that building's chat channel; voice
-and video venues use their associated chat channel when one exists. Unlinked
-buildings acquire the associated chat from their `AutoRoom`, so private properties
-have the same nearby-text UX without creating permanent navigation. Incoming
-messages only become bubbles when the speaker is present on the same map and the
-message belongs to that spatial context. Canvas bubbles use a plain-text projection
-of the same safe markdown pipeline as normal messages, retain a bounded four-bubble
-vertical stack per speaker, hold for seven seconds and then fade; each bubble remains
-three-line-wrapped, and the linked channel remains the durable scrollback.
-
-### Positional voice
-
-Each remote participant's microphone is routed through its own
-`MediaStreamSource → PannerNode → distance GainNode → output GainNode`. The listener
-stays at the origin and sources are positioned relative to it, avoiding the need to
-keep listener orientation in sync with a top-down camera that never rotates.
-
-Spatial sound is on by default. The HRTF panner handles direction only; a tested
-reverse-smoothstep curve keeps voices at full volume through two tiles, fades them
-to true silence at sixteen tiles and ramps position/gain changes to avoid clicks.
-The output gain preserves the participant volume set by the normal call UI.
-
-Two non-obvious requirements:
-
-- The `<audio>` element the call layer created remains attached. No redundant hidden
-  element is created.
-- The canvas runtime resolves each call participant's real `<audio>` element from
-  its peer id and adopts its live `MediaStream`. With spatial mode off the original
-  element is audible; with it on that element is muted only after the Web Audio graph
-  confirms it can route the stream, preventing both doubled audio and silence on an
-  unsupported browser. Participants outside the current map are intentionally muted
-  while spatial sound is enabled rather than leaking full-volume audio across spaces.
-- Positions are applied **per frame from eased render positions**, not per network
-  update, so panning follows what the player sees, and are ramped rather than set so
-  stepping a tile does not click.
-
-## Ownership and sales
-
-Owners may list, update, or delist their own property directly from the world
-inspector; members with `ManageVillage` may do the same for community property.
-Buying requires membership and economy-send authority, since the economy decides
-affordability. Unowned property is sold by the planet so proceeds reach a shared
-account rather than vanishing. A planet without a configured currency seeds free
-claimable property instead of advertising a purchase that can never settle.
-
-Every purchase passes through the platform's confirmation modal with the price
-spelled out - a mis-tap in the world must not spend currency. Property changes
-broadcast through the standard planet model sync, and an open village window
-subscribes to the building and plot stores: any member's purchase, listing, or
-edit refreshes each open client's scene within half a second (debounced, selection
-preserved), so the world never shows a stale deed.
-
-The HUD is styled with the platform's design tokens (`--modal-dark`, the tint
-and radius scales, `--color-success`/`--color-warning`/`--color-danger` for
-ownership, sale, and destructive accents) rather than bespoke colors, so the
-village reads as part of the app and follows any future theme changes.
-
-Property is also editable in place from the same inspector: an owner may rename
-and re-describe what they own, and `ManageVillage` may additionally rebind (or
-clear) a building's linked channel — clearing it turns the venue back into
-private property served by leased area rooms. Rebinding is manager-only because
-it surfaces a planet channel to everyone who walks in. The scene carries a
-`CanManageVillage` flag so the client knows what UI to offer, but every
-management request is re-authorized server-side.
-
-**Payment and handover are two commits.** `EcoService.CreateTransactionAsync` opens
-and commits its own database transaction and cannot enlist in an ambient one. The
-buyer is charged *first* and the deed moves *second*, so the failure that can
-actually happen is recoverable: a retry completes the sale instead of charging
-again, because the transaction fingerprint is derived from the sale rather than
-random and the existing unique index enforces it. Handing over the deed first and
-then failing to take payment would not be recoverable without clawing property back.
-Each time a property is newly listed it receives a persisted sale id. That id is
-part of the fingerprint, so a later A→B→A→B ownership cycle cannot reuse the first
-payment as though the final purchase were a retry. Listing changes and purchases
-are serialized through the same per-asset lock on the planet-pinned node,
-preventing terms or ownership from changing while a buyer settles.
-
-## In-world build mode
-
-Property editing lives in the village window rather than requiring owners to open
-the standalone authoring tool. The desktop catalog is a full-height right sidebar
-(and becomes a bottom sheet on narrow screens) generated from the same
-embedded tileset definitions the collision service trusts, so its thumbnails,
-footprints, and blocking behavior cannot drift from server movement validation.
-Owners can furnish and paint wholly inside their editable outdoor plots and can
-edit the whole interior map of a building they own. `ManageVillage` retains a
-whole-map override. Every mutation repeats those checks server-side; the green
-client preview is guidance, never authorization.
-
-The furnishing catalog's **All** view includes every authored sprite, including
-the `buildings.*` group, and also exposes a generated **Buildings** category.
-A sprite with an authored door is placed as a real owned `VillageBuilding` and
-receives an interior map in the same atomic save. Multi-cell doors remain
-individually walkable; the lowest authored door cell is the return target from the
-interior. A building sprite without a door remains ordinary structure-sized
-scenery. Erasing a real building soft-archives both it and its interior, preserving
-the interior's furnishings for restoration or a future inventory workflow while
-removing both from ordinary queries and navigation.
-
-Paint presents logical terrain brushes rather than individual transition tiles.
-The server recovers the logical terrain of existing negative-Z `VillageObject`
-records from their resolved definitions, applies the requested terrain, and
-re-resolves the target plus its eight neighbors in one per-map serialized edit.
-Erasing terrain performs the inverse neighbor repair. This matches the seeded
-world's existing ground overlays without rewriting a 32×32 chunk, while preventing
-clients from choosing impossible edge art. A response carries every created or
-updated decoration plus removed ids, allowing the initiating client to patch all
-affected cells without a second GET. Furniture remains a normal non-negative-Z
-object and therefore participates in depth sorting and derived collision. The
-ordinary planet model event still notifies open village clients, which coalesce a
-scene refresh.
-
-Canvas movement remains keyboard-operable and exposes its instructions to assistive
-technology. A semantic Places panel lists the current map's buildings and parcels,
-so inspection, ownership, market and channel actions do not depend on mouse/touch
-hit-testing against pixels.
-
-The paint catalog also has a separate **Manual brushes** section sourced from the
-tileset's authored `brushes` array. These multi-cell patterns are expanded and
-validated by the server from their brush key; clients never choose arbitrary
-transition definitions. Manual ground uses Z index `-101` while auto terrain uses
-`-100`, allowing later auto-resolution to treat exact manual art as inert instead
-of rewriting it. Replacing auto terrain with a manual pattern repairs neighboring
-auto edges once, then leaves the manual cells untouched.
-
-Mouse and pen terrain input is a real stroke: skipped pointer samples are filled
-with a grid line and deduplicated locally. The client immediately resolves and
-draws the same terrain art while the pointer moves, retaining an untouched map
-snapshot for rollback. Pointer-up submits the complete cell list in one request;
-the authoritative response replaces the optimistic tiles, while a rejection
-restores the snapshot. The server authorizes and resolves the complete cell set in
-one transaction-sized save, so stroke cost is one round trip rather than one
-request per tile.
-
-Holding Shift before pointer-down changes the one-cell terrain brush into a
-filled area tool. The starting tile anchors one corner and the live pointer
-anchors the other; expanding or shrinking the rectangle rebuilds the optimistic
-preview from its untouched snapshot. Pointer-up still sends only the final
-deduplicated cell set in the same atomic batch.
-
-Walls use the same stroke and Shift-area interaction but persist as blocking,
-positive-Z semantic objects (`wall:{set}:{frame}`), so they depth-sort with
-characters and participate in the ordinary collision snapshot. The server owns
-the frame: it gates diagonals behind their two cardinal neighbors, collapses the
-eight-neighbor mask to the standard 47 GameMaker blob shapes, and re-resolves the
-changed cells plus their eight neighbors after both paint and erase. Different
-wall styles share structural connectivity while retaining their own art.
-
-Each tileset may advertise any number of 8×7 wall-set blocks. The first 47 cells
-are the row-major 8×6 shape table; frame 47 and bottom-row cells 54–55 remain
-reserved for authored helpers such as doors or end caps. Wall-set metadata points
-at an independent image URL and pixel origin rather than embedding purchased art
-or a local source path. Until that URL is populated by the private CDN packing
-workflow, the editor and canvas render a colored 3D fallback, while persistence,
-topology and collision remain fully usable.
-
-Placement is serialized per map. The server rejects unknown definitions, objects
-outside map or property bounds, furnishings over entrances/buildings/other
-furniture, and erase attempts outside the actor's editable scope. Any successful
-edit invalidates the map's immutable collision snapshot before subsequent movement
-is accepted.
-
-## Permissions
-
-`ManageVillage` (`0x800000`) gates map editing and listing property the member does
-not own. Ownership itself authorizes listing that asset. The tileset definition
-editor is **staff-only**, not per-planet: definitions are shared platform content,
-and anyone able to rename a tile key can break maps on planets they have nothing to
-do with.
-
-## Rendering and starter world
-
-The runtime loads the map's tileset definition file, resolves logical keys to source
-rectangles on the shared sheet, culls off-screen art, and draws props, buildings and
-members in one bottom-edge-sorted pass. A member can therefore walk behind a canopy
-or in front of a bench. Building hit targets and selection bounds use the visible
-sprite. Props use one shared bottom-anchor calculation for drawing, culling and
-collision: the scene footprint describes ground contact, while the tileset's
-row-major collision-state mask selects exact blocking cells and semantic entrances.
-Tree canopies therefore
-overhang walkable tiles, trunks and planters remain solid, and transparent padding
-cannot shift the visible or physical bounds.
-
-Objects with a negative `ZIndex` are ground tiles and render before plots and
-characters. This supplies a persistent lightweight terrain layer today without
-waiting for map-chunk authoring to round-trip through the editor.
-
-The camera does not centre the player in the raw canvas: the floating HUD
-panels overlap it, so the runtime measures how deep the top panels and the
-bottom composer reach and centres the player in the strip they leave clear.
-Near a map edge, where the usual clamp would pin the player underneath a
-panel, the camera overscrolls past the edge by exactly as much as it takes —
-the strip beyond the map is letterboxed background. The blit and culling paths
-must therefore tolerate a negative camera.
-
-Everything static — the base tile fill and the ground layer — is composited
-once into an offscreen canvas per (map, scale) and blitted per frame. Before
-this, a zoomed-out commons issued ~2,600 `drawImage` calls per frame and ran at
-25fps; with the layer cache a full frame draw costs well under a millisecond.
-The layer is invalidated when the map, scale, scene, or a late-loading texture
-changes. Two sharp edges: the rebuild callback must only be subscribed to
-textures still in flight (the texture cache also fires callbacks for loaded
-textures, which would recompose in an endless microtask loop), and maps whose
-pixel area would exceed Safari's canvas ceiling fall back to per-frame culled
-drawing.
-
-New planets receive a 52×40 landscaped commons rather than three blocks on grass:
-
-- a cross-shaped promenade and cobbled central square;
-- framed woodland, flower beds, planters, benches, a fountain and market stall;
-- Town Hall chat, a voice lounge and a video studio bound to existing channels;
-- furnished, reversible interiors for every venue;
-- a purchasable Maker House and an independent claimable parcel;
-- free listings when the planet has no currency, economy-backed prices when it does.
-
-Sprite loading is intentionally fail-soft. A missing sheet or unknown key falls back
-to the old primitive, so an incomplete community tileset remains navigable.
-
-## Terrain rulesets
-
-Ground materials are painted as **terrain**, not as concrete tiles. The tileset
-declares terrains (key, name, priority) and annotates tiles with a terrain role:
-`Base` tiles fill the material (several may carry weights — variants are picked
-by a per-cell hash so a recomposite never reshuffles them), while `Edge`,
-`Corner` and `InnerCorner` tiles describe how the material meets a neighbor. An
-edge's direction names the side the *other* material is on, and `Against` limits
-a transition to one specific neighbor — left empty it matches any. The resolver
-(`VillageTileRendering.ts` in the authoring client, with matching authoritative
-logic in `VillageCollisionService` for persisted player edits)
-reads each cell's 8-neighbor mask and picks art down a fail-soft ladder: a
-missing piece renders the base tile and a hard seam, never a hole, so a
-partially-authored family stays usable. The curated set has no inner corners
-yet, and tall grass deliberately skips them — its `*1`/`*2` pieces are diagonal
-half-fades that would carve a visible plain bite into a dense field, whereas a
-hard diagonal is invisible in outline-free speckle art.
-
-Exactly one side of a boundary draws transition art, or both materials fringe
-into each other. The rule is art-driven: the side with authored art for the pair
-wins outright; art authored for the specific pair beats a wildcard; then higher
-priority wins, with the key as a deterministic tiebreak. This is why dark grass
-(priority 15, authored specifically against dirt path) out-draws the higher
-priority path (20, wildcard art) — the specific art is the better art.
-
-The map editor's Terrain tool writes material keys into a terrain grid and
-re-resolves the whole grid once per tool application — painting a second stroke
-across an L-bend fixes the seams the fixed 3x3 brush stamps got wrong, which is
-the problem this system replaces. Terrain cells own their tile-layer cell;
-hand-painting a tile evicts the cell from the terrain grid so the resolver
-cannot repaint it, and its neighbors re-resolve because an inert neighbor
-changes their masks. Out-of-bounds and unpainted cells are inert: map edges and
-hand-tiled areas do not sprout fringes. The exported map JSON carries both the
-resolved tile layer (renderable without a resolver) and the terrain grid (so a
-future load keeps painting with rulesets).
-
-Terrain metadata lives in its own `Terrain*` fields rather than overloading the
-existing group fields, whose semantics are already taken: `GroupKey` is a naming
-category ("Grass" spans light grass, dark grass and dirt path) and `Direction`
-is art facing (a bench faces South). The staff tileset editor authors the
-terrain list and per-tile roles, and outlines terrain-annotated tiles in green
-on the sheet.
-
-## Mobile
-
-Movement is a floating stick that appears wherever the finger lands rather than in a
-fixed corner, so it works in either hand and never covers what the player was
-looking at. A drag past a deadzone steers; a touch that never passes it falls
-through to the building hit-test, so tapping to inspect needs no second gesture.
-Because an invisible control is an undiscoverable one, touch devices also show a
-ghosted joystick resting bottom-left (above whatever bottom HUD is present).
-Touching it anchors the stick there like a classic fixed pad; touching anywhere
-else keeps the float-under-finger behaviour. The ghost shows on the mobile
-user-agent sniff or any `maxTouchPoints`, and any real touch turns it on, which
-covers touch hardware both signals miss.
-
-Mobile members can switch the Village control style from the toolbar to an optional
-theme-aware **Valour Pocket** layout. The choice is a device preference and the
-floating stick remains the default. Handheld mode disables canvas drag-steering but
-keeps map taps: its D-pad feeds the same held-direction movement loop as the keyboard,
-`A` selects and enters an adjacent place, `B` clears the current surface or leaves an
-interior, `Start` opens Places, and `Select` focuses nearby chat. The composer and
-inspector lift above the controller. On narrow layouts an active call and its composer
-stack above the controller so walking remains available while talking; the controller
-yields entirely to build and admin surfaces instead of covering their editing controls.
-
-Two fingers pinch-zoom: the second finger converts the gesture from steering to
-a pinch (and marks the session so its release is never mistaken for an inspect
-tap), and the finger-distance ratio steers the same eased zoom target the wheel
-uses, so pinching glides and the mid-glide scaled static-layer blit applies.
-When a finger lifts the pinch ends; the remaining finger's origin is stale, so
-it deliberately does not resume steering - a fresh touch does.
-
-Pointer events with capture rather than raw touch events, so a finger sliding off
-the canvas keeps steering. `pointermove` is the only non-passive listener because it
-is the only one that must `preventDefault`, and the canvas takes
-`touch-action: none` so steering does not pan the page.
-
-Mobile detection is a **user-agent sniff** into a static flag never re-evaluated on
-resize, so a desktop window narrowed to phone width is still treated as desktop.
-Layout itself is width-responsive: at phone sizes the meeting dock becomes a bottom
-sheet, the chat composer sits directly above it, verbose brand copy disappears,
-controls become icon-sized touch targets, and the inspector yields while a meeting
-is open so the world never collapses under stacked panels.
-
-## Gotchas worth keeping
-
-- The canvas backing store is measured before the dock lays the pane out, and the
-  `resize` event is on `window`. A `ResizeObserver` **and** a per-frame drift check
-  are both needed: the observer alone stops delivering, leaving a few-pixel backing
-  store stretched across the window. The tileset editor and the map editor need
-  the same treatment, where the symptom is nastier: a stretched canvas draws in
-  one coordinate space while mouse hit-testing computes in another, so clicks
-  select tiles away from the cursor (worst when zoomed in). Neither has a frame
-  loop, so alongside their observers they re-check for drift at the start of
-  every mouse-down and wheel event, before any hit-test runs. In the map editor
-  the drift reached 4x (backing 203px versus 890px laid out) on first open.
-- The map editor's `draw()` used to pass a redraw callback to `loadTexture` on
-  every call. The texture cache fires callbacks for already-loaded textures via
-  microtask, so once the sheet loaded, draw -> callback -> draw starved the main
-  thread and hard-hung the tab - the same endless-microtask loop the runtime's
-  static-layer cache guards against. Subscribe to a texture once at init; per-draw
-  lookups must not register callbacks.
-- Paint tools must interpolate between mouse events. A fast drag jumps several
-  cells per `mousemove` and an uninterpolated stroke leaves diagonal pinholes -
-  invisible with plain tile painting, obvious once terrain fringes every hole.
-- The runtime owns a rAF loop and window-level key listeners, so its JS `dispose()`
-  must be invoked explicitly. Releasing only the .NET reference leaves both running
-  and `preventDefault`-ing WASD, which breaks typing app-wide.
-- Movement keys are captured at the window level and must be gated on not being in a
-  text input and on the canvas being visible. `keyup` must *not* be gated, or a key
-  released after focus moves away leaves the player walking forever.
-- **Snowflake ids exceed JavaScript's 2^53 float precision.** An id serialized as a
-  JSON number is silently rounded by `JSON.parse`, and the rounded value coming back
-  from a click hit-test matches no building or plot, so the inspector simply never
-  opens. Every id in the scene payload is therefore serialized as a string
-  (`JsonNumberHandling.WriteAsString`), the `[JSInvokable]` callbacks take string ids
-  and parse them, and ids passed *into* the runtime (`setMap`, `pushBubble`,
-  presences, voice peers) are stringified first. The runtime only ever compares ids
-  for equality, so it never notices.
-- The window component inherits `ControlledRenderComponentBase`, which suppresses
-  Blazor's automatic post-event renders. Every handler that changes visible state
-  must call `ReRender()` itself, or the click lands, the state changes, and nothing
-  on screen moves.
-- The SDK's scene fetch bypasses the node's short GET cache
-  (`cacheDurationMs: null`): the client refetches the scene immediately after a
-  purchase or edit, and the cached pre-edit world would swallow the change.
-
-## Testing
-
-- `Valour/Tests/Services/VillagePresenceServiceTests.cs` — presence semantics against
-  the real service resolved from the running server. `CoreHubService` has too many
-  collaborators to fake usefully, and its broadcasts into empty hub groups are
-  harmless in tests.
-- `Valour/Tests/Services/VillageMarketServiceTests.cs` — sale and fingerprint rules.
-- `Valour/Tests/Apis/VillageWorldApiLiveTests.cs` — persistence and playability
-  invariants, plus the property-management rules: rename/redescribe, channel rebind
-  and unbind, rejection of foreign or non-surfaceable channels and unusable names,
-  and denial for a member who neither owns the asset nor holds `ManageVillage`.
-  Shares one planet per class; the test user has an owned-planet cap and one planet
-  per test method exhausts it. Tests that mutate the world restore it, because every
-  test in the class reads the same planet.
-- `Valour/Tests/Js/*.test.mjs` — the runtime's texture cache, the positional audio
-  graph, chat-bubble queue/timing, and the terrain autotile resolver (side rule,
-  bitmask ladder, fail-soft fallbacks, deterministic variants), via `node --test`.
-  See that folder's README.
-
-## Not built yet
-
-- **Chunk tile-layer playback.** Ground objects render today, but the opaque
-  `VillageMapChunk.LayerData` format is not yet decoded by the runtime. A
-  terrain-key-per-cell grid is the natural format: the resolver already lives in
-  the shared rendering module, so the runtime can adopt it at composite time
-  without new resolution code.
-- **Tileset breadth.** The curated default set covers 63 tiles and sprites.
-  The definition editor's selection is adjustable in place: the selection
-  rectangle carries corner and edge grab handles (with matching resize
-  cursors), dragging an edge across its anchor flips the rectangle like the
-  rubber-band select, and a drag that wanders past the sheet edge pins to the
-  edge. Selection reports during any drag are marked *live* and skip
-  definition matching - only the report on release may load a saved
-  definition, so passing through a rectangle that happens to equal one cannot
-  hijack the draft mid-gesture. Saving keeps the saved definition loaded for
-  continued editing - resetting the panel on save wiped the collision mask and
-  identity fields the moment they were saved, which read as data loss. The
-  sheet view follows design-tool gesture conventions: plain wheel or
-  two-finger scroll pans in both axes, and a trackpad pinch (delivered by
-  browsers as a ctrl-wheel) or explicit ctrl/cmd wheel zooms anchored at the
-  cursor, with a per-event factor clamp so a single mouse-wheel tick cannot
-  leap across zoom levels. The Modern Exteriors sheet is
-  2816×8224 (~90,000 tiles at 16px), packed edge-to-edge with no blank separator rows
-  or columns, so connected-component and guillotine segmentation both fail — sprite
-  bounds cannot be derived automatically. Continue with the existing grid picker and
-  curated named definitions for art a map actually uses.
-- **Character appearance.** Characters are member avatars drawn as tokens. Layered
-  sprite composition, and the directionality `VillageFacing` already carries, are
-  open.
+The listener stays at the origin, with other participants positioned relative to
+it. HRTF panning provides direction. A reverse-smoothstep distance curve keeps full
+volume through two tiles and reaches silence at sixteen tiles. Position and gain
+changes are ramped to avoid clicks. Output gain preserves the participant volume
+chosen in the normal call controls.
+
+The original audio element remains attached. It is muted only after the spatial
+graph can route its stream; disabling spatial mode restores the original audio.
+Participants outside the current map are muted while spatial mode is active.
+Positions come from eased render positions each frame so sound follows the visible
+characters. Presence and voice-peer arrays cross .NET interop as single arguments.
+
+## Ownership, sales, and property settings
+
+Owners can list, update, or withdraw their property from sale. Members with
+`ManageVillage` can manage community property. Purchases require membership and
+economy-send authority. The planet sells unowned property into a shared account;
+without a configured currency, starter property can be claimed for free.
+
+Every purchase opens a confirmation modal showing the price. Property model
+changes refresh open scenes with a half-second debounce while preserving selection.
+Owners can rename and describe their property. Managers can also change or clear
+a building's linked channel. Clearing the link gives it leased area rooms.
+
+Payment and ownership transfer use separate commits. `EcoService` commits the
+payment first, then the village service transfers the deed. A transaction
+fingerprint derived from the sale prevents a retry from charging twice. Each new
+listing gets a persisted sale ID, so selling the same property to the same person
+again creates a separate payment. Listing changes and purchases share a per-asset
+lock on the planet's hosting node.
+
+## Building and editing
+
+The build catalog comes from the embedded tileset definitions used by server
+collision checks. Owners can edit within their outdoor plots and throughout their
+building interiors. `ManageVillage` permits whole-map editing. Every server
+mutation repeats authorization and bounds checks; a green preview is only feedback.
+
+The catalog includes authored sprites and a Buildings category. Placing a sprite
+with a door creates its building and furnished interior in one save. Erasing a
+building archives it and its interior, retaining furnishings in archived data while
+removing the building from ordinary navigation and queries.
+
+Furnishings have ground footprints and placement layers. Rugs sit above painted
+ground and beneath furniture. Surface accessories need a supporting item across
+their full footprint and render at tabletop height. Supporting furniture cannot
+be moved or removed until its accessories have been moved. Move preserves the
+object's ID and requires permission at both ends. Blocking edits cannot occupy a
+member's current tile.
+
+Paint uses logical terrain brushes. The server resolves brush keys to authorized
+terrain definitions. Mouse and pen strokes interpolate skipped cells, deduplicate
+locally, and preview changes immediately. Pointer-up submits the complete cell
+list in one request. A rejected request or cancelled gesture restores the untouched
+scene snapshot; success replaces the preview with the authoritative result.
+Shift-drag fills a rectangular area using the same batch operation.
+
+Manual brushes repeat the selected pattern with map-coordinate alignment. Manual
+ground uses Z index -101; automatic terrain uses -100. Replacing automatic terrain
+with manual art repairs neighboring automatic edges once and leaves the manual
+cells under manual control. Rugs survive painting and rollback.
+
+Walls use continuous strokes, with Shift-drag outlining an empty room perimeter.
+They are blocking positive-Z objects keyed as `wall:{set}:{frame}`. The server
+requires both cardinal neighbors before accepting a diagonal connection, resolves
+the eight-neighbor mask to 47 shapes, and updates changed cells plus neighbors
+after paint or erase. Different styles connect while retaining their own art.
+`Blob47` and `RoomBuilder` layouts share topology but compose their textures
+differently. See [Village tilesets](VillageTilesets.md).
+
+Pan or Space-drag moves the camera during editing. Build mode pauses movement keys,
+deduplicates releases, and cancels incomplete gestures. Leaving build mode or
+changing maps resets the camera. Placement is serialized per map and rejects
+unknown definitions, inaccessible cells, incompatible overlaps, and blocked doors.
+
+## Rendering and camera
+
+The runtime resolves definition keys to atlas rectangles, culls offscreen art,
+and sorts props, buildings, and characters by their bottom edge. Negative-Z ground
+objects render first. Missing artwork uses geometric fallbacks so the map remains
+navigable.
+
+Static ground is composited into an offscreen canvas for each map and scale. The
+cache is invalidated by scene changes, scale changes, or newly loaded textures.
+Large maps that exceed the canvas area limit use culled drawing instead. Texture
+callbacks are registered only for loads still in progress; registering a redraw
+callback on every lookup can create an endless sequence of microtasks.
+
+The camera centers the player in the visible strip between the top controls and
+bottom composer. It can extend beyond a map edge to keep the player out from under
+those panels, drawing background outside the map. Rendering and culling therefore
+support negative camera positions.
+
+Toolbar zoom uses 25-percent steps, while wheel and pinch input adjust a continuous
+target between 50 and 200 percent. Both ease in the frame loop. The static composite
+is scaled during the animation and rebuilt when zoom settles. Whole-percent HUD
+updates are limited to once every 100 milliseconds. Interiors use a closer baseline
+scale than outdoor maps.
+
+## Terrain rules
+
+Tilesets name terrain materials and assign each a priority. Definitions identify
+base tiles and transition roles such as Edge, Corner, and InnerCorner. Base variants
+use a per-cell hash and optional weights, so rebuilding a static layer does not
+randomly change the ground's appearance.
+
+The resolver reads each cell's eight neighbors. A transition direction names the
+side containing the other material, and `Against` can restrict art to a particular
+neighbor. Exactly one side draws a boundary: matching authored art wins over absent
+art, a specific material pair wins over a wildcard, then priority and the terrain
+key break ties. Missing transition art falls back to a base tile.
+
+The map editor stores material keys in its terrain grid and resolves the affected
+art when painting. A manually painted tile removes that cell from the terrain grid;
+unpainted and out-of-bounds cells do not create terrain fringes. Exported map JSON
+contains both the resolved tile layer and the terrain grid. Terrain fields are
+separate from `GroupKey`, which categorizes definitions, and `Direction`, which
+describes the artwork's facing.
+
+## Touch and responsive layouts
+
+The default touch control is a floating stick anchored where the finger lands.
+Crossing its deadzone steers; a short tap inspects a building. A resting joystick
+indicator gives touch users a visible starting point. Two fingers switch the
+gesture to pinch zoom, and lifting a finger ends the gesture without resuming
+movement until another touch starts.
+
+Valour Pocket is a device preference that replaces drag-steering with handheld
+controls. The D-pad uses the keyboard movement loop, A selects or enters a nearby
+place, B closes a surface or exits an interior, Start opens Places, and Select
+focuses nearby chat. Build and staff tools hide the handheld controls to make room
+for editing.
+
+Pointer capture keeps gestures active outside the canvas; cancellation restores
+an unfinished edit. The canvas uses `touch-action: none`. Responsive layout is based
+on available width and height, while the client's mobile device flag is set from
+the user agent. Narrowing a desktop browser changes layout without making it a
+mobile device.
+
+The furnishing catalog becomes a bottom sheet on narrow portrait panes and a
+compact sidebar on short landscape panes. Call, chat, and movement controls share
+the remaining space. Places and details can temporarily hide the call surface
+while media continues. Staff tileset forms stack below the artwork, and opening
+staff tools closes the mobile sidebar.
+
+## Lifecycle and permissions
+
+An open village observes local role membership and the planet role store. A scene
+refresh updates access and closes edit/property controls after permission loss.
+Role deletion refreshes hosted members and connected channel access before a
+replacement role can reuse the membership bit.
+
+The runtime owns an animation loop and window key listeners. Call its JavaScript
+`dispose()` before releasing interop references. Capture movement keys only when
+the canvas is visible and focus is outside text input; always process key release
+so a focus change cannot leave movement stuck.
+
+Use a `ResizeObserver` and runtime size checks to keep canvas backing dimensions
+aligned with layout. Editors without a frame loop also check size before pointer
+hit tests and wheel handling. Snowflake IDs cross JavaScript boundaries as strings
+because their values can exceed JavaScript's exact integer range. Scene callbacks
+parse those strings on the .NET side.
+
+The window inherits `ControlledRenderComponentBase`, so state-changing handlers
+must call `ReRender()`. Explicit scene fetches bypass the node's short HTTP cache,
+as do forced channel refreshes needed after a temporary room is retired.
+
+## Default world and verification
+
+New villages clone the published staff template with fresh IDs and destination
+channel links. The versioned `Database/Seeds/Villages/default-world-v1.json` is
+embedded in the database assembly and installed automatically by a data migration;
+the same JSON is used when there is no publication. Existing staff publications
+take precedence. The built-in world is a 52 by 40 landscaped
+commons with Town Hall chat, voice and video venues, a Maker House, a claimable
+parcel, and furnished interiors. Publication and reset rules are described in
+[Staff default template](VillageDefaultTemplate.md).
+
+Service tests cover presence, collision, sales, templates, and permission rules.
+`VillageWorldApiLiveTests` checks persistence, reachable doors and exits, and
+property-management authorization. JavaScript tests cover drawing helpers,
+terrain/wall resolution, input, bubbles, and spatial audio. Browser suites exercise
+the actual renderer and two-account presence, permissions, building, and media.
+Use [Release verification](VillageReleaseQA.md) and the linked test guides to run
+those checks in an isolated environment.

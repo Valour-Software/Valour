@@ -48,12 +48,14 @@ test('packing is deterministic and deduplicates identical source rectangles', ()
 
 test('the canonical manifest keeps source coordinates while runtime coordinates move', () => {
     const input = sampleManifest();
+    input.imageSha256 = 'previous-atlas';
     const plan = createTilesetPackPlan(input, 256, 256);
     const { manifest } = compileTilesetManifest(input, plan, 'official-v1.png', 'source-hash');
 
     assert.equal(manifest.format, TILESET_FORMAT);
     assert.equal(manifest.version, TILESET_FORMAT_VERSION);
     assert.equal(manifest.image, 'official-v1.png');
+    assert.equal(manifest.imageSha256, undefined, 'a repacked manifest cannot retain the old image fingerprint');
     assert.deepEqual(manifest.source, { width: 256, height: 256, sha256: 'source-hash', fileName: '' });
     assert.equal(manifest.atlas.packed, true);
 
@@ -97,25 +99,24 @@ test('packing rejects artwork that crosses between original source sheets', () =
         /crosses a source-sheet boundary/);
 });
 
-test('the existing exterior tileset was migrated without dropping authored data', () => {
+test('the expanded library retains the exterior source and authored brushes', () => {
     const manifest = JSON.parse(fs.readFileSync(
         new URL('../../Client/wwwroot/tilesets/exterior-tileset-0.json', import.meta.url),
         'utf8'));
 
     assert.equal(isCanonicalTilesetManifest(manifest), true);
-    assert.equal(manifest.source.sha256, '6cf08d5dfb747ea802e0a48066470b1369d1b0dbb007bb4418cd796480e43901');
+    assert.match(manifest.source.sha256, /^[a-f0-9]{64}$/);
     assert.equal(manifest.source.sheets[0].sha256, '1429a07733836963fc6f1bf703bba59e2e766152bea54a9e936a65089c2d0737');
-    assert.deepEqual(
-        [manifest.source.width, manifest.source.height],
-        [2816, 8224]);
-    assert.equal(manifest.source.sheets.length, 1);
+    assert.equal(manifest.source.width, 2816);
+    assert.ok(manifest.source.height > 8224);
+    assert.ok(manifest.source.sheets.some(sheet => sheet.fileName === "Office objects"));
     assert.deepEqual(
         [manifest.source.sheets[0].width, manifest.source.sheets[0].height, manifest.source.sheets[0].offsetX, manifest.source.sheets[0].offsetY],
         [2816, 8224, 0, 0]);
-    assert.equal(manifest.definitions.length, 80);
+    assert.ok(manifest.definitions.length >= 257);
     assert.equal(manifest.brushes.length, 3);
-    assert.equal(manifest.terrains.length, 4);
-    assert.equal(manifest.wallSets.length, 1);
+    assert.equal(manifest.terrains.length, 11);
+    assert.equal(manifest.wallSets.length, 6);
     assert.ok(manifest.definitions.every(definition =>
         Number.isInteger(definition.SourceX) &&
         Number.isInteger(definition.SourceY)));

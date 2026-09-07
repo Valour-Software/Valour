@@ -1,6 +1,26 @@
 import { clamp, isTextInput, loadStandaloneImage } from "../../../ts/VillageTileRendering.js";
 import { reconstructTilesetSource, renderTilesetPackage } from "../../../ts/VillageTilesetPacking.js";
 
+export function inspectSpriteSelection({ data, width, height }) {
+    const opaque = (x, y) => data[(y * width + x) * 4 + 3] > 0;
+    const edges = new Set();
+    let hasPixels = false;
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            if (!opaque(x, y)) continue;
+            hasPixels = true;
+            for (const delta of [-1, 0, 1]) {
+                if (y === 1 && opaque(x + delta, 0)) edges.add("top");
+                if (y === height - 2 && opaque(x + delta, height - 1)) edges.add("bottom");
+                if (x === 1 && opaque(0, y + delta)) edges.add("left");
+                if (x === width - 2 && opaque(width - 1, y + delta)) edges.add("right");
+            }
+        }
+    }
+    if (!hasPixels) return "This sprite selection is empty. Select a complete object before saving.";
+    return edges.size ? `This selection cuts through artwork at the ${[...edges].join(", ")} edge. Include the complete object before saving it as a sprite.` : "";
+}
+
 export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
     const canvas = document.getElementById(canvasId);
     const fileInput = document.getElementById(fileInputId);
@@ -13,6 +33,7 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
         image: new Image(),
         imageUrl: initialUrl,
         imageLoaded: false,
+        imageLoadGeneration: 0,
         tileSize: 16,
         scale: 2,
         offsetX: 24,
@@ -30,6 +51,9 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
         // dragged: which sides follow the cursor, and the tile coordinates of
         // the opposite (anchored) edges.
         resizing: null,
+        pointers: new Map(),
+        pinch: null,
+        gestureSelection: null,
         keyboardPanSpeed: 24,
         localObjectUrl: null,
         packageImageUrl: null,
@@ -47,6 +71,13 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
             fitImage(state);
             draw(state);
         },
+        focusRegion(x, y, width, height) {
+            ensureCanvasSize(state);
+            state.scale = clamp(Math.min((state.viewportWidth - 48) / width, (state.viewportHeight - 48) / height), 0.25, 6);
+            state.offsetX = Math.round((state.viewportWidth - width * state.scale) / 2 - x * state.scale);
+            state.offsetY = Math.round((state.viewportHeight - height * state.scale) / 2 - y * state.scale);
+            draw(state);
+        },
         setDefinitions(definitions) {
             state.savedDefinitions = normalizeDefinitions(definitions);
             draw(state);
@@ -59,6 +90,18 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
                 height: Math.max(1, Number(height) || 1)
             };
             draw(state);
+        },
+        validateSprite(x, y, width, height) {
+            if (!state.imageLoaded) return "Load the source artwork before saving a sprite.";
+            const sx = x * state.tileSize, sy = y * state.tileSize;
+            const sw = width * state.tileSize, sh = height * state.tileSize;
+            if (sx < 0 || sy < 0 || sw <= 0 || sh <= 0 || sx + sw > state.image.width || sy + sh > state.image.height)
+                return "The sprite selection extends beyond the source artwork.";
+            const sample = document.createElement("canvas");
+            sample.width = sw + 2; sample.height = sh + 2;
+            const context = sample.getContext("2d", { willReadFrequently: true });
+            context.drawImage(state.image, 1 - sx, 1 - sy);
+            return inspectSpriteSelection(context.getImageData(0, 0, sample.width, sample.height));
         },
         async buildPackage(manifest, baseName, sourceSha256) {
             if (!state.imageLoaded) {
@@ -111,10 +154,10 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
             state.resizeObserver?.disconnect();
             state.resizeObserver = null;
             window.removeEventListener("resize", state.onResize);
-            canvas.removeEventListener("mousedown", state.onMouseDown);
-            canvas.removeEventListener("mousemove", state.onMouseMove);
-            canvas.removeEventListener("mouseup", state.onMouseUp);
-            canvas.removeEventListener("mouseleave", state.onMouseUp);
+            canvas.removeEventListener("pointerdown", state.onPointerDown);
+            canvas.removeEventListener("pointermove", state.onPointerMove);
+            canvas.removeEventListener("pointerup", state.onPointerUp);
+            canvas.removeEventListener("pointercancel", state.onPointerUp);
             canvas.removeEventListener("wheel", state.onWheel);
             window.removeEventListener("keydown", state.onKeyDown);
             fileInput.removeEventListener("change", state.onFileChange);
@@ -214,6 +257,64 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
         }
     };
 
+    state.onPointerDown = async (event) => {
+        if (event.button !== 0 && event.button !== 1) return;
+        event.preventDefault();
+        canvas.setPointerCapture(event.pointerId);
+        state.pointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+        if (state.pointers.size === 1) {
+            state.gestureSelection = { ...state.selection };
+            await state.onMouseDown(event);
+        } else if (state.pointers.size === 2) {
+            const [a, b] = [...state.pointers.values()];
+            const center = { clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2 };
+            state.pinch = {
+                world: getWorldPoint(state, center),
+                distance: Math.max(1, Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)),
+                scale: state.scale
+            };
+            state.dragging = false;
+            state.panning = false;
+            state.resizing = null;
+            state.selection = { ...state.gestureSelection };
+            await notifySelection(state, true);
+            draw(state);
+        }
+    };
+
+    state.onPointerMove = async (event) => {
+        if (state.pointers.has(event.pointerId)) {
+            state.pointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+        }
+        if (state.pinch) {
+            if (state.pointers.size !== 2) return;
+            const [a, b] = [...state.pointers.values()];
+            const rect = canvas.getBoundingClientRect();
+            const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            state.scale = clamp(state.pinch.scale * distance / state.pinch.distance, 0.25, 10);
+            state.offsetX = (a.clientX + b.clientX) / 2 - rect.left - state.pinch.world.x * state.scale;
+            state.offsetY = (a.clientY + b.clientY) / 2 - rect.top - state.pinch.world.y * state.scale;
+            draw(state);
+            return;
+        }
+        await state.onMouseMove(event);
+    };
+
+    state.onPointerUp = async (event) => {
+        if (!state.pointers.delete(event.pointerId)) return;
+        if (state.pinch) {
+            if (state.pointers.size) return;
+            state.pinch = null;
+            await notifySelection(state, false);
+        }
+        if (event.type === "pointercancel" && state.gestureSelection) {
+            state.selection = { ...state.gestureSelection };
+            draw(state);
+        }
+        await state.onMouseUp();
+        state.gestureSelection = null;
+    };
+
     state.onWheel = (event) => {
         event.preventDefault();
         ensureCanvasSize(state);
@@ -296,16 +397,16 @@ export function init(canvasId, fileInputId, dotNetRef, initialUrl) {
     }
 
     window.addEventListener("resize", state.onResize);
-    canvas.addEventListener("mousedown", state.onMouseDown);
-    canvas.addEventListener("mousemove", state.onMouseMove);
-    canvas.addEventListener("mouseup", state.onMouseUp);
-    canvas.addEventListener("mouseleave", state.onMouseUp);
+    canvas.addEventListener("pointerdown", state.onPointerDown);
+    canvas.addEventListener("pointermove", state.onPointerMove);
+    canvas.addEventListener("pointerup", state.onPointerUp);
+    canvas.addEventListener("pointercancel", state.onPointerUp);
     canvas.addEventListener("wheel", state.onWheel, { passive: false });
     window.addEventListener("keydown", state.onKeyDown);
     fileInput.addEventListener("change", state.onFileChange);
 
     resizeCanvas(state);
-    loadImage(state, initialUrl);
+    if (initialUrl) void loadImage(state, initialUrl).catch(() => {});
     draw(state);
     return runtime;
 }
@@ -461,11 +562,16 @@ function downloadUrl(url, fileName) {
 }
 
 function loadImage(state, url) {
+    const generation = ++state.imageLoadGeneration;
     return new Promise((resolve, reject) => {
         state.imageLoaded = false;
         state.imageUrl = url;
         loadStandaloneImage(url)
             .then(image => {
+                if (state.destroyed || generation !== state.imageLoadGeneration) {
+                    reject(new Error("The tilesheet load was superseded."));
+                    return;
+                }
                 state.image = image;
                 state.imageLoaded = true;
                 state.dotNetRef
@@ -524,7 +630,7 @@ function fitImage(state) {
     const fitY = (state.viewportHeight - 48) / state.image.height;
     state.scale = clamp(Math.floor(Math.min(fitX, fitY) * 2) / 2, 0.5, 6);
     state.offsetX = Math.round((state.viewportWidth - state.image.width * state.scale) / 2);
-    state.offsetY = Math.round((state.viewportHeight - state.image.height * state.scale) / 2);
+    state.offsetY = Math.max(24, Math.round((state.viewportHeight - state.image.height * state.scale) / 2));
 }
 
 function draw(state) {

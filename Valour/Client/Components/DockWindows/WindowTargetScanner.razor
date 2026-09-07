@@ -5,41 +5,75 @@
 *@
 
 @inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
 
 @code {
-    private static IJSObjectReference JsModule { get; set; }
-    public static IJSObjectReference JsService { get; private set; }
+    private static WindowTargetScanner _current;
+    private IJSObjectReference _module;
+    private IJSObjectReference _service;
+    private bool _disposed;
+    private bool _initializing;
+    private Task _cleanupTask;
+    public static IJSObjectReference JsService => _current?._service;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            JsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowTargetScanner.razor.js");
-            JsService = await JsModule.InvokeAsync<IJSObjectReference>("init");
-        }
-    }
-    
-    public static async Task ScanAsync(float x, float y)
-    {
-        if (JsService is null)
-            return;
-
-        await JsService.InvokeVoidAsync("scan", x, y);
-    }
-
-    public static async Task FinalizeAsync(float x, float y)
-    {
-        if (JsService is null)
-            return;
-
+        if (!firstRender || _disposed) return;
+        _current = this;
+        _initializing = true;
         try
         {
-            await JsService.InvokeVoidAsync("finalize", x, y);
+            _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowTargetScanner.razor.js");
+            if (_disposed) return;
+            _service = await _module.InvokeAsync<IJSObjectReference>("init");
         }
-        catch (JSException)
+        finally
         {
-            // Ignore finalize failures during tab/dock interactions.
+            _initializing = false;
+            if (_disposed) await CleanupAsync();
         }
     }
 
+    public static Task ScanAsync(float x, float y) => InvokeServiceAsync("scan", x, y);
+    public static Task FinalizeAsync(float x, float y) => InvokeServiceAsync("finalize", x, y);
+
+    private static async Task InvokeServiceAsync(string method, float x, float y)
+    {
+        var owner = _current;
+        var service = owner?._service;
+        if (service is null || owner._disposed) return;
+        try { await service.InvokeVoidAsync(method, x, y); }
+        catch (JSException) when (owner._disposed || method == "finalize") { }
+        catch (ObjectDisposedException) when (owner._disposed) { }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (ReferenceEquals(_current, this)) _current = null;
+        return _initializing ? ValueTask.CompletedTask : new ValueTask(CleanupAsync());
+    }
+
+    private Task CleanupAsync() => _cleanupTask ??= ReleaseReferencesAsync();
+
+    private async Task ReleaseReferencesAsync()
+    {
+        if (_service is not null)
+        {
+            try { await _service.InvokeVoidAsync("dispose"); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+            try { await _service.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+        }
+        if (_module is not null)
+        {
+            try { await _module.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+        }
+        _service = null;
+        _module = null;
+    }
 }

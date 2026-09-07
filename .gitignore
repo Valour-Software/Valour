@@ -413,3 +413,8 @@ dotnet-install.sh
 google-services.json
 # Self-host compose secrets
 .env
+
+# Generated from the separately licensed LimeZu source sheets
+/Valour/Client/wwwroot/media/villages/library-atlas.png
+/Valour/Client/wwwroot/media/villages/library-atlas.vtex.bin
+/Valour/Client/wwwroot/media/villages/library-atlas.vtex.bin*.tmp

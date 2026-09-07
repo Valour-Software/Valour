@@ -1,14 +1,10 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+Security fixes target the current codebase.
 
-| Version                     | Supported          |
-| --------------------------- | ------------------ |
-| The latest and the greatest | :white_check_mark: |
-| Every other version ever    | :x:                |
+To report a vulnerability, email security@valour.gg with the affected feature,
+steps to reproduce the issue, and its impact. Include relevant logs or a small
+reproduction without exposing credentials or other users' private data.
 
-## Reporting a Vulnerability
-If a vulnerability is found in Valour, please do the following:
-- Record the details and way to reproduce the vulnerability
-- Send details of the issue to security@valour.gg
-- Wait for support to respond and do not share the issue with anyone
+Keep the report private while the security team investigates. Wait for a response
+before sharing vulnerability details publicly.

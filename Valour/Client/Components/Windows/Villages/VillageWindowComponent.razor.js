@@ -27,8 +27,9 @@ import {
     normalizeMovementKey,
     distanceToBuildingInteraction
 } from "../../../ts/VillageHandheldControls.js";
-import { parseWallDefinitionKey } from "../../../ts/VillageWallRendering.js";
+import { parseWallDefinitionKey, getWallNeighborMask, resolveWallFrame, makeWallDefinitionKey, wallMaskForFrame, buildRectangleCells, renderRoomWall, ROOM_WALL_SIZE, ROOM_WALL_RISE } from "../../../ts/VillageWallRendering.js";
 import { isCanonicalTilesetManifest } from "../../../ts/VillageTilesetPacking.js";
+export { resolveVillagePreviewImages } from "../../../ts/VillageAtlasProtection.js";
 
 // Pixels of drag before a touch counts as steering rather than a tap.
 const TOUCH_DEADZONE = 18;
@@ -50,6 +51,8 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         scene,
         localAppearance,
         currentMapId: scene.startingMapId,
+        transitioning: false,
+        moveReportPromise: Promise.resolve(),
         selectedBuildingId: null,
         selectedPlotId: null,
         keys: new Set(),
@@ -60,11 +63,12 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         animationFrame: 0,
         destroyed: false,
         lastTimestamp: 0,
-        zoom: 1,
+        zoom: 0.65,
+        zoomByMap: new Map(),
         // The wheel steers this and the frame loop eases zoom toward it, so
         // scrolling glides instead of snapping between fixed steps.
-        targetZoom: 1,
-        lastReportedZoomPercent: 100,
+        targetZoom: 0.65,
+        lastReportedZoomPercent: 65,
         lastZoomReportAt: 0,
         currentScale: 2,
         cameraX: 0,
@@ -237,10 +241,14 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         },
         setBuildMode(config) {
             state.build.enabled = config?.enabled === true;
+            if (!state.build.enabled) state.build.cameraOffset = { x: 0, y: 0 };
+            state.build.pan = null;
+            state.build.panKey = false;
             state.build.tool = config?.tool ?? "Furnish";
             state.build.definition = config?.definition ?? null;
             state.build.brush = config?.brush ?? null;
             state.build.wallSet = config?.wallSet ?? null;
+            state.build.movingObject = null;
             state.build.selectionKey = config?.selectionKey ?? "";
             state.build.pointerId = null;
             state.build.lastDragTile = null;
@@ -309,6 +317,10 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             if (result.decoration && !changed.some(item => String(item.id) === String(result.decoration.id))) {
                 changed.push(result.decoration);
             }
+            if (state.build.movingObject && changed.some(item => String(item.id) === String(state.build.movingObject.id))) {
+                state.build.movingObject = null;
+                state.build.definition = null;
+            }
             for (const decoration of changed) {
                 map.groundTiles = map.groundTiles.filter(item => String(item.id) !== String(decoration.id));
                 map.decorations = map.decorations.filter(item => String(item.id) !== String(decoration.id));
@@ -344,27 +356,9 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             draw(state);
         },
         async setMap(mapId) {
-            if (state.currentMapId === mapId) {
-                return;
-            }
-
-            const player = ensureLocalPlayerPosition(state, mapId);
-            const targetMap = state.scene.maps.find((item) => item.id === mapId);
-            state.currentMapId = mapId;
-            state.selectedBuildingId = targetMap?.parentBuildingId ?? null;
-            state.selectedPlotId = null;
-            state.moveAccumulatorMs = 0;
-            resizeCanvas(state);
-            updateCamera(state);
-            await invokeDotNet(
-                state,
-                "OnMapChanged",
-                mapId,
-                player?.tileX ?? 0,
-                player?.tileY ?? 0);
-            await invokeDotNet(state, "OnBuildingSelected", state.selectedBuildingId, mapId);
-            await invokeDotNet(state, "OnPlotSelected", null, mapId);
-            draw(state);
+            const current = getCurrentMap(state);
+            const exit = current?.portals?.find(portal => portal.targetMapId === mapId);
+            await transitionToMap(state, mapId, exit ? {x: exit.targetX, y: exit.targetY} : null);
         },
         /**
          * Replaces the set of remote players. Positions arrive as target tiles;
@@ -471,12 +465,12 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             }
         },
         /** Shows a short, bounded stack of recent chat above a member. */
-        pushBubble(userId, text, optimistic = false) {
+        pushBubble(userId, text, messageId) {
             if (!text) {
                 return;
             }
 
-            enqueueVillageBubble(state.bubbles, userId, text, performance.now(), optimistic);
+            enqueueVillageBubble(state.bubbles, userId, text, performance.now(), messageId);
 
             draw(state);
         },
@@ -515,8 +509,17 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     };
 
     state.onKeyDown = (event) => {
+        if (event.code === "Space" && state.build.enabled && acceptsInput(state, event)) {
+            event.preventDefault(); state.build.panKey = true; return;
+        }
+        if (event.key === "Escape" && state.build.enabled && acceptsInput(state, event)) {
+            state.build.movingObject = null;
+            if (state.build.tool === "Move") state.build.definition = null;
+            draw(state);
+            return;
+        }
         const normalizedKey = normalizeMovementKey(event.key);
-        if (!normalizedKey || state.admin.enabled || !acceptsInput(state, event)) {
+        if (!normalizedKey || state.admin.enabled || state.build.enabled || !acceptsInput(state, event)) {
             return;
         }
 
@@ -535,6 +538,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     // Deliberately not gated on acceptsInput: a key pressed over the canvas and
     // released after focus moved away must still clear, or the player walks forever.
     state.onKeyUp = (event) => {
+        if (event.code === "Space") state.build.panKey = false;
         const normalizedKey = normalizeMovementKey(event.key);
         if (!normalizedKey) {
             return;
@@ -550,6 +554,8 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     };
 
     state.onClick = async (event) => {
+        const handled = state.build.handledPointerUp;
+        if (isHandledPointerClick(event, handled, performance.now())) return;
         unlockAudio(state);
         const map = getCurrentMap(state);
         if (!map) {
@@ -607,7 +613,14 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             return;
         }
 
+        if (state.build.enabled && (state.build.tool === "Pan" || state.build.panKey || event.button === 1)) {
+            state.build.pan = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+            state.build.cameraOffset ??= { x: 0, y: 0 };
+            try { canvas.setPointerCapture?.(event.pointerId); } catch { }
+            return;
+        }
         if (state.build.enabled) {
+            if (event.button && event.button !== 0) return;
             if (state.build.submitting || state.build.pointerId !== null) {
                 return;
             }
@@ -702,6 +715,14 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     };
 
     state.onPointerMove = (event) => {
+        if (state.build.pan?.pointerId === event.pointerId) {
+            event.preventDefault();
+            const px = tilePixelSize(state);
+            state.build.cameraOffset.x += (state.build.pan.x - event.clientX) / px;
+            state.build.cameraOffset.y += (state.build.pan.y - event.clientY) / px;
+            state.build.pan.x = event.clientX; state.build.pan.y = event.clientY;
+            updateCamera(state); draw(state); return;
+        }
         if (state.admin.enabled) {
             if (state.admin.drawing && event.pointerId === state.admin.pointerId) {
                 const map = getCurrentMap(state);
@@ -797,6 +818,12 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     };
 
     state.onPointerUp = (event) => {
+        if (state.build.pan?.pointerId === event.pointerId) {
+            state.build.pan = null;
+            state.build.handledPointerUp = { x: event.clientX, y: event.clientY, at: performance.now() };
+            try { canvas.releasePointerCapture?.(event.pointerId); } catch { }
+            return;
+        }
         if (state.admin.enabled) {
             if (event.pointerId === state.admin.pointerId) {
                 const start = state.admin.start;
@@ -835,8 +862,14 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
                     } else {
                         void submitBuildStroke(state, stroke);
                     }
-                } else if (!isStrokeBuildTool(state.build.tool)) {
+                } else if (event.type !== "pointercancel" && !isStrokeBuildTool(state.build.tool)) {
                     void state.onClick(event);
+                    state.build.handledPointerUp = { x: event.clientX, y: event.clientY, at: performance.now() };
+                }
+                if (event.pointerType === "touch") {
+                    state.build.hoverX = null;
+                    state.build.hoverY = null;
+                    draw(state);
                 }
             }
             return;
@@ -878,6 +911,9 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     };
 
     state.onBlur = () => {
+        state.build.pan = null;
+        state.build.panKey = false;
+        restoreOptimisticTerrain(state);
         state.keys.clear();
         state.handheldDirection = null;
         state.lastDirectionKey = null;
@@ -957,7 +993,7 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
     state.animationFrame = requestAnimationFrame(frame);
     draw(state);
     notifySelection(state);
-    void invokeDotNet(state, "OnZoomChanged", 100);
+    void invokeDotNet(state, "OnZoomChanged", 65);
     return runtime;
 }
 
@@ -1078,7 +1114,7 @@ async function loadTilesetsForScene(state) {
         });
 
         try {
-            const response = await fetch(`/_content/Valour.Client/tilesets/${encodeURIComponent(key)}.json`);
+            const response = await fetch(`/_content/Valour.Client/tilesets/${encodeURIComponent(key)}.json`, { cache: "no-cache" });
             if (!response.ok) {
                 continue;
             }
@@ -1192,13 +1228,35 @@ function resolveDefinition(state, map, key) {
  * taller than its footprint - a tree's canopy overhangs the tile it stands on -
  * so anchoring at the top would sink it into the ground.
  */
-function drawSpriteAtBase(ctx, state, px, sprite, tileX, tileY, footprintHeight) {
+function drawSpriteAtBase(ctx, state, px, sprite, tileX, tileY, footprintHeight, lift = 0) {
     const width = sprite.tilesWide * px;
     const height = sprite.tilesHigh * px;
     const x = tileX * px - state.renderCameraX;
-    const baseY = (tileY + footprintHeight) * px - state.renderCameraY;
+    const baseY = (tileY + footprintHeight - lift) * px - state.renderCameraY;
 
     ctx.drawImage(sprite.image, sprite.sx, sprite.sy, sprite.sw, sprite.sh, x, baseY - height, width, height);
+}
+
+function getDecorationSpriteBounds(item, sprite, map = null) {
+    let x = item.x + (item.width - sprite.tilesWide) / 2;
+    if (item.zIndex === 5 && map) {
+        const support = (map.decorations ?? []).find(other => other.zIndex === 0 &&
+            item.x >= other.x && item.y >= other.y &&
+            item.x + item.width <= other.x + other.width && item.y + item.height <= other.y + other.height);
+        if (support) {
+            const left = support.x + 0.25, right = support.x + support.width - sprite.tilesWide - 0.25;
+            x = right >= left ? clamp(x, left, right) : support.x + (support.width - sprite.tilesWide) / 2;
+        }
+    }
+    return getBottomAnchoredSpriteBounds(x, item.y - (item.zIndex === 5 ? 0.5 : 0),
+        item.height, sprite.tilesWide, sprite.tilesHigh);
+}
+
+function getDecorationDepth(item, map) {
+    if (item.zIndex !== 5) return item.y + item.height;
+    const supports = (map.decorations ?? []).filter(other => other.zIndex === 0 &&
+        rectanglesOverlap(item.x, item.y, item.width, item.height, other.x, other.y, other.width, other.height));
+    return Math.max(item.y + item.height, ...supports.map(other => other.y + other.height)) + 0.01;
 }
 
 /**
@@ -1268,6 +1326,7 @@ function resizeCanvas(state) {
 }
 
 function updatePlayer(state, deltaMs) {
+    if (state.transitioning) return;
     const player = ensureLocalPlayerPosition(state, state.currentMapId);
     if (!player) {
         return;
@@ -1315,7 +1374,7 @@ function updatePlayer(state, deltaMs) {
 function queueMovement(state, directionKey) {
     const player = ensureLocalPlayerPosition(state, state.currentMapId);
     const map = getCurrentMap(state);
-    if (!player || !map || player.moving) {
+    if (!player || !map || player.moving || state.transitioning) {
         return false;
     }
 
@@ -1377,11 +1436,13 @@ function updateCamera(state) {
         state.viewportWidth,
         state.viewportHeight);
 
-    // Do not clamp to map edges or shift around the HUD. A stable player
-    // position is easier to follow; the renderer already letterboxes any
-    // portion of the viewport that extends beyond the map.
-    state.cameraX = camera.x;
-    state.cameraY = camera.y;
+    if (!state.build.enabled && map.mapKind === "Interior") {
+        const width = map.width * px, height = map.height * px;
+        camera.x = width <= state.viewportWidth ? (width - state.viewportWidth) / 2 : clamp(camera.x, -px / 2, width - state.viewportWidth + px / 2);
+        camera.y = height <= state.viewportHeight - 100 ? (height - state.viewportHeight) / 2 - 20 : clamp(camera.y, -100, height - state.viewportHeight + 80);
+    }
+    state.cameraX = camera.x + (state.build.enabled ? (state.build.cameraOffset?.x ?? 0) * px : 0);
+    state.cameraY = camera.y + (state.build.enabled ? (state.build.cameraOffset?.y ?? 0) * px : 0);
 
     state.renderCameraX = Math.round(state.cameraX);
     state.renderCameraY = Math.round(state.cameraY);
@@ -1408,7 +1469,7 @@ function draw(state) {
         // a zoom glide is in flight the layer may still be composed at the
         // previous scale, in which case the blit stretches it by the ratio
         // rather than recomposing the whole map every frame.
-        ctx.fillStyle = map.backgroundColor;
+        ctx.fillStyle = map.mapKind === "Interior" ? "#101a20" : map.backgroundColor;
         ctx.fillRect(0, 0, state.viewportWidth, state.viewportHeight);
         const f = px / layer.px;
         const dx = Math.max(0, -state.renderCameraX);
@@ -1425,6 +1486,7 @@ function draw(state) {
         drawGroundTiles(ctx, map, state, px);
     }
 
+    drawInteriorBoundaryMask(ctx, map, state, px);
     drawPlots(ctx, map.plots, state.selectedPlotId, state, px);
     drawPortalHints(ctx, map, state, px);
     drawWorldSorted(ctx, map, state, px);
@@ -1497,7 +1559,15 @@ function ensureStaticLayer(state, map, px) {
         }
     }
 
-    for (const item of map.groundTiles ?? []) {
+    const baseSprite = resolveStaticSprite(state, map, map.baseTileDefinitionKey, invalidate);
+    if (baseSprite) {
+        for (let y = 0; y < map.height; y++)
+            for (let x = 0; x < map.width; x++)
+                layerCtx.drawImage(baseSprite.image, baseSprite.sx, baseSprite.sy, baseSprite.sw, baseSprite.sh,
+                    x * px, y * px, px, px);
+    }
+
+    for (const item of [...(map.groundTiles ?? [])].sort((a, b) => a.zIndex - b.zIndex)) {
         const sprite = resolveStaticSprite(state, map, item.definitionKey, invalidate);
         if (sprite) {
             const w = sprite.tilesWide * px;
@@ -1573,7 +1643,7 @@ function drawWorldSorted(ctx, map, state, px) {
         }
 
         drawables.push({
-            sort: item.y + item.height,
+            sort: getDecorationDepth(item, map),
             draw: () => drawDecoration(ctx, item, map, state, px)
         });
     }
@@ -1623,17 +1693,14 @@ function drawWorldSorted(ctx, map, state, px) {
 }
 
 function isDecorationVisible(state, map, item, px) {
+    if (parseWallDefinitionKey(item.definitionKey))
+        return isVisible(state, px, item.x, item.y - 2, item.width, item.height + 2);
     const sprite = resolveSprite(state, map, item.definitionKey);
     if (!sprite) {
         return isVisible(state, px, item.x, item.y, item.width, item.height);
     }
 
-    const bounds = getBottomAnchoredSpriteBounds(
-        item.x,
-        item.y,
-        item.height,
-        sprite.tilesWide,
-        sprite.tilesHigh);
+    const bounds = getDecorationSpriteBounds(item, sprite, map);
     return isVisible(state, px, bounds.x, bounds.y, bounds.width, bounds.height);
 }
 
@@ -1662,11 +1729,12 @@ function loadTexture(state, url, onLoaded) {
 }
 
 function drawMapBase(ctx, map, state, px) {
-    ctx.fillStyle = map.backgroundColor;
+    ctx.fillStyle = map.mapKind === "Interior" ? "#101a20" : map.backgroundColor;
     ctx.fillRect(0, 0, state.viewportWidth, state.viewportHeight);
 
     const texture = map.baseTileTextureUrl ? loadTexture(state, map.baseTileTextureUrl) : null;
-    if (!texture?.loaded) {
+    const sprite = resolveSprite(state, map, map.baseTileDefinitionKey);
+    if (!texture?.loaded && !sprite) {
         return;
     }
 
@@ -1678,6 +1746,11 @@ function drawMapBase(ctx, map, state, px) {
 
     for (let y = minY; y < maxY; y++) {
         for (let x = minX; x < maxX; x++) {
+            if (sprite) {
+                ctx.drawImage(sprite.image, sprite.sx, sprite.sy, sprite.sw, sprite.sh,
+                    x * px - state.renderCameraX, y * px - state.renderCameraY, px, px);
+                continue;
+            }
             ctx.drawImage(
                 texture.image,
                 x * px - state.renderCameraX,
@@ -1689,7 +1762,7 @@ function drawMapBase(ctx, map, state, px) {
 }
 
 function drawGroundTiles(ctx, map, state, px) {
-    for (const item of map.groundTiles ?? []) {
+    for (const item of [...(map.groundTiles ?? [])].sort((a, b) => a.zIndex - b.zIndex)) {
         if (!isVisible(state, px, item.x, item.y, item.width, item.height)) {
             continue;
         }
@@ -1763,6 +1836,17 @@ function drawAdminOverlay(ctx, map, state, px) {
 }
 
 async function submitBuildSelection(state, map, tileX, tileY) {
+    if (state.build.tool === "Pan") return;
+    if (state.build.tool === "Move" && !state.build.movingObject) {
+        const selected = findBuildObjectAt(state, map, tileX, tileY);
+        const definition = (state.scene.buildCatalog ?? []).find(item => item.key === selected?.definitionKey);
+        if (!selected || selected.zIndex <= -100 || !definition ||
+            !isEditableBuildBounds(map, selected.x, selected.y, selected.width, selected.height)) return;
+        state.build.movingObject = selected;
+        state.build.definition = definition;
+        draw(state);
+        return;
+    }
     const object = state.build.tool === "Erase"
         ? findBuildObjectAt(state, map, tileX, tileY)
         : null;
@@ -1791,7 +1875,7 @@ async function submitBuildSelection(state, map, tileX, tileY) {
     state.build.lastSubmitAt = now;
     state.build.submitting = true;
     try {
-        await invokeDotNet(state, "OnBuildTileSelected", targetX, targetY, object?.id ?? null);
+        await invokeDotNet(state, "OnBuildTileSelected", targetX, targetY, object?.id ?? state.build.movingObject?.id ?? null);
     } finally {
         state.build.submitting = false;
     }
@@ -1829,10 +1913,9 @@ function replaceBuildStrokeArea(state, map, start, end) {
     const maxX = Math.min(map.width - 1, Math.max(start.x, end.x));
     const minY = Math.max(0, Math.min(start.y, end.y));
     const maxY = Math.min(map.height - 1, Math.max(start.y, end.y));
-    for (let y = minY; y <= maxY; y++) {
-        for (let x = minX; x <= maxX; x++) {
-            addBuildStrokeCell(state, map, x, y);
-        }
+    for (const cell of buildRectangleCells(
+        { x: minX, y: minY }, { x: maxX, y: maxY }, state.build.tool === "Walls")) {
+        addBuildStrokeCell(state, map, cell.x, cell.y);
     }
 }
 
@@ -1896,6 +1979,7 @@ function applyOptimisticTerrainStroke(state, stroke) {
             .fill(map.mapKind === "Outdoor" ? "grass" : "");
         const originalPositions = new Set();
         for (const item of originalGroundTiles) {
+            if (item.zIndex > -100) continue;
             if (item.x < 0 || item.y < 0 || item.x >= map.width || item.y >= map.height) {
                 continue;
             }
@@ -1924,7 +2008,8 @@ function applyOptimisticTerrainStroke(state, stroke) {
 
     map.groundTiles ??= [];
     const byPosition = new Map();
-    for (const item of map.groundTiles ?? []) {
+    for (const item of [...(map.groundTiles ?? [])].sort((a, b) => a.zIndex - b.zIndex)) {
+        if (item.zIndex > -100) continue;
         const key = `${item.x},${item.y}`;
         if (!byPosition.has(key)) {
             byPosition.set(key, item);
@@ -2155,6 +2240,7 @@ function restoreOptimisticTerrain(state) {
     const map = state.scene.maps?.find(item => String(item.id) === String(rollback.mapId));
     if (map) {
         map.groundTiles = rollback.groundTiles;
+        state.collisionByMap.delete(map.id);
     }
     state.build.optimisticRollback = null;
     state.staticLayer = null;
@@ -2195,7 +2281,7 @@ function updateBuildHover(state, event) {
 }
 
 function drawBuildOverlay(ctx, map, state, px) {
-    if (!state.build.enabled) {
+    if (!state.build.enabled || state.build.tool === "Pan" || state.build.pan) {
         return;
     }
 
@@ -2220,7 +2306,16 @@ function drawBuildOverlay(ctx, map, state, px) {
         ctx.fillStyle = "rgba(83, 226, 157, 0.32)";
         ctx.strokeStyle = "rgba(131, 240, 185, 0.9)";
         ctx.lineWidth = 1.5;
+        const positions = new Set((map.decorations ?? [])
+            .filter(item => parseWallDefinitionKey(item.definitionKey)).map(item => `${item.x},${item.y}`));
+        for (const cell of state.build.stroke.cells.values()) positions.add(`${cell.x},${cell.y}`);
         for (const cell of state.build.stroke.cells.values()) {
+            if (state.build.tool === "Walls") {
+                const frame = resolveWallFrame(getWallNeighborMask((x, y) => positions.has(`${x},${y}`), cell.x, cell.y));
+                ctx.globalAlpha = 0.85;
+                drawWallTile(ctx, state, map, px, cell.x, cell.y, state.build.wallSet, frame);
+                ctx.globalAlpha = 1;
+            }
             const x = cell.x * px - state.renderCameraX;
             const y = cell.y * px - state.renderCameraY;
             ctx.fillRect(x, y, px, px);
@@ -2253,14 +2348,21 @@ function drawBuildOverlay(ctx, map, state, px) {
         const sprite = resolveSprite(state, map, definition.key);
         if (sprite) {
             ctx.globalAlpha = valid ? 0.68 : 0.35;
-            drawSpriteAtBase(ctx, state, px, sprite, tileX, tileY, height);
+            drawDecoration(ctx, { definitionKey: definition.key, x: tileX, y: tileY, width, height,
+                zIndex: definition.placementLayer === "Surface" ? 5 : 0 }, map, state, px);
             ctx.globalAlpha = 1;
         }
     }
 
     if (!object && state.build.tool === "Walls" && state.build.wallSet) {
         ctx.globalAlpha = valid ? 0.72 : 0.36;
-        drawWallFallback(ctx, state, px, tileX, tileY, state.build.wallSet);
+        const positions = new Set((map.decorations ?? [])
+            .filter(item => parseWallDefinitionKey(item.definitionKey))
+            .map(item => `${item.x},${item.y}`));
+        for (const cell of state.build.stroke?.cells?.values() ?? []) positions.add(`${cell.x},${cell.y}`);
+        positions.add(`${tileX},${tileY}`);
+        const frame = resolveWallFrame(getWallNeighborMask((x, y) => positions.has(`${x},${y}`), tileX, tileY));
+        drawWallTile(ctx, state, map, px, tileX, tileY, state.build.wallSet, frame);
         ctx.globalAlpha = 1;
     }
 
@@ -2291,9 +2393,31 @@ function isValidBuildPlacement(state, map, x, y, width, height) {
         rectanglesOverlap(x, y, width, height, item.x, item.y, item.width, item.height))) {
         return false;
     }
-    return !(map.decorations ?? []).some(item =>
-        (state.build.tool !== "Walls" || !parseWallDefinitionKey(item.definitionKey)) &&
-        rectanglesOverlap(x, y, width, height, item.x, item.y, item.width, item.height));
+    const layer = state.build.definition?.placementLayer;
+    if (state.build.tool === "Walls" || (layer !== "Floor" && layer !== "Surface" && state.build.definition?.blocksMovement)) {
+        const people = [...(state.remotes?.values() ?? [])];
+        const local = state.localPlayerByMap?.get(map.id);
+        if (local) people.push(local);
+        if (people.some(person => rectanglesOverlap(x, y, width, height, person.tileX, person.tileY, 1, 1))) return false;
+    }
+    if (state.build.tool !== "Walls" && layer === "Floor") {
+        return !(map.groundTiles ?? []).some(item => item.zIndex === -10 && item.id !== state.build.movingObject?.id &&
+            rectanglesOverlap(x, y, width, height, item.x, item.y, item.width, item.height));
+    }
+    let supported = layer !== "Surface";
+    for (const item of map.decorations ?? []) {
+        if (item.id === state.build.movingObject?.id) continue;
+        if (!rectanglesOverlap(x, y, width, height, item.x, item.y, item.width, item.height)) continue;
+        if (state.build.tool === "Walls" && parseWallDefinitionKey(item.definitionKey)) continue;
+        const definition = (state.scene.buildCatalog ?? []).find(entry => entry.key === item.definitionKey);
+        if (layer === "Surface" && item.zIndex === 0 && definition?.supportsItems &&
+            x >= item.x && y >= item.y && x + width <= item.x + item.width && y + height <= item.y + item.height) {
+            supported = true;
+            continue;
+        }
+        return false;
+    }
+    return supported;
 }
 
 function isEditableBuildBounds(map, x, y, width, height) {
@@ -2323,20 +2447,19 @@ function findBuildObjectAt(state, map, tileX, tileY) {
         }
     }
 
-    const decorations = [...(map.decorations ?? [])].reverse();
+    const decorations = [...(map.decorations ?? [])].sort((a, b) => getDecorationDepth(b, map) - getDecorationDepth(a, map));
     for (const item of decorations) {
         const sprite = resolveSprite(state, map, item.definitionKey);
         const bounds = sprite
-            ? getBottomAnchoredSpriteBounds(
-                item.x, item.y, item.height, sprite.tilesWide, sprite.tilesHigh)
+            ? getDecorationSpriteBounds(item, sprite, map)
             : item;
         if (rectContains(bounds, tileX, tileY)) {
             return item;
         }
     }
 
-    return [...(map.groundTiles ?? [])].reverse().find(item =>
-        tileX === item.x && tileY === item.y) ?? null;
+    return [...(map.groundTiles ?? [])].sort((a, b) => b.zIndex - a.zIndex).find(item =>
+        rectContains(item, tileX, tileY)) ?? null;
 }
 
 /**
@@ -2344,9 +2467,15 @@ function findBuildObjectAt(state, map, tileX, tileY) {
  * when the tileset has no such key, so a half-authored world stays readable.
  */
 function drawDecoration(ctx, item, map, state, px) {
+    const wallInfo = parseWallDefinitionKey(item.definitionKey);
+    if (wallInfo && drawWallTile(ctx, state, map, px, item.x, item.y,
+        state.wallSets.get(wallInfo.wallSetKey), wallInfo.frame)) return;
     const sprite = resolveSprite(state, map, item.definitionKey);
     if (sprite) {
-        drawSpriteAtBase(ctx, state, px, sprite, item.x, item.y, item.height);
+        const bounds = getDecorationSpriteBounds(item, sprite, map);
+        ctx.drawImage(sprite.image, sprite.sx, sprite.sy, sprite.sw, sprite.sh,
+            bounds.x * px - state.renderCameraX, bounds.y * px - state.renderCameraY,
+            bounds.width * px, bounds.height * px);
         return;
     }
 
@@ -2355,7 +2484,7 @@ function drawDecoration(ctx, item, map, state, px) {
 
     const wall = parseWallDefinitionKey(item.definitionKey);
     if (wall) {
-        drawWallFallback(ctx, state, px, item.x, item.y, state.wallSets.get(wall.wallSetKey));
+        drawWallFallback(ctx, state, px, item.x, item.y, state.wallSets.get(wall.wallSetKey), wall.frame);
         return;
     }
 
@@ -2388,27 +2517,68 @@ function drawDecoration(ctx, item, map, state, px) {
     roundRect(ctx, x, y, item.width * px, item.height * px, px * 0.16, true, false);
 }
 
-function drawWallFallback(ctx, state, px, tileX, tileY, wallSet) {
+function drawInteriorBoundaryMask(ctx, map, state, px) {
+    if (map.mapKind !== "Interior") return;
+    ctx.fillStyle = "#101a20";
+    for (const item of map.decorations ?? []) {
+        const wall = parseWallDefinitionKey(item.definitionKey);
+        if (!wall || state.wallSets.get(wall.wallSetKey)?.layout !== "RoomBuilder") continue;
+        const x = item.x * px - state.renderCameraX, y = item.y * px - state.renderCameraY;
+        if (item.x === 0) ctx.fillRect(x, y, 5 / 16 * px, px);
+        if (item.x === map.width - 1) ctx.fillRect(x + 11 / 16 * px, y, 5 / 16 * px, px);
+        if (item.y === map.height - 1) ctx.fillRect(x, y + 11 / 16 * px, px, 5 / 16 * px);
+    }
+}
+
+function drawWallTile(ctx, state, map, px, tileX, tileY, wallSet, frame) {
+    if (wallSet?.layout !== "RoomBuilder") {
+        const sprite = wallSet && resolveSprite(state, map, makeWallDefinitionKey(wallSet.key, frame));
+        if (sprite) drawSpriteAtBase(ctx, state, px, sprite, tileX, tileY, 1);
+        else drawWallFallback(ctx, state, px, tileX, tileY, wallSet, frame);
+        return true;
+    }
+    const texture = loadTexture(state, wallSet.imageUrl);
+    if (!texture?.loaded) {
+        drawWallFallback(ctx, state, px, tileX, tileY, wallSet, frame);
+        return true;
+    }
+    wallSet.renderedFrames ??= new Map();
+    let wallImage = wallSet.renderedFrames.get(frame);
+    if (!wallImage) {
+        wallImage = typeof OffscreenCanvas !== "undefined"
+            ? new OffscreenCanvas(ROOM_WALL_SIZE, ROOM_WALL_SIZE + ROOM_WALL_RISE)
+            : document.createElement("canvas");
+        wallImage.width = ROOM_WALL_SIZE;
+        wallImage.height = ROOM_WALL_SIZE + ROOM_WALL_RISE;
+        renderRoomWall(wallImage.getContext("2d"), texture.image, wallSet.originX, wallSet.originY,
+            wallMaskForFrame(frame), wallSet.topColor || "#f5f5f3");
+        wallSet.renderedFrames.set(frame, wallImage);
+    }
+    ctx.drawImage(wallImage, tileX * px - state.renderCameraX,
+        (tileY - ROOM_WALL_RISE / ROOM_WALL_SIZE) * px - state.renderCameraY,
+        px, wallImage.height / ROOM_WALL_SIZE * px);
+    return true;
+}
+
+function drawWallFallback(ctx, state, px, tileX, tileY, wallSet, frame = 46) {
     const x = tileX * px - state.renderCameraX;
     const y = tileY * px - state.renderCameraY;
-    const top = wallSet?.topColor || "#c9d5cf";
-    const face = wallSet?.faceColor || "#758782";
+    const mask = wallMaskForFrame(frame);
+    const left = mask & 64 ? 0 : 0.14;
+    const right = mask & 4 ? 1 : 0.86;
+    const top = mask & 1 ? 0 : 0.14;
+    const bottom = mask & 16 ? 1 : 0.72;
     ctx.save();
-    ctx.fillStyle = "rgba(6, 14, 16, 0.32)";
-    ctx.fillRect(x + px * 0.08, y + px * 0.2, px * 0.9, px * 0.78);
-    ctx.fillStyle = face;
-    ctx.fillRect(x + px * 0.06, y + px * 0.28, px * 0.88, px * 0.66);
-    ctx.fillStyle = top;
-    ctx.beginPath();
-    ctx.moveTo(x + px * 0.06, y + px * 0.28);
-    ctx.lineTo(x + px * 0.22, y + px * 0.08);
-    ctx.lineTo(x + px * 0.94, y + px * 0.08);
-    ctx.lineTo(x + px * 0.94, y + px * 0.28);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "rgba(19, 31, 34, 0.58)";
-    ctx.lineWidth = Math.max(1, px * 0.045);
-    ctx.strokeRect(x + px * 0.06, y + px * 0.28, px * 0.88, px * 0.66);
+    ctx.fillStyle = "rgba(6, 14, 16, 0.24)";
+    ctx.fillRect(x + left * px, y + 0.3 * px, (right - left) * px, 0.7 * px);
+    ctx.fillStyle = wallSet?.faceColor || "#758782";
+    ctx.fillRect(x + left * px, y + top * px, (right - left) * px, (bottom - top + 0.25) * px);
+    ctx.fillStyle = wallSet?.topColor || "#c9d5cf";
+    ctx.fillRect(x + left * px, y + (top - 0.18) * px, (right - left) * px, (bottom - top) * px);
+    if (!(mask & 16)) {
+        ctx.fillStyle = "rgba(19, 31, 34, 0.35)";
+        ctx.fillRect(x + left * px, y + (bottom + 0.18) * px, (right - left) * px, 0.06 * px);
+    }
     ctx.restore();
 }
 
@@ -2615,7 +2785,7 @@ function reportLocalPosition(state) {
 
     const map = getCurrentMap(state);
 
-    void invokeDotNet(
+    state.moveReportPromise = invokeDotNet(
         state,
         "OnLocalMoved",
         player.tileX,
@@ -2625,7 +2795,8 @@ function reportLocalPosition(state) {
         // outdoor doorway row as "inside" races room acquisition ahead of the
         // portal join, which the server correctly rejects because presence is
         // still outdoors at that instant.
-        map?.parentBuildingId ?? null);
+        map?.parentBuildingId ?? null,
+        state.currentMapId);
 }
 
 function facingFromDirection(directionKey) {
@@ -2728,6 +2899,9 @@ function drawTouchStickGhost(ctx, state) {
 }
 
 function drawTouchStick(ctx, state) {
+    if (state.build.enabled || state.admin.enabled) {
+        return;
+    }
     if (!state.touch.active || !state.touch.moved) {
         if (state.showTouchControls && !state.touch.active && !state.pinch.active) {
             drawTouchStickGhost(ctx, state);
@@ -3014,22 +3188,12 @@ function getCollisionSet(state, map) {
 
         const definition = resolveDefinition(state, map, decoration.definitionKey);
         if (decoration.definitionKey?.toLowerCase().startsWith("buildings.")) {
-            // Structure sprites use a compact ground footprint. A semantic
-            // door state carves a reachable entrance without making the tall
-            // facade itself collide.
-            addRect(decoration);
-            if (definition?.collisionStates) {
-                for (const cell of getBottomAnchoredStateCells(
-                    decoration.x,
-                    decoration.y,
-                    decoration.height,
-                    definition,
-                    COLLISION_STATE_DOOR)) {
-                    if (cell.x >= decoration.x && cell.x < decoration.x + decoration.width &&
-                        cell.y >= decoration.y && cell.y < decoration.y + decoration.height) {
-                        blocked.delete(tileKey(cell.x, cell.y));
-                    }
+            if (definition?.collision) {
+                for (const cell of getBottomAnchoredCollisionCells(decoration.x, decoration.y, decoration.height, definition)) {
+                    if (rectContains(decoration, cell.x, cell.y)) blocked.add(tileKey(cell.x, cell.y));
                 }
+            } else {
+                addRect(decoration);
             }
         } else if (definition?.collision?.some(Boolean)) {
             for (const cell of getBottomAnchoredCollisionCells(
@@ -3091,28 +3255,51 @@ async function checkPortalTransition(state) {
         return;
     }
 
-    const targetPlayer = ensureLocalPlayerPosition(state, targetMap.id);
-    if (targetPlayer) {
-        teleportPlayer(
-            targetPlayer,
-            portal?.targetX ?? targetMap.spawnTile?.x ?? targetPlayer.tileX,
-            portal?.targetY ?? targetMap.spawnTile?.y ?? targetPlayer.tileY);
-    }
+    await transitionToMap(state, targetMap.id, portal ? {x: portal.targetX, y: portal.targetY} : null);
+}
 
-    state.currentMapId = targetMap.id;
-    state.selectedBuildingId = entranceBuilding?.id ?? portal?.buildingId ?? targetMap.parentBuildingId ?? null;
-    state.selectedPlotId = null;
-    state.moveAccumulatorMs = 0;
-    resizeCanvas(state);
-    updateCamera(state);
-    await invokeDotNet(
-        state,
-        "OnMapChanged",
-        targetMap.id,
-        targetPlayer?.tileX ?? 0,
-        targetPlayer?.tileY ?? 0);
-    await invokeDotNet(state, "OnBuildingSelected", state.selectedBuildingId, targetMap.id);
-    await invokeDotNet(state, "OnPlotSelected", null, targetMap.id);
+async function transitionToMap(state, mapId, destination) {
+    if (state.transitioning || state.currentMapId === mapId) return;
+    const targetMap = state.scene.maps.find(map => map.id === mapId);
+    if (!targetMap) return;
+    state.transitioning = true;
+    state.keys.clear();
+    state.touch.direction = null;
+    state.handheldDirection = null;
+    const previousMapId = state.currentMapId;
+    const previousPlayer = ensureLocalPlayerPosition(state, previousMapId);
+    try {
+        await state.moveReportPromise;
+        const player = ensureLocalPlayerPosition(state, mapId);
+        const arrival = destination ?? targetMap.spawnTile ?? {x: player.tileX, y: player.tileY};
+        teleportPlayer(player, arrival.x, arrival.y);
+        state.zoomByMap.set(state.currentMapId, state.targetZoom);
+        state.zoom = state.targetZoom = state.zoomByMap.get(mapId) ?? (targetMap.mapKind === "Interior" ? 0.5 : 0.65);
+        state.currentMapId = mapId;
+        state.build.enabled = false;
+        state.admin.enabled = false;
+        state.canvas.classList.remove("admin-mode");
+        await invokeDotNet(state, "OnZoomChanged", Math.round(state.zoom * 100));
+        state.selectedBuildingId = null;
+        state.selectedPlotId = null;
+        state.build.cameraOffset = {x: 0, y: 0};
+        state.moveAccumulatorMs = 0;
+        resizeCanvas(state);
+        updateCamera(state);
+        const joined = await invokeDotNet(state, "OnMapChanged", mapId, player.tileX, player.tileY);
+        if (joined === false) {
+            state.currentMapId = previousMapId;
+            await invokeDotNet(state, "OnMapChanged", previousMapId, previousPlayer.tileX, previousPlayer.tileY);
+        }
+        await invokeDotNet(state, "OnBuildingSelected", null, state.currentMapId);
+        await invokeDotNet(state, "OnPlotSelected", null, state.currentMapId);
+    } finally {
+        state.transitioning = false;
+        state.canvas.focus({preventScroll: true});
+        resizeCanvas(state);
+        updateCamera(state);
+        draw(state);
+    }
 }
 
 function getBuildingEntrance(building) {
@@ -3179,9 +3366,10 @@ async function invokeDotNet(state, methodName, ...args) {
     }
 
     try {
-        await state.dotNetRef.invokeMethodAsync(methodName, ...args);
-    } catch {
-        state.dotNetRef = null;
+        return await state.dotNetRef.invokeMethodAsync(methodName, ...args);
+    } catch (error) {
+        if (!state.destroyed) console.warn(`Village ${methodName} failed`, error);
+        return false;
     }
 }
 
@@ -3235,4 +3423,12 @@ function lerp(a, b, t) {
 
 function easeInOutQuad(t) {
     return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+export { isValidBuildPlacement, replaceBuildStrokeArea, restoreOptimisticTerrain, drawWallTile,
+    drawDecoration, getDecorationSpriteBounds, getDecorationDepth, drawInteriorBoundaryMask };
+
+export function isHandledPointerClick(event, handled, now) {
+    return event.type === "click" && !!handled && now - handled.at < 500 &&
+        Math.abs(event.clientX - handled.x) < 1 && Math.abs(event.clientY - handled.y) < 1;
 }

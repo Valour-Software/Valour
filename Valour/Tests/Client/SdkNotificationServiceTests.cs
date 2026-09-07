@@ -49,6 +49,40 @@ public class SdkNotificationServiceTests
         Assert.Single(service.UnreadNotifications);
     }
 
+    [Fact]
+    public void UnreadSnapshots_RemainEnumerableDuringIncomingUpdatesAndClears()
+    {
+        var client = new ValourClient("https://api.valour.example/");
+        var service = client.NotificationService;
+        service.OnNotificationReceived(CreateNotification(client, Guid.NewGuid()));
+        var snapshot = service.GetUnreadInternal();
+        Parallel.For(0, 200, i =>
+        {
+            service.OnNotificationReceived(CreateNotification(client, Guid.NewGuid()));
+            foreach (var entry in service.UnreadNotifications) Assert.NotEqual(Guid.Empty, entry.Id);
+            if (i % 10 == 0) service.OnNotificationsCleared();
+        });
+        Assert.Single(snapshot);
+    }
+
+    [Fact]
+    public void SourceChange_RemovesPreviousLookupWithoutRemovingAnotherNotification()
+    {
+        var client = new ValourClient("https://api.valour.example/");
+        var service = client.NotificationService;
+        var id = Guid.NewGuid();
+        var first = CreateNotification(client, id);
+        first.SourceId = 123;
+        service.OnNotificationReceived(first);
+        var snapshot = service.UnreadNotificationsLookupBySource;
+        var changed = CreateNotification(client, id);
+        changed.SourceId = 456;
+        service.OnNotificationReceived(changed);
+        Assert.True(snapshot.ContainsKey(123));
+        Assert.False(service.UnreadNotificationsLookupBySource.ContainsKey(123));
+        Assert.Equal(id, service.UnreadNotificationsLookupBySource[456].Id);
+    }
+
     private static Notification CreateNotification(
         ValourClient client,
         Guid id,

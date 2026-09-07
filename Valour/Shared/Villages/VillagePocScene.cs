@@ -48,6 +48,7 @@ public class VillagePocMap
     public string BackgroundColor { get; set; } = "#9fd18b";
     public string AccentColor { get; set; } = "#5d8f4c";
     public string? BaseTileTextureUrl { get; set; }
+    public string? BaseTileDefinitionKey { get; set; }
 
     /// <summary>
     /// The tileset this map's sprite keys resolve against. The client loads the
@@ -148,6 +149,8 @@ public class VillagePocDecoration
 
 public class VillagePocCatalogItem
 {
+    public string PlacementLayer { get; set; } = "Furniture";
+    public bool SupportsItems { get; set; }
     public string Kind { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Key { get; set; } = string.Empty;
@@ -199,6 +202,7 @@ public class VillagePocBrushCell
 /// </summary>
 public class VillagePocWallSet
 {
+    public string Layout { get; set; } = "Blob47";
     public string Key { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;

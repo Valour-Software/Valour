@@ -178,10 +178,13 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
     /// <returns>The result, with the created item (if successful)</returns>
     public virtual Task<TaskResult<TSelf>> CreateAsync()
     {
-        if (!Id.Equals(default))
-            throw new Exception("Trying to create a model with an ID already assigned. Has it already been created?");
+        if (!EqualityComparer<TId>.Default.Equals(Id, default))
+            return Task.FromResult(TaskResult<TSelf>.FromFailure("This item already has an ID and cannot be created again."));
             
-        return Node.PostAsyncWithResponse<TSelf>(BaseRoute, this);
+        var node = Client is null ? null : Node;
+        if (node is null)
+            return Task.FromResult(TaskResult<TSelf>.FromFailure("The item's node is unavailable. Reconnect and try again."));
+        return node.PostAsyncWithResponse<TSelf>(BaseRoute, this);
     }
 
 
@@ -191,13 +194,13 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
     /// <returns>The result, with the updated item (if successful)</returns>
     public virtual Task<TaskResult<TSelf>> UpdateAsync()
     {
-        if (Id.Equals(default))
-            throw new Exception("Trying to update a model with no ID assigned. Has it been created?");
+        if (EqualityComparer<TId>.Default.Equals(Id, default))
+            return Task.FromResult(TaskResult<TSelf>.FromFailure("This item has not been created yet."));
         
-        if (Node == null)
-            throw new Exception("Trying to update a model with no node assigned. Did you forget to sync after fetching?");
-
-        return Node.PutAsyncWithResponse<TSelf>(IdRoute, this);
+        var node = Client is null ? null : Node;
+        if (node is null)
+            return Task.FromResult(TaskResult<TSelf>.FromFailure("The item's node is unavailable. Reconnect and try again."));
+        return node.PutAsyncWithResponse<TSelf>(IdRoute, this);
     }
 
     /// <summary>
@@ -206,9 +209,12 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
     /// <returns>The result</returns>
     public virtual Task<TaskResult> DeleteAsync()
     {
-        if (Id.Equals(default))
-            throw new Exception("Trying to delete a model with no ID assigned. Does it exist?");
+        if (EqualityComparer<TId>.Default.Equals(Id, default))
+            return Task.FromResult(TaskResult.FromFailure("This item has not been created yet."));
         
-        return Node.DeleteAsync(IdRoute);
+        var node = Client is null ? null : Node;
+        if (node is null)
+            return Task.FromResult(TaskResult.FromFailure("The item's node is unavailable. Reconnect and try again."));
+        return node.DeleteAsync(IdRoute);
     }
 }

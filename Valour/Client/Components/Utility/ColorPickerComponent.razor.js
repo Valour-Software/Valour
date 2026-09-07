@@ -15,6 +15,7 @@ function ensurePickrLoaded() {
 
 export async function init(id, ref, startColor, button = false) {
     await ensurePickrLoaded();
+    if (!document.getElementById(id)?.isConnected) return;
     const pickr = Pickr.create({
         el: '#' + id,
         theme: 'nano', // or 'monolith', or 'nano'
@@ -72,5 +73,7 @@ export async function init(id, ref, startColor, button = false) {
 }
 
 export function destroy(id) {
-    pickers[id].destroyAndRemove();
+    const picker = pickers[id];
+    delete pickers[id];
+    picker?.destroyAndRemove();
 }

@@ -364,28 +364,43 @@
 
     private static Dictionary<long, string> _retainedInputCache = new();
 
-    async ValueTask IAsyncDisposable.DisposeAsync()
+    private bool _disposed;
+    private bool _initializingInterop;
+    private Task _interopCleanupTask;
+    private IJSObjectReference _fileDropZone;
+
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
-        // Channel can be null if the window never finished initializing
+        _disposed = true;
         var channelId = ChatComponent?.Channel?.Id;
         if (channelId is not null)
-            _retainedInputCache.Remove(channelId.Value, out var _);
-        _thisRef?.Dispose();
+            _retainedInputCache.Remove(channelId.Value, out _);
         DetachEmojiPlanetSubscription();
+        return _initializingInterop ? ValueTask.CompletedTask : new ValueTask(CleanupInteropAsync());
+    }
 
-        try
+    private Task CleanupInteropAsync() => _interopCleanupTask ??= ReleaseInteropAsync();
+
+    private async Task ReleaseInteropAsync()
+    {
+        foreach (var (reference, cleanup) in new[] { (_fileDropZone, "dispose"), (_jsCtx, "cleanup"), (_jsModule, (string)null) })
         {
-            if (_jsCtx is not null)
+            if (reference is null) continue;
+            if (cleanup is not null)
             {
-                await _jsCtx.InvokeVoidAsync("cleanup");
-                await _jsCtx.DisposeAsync();
+                try { await reference.InvokeVoidAsync(cleanup); }
+                catch (JSException) { }
+                catch (ObjectDisposedException) { }
             }
-
-            if (_jsModule is not null)
-                await _jsModule.DisposeAsync();
+            try { await reference.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
         }
-        catch (JSDisconnectedException) { }
-        catch (JSException) { }
+        _fileDropZone = null;
+        _jsCtx = null;
+        _jsModule = null;
+        _thisRef?.Dispose();
+        _thisRef = null;
     }
 
     public async Task NotifyChannelLoadedAsync()
@@ -449,25 +464,39 @@
 
     public ValueTask SetInputContent(string content)
     {
-        return _jsCtx.InvokeVoidAsync("setInputContent", content ?? string.Empty);
+        return _disposed || _jsCtx is null ? ValueTask.CompletedTask :
+            _jsCtx.InvokeVoidAsync("setInputContent", content ?? string.Empty);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_disposed) return;
         if (firstRender)
         {
             if (ChatComponent?.Channel?.PlanetId is not null)
                 _ = TutorialHints.CompleteAsync(Client, UserTutorials.OpenPlanetChat);
 
-            _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
-            _jsCtx = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, InnerInputRef);
-            await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element, _uploadMenuFileButton);
-
-            await OnAfterJsSetupAsync();
+            _initializingInterop = true;
+            try
+            {
+                _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
+                if (_disposed) return;
+                _thisRef = DotNetObjectReference.Create(this);
+                _jsCtx = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, InnerInputRef);
+                if (_disposed || _jsCtx is null) return;
+                _fileDropZone = await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element, _uploadMenuFileButton);
+                if (_disposed) return;
+                await OnAfterJsSetupAsync();
+            }
+            finally
+            {
+                _initializingInterop = false;
+                if (_disposed)
+                    await CleanupInteropAsync();
+            }
         }
 
-        if (_pendingCustomEmojiRefresh && !_loading && _emojis is not null)
+        if (!_disposed && _pendingCustomEmojiRefresh && !_loading && _emojis is not null)
         {
             _pendingCustomEmojiRefresh = false;
             await RefreshCustomEmojiPickerAsync();
@@ -1074,10 +1103,12 @@
 
     public Task RemoveReply()
     {
-        PreviewMessage.ReplyToId = null;
-        PreviewMessageComponent.ParamData.Message.ReplyTo = null;
-        _ = PreviewMessageComponent.ReRender();
-        return Task.CompletedTask;
+        if (PreviewMessage is not null)
+        {
+            PreviewMessage.ReplyToId = null;
+            PreviewMessage.ReplyTo = null;
+        }
+        return PreviewMessageComponent?.ReRender() ?? Task.CompletedTask;
     }
 
     public async Task PostMessage(Message message)

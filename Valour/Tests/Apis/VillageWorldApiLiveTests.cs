@@ -484,12 +484,96 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
             x.Columns == 8 &&
             x.Rows == 7 &&
             x.FrameCount == VillageWallTopology.FrameCount &&
-            string.IsNullOrEmpty(x.ImageUrl));
+            x.Layout == "RoomBuilder" && !string.IsNullOrEmpty(x.ImageUrl));
 
         // This fixture owns the planet and therefore holds ManageVillage. A
         // regular property owner receives individual CanEdit plot bounds
         // outdoors and a whole-map grant only for their owned interiors.
         Assert.All(scene.Maps, map => Assert.True(map.CanEdit));
+    }
+
+    [Fact]
+    public async Task InteriorFurniture_RugsSurfacesMovementAndPaintingPersistTogether()
+    {
+        var scene = await LoadSceneAsync();
+        var map = scene!.Maps.First(x => x.MapKind == "Interior");
+        var floorY = map.Height - 4;
+        var originalFloor = map.GroundTiles.FirstOrDefault(item => item.X == 2 && item.Y == floorY && item.ZIndex <= -100)?.DefinitionKey;
+        var created = new List<long>();
+        async Task<Valour.Shared.TaskResult<VillageBuildResult>> Edit(VillageBuildRequest request) =>
+            await _fixture.Client.VillageService.EditMapAsync(_planet, map.Id, request);
+        try
+        {
+            var rug = await Edit(new() { Action = VillageBuildAction.Furnish, DefinitionKey = "decor.rug.blue", X = 2, Y = floorY });
+            Assert.True(rug.Success, rug.Message);
+            created.Add(rug.Data.Decoration!.Id);
+            Assert.Equal((4, 3, -10), (rug.Data.Decoration.Width, rug.Data.Decoration.Height, rug.Data.Decoration.ZIndex));
+            var desk = await Edit(new() { Action = VillageBuildAction.Furnish, DefinitionKey = "office.desk.oak", X = 3, Y = floorY });
+            Assert.True(desk.Success, desk.Message);
+            created.Add(desk.Data.Decoration!.Id);
+            Assert.Equal((3, 2), (desk.Data.Decoration.Width, desk.Data.Decoration.Height));
+            var overlap = await Edit(new() { Action = VillageBuildAction.Furnish, DefinitionKey = "living.sofa.slate", X = 2, Y = floorY });
+            Assert.False(overlap.Success);
+            var monitor = await Edit(new() { Action = VillageBuildAction.Furnish, DefinitionKey = "office.monitor", X = 3, Y = floorY });
+            Assert.True(monitor.Success, monitor.Message);
+            created.Add(monitor.Data.Decoration!.Id);
+            Assert.Equal(5, monitor.Data.Decoration.ZIndex);
+            var unsupported = await Edit(new() { Action = VillageBuildAction.Furnish, DefinitionKey = "office.monitor", X = 7, Y = floorY });
+            Assert.False(unsupported.Success);
+            var occupiedDesk = await Edit(new() { Action = VillageBuildAction.Move, ObjectId = desk.Data.Decoration.Id, X = 8, Y = floorY });
+            Assert.False(occupiedDesk.Success);
+            var erasedMonitor = await Edit(new() { Action = VillageBuildAction.Erase, ObjectId = monitor.Data.Decoration.Id });
+            Assert.True(erasedMonitor.Success, erasedMonitor.Message);
+            var moved = await Edit(new() { Action = VillageBuildAction.Move, ObjectId = desk.Data.Decoration.Id, X = 8, Y = floorY });
+            Assert.True(moved.Success, moved.Message);
+            Assert.Equal(desk.Data.Decoration.Id, moved.Data.Decoration!.Id);
+            var outOfBounds = await Edit(new() { Action = VillageBuildAction.Move, ObjectId = desk.Data.Decoration.Id, X = map.Width - 1, Y = floorY });
+            Assert.False(outOfBounds.Success);
+            var painted = await Edit(new() { Action = VillageBuildAction.Paint, TerrainKey = "floor.oak", Cells = [new() { X = 2, Y = floorY }] });
+            Assert.True(painted.Success, painted.Message);
+            var persisted = (await LoadSceneAsync())!.Maps.Single(x => x.Id == map.Id);
+            Assert.Contains(persisted.GroundTiles, item => item.Id == rug.Data.Decoration.Id && item.Width == 4 && item.Height == 3);
+            Assert.Contains(persisted.Decorations, item => item.Id == desk.Data.Decoration.Id && item.X == 8);
+        }
+        finally
+        {
+            foreach (var id in created.AsEnumerable().Reverse())
+                await Edit(new() { Action = VillageBuildAction.Erase, ObjectId = id });
+            if (originalFloor is not null)
+                await Edit(new() { Action = VillageBuildAction.Paint, DefinitionKey = originalFloor, X = 2, Y = floorY });
+        }
+    }
+
+    [Fact]
+    public async Task BuildingEdits_CannotBlockAnOccupiedTile()
+    {
+        var scene = await LoadSceneAsync();
+        var map = scene!.Maps.First(item => item.MapKind == "Interior");
+        var joined = await _fixture.Client.VillageService.JoinMapAsync(_planet, map.Id, 8, 9);
+        Assert.True(joined.Success, joined.Message);
+        long? createdId = null;
+        async Task<Valour.Shared.TaskResult<VillageBuildResult>> Edit(VillageBuildRequest request) =>
+            await _fixture.Client.VillageService.EditMapAsync(_planet, map.Id, request);
+        try
+        {
+            var furnished = await Edit(new() { Action = VillageBuildAction.Furnish, DefinitionKey = "office.chair", X = 8, Y = 9 });
+            Assert.False(furnished.Success);
+            var wall = await Edit(new() { Action = VillageBuildAction.Wall, WallSetKey = "modern.green", X = 8, Y = 9 });
+            Assert.False(wall.Success);
+            var adjacent = await Edit(new() { Action = VillageBuildAction.Furnish, DefinitionKey = "office.chair", X = 7, Y = 9 });
+            Assert.True(adjacent.Success, adjacent.Message);
+            createdId = adjacent.Data.Decoration!.Id;
+            var moved = await Edit(new() { Action = VillageBuildAction.Move, ObjectId = createdId, X = 8, Y = 9 });
+            Assert.False(moved.Success);
+            var persisted = (await LoadSceneAsync())!.Maps.Single(item => item.Id == map.Id);
+            Assert.Contains(persisted.Decorations, item => item.Id == createdId && item.X == 7 && item.Y == 9);
+        }
+        finally
+        {
+            if (createdId is not null)
+                await Edit(new() { Action = VillageBuildAction.Erase, ObjectId = createdId });
+            await _fixture.Client.VillageService.LeaveMapAsync();
+        }
     }
 
     [Fact]
@@ -721,7 +805,7 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
             var exit = Assert.Single(interior.Portals);
             Assert.Equal(outdoor.Id, exit.TargetMapId);
             Assert.Equal(building.EntranceTile!.X, exit.TargetX);
-            Assert.Equal(building.EntranceTile.Y, exit.TargetY);
+            Assert.Equal(building.EntranceTile.Y + 1, exit.TargetY);
 
             var furnishing = await _fixture.Client.VillageService.EditMapAsync(
                 _planet,
@@ -730,8 +814,8 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
                 {
                     Action = VillageBuildAction.Furnish,
                     DefinitionKey = "furniture.park-bench",
-                    X = 2,
-                    Y = 2,
+                    X = 7,
+                    Y = 9,
                 });
             Assert.True(furnishing.Success, furnishing.Message);
             interiorObjectId = furnishing.Data.Decoration!.Id;
@@ -1005,8 +1089,8 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
                 {
                     Action = VillageBuildAction.Furnish,
                     DefinitionKey = "furniture.park-bench",
-                    X = 2,
-                    Y = 2,
+                    X = 7,
+                    Y = 9,
                 });
             Assert.True(indoors.Success, indoors.Message);
             createdIds.Add((interior.Id, indoors.Data.Decoration!.Id));

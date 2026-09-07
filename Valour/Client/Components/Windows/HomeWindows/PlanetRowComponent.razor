@@ -4,7 +4,7 @@
 @inject PlanetService PlanetService
 @inject UnreadService UnreadService
 
-<div class="planet-row" @onclick="OnClick" @oncontextpress="OnContextPress">
+<button class="planet-row" type="button" aria-label="@Planet.Name" @onclick="OnClick" @oncontextpress="OnContextPress">
     <div class="left">
         <PlanetIcon Planet="@Planet" Size="36" Unread="@_isUnread"/>
         <div class="info">
@@ -27,7 +27,7 @@
             </div>
         }
     </div>
-</div>
+</button>
 
 @code {
     [Parameter]

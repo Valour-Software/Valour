@@ -9,33 +9,33 @@
     <div class="v-menu-layout">
         <!-- Sidebar (always present, visibility controlled by CSS) -->
         <div class="v-menu-sidebar @(IsDropdownOpen ? "open" : "")">
-            <div class="v-menu-sidebar-toggle" @onclick="ToggleDropdown">
+            <button class="v-menu-sidebar-toggle" type="button" aria-expanded="@IsDropdownOpen" @onclick="ToggleDropdown">
                 <span>@(ActiveCategory?.Name ?? "Menu")</span>
                 <i class="bi bi-chevron-@(IsDropdownOpen ? "up" : "down")"></i>
-            </div>
+            </button>
             
             <div class="v-menu-sidebar-content">
                 @foreach (var category in MenuCategories)
                 {
-                    <div class="v-menu-category @(ActiveCategory == category ? "active" : "")" 
+                    <button class="v-menu-category @(ActiveCategory == category ? "active" : "")" type="button"
                          @onclick="() => SelectCategory(category)">
                         <i class="bi bi-@category.Icon"></i>
                         <span>@category.Name</span>
                         <i class="bi bi-chevron-right"></i>
-                    </div>
+                    </button>
 
                     <div class="v-menu-items @(ActiveCategory == category ? "open" : "")">
                         <div class="v-menu-items-inner">
                             @foreach (var item in category.Items)
                             {
-                                <div class="v-menu-item @(ActiveItem == item ? "active" : "")"
+                                <button class="v-menu-item @(ActiveItem == item ? "active" : "")" type="button"
                                      @onclick="async () => await SelectItem(item)">
                                     @if (!string.IsNullOrEmpty(item.Icon))
                                     {
                                         <i class="bi bi-@item.Icon" style="@(item.Color != null ? $"color:{item.Color}" : "")"></i>
                                     }
                                     <span style="@(item.Color != null ? $"color:{item.Color}" : "")">@item.Name</span>
-                                </div>
+                                </button>
                             }
                         </div>
                     </div>
@@ -88,7 +88,7 @@
         <div class="v-menu-content-header">
             @if (item.Icon is not null)
             {
-                <p><i class="bi bi-@item.Icon"></i> <h2>@item.Name</h2></p>
+                <div class="v-menu-heading"><i class="bi bi-@item.Icon" aria-hidden="true"></i><h2>@item.Name</h2></div>
             }
             else
             {

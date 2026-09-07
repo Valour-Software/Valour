@@ -124,6 +124,7 @@
 
     private async Task LoadAvatarFileAsync(InputFileChangeEventArgs args)
     {
+        if (args.FileCount == 0) return;
         var file = args.File;
         if (file.Size > 20_971_520)
         {

@@ -112,6 +112,7 @@ public class UserAttachmentService
             return TaskResult.FromFailure("Attachment not found.", 404);
 
         var affectedMessageIds = new List<long>();
+        var affectedThreadIds = new List<long>();
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
         try
@@ -129,6 +130,13 @@ public class UserAttachmentService
                 MarkMissing(attachment);
             }
 
+            var threadAttachments = await _db.ThreadAttachments
+                .Where(x => x.CdnBucketItemId == id)
+                .ToListAsync();
+            affectedThreadIds = threadAttachments.Select(x => x.ThreadId).Distinct().ToList();
+            foreach (var attachment in threadAttachments)
+                MarkMissing(attachment);
+
             _db.CdnBucketItems.Remove(item);
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -145,6 +153,12 @@ public class UserAttachmentService
         try
         {
             await RelayAffectedMessagesAsync(affectedMessageIds, changedStagedMessages);
+            var threads = await _db.PlanetThreads.AsNoTracking()
+                .Include(x => x.Attachments)
+                .Where(x => affectedThreadIds.Contains(x.Id))
+                .ToListAsync();
+            foreach (var thread in threads)
+                _coreHubService.NotifyPlanetItemChange(thread.ToModel());
         }
         catch (Exception e)
         {
@@ -238,6 +252,21 @@ public class UserAttachmentService
                 ? query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id)
                 : query.OrderBy(x => x.CreatedAt).ThenByDescending(x => x.Id)
         };
+    }
+
+    private static void MarkMissing(Valour.Database.ThreadAttachment attachment)
+    {
+        attachment.CdnBucketItemId = null;
+        attachment.Location = Valour.Sdk.Models.MessageAttachment.MissingLocation;
+        attachment.Type = MessageAttachmentType.File;
+        attachment.MimeType = "application/octet-stream";
+        attachment.FileName = MissingFileName;
+        attachment.Width = 0;
+        attachment.Height = 0;
+        attachment.Inline = false;
+        attachment.Missing = true;
+        attachment.Data = null;
+        attachment.OpenGraphData = null;
     }
 
     private static void MarkMissing(Valour.Database.MessageAttachment attachment)

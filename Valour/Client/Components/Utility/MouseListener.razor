@@ -14,10 +14,15 @@
     private static event Func<MouseUpEvent, Task> OnMouseUp;
 
     // Interop variables
-    private static DotNetObjectReference<MouseListener> _thisRef;
-    private static IJSObjectReference _jsModule;
-    private static IJSObjectReference _jsService;
+    private DotNetObjectReference<MouseListener> _thisRef;
+    private IJSObjectReference _jsModule;
+    private IJSObjectReference _jsService;
     
+    private static MouseListener _current;
+    private bool _disposed;
+    private bool _initializing;
+    private Task _cleanupTask;
+
     public static MousePosition Position { get; private set; }
     
     private static int _moveSubscribers = 0;
@@ -49,18 +54,24 @@
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender || _disposed) return;
+        _current = this;
+        _initializing = true;
+        _thisRef = DotNetObjectReference.Create(this);
+        try
         {
-            // Set up interop
-            _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/MouseListener.razor.js");
-            
-            // Initialize
+            if (_disposed) return;
             _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef);
-            
-            // init listeners
+            if (_disposed) return;
             await _jsService.InvokeVoidAsync("startMoveListener");
+            if (_disposed) return;
             await _jsService.InvokeVoidAsync("startUpListener");
+        }
+        finally
+        {
+            _initializing = false;
+            if (_disposed) await CleanupAsync();
         }
     }
 
@@ -70,8 +81,9 @@
     /// </summary>
     public static async Task StartDrag(string elementId, IJSObjectReference scannerRef)
     {
-        if (_jsService is not null)
-            await _jsService.InvokeVoidAsync("startDrag", elementId, scannerRef);
+        var service = _current?._jsService;
+        if (service is not null)
+            await service.InvokeVoidAsync("startDrag", elementId, scannerRef);
     }
 
     /// <summary>
@@ -80,8 +92,9 @@
     /// </summary>
     public static async Task<float[]> StopDrag()
     {
-        if (_jsService is not null)
-            return await _jsService.InvokeAsync<float[]>("stopDrag");
+        var service = _current?._jsService;
+        if (service is not null)
+            return await service.InvokeAsync<float[]>("stopDrag");
         return null;
     }
 
@@ -94,10 +107,9 @@
         float deltaX, 
         float deltaY)
     {
-        if (OnMouseMove is null)
-            return;
-        
-        await OnMouseMove.Invoke(new MousePosition()
+        var handlers = OnMouseMove;
+        if (_disposed || handlers is null) return;
+        var position = new MousePosition()
         {
             ClientX = x,
             ClientY = y,
@@ -105,43 +117,56 @@
             PageY = pageY,
             DeltaX = deltaX,
             DeltaY = deltaY
-        });
+        };
+        Position = position;
+        await Task.WhenAll(handlers.GetInvocationList().Cast<Func<MousePosition, Task>>().Select(handler => handler(position)));
     }
     
     [JSInvokable("NotifyMouseUp")]
     public async Task NotifyMouseUp(float x, float y)
     {
-        if (OnMouseUp is null)
-            return;
-        
-        await OnMouseUp.Invoke(new MouseUpEvent()
+        var handlers = OnMouseUp;
+        if (_disposed || handlers is null) return;
+        var mouseUp = new MouseUpEvent()
         {
             X = x,
             Y = y
-        });
+        };
+        await Task.WhenAll(handlers.GetInvocationList().Cast<Func<MouseUpEvent, Task>>().Select(handler => handler(mouseUp)));
     }
     
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        try
+        _disposed = true;
+        if (ReferenceEquals(_current, this)) _current = null;
+        return _initializing ? ValueTask.CompletedTask : new ValueTask(CleanupAsync());
+    }
+
+    private Task CleanupAsync() => _cleanupTask ??= ReleaseReferencesAsync();
+
+    private async Task ReleaseReferencesAsync()
+    {
+        if (_jsService is not null)
         {
-            // Stop listeners
-            if (_jsService is not null)
+            foreach (var method in new[] { "stopMoveListener", "stopUpListener", "stopDrag" })
             {
-                await _jsService.InvokeVoidAsync("stopMoveListener");
-                await _jsService.InvokeVoidAsync("stopUpListener");
+                try { await _jsService.InvokeVoidAsync(method); }
+                catch (JSException) { }
+                catch (ObjectDisposedException) { }
             }
-
-            if (_jsModule is not null) await _jsModule.DisposeAsync();
-            if (_jsService is not null) await _jsService.DisposeAsync();
+            try { await _jsService.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
         }
-        catch (JSDisconnectedException) { }
-        catch (JSException) { }
-
+        if (_jsModule is not null)
+        {
+            try { await _jsModule.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+        }
+        _jsService = null;
+        _jsModule = null;
         _thisRef?.Dispose();
-
-        // Unsubscribe all
-        OnMouseMove = null;
-        OnMouseUp = null;
+        _thisRef = null;
     }
 }

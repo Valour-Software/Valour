@@ -7,8 +7,13 @@
 @inject IJSRuntime JsRuntime
 
 @code {
-    private static DotNetObjectReference<BrowserUtils> _dotnetRef;
-    private static IJSObjectReference _jsModule;
+    private static BrowserUtils _current;
+    private DotNetObjectReference<BrowserUtils> _dotnetRef;
+    private IJSObjectReference _module;
+    private IJSObjectReference _listeners;
+    private bool _disposed;
+    private bool _initializing;
+    private Task _cleanupTask;
     
     public static HybridEvent<ElementDimensions> OnWindowResize;
     public static ElementDimensions WindowDimensions { get; private set; }
@@ -22,83 +27,100 @@
     
     protected override void OnInitialized()
     {
+        _current = this;
         _dotnetRef = DotNetObjectReference.Create(this);
         AppLifecycle.Resumed += OnRefocus;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender || _disposed) return;
+        _initializing = true;
+        try
         {
-            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
-            // can't use client logger because the client doesn't exist yet!
-            Logger.Log("BUtils", "Loaded DomWindowData component.", "cyan");
-            WindowDimensions = await GetWindowDimensions();
-            Logger.Log("BUtils", "Starting window dimensions: " + WindowDimensions.Width + "x" + WindowDimensions.Height, "cyan");
-            await _jsModule.InvokeVoidAsync("init", _dotnetRef);
-            
-            if (OnReady is not null)
+            _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
+            if (_disposed) return;
+            WindowDimensions = await _module.InvokeAsync<ElementDimensions>("getWindowDimensions");
+            if (_disposed) return;
+            _listeners = await _module.InvokeAsync<IJSObjectReference>("init", _dotnetRef);
+            if (!_disposed && OnReady is not null)
                 await OnReady.Invoke();
         }
+        finally
+        {
+            _initializing = false;
+            if (_disposed) await CleanupAsync();
+        }
     }
-    
+
+    private static async ValueTask<T> InvokeAsync<T>(string method, params object[] args)
+    {
+        var owner = _current;
+        var module = owner?._module;
+        if (owner is null || owner._disposed || module is null) return default;
+        try { return await module.InvokeAsync<T>(method, args); }
+        catch (ObjectDisposedException) when (owner._disposed) { return default; }
+        catch (JSDisconnectedException) { return default; }
+    }
+
     private static async Task<ElementDimensions> GetWindowDimensions()
     {
-        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getWindowDimensions");
+        var dimensions = await InvokeAsync<ElementDimensions>("getWindowDimensions");
         return dimensions;
     }
     
     public static async Task<ElementDimensions> GetElementDimensionsAsync(ElementReference element)
     {
-        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getElementDimensions", element);
+        var dimensions = await InvokeAsync<ElementDimensions>("getElementDimensions", element);
         return dimensions;
     }
     
     public static async Task<ElementDimensions> GetElementDimensions(ElementReference element)
     {
-        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getElementDimensions", element);
+        var dimensions = await InvokeAsync<ElementDimensions>("getElementDimensions", element);
         return dimensions;
     }
     
     public static async Task<ElementDimensions> GetElementDimensions(string selector)
     {
-        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getElementDimensionsBySelector", selector);
+        var dimensions = await InvokeAsync<ElementDimensions>("getElementDimensionsBySelector", selector);
         return dimensions;
     }
 
     public static async Task<ElementPosition> GetElementPosition(ElementReference element)
     {
-        var position = await _jsModule.InvokeAsync<ElementPosition>("getElementPosition", element);
+        var position = await InvokeAsync<ElementPosition>("getElementPosition", element);
         return position;
     }
     
     public static async Task<ElementBounds> GetElementBoundingRectAsync(ElementReference element)
     {
-        var position = await _jsModule.InvokeAsync<ElementBounds>("getElementBoundingRect", element);
+        var position = await InvokeAsync<ElementBounds>("getElementBoundingRect", element);
         return position;
     }
     
     public static async Task<VerticalContainerDistance> GetVerticalContainerDistanceAsync(ElementReference element, ElementReference container)
     {
-        var distance = await _jsModule.InvokeAsync<VerticalContainerDistance>("getVerticalDistancesToContainer", element, container);
+        var distance = await InvokeAsync<VerticalContainerDistance>("getVerticalDistancesToContainer", element, container);
         return distance;
     }
     
     public static async Task<VerticalContainerDistance> GetVisibleVerticalContainerDistanceAsync(ElementReference element, ElementReference container)
     {
-        var distance = await _jsModule.InvokeAsync<VerticalContainerDistance>("getVisibleVerticalDistancesToContainer", element, container);
+        var distance = await InvokeAsync<VerticalContainerDistance>("getVisibleVerticalDistancesToContainer", element, container);
         return distance;
     }
     
     public static async Task<WindowUri> GetUriData()
     {
-        var uriData = await _jsModule.InvokeAsync<WindowUri>("getWindowUri");
+        var uriData = await InvokeAsync<WindowUri>("getWindowUri");
         return uriData;
     }
     
     [JSInvokable("NotifyWindowDimensions")]
     public void NotifyWindowDimensions(ElementDimensions dimensions)
     {
+        if (_disposed) return;
         WindowDimensions = dimensions;
         if (OnWindowResize is not null)
             OnWindowResize.Invoke(dimensions);
@@ -107,6 +129,7 @@
     [JSInvokable("OnRefocus")]
     public void OnRefocus()
     {
+        if (_disposed) return;
         IsFocused = true;
         Logger.Log("BUtils", "Detected refocus event.", "cyan");
         NodeService.CheckConnections();
@@ -118,17 +141,43 @@
     [JSInvokable("NotifyBlur")]
     public void NotifyBlur()
     {
+        if (_disposed) return;
         IsFocused = false;
         Logger.Log("BUtils", "Detected blur event.", "cyan");
         if (Blurred is not null)
             Blurred.Invoke();
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
+        _disposed = true;
+        if (ReferenceEquals(_current, this)) _current = null;
         AppLifecycle.Resumed -= OnRefocus;
-        _dotnetRef.Dispose();
-        await _jsModule.DisposeAsync();
+        return _initializing ? ValueTask.CompletedTask : new ValueTask(CleanupAsync());
     }
 
+    private Task CleanupAsync() => _cleanupTask ??= ReleaseReferencesAsync();
+
+    private async Task ReleaseReferencesAsync()
+    {
+        if (_listeners is not null)
+        {
+            try { await _listeners.InvokeVoidAsync("dispose"); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+            try { await _listeners.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+        }
+        if (_module is not null)
+        {
+            try { await _module.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+        }
+        _listeners = null;
+        _module = null;
+        _dotnetRef?.Dispose();
+        _dotnetRef = null;
+    }
 }

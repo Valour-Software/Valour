@@ -133,6 +133,39 @@ public class RealtimeKitReconciliationTests
             request.Method == HttpMethod.Delete && request.Uri.Contains("/participants/record-2"));
     }
 
+    [Fact]
+    public async Task ParticipantQueries_UseSupportedPageSizeAndIncludeLaterPages()
+    {
+        var firstPage = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            success = true,
+            data = new { participants = Enumerable.Range(1, 200).Select(i => new { id = $"p{i}", custom_participant_id = i.ToString() }) }
+        });
+        var handler = new RouteHandler
+        {
+            ["page_no=1"] = (HttpStatusCode.OK, firstPage),
+            ["page_no=2"] = (HttpStatusCode.OK, """{"success":true,"data":{"participants":[{"id":"p201","custom_participant_id":"201"}]}}""")
+        };
+        var result = await CreateService(handler).GetSessionParticipantsAsync("sess-1");
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(201, result.Data.Count);
+        Assert.All(handler.Requests, x => Assert.Contains("per_page=200", x.Uri));
+    }
+
+    [Fact]
+    public async Task ParticipantQueries_RepeatedPageDoesNotReturnPartialSuccess()
+    {
+        var body = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            success = true,
+            data = new { participants = Enumerable.Range(1, 200).Select(i => new { id = $"p{i}", custom_participant_id = i.ToString() }) }
+        });
+        var service = CreateService(new RouteHandler { ["/participants?"] = (HttpStatusCode.OK, body) });
+        var result = await service.GetSessionParticipantsAsync("sess-1");
+        Assert.False(result.Success);
+        Assert.Null(result.Data);
+    }
+
     private static RealtimeKitService CreateService(RouteHandler handler) =>
         new(new StubHttpClientFactory(handler),
             NullLogger<RealtimeKitService>.Instance,

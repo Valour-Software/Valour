@@ -44,6 +44,8 @@
 }
 
 .village-handheld {
+    container-type: inline-size;
+    container-name: handheld;
     --handheld-shell: color-mix(in srgb, var(--modal-dark) 78%, var(--color-primary) 22%);
     --handheld-edge: color-mix(in srgb, var(--color-primary) 35%, var(--medium-tint) 65%);
     position: absolute;
@@ -306,7 +308,6 @@
 
 .overlay-card,
 .quick-control-bar,
-.village-call-surface,
 .village-chat-composer {
     border: 1px solid var(--medium-tint);
     background: var(--modal-dark);
@@ -708,10 +709,6 @@
     transition: right 180ms ease;
 }
 
-.has-call .village-inspector {
-    right: calc(min(390px, 34vw) + 32px);
-}
-
 .village-window:has(.village-chat-composer) .village-inspector {
     bottom: 88px;
 }
@@ -729,6 +726,9 @@
     gap: 11px;
     margin-bottom: 11px;
 }
+
+.inspector-heading > div:nth-child(2) { flex: 1; min-width: 0; }
+.inspector-heading > button { flex: 0 0 auto; }
 
 .place-icon {
     display: grid;
@@ -942,70 +942,6 @@
     background: var(--color-success);
 }
 
-.village-call-surface {
-    position: absolute;
-    z-index: 5;
-    top: 78px;
-    right: 16px;
-    bottom: 16px;
-    display: flex;
-    width: min(390px, 34vw);
-    min-width: 290px;
-    flex-direction: column;
-    overflow: hidden;
-    border-radius: 20px;
-    transition: bottom 180ms ease, height 180ms ease;
-}
-
-.build-mode-active .village-call-surface {
-    right: calc(var(--village-build-sidebar-width) + 16px);
-}
-
-.village-call-surface.collapsed {
-    top: auto;
-    bottom: 16px;
-}
-
-.village-call-titlebar {
-    display: flex;
-    min-height: 58px;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 11px 10px 15px;
-    border-bottom: 1px solid var(--slight-tint);
-}
-
-.village-call-titlebar > div {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.village-call-titlebar strong {
-    overflow: hidden;
-    color: var(--font-color);
-    font-size: 0.92rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.village-call-body {
-    min-height: 0;
-    flex: 1;
-    background: rgba(10, 14, 12, 0.28);
-}
-
-.village-call-body ::deep .call-panel {
-    height: 100%;
-    background: transparent;
-}
-
-.village-call-body ::deep .call-header {
-    display: none;
-}
-
 .village-chat-composer {
     left: 50%;
     bottom: 16px;
@@ -1037,13 +973,6 @@
     background: var(--modal-dark);
     box-shadow: -18px 0 55px rgba(5, 9, 7, 0.36);
     backdrop-filter: blur(22px) saturate(1.2);
-}
-
-.village-call-actions {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 3px;
 }
 
 .village-icon-button.leave-call {
@@ -1182,7 +1111,7 @@
 
 .build-tool-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
     padding: 7px 10px;
     border-bottom: 1px solid var(--slight-tint);
@@ -1253,7 +1182,10 @@
     min-width: 0;
     flex-wrap: wrap;
     gap: 5px;
+    scrollbar-width: none;
 }
+
+.build-categories::-webkit-scrollbar { display: none; }
 
 .build-categories button {
     min-height: 32px;
@@ -1276,6 +1208,7 @@
 }
 
 .build-catalog {
+    align-content: start;
     display: grid;
     min-height: 0;
     flex: 1 1 auto;
@@ -1482,10 +1415,6 @@
     background: rgba(21, 61, 43, 0.68);
 }
 
-.has-call .village-chat-composer {
-    left: calc((100% - min(390px, 34vw)) / 2);
-}
-
 .composer-context {
     display: flex;
     min-width: 105px;
@@ -1583,7 +1512,7 @@
 .village-toast {
     position: absolute;
     z-index: 8;
-    top: 18px;
+    top: 116px;
     left: 50%;
     display: flex;
     width: min(430px, calc(100% - 32px));
@@ -1701,25 +1630,6 @@
         font-size: 0.68rem;
     }
 
-    .village-call-surface {
-        top: auto;
-        right: 8px;
-        bottom: 8px;
-        left: 8px;
-        width: auto;
-        min-width: 0;
-        height: min(48vh, 430px);
-        border-radius: var(--radius-xl);
-    }
-
-    .village-call-surface.collapsed {
-        height: 58px;
-    }
-
-    .has-call .village-inspector {
-        display: none;
-    }
-
     .village-inspector {
         right: 8px;
         bottom: 78px;
@@ -1735,8 +1645,7 @@
         border-radius: 17px;
     }
 
-    .village-chat-composer,
-    .has-call .village-chat-composer {
+    .village-chat-composer{
         right: 8px;
         bottom: 8px;
         left: 8px;
@@ -1750,10 +1659,6 @@
         display: none;
     }
 
-    .has-call .village-chat-composer {
-        bottom: calc(min(48vh, 430px) + 16px);
-    }
-
     .composer-context {
         display: none;
     }
@@ -1765,8 +1670,7 @@
         font-size: 0.64rem;
     }
 
-    .village-window:has(.village-chat-composer) .village-movement-hint,
-    .village-window.has-call .village-movement-hint {
+    .village-window:has(.village-chat-composer) .village-movement-hint{
         display: none;
     }
 }
@@ -1802,10 +1706,6 @@
     .build-mode-active .village-quick-controls,
     .admin-mode-active .village-quick-controls {
         right: 10px;
-    }
-
-    .build-mode-active .village-call-surface {
-        right: 8px;
     }
 
     .village-build-panel,
@@ -1848,8 +1748,7 @@
     background: linear-gradient(to bottom, var(--wall-top) 0 31%, var(--wall-face) 31% 100%);
 }
 
-.handheld-controls-active .village-chat-composer,
-.handheld-controls-active.has-call .village-chat-composer {
+.handheld-controls-active .village-chat-composer{
     bottom: calc(148px + env(safe-area-inset-bottom));
 }
 
@@ -1858,24 +1757,10 @@
     bottom: calc(218px + env(safe-area-inset-bottom));
 }
 
-@media (max-width: 900px) {
-    .handheld-controls-active .village-call-surface {
-        bottom: calc(148px + env(safe-area-inset-bottom));
-        height: min(36vh, 340px);
-    }
-
-    .handheld-controls-active .village-call-surface.collapsed {
-        height: 58px;
-    }
-
-    .handheld-controls-active.has-call .village-chat-composer {
-        bottom: calc(156px + min(36vh, 340px) + env(safe-area-inset-bottom));
-    }
-
-    .handheld-controls-active.has-call:has(.village-call-surface.collapsed) .village-chat-composer {
-        bottom: calc(214px + env(safe-area-inset-bottom));
-    }
-}
+.handheld-controls-active:has(.village-places-panel) .village-handheld,
+.handheld-controls-active:has(.village-places-panel) .village-chat-composer,
+.handheld-controls-active:has(.village-inspector) .village-handheld,
+.handheld-controls-active:has(.village-inspector) .village-chat-composer { display: none; }
 
 @media (max-width: 520px) {
     .village-handheld {
@@ -1918,18 +1803,6 @@
 
     .handheld-controls-active .village-chat-composer {
         bottom: calc(128px + env(safe-area-inset-bottom));
-    }
-
-    .handheld-controls-active .village-call-surface {
-        bottom: calc(128px + env(safe-area-inset-bottom));
-    }
-
-    .handheld-controls-active.has-call .village-chat-composer {
-        bottom: calc(136px + min(36vh, 340px) + env(safe-area-inset-bottom));
-    }
-
-    .handheld-controls-active.has-call:has(.village-call-surface.collapsed) .village-chat-composer {
-        bottom: calc(194px + env(safe-area-inset-bottom));
     }
 
     .handheld-controls-active .village-inspector,
@@ -2003,6 +1876,16 @@
         padding: 6px 8px;
     }
 
+    .build-categories {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 3px;
+    }
+
+    .build-categories button {
+        flex: 0 0 auto;
+    }
+
     .build-catalog {
         grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
         padding-right: 8px;
@@ -2023,8 +1906,219 @@
     .village-icon-toggle,
     .village-zoom-button,
     .village-zoom-level,
-    .village-call-surface,
     .village-inspector {
         transition: none;
     }
+}
+
+.village-art-credit {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    z-index: 2;
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: rgba(12, 20, 28, 0.8);
+    color: #e2e6ea;
+    font-size: 10px;
+}
+
+.village-brand-card.compact .village-title {
+    font-size: 1rem;
+    line-height: 1.25;
+}
+
+.village-brand-card.compact .village-subtitle {
+    display: none;
+}
+
+.village-window { container-type: size; container-name: village; --village-build-sidebar-width: 340px; }
+.village-topbar { position: absolute; z-index: 6; inset: 12px 12px auto; display: grid; grid-template-columns: minmax(160px, 1fr) auto; align-items: start; gap: 12px; pointer-events: none; }
+.village-topbar .village-world-header { position: static; min-width: 0; max-width: none; gap: 6px; }
+.village-topbar .village-brand-card { min-width: 0; max-width: 100%; padding: 11px 14px; border-radius: 12px; }
+.village-topbar .village-title { margin-top: 3px; font-size: 17px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.village-topbar .village-kicker { font-size: 10px; letter-spacing: .12em; }
+.village-topbar .village-subtitle { display: none; }
+.village-topbar .village-quick-controls { position: static; min-width: 0; }
+.village-topbar .quick-control-bar { min-height: 62px; border-radius: 12px; gap: 4px; padding: 7px; }
+.village-topbar .village-icon-button { width: 36px; height: 36px; min-width: 36px; font-size: 16px; }
+.village-topbar .village-icon-toggle { height: 36px; font-size: 12px; }
+.village-topbar .hud-chip { min-height: 25px; max-width: 100%; padding: 4px 9px; font-size: 11px; line-height: 1.2; }
+.village-window .village-places-panel { top: 116px; right: 12px; max-height: calc(100% - 200px); border-radius: 14px; }
+.village-window .village-connection-banner { top: 116px; }
+.village-window .village-movement-hint { display: none; }
+.village-window .village-chat-composer { width: min(480px, calc(100% - 32px)); min-width: 0; border-radius: 14px; gap: 12px; }
+.village-window .composer-context { max-width: 160px; }
+.village-window .composer-context strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.village-window .composer-context span { font-size: 10px; }
+.village-window.build-mode-active .village-topbar,
+.village-window.admin-mode-active .village-topbar { right: calc(var(--village-build-sidebar-width) + 12px); grid-template-columns: 1fr; }
+.village-window.build-mode-active .village-topbar .village-world-header,
+.village-window.admin-mode-active .village-topbar .village-world-header { display: none; }
+@container (max-width: 1100px) {
+    .village-topbar .village-icon-toggle span { display: none; }
+    .village-topbar .village-icon-toggle { width: 36px; padding: 0; justify-content: center; }
+    .village-window .village-chat-composer { left: 12px; transform: none; width: min(440px, calc(100% - 100px)); }
+}
+@container (max-width: 700px) {
+    .village-topbar { grid-template-columns: 1fr; gap: 6px; inset: 8px 8px auto; }
+    .village-topbar .village-world-header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+    .village-topbar .village-brand-card { padding: 7px 10px; }
+    .village-topbar .village-kicker { display: none; }
+    .village-topbar .village-title { font-size: 14px; max-width: 210px; }
+    .village-topbar .overlay-inline-group .hud-chip:first-child { display: none; }
+    .village-topbar .quick-control-bar { min-height: 46px; padding: 4px; justify-content: space-between; }
+    .village-window .village-places-panel { top: 104px; right: 8px; width: min(320px, calc(100% - 16px)); }
+    .village-window .village-inspector,
+    .village-window:has(.village-chat-composer) .village-inspector { top: 104px; bottom: 8px; right: 8px; width: min(350px, calc(100% - 16px)); }
+    .village-building-card { max-height: 100%; }
+    .village-window:has(.village-places-panel) .village-handheld,
+    .village-window:has(.village-inspector) .village-handheld,
+    .village-window:has(.village-places-panel) .village-chat-composer,
+    .village-window:has(.village-inspector) .village-chat-composer { display: none; }
+    .village-window .village-chat-composer { gap: 8px; width: calc(100% - 16px); left: 8px; }
+    .village-window .composer-context { max-width: 115px; }
+    .village-window.build-mode-active .village-topbar,
+    .village-window.admin-mode-active .village-topbar { right: 8px; }
+    .village-window .village-build-panel,
+    .village-window .village-admin-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: clamp(320px, 46%, 420px); max-height: calc(100% - 72px); }
+    .village-window.build-mode-active .village-canvas,
+    .village-window.admin-mode-active .village-canvas { right: 0; width: 100%; height: calc(100% - clamp(320px, 46cqh, 420px) - 16px); }
+    .build-panel-header { min-height: 38px; padding: 5px 8px 5px 12px; }
+    .build-panel-header .eyebrow { display: none; }
+    .build-panel-header strong { font-size: 12px; }
+    .build-panel-header .village-icon-button { width: 28px; height: 28px; min-width: 28px; }
+    .build-tool-row { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; padding: 4px 6px; }
+    .build-tool { min-height: 40px; flex-direction: column; gap: 2px; padding: 3px 0; font-size: 10px; }
+    .build-tool i { font-size: 14px; }
+    .build-catalog-controls { gap: 5px; padding: 6px 8px 0; }
+    .build-search { height: 30px; }
+    .build-search input { font-size: 12px; }
+    .build-categories { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .build-categories button { flex: 0 0 auto; min-height: 24px; padding: 0 8px; font-size: 10px; }
+    .build-catalog { min-height: 90px; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; padding: 6px 8px; }
+    .build-catalog-item { min-height: 84px; padding: 5px 4px 6px; }
+    .build-panel-footer { min-height: 26px; padding: 4px 8px; font-size: 10px; }
+    .build-panel-footer > span:first-child { display: none; }
+}
+
+@container (max-width: 480px) {
+    .village-topbar .quick-control-bar { gap: 2px; }
+    .village-topbar .village-icon-button { width: 32px; height: 34px; min-width: 32px; }
+    .village-topbar .village-icon-toggle { width: 32px; height: 34px; min-width: 32px; }
+    .village-topbar .village-zoom-button { width: 24px; min-width: 24px; }
+    .village-topbar .village-zoom-level { width: 32px; min-width: 32px; }
+}
+
+@container village (min-width: 701px) {
+    .village-window .village-build-panel,
+    .village-window .village-admin-panel { inset: 0 0 0 auto; width: 340px; height: auto; max-height: none; border-radius: 0; }
+    .village-window.build-mode-active .village-canvas,
+    .village-window.admin-mode-active .village-canvas { right: 340px; width: calc(100% - 340px); height: 100%; }
+}
+
+@container village (max-height: 600px) {
+    .build-panel-header { min-height: 38px; padding: 4px 8px; }
+    .build-panel-header .eyebrow { display: none; }
+    .build-panel-header strong { font-size: 12px; }
+    .build-tool-row { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; padding: 4px; }
+    .build-tool { min-height: 40px; flex-direction: column; gap: 2px; padding: 3px 0; font-size: 10px; }
+    .build-tool i { font-size: 14px; }
+    .build-catalog-controls { gap: 5px; padding: 6px 8px 0; }
+    .build-search { height: 32px; }
+    .build-categories { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .build-categories button { flex: 0 0 auto; min-height: 28px; padding: 0 8px; font-size: 10px; }
+    .build-catalog { min-height: 100px; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); padding: 6px 8px; gap: 6px; }
+    .build-catalog-item { min-height: 84px; padding: 5px 4px 6px; }
+    .build-panel-footer { min-height: 26px; padding: 4px 8px; font-size: 10px; }
+    .build-panel-footer > span:first-child { display: none; }
+    .village-topbar .quick-control-bar { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+}
+
+@container village (min-width: 520px) and (max-height: 500px) {
+    .village-window .village-build-panel,
+    .village-window .village-admin-panel { inset: 0 0 0 auto; width: 280px; height: auto; max-height: none; border-radius: 0; }
+    .village-window.build-mode-active .village-canvas,
+    .village-window.admin-mode-active .village-canvas { right: 280px; width: calc(100% - 280px); height: 100%; }
+    .village-window.build-mode-active .village-topbar,
+    .village-window.admin-mode-active .village-topbar { right: 288px; }
+}
+
+@container village (max-height: 500px) {
+    .village-topbar { inset: 8px 8px auto; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    .village-topbar .village-world-header { flex-direction: row; align-items: center; }
+    .village-topbar .village-brand-card { padding: 7px 10px; }
+    .village-topbar .village-title { font-size: 14px; }
+    .village-topbar .village-kicker, .village-topbar .overlay-inline-group { display: none; }
+    .village-topbar .quick-control-bar { min-height: 46px; padding: 4px; }
+    .village-window .village-places-panel { top: 70px; max-height: calc(100% - 82px); }
+    .village-window .village-inspector,
+    .village-window:has(.village-chat-composer) .village-inspector { top: 70px; bottom: 8px; right: 8px; width: min(350px, calc(100% - 16px)); }
+    .village-building-card { max-height: 100%; }
+    .village-window:has(.village-places-panel) .village-handheld,
+    .village-window:has(.village-inspector) .village-handheld,
+    .village-window:has(.village-places-panel) .village-chat-composer,
+    .village-window:has(.village-inspector) .village-chat-composer { display: none; }
+    .village-handheld { height: 112px; }
+    .handheld-dpad { width: 92px; height: 92px; }
+    .handheld-brand { top: 13px; }
+    .handheld-action-buttons { top: 8px; height: 74px; }
+    .handheld-action { width: 44px; height: 44px; }
+    .handheld-controls-active .village-chat-composer { bottom: calc(128px + env(safe-area-inset-bottom)); }
+}
+
+@container village (max-width: 519px) and (max-height: 500px) {
+    .village-topbar { grid-template-columns: 1fr; }
+    .village-topbar .village-world-header { display: none; }
+    .village-window .village-build-panel { overflow-y: auto; }
+    .village-window .build-catalog { flex: 0 0 130px; }
+}
+
+@container village (max-height: 320px) {
+    .build-panel-header .village-icon-button { width: 28px; height: 28px; min-width: 28px; min-height: 28px; padding: 0; }
+    .build-tool { line-height: 1.2; }
+    .build-catalog-controls { padding-top: 4px; gap: 4px; }
+    .build-search { height: 30px; }
+    .build-categories button { height: 24px; min-height: 24px; line-height: 1.2; }
+    .build-panel-footer { min-height: 20px; padding-top: 2px; padding-bottom: 2px; line-height: 1.2; }
+}
+
+@container village (max-width: 900px) {
+    .village-window .village-inspector { display: block; }
+}
+
+@container handheld (max-width: 350px) {
+    .handheld-action-buttons { right: 11px; width: 100px; transform: rotate(-6deg); }
+}
+
+@media (pointer: coarse) {
+    .build-search input, .composer-row input, .manage-field input, .manage-field textarea { font-size: 16px; }
+}
+
+.village-nearby-people {
+    position: absolute;
+    z-index: 5;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    pointer-events: auto;
+}
+
+.village-nearby-people:has(.video-fullscreen-backdrop) {
+    z-index: 20;
+    transform: none;
+    top: 0;
+    bottom: 0;
+}
+
+.build-mode-active .village-nearby-people,
+.admin-mode-active .village-nearby-people {
+    right: calc(var(--village-build-sidebar-width) + 16px);
+}
+
+@container village (max-width: 600px) {
+    .village-nearby-people { right: 8px; }
+    .build-mode-active .village-nearby-people,
+    .admin-mode-active .village-nearby-people { display: none; }
 }

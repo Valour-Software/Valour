@@ -1,22 +1,45 @@
-# Client JS tests
+# Client JavaScript tests
 
-Tests for client-side TypeScript that has no C# surface to reach it through -
-the village canvas runtime, its texture cache, and the positional voice graph.
-These run against the **compiled** `.js` next to each `.ts`, so build the client
-first (the csproj compiles TypeScript in place).
+These tests exercise the compiled client JavaScript with Node's built-in test
+runner. Coverage includes village rendering helpers, terrain and wall resolution,
+building input, tileset packing and selection, chat bubbles, spatial audio, and
+LiveKit video-host lifecycle.
 
-They use Node's built-in test runner, so there is no package.json and no
-dependency to install.
+Compile the client sources before running the tests. The client project compiles
+TypeScript to adjacent JavaScript files:
 
-```bash
+```sh
 dotnet build Valour/Client/Valour.Client.csproj
 node --test Valour/Tests/Js/*.test.mjs
 ```
 
-Browser APIs are stubbed per file rather than through a DOM library: each test
-supplies only the handful of `AudioContext`/`Image`/`document` members the code
-under test actually touches, which keeps the stubs readable and makes it obvious
-when production code starts depending on something new.
+The tests do not need an npm dependency installation. Use the file glob in the
+command; passing the directory asks Node to resolve it as a module.
 
-Note that `node --test` needs the file glob rather than the directory - passing
-the directory makes Node try to resolve it as a module.
+Each test supplies the browser API members it needs, such as `AudioContext`,
+`Image`, or parts of `document`. These stubs check application logic without
+starting a browser. They do not establish browser rendering or device behavior.
+
+The LiveKit tests check sharing a remote track across inline and full-screen
+hosts, removing hosts without stopping another view, and cleanup after a failed
+SDK detach. The [browser suites](../Browser/README.md) exercise actual rendering,
+input, and local SFU media paths.
+
+`village-atlas-protection.test.mjs` checks the shared C#/JavaScript package vector,
+corrupt and oversized payloads, shared blob URLs, recovery after failed downloads,
+and unchanged loading for ordinary images. The browser library and atlas suites
+check decoded pixels and the actual published files; the decoder unit tests do
+not establish license compliance or resistance to determined extraction.
+
+`ui-lifecycle.test.mjs` exercises teardown of animations, color pickers, file-drop
+listeners, browser listeners, dock history ownership, and delayed input callbacks.
+The standalone [browser lifecycle suite](../Browser/sentry-ui-lifecycle.mjs) checks
+actual DOM input and listener teardown while recording console and network errors.
+It serves local client modules and does not require a server or login:
+
+```sh
+node Valour/Tests/Browser/sentry-ui-lifecycle.mjs
+```
+
+Set `PLAYWRIGHT_MODULE` when Playwright is installed outside the repository, and
+`BROWSER_EXECUTABLE` when using a separately installed Chromium browser.

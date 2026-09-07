@@ -1,15 +1,16 @@
-﻿Any raw assets you want to be deployed with your application can be placed in
-this directory (and child directories). Deployment of the asset to your application
-is automatically handled by the following `MauiAsset` Build Action within your `.csproj`.
+Raw application assets
+
+Files in this directory and its child directories are packaged by the MauiAsset
+entry in Valour.Client.Maui.csproj:
 
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 
-These files will be deployed with your package and will be accessible using Essentials:
+Read a packaged file by its logical name with FileSystem.OpenAppPackageFileAsync.
+For a file in a child directory, include that relative directory in the name.
 
-    async Task LoadMauiAsset()
+    async Task<string> ReadAssetAsync()
     {
         using var stream = await FileSystem.OpenAppPackageFileAsync("AboutAssets.txt");
         using var reader = new StreamReader(stream);
-
-        var contents = reader.ReadToEnd();
+        return await reader.ReadToEndAsync();
     }

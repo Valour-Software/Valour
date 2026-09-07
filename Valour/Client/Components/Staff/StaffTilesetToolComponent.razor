@@ -3,7 +3,7 @@
 <div class="settings-inner">
     <div class="editor-section">
         <h3 class="editor-section-title">
-            <i class="bi bi-grid-3x3-gap"></i>
+            <i aria-hidden="true" class="bi bi-grid-3x3-gap"></i>
             Tileset Definitions
         </h3>
 
@@ -21,15 +21,18 @@
 
         <div class="open-village">
             <button class="v-btn" @onclick="OpenTilesetToolAsync">
-                <i class="bi bi-grid-3x3-gap"></i> Open Tileset Tool
+                <i aria-hidden="true" class="bi bi-grid-3x3-gap"></i> Open Tileset Tool
             </button>
         </div>
     </div>
 </div>
 
 @code {
+    [CascadingParameter] public ModalRoot? ModalRoot { get; set; }
     private async Task OpenTilesetToolAsync()
     {
+        if (ModalRoot is not null) await ModalRoot.CloseTopModal();
         await WindowService.OpenWindowAtFocused(TilesetDefinitionWindowComponent.GetDefaultContent());
+        await Valour.Client.Components.Sidebar.Sidebar.TryCloseMobileSidebarExternalAsync();
     }
 }

@@ -1,3 +1,4 @@
+using Npgsql;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -88,31 +89,40 @@ public class UnreadService
 
         var effectiveUpdateTime = DateTime.SpecifyKind(updateTime ?? DateTime.UtcNow, DateTimeKind.Utc);
 
-        // Atomic upsert to avoid race conditions when multiple requests update the same
-        // (user_id, channel_id) row concurrently.
-        if (onlyMoveForward)
+        try
         {
-            await _db.Database.ExecuteSqlInterpolatedAsync($@"
-                INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
-                VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
-                ON CONFLICT (user_id, channel_id) DO UPDATE
-                SET
-                    last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time),
-                    planet_id = EXCLUDED.planet_id,
-                    member_id = EXCLUDED.member_id
-            ");
+            // Atomic upsert to avoid race conditions when multiple requests update the same
+            // (user_id, channel_id) row concurrently.
+            if (onlyMoveForward)
+            {
+                await _db.Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
+                    VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
+                    ON CONFLICT (user_id, channel_id) DO UPDATE
+                    SET
+                        last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time),
+                        planet_id = EXCLUDED.planet_id,
+                        member_id = EXCLUDED.member_id
+                ");
+            }
+            else
+            {
+                await _db.Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
+                    VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
+                    ON CONFLICT (user_id, channel_id) DO UPDATE
+                    SET
+                        last_viewed_time = EXCLUDED.last_viewed_time,
+                        planet_id = EXCLUDED.planet_id,
+                        member_id = EXCLUDED.member_id
+                ");
+            }
         }
-        else
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation &&
+                                           ex.TableName == "user_channel_states")
         {
-            await _db.Database.ExecuteSqlInterpolatedAsync($@"
-                INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
-                VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
-                ON CONFLICT (user_id, channel_id) DO UPDATE
-                SET
-                    last_viewed_time = EXCLUDED.last_viewed_time,
-                    planet_id = EXCLUDED.planet_id,
-                    member_id = EXCLUDED.member_id
-            ");
+            // The user, channel, or membership can be deleted after request authorization.
+            return TaskResult<UserChannelState>.FromFailure("The user, channel, or membership no longer exists.");
         }
 
         // Viewing a channel clears any coalesced activity notification for it

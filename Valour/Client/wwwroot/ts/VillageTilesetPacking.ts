@@ -271,6 +271,7 @@ export function compileTilesetManifest(
     image: string,
     sha256: string): TilesetPackageResult {
     const compiled = clone(manifest);
+    delete compiled.imageSha256;
     compiled.format = TILESET_FORMAT;
     compiled.version = TILESET_FORMAT_VERSION;
     compiled.tileSize = plan.tileSize;
@@ -452,10 +453,13 @@ export async function renderTilesetPackage(
     }
 
     const result = compileTilesetManifest(manifest, plan, imageFileName, sourceSha256);
+    const imageBlob = await canvasToBlob(canvas);
+    const fingerprint = await crypto.subtle.digest("SHA-256", await imageBlob.arrayBuffer());
+    result.manifest.imageSha256 = Array.from(new Uint8Array(fingerprint), byte => byte.toString(16).padStart(2, "0")).join("");
     return {
         ...result,
         json: JSON.stringify(result.manifest, null, 2),
-        imageBlob: await canvasToBlob(canvas)
+        imageBlob
     };
 }
 

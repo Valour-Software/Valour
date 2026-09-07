@@ -1,80 +1,74 @@
-# Direct and Group Calls
+# Direct and group calls
 
-Valour direct calls are first-class call attempts attached to direct-message
-conversations. They do not create hidden voice-channel rows and they do not use
-peer-to-peer WebRTC. Media is carried by the instance voice provider selected by
-`VoiceCoordinator` (Cloudflare RealtimeKit by default, or instance LiveKit).
-Planet-owned voice configuration is intentionally not used for private calls.
+Direct calls belong to private conversations. `DirectCall` records the call attempt
+and `DirectCallMember` records each participant's state. Audio and video use the
+instance provider selected by `VoiceCoordinator`: Cloudflare RealtimeKit or
+LiveKit. A planet's voice configuration does not apply to private calls.
 
-## Conversation model
+## Conversations and participants
 
-- `DirectChat` remains a private two-person conversation.
-- `GroupChat` contains 3–25 members and has a name.
-- `ChannelMember.IsAdmin` controls group rename, invite, and removal operations.
-- When someone is added during a 1:1 call, Valour creates a fresh group
-  conversation. The original 1:1 history is never exposed to the new person.
-- The call keeps the same call id and provider room while its `ChannelId` moves
-  to the new group conversation.
+`DirectChat` is a two-person conversation. `GroupChat` has a name and supports
+three through 25 members. `ChannelMember.IsAdmin` controls group renaming,
+invitations, and removal of other members.
 
-## Call lifecycle
+Adding someone during a two-person call creates a separate group conversation.
+The call retains its ID and provider room, and its `ChannelId` points to that
+group. The added person does not receive the original direct-message history.
 
-`DirectCall` stores `Ringing`, `Active`, and `Ended` state. Each
-`DirectCallMember` independently stores `Invited`, `Joined`, `Declined`, or
-`Left` state. A caller starts joined; the first acceptance activates the call.
-Ringing invitations expire after 45 seconds. A background worker records missed
-calls and closes their provider rooms.
+## Lifecycle
 
-Call updates are relayed to each user's primary-node SignalR group through the
-existing inter-node relay. This makes ringing and participant changes work when
-users are connected to different application nodes.
+A call has Ringing, Active, or Ended state. Each participant has Invited, Joined,
+Declined, or Left state. The caller starts Joined, and the first acceptance makes
+the call Active. Ringing invitations expire after 45 seconds. A background worker
+records missed calls and closes expired provider rooms.
 
-Only one active or ringing call is allowed per user, including planet voice
-presence. Blocks are always respected. Call privacy is separate from DM privacy
-and defaults to `FriendsOnly`.
+Users can have only one ringing or active call, including planet voice presence.
+The service checks blocks and the user's call privacy preference, which is separate
+from direct-message privacy and defaults to FriendsOnly.
 
-## Media and cleanup
+Updates reach each user's primary-node SignalR group through the inter-node relay.
+Participants can therefore receive ringing and membership updates while connected
+to different application nodes.
 
-Provider rooms are keyed by `DirectCall.Id`. An ephemeral server channel model is
-used only to select the provider's audio/video preset; no corresponding channel
-is persisted. Direct-call membership is validated before every token issuance.
-LiveKit credentials issued for direct calls expire after five minutes. RealtimeKit
-leave/removal cleanup both ejects the active peer and deletes its meeting
-participant record, invalidating the reusable participant credential.
+## Media credentials and cleanup
 
-The planet voice cleanup worker ignores active direct-call room ids because
-their presence is not stored in the planet Redis voice keys. The direct-call
-cleanup worker owns their expiry and teardown. RealtimeKit orphan cleanup also
-skips provider rooms that are still explicitly tracked.
+Provider rooms are keyed by `DirectCall.Id`. A temporary in-memory channel model
+selects the provider's audio/video preset. Joined membership is validated before
+each token issuance, and direct-call LiveKit tokens expire after five minutes.
+RealtimeKit cleanup removes both the active peer and its meeting participant
+record so its reusable credential cannot reconnect.
 
-## API summary
+The direct-call worker owns call expiry and room teardown. Planet voice cleanup
+skips active direct-call rooms, whose presence does not use planet voice Redis
+keys. RealtimeKit orphan cleanup also preserves explicitly tracked rooms.
 
-- `POST api/direct-calls` — start a voice or video call
-- `GET api/direct-calls/current` — restore calls after reconnect/startup
-- `POST api/direct-calls/{id}/accept|decline|leave|end`
-- `POST api/direct-calls/{id}/participants` — invite additional people
-- `POST api/direct-calls/{id}/token` — issue media credentials to joined members
-- `POST api/channels/group` — create a group DM
-- `POST api/channels/group/{id}/members` — add members (admin)
-- `PUT api/channels/group/{id}` — rename (admin)
-- `DELETE api/channels/group/{id}/members/{userId}` — leave/remove
+## HTTP routes
 
-## Test coverage
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `api/direct-calls` | Start a voice or video call |
+| GET | `api/direct-calls/current` | Restore the user's current calls |
+| GET | `api/direct-calls/{callId}` | Read a call |
+| POST | `api/direct-calls/{callId}/accept` | Accept an invitation |
+| POST | `api/direct-calls/{callId}/decline` | Decline an invitation |
+| POST | `api/direct-calls/{callId}/leave` | Leave a call |
+| POST | `api/direct-calls/{callId}/end` | End a call |
+| POST | `api/direct-calls/{callId}/participants` | Invite participants |
+| POST | `api/direct-calls/{callId}/token` | Issue media credentials |
+| POST | `api/channels/group` | Create a group conversation |
+| POST | `api/channels/group/{id}/members` | Add group members |
+| PUT | `api/channels/group/{id}` | Rename a group |
+| DELETE | `api/channels/group/{id}/members/{userId}` | Leave or remove a member |
 
-Provider unit tests validate LiveKit token lifetime/grants and RealtimeKit
-participant-record revocation without external network calls. Database-backed
-integration tests cover call lifecycle, call privacy, authorization, busy-user
-enforcement, missed-call expiry, participant expansion, group administration,
-and preservation of the original 1:1 conversation when a call becomes a group.
+## Verification
 
-```bash
-dotnet test Valour/Tests/Valour.Tests.csproj --filter \
-  "FullyQualifiedName~LiveKitTokenTests|FullyQualifiedName~RealtimeKitReconciliationTests|FullyQualifiedName~DirectCallServiceTests|FullyQualifiedName~DirectCallApiTests|FullyQualifiedName~ChannelServiceTests.GroupDm_|FullyQualifiedName~ChannelServiceTests.AddingPeopleToDirectDm"
-```
+`LiveKitTokenTests` checks token grants and lifetime. `RealtimeKitReconciliationTests`
+checks participant credential cleanup without external calls. `DirectCallServiceTests`
+and `DirectCallApiTests` cover lifecycle, privacy, authorization, busy users, missed
+calls, and participant expansion. Group-conversation tests in `ChannelServiceTests`
+cover administration and preservation of the original direct history.
 
-## Operational recommendation
-
-Use Cloudflare RealtimeKit as the managed default and instance-wide LiveKit for
-self-hosted deployments. Keep private calls off planet-operated SFUs: a planet
-operator should not receive participant IP addresses or call metadata for a DM.
-Push notifications and call-history presentation can be layered onto the durable
-call records without changing the media architecture.
+Run database-backed tests with the
+[isolated runner](../Valour/Tests/Browser/README.md#isolated-c-regression). Provider
+unit tests do not verify real device capture, network traversal, or deployed call
+quality; those require calls through the intended provider and devices.

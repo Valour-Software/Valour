@@ -84,14 +84,16 @@
 	private IJSObjectReference _jsModule;
 
 	private IJSObjectReference _jsRef;
+	private bool _pendingMobileToggle;
+	private bool _disposed;
 	
 	
 	protected override async Task OnInitializedAsync()
 	{
-		_mainSidebar = this;
-
 		if (await LocalStorage.ContainsKeyAsync("sidebar"))
 		{
+			if (_disposed)
+				return;
 			var name = await LocalStorage.GetStringAsync("sidebar");
 			_selectedTabName = _tabItems.Any(x => x.Name == name) ? name : PlanetsTabName;
 		}
@@ -100,6 +102,10 @@
 			_selectedTabName = PlanetsTabName;
 		}
 
+		if (_disposed)
+			return;
+
+		_mainSidebar = this;
 		EnsureValidSelection();
 
 		OnToggleMobileSidebar += OnOpenTabClicked;
@@ -109,8 +115,12 @@
 
 	private void OnFocusedTabChanged(WindowTab tab)
 	{
+		if (_disposed)
+			return;
 		InvokeAsync(() =>
 		{
+			if (_disposed)
+				return;
 			if (tab?.Content?.PlanetId is not null && _selectedTabName != ChannelsTabName)
 			{
 				_selectedTabName = ChannelsTabName;
@@ -121,8 +131,12 @@
 
 	private void OnConnectedPlanetsUpdated()
 	{
+		if (_disposed)
+			return;
 		InvokeAsync(() =>
 		{
+			if (_disposed)
+				return;
 			EnsureValidSelection();
 			StateHasChanged();
 		});
@@ -137,48 +151,118 @@
 
 	public async Task OnSelected(int index, TabStripItem tab)
 	{
+		if (_disposed)
+			return;
 		await LocalStorage.SetStringAsync("sidebar", tab.Name);
+		if (_disposed)
+			return;
 		_selectedTabName = tab.Name;
 		StateHasChanged();
 	}
 	
 	async ValueTask IAsyncDisposable.DisposeAsync()
 	{
-		try
-		{
-			if (_jsModule is not null)
-			{
-				await _jsModule.InvokeVoidAsync("cleanup");
-				await _jsModule.DisposeAsync();
-			}
-		}
-		catch (JSDisconnectedException) { }
-		catch (JSException) { }
-
-		_thisRef?.Dispose();
+		if (_disposed)
+			return;
+		_disposed = true;
+		_pendingMobileToggle = false;
 		OnToggleMobileSidebar -= OnOpenTabClicked;
 		WindowService.FocusedTabChanged -= OnFocusedTabChanged;
 		PlanetService.ConnectedPlanetsUpdated -= OnConnectedPlanetsUpdated;
+		if (ReferenceEquals(_mainSidebar, this))
+			_mainSidebar = null;
+
+		var instance = _jsRef;
+		var module = _jsModule;
+		var reference = _thisRef;
+		_jsRef = null;
+		_jsModule = null;
+		_thisRef = null;
+		await ReleaseJsAsync(instance, module, reference);
 	}
-	
+
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		if (firstRender)
+		if (!firstRender || _disposed)
+			return;
+
+		IJSObjectReference module = null;
+		IJSObjectReference instance = null;
+		DotNetObjectReference<Sidebar> reference = null;
+		try
 		{
-			_thisRef = DotNetObjectReference.Create(this);
-			_jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
-			_jsRef = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, _id);
+			module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
+			if (_disposed)
+				return;
+
+			// Keep ownership local until both awaits finish, so closing cannot dispose a reference still being initialized.
+			reference = DotNetObjectReference.Create(this);
+			instance = await module.InvokeAsync<IJSObjectReference>("init", reference, _id);
+			if (_disposed || instance is null)
+				return;
+
+			_jsModule = module;
+			_jsRef = instance;
+			_thisRef = reference;
+			module = null;
+			instance = null;
+			reference = null;
+			if (_pendingMobileToggle)
+			{
+				_pendingMobileToggle = false;
+				await _jsRef.InvokeVoidAsync("toggleOpen");
+			}
 		}
+		catch (JSDisconnectedException) { }
+		catch (ObjectDisposedException) when (_disposed) { }
+		catch (JSException) when (_disposed) { }
+		finally
+		{
+			await ReleaseJsAsync(instance, module, reference);
+		}
+	}
+
+	private static async Task ReleaseJsAsync(IJSObjectReference instance, IJSObjectReference module, DotNetObjectReference<Sidebar> reference)
+	{
+		try
+		{
+			if (instance is not null)
+			{
+				await IgnoreUnavailableJsAsync(() => instance.InvokeVoidAsync("dispose"));
+				await IgnoreUnavailableJsAsync(instance.DisposeAsync);
+			}
+		}
+		finally
+		{
+			try
+			{
+				if (module is not null)
+					await IgnoreUnavailableJsAsync(module.DisposeAsync);
+			}
+			finally
+			{
+				reference?.Dispose();
+			}
+		}
+	}
+
+	private static async ValueTask IgnoreUnavailableJsAsync(Func<ValueTask> action)
+	{
+		try { await action(); }
+		catch (JSDisconnectedException) { }
+		catch (JSException) { }
+		catch (ObjectDisposedException) { }
 	}
 
 	public static Sidebar _mainSidebar;
 	
 	public static async Task ToggleSidebar()
 	{
-		if (_mainSidebar is null)
+		var sidebar = _mainSidebar;
+		if (sidebar is null || sidebar._disposed)
 			return;
 
-		await _mainSidebar.InvokeAsync(_mainSidebar.OnOpenTabClicked);
+		await sidebar.InvokeAsync(sidebar.OnOpenTabClicked);
 	}
 
 	/// <summary>
@@ -188,26 +272,28 @@
 	public static async Task<bool> TryCloseMobileSidebarExternalAsync()
 	{
 		var sidebar = _mainSidebar;
-		if (sidebar is null || !DeviceInfo.IsMobile)
+		if (sidebar is null || sidebar._disposed || !DeviceInfo.IsMobile)
 			return false;
 
 		var closed = false;
 
 		await sidebar.InvokeAsync(async () =>
 		{
-			if (sidebar._jsRef is null)
+			var instance = sidebar._jsRef;
+			if (sidebar._disposed || instance is null)
 				return;
 
 			try
 			{
-				if (!await sidebar._jsRef.InvokeAsync<bool>("isOpen"))
+				if (!await instance.InvokeAsync<bool>("isOpen") || sidebar._disposed)
 					return;
 
-				await sidebar._jsRef.InvokeVoidAsync("setOpen", false);
+				await instance.InvokeVoidAsync("setOpen", false);
 				closed = true;
 			}
 			catch (JSException) { }
 			catch (JSDisconnectedException) { }
+			catch (ObjectDisposedException) when (sidebar._disposed) { }
 		});
 
 		return closed;
@@ -220,22 +306,36 @@
 	[JSInvokable]
 	public async Task OnMobileSidebarOpened()
 	{
-		if (DeviceInfo.IsMobile)
+		if (!_disposed && DeviceInfo.IsMobile)
 			await TutorialHints.CompleteAsync(Client, UserTutorials.MobileSidebarSwipe);
 	}
 
 	private async Task OnOpenTabClicked()
 	{
-		if (!DeviceInfo.IsMobile)
+		if (_disposed)
+			return;
+		try
 		{
-			_active = !_active;
-			if (_jsRef is not null)
-				await _jsRef.InvokeVoidAsync("clearInlineTransform");
-			StateHasChanged();
+			if (!DeviceInfo.IsMobile)
+			{
+				_active = !_active;
+				if (_jsRef is not null)
+					await _jsRef.InvokeVoidAsync("clearInlineTransform");
+				if (!_disposed)
+					StateHasChanged();
+			}
+			else
+			{
+				if (_jsRef is null)
+				{
+					_pendingMobileToggle = !_pendingMobileToggle;
+					return;
+				}
+				await _jsRef.InvokeVoidAsync("toggleOpen");
+			}
 		}
-		else
-		{
-			await _jsRef.InvokeVoidAsync("toggleOpen");	
-		}
+		catch (ObjectDisposedException) when (_disposed) { }
+		catch (JSDisconnectedException) { }
+		catch (JSException) when (_disposed) { }
 	}
 }

@@ -22,7 +22,6 @@
     public BrowserUtils DomWindow { get; set; }
 
     private RenderFragment ProfileContent => @<EditProfileComponent />;
-    private RenderFragment BadgesContent => @<EditBadgesComponent />;
     private RenderFragment PlanetIdentityContent => @<EditPlanetIdentityComponent />;
     private RenderFragment FriendsContent => @<EditFriendsComponent />;
     private RenderFragment SafetyContent => @<EditSafetyComponent />;
@@ -39,6 +38,7 @@
     private RenderFragment BotsContent => @<BotManagementComponent />;
     private RenderFragment PlatformBannerContent => @<StaffPlatformBannerComponent />;
     private RenderFragment StaffDashboardContent => @<StaffDashboardComponent />;
+    private RenderFragment VillageTemplateContent => @<StaffVillageTemplateComponent />;
     private RenderFragment TilesetToolContent => @<StaffTilesetToolComponent />;
     private RenderFragment StaffToolsContent =>
         @<TabContainerComponent Titles="@_staffTabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
@@ -79,15 +79,8 @@
                     {
                         Name = "Profile",
                         Icon = "person-fill",
-                        Description = "Edit your profile, avatar, and appearance",
+                        Description = "Edit your profile, avatar, badges, and appearance",
                         Content = ProfileContent
-                    },
-                    new MainMenu.MenuItem()
-                    {
-                        Name = "Badges",
-                        Icon = "patch-check-fill",
-                        Description = "Choose which badges appear on your profile",
-                        Content = BadgesContent
                     },
                     new MainMenu.MenuItem()
                     {
@@ -128,7 +121,7 @@
                     {
                         Name = "Subscriptions",
                         Icon = "rocket-takeoff-fill",
-                        Description = "Upgrade your experience!",
+                        Description = "Manage your plan, billing, and Valour Credits",
                         Content = SubscriptionsContent
                     },
                     new MainMenu.MenuItem()
@@ -221,6 +214,9 @@
             Data.StartItem = "Security";
         }
 
+        if (string.Equals(Data.StartItem, "Badges", StringComparison.OrdinalIgnoreCase))
+            Data.StartItem = "Profile";
+
         _categories = BuildCategories();
 
         // Federation account flows are hub-side. A standalone or destination
@@ -258,6 +254,13 @@
                         Icon = "megaphone-fill",
                         Description = "Publish platform-wide alerts and announcements",
                         Content = PlatformBannerContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Default Village",
+                        Icon = "houses",
+                        Description = "Edit and publish the starter world for new villages",
+                        Content = VillageTemplateContent
                     },
                     new MainMenu.MenuItem()
                     {

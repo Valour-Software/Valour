@@ -10,7 +10,7 @@
 
 @if (_editingTheme is not null)
 {
-    <div class="settings-page wide theme-editor-page">
+    <div class="settings-page theme-editor-page">
         <div class="editor-section theme-editor-hero">
             <h3 class="editor-section-title">
                 <i class="bi bi-palette"></i>
@@ -233,9 +233,9 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-palette2"></i>
-                Legacy Palette Aliases
+                Additional colors
             </h3>
-            <p class="helper-text">These keep older <code>--v-*</code> and <code>--p-*</code> theme variables editable.</p>
+            <p class="helper-text">Adjust the additional vibrant and pastel colors used by your theme.</p>
 
             <section class="color-section">
                 <div class="color-pill">
@@ -345,7 +345,7 @@
 }
 else
 {
-    <div class="settings-page wide theme-home-page">
+    <div class="settings-page theme-home-page">
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-stars"></i>
@@ -487,10 +487,16 @@ else
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
+        if (e.FileCount == 0) return;
+        if (e.File.Size > 10_240_000)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Image too large", "Choose a theme banner smaller than 10 MB."));
+            return;
+        }
         _uploadedImage = e.File;
-        
+
         using MemoryStream ms = new();
-        var fileStream = e.File.OpenReadStream();
+        await using var fileStream = e.File.OpenReadStream(10_240_000);
         await fileStream.CopyToAsync(ms);
         _uploadedImageBytes = ms.ToArray();
         

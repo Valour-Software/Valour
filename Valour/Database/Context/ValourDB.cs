@@ -163,6 +163,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     /// <summary>
     /// Table for village maps
     /// </summary>
+    public DbSet<VillageTemplate> VillageTemplates { get; set; }
     public DbSet<VillageMap> VillageMaps { get; set; }
 
     /// <summary>
@@ -400,6 +401,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         Report.SetupDbModel(modelBuilder);
         PlanetInvite.SetupDbModel(modelBuilder);
         PlanetWebhook.SetupDbModel(modelBuilder);
+        VillageTemplate.SetupDbModel(modelBuilder);
         VillageMap.SetupDbModel(modelBuilder);
         VillageMapChunk.SetupDbModel(modelBuilder);
         VillagePlot.SetupDbModel(modelBuilder);

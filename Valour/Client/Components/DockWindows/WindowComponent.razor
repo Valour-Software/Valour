@@ -216,6 +216,7 @@
     
     // Render flag: blocks or allows rendering
     private bool _canRender = false;
+    private bool _disposed;
     protected override bool ShouldRender() => _canRender;
 
     protected override void OnInitialized()
@@ -253,6 +254,7 @@
     
     public void ReRender()
     {
+        if (_disposed) return;
         _canRender = true;
         InvokeAsync(StateHasChanged);
     }
@@ -440,6 +442,7 @@
 
     private async Task OnTabUp(MouseUpEvent e)
     {
+        if (_disposed) return;
         var wasDragging = _dragging || WindowService.DraggingTab == WindowTab;
 
         try
@@ -477,6 +480,7 @@
 
     private async Task OnDragTab(MousePosition e)
     {
+        if (_disposed || WindowTab is null || (!IsFloating && Layout?.DockComponent is null)) return;
         if (!IsFloating)
         {
             if (_armFloatEvent)
@@ -629,6 +633,10 @@
     
     ValueTask IAsyncDisposable.DisposeAsync()
     {
+        _disposed = true;
+        MouseListener.UnsubscribeMouseMove(OnDragTab);
+        MouseListener.UnsubscribeMouseUp(OnTabUp);
+        _subscribedToMove = false;
         BrowserUtils.OnWindowResize -= OnWindowResize;
         WindowService.OnTabDragging -= OnGlobalTabDragging;
         ChannelDragManager.ChannelDragChanged -= OnChannelDragChanged;

@@ -17,55 +17,35 @@ type UriLocation = {
     hash: string;
 }
 export const init = (dotnet: DotnetObject) => {
-    const onResize = async () => {
-        const dimensions = getWindowDimensions();
-        await dotnet.invokeMethodAsync('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });
+    let disposed = false;
+    let lastRefocus = 0;
+    const notify = async (method: string, ...args: any[]) => {
+        if (disposed) return;
+        try { await dotnet.invokeMethodAsync(method, ...args); }
+        catch (error) { if (!disposed) throw error; }
     };
-
-    const onBlur = async () => {
-        await dotnet.invokeMethodAsync('NotifyBlur');
+    const onResize = () => notify('NotifyWindowDimensions', getWindowDimensions());
+    const onBlur = () => notify('NotifyBlur');
+    const onFocus = () => {
+        const now = Date.now();
+        if (now - lastRefocus < 1000) return;
+        lastRefocus = now;
+        return notify('OnRefocus');
     };
-
+    const onVisibility = () => document.hidden ? onBlur() : onFocus();
     window.addEventListener('resize', onResize);
     window.addEventListener('blur', onBlur);
-
-    // Check if Page Visibility API is supported
-    const visibilityChangeEvent = "visibilitychange";
-    const hiddenProperty = "hidden" in document ? "hidden" : undefined;
-    let lastRefocus: Date | null = null;
-
-    // Function to handle refocus
-    const handleRefocus = async () => {
-        console.log("Refocus event detected.");
-
-        if (lastRefocus && (new Date().getTime() - lastRefocus.getTime()) < 1000) {
-            console.log("Ignoring refocus event, too soon.");
-            return;
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return {
+        dispose: () => {
+            disposed = true;
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('blur', onBlur);
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVisibility);
         }
-
-        await dotnet.invokeMethodAsync("OnRefocus");
-        lastRefocus = new Date();
     };
-
-    // Page visibility change event listener
-    if (hiddenProperty) {
-        document.addEventListener(visibilityChangeEvent, async () => {
-            console.log("Visibility change event detected.");
-
-            if (!document[hiddenProperty as keyof Document]) {
-                // Page is visible
-                await handleRefocus();
-            } else {
-                await dotnet.invokeMethodAsync('NotifyBlur');
-            }
-        });
-    }
-
-    // Window focus event listener
-    window.addEventListener("focus", async () => {
-        console.log("Window focus event detected.");
-        await handleRefocus();
-    });
 };
 
 export const getWindowDimensions = (): Dimensions => {

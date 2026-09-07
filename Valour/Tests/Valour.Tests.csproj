@@ -32,6 +32,8 @@
 
     <ItemGroup>
         <Using Include="Xunit" />
+        <Compile Include="../BuildTools/VillageAtlasPacker/AtlasEnvelope.cs" Link="BuildTools/AtlasEnvelope.cs" />
+        <EmbeddedResource Include="Fixtures/village-atlas-vector.json" LogicalName="Valour.Tests.village-atlas-vector.json" />
     </ItemGroup>
 
     <ItemGroup>

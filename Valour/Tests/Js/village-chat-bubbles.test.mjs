@@ -21,20 +21,20 @@ test('chat bubbles retain a bounded vertical stack per speaker', () => {
   assert.equal(bubbles.get('42').at(-1).text, `message ${VILLAGE_BUBBLE_STACK_LIMIT + 1}`);
 });
 
-test('an optimistic bubble and its prompt server echo are deduplicated', () => {
+test('duplicate deliveries of a confirmed message display once without restarting its lifetime', () => {
   const bubbles = new Map();
-  enqueueVillageBubble(bubbles, 'me', 'hello', 1000, true);
-  enqueueVillageBubble(bubbles, 'me', 'hello', 2500);
+  enqueueVillageBubble(bubbles, 'me', 'hello', 1000, '9007199254740993');
+  enqueueVillageBubble(bubbles, 'me', 'hello', 2500, '9007199254740993');
 
   assert.equal(bubbles.get('me').length, 1);
-  assert.equal(bubbles.get('me')[0].bornAt, 2500);
-  assert.equal(bubbles.get('me')[0].optimistic, false);
+  assert.equal(bubbles.get('me')[0].bornAt, 1000);
 });
 
-test('two confirmed messages with identical text still stack', () => {
+test('distinct messages with identical text still stack', () => {
   const bubbles = new Map();
-  enqueueVillageBubble(bubbles, 'friend', 'hello', 1000);
-  enqueueVillageBubble(bubbles, 'friend', 'hello', 1100);
+  enqueueVillageBubble(bubbles, 'friend', 'hello', 1000, '9007199254740992');
+  enqueueVillageBubble(bubbles, 'friend', 'hello', 1100, '9007199254740993');
+  enqueueVillageBubble(bubbles, 'friend', 'hello', 1200, '9007199254740992');
 
   assert.equal(bubbles.get('friend').length, 2);
 });

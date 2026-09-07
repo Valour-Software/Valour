@@ -48,6 +48,7 @@ public enum VillageBuildAction
     Furnish = 1,
     Erase = 2,
     Wall = 3,
+    Move = 4,
 }
 
 /// <summary>

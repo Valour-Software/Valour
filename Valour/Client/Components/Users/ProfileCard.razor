@@ -343,6 +343,11 @@
     private async Task OnClickMessage()
     {
         var channel = await ChannelService.FetchDmChannelAsync(User.Id, true);
+        if (channel is null)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Unable to open conversation", "The conversation could not be loaded. Please try again."));
+            return;
+        }
         var newWindowContent = await ChatWindowComponent.GetDefaultContent(channel);
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }

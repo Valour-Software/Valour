@@ -12,6 +12,7 @@
     private static readonly TimeSpan RenewInterval = TimeSpan.FromHours(6);
     private const string LastRenewalKeyPrefix = "push-subscription-last-renewal";
     private readonly SemaphoreSlim _renewalLock = new(1, 1);
+    private bool _disposed;
     private DateTime _lastRenewalAttempt = DateTime.MinValue;
 
     protected override void OnInitialized()
@@ -46,10 +47,12 @@
     /// </summary>
     private async Task TryRenewSubscriptionAsync()
     {
+        if (_disposed) return;
         await _renewalLock.WaitAsync();
         try
         {
-            await TryRenewSubscriptionCoreAsync();
+            if (!_disposed)
+                await TryRenewSubscriptionCoreAsync();
         }
         finally
         {
@@ -71,12 +74,15 @@
             if (!Client.IsLoggedIn || !await PushService.IsNotificationsEnabledAsync())
                 return;
 
-            var renewalKey = $"{LastRenewalKeyPrefix}-{Client.Me.Id}";
+            if (_disposed || Client.Me is null) return;
+            var userId = Client.Me.Id;
+            var renewalKey = $"{LastRenewalKeyPrefix}-{userId}";
             var persisted = await Storage.GetStringAsync(renewalKey);
             if (DateTimeOffset.TryParse(persisted, out var lastRenewal) &&
                 DateTimeOffset.UtcNow - lastRenewal < RenewInterval)
                 return;
 
+            if (_disposed || Client.Me?.Id != userId) return;
             _lastRenewalAttempt = DateTime.UtcNow;
             var result = await PushService.RequestSubscriptionAsync();
             if (result.Success)
@@ -90,10 +96,12 @@
 
     public void Dispose()
     {
+        _disposed = true;
+        if (ReferenceEquals(Instance, this)) Instance = null;
         BrowserUtils.Focused -= OnAppFocused;
         Client.NotificationService.NotificationReceived -= OnNotificationReceived;
         Client.NotificationService.NotificationsCleared -= OnNotificationsCleared;
-        _renewalLock.Dispose();
+        // Pending renewals still own the semaphore; it has no unmanaged wait handle.
     }
 
     private Task OnNotificationReceived(Notification notification)

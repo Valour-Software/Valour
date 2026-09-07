@@ -59,6 +59,8 @@ public class VillageMap : ISharedVillageMap
     /// </summary>
     public int Version { get; set; }
 
+    public int TemplateRevision { get; set; }
+
     /// <summary>
     /// Archived interiors stay persisted with their complete contents but are
     /// excluded from navigation and ordinary village queries.
@@ -116,6 +118,8 @@ public class VillageMap : ISharedVillageMap
 
             e.Property(x => x.AmbientColor)
                 .HasColumnName("ambient_color");
+
+            e.Property(x => x.TemplateRevision).HasColumnName("template_revision");
 
             e.Property(x => x.Version)
                 .HasColumnName("version");

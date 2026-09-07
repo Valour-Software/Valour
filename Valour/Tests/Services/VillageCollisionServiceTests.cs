@@ -29,6 +29,41 @@ public class VillageCollisionServiceTests
         };
 
     [Fact]
+    public void EveryCatalogBuilding_HasAReachableAuthoredDoor()
+    {
+        var service = Resolve();
+        foreach (var definition in service.GetBuildCatalog("exterior-tileset-0").Where(x => x.Key.StartsWith("buildings.")))
+        {
+            var footprint = service.GetFootprint(definition.Key);
+            var doors = service.GetDoorOffsets("exterior-tileset-0", definition.Key, footprint.Width, footprint.Height);
+            Assert.NotEmpty(doors);
+            var map = service.BuildMapForTesting(Map(), buildings:
+            [new() { X = 10, Y = 10, Width = footprint.Width, Height = footprint.Height, SpriteKey = definition.Key }]);
+            var visited = new HashSet<(int X, int Y)> { (12, 20) };
+            var queue = new Queue<(int X, int Y)>(); queue.Enqueue((12, 20));
+            while (queue.TryDequeue(out var point))
+                foreach (var next in new[] { (point.X + 1, point.Y), (point.X - 1, point.Y), (point.X, point.Y + 1), (point.X, point.Y - 1) })
+                    if (map.IsWalkable(next.Item1, next.Item2) && visited.Add(next)) queue.Enqueue(next);
+            Assert.Contains(doors, door => visited.Contains((door.X + 10, door.Y + 10)));
+        }
+    }
+
+    [Theory]
+    [InlineData("buildings.house-medium")]
+    [InlineData("buildings.house-medium.brown")]
+    [InlineData("buildings.house-medium.blue")]
+    public void HousePorch_CanBeWalkedFromStepsToDoor(string key)
+    {
+        var collision = Resolve().BuildMapForTesting(Map(), buildings:
+        [new() { X = 10, Y = 10, Width = 8, Height = 5, SpriteKey = key, DoorX = 12, DoorY = 12 }]);
+        for (var y = 15; y >= 11; y--) Assert.True(collision.IsWalkable(12, y), $"Porch blocked at 12,{y}");
+        Assert.True(collision.IsWalkable(11, 13));
+        Assert.False(collision.IsWalkable(10, 12));
+        Assert.False(collision.IsWalkable(14, 14));
+        Assert.False(collision.IsWalkable(12, 10));
+    }
+
+    [Fact]
     public void BuildingFootprint_IsBlockedButAuthoredDoorWins()
     {
         var collision = Resolve().BuildMapForTesting(
@@ -231,7 +266,7 @@ public class VillageCollisionServiceTests
     {
         var terrains = Resolve().GetBuildTerrains("exterior-tileset-0");
 
-        Assert.Equal(4, terrains.Count);
+        Assert.Equal(11, terrains.Count);
         Assert.Contains(terrains, terrain =>
             terrain.Key == "dirt-path" &&
             terrain.Name == "Dirt Path" &&
@@ -253,14 +288,19 @@ public class VillageCollisionServiceTests
     }
 
     [Fact]
-    public void WallCatalog_ExposesShapeContractWithoutShippingPurchasedPixels()
+    public void WallCatalog_DistinguishesRoomBuilderArtFromBlobTopology()
     {
-        var wallSet = Assert.Single(Resolve().GetBuildWallSets("exterior-tileset-0"));
+        var walls = Resolve().GetBuildWallSets("exterior-tileset-0");
+        Assert.Equal(6, walls.Count);
+        var wallSet = Assert.Single(walls, wall => wall.Key == "modern.green");
 
         Assert.Equal("modern.green", wallSet.Key);
         Assert.Equal(8, wallSet.Columns);
         Assert.Equal(7, wallSet.Rows);
         Assert.Equal(VillageWallTopology.FrameCount, wallSet.FrameCount);
-        Assert.Equal(string.Empty, wallSet.ImageUrl);
+        Assert.Equal("RoomBuilder", wallSet.Layout);
+        var image = new Uri(new Uri("http://localhost"), wallSet.ImageUrl);
+        Assert.EndsWith("library-atlas.vtex.bin", image.AbsolutePath);
+        Assert.Matches(@"^\?v=[a-f0-9]{16}$", image.Query);
     }
 }

@@ -80,6 +80,20 @@ public class DiscordImportService
         return TaskResult<JsonElement>.FromData(guild.Clone());
     }
 
+    internal static List<JsonElement> OrderTemplateRoles(IEnumerable<JsonElement> roles)
+    {
+        return roles.Select((role, index) => new
+            {
+                Role = role,
+                Position = role.TryGetProperty("position", out var value) &&
+                           value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var position)
+                    ? position : index
+            })
+            .OrderByDescending(x => x.Position)
+            .Select(x => x.Role)
+            .ToList();
+    }
+
     /// <summary>
     /// Maps Discord permission bitfield to Valour permission longs + IsAdmin flag.
     /// </summary>
@@ -237,12 +251,8 @@ public class DiscordImportService
                 ? rolesProp.EnumerateArray().ToList()
                 : new List<JsonElement>();
 
-            // Sort by position descending so higher position (less authority) comes first.
-            // Discord: higher position = more authority. Valour: lower position = more authority.
-            // We assign Valour position in ascending order from 0.
-            discordRoles = discordRoles
-                .OrderByDescending(r => r.GetProperty("position").GetInt32())
-                .ToList();
+            // Template roles can omit position; their array order retains the hierarchy.
+            discordRoles = OrderTemplateRoles(discordRoles);
 
             var dbRoles = new List<Valour.Database.PlanetRole>();
             // Discord placeholder id → Valour role id
@@ -329,7 +339,7 @@ public class DiscordImportService
                     Planet = planet,
                     Id = IdManager.Generate(),
                     Name = catName ?? "Category",
-                    Description = null,
+                    Description = string.Empty,
                     ParentId = null,
                     RawPosition = position.RawPosition,
                     ChannelType = ChannelTypeEnum.PlanetCategory,
@@ -402,7 +412,7 @@ public class DiscordImportService
                             Planet = planet,
                             Id = IdManager.Generate(),
                             Name = "Channels",
-                            Description = null,
+                            Description = string.Empty,
                             ParentId = null,
                             RawPosition = orphanCatPosition.RawPosition,
                             ChannelType = ChannelTypeEnum.PlanetCategory,
@@ -431,7 +441,7 @@ public class DiscordImportService
                     Parent = parentChannel,
                     Id = IdManager.Generate(),
                     Name = chName ?? "channel",
-                    Description = null,
+                    Description = string.Empty,
                     RawPosition = childPosition.RawPosition,
                     ChannelType = valourType,
                     IsDefault = !firstChatSet && valourType == ChannelTypeEnum.PlanetChat,
@@ -464,7 +474,7 @@ public class DiscordImportService
                         Planet = planet,
                         Id = IdManager.Generate(),
                         Name = "General",
-                        Description = null,
+                        Description = string.Empty,
                         ParentId = null,
                         RawPosition = orphanCatPosition.RawPosition,
                         ChannelType = ChannelTypeEnum.PlanetCategory,

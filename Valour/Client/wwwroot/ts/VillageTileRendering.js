@@ -1,3 +1,4 @@
+import { resolveVillageImageUrl } from "./VillageAtlasProtection.js";
 export const COLLISION_STATE_EMPTY = "empty";
 export const COLLISION_STATE_SOLID = "solid";
 export const COLLISION_STATE_DOOR = "door";
@@ -49,7 +50,7 @@ export function loadStandaloneImage(url) {
         image.referrerPolicy = "no-referrer";
         image.onload = () => resolve(image);
         image.onerror = () => reject(new Error(`Unable to load image: ${url}`));
-        image.src = url;
+        resolveVillageImageUrl(url).then(source => { image.src = source; }).catch(reject);
     });
 }
 export function loadTexture(cache, url, onLoaded) {
@@ -94,8 +95,11 @@ export function loadTexture(cache, url, onLoaded) {
         texture.failed = true;
         settle();
     };
-    texture.image.src = url;
     cache.set(url, texture);
+    resolveVillageImageUrl(url).then(source => { texture.image.src = source; }).catch(() => {
+        texture.failed = true;
+        settle();
+    });
     return texture;
 }
 export function normalizeTileDefinitions(definitions) {

@@ -1,0 +1,3162 @@
+{
+  "office.copier": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "75b0194a131357cfade99acad1adb67059b4d36a84e6f395eccb9e88d27459a8",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_54.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "c141f038e2d8a6fb98660f0cfa4d17752e9acbbedaaa085abab7fc6bde4ab8a9"
+      }
+    ],
+    "recipeSha256": "cafe777687b8254d445b0ab713b45a9108de0d584510d1bd24cbff356e806807"
+  },
+  "office.monitor": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "6da3c3f8e012c497df7e098d0235cfd681cd18435d88ce2563ba1c56fbb974e8",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_164.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "96f3109c9bb2605d6bdd30b52c9f0ec9e457dcb68f642b81ddc85667873ed69a"
+      }
+    ],
+    "recipeSha256": "22e2da3215b2c854d832187839973f3935df821071a6a03e5d56fe1c652232d1"
+  },
+  "office.desk.oak": {
+    "size": [
+      48,
+      48
+    ],
+    "rgbaSha256": "a14029ccbeeef22946a8e8fb548cf611932e09430837116ab0b84400a385d1a8",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          8,
+          544,
+          49,
+          42
+        ],
+        "rgbaSha256": "a633bd699a382c3f45b12586231aef889163ac05e808125a84ae76fb1cb5090d"
+      }
+    ],
+    "recipeSha256": "50ee8ac9526cf79a9c7a0b83f4b47ae0595731d1552d13a1558703208e900b8f"
+  },
+  "office.desk.birch": {
+    "size": [
+      48,
+      48
+    ],
+    "rgbaSha256": "d5082c5fa43cee6ea337142485c77fa8bd91b5d17aadd36c5f354e2243cc6371",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          88,
+          544,
+          49,
+          42
+        ],
+        "rgbaSha256": "a587db4bc0f71824f46f839dd3bafb04f18bbef07fa3d9231899ffc69cce0b65"
+      }
+    ],
+    "recipeSha256": "9ac5973f2831c9154f842810592e3a51212be043aa559a0a48fc5be094c7860a"
+  },
+  "office.desk.walnut": {
+    "size": [
+      48,
+      48
+    ],
+    "rgbaSha256": "7788a9a1de5d60a0c95a68795daac2d8db264a2952779906982ab5613818a3e4",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          88,
+          592,
+          49,
+          42
+        ],
+        "rgbaSha256": "719b10ba854870b4d0fe6b48225de47bcbb2b1090035c4d653cc4a3b9a97b8be"
+      }
+    ],
+    "recipeSha256": "4f6bb8b0a17cc893232862c5859678725a7bf8667ac8b984590e2dffabaf0e2b"
+  },
+  "office.chair": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "876918e903a9fe65d3028d3b2ca51021a64e97651de2c1d3365e4d696431e377",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_93.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "04f3d8529518086033a6cdfe57332063bfaec7ae22f3a84b2b79a01fa8ae3d30"
+      }
+    ],
+    "recipeSha256": "17565e183edf2703f38eaab61618de0259ce663c611457e1894964dbb893981b"
+  },
+  "office.chair.dark": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "9c00616b5d0606cad6fbbe000621a4a02ad5e4573b33bf15ffc7b135a5fda6b2",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          64,
+          176,
+          16,
+          32
+        ],
+        "rgbaSha256": "65cda888a16ce2308e44b9eeefd17c3c0556d9c2f5a68cf7f41830dccb58d02e"
+      }
+    ],
+    "recipeSha256": "a2383022d8ff8e73e996c82501d0e86b5138c90ecd95a17a6be9fc97c32006c8"
+  },
+  "office.chair.light": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "c73b44001ceab1375c4a4c0e5609845238daef707d8853126edc40035ac86b98",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          80,
+          176,
+          16,
+          32
+        ],
+        "rgbaSha256": "db92f893d4752df22741c1c162509411794ec0f41fb9c263a958b3d8b7ab6503"
+      }
+    ],
+    "recipeSha256": "1a07927f25852b2cff4abd8f437f398f323f5433451769165de7e5b04a304082"
+  },
+  "living.sofa.red": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "48f717397f8ac3cc7998463c1766c6db8d14807279b36da016e82c4591480102",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_16.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "ee5f935d3e97f60e57d265686e36111ffeb0c86b7975eccb7037831c326087b4"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_18.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "614ff49a564e582784a4632ea8ee5b03018c1e028983408ac289394801fc63f2"
+      }
+    ],
+    "recipeSha256": "d89b8f2957cccd4469ab077c3a9603cd9f2e67142ae243b58f4d8b30c28ed759"
+  },
+  "living.table.oak": {
+    "size": [
+      48,
+      48
+    ],
+    "rgbaSha256": "341423d1785ae4a3daa5dadfe101778472cb47c76643ee6d64c8f534d124d8aa",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          8,
+          80,
+          49,
+          43
+        ],
+        "rgbaSha256": "f39267513972878a39edd2ae0d48b294e589b70f15fe7666a95697133de9ddf8"
+      }
+    ],
+    "recipeSha256": "6dae7a1628045d68fcd97d83d0fb806d558a3aeeaa45f5f078a4165921705af5"
+  },
+  "living.table.birch": {
+    "size": [
+      48,
+      48
+    ],
+    "rgbaSha256": "1f922499fcb2fb1f694bc2e9d5a6cfab7ac60dd8a54c8f4b6e852697ea5d8641",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          8,
+          128,
+          49,
+          43
+        ],
+        "rgbaSha256": "d8613405ae042e03791087e389909666b388f7f214dd1d2591ef59d9e21b607d"
+      }
+    ],
+    "recipeSha256": "05ff5157df806ebd4f90b0729455e3c691f1af612623d17597a737f9f2eb0f90"
+  },
+  "living.coffee-table": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "219da466c8a0096dcadb2c2accaf229ba7e523544fdcf6d6317a8b8bf0357123",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_3.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "6e320f6150e0259c01bc6705c18cecea458eca664cfc9bc1f3d4e520b00e82aa"
+      }
+    ],
+    "recipeSha256": "c2773101d292a306edf33f2072a132a61e2d826957af7f5c088632950e9cc07c"
+  },
+  "living.sideboard": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "480f2781d1e151e3c7d2c0a6253768e995afe6548f99cfc58c96257c83eba648",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_53.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "851d36d23e8789865894eb01c0c79c064ca73da4ba3d1cb7869cd5e3fae9b430"
+      }
+    ],
+    "recipeSha256": "1bdf79990345875b2073ac353d0e3dac50cbb1530d6d83dfefba5473ed1552d0"
+  },
+  "living.cabinet.oak": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "6f504c17189b2a3272e7bead24fa2c64fbd3369fcf0dd66c9e6f892f4d69cda2",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_37.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "914c5566d34d8dc2cc8b4cd80f52d1fa59a0c6eb29343d7edc457f3dde71187e"
+      }
+    ],
+    "recipeSha256": "b8b45e6191c631098d1d064a650b398a3de6580ffb0201b06936d6762d5eab6a"
+  },
+  "living.cabinet.glass": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "57ac8023c7fa9e73ff5bd39a3d7ba0945261ef612aa59f335fd8407241d3d427",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_38.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "11bf353229a6d0eae549dd3f7a2060d9dc821386326e6379ce3141b67307d613"
+      }
+    ],
+    "recipeSha256": "a9ac29716545c599bb633ea16c9b896365a80f0762d5b8a4db601dc250cd2741"
+  },
+  "living.bookcase": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "8c439cf842b0c0f76c7ea6bb236c4b4ed95b1244efef692209be9963b46bb622",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_45.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "91d53b6f8ae08466568ff4fbfb74a3f02ed1aa665b31576d74bd996413005a1a"
+      }
+    ],
+    "recipeSha256": "219fc528857af580d603782d0627d059d61aaf31a405496c92d6a645e5051142"
+  },
+  "living.bookcase.wide": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "45df68a4d0deb3c2fd41646543c4c31cf08659cb32f0a673122643eb2a4c39d1",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_47.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "2eee232c3ee7ea9d52072935e0b77e391ca8608026449f3461adb23df266816c"
+      }
+    ],
+    "recipeSha256": "aff8d43089c8e785f6fb0e68e5dc2b56d22bbb4a386d81f28b3326d76ef6d34d"
+  },
+  "living.sofa.slate": {
+    "size": [
+      48,
+      32
+    ],
+    "rgbaSha256": "88976fe9c51ee9da938985af3aed0c6175f4c784651fde8dc2a90afd916c54c5",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_4.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "37d6504a6a1f9ddf40b4aa957af9af210bc0bd497ef36df7e0176f9937427150"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_5.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "f509c7eda0b8a7535f20b04c10754ae973bba886fb5970a6f1aa06f6e96cb664"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_6.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "731d0bf9c5ab8a5bd6990103617037aaa0d7a81641d9be10426f709710d3a8ff"
+      }
+    ],
+    "recipeSha256": "2902221e3c0a7f3fe488c0ea1c392924060a44a57cc057dfba05c3bf4ff3736a"
+  },
+  "living.sofa.linen": {
+    "size": [
+      48,
+      32
+    ],
+    "rgbaSha256": "07e41897ceab050109601fd32c539a902ee0686117e39b2297e5ca59e4949dd8",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_10.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "8ab6399270b92cf8644e183f55e7ba599a6c9d77b38b2a2687dd459c2805c95c"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_11.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "9d07ce9624cb8f47f762eb1d92b5de88faa2cf75603629840510ee359ae76461"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_12.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "9db9f72c8773d8cf17e378aed7cd256305e7657322ec269a5d93e4dca962c6b7"
+      }
+    ],
+    "recipeSha256": "4c9c9d7bc8335efda481bd7773885dfece53e3282bf0ad94bf3abe1aa99a9e32"
+  },
+  "living.sofa.amber": {
+    "size": [
+      48,
+      32
+    ],
+    "rgbaSha256": "5abd5bca38fa3252a5b44b6c6c2e8016c1da666ec544986ea11a35b1b00008d4",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_16.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "ee5f935d3e97f60e57d265686e36111ffeb0c86b7975eccb7037831c326087b4"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_17.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "e08a6e90513ed05e26d97ef89a0ce48822107b0d3a7a558643ce4d582325466b"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_18.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "614ff49a564e582784a4632ea8ee5b03018c1e028983408ac289394801fc63f2"
+      }
+    ],
+    "recipeSha256": "f4d11433cdf76e3ef57f534c9d960c0265686b0fb5785406b9eda5c0d5e0d235"
+  },
+  "living.armchair.slate": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "42e377cf91c378be9530e1967255474529e11f118475826ef82cf48f02967b06",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_7.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "07865ca9bf9de14beeee0e6f5795ed4b679d08f284fa809779e359631d3cbc2e"
+      }
+    ],
+    "recipeSha256": "be82feaa13af66a46208f81abf5e6cc7c6661852a5af2033f7dd8437071920cf"
+  },
+  "living.armchair.linen": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "3e440b63c47e17c56df831bd9e92dc6da8f40a3f98a7a73edd70850a83e5c315",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_14.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "4f383da340a13e3a6a16022440e1a762414f7c844820e95dfd379871fc56b5eb"
+      }
+    ],
+    "recipeSha256": "9c69320ef33c2794f662459211e889c697dbaf34cff55a0d7979e86a5a1a19e2"
+  },
+  "decor.indoor-palm": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "60f8317ca5d639277706c9b945785cf3727ed34f45ae93ad5f674a32dc72659c",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_14.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "7dd0346c0af7c24d1302812075e249406a3357d6cbed2855d657f79161dd32f2"
+      }
+    ],
+    "recipeSha256": "3523c51a02d689484596c79c507caabf7727217aa740dfb46aa666e3c61740a8"
+  },
+  "decor.indoor-tree": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "9cecd59e954fddec0629def63d85bb333bcd8d79022ec3700bb8c5ea06b7c79c",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_13.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "7560c5b1ea58e4b8183f3a8090893644a7fff2c6fca5cd11c4c7832ac5e00fd1"
+      }
+    ],
+    "recipeSha256": "feda9785ef6413ed896fa41f460fa600570200c2b206db1fcddd8b77b62ed847"
+  },
+  "decor.indoor-plant": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "b95f9b02100047b3b15bf3e97f7311bbe8bdd88b81d34166336274f85b2cb3c2",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_16.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "ca085ae30e8ea2b87c30dfb9dbae3ff3ac3445f8200ff4009dd91f56d34175dd"
+      }
+    ],
+    "recipeSha256": "c3e982ea78a35931c9931047118554cb9c141417b893e974b691e2fa1dd1b9ff"
+  },
+  "decor.floor-lamp.red": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "51e418f4c2e56f1dcd01a579459841dc17b5db7d3e7e72b3451caa69d8925426",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_81.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "3f473a3163e2773c898e23bda66737e7d294eb592e164fe0e3c385480a6fd6fc"
+      }
+    ],
+    "recipeSha256": "a3a97c91deedef294d79571eb12dbdc3710e436ee3ba441f85be30b4b53ddc4f"
+  },
+  "decor.floor-lamp.blue": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "60e9f8f1ff2ffefbca1b1dbede68a0c7fbd77b13a3887acc075c4d0f347ca35f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_80.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "3c5b80863c2d49b382680ad66acd0f8ef7ced51cde64d316d85ebde307216cdc"
+      }
+    ],
+    "recipeSha256": "bf0cb9b480510c3ced0159dda629c2af64499f7bb0f058f48f46c88d70fc5959"
+  },
+  "bedroom.bed.green": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "62f3bcf3f53070461fe709a51b2880788f8499f9210b7f0f7fbfbabb351386f7",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_229.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "223f35cf7b2a4b380d2548040966cf0f73392a43d7e2cecce5a58da90df3542a"
+      }
+    ],
+    "recipeSha256": "e5f54a50f98aa0efd84a75a5f0af4dc85033ba9ec26caf1ecf0764994c1621b5"
+  },
+  "bedroom.bed.blue": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "3e8f7ed371bbbc08af95cc810e959f7b962cc9c33683b82833d0e82dd41ea1a6",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_230.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "bfddf465a0bb5f843195fa426d487355e2db1b00a23a807b394f8300c08a2631"
+      }
+    ],
+    "recipeSha256": "d2ed2fdc364fb71e9efe811750378d2194e8864b8a32b1bb10d5ba2d1ab29b51"
+  },
+  "bedroom.bed.slate": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "b09275115ee992dddbd7050c04c614bdc5ddc2c57224e4cec1d6fda39bdba665",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_224.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "02cbafaf82e7aac39122ca8efcac5cbf5e5acdbf34bf7efd20e5c05ba543d161"
+      }
+    ],
+    "recipeSha256": "a0d36491d03788d61c1e8efa60f00a048347f32a329324d3d1967d14bcac9e08"
+  },
+  "bedroom.dresser": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "5231c0d5da129b5b0b99958d556bc5f74dc28fd6050a7cd9ed8591053d914038",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_392.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "4256beb40ed8989791f551026c5aeb1401f5434eb28217f3e93b5d2b40e41b1e"
+      }
+    ],
+    "recipeSha256": "875bb0ee898f5c2bbcf40df2fc60a595016f77b6215e0a622becd901b17334b2"
+  },
+  "bedroom.nightstand": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "e1c5ed41783516d79d498a2621f03da03b5a337e173a6a21ad6437a6c7772492",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_429.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "2579009fb22a9bddb3bdad2277d4f2058407c4c89bddd99c3698ee5597267b19"
+      }
+    ],
+    "recipeSha256": "3fc1daff41a333900f1667407fb53584668e12cf630b629b661f2442364fe9a0"
+  },
+  "decor.rug.red": {
+    "size": [
+      64,
+      48
+    ],
+    "rgbaSha256": "ef354b96c13f5647d5ca862bc9185a220e9013b9b4438c1c5f6244d4338af022",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          144,
+          64,
+          64,
+          48
+        ],
+        "rgbaSha256": "a1a09ab26f6996a4bce6b5eb7b1209eed43d6f197b5497b9047f7da4db79db0c"
+      }
+    ],
+    "recipeSha256": "8d019a7e67a243b8323cf852078c1692fbf2b3fe5a6f02124da374a1b0f589c6"
+  },
+  "decor.rug.blue": {
+    "size": [
+      64,
+      48
+    ],
+    "rgbaSha256": "ea1e8d1b10a53884ef3a3f9ef1e232fc9646505981f2960b7a74233c48afd526",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+        "rect": [
+          144,
+          112,
+          64,
+          48
+        ],
+        "rgbaSha256": "1aaeeafa31189d51480b64c0bb23ef6882807a7e3a53f25574a6b27d2b2b8d3a"
+      }
+    ],
+    "recipeSha256": "04dbf6f3c1eabf65ead9b3bc137a19dc97bea140b76ed17cc3a29c9c52bdcb67"
+  },
+  "office.table.conference": {
+    "size": [
+      80,
+      48
+    ],
+    "rgbaSha256": "88d842b45aa827d1cf79d5dcceb0b9eecd1bc3cffb01812fc3159a6e3e22da00",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter/13_Conference_Hall_16x16.png",
+        "rect": [
+          0,
+          16,
+          80,
+          48
+        ],
+        "rgbaSha256": "a3e23dd7a8fd0708e55e931aa828a0d0bdd95f22386778ba9a6dac7af26832bb"
+      }
+    ],
+    "recipeSha256": "fbebe5548baab99a0c4e6635e3fcc1a5143c5797c372faaec638532b1042f1ae"
+  },
+  "office.chair.padded": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "4a04cc7b10a8d55554ae6dfff24c2d250b7b848daeb78e615c8f8e64e7f6d236",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_40.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "841131bf503d9cc2f9e741709e3309a603b56b9d1f6632b310b97d45d7ae49fe"
+      }
+    ],
+    "recipeSha256": "c3539f488f6fe8977145f8eafc81e57b5d80af06bb4b235b6fcdce3fda21ba22"
+  },
+  "office.chair.grey": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "3072cda8ec42579b3d13556f25222929059d1f9df3f1a14b8cf472afa90426c9",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_39.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "7118fbb7e2dddc9799b7028c8f096833dbde4e31bf9fce40809673045d8a4316"
+      }
+    ],
+    "recipeSha256": "d94dc0d2977850f8d51178c2724bd182adbc51581da43181e9d130010b3a00b1"
+  },
+  "office.lectern": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "8fbb98886ac74e3d4f9d4d40681ca998e19b1c9f8603b4883d4542138ba9d61d",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_45.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "24ae73143eb02cc2140180e1aec74d56a507726c9b157dc11d937621c1c3e318"
+      }
+    ],
+    "recipeSha256": "87ce743493dffa0e4b7526cafcec2a3ee9bba10788177c63f6d7004da92037dc"
+  },
+  "office.presentation-screen": {
+    "size": [
+      80,
+      48
+    ],
+    "rgbaSha256": "dd7949402f55bd4b9b096fa41e9b533f5958a759477837a54dd6e998c0dd3f75",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_66.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "d1c860f16e5894f3e81e145cc917df420e73664080a78a966ba52373f074be13"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_67.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "6ace44ad8c487d218d494905b3e381c1babee0630f9d4a0c5a70035802835ae0"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_68.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "4cfbf3742c084ef95485ad2d59af5d1dd6d95695328171fe034fd0a6ae1f0693"
+      }
+    ],
+    "recipeSha256": "977ee66063746e2a63015f7db875e44f2e0f59e28aed3e4f3b2fc3859979fc6e"
+  },
+  "office.chair.blue.north": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "878a287e7e4b3b057fa3a2c1ee0231786462e7223004d7b40c5e0d2f9e43200b",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_209.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "5ad405b74f857da27a083e001f270902b70ba056af988dcb9e6a6eb48ec412f8"
+      }
+    ],
+    "recipeSha256": "efb19d9433808a66a2a79be4a9bc2727ee27c75612939e0cd1e442febc612bab"
+  },
+  "office.chair.blue.south": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "9c03dea2a361249be65c08eb36615542e8430b3aa45d3ab4e1a1e69aedbe50b5",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_205.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "457008cd7ef804ba4d76f1529f8575ff4c63e450edfbfb467b1ed47cc0a8a1ff"
+      }
+    ],
+    "recipeSha256": "44e950faf86689193fee60ca2eadc5d35baa2357ced80c34f523bbddb595a739"
+  },
+  "office.chair.blue.east": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "f00eb04db9533fc03c4da6cd8b3a3c90982f179e29719f06dae437baf0da73e9",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_216.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "98d9d360b2265af1bce555d5094188eae5c2e10f4a33353d97b50cf9f87023d7"
+      }
+    ],
+    "recipeSha256": "d8fb17a2531c9b14e9a9c02f3f3e46669c41b9750c1221b15b69e3246406a486"
+  },
+  "office.chair.blue.west": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "96861f12e9546887ef7fbaaa0e5fe697d6e38fe9b7c16b585fbcd9fa6b848365",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_212.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "c53bbd463b1aef14f84e9f57a74b10f5fa6ec1f20bcc2825e518612aefac3ee9"
+      }
+    ],
+    "recipeSha256": "3ee2907f41be7949c075e42d69c414aab4b591d949fe8d8d7cde29e92b8055bb"
+  },
+  "living.console.birch": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "eb53e09db9ffa1ed3f89aaa87a70c51f6330a9a8a796a8d4ef1fd88e01ea10b0",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_33.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "b5ad2038e14f4cdb1595b55352dcb2d344bd0f26bdf7374af2268e6905d82e82"
+      }
+    ],
+    "recipeSha256": "6ef81618aa33075bdd517c515804715d5b3b5a260673733bf24409bb07d73519"
+  },
+  "living.console.oak": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "cd489fd2290ef4e5152911dad87e6d52b53eb815fe78d69072d0d7dd994e6dfd",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_29.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "787db2c92fcaecc40915e33b920d45e2c50079d1e384d418cd7169383aeeff92"
+      }
+    ],
+    "recipeSha256": "2e5779082845cb68408a78d979f4d177e818ffad20c325566089a98b441f1141"
+  },
+  "living.vanity.birch": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "bd6af4e87ac2837c89b83a6dd8e3cbbce737743a9320b5a727306f65762de355",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_20.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "23c4c8064b235d760dfdea2698dc68f713177b016a973af6850ee99f5cdc6ce8"
+      }
+    ],
+    "recipeSha256": "f26aa6af0c63bb4354a63d12173a167a3f2d0a4e759d964788de5d549dbede1e"
+  },
+  "living.vanity.oak": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "d2bba6d49fe2a9c18bdb30056b8b16ab905004b844f4f71e65ca291210e0128b",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_24.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "15d0382097a206b0809b87d33782a3d55c1faf773e48870a90d88a2b4d69aa65"
+      }
+    ],
+    "recipeSha256": "910da34f355cde52f9f53b6c068df3d24a1926178c22f0a8cd5e24c76bda00db"
+  },
+  "living.cabinet.narrow": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "6ea47b04eceac9adfcf4693a5ed8a04012782494c9969c99444e4658ea3a0d30",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_41.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "a19dae887885372aab222ec966b2b3f15a5ee04cbae1466cce948b81b3907a17"
+      }
+    ],
+    "recipeSha256": "8a204443f2aee4846d11a7dd7e8f8a597bc19b3bf03100d7c387f6d04ff913c1"
+  },
+  "living.cabinet.display": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "ebe5b1f958f8d1ea993833d26b93bc422171a0dd63caa89a9b6643d2d2069125",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_91.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "4ac79a4c52e0aac2edf6c9f37cbec8d9bc046378f6de0b665147eb125dbfa2df"
+      }
+    ],
+    "recipeSha256": "c5d7cf2e7c7c95dbf2e546044413781e1eab0d9917976ac4cccfbbba1b56190b"
+  },
+  "living.sideboard.oak": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "db05f83cab912c9cffe28d4964280f43356d98523dbce1ed4026edb04c146eda",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_57.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "aad553e154828a1ca8846fa562e5961b3f34f5ee2cbe48cb069b99ff451b3449"
+      }
+    ],
+    "recipeSha256": "2511d146c4b3bc6499230101d35906ead1cce9a71c1e57f8cdd4d0d24db87c78"
+  },
+  "living.coffee-table.square": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "435ebcadea5669ceebabca8e0082eb3a52a1d7b4f1daf96df1d81dd8f89ab425",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_4.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "88815a7c1e3a0350b8c50d3e448ac421ccde35765807dae611f10c357f7a7000"
+      }
+    ],
+    "recipeSha256": "5801727fc1122e0ddcf70eb67b6b1c8b9aa6d465822dc477ba79905cad5175a2"
+  },
+  "living.chair.oak": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "876918e903a9fe65d3028d3b2ca51021a64e97651de2c1d3365e4d696431e377",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_93.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "04f3d8529518086033a6cdfe57332063bfaec7ae22f3a84b2b79a01fa8ae3d30"
+      }
+    ],
+    "recipeSha256": "34666595e85b46b24d6672d1b79efae44d548ac76c34ebdfd8a515ba358f0fe5"
+  },
+  "decor.plant.vine": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "fea727a208d1026acd497f2001268f089ec7aaa3d07d1b7583d869df41b93211",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_17.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "0d2968dbb4590a620dcd9934abfc23d96d98f74ff98b0055c7af4cea327a5b95"
+      }
+    ],
+    "recipeSha256": "555fb18fe11b754cddb3138ab2fa387f7aac056be74179436395a0c4900cd0ba"
+  },
+  "decor.plant.tall": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "3def9a9bcfef57318e3b6c5c39a90a8b835b4b52d29f4583734549097e7fe7b9",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_18.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "f509aeefbf87fd74a04fc19fe42980663d759263bc23ee791d175b7bc6edb164"
+      }
+    ],
+    "recipeSha256": "c2e992293c8716f8170b89933dd02858a05984ba08dfa5d35b7ace3b59d4b04b"
+  },
+  "decor.fruit-basket.citrus": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "a5fa1fa264b1f4f4ae0b41d6fbd0310ee4c5b32c35545746b37d602ce69f06e2",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_48.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "db1dbf0d129ae5e838921a31c2e4613bcdd45fd3adca1bc257594c0991225251"
+      }
+    ],
+    "recipeSha256": "03b777887eae9f8850d7fd8696903fb0e2cb45b562186fcbf06039289908ce08"
+  },
+  "decor.fruit-basket.orchard": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "4088603c12fa826c9bfbfe5d12924a79498eee8b4898ea2c7f011150661a1f91",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_50.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "fb5c434b71b2dcddbb367f6f0d5bfee9553c83209198664319729e9dba6b0a06"
+      }
+    ],
+    "recipeSha256": "ff883e3c757e636b229ae17742a57c74f9f76f20ee27254e02f6259ec4508c8e"
+  },
+  "decor.floor-lamp.cream": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "8b06735519d774ba2a39966d8bbf93b918812f489eff9502d29e7fa96438ecba",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_87.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "78667ae78ac7b7da14111dc9eca36fb9db363c0f6aadc835c98f0d08d4300489"
+      }
+    ],
+    "recipeSha256": "6120c3b370e1832e03ef412c164436f454837b9ac871ea739128a50915b0677c"
+  },
+  "decor.floor-lamp.tripod": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "cd40454e75168baa0ac2836a1e24e3b9bf7eb7b04e8f8f41ab300a773c4067e8",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_79.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "5a4b25eb4be11a8955a2e9c6c9d62e145e7d6bf84b13729795fbc229019bd62c"
+      }
+    ],
+    "recipeSha256": "9526b5e2307d1573ba67b6bc986b26789f8ddb4c25c09b24206d15eb03ca435a"
+  },
+  "decor.stove.oak": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "78b51c082714dbab713be4a8fe7429aaa27d0068178a523ab129a588bbf803d3",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_107.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "8952f60fcfa98df755d7f68f0cd6d6b5abc69a02a6121a25526879e7bee6fa44"
+      }
+    ],
+    "recipeSha256": "aa7297a4eddce416408595064230806dd98754f40ccab6356473f60f8a87dab9"
+  },
+  "decor.table-lamp.blue": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "f9da02aef9c29df5d158bfd2dc70b5e059cd74b931972a9f4c25be7949adb7c4",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_73.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "67d5192e50a7d49e8357cc23d28f9c5ced2fed67d071893f6342f9214e3367fb"
+      }
+    ],
+    "recipeSha256": "1f7f1d650d358a194195ca4a49ba38645bf34cdeac197afbd1aaafcb544d448e"
+  },
+  "decor.table-lamp.red": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "378cd9f1d9397c035a20f8d95335334a47d3e9e5913cf722a99086481d4dcd6d",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_71.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "7f5dbff7219258bbb83102462cfc9828eac4b7d8ce0cc2eb34463b1f12c6d157"
+      }
+    ],
+    "recipeSha256": "a35ce0ce63d692be094c61baffd04ed13290d7cf7287c5b250fea2c8dd71fc33"
+  },
+  "decor.table-lamp.cream": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "b6b4d272eb3c645fccce27feff6dda11eaf3c183da079e23716cd28154d59729",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_72.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "d58384ffd15514e6f92f35098fba9e8eb0acadf05de40e1b36d55109d4da11f5"
+      }
+    ],
+    "recipeSha256": "8b13b1941140b42ca81eeed51939a25796f1a676a4b852488471eaf2c3240883"
+  },
+  "office.study-desk": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "f7f99a4b6c4c0819905902120a1e7b0720dbd89622829031d7724bcfdd2aac20",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_25.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "6be9b7733c70f3d6ad808f95798a89b10b789e5910c7b2dbf26ec658b4a8b868"
+      }
+    ],
+    "recipeSha256": "535d5c577502fecf4e52f4d6583f8aef10f95d0409b83f56fb69fd714085a31d"
+  },
+  "office.study-desk.books": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "15e4c89576dd815cd8722c626e25d6e7ff4e7fdcfa7d59ee4ae963bba828fe98",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_28.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "1d85559e13b6e9cc54d310ec00ee6f4d5dd066baaced6f5d037c8f4a1977d67b"
+      }
+    ],
+    "recipeSha256": "65794c17b09b024fc7ef2ac00d18a83428fb757d958626f8c1a4023a156fdff8"
+  },
+  "office.desk.compact": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "8d97fb3f13d7c6056246f297e8d75a68e69787bbb67bba11c455966e8bd92aef",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_6.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "db078a249168dda4445a3a4bef078e75c1d201fa8a3ab3b4265ec6368277b8c7"
+      }
+    ],
+    "recipeSha256": "681e350bda7aee64d47f9abcbec0852ddb80c53f4f0867880361ab513da7a04f"
+  },
+  "office.desk.right": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "1713cbf596b3ce7a0d20d8f80e0af410d48e8d84e82516b0790afafe20a03144",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_13.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "0979f4dd8a2fe258315f927bc174e2d8bf0d01af209117ff6db805e6d4b09007"
+      }
+    ],
+    "recipeSha256": "c672fa1313463b6797c2c4c116bee57e6aa16a7ea1454e39a8dd9e9b7716c866"
+  },
+  "office.desk.left": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "d391e851e6993fef9bfbca3a1941cbcc1bede352f2ed7a1631e40868cab5098f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_19.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "9981600c2ebfe88b8b6633fb2876349bc7cad9b5c20e065f144a3ea87aa87972"
+      }
+    ],
+    "recipeSha256": "052a2005601938420f68cd231239a3f19f773a2d4e2a191117998b9c3e0639e3"
+  },
+  "office.chalkboard": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "b812e9b58f3ccfec0114bdcc93fed81f4472b5755db692f4c05f497a45e1b252",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_39.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "97094788f25ec993f25410b4f9444d70b5d3b9271688497bdb34cfd81f4f9260"
+      }
+    ],
+    "recipeSha256": "de8252651b7a0fbf38ef7414b1748ccc6f98169b673865931f7a80b8b470b152"
+  },
+  "office.globe": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "bd72db8a2ed1bc8186078a4ec4da62e79a2e46f2d4e5b1c2965ae5da35ff16fb",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_34.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "ed012e034b44ea561c19249e7d0f4f7b62492b311a3dbb9af8e8966eda30966f"
+      }
+    ],
+    "recipeSha256": "1ec224504419af09c7cf8ce37bf49b871321785edec6eb4b24aed4eb0cab44a2"
+  },
+  "office.locker": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "3fccef15f968ad396cf4f33de02dd77e67326e70b4a283afb56fccf17d891e9b",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_40.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "3fccef15f968ad396cf4f33de02dd77e67326e70b4a283afb56fccf17d891e9b"
+      }
+    ],
+    "recipeSha256": "6313c59d3f8a67e0ba82d1ab03c33096ed170523ba96b6a33b5bdd7647335367"
+  },
+  "office.ladder": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "1fb2dec93694a10c6e1f2f8de9f23ec1f5dd911a89de05e114b157b66568c147",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_41.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "034a6d467ed4f389bfb8b0c89fdc49666832a0224a76635b41d1ceddddd4cd25"
+      }
+    ],
+    "recipeSha256": "9c9042af88e5eaee113f9fc3c783345cedaaa2c2e82b62b73b0791f3d017b973"
+  },
+  "office.bookcase.red": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "8d307503883d1f0cdc87f84a01ae832902b57e560372a8992b9bc90fb0197d59",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_43.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "5f8a9401ed4ee0931b037bc9abfb28f5c0c6127cccf82dcc9f0a19612006cdc6"
+      }
+    ],
+    "recipeSha256": "2109b601f574b474d97329f44e9ffa917703da09b43e43b79bebfef7e95ac9e9"
+  },
+  "office.bookcase.blue": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "414ae4d90c9c5e9513c761af8ac6a9855edc1c31595fed4ae6cd8fe600ca9e25",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_46.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "e70a51f0ab097f95c5522eab3199c826a23f7a69435007adbede20764f1749f3"
+      }
+    ],
+    "recipeSha256": "408eca3e7ff6cf2c870f9d38a4ea9dd1ae0466019f98f2ff78331cc4b588b5c5"
+  },
+  "office.bookcase.tall": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "084301b07df99eae3ecbd34e56c1599cf22f6e8ee018a80aee7da000c32666fe",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_58.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "a2d9ab48f47937e3fd8dfb7dc15d5fc05b1db21776701161acf96f646a3d1584"
+      }
+    ],
+    "recipeSha256": "6272cb9b1201717dbed59729fa3580eda7281a55b1e2dea98baaa3cb7d12ecbb"
+  },
+  "office.bookcase.grey": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "cb5125a6650e8a031a43d01d87e95d6acdce8834bf959cf6fe410125db2575df",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_65.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "ad0e674df3013fd1e9af4771b36da9311ead3e34d85ecbd81dc1cd08323b32f4"
+      }
+    ],
+    "recipeSha256": "ff6b07909c8b1dcacd609eb27f6a656c2bea6286922b5e4afe65e7ef42062cea"
+  },
+  "office.bookcase.narrow": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "326d66128da0da771dea6ce3ac8d35b6397f0334ea076243497b7793ab05d26b",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_59.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "1be55fb01d94538d6b1d9a7f4cf773e3e82366b26a74964cf3fc0846684cc51f"
+      }
+    ],
+    "recipeSha256": "a74063c167b4d4fd9c01dd0df4e3bba3b7acca405a248b6288db697d45835df4"
+  },
+  "office.chair.study": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "656e898315a0b6586f52a7eba1659b04b87d3aa53bc956815443fac2a6befc1a",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_1.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "f6a341372c825045b03f2dec28d637f993302ae5a665ab991852539b097618c5"
+      }
+    ],
+    "recipeSha256": "f5a9fe006658ddebb375b3bde72da7340e99646b826a5248f86e11fba9daf56e"
+  },
+  "office.fire-extinguisher": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "c20dd11dd5d041d2f414ec302907462153a2be296ecc0a23dad678e3a4fe5ca4",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_59.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "88590673b2e81107bdad7f8ddc09c0caa924f27231afc42ab50cf9f8c26b19ff"
+      }
+    ],
+    "recipeSha256": "5e80d47a07591663464c8123608021a6a9e9f17bd8b955fab6ec3ff971788c30"
+  },
+  "office.lectern.badge": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "7915a5ff1363dd39939d5f82ffda53d441e65748d56e94b9f9e5c3c32c35ff3d",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_46.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "867095f7a9da7eb2838346a304b211a34952868b7b37d1ec368364b2d3542582"
+      }
+    ],
+    "recipeSha256": "5f5a404f5f5ba03d7aee186fd4d913f4ae7a050b21795bc3ff065c1217ad3287"
+  },
+  "living.armchair.gold": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "192e06a47aa7c072c28a95c0207190b8f4e5e8c11944c632083f661b0ba09c30",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_202.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "df41bd9bebc1eab6ec319a196284a6f43afa043cdf0f81cdc2a99dc6e651f359"
+      }
+    ],
+    "recipeSha256": "92c8a2147a6aa57df6d2a68493f9d88f43bde97b452d0fef5fba5ae2fdd75f9e"
+  },
+  "living.armchair.padded.linen": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "31bd99f84f359ec36b7526306eff3af455db5c7ace30c41b177bc77ed6868d97",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_203.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "640f2cf69919e771e7b0daddbb3981b5686217911d869c7f72938f880b75bbe2"
+      }
+    ],
+    "recipeSha256": "75309c8d5721595b681cf7776f6aee5ddf00408b4e18461f2bbce6387c79e5a1"
+  },
+  "living.armchair.rose": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "067d1a1716884549d74d58d6fa61d608b0d1117811c3056b3bd734b7bf0e06b5",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_204.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "c8395f6a3dfaa6c5597d4c7f36233e8a35d4484e3995655517b964b8be90c1ba"
+      }
+    ],
+    "recipeSha256": "635bd5282838009c6563c9254f5ab826fa8cdd2573c0e2c9611bb6c93cdf905f"
+  },
+  "living.ottoman.linen": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "bbc07d7c3fb63afbb29d21f9c88c0d45d3c3e27c186231e8c91ae0291aa4698c",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_198.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "ca250ab0efb0a042cdacf1e40aa7a1037c055ef7e771283b2e5822a9f688a2b4"
+      }
+    ],
+    "recipeSha256": "79e16dcbd67f15bc2edde48d77dc30df38ed42a9b35db9f63714b82dc36d7dfc"
+  },
+  "living.ottoman.oat": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "9aa1d95841eb09506e7f64188627a7cee807c27268d0df1813f4b4bfb0dbd644",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_200.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "d61f85cffa926448aa81b55e93e9c25d7c0f932b3aadc4ff19a30fa9642d6c33"
+      }
+    ],
+    "recipeSha256": "a99745a79ad70ec1c25b81627ad74348191673022fa889c7ee55afed5160efa5"
+  },
+  "living.table.round.birch": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "4fde8e67d6c454dc49e5a8a601f0d2dbc7ce5868b6dc1201b8f12ab942772b77",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_1.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "aeb003eb3b3c8eef24aa45b0b8f28fe5b29465a4cae79a3f79ce6c1b11c7c034"
+      }
+    ],
+    "recipeSha256": "ffa0db2214644839532e2638b23db982aefbe6b2982a08cc10c02559dd9bd052"
+  },
+  "living.table.round.oak": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "4a9961002fbb894053417304cf469bc4f36833815c6d550e0cdac173da28093e",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_3.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "331f399e23db25dd64fcc92141bdd028e2b5349ce15f26f8a2582c4818b00800"
+      }
+    ],
+    "recipeSha256": "d392f91ff3e884f3a062b870ed6857d423357db5d7cdafe30c329c1e80b7f591"
+  },
+  "office.chair.gold": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "28e57617dd1998604e4b18bcc61d20828ca60d89f92bd0661f46bb34f53d6674",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_206.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "c35cda4791e3e617c211aa7e77866db805ad0d85997dcea58b57a1fdf3bb9ecc"
+      }
+    ],
+    "recipeSha256": "f72319268b93e932bbe3dd2675046a304d2286947fba19cf88203b80de0cd8f2"
+  },
+  "office.chair.rose": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "08d8da3b2399060c60c3e2dcff1f461ced5a1736662590bf575533c517329c86",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_208.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "d0591b9253245ae5d45a4f015bb2330b6a2064caf83cf6f327443ec1d1ae2325"
+      }
+    ],
+    "recipeSha256": "61b21e15e914a1f356c61d6afdc37cfe83b7ecf25894f80ac4e2d6327e9eddbb"
+  },
+  "recreation.arcade.red": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "d8405e3e0fa6d261eb57c25946f2bcd2155ec70d9888563a1f760ab6840ef221",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_218.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "034bfbe1d43139b3917dd6a52553b4489709b1df4478b451a7b5dd7cb4a528e0"
+      }
+    ],
+    "recipeSha256": "922d230a68b009a21bccbe5cedf6b57239483cf5d53b8efa25a5f092ee9e82d3"
+  },
+  "recreation.arcade.green": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "79a71c06ed5be16187f75a5597317cc5d4bb7674661d5a486925df0963f8d8fb",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_219.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "4ed663666bca868cf91a71d5c51a5ae4e6b5f0701f697fdb375f393e89e13237"
+      }
+    ],
+    "recipeSha256": "28236f206011b170c0addf2a3023cd3610f5e8e1c5bdacf9d5c10a328a56e3ff"
+  },
+  "recreation.pool-table": {
+    "size": [
+      48,
+      64
+    ],
+    "rgbaSha256": "ee231507c8da145b2a66da27df3e64d448726090d69ba55394ce132f774abc72",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_246.png",
+        "size": [
+          48,
+          64
+        ],
+        "rgbaSha256": "5392882944dcbbb2a7ee3d1636c9c8a9e45f180b7e5bbe3d2e1527525b62719d"
+      }
+    ],
+    "recipeSha256": "9166fc214d79fa882eae3de54c374d9f43b57c3c38236999e984d332e737868a"
+  },
+  "recreation.table-tennis": {
+    "size": [
+      48,
+      64
+    ],
+    "rgbaSha256": "9188294358b26b9beb2cd67e6e4cbaf4cf9b95035786c9a3d445733cd3788341",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_241.png",
+        "size": [
+          48,
+          64
+        ],
+        "rgbaSha256": "4e45afa8d2e8ab98d0b555c754273c4ce44dc98c79da9dae9e455efaedb4dcb2"
+      }
+    ],
+    "recipeSha256": "96f754c045c4512c9e5b04edb89ea6d2a05d4efb90fc11702df738cbabcbe07e"
+  },
+  "kitchen.barstool.blue": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "cf6b153551977ac6b268920ca1df1e171695973062b5bc1bb22f53fb4dfa09ab",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_103.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "8e7a970dd15ad96fc977100d434d156d77b6ea24c245253bfae2c033eacdca29"
+      }
+    ],
+    "recipeSha256": "b4ec8db1908692792546419b0aac66b8b1af889a6bf6d0e22d874a23029ea061"
+  },
+  "kitchen.barstool.gold": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "783ee68076b834af2e59ff28376a590803885f1fcb482a9cb5e807d26ee82c74",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_105.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "e39a5434c5bf98a6fc08744fc5634439573ff3bf56224e8baaaf21313bdd8907"
+      }
+    ],
+    "recipeSha256": "499c9dae0e2435b5ebcd810d071cd19dfc37e8b9f72a276004900bd27bd3ba98"
+  },
+  "kitchen.barstool.cream": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "8ebf5351feb69483a720f709ef4f04aa2520a88a6acbe6627ed49e10f056b49f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_111.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "1f71e62be2d731976a04def71347fefcdd7b1485818a234e5e4f5dcd97d47224"
+      }
+    ],
+    "recipeSha256": "4d90e1d9ab049ae4973fcccdd87cf4ea7a1e110bd4dc9d1b11ed2dbac896724c"
+  },
+  "bedroom.bed.single.blue": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "418a386bd85a8c96ad8b6a6898289bef795c09c1e3d93322ccf927e9372a1684",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_166.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "c49a089caa550367512863177358394c1754d40dbdf5570220aa1928017672a7"
+      }
+    ],
+    "recipeSha256": "a13470726effa550916a60a661539f4d6c5438cda3ebcbcbbbb837d605f2a0be"
+  },
+  "bedroom.bed.single.sage": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "ff7d9e8d65a4f0c6f3a3a6ce8d20db274ae8cd6b912cef7fa5915ce768bc73a2",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_163.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "0f7fd908476f047aaf0c5ffea07a644e6c6ef68e346ebd713036d501517c9724"
+      }
+    ],
+    "recipeSha256": "63970517b4c9ee807ac246776924fbfd2f9fbec023368da28fa57fec7d4f8d68"
+  },
+  "bedroom.bed.double.rose": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "f2461c51bc98e0f9ca58004fef2eb4aefc37f51453682c15a09c3295be1b8f2f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_225.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "65a80264ab3e054dcd9161b59b78175b82ab9bc992b8030ef94280408410c37c"
+      }
+    ],
+    "recipeSha256": "5dcda2a1cdd6db9254326655329f120aa1f777f81e3543bb09f7963d64264d4a"
+  },
+  "bedroom.bed.double.gold": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "d89272f6583a1c115be0baabd7a3cc9dd3592bdc87bb7250b38b434446c14182",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_226.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "cfc5241ea2febe834e75c812d9ec5345edd03f21652991f899418d66d89f0818"
+      }
+    ],
+    "recipeSha256": "1dbc7cbc79bc4aa833aefac40f31fbdd510e74eb42766bd656723a21a95b7c15"
+  },
+  "bedroom.bunk-bed": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "a3cf31b4c6fa853b95571a51336008b123ff65f3a4572b242d3c8e5362ebe360",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_131.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "03aef4b03d23c51be1dd118a64485045806115017a94b1c1d74e96f977d38b62"
+      }
+    ],
+    "recipeSha256": "a12f4c1ba05102611aa198dcf362f4ad965da6783df808046816d21d73f1a625"
+  },
+  "bedroom.nightstand.cream": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "cfa47dc468afb70e1e41610d60862b0136c66ad5c6eba56938ca6c4a9422487c",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_430.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "49d323caaca264a1c7eaf49b318cf10d981862f04b03a6dcb7337ea5d3cc594a"
+      }
+    ],
+    "recipeSha256": "bea3a4be61c0946e05ca504f35c76e274cc1302f6ba33c7c76bac8a97593ffce"
+  },
+  "bedroom.wardrobe.cream": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "259cdf48ab6e09b738a2c3956c0568acf5d0f687d870e68bff8b970b3b9d8870",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_540.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "7f0a65b5c8310999b016ec8c6a2b8aff7523becfc99939cc9e504b48aabc975e"
+      }
+    ],
+    "recipeSha256": "6dd492b5b10e43768d32054f067c05088420eee9ce2b9fd5205c4fa8ac8510fd"
+  },
+  "bedroom.wardrobe.open": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "afd0345574f1449ab293df3600d66ed16499e051e4e73484403019b110745cfa",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_539.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "0352a47de43ba177dd3d959866023b9861622e7aad9a50ad2af4f68d87c8a63f"
+      }
+    ],
+    "recipeSha256": "aa299cb2e97ef86e1ac97f665f0bd2c692decd1ffaf717d34437bc69b6d52e2e"
+  },
+  "bedroom.crib.oak": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "9b1e93b41f4db46f5fc17756c536b93c32da65cc275280dd5dbee84124d5bb21",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_498.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "d87e1efeebc3da910f49e058f87d2fef72a72139f6e9caf56e15d158fbefcf13"
+      }
+    ],
+    "recipeSha256": "6d594073d9d8c8314e46ea45858fe7442ba19c349967637343fd630126bfa61f"
+  },
+  "decor.rug.blush": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "8e97224ab50f288deb5fcdd47ed587c1b05fcdf16b994235117a56f878c04b11",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_382.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "0c06b47a968be791870bc0e3a6578852e235d8fe0a4bedcc229a570c723e9fe2"
+      }
+    ],
+    "recipeSha256": "ea617edad8d2d284177fb12650bca0093ca4ecf7cf1fb322d7973f4b396b2dce"
+  },
+  "decor.rug.round.blush": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "58b9a6e52e5db0b68ad09c7202ab426360b9fcb13c818dc853d3c72847b6e64f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_383.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "75ee240faf6e1e842f3dc0d7e7899a19d8e66c400d3f1857113b60e62df855ce"
+      }
+    ],
+    "recipeSha256": "417b8e5bf55742a19910c8ce5030a78a782ad614dcdcee2b8fc9352ae5f39ec6"
+  },
+  "decor.rug.cocoa": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "3ef2cc308cd0627f3bd967cb5778b9fac3add69ec3c2c6d8457b0c866e59eac3",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_385.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "3e5cea6c54b9c6b033aa3a20f1add583540d08f496a8c73a3a4e7313623fc62c"
+      }
+    ],
+    "recipeSha256": "6a8527834cf36f1a84e2021d3b680ac840257c0c958ab503d327bcf79759b39c"
+  },
+  "decor.rug.round.cocoa": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "a8f8f33f5af9e7b9977366c58746566c2e370a085d49a8e7024b1134b7e1f18f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_386.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "bd02a21108067957b3928334905c589fac483dbca95fed18da95e91edf3fc18d"
+      }
+    ],
+    "recipeSha256": "c6e3f2603cef4edd2085edcf91e26bf77e8f5cee51836830cc1cb0e17b68e63e"
+  },
+  "kitchen.oven": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "28cf11e2bdba1ee7c3b3ad68e7162e873de2108909971078f2e25900c304e216",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_148.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "00bcce3ff598fff17074d6ec6bd874c2ab17d9d4a674f895f628923ac6c679a7"
+      }
+    ],
+    "recipeSha256": "8a7ea911941d7c42ac03d2d51f2f4d9e37f6c2e6ef5001dad113a9ae066790b9"
+  },
+  "kitchen.oven.cooking": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "6199044266b15fff0e3ac73ee00bf8ae45ec143774ba32189a5531b02503d435",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_150.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "4f06a211320aeb8af800f04201796d3394919ab7dfd72aa219c003602bd4d348"
+      }
+    ],
+    "recipeSha256": "966f451b3875f30f8f9946f9ab412ff7fe01bd0e1a37a972306a5cb05b4fa5d3"
+  },
+  "kitchen.fridge.cream": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "484a540113f5b56b74faf02c7d522acfabb934a1076068511cc5099f30cc5748",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_158.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "b7e6507f4a1a9739640e491ce6e913aae05994dd832972906aa69ec44a8dfd5f"
+      }
+    ],
+    "recipeSha256": "e447f8e0d2e87e2128a4858a4f91e3279c4df145e9dde315adefb118fe814859"
+  },
+  "kitchen.fridge.steel": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "f3e2ea10a7413d592259606297141add23171e0385813275971a88c3c15475c0",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_159.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "824d1617eeefd9e60ddc5e5b6d5daccb86daa646f8b6975bf03a7d47eda62319"
+      }
+    ],
+    "recipeSha256": "554cb9e487d86f854aa81773874a5c51d64c4031e34bf03999974a3b73b8e527"
+  },
+  "kitchen.dishwasher": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "cfe696cd5519f9b7fb29a658024dcd826d5291c519f89d1ef4cf14de3b4b5976",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_192.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "0ed138720671d57bca4a6ddb4a0af2b980b920146eb57f6843799504495de4b9"
+      }
+    ],
+    "recipeSha256": "5c9472a7e5a73350df7f2713b17a19fd3be8287b5573e3261930efcf564a91d9"
+  },
+  "kitchen.counter.birch": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "5d39e504c2c33d025371776db1013cbac73ad477bacc7695d37e671e85590289",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_309.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "0a18a527cb3fd66e13a65d1a451e9c6692013e2effa846c8ae4aae1421360de2"
+      }
+    ],
+    "recipeSha256": "b92162829e35e9d67cbca50beaa2d30680d813a4ee0eacb8ce03b965a8d4fdea"
+  },
+  "kitchen.counter.oak": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "7fb7c2c5fdcdb4225655b32e59a9a5be5821613d3ad407ac10d26f780eccd7ff",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_311.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "0c142e7d3889ee01e65e0fe63375dac16c6a6a6601daa6b64d2c82a502e191a7"
+      }
+    ],
+    "recipeSha256": "f287bcfa9c75a92e4ab59e154a8ecfd579dcbf14a9cc94d881ff27388ff3fd22"
+  },
+  "kitchen.counter.walnut": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "9990c9bbf873f4d86a95724fe8daebcbe51dd2e7ca78bcea7c59bac64dd89f34",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_310.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "ac47d205e8fac98f067d0572656b639c29e067d4debf5c106cbbc9cbcec69993"
+      }
+    ],
+    "recipeSha256": "a2f7484ed2c0a5eb5ceb4d78dbdec2c0b98134be2fe18960cd8c875a303d0475"
+  },
+  "kitchen.display": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "db04f910d602e58268fe701a1a50539dcff2f74e508b67cacc080d819655de89",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_408.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "3c75cf32e0349db9b2153a3fe7c9c093575458a51316821ef184217da2af6ab6"
+      }
+    ],
+    "recipeSha256": "c91a952f0edd1db7daa1b39b05c19f41d639a15f1a4dac8587e5f00a117da522"
+  },
+  "kitchen.coffee-machine": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "f81da81998a2fbb4c58b31fee5970fd062f53256b5aac0f97f53685167abc50a",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_177.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "cff6e7b7391f51b01e0e07188e72ac2d384f37338bdfa39a4dd913f90adf4e8c"
+      }
+    ],
+    "recipeSha256": "226d409bffdfa677090c7ba3a5044492463cd8f8d35eab62819d54ab726ad157"
+  },
+  "kitchen.mixer": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "0305d771376610da155eb0aacd68a851559d4e724f4ec2808e83d8ab993a764f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_185.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "410d90429eda1dff282902e9c0bb8530d240c79608a92f4e77ef31789e961a94"
+      }
+    ],
+    "recipeSha256": "e5434912d7d659fbee8631b409bd1050383a309f2cb7609a900b310c27f104cd"
+  },
+  "kitchen.microwave": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "4d8435d8eea1e973409ba37598b0ee6497fb08caff8547d25d2ec468b5a4b317",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_187.png",
+        "size": [
+          16,
+          16
+        ],
+        "rgbaSha256": "a171e8cb04c780293747ac3f0b27e195a33944a0f642c271003a9abf804df876"
+      }
+    ],
+    "recipeSha256": "8c277b9df5b169109de207f9d2a126fa3bb73de2c51c6753886d34a028eb5d70"
+  },
+  "kitchen.rice-cooker": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "8f4e0228750bdc0cddc7b82be416c6462a5277b6b72d718b30df0d211d472cb4",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_196.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "b0fa4f2b1276e8a54614d555904e2c4d295ad58cf02d57cbed9c58e0560546c2"
+      }
+    ],
+    "recipeSha256": "4bb3e3d5fa8266415cb1356fe3967a1c1bc3890e78504dfcd51d961dc3126378"
+  },
+  "kitchen.blender": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "deb1aa5554a7cd9875f2150dbe937226c70aa26e1d00b634e94773a798244dbe",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_199.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "5c4acc1ac2ad4f558728f2531f16e97f16e3746354128f3b8d42b7db93d84891"
+      }
+    ],
+    "recipeSha256": "4fc2433063f1008d64601e6c3a5cc9ef26148a5e1fc672b307f8762a9d6e1f55"
+  },
+  "kitchen.cutting-board": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "eb9486c49b20a54e2b28c48d2f26f0250eae1c1bfebcb9304e8af2906cefdf8f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_207.png",
+        "size": [
+          16,
+          16
+        ],
+        "rgbaSha256": "b876617ec32bc10385feef9cb7b7d4aa2e9c98458fa0a782a4666f4ebbe9faa3"
+      }
+    ],
+    "recipeSha256": "57404561b5ffc322f0e536f92686bc7b01baf33789021edf26f3d96e4b71074f"
+  },
+  "kitchen.plate.salad": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "ee05f5b1e9b37aaddce1406703c1e954b32c7f60eaee7eb223067bf37bc796ca",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_384.png",
+        "size": [
+          16,
+          16
+        ],
+        "rgbaSha256": "7b0351ccbdb4feb2188825b2a0621f98afef635f0434c5bf97a11f23f75dbf1c"
+      }
+    ],
+    "recipeSha256": "33730beb6cd572598d8763af416566ac7b39bfd780a240facc112be770672873"
+  },
+  "kitchen.plate.sandwich": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "bd76b75f51ac7c6a2d69ac69de8b80b7e7320c573559e930f2427f3bfab06efe",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_389.png",
+        "size": [
+          16,
+          16
+        ],
+        "rgbaSha256": "268e5ebb6607a6bf85047c18cca336126bb1487975cf4c5a9103a10c15ad2292"
+      }
+    ],
+    "recipeSha256": "7d8d67e9ec193795112fe9698c168a4a0be30f24a4b824a253fef52795cf88ae"
+  },
+  "kitchen.coffee-cup": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "b66b29181c8a512438daa51f8ccc6d6c2b7864ce34fe2866673693916cf4195c",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_394.png",
+        "size": [
+          16,
+          16
+        ],
+        "rgbaSha256": "5233e5193f852e1fab889331d3b8979c3f4c275389d2b972ed38de9a72294e4a"
+      }
+    ],
+    "recipeSha256": "0b4a02a9631e807df789a2ce88775529e3cff5110fed5b26ec102b2e15c03118"
+  },
+  "kitchen.glass": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "a62d260ffe76ffb755f0f588e0ae07ce3aafdd4d0caf79545d1d26ecaee801b2",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_395.png",
+        "size": [
+          16,
+          16
+        ],
+        "rgbaSha256": "2b051b66ce3ce8c2aa4b0e7665427ce30b0497199ea8e152ab58bf4563f83806"
+      }
+    ],
+    "recipeSha256": "6766daa4803b50620f32a1459e4230f020994accad4dfe66765251581238c497"
+  },
+  "kitchen.runner.blue": {
+    "size": [
+      32,
+      16
+    ],
+    "rgbaSha256": "cf4660d237aac4325bfa05edc087cd6bc0cac55b725a93f6ad8da9796a4c0e9c",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_139.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "71fec787e660aade05d2dc4a199bec5b469dcfdd920bb951e0af962683f60edf"
+      }
+    ],
+    "recipeSha256": "9d654edb7ffc6d0aeb2b78b0248370e9d85d9e1f988739f4c3b1f5fa0534095a"
+  },
+  "kitchen.runner.rose": {
+    "size": [
+      32,
+      16
+    ],
+    "rgbaSha256": "6ae32a74d7a7e6457f48ad7a10876a8e7f1b84805eb2c1123bd4ec0720e789b6",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_140.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "4169331454521660c9dd36af66ea65734226461616b3bcd54c3fd8db36be7509"
+      }
+    ],
+    "recipeSha256": "02c6fbdca1fa6f3b45a478cca2d725c3ac760a94c9a51a23041901d19c55515d"
+  },
+  "kitchen.rug.gold": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "d1ef6b71348f93bf73f67f29d5f85521c050f14e53bfb9674c9a6d13c4abce40",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_226.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "4407d9abfb8869279211ae0b41a38342e5dd54b8da173d98eedb998a81ce4101"
+      }
+    ],
+    "recipeSha256": "3b0838e825152058b0cd711a3af641415cd1a4af858f121316854d77454de93b"
+  },
+  "kitchen.rug.blue": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "896ab31f5de15e6275185ac9551a73de651a91514e3117f89080397b61ea7cea",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_236.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "14756659147a4426e6963562f26e5cce1700f597cb843b43eec13c6cf11008df"
+      }
+    ],
+    "recipeSha256": "b0840a2b101820c0193af77076dbdbb29ae735bac71c408fdaaf51238632b8c3"
+  },
+  "bathroom.vanity": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "4fc15a0d7139dd0bbbc5f445f26eb8437567a2e332d44d85140155884a006e84",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_8.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "80b1ec2c927f2725cde6c7ea8e6880088498879cbe448c51f4b477ad251f13d7"
+      }
+    ],
+    "recipeSha256": "5f3cbdd82bad4a40dadcb0afdef07301bdd065d5087a994a56b085362ef30035"
+  },
+  "bathroom.vanity.mirror": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "2e544b99f7cd0dc654da859616316386afb9991f11e63b69d6e409c8a272ab76",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_12.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "0a60af933bec6ae955a85fce14d314d7a5ff77441b2fac972d0de0f79ffa68d2"
+      }
+    ],
+    "recipeSha256": "be063f20e96b6dcd5161e95555312118d3cbca4bc1996d46d93f6e18f6441ac5"
+  },
+  "bathroom.toilet": {
+    "size": [
+      16,
+      48
+    ],
+    "rgbaSha256": "a8bce76501c12646c29ef93b5b8bb7228c682e91c94d5bf2508ef383743711d4",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_32.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "aca1f1e24081d89cf9cbc0263d09ded2785aa96f3c5286884efbec9db0770aa4"
+      }
+    ],
+    "recipeSha256": "ed37c0d2ad8a69b50a9c2fbb4c5fe61cdf8b0de82501b49afd4449a532f6d139"
+  },
+  "bathroom.laundry": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "407f059174521d6acfc7b39c58d13d8f53235565fad5fd8215b285fa0a3e51ff",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_87.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "862e67e97dbefcf6547ab26b4e569f1eacb78e5bb3470f9a599360ccc55cf48b"
+      }
+    ],
+    "recipeSha256": "1cdf7c09c6c81d4d5ebb29fe8ad921ecd44c7237fb9e56300437611444a75c73"
+  },
+  "bathroom.washer": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "d2ed91e1eaed5682878b2a63532acb97085f9973fab7ec9c870194cb349c6d90",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_90.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "e5b319a0fa2d044a000d4324b23eab8b7ef6ed818cb7e38bb1a4baef91ff4a9a"
+      }
+    ],
+    "recipeSha256": "c04e769a4ca6ac8d06ac9606bcb8094a4bac811c5f518d1964274b04eac4c272"
+  },
+  "bathroom.laundry-basket": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "1cf1bc541028bd233e421401a717b5545dad3727792fbcc3ad63bab19e326f35",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_95.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "29ccd97c1ca7caf1e67cbf3c865f988c52ccd8bef04bbdbaf3e578b21d9bef55"
+      }
+    ],
+    "recipeSha256": "d7e76fa45c82764a853b8bfd9d4dc65f8f19f03f3b13b7046128ca651e3435e1"
+  },
+  "bathroom.shelves": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "efd9c79a2ddb69bc92a4bede45a1036afc4bb5061a1f459487dab6cd2275f869",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_82.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "dc5bce9768ec5f50d8c3859b4748e8c16bd364f75509ae26df5b8aad4fb1f526"
+      }
+    ],
+    "recipeSha256": "aa5aa53e744cd98c4de69c22e7eddd9fd70c200275b68b44fd4ac9164b58d796"
+  },
+  "bathroom.shelves.stocked": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "4ecff7ce212fba7e3d1910b72d64c0b33135565b2a7d71e9967eb2d9cc8a90eb",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_83.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "160fc445883c91844f06d3ff972fb21a5670c54b0505d68382b368da91169cf5"
+      }
+    ],
+    "recipeSha256": "61afc5d9ab7287065d2fabb7a8a59357384b6fd1148b25adef722e63b4c23523"
+  },
+  "bathroom.cabinet.blue": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "10ad9a9d27e9c76317ddb1e55e4bc014fbd7bf369a96eec3704facdb6f6204ae",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_120.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "63d7a9abd898c0003904b06a9352d4211d81868da80d1d5e34bbe9914bd58677"
+      }
+    ],
+    "recipeSha256": "14c6bed464104657ca20e83548e33cf1c73b1e59c91c19d920053684d52d544b"
+  },
+  "bathroom.cabinet.cream": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "cbc77674e5204d0b70fc6583ac9c56f0fcd69841a0fd494bfa6d9163b36a959b",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_126.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "2d0385b756eea7d1cdf9abf83ee8e2ad75acad85dd51b415bd1e760da6e3e573"
+      }
+    ],
+    "recipeSha256": "6a28630d764e6d0799da87caeefb97fa02edcd70b9d8e7f821c8859c9c1d080b"
+  },
+  "bathroom.bin": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "c371fd9aee1f1de52bd5103a3ca74b6e7a93a39c0ba924b306a69105c73ff11e",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_110.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "d2cdf87abd424e8490033d7692428c88bad3f051417ffda639515ad8ac2ee5c3"
+      }
+    ],
+    "recipeSha256": "87d7ca35e6d71538aa75ed2a4f4245d62ee13697d1b927776e1013e1099c6fcb"
+  },
+  "bathroom.sink": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "ebf36a8de5501e721c017ebf07ebfd8a91696f01d2456be6fb7a8b90e2f088ce",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_151.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "9672eacb7124abed4a39e920634ee6af0195bf55c4adf8afc1a7a576a31693fa"
+      }
+    ],
+    "recipeSha256": "4624c225660ef52b711a9a4c73bd98abc188f6f3664eaa61bfb0395c58d05f1a"
+  },
+  "bathroom.mat.white": {
+    "size": [
+      32,
+      16
+    ],
+    "rgbaSha256": "94a3a3daf154bf69a125f78afb067f35da950eb14f555af5cfcef1dfff6cf01c",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_74.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "f29e5a4faf81b380eeb3008c49e369dd2d8e9406f2feec01069233d42a785044"
+      }
+    ],
+    "recipeSha256": "7f49e9b43dc7a53c7ab5ca6a49069116caa279a2a1c53eefa18a7898ccdd0812"
+  },
+  "bathroom.mat.striped": {
+    "size": [
+      32,
+      16
+    ],
+    "rgbaSha256": "6015530d16fba1d52b46f8153b96ab92c9ba78de1180d9d464415994cc80c9fb",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_75.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "12cfeeacecbe7389816ccacf9e221b665faf79cad1a420ee2a5553783e157cd9"
+      }
+    ],
+    "recipeSha256": "2d6e93c68991e65e02a92f9b43d4e0b9f6a9be86280e936163777d2b824ee856"
+  },
+  "bathroom.mat.pink": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "7fd32fff2ecc823ded651ad148b325bf49970c8cb5bb6606dae70887ad9c79a6",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_76.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "997827f07cb57fe00a5625a66377fff6e93d22f0ee1c59a3e4c93634e0d317b5"
+      }
+    ],
+    "recipeSha256": "8a7ac5e10bb58bd9fc966956d59f1abf9966388127219df1f5d2c2126dae61cf"
+  },
+  "studio.workbench.oak": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "17e046155ca4f8ad2602ba79424c2affc12764cdd0432b76a5f2d06baba8123f",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_22.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "e065558a5ecb0deb86027a6b7198e19a15d726b5060a4dfb63ca9b90c41dca82"
+      }
+    ],
+    "recipeSha256": "711c9abff65818ead769963828cde133b69c0bbe1f2f78a43bd4a57d392c5084"
+  },
+  "studio.workbench.birch": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "f3fcb6f4b23382b8ddc43feb691c70e66b67d34a15dfc5a28e17a8402abadea2",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_26.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "1b70eebf665354de20ab36db63d7103fce68ad0b9c1d9afa9fd3b1606746e977"
+      }
+    ],
+    "recipeSha256": "5639a98a39c2ffc66f4806235039a2c2d395682011e4b4680eb78f7521601118"
+  },
+  "studio.workbench.paint": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "2b8bd9b9122171ff8069a1fe59b76b05a038551abaea0ae37abbd3f4f25912f3",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_24.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "2b8bd9b9122171ff8069a1fe59b76b05a038551abaea0ae37abbd3f4f25912f3"
+      }
+    ],
+    "recipeSha256": "f9a6d4c2ec9f1f5aae64120094414393416ba29fff0752c7037541c67a44253b"
+  },
+  "studio.stool.oak": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "add5b479e42d3990fcc50c85b83e6a69907d04564c8eeac71929dc5248eee5a4",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_30.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "d24f3a8511a8a70e822f0975379e57913938564542bbae9ba8024887b8d65b5c"
+      }
+    ],
+    "recipeSha256": "b2c4b184cf887b2f47616aa0e4ac38f6504fd3851109f79e75c5cd575e987dec"
+  },
+  "studio.stool.linen": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "d9b9d240263758966398ce12f6c602f72bb2c20c8c3659910d48636ac5a5f320",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_32.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "2a6dee68e24b8a760ddce23aa1aa804de6bc48a1f6ce799d977837468396fd78"
+      }
+    ],
+    "recipeSha256": "9a1296f791caec99a5d440716ccb3e037c07f26f18314b619c4bd803350b417f"
+  },
+  "studio.easel": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "9fb24d8a060525a379c32e05d46b61098f9ef61957bae131a57db2a202e19abc",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_34.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "819a9501611789cf58daec6e5e44c8aa563fbdafa7166fb111a05c05846af0d5"
+      }
+    ],
+    "recipeSha256": "7b14f42e2ff21f8cb68e3b3e9e187db9fb2928e03b6c4b873978596722359617"
+  },
+  "studio.easel.landscape": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "0555aa3be65f8acde4320b63b408a3fd5ebcf416560bef9998f2523974d1a64e",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_40.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "b9966bc531b6608a96076f0a95d7a749f1cbe128dbf2b8965d0ca8d51b93ec6c"
+      }
+    ],
+    "recipeSha256": "6b3fa9f8e9a81e97756a4509bdbdef03ed639366e47f957537f29a0058b4e2c5"
+  },
+  "studio.easel.portrait": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "36ae861264dd734a5708d2e6243c2093daed08433c14f8023f0618cadc5e65e0",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_38.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "d445f24535acddea7a2bd53aa8a819ac99e8c636cb7f4792aca307f442499502"
+      }
+    ],
+    "recipeSha256": "d3103daf341b23ef1f2be9cb3baa2ba1449ed900fdb4e74c0b00f97ad0828a9c"
+  },
+  "studio.plant.bonsai": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "6c00ee52e609bbc68f07ad98711ee7d42458309063c6d2675a772a3b67f8d613",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_21.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "296aab464a9df0ca9f6b0bb81fc72ee34e0786967aac392a75b8dafc69012174"
+      }
+    ],
+    "recipeSha256": "d160366d6a55317c9ee8bbbe5be73d75526b8c5f70dcfaabbbcea26ae4d82141"
+  },
+  "studio.paint.red": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "d64865b3d42afa942b28b7f7c99d342d0aaf69343668a581f5c2915b5cc4b369",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_16.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "c812040ef0ca0e1af10e9ab60db700673b078428a8a5892f1123afa5466af9c1"
+      }
+    ],
+    "recipeSha256": "9d31c505c1b7937e8dce44cf0bf7198e2523ed96859d872749e2ec0af313a66c"
+  },
+  "studio.paint.blue": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "565bfc24e4055746d32a677286ff4632e2ba3733be05c5866bfceb5981abc601",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_15.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "04415fd9c07ba2315f8867fb119275c1244aabc271240c5be74b44f635480697"
+      }
+    ],
+    "recipeSha256": "405d91f6f2e3d7c3b2b9b351367140af9ab91e8e5e65442a109f1d7f613ab6a2"
+  },
+  "studio.paint-bucket": {
+    "size": [
+      16,
+      16
+    ],
+    "rgbaSha256": "9d4b6302344c8b670eb04d95576eed8183104e65e49d73677cd8578d801e88f6",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_1.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "a2e19b5c1c57e6dcf56481726ed802df7dbfdd548b511ec2fa38803fbb80f718"
+      }
+    ],
+    "recipeSha256": "095b604aa5f2801686adc6b1b68edbae8fb8dc01bd8c957ce51be07eb0cdd3c9"
+  },
+  "music.piano.oak": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "76c32364f39eb47df72dce86738872db82728ff463c9cf504b2dc2ecbd6fabab",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_1.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "4b58579eec9ca333d6974b0c0b2ed238ba224bec1b201b0b7bdcfb969c143f80"
+      }
+    ],
+    "recipeSha256": "06db3e407a8145d0f08e06f74cad04ab3f7dd6416575b601404b2bfbd91bd2d3"
+  },
+  "music.piano.cream": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "9115f38c10f9bfd832b1c87dddd0ce1868c948b15b6a1ef882f2dc56aa4c25fb",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_17.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "be978503e5e2839907ed0e440b6b351ffc2a7e69ad4bbfff871facb118542ba5"
+      }
+    ],
+    "recipeSha256": "1ef5089255e9beef002d107f54b4ef88a74cd36bdb0e8c166d80e82ab0290848"
+  },
+  "music.piano.grand": {
+    "size": [
+      32,
+      48
+    ],
+    "rgbaSha256": "9594d37465696b2af96874f5a0c4a830a74333deecbbd7ceeb207745438e4d8c",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_28.png",
+        "size": [
+          32,
+          48
+        ],
+        "rgbaSha256": "c53cb90778d83284b7b5b60b111afe5f32af9ce6a2b0c347cde48b40b76e0d08"
+      }
+    ],
+    "recipeSha256": "4920363ff4fad5581e649b9505e6778611941cd98084a7ada77c312e5b549e6f"
+  },
+  "music.piano-bench": {
+    "size": [
+      32,
+      16
+    ],
+    "rgbaSha256": "bd8f3d244c619e9443a7761d3b1ddfd3f25bdc60dfa371f547b676d81ab98a64",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_25.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "fad16f726b1bc19e3cc286e25c0afd2578751d1001fd593443e50b245edd91dc"
+      }
+    ],
+    "recipeSha256": "7469eb5dc53fc038bf6192507831cf7f80d9906e6066c49f37a352453890411f"
+  },
+  "music.speaker": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "6e9662a793b8910aee6a39359ae8bf900829c57821a8078f3b08baf6b835eb33",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_43.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "850ffe7a707bca8e5395b547f5a80adf8f63ff447150c8e0109213d2f912664b"
+      }
+    ],
+    "recipeSha256": "04a33cdb875f98a64b1ec689913380cb1443f4bc8eee4f8f8ec8bf961e6bc379"
+  },
+  "music.amplifier": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "1a6d90e198adf8b87404c9dbeebfba1817cfd4781b0571b177ac0f6a547c02c1",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_44.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "1e2b87b598e81e36187c429c2f8d2c21215377b90854c2916bccfbd80fa4fae6"
+      }
+    ],
+    "recipeSha256": "4f2096a852b699c096c5bda61d1b99c2c2a603a6b1ffa3107f4be33c68fb1d00"
+  },
+  "music.guitar.acoustic": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "285b89db376c4f6cca0c5c59ee53490303011c2e91e810b1e783754d9fe5f891",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_45.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "dffd1ada2e71d4860b61f059cc96a5fd0ae9f9f8168e0fd9aa34cd43292bfd48"
+      }
+    ],
+    "recipeSha256": "94ca82dfbf363cde6b8b1be46dd3588822f795096bfe560db2512ac5c0df0c78"
+  },
+  "music.guitar.electric": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "7a9402b17022b676973d93225d59b6367d42e921c7c3e4fc9bd9340f8802afcf",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_51.png",
+        "size": [
+          16,
+          48
+        ],
+        "rgbaSha256": "438b853098b1cb6bfdcbafc57a2b3fc9342269d842ad528d343c50b1c203b59f"
+      }
+    ],
+    "recipeSha256": "52fcc8b6730f228adadc891156fa20ed0c36ae0c4608fd45bd9e9089766e84f8"
+  },
+  "music.harp": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "b6e47e2c79a30dcf5b2b8124d52308f1b23b0f1e67098422bdc54a67061a7758",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_58.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "5a2b31193eeb75f64d5bf0d9d2d4c1084e6a90e7e3a1e15b7d29c7cc0d50c6c1"
+      }
+    ],
+    "recipeSha256": "64e86d9a346e46fdf0825c92647f6726e8c7aa52d0451a5a1c43f0112756f55a"
+  },
+  "music.microphone": {
+    "size": [
+      16,
+      32
+    ],
+    "rgbaSha256": "b9a6e6f1e77cd2f551e70ebd40cc69fa40885ebaf4bdcad5a938919a15be8969",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_62.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "a79e8271f181ecff14002e6711d235115d74b004ed2ba7a22ad4baff6ecc7d66"
+      }
+    ],
+    "recipeSha256": "929e21e99806c7f01c9dee623801cfd712775baf51a8df2eb68273983d6f5258"
+  },
+  "music.keyboard": {
+    "size": [
+      32,
+      32
+    ],
+    "rgbaSha256": "dcfe1804ecac3f928f176650bba35b6e2ed9458881a6d3ee602d16b981f1580a",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_173.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "4ee30935ad73e20f176b68f1274117f38d7c0933566df979681b004a2e929bed"
+      }
+    ],
+    "recipeSha256": "3633b1c55334ee2fb436c04030198892dbc083a3613dd1d807f8e39cbfe37166"
+  },
+  "music.drums": {
+    "size": [
+      48,
+      32
+    ],
+    "rgbaSha256": "b22fe7a4880c1ea2e11964ea940bc4bc915f9df5eb7f39851e418d92b1a2a1f8",
+    "sources": [
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_237.png",
+        "size": [
+          32,
+          32
+        ],
+        "rgbaSha256": "862ef466f141f70f9acd6d08f4b63853366e602df88f2c2faf558f57be3e2878"
+      },
+      {
+        "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_238.png",
+        "size": [
+          16,
+          32
+        ],
+        "rgbaSha256": "cc15f1422fda683d3a0a3cbb49b231b395fcaabf16d713026fa4eb94393736fd"
+      }
+    ],
+    "recipeSha256": "9eb6fe9602d462eccc36206469c67ad53b9f80c4c0ac43da596e930406618684"
+  }
+}

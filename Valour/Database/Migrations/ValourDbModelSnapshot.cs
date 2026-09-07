@@ -4642,6 +4642,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("spawn_y");
 
+                    b.Property<int>("TemplateRevision")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_revision");
+
                     b.Property<int>("TileSize")
                         .HasColumnType("integer")
                         .HasColumnName("tile_size");
@@ -4832,6 +4836,42 @@ namespace Valour.Database.Migrations
                     b.HasIndex("PlanetId");
 
                     b.ToTable("village_plots", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<long?>("DraftPlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("draft_planet_id");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<long?>("PublishedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("published_by_user_id");
+
+                    b.Property<string>("PublishedJson")
+                        .HasColumnType("text")
+                        .HasColumnName("published_json");
+
+                    b.Property<int>("ResetBeforeRevision")
+                        .HasColumnType("integer")
+                        .HasColumnName("reset_before_revision");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("village_template", (string)null);
                 });
 
             modelBuilder.Entity("planet_tags", b =>

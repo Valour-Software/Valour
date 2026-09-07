@@ -1,6 +1,11 @@
 /* Matches the About Planet / Rules pseudochannel rows. The shared
    ::deep .channel.open styles supply the open-state accent. */
 .planet-village {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
     cursor: pointer;
     position: relative;
     border-radius: var(--radius-md);

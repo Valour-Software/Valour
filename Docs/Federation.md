@@ -21,18 +21,17 @@ connection.
 
 The user's normal Valour session token never leaves the official hub.
 
-Federation ships in three layers, numbered by how much of the platform moves
-into your own hands:
+Valour supports three hosting arrangements:
 
-1. **Layer 1 — your media and calls:** a planet on official infrastructure
+1. **Planet media and calls:** a planet on official infrastructure
    brings its own S3 bucket and/or LiveKit server (planet settings → Storage /
-   Voice). Valour never touches those bytes.
-2. **Layer 2 — community nodes:** run the server on your own domain and host
-   whole planets inside the official network. This document covers that layer.
-3. **Layer 3 — the whole platform:** run a standalone instance, or enable the
+   Voice). Uploads and call media connect to the configured hosts.
+2. **Community nodes:** run the server on your own domain and host
+   whole planets inside the official network. This document covers community-node operation.
+3. **Standalone networks:** run a standalone instance, or enable the
    hub role for an independent clone network. See
    [self-hosting in the README](../README.md#self-hosting) and the
-   [federation plan](FederationPlan.md).
+   [federation architecture](FederationArchitecture.md).
 
 ## Roles
 
@@ -87,7 +86,7 @@ The node's hosting policy is closed by default:
 - Its registrant may move their own official planets there.
 - The registrant may approve another official owner, or one specific planet,
   through **User Settings → Federation** on the hub.
-- Setting `Federation:AllowPublicMigrations=true` deliberately permits any
+- Setting `Federation:AllowPublicMigrations=true` permits any
   eligible official owner to select the node. Re-register and verify after
   changing this policy, so the hub records it.
 
@@ -119,8 +118,7 @@ Only the planet owner can start a forward migration, and only from a planet
 currently hosted on the hub:
 
 1. On official Valour, open the planet's settings → **Federation**. Enter the
-   destination's bare domain and choose **Start migration**. There is currently
-   a domain field, not a node directory/picker.
+   destination's bare domain and choose **Start migration**. The destination is entered as a domain.
 2. The hub requires an active, verified destination node with the matching
    protocol and an applicable hosting policy. The operation fails before
    locking the planet when the node has not approved the owner/planet.
@@ -132,14 +130,14 @@ currently hosted on the hub:
    the community server.
 5. Verify the imported planet on the destination. Only then use **User Settings
    → Federation** on the official hub to finalize deletion of the source copy.
-   A pending migration may instead be cancelled to restore source writes.
+   Before import completion, a pending migration can be cancelled to restore
+   source writes. A completed import must follow finalization and pull-back.
 
 There is no direct community-node-to-community-node migration. To change
 community hosts, first complete a verified pull-back to the hub, then begin a
 new forward migration.
 
-Some data is deliberately not migrated until it has a safe, complete transfer
-path. An export rejects planets with encrypted node-local storage or voice
+The export format has transfer limits. An export rejects planets with encrypted node-local storage or voice
 credentials, thread attachments, or custom planet/emoji assets. Resolve or
 remove those blockers before starting the handoff.
 
@@ -174,5 +172,5 @@ traffic require publicly reachable HTTPS origins.
 ## Related documentation
 
 - [Deployment federation checklist](Deployment/README.md#federation-production-checklist)
-- [Protocol and architecture plan](FederationPlan.md)
+- [Protocol and architecture](FederationArchitecture.md)
 - [Offline recipient-bound invite grants](FederationInviteGrants.md)

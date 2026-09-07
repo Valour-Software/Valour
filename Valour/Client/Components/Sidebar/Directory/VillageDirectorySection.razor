@@ -2,10 +2,10 @@
 @inject ValourClient Client
 @using Valour.Client.Components.Windows.Villages
 
-<div class="channel planet-village @(_isOpen ? "open" : "")" @onclick="OnClickHeader">
+<button class="channel planet-village @(_isOpen ? "open" : "")" type="button" @onclick="OnClickHeader">
     <i class="bi bi-house-heart planet-pseudo-icon"></i>
-    <p class="name">Village</p>
-</div>
+    <span class="name">Village</span>
+</button>
 
 @code {
     [Parameter]
@@ -37,7 +37,7 @@
     {
         var content = VillageWindowComponent.GetDefaultContent(Planet);
         await WindowService.OpenWindowAtFocused(content);
-        await Sidebar.ToggleMobileSidebar();
+        await Sidebar.TryCloseMobileSidebarExternalAsync();
     }
 
     public void Dispose()

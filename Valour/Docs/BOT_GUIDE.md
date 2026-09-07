@@ -1,224 +1,145 @@
-# Valour Bot Guide
+# Bot development
 
-This guide walks you through creating a bot on Valour, connecting it with the SDK, and getting it to do things in a planet (server).
+A Valour bot uses an account token and the same API and permission system as the
+client. The SDK handles authentication, planet data, HTTP requests, and real-time
+subscriptions. This guide uses a source reference so the example runs against the
+SDK in this checkout.
 
-## 1. Create a Bot Account
+## Create an account and token
 
-1. Log into [Valour](https://app.valour.gg) with your regular account.
-2. Go to **Developer Settings** (user menu > Developer).
-3. Click **Create Bot** and give it a name.
-4. **Copy the token immediately** — it is only shown once. If you lose it, you can regenerate it from the bot's edit page (this invalidates the old one).
+Sign into Valour with your user account, open the Developer settings, and create
+a bot with a name. Copy the token when it is shown and store it privately. Token
+regeneration invalidates the token it replaces. The bot management service limits
+an owner to ten bots.
 
-## 2. Add the Bot to a Planet
+Add the bot to a planet through an invite using the SDK's
+`PlanetService.JoinPlanetAsync(planetId, inviteCode)`. Check the returned result
+before proceeding. The bot needs channel access and permission to send messages;
+automation does not bypass the planet's roles.
 
-Bots join planets the same way users do — through invite links. Create an invite in your planet's settings and use it to join the bot via the API, or simply use the Valour client to add the bot to the planet from the member list.
+## Create a project
 
-You can join a planet programmatically with:
+Use the .NET SDK pinned by the repository's `global.json`. From a directory for
+your bot project:
 
-```csharp
-await client.PlanetService.JoinPlanetAsync(planetId, "INVITE_CODE");
+```sh
+dotnet new console -n MyValourBot --framework net11.0
+dotnet add MyValourBot/MyValourBot.csproj reference /path/to/Valour/Valour/Sdk/Valour.Sdk.csproj
 ```
 
-## 3. Project Setup
+Set `VALOUR_BOT_TOKEN`, `VALOUR_BOT_PLANET_ID`, and `VALOUR_BOT_CHANNEL_ID` in your
+process environment. The planet and channel must already be accessible to the bot.
+An optional `VALOUR_BOT_URL` selects an instance and defaults to the official app.
+Keep the token out of source files, command logs, and screenshots.
 
-Create a new .NET console app and add the SDK:
+## A channel bot
 
-```bash
-dotnet new console -n MyValourBot
-cd MyValourBot
-dotnet add package Valour.Sdk
-```
-
-## 4. Minimal Bot Example
+Replace `Program.cs` with this example. It responds to `!hello` in one selected
+channel and removes its subscription when Ctrl+C stops the process.
 
 ```csharp
 using Valour.Sdk.Client;
 using Valour.Sdk.Models;
 
-// Create the client pointed at Valour's API
-var client = new ValourClient("https://app.valour.gg/");
+var token = Environment.GetEnvironmentVariable("VALOUR_BOT_TOKEN")
+    ?? throw new InvalidOperationException("Set VALOUR_BOT_TOKEN.");
+var planetId = long.Parse(Environment.GetEnvironmentVariable("VALOUR_BOT_PLANET_ID")
+    ?? throw new InvalidOperationException("Set VALOUR_BOT_PLANET_ID."));
+var channelId = long.Parse(Environment.GetEnvironmentVariable("VALOUR_BOT_CHANNEL_ID")
+    ?? throw new InvalidOperationException("Set VALOUR_BOT_CHANNEL_ID."));
+var url = Environment.GetEnvironmentVariable("VALOUR_BOT_URL")
+    ?? "https://app.valour.gg/";
+
+var client = new ValourClient(url);
 client.SetupHttpClient();
+var login = await client.InitializeUser(token);
+if (!login.Success)
+    throw new InvalidOperationException(login.Message);
 
-// Log in with the bot token you saved earlier
-var loginResult = await client.InitializeUser("bot-YOUR-TOKEN-HERE");
-if (!loginResult.Success)
-{
-    Console.WriteLine($"Login failed: {loginResult.Message}");
-    return;
-}
-
-Console.WriteLine($"Logged in as {client.Me.Name} (ID: {client.Me.Id})");
-
-// At this point, client.PlanetService.JoinedPlanets is populated.
-foreach (var planet in client.PlanetService.JoinedPlanets)
-{
-    Console.WriteLine($"  Planet: {planet.Name} ({planet.Id})");
-}
-
-// Keep the process alive
-await Task.Delay(Timeout.Infinite);
-```
-
-## 5. Connecting to a Planet and Sending a Message
-
-After login, you need to **open a realtime connection** to a planet before you can interact with it. This sets up the SignalR connection that delivers live events.
-
-```csharp
-var planet = client.PlanetService.JoinedPlanets.First();
-
-// Load the planet's data (channels, roles, members, etc.)
+var planet = client.PlanetService.JoinedPlanets.FirstOrDefault(p => p.Id == planetId)
+    ?? throw new InvalidOperationException("The bot has not joined this planet.");
 await planet.EnsureReadyAsync();
-await planet.FetchInitialDataAsync();
+var initial = await planet.FetchInitialDataAsync();
+if (!initial.Success)
+    throw new InvalidOperationException(initial.Message);
+var connection = await planet.ConnectToRealtime();
+if (!connection.Success)
+    throw new InvalidOperationException(connection.Message);
 
-// Open a realtime connection so we receive events
-await planet.ConnectToRealtime();
+var channel = planet.Channels.FirstOrDefault(c => c.Id == channelId)
+    ?? throw new InvalidOperationException("The channel is not available.");
 
-// Grab the default chat channel
-var channel = planet.PrimaryChatChannel;
-if (channel is null)
+async Task OnMessage(Message message)
 {
-    // Fall back to first chat channel
-    channel = planet.Channels.FirstOrDefault(
-        c => c.ChannelType == Valour.Shared.Models.ChannelTypeEnum.PlanetChat);
-}
-
-if (channel is not null)
-{
-    var result = await channel.SendMessageAsync("Hello from my bot!");
-    Console.WriteLine(result.Success ? "Message sent!" : $"Failed: {result.Message}");
-}
-```
-
-## 6. Listening for Messages
-
-The SDK provides events at two levels:
-
-### Global (all messages the bot can see)
-
-```csharp
-client.MessageService.MessageReceived += (message) =>
-{
-    Console.WriteLine($"[{message.TimeSent:HH:mm:ss}] {message.Content}");
-};
-```
-
-### Per-Channel
-
-```csharp
-channel.MessageReceived += (message) =>
-{
-    Console.WriteLine($"#{channel.Name}: {message.Content}");
-};
-```
-
-To receive channel-level events, you need to open the channel's realtime connection:
-
-```csharp
-await channel.OpenWithResult("my-bot");
-```
-
-## 7. Full Echo Bot Example
-
-Putting it all together — a bot that echoes messages back (ignoring its own):
-
-```csharp
-using Valour.Sdk.Client;
-using Valour.Sdk.Models;
-using Valour.Shared.Models;
-
-var client = new ValourClient("https://app.valour.gg/");
-client.SetupHttpClient();
-
-var loginResult = await client.InitializeUser("bot-YOUR-TOKEN-HERE");
-if (!loginResult.Success)
-{
-    Console.WriteLine($"Login failed: {loginResult.Message}");
-    return;
-}
-
-Console.WriteLine($"Bot online: {client.Me.Name}");
-
-// Connect to all planets and channels (BotService helper)
-await client.BotService.JoinAllChannelsAsync();
-
-// Listen for messages globally
-client.MessageService.MessageReceived += async (message) =>
-{
-    // Ignore our own messages
-    if (message.AuthorUserId == client.Me.Id)
+    if (message.AuthorUserId == client.Me.Id || message.Content != "!hello")
         return;
 
-    // Only respond to messages starting with "!echo "
-    if (message.Content is null || !message.Content.StartsWith("!echo "))
-        return;
+    var reply = await channel.SendMessageAsync("Hello!");
+    if (!reply.Success)
+        Console.Error.WriteLine(reply.Message);
+}
 
-    var reply = message.Content.Substring(6);
-
-    // Get the channel and send the reply
-    if (client.Cache.Channels.TryGet(message.ChannelId, out var channel))
-    {
-        await channel.SendMessageAsync(reply);
-    }
+using var stopping = new CancellationTokenSource();
+Console.CancelKeyPress += (_, args) =>
+{
+    args.Cancel = true;
+    stopping.Cancel();
 };
 
-Console.WriteLine("Listening for messages...");
-await Task.Delay(Timeout.Infinite);
+channel.MessageReceived += OnMessage;
+try
+{
+    var opened = await channel.OpenWithResult("greeting-bot");
+    if (!opened.Success)
+        throw new InvalidOperationException(opened.Message);
+
+    Console.WriteLine($"Listening in {channel.Name}. Press Ctrl+C to stop.");
+    await Task.Delay(Timeout.Infinite, stopping.Token);
+}
+catch (OperationCanceledException) when (stopping.IsCancellationRequested)
+{
+}
+finally
+{
+    channel.MessageReceived -= OnMessage;
+    await channel.Close("greeting-bot");
+}
 ```
 
-## 8. Using `BotService.InitializeBot` (Alternative Login)
+Opening a channel acquires a keyed real-time subscription. Closing it with the
+same key releases that consumer's interest. HTTP operations and live subscriptions
+are separate: sending a permitted HTTP request does not require listening for
+all channel events.
 
-If you prefer to log in with email/password instead of a token (e.g., during development), the `BotService` has a convenience method that also auto-connects to every planet and channel:
+## Receiving messages
 
-```csharp
-var client = new ValourClient("https://app.valour.gg/");
-var result = await client.BotService.InitializeBot("bot@example.com", "password");
-```
+`channel.MessageReceived` observes the selected channel. The client-wide
+`client.MessageService.MessageReceived` event observes messages delivered through
+the client's active subscriptions. It does not automatically subscribe to every
+channel the account can access.
 
-This calls `LoginAsync`, sets up the primary node, and calls `JoinAllChannelsAsync()` automatically.
+`BotService.JoinAllChannelsAsync()` is an initialization helper for bots that need
+all joined planets and their channels. For a bot with a narrow purpose, opening
+only its configured channels makes its behavior easier to control.
 
-## Key Concepts
+Events use `HybridEvent`, so asynchronous handlers can overlap and the caller does
+not await their completion. Serialize work yourself if commands depend on order,
+and observe failures from outbound requests. See
+[Reactive models](../../Docs/ReactiveModelSystem.md) for event and cache behavior.
 
-| Concept | Description |
-|---------|-------------|
-| **ValourClient** | The main SDK entry point. Holds all services and the logged-in user. |
-| **Planet** | A server/community. Contains channels, roles, and members. |
-| **Channel** | A text or voice channel within a planet (or a DM). |
-| **Node** | A Valour server node. The SDK manages node connections automatically. |
-| **PrimaryNode** | The main API node your client talks to. |
-| **Realtime** | SignalR connections that deliver live events (messages, edits, etc.). |
+## Other SDK operations
 
-## Common Patterns
+`channel.GetLastMessagesAsync(count)` fetches recent history. A message can resolve
+its user with `FetchAuthorUserAsync()` or its planet member with
+`FetchAuthorMemberAsync()`. A direct message may not have planet-member context,
+so handle a missing member.
 
-### Get a specific channel by name
+`BotService` also exposes creation, updates, deletion, and token regeneration for
+bots owned by the signed-in account. `InitializeBot(email, password)` supports
+account-password login and opens joined channels; token login is the direct path
+for tokens issued by the bot management screen.
 
-```csharp
-var general = planet.Channels.FirstOrDefault(c => c.Name == "General");
-```
-
-### React to a message
-
-```csharp
-await message.AddReactionAsync("thumbsup");
-```
-
-### Fetch recent messages from a channel
-
-```csharp
-var messages = await channel.GetLastMessagesAsync(50);
-```
-
-### Check who sent a message
-
-```csharp
-var user = await message.FetchAuthorUserAsync();
-var member = await message.FetchAuthorMemberAsync(); // planet context
-Console.WriteLine($"Sent by: {member?.Nickname ?? user.Name}");
-```
-
-## Tips
-
-- **Token security**: Never commit your bot token to source control. Use environment variables or a secrets manager.
-- **Rate limits**: Be mindful of how often you send messages. Avoid tight loops.
-- **Permissions**: Bots respect the same role/permission system as users. Make sure the bot's role has the permissions it needs (Send Messages, etc.).
-- **Reconnection**: The SDK handles SignalR reconnection automatically through the `Node` system.
-- **Max bots**: Each user account can create up to 10 bots.
+For federation, use the SDK's origin-aware planet/channel models and explicit
+community-domain acceptance. Do not use an unscoped numeric cache lookup to select
+a channel on a community node. Keep replies tied to the channel that produced the
+event, as in the example above.

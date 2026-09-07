@@ -131,7 +131,8 @@ public class ChannelService : ServiceBase
             return null;
         }
 
-        var response = await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetPlanetIdRoute(planet.Id, id));
+        var response = await planet.Node.GetJsonAsync<Channel>(
+            ISharedChannel.GetPlanetIdRoute(planet.Id, id), cacheDurationMs: skipCache ? null : 100);
         if (!response.Success || response.Data is null)
         {
             LogError($"Failed to fetch planet channel {id} in planet {planet.Id}: {response.Message}");

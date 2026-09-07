@@ -1,3 +1,5 @@
+import { resolveVillageImageUrl } from "./VillageAtlasProtection.js";
+
 export type TileDefinition = {
     kind: string;
     name: string;
@@ -105,7 +107,7 @@ export function loadStandaloneImage(url: string): Promise<HTMLImageElement> {
         image.referrerPolicy = "no-referrer";
         image.onload = () => resolve(image);
         image.onerror = () => reject(new Error(`Unable to load image: ${url}`));
-        image.src = url;
+        resolveVillageImageUrl(url).then(source => { image.src = source; }).catch(reject);
     });
 }
 
@@ -155,8 +157,11 @@ export function loadTexture(cache: TextureCache, url: string, onLoaded?: () => v
         texture.failed = true;
         settle();
     };
-    texture.image.src = url;
     cache.set(url, texture);
+    resolveVillageImageUrl(url).then(source => { texture.image.src = source; }).catch(() => {
+        texture.failed = true;
+        settle();
+    });
     return texture;
 }
 

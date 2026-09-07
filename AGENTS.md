@@ -1,81 +1,53 @@
-# Guidance for AI Agents
+# Guidance for AI agents
 
-This file provides guidance for AI coding assistants working on the Valour codebase.
+## Read the relevant documentation
 
-## Documentation
+Start with [Docs/README.md](Docs/README.md). Before changing model synchronization,
+read [Docs/ReactiveModelSystem.md](Docs/ReactiveModelSystem.md). This applies to
+`Valour/Sdk/ModelLogic/`, `Valour/Sdk/Nodes/Node.cs`,
+`Valour/Shared/Utilities/HybridEvent.cs`, `Valour/Server/Hubs/CoreHub.cs`, and
+`Valour/Server/Services/CoreHubService.cs`.
 
-Before making changes to core systems, review the documentation in the `Docs/` directory:
+## Project structure
 
-- **`Docs/ReactiveModelSystem.md`** - Explains the ClientModel, ModelStore, HybridEvent, and real-time update architecture. Essential reading before modifying:
-  - `Valour/Sdk/ModelLogic/` (ClientModel, ModelStore, ModelChange, etc.)
-  - `Valour/Sdk/Nodes/Node.cs`
-  - `Valour/Shared/Utilities/HybridEvent.cs`
-  - `Valour/Server/Hubs/CoreHub.cs`
-  - `Valour/Server/Services/CoreHubService.cs`
+`Valour/Client/` is the shared Razor UI library, and `Valour/Client.Blazor/` is its
+browser WebAssembly host. `Valour/Client.Maui/` contains the native host. The SDK
+owns client models, services, caches, and node connections. `Valour/Shared/` owns
+shared contracts and utilities. Database models and migrations live in
+`Valour/Database/`; APIs and application services live in `Valour/Server/`.
+`Config/` contains server settings, and `Valour/Web/` contains the public website.
 
-## Project Structure
+## Threading and model identity
 
-```
-Valour/
-├── Config/                    # Configuration classes
-├── Valour/
-│   ├── Client/               # Blazor WASM client (deprecated, being migrated)
-│   ├── Client.Blazor/        # New Blazor client
-│   ├── Database/             # Entity Framework models and DbContext
-│   ├── Sdk/                  # Client SDK (models, services, SignalR client)
-│   │   ├── ModelLogic/       # Reactive model system
-│   │   ├── Models/           # Client-side model implementations
-│   │   ├── Nodes/            # SignalR connection management
-│   │   └── Services/         # Client-side services
-│   ├── Server/               # ASP.NET Core server
-│   │   ├── Api/              # REST API endpoints
-│   │   ├── Cdn/              # CDN and file handling
-│   │   ├── Hubs/             # SignalR hubs
-│   │   └── Services/         # Server-side services
-│   └── Shared/               # Shared code between client and server
-│       ├── Cdn/              # CDN utilities
-│       ├── Models/           # Shared model interfaces
-│       └── Utilities/        # HybridEvent, etc.
-└── Docs/                     # Architecture documentation
-```
+Model stores synchronize collection operations internally with `SyncLock` and
+invoke events after releasing it. Do not add external locking around ordinary
+store access or invoke handlers while holding collection locks. Enumeration
+returns a list snapshot, not immutable copies of its models.
 
-## Key Architectural Patterns
+`HybridEvent` supports synchronous and asynchronous subscribers. Invocation does
+not wait for asynchronous handlers to finish. Copy needed values from pooled
+change data before scheduling later work. Remove subscriptions when their owner
+is disposed, and dispose only events that owner created.
 
-### 1. Reactive Model System
-Models sync in real-time via SignalR. See `Docs/ReactiveModelSystem.md`.
+Community-node models carry origin scope. Preserve that scope in HTTP requests,
+cache lookups, and synchronization. A local numeric ID alone does not identify an
+object across independent community nodes.
 
-### 2. Thread Safety
-- `ModelStore` uses `SyncLock` for all collection operations
-- Events are fired **outside** locks to prevent deadlocks
-- `HybridEvent` uses double-checked locking for initialization
+## Build and verification
 
-### 3. Multi-Node Architecture
-Valour supports multiple server nodes. Clients connect to specific nodes based on which planets they're accessing.
+Use the exact SDK pinned in `global.json`. Build with `dotnet build` and run the
+local server with `dotnet run --project Valour/Server/Valour.Server.csproj`.
+The server applies database migrations on startup.
 
-## Common Pitfalls
+C# integration tests require isolated PostgreSQL and Redis services. Follow
+[the isolated test instructions](Valour/Tests/Browser/README.md#isolated-c-regression)
+and use the local test runner. JavaScript tests run through Node's test runner;
+[their README](Valour/Tests/Js/README.md) explains compilation requirements.
 
-1. **Don't hold locks while firing events** - Can cause deadlocks
-2. **ModelStore is thread-safe** - Don't add external locking
-3. **HybridEvent async handlers are fire-and-forget** - Don't rely on completion
-4. **Don't store event data in async handlers** - May be pooled/recycled
+## Documentation style
 
-## Testing
-
-```bash
-# Build everything
-dotnet build
-
-# Run server
-cd Valour/Server && dotnet run
-
-# Run tests
-dotnet test
-```
-
-## Contributing
-
-When modifying core systems:
-1. Read relevant documentation in `Docs/`
-2. Understand the threading model
-3. Maintain existing patterns
-4. Update documentation if you change architecture
+Keep documentation aligned with the code in the checkout. Describe current
+behavior and constraints without implementation history, replacement narratives,
+or proposed features. Use readable English with enough explanation to understand
+the concepts. Do not use em dashes, promotional phrasing, or unexplained jargon.
+Update relevant guides when changing architecture or externally visible behavior.

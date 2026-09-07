@@ -650,6 +650,9 @@ body {
     width: 36px;
     height: 36px;
     flex-shrink: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
     border-radius: var(--radius-full);
     color: var(--font-alt-color);
     cursor: pointer;
@@ -2201,6 +2204,8 @@ img.emoji {
 /* Editor sections - modern flat design */
 /* Settings page container - shared by all settings/menu pages */
 .settings-page {
+    width: 100%;
+    min-width: 0;
     max-width: 640px;
     margin: 0;
     display: flex;
@@ -2593,4 +2598,123 @@ td .button-row button {
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
+}
+
+.settings-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+
+.settings-list {
+    display: grid;
+    gap: .5rem;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .85rem 1rem;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    background: var(--main-3);
+    min-width: 0;
+}
+
+.settings-row-button {
+    width: 100%;
+    color: var(--font-color);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.settings-row-button:hover {
+    background: var(--main-4);
+    border-color: var(--medium-tint);
+}
+
+.settings-row-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+}
+
+.settings-row-icon {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+}
+
+.settings-row-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+}
+
+.settings-row-copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-row-title {
+    margin: 0 0 .25rem;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    overflow-wrap: anywhere;
+}
+
+.settings-row-description,
+.settings-row-action {
+    margin: 0;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    overflow-wrap: anywhere;
+}
+
+.settings-empty {
+    padding: 1rem;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    background: var(--main-3);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+.settings-empty > i {
+    display: none;
+}
+
+.settings-empty h4 {
+    margin: 0 0 .35rem;
+    color: var(--font-color);
+    font-size: var(--font-size-sm);
+}
+
+.settings-empty p:last-child {
+    margin-bottom: 0;
+}
+
+.settings-page .input-group {
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.settings-page .input-group > .v-input {
+    min-width: 0;
+    flex: 1 1 160px;
+}
+
+.settings-page .preview {
+    background: var(--main-3);
+    box-shadow: none;
+    transform: none;
+    max-width: 100%;
+}
+
+.settings-page .form-group label.switch {
+    margin-bottom: 0;
 }

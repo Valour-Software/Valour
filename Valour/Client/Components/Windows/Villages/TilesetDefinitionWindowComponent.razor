@@ -20,41 +20,60 @@
         </div>
 
         <div class="tool-load-controls">
+            @if (_definitions.Count > 0)
+            {
+                <select class="asset-picker field-input" aria-label="Jump to asset" value="@_draft.Key" @onchange="JumpToAssetAsync">
+                    @foreach (var definition in _definitions.OrderBy(x => x.Name))
+                    {
+                        <option value="@definition.Key">@definition.Name</option>
+                    }
+                </select>
+            }
+            @if (_sourceSheets.Count > 1)
+            {
+                <select class="source-sheet-picker field-input" aria-label="Source sheet" value="@_activeSourceSheet" @onchange="SelectSourceSheetAsync">
+                    @for (var index = 0; index < _sourceSheets.Count; index++)
+                    {
+                        <option value="@index">@_sourceSheets[index].FileName</option>
+                    }
+                </select>
+            }
             <div class="source-file-label" title="The original source sheet stays in this browser session">
-                <i class="bi bi-file-earmark-image"></i>
+                <i aria-hidden="true" class="bi bi-file-earmark-image"></i>
                 <span>@SourceFileLabel</span>
             </div>
             <label class="icon-btn file-btn" title="Open original source sheet locally">
-                <i class="bi bi-folder2-open"></i>
+                <i aria-hidden="true" class="bi bi-folder2-open"></i>
                 <input id="@_fileInputId" type="file" accept=".png,.jpg,.jpeg,.webp" multiple />
             </label>
             <label class="icon-btn file-btn" title="Import saved work">
-                <i class="bi bi-box-arrow-in-down"></i>
+                <i aria-hidden="true" class="bi bi-box-arrow-in-down"></i>
                 <InputFile hidden id="@_importInputId" accept=".json,application/json" OnChange="@ImportDefinitionsAsync" />
             </label>
             <button class="icon-btn" title="Fit sheet" @onclick="@FitSheetAsync">
-                <i class="bi bi-arrows-fullscreen"></i>
+                <i aria-hidden="true" class="bi bi-arrows-fullscreen"></i>
             </button>
         </div>
     </div>
 
     <div class="tool-body">
         <section class="sheet-stage">
-            <canvas id="@_canvasId" class="sheet-canvas"></canvas>
+            <canvas id="@_canvasId" class="sheet-canvas" aria-label="Tileset artwork"></canvas>
+            <span class="sheet-gesture-hint">Drag to select · Two fingers to pan and zoom</span>
         </section>
 
         <aside class="definition-panel">
             <div class="panel-tabs">
                 <button class="@GetPanelTabClass("Definition")" @onclick='() => SetPanelTab("Definition")'>
-                    <i class="bi bi-grid-3x3"></i>
+                    <i aria-hidden="true" class="bi bi-grid-3x3"></i>
                     <span>Tiles</span>
                 </button>
                 <button class="@GetPanelTabClass("Terrain")" @onclick='() => SetPanelTab("Terrain")'>
-                    <i class="bi bi-layers"></i>
+                    <i aria-hidden="true" class="bi bi-layers"></i>
                     <span>Terrains</span>
                 </button>
                 <button class="@GetPanelTabClass("Brush")" @onclick='() => SetPanelTab("Brush")'>
-                    <i class="bi bi-brush"></i>
+                    <i aria-hidden="true" class="bi bi-brush"></i>
                     <span>Brushes</span>
                 </button>
             </div>
@@ -71,7 +90,7 @@
                             <input class="field-input" placeholder="name" @bind="terrain.Name" @bind:event="oninput" />
                             <input class="field-input" type="number" title="Priority" @bind="terrain.Priority" />
                             <button class="icon-btn mini-btn" title="Remove terrain" @onclick="() => RemoveTerrain(terrain)">
-                                <i class="bi bi-trash"></i>
+                                <i aria-hidden="true" class="bi bi-trash"></i>
                             </button>
                         </div>
                     }
@@ -79,7 +98,7 @@
 
                 <div class="panel-actions">
                     <button class="primary-action" @onclick="AddTerrain">
-                        <i class="bi bi-plus-lg"></i>
+                        <i aria-hidden="true" class="bi bi-plus-lg"></i>
                         <span>Add Terrain</span>
                     </button>
                 </div>
@@ -90,11 +109,11 @@
                     <div class="section-title">Definition</div>
                     <div class="mode-toggle">
                         <button class="@GetModeClass("Tile")" @onclick='() => SetKind("Tile")'>
-                            <i class="bi bi-grid-3x3"></i>
+                            <i aria-hidden="true" class="bi bi-grid-3x3"></i>
                             <span>Tile</span>
                         </button>
                         <button class="@GetModeClass("Sprite")" @onclick='() => SetKind("Sprite")'>
-                            <i class="bi bi-bounding-box"></i>
+                            <i aria-hidden="true" class="bi bi-bounding-box"></i>
                             <span>Sprite</span>
                         </button>
                     </div>
@@ -136,6 +155,31 @@
                         <option>Left</option>
                     </select>
                 </div>
+
+                @if (_draft.Kind == "Sprite")
+                {
+                    <div class="panel-section">
+                        <div class="section-title">Placement</div>
+                        <div class="field-row">
+                            <div>
+                                <label class="field-label">Footprint width</label>
+                                <input class="field-input" type="number" min="0" max="@_draft.Width" @bind="_draft.FootprintWidth" />
+                            </div>
+                            <div>
+                                <label class="field-label">Footprint height</label>
+                                <input class="field-input" type="number" min="0" max="@_draft.Height" @bind="_draft.FootprintHeight" />
+                            </div>
+                        </div>
+                        <small>Ground contact in tiles, anchored to the sprite's bottom. Zero keeps the existing automatic footprint.</small>
+                        <label class="field-label">Place on</label>
+                        <select class="field-input" @bind="_draft.PlacementLayer">
+                            <option value="Furniture">Floor (furniture)</option>
+                            <option value="Floor">Under furniture (rug)</option>
+                            <option value="Surface">Desk or table</option>
+                        </select>
+                        <label class="field-label"><input type="checkbox" @bind="_draft.SupportsItems" /> Can hold desk accessories</label>
+                    </div>
+                }
 
                 <div class="panel-section">
                     <div class="section-title">Terrain Ruleset</div>
@@ -193,7 +237,7 @@
                     <div class="section-title-row">
                         <div class="section-title">Collision</div>
                         <button class="icon-btn mini-btn" title="Swap empty and solid cells; special states are preserved" @onclick="InvertCollision">
-                            <i class="bi bi-arrow-left-right"></i>
+                            <i aria-hidden="true" class="bi bi-arrow-left-right"></i>
                         </button>
                     </div>
                     <div class="collision-state-picker" role="radiogroup" aria-label="Collision paint state">
@@ -204,7 +248,7 @@
                                     aria-checked="@(_selectedCollisionState == option.State)"
                                     title="@option.Description"
                                     @onclick="() => SelectCollisionState(option.State)">
-                                <i class="bi @option.Icon"></i>
+                                <i aria-hidden="true" class="bi @option.Icon"></i>
                                 <span>@option.Label</span>
                             </button>
                         }
@@ -221,7 +265,7 @@
                                 <span>
                                     @if (VillageCollisionState.IsDoor(_draft.Collision[index]))
                                     {
-                                        <i class="bi bi-door-open-fill"></i>
+                                        <i aria-hidden="true" class="bi bi-door-open-fill"></i>
                                     }
                                 </span>
                             </button>
@@ -232,17 +276,17 @@
 
                 <div class="panel-actions">
                     <button class="primary-action" @onclick="SaveDefinition">
-                        <i class="bi bi-plus-lg"></i>
+                        <i aria-hidden="true" class="bi bi-plus-lg"></i>
                         <span>Save</span>
                     </button>
                     <button class="secondary-action" @onclick="ClearDraft">
-                        <i class="bi bi-x-lg"></i>
+                        <i aria-hidden="true" class="bi bi-x-lg"></i>
                     </button>
                     <button class="secondary-action danger-action" disabled="@(!HasSelectedSavedDefinition)" @onclick="DeleteSelectedDefinition">
-                        <i class="bi bi-trash"></i>
+                        <i aria-hidden="true" class="bi bi-trash"></i>
                     </button>
                     <button class="secondary-action" @onclick="CopyJsonAsync">
-                        <i class="bi bi-clipboard"></i>
+                        <i aria-hidden="true" class="bi bi-clipboard"></i>
                     </button>
                 </div>
 
@@ -308,14 +352,14 @@
 
                 <div class="panel-actions">
                     <button class="primary-action" @onclick="SaveBrush">
-                        <i class="bi bi-brush"></i>
+                        <i aria-hidden="true" class="bi bi-brush"></i>
                         <span>Save Brush</span>
                     </button>
                     <button class="secondary-action" @onclick="ClearBrushDraft">
-                        <i class="bi bi-x-lg"></i>
+                        <i aria-hidden="true" class="bi bi-x-lg"></i>
                     </button>
                     <button class="secondary-action" @onclick="RegenerateBrushKey">
-                        <i class="bi bi-magic"></i>
+                        <i aria-hidden="true" class="bi bi-magic"></i>
                     </button>
                 </div>
 
@@ -334,22 +378,22 @@
 
     <section class="package-panel">
         <div class="package-copy">
-            <div class="section-title">Canonical Package</div>
+            <div class="section-title">Export library</div>
             <div class="hint-text">
-                The original sheet stays local. Building creates one trimmed atlas and one manifest that retains original and runtime coordinates.
+                Build the library, then download its atlas and matching definitions.
             </div>
         </div>
         <input class="field-input package-name-input" aria-label="Package name" @bind="_packageName" />
         <button class="primary-action" disabled="@(!_sourceReady)" @onclick="BuildPackageAsync">
-            <i class="bi bi-box-seam"></i>
+            <i aria-hidden="true" class="bi bi-box-seam"></i>
             <span>Build</span>
         </button>
         <button class="secondary-action" disabled="@(_packageResult is null)" @onclick='() => DownloadPackageFileAsync("image")'>
-            <i class="bi bi-image"></i>
+            <i aria-hidden="true" class="bi bi-image"></i>
             <span>Atlas</span>
         </button>
         <button class="secondary-action" disabled="@(_packageResult is null)" @onclick='() => DownloadPackageFileAsync("manifest")'>
-            <i class="bi bi-filetype-json"></i>
+            <i aria-hidden="true" class="bi bi-filetype-json"></i>
             <span>Manifest</span>
         </button>
     </section>
@@ -361,11 +405,11 @@
         }
         else
         {
-            <span>Upload the original sheet, then build the canonical package.</span>
+            <span>Edit the library, then build to download your changes.</span>
         }
     </div>
 
-    <textarea class="json-output" readonly>@DisplayedManifestJson</textarea>
+    <details class="manifest-details"><summary>View manifest JSON</summary><textarea class="json-output" readonly>@DisplayedManifestJson</textarea></details>
 </div>
 
 @code {
@@ -378,9 +422,9 @@
     private IJSObjectReference? _module;
     private IJSObjectReference? _runtime;
     private DotNetObjectReference<TilesetDefinitionWindowComponent>? _selfRef;
-    private string _imageUrl = "https://public-cdn.valour.gg/valour-public/tilesets/official/Modern_Exteriors_Complete_Tileset.png";
-    private string _previewImageUrl = "https://public-cdn.valour.gg/valour-public/tilesets/official/Modern_Exteriors_Complete_Tileset.png";
-    private string _manifestImage = "https://public-cdn.valour.gg/valour-public/tilesets/official/Modern_Exteriors_Complete_Tileset.png";
+    private string _imageUrl = "/_content/Valour.Client/media/villages/library-atlas.vtex.bin";
+    private string _previewImageUrl = "/_content/Valour.Client/media/villages/library-atlas.vtex.bin";
+    private string _manifestImage = "/_content/Valour.Client/media/villages/library-atlas.vtex.bin";
     private string _sourceFileName = string.Empty;
     private string _sourceSha256 = string.Empty;
     private string _loadedImageSha256 = string.Empty;
@@ -422,6 +466,22 @@
     private string SelectedBrushTileLabel => string.IsNullOrWhiteSpace(_selectedBrushTileKey)
         ? GetDraftDisplayName()
         : GetDefinitionDisplayName(_selectedBrushTileKey);
+    private int _activeSourceSheet;
+
+    private async Task JumpToAssetAsync(ChangeEventArgs args)
+    {
+        var definition = _definitions.FirstOrDefault(x => x.Key == args.Value?.ToString());
+        if (definition is not null) await LoadDefinition(definition);
+    }
+
+    private async Task SelectSourceSheetAsync(ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), out var index) || index < 0 || index >= _sourceSheets.Count || _runtime is null) return;
+        _activeSourceSheet = index;
+        var sheet = _sourceSheets[index];
+        await _runtime.InvokeVoidAsync("focusRegion", sheet.OffsetX, sheet.OffsetY, sheet.Width, sheet.Height);
+    }
+
     private string SourceFileLabel => _sourceSheets.Count > 1
         ? $"{_sourceSheets.Count} source sheets"
         : string.IsNullOrWhiteSpace(_sourceFileName)
@@ -461,7 +521,7 @@
             matchingDefinition ??= FindContainingDefinition(selection);
             if (matchingDefinition is not null)
             {
-                await LoadDefinition(matchingDefinition);
+                await LoadDefinition(matchingDefinition, focus: false);
                 return;
             }
         }
@@ -513,7 +573,9 @@
 
     private async Task FitSheetAsync()
     {
-        if (_runtime is not null)
+        if (_sourceSheets.Count > 0)
+            await SelectSourceSheetAsync(new ChangeEventArgs { Value = _activeSourceSheet.ToString() });
+        else if (_runtime is not null)
             await _runtime.InvokeVoidAsync("fit");
     }
 
@@ -1043,6 +1105,8 @@
     private async Task SaveDefinition()
     {
         EnsureCollisionSize();
+        _draft.FootprintWidth = Math.Clamp(_draft.FootprintWidth, 0, _draft.Width);
+        _draft.FootprintHeight = Math.Clamp(_draft.FootprintHeight, 0, _draft.Height);
         var copy = _draft.Clone();
         if (string.IsNullOrWhiteSpace(copy.Name))
             copy.Name = $"{copy.Kind} {copy.X},{copy.Y}";
@@ -1051,6 +1115,28 @@
             copy.Key = GenerateDefinitionKey(copy);
 
         var existingIndex = FindExistingDefinitionIndex(copy);
+        var previous = existingIndex >= 0 ? _definitions[existingIndex] : null;
+        if (copy.Kind == "Sprite" && _runtime is not null &&
+            (previous is null || previous.Kind != "Sprite" || previous.X != copy.X || previous.Y != copy.Y ||
+             previous.Width != copy.Width || previous.Height != copy.Height))
+        {
+            try
+            {
+                var validation = await _runtime.InvokeAsync<string>("validateSprite", copy.X, copy.Y, copy.Width, copy.Height);
+                if (!string.IsNullOrEmpty(validation))
+                {
+                    _importStatus = validation;
+                    await ReRender();
+                    return;
+                }
+            }
+            catch (JSException)
+            {
+                _importStatus = "The sprite could not be checked. Load the original source image and try again.";
+                await ReRender();
+                return;
+            }
+        }
         if (existingIndex >= 0)
             _definitions[existingIndex] = copy;
         else
@@ -1138,7 +1224,7 @@
         ReRender();
     }
 
-    private async Task LoadDefinition(TilesetDefinitionDraft definition)
+    private async Task LoadDefinition(TilesetDefinitionDraft definition, bool focus = true)
     {
         _draft = definition.Clone();
         _selection = new SheetSelection
@@ -1151,10 +1237,19 @@
         EnsureCollisionSize();
         _keyWasEdited = true;
         _selectedBrushTileKey = _draft.Key;
-        ReRender();
+        if (focus)
+            _activeSourceSheet = Math.Max(0, _sourceSheets.FindIndex(sheet => _draft.Y * TileSize >= sheet.OffsetY && _draft.Y * TileSize < sheet.OffsetY + sheet.Height));
+        await ReRender();
 
         if (_runtime is not null)
+        {
             await _runtime.InvokeVoidAsync("setSelection", _selection.X, _selection.Y, _selection.Width, _selection.Height);
+            if (focus)
+            {
+                await _runtime.InvokeVoidAsync("focusRegion", Math.Max(0, (_draft.X - 2) * TileSize),
+                    Math.Max(0, (_draft.Y - 2) * TileSize), (_draft.Width + 4) * TileSize, (_draft.Height + 4) * TileSize);
+            }
+        }
     }
 
     private async Task CopyJsonAsync()
@@ -1226,8 +1321,9 @@
         _manifestImage = import.Image;
 
         _definitions.Clear();
-        foreach (var definition in import.Definitions)
+        foreach (var sourceDefinition in import.Definitions)
         {
+            var definition = sourceDefinition.Clone();
             if (definition.SourceX is null || definition.SourceY is null)
                 throw new JsonException($"Definition {definition.Key} has no reversible source coordinates.");
             definition.X = definition.SourceX.Value;
@@ -1251,8 +1347,9 @@
         }
 
         _wallSets.Clear();
-        foreach (var wallSet in import.WallSets)
+        foreach (var sourceWallSet in import.WallSets)
         {
+            var wallSet = sourceWallSet.Clone();
             if (wallSet.SourceOriginX is null || wallSet.SourceOriginY is null)
                 throw new JsonException($"Wall set {wallSet.Key} has no reversible source coordinates.");
             wallSet.OriginX = wallSet.SourceOriginX.Value;
@@ -1282,7 +1379,7 @@
                     _imageUrl = reconstructedUrl;
                     _previewImageUrl = reconstructedUrl;
                     reconstructed = true;
-                    imageStatus = " Reconstructed the original sheet layout from the trimmed atlas.";
+                    imageStatus = " Choose a source sheet to explore the library.";
                 }
                 catch (JSException)
                 {
@@ -1303,7 +1400,7 @@
                             _imageUrl = reconstructedUrl;
                             _previewImageUrl = reconstructedUrl;
                             reconstructed = true;
-                            imageStatus = " Reconstructed the original sheet layout from the trimmed atlas.";
+                            imageStatus = " Choose a source sheet to explore the library.";
                         }
                         catch (JSException)
                         {
@@ -1323,7 +1420,7 @@
 
         if (_definitions.Count > 0)
         {
-            var firstDefinition = _definitions[0];
+            var firstDefinition = _definitions.FirstOrDefault(x => x.Key == "buildings.house-medium") ?? _definitions[0];
             _draft = firstDefinition.Clone();
             _selection = new SheetSelection
             {
@@ -1353,8 +1450,8 @@
         EnsureCollisionSize();
         await SyncDefinitionOutlinesAsync();
 
-        if (_runtime is not null)
-            await _runtime.InvokeVoidAsync("setSelection", _selection.X, _selection.Y, _selection.Width, _selection.Height);
+        if (_runtime is not null && _definitions.Count > 0)
+            await LoadDefinition(_draft);
 
         _importStatus = $"{statusVerb} {_definitions.Count} definitions, {_brushes.Count} brushes and {_terrains.Count} terrains.{imageStatus}";
         await ReRender();
@@ -1568,6 +1665,10 @@
         public int? SourceY { get; set; }
         public int Width { get; set; } = 1;
         public int Height { get; set; } = 1;
+        public string PlacementLayer { get; set; } = "Furniture";
+        public bool SupportsItems { get; set; }
+        public int FootprintWidth { get; set; }
+        public int FootprintHeight { get; set; }
         [JsonConverter(typeof(CollisionStateListJsonConverter))]
         public List<string> Collision { get; set; } = new() { VillageCollisionState.Empty };
 
@@ -1593,6 +1694,10 @@
             SourceY = SourceY,
             Width = Width,
             Height = Height,
+            PlacementLayer = PlacementLayer,
+            SupportsItems = SupportsItems,
+            FootprintWidth = FootprintWidth,
+            FootprintHeight = FootprintHeight,
             Collision = Collision.ToList()
         };
     }
@@ -1724,6 +1829,7 @@
 
     public class WallSetDraft
     {
+        public string Layout { get; set; } = "Blob47";
         public string Key { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Image { get; set; } = string.Empty;
@@ -1752,6 +1858,7 @@
             Columns = Columns,
             Rows = Rows,
             FrameCount = FrameCount,
+            Layout = Layout,
             PreviewFrame = PreviewFrame,
             TopColor = TopColor,
             FaceColor = FaceColor

@@ -1,0 +1,21 @@
+.template-editor {
+    display: grid;
+    gap: 20px;
+    max-width: 780px;
+    padding: 12px;
+}
+.template-heading h2 { margin: 6px 0; }
+.template-editor p { color: var(--font-alt-color); line-height: 1.6; margin: 8px 0 16px; }
+.template-eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 12px; font-weight: 700; color: #83cbb0; }
+.template-publication { display: flex; align-items: center; gap: 16px; padding: 20px; border-radius: 14px; background: var(--main-4); border: 1px solid var(--main-5); }
+.template-publication > i { font-size: 28px; color: #83cbb0; }
+.template-publication > div { flex: 1; }
+.template-publication p { margin: 4px 0 0; font-size: 13px; }
+.template-section { padding: 22px; border: 1px solid var(--main-5); border-radius: 14px; background: var(--main-3); }
+.template-section h3 { margin: 8px 0; font-size: 19px; }
+.template-section select { display: block; width: 100%; margin: 8px 0 16px; }
+.template-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.template-check { display: flex; align-items: flex-start; gap: 12px; margin: 18px 0; cursor: pointer; }
+.template-check input { margin-top: 5px; }
+.template-check small { display: block; color: var(--font-alt-color); line-height: 1.5; margin-top: 4px; }
+.template-section summary { cursor: pointer; font-weight: 600; }

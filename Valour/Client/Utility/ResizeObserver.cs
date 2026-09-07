@@ -7,86 +7,75 @@ namespace Valour.Client.Utility;
 public class ResizeObserver : IAsyncDisposable
 {
     public HybridEvent<ElementDimensions> ResizeEvent;
-    
-    private ElementReference _element;
-    private IJSRuntime _runtime;
-    
+
     private IJSObjectReference _jsModule;
     private IJSObjectReference _service;
-    
     private DotNetObjectReference<ResizeObserver> _dotnetRef;
-
     private bool _disposed;
+    private bool _initializing;
+    private Task _cleanupTask;
 
-    public async Task Initialize(ElementReference el, IJSRuntime runtime, int debounce = 0)
+    public async Task Initialize(ElementReference element, IJSRuntime runtime, int debounce = 0)
     {
-        _element = el;
-        _runtime = runtime;
-
-        _dotnetRef = DotNetObjectReference.Create(this);
-
+        if (_disposed || _initializing || _service is not null) return;
+        _initializing = true;
         try
         {
-            var module = await _runtime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ts/ResizeObserver.js");
-
-            // The owning component can be disposed while we await above. If so,
-            // _dotnetRef is already disposed and passing it to JS would throw
-            // ObjectDisposedException, so bail out and clean up what we created.
-            if (_disposed)
-            {
-                await module.DisposeAsync();
-                return;
-            }
-
-            _jsModule = module;
-
-            var service = await _jsModule.InvokeAsync<IJSObjectReference>("init", _element, _dotnetRef, debounce);
-
-            if (_disposed)
-            {
-                await service.DisposeAsync();
-                return;
-            }
-
-            _service = service;
-
-            await _service.InvokeVoidAsync("observe");
+            _jsModule = await runtime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ts/ResizeObserver.js");
+            if (_disposed) return;
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _service = await _jsModule.InvokeAsync<IJSObjectReference>("init", element, _dotnetRef, debounce);
+            if (!_disposed && _service is not null)
+                await _service.InvokeVoidAsync("observe");
         }
         catch (ObjectDisposedException) { }
-        catch (JSDisconnectedException) { }
         catch (JSException) { }
+        finally
+        {
+            _initializing = false;
+            if (_disposed)
+                await CleanupAsync();
+        }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _disposed = true;
-
-        try
-        {
-            if (_service is not null)
-            {
-                await _service.InvokeVoidAsync("dispose");
-                await _service.DisposeAsync();
-            }
-
-            if (_jsModule is not null)
-                await _jsModule.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (JSException) { }
-
-        _dotnetRef?.Dispose();
-
-        if (ResizeEvent is not null)
-            ResizeEvent.Dispose();
-
-        GC.SuppressFinalize(this);
+        ResizeEvent?.Dispose();
+        return _initializing ? ValueTask.CompletedTask : new ValueTask(CleanupAsync());
     }
-    
+
+    private Task CleanupAsync() => _cleanupTask ??= ReleaseReferencesAsync();
+
+    private async Task ReleaseReferencesAsync()
+    {
+        var service = _service;
+        var module = _jsModule;
+        _service = null;
+        _jsModule = null;
+        if (service is not null)
+        {
+            try { await service.InvokeVoidAsync("dispose"); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+            try { await service.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+        }
+        if (module is not null)
+        {
+            try { await module.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+        }
+        _dotnetRef?.Dispose();
+        _dotnetRef = null;
+    }
+
     [JSInvokable("NotifyResize")]
     public void NotifyResize(ElementDimensions dimensions)
     {
-        if (ResizeEvent is not null)
-            ResizeEvent.Invoke(dimensions);
+        if (!_disposed)
+            ResizeEvent?.Invoke(dimensions);
     }
 }

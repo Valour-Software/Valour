@@ -1,0 +1,2207 @@
+{
+  "sources": {
+    "generic": "1_Interiors/16x16/Theme_Sorter_Shadowless/1_Generic_Shadowless.png",
+    "living": "1_Interiors/16x16/Theme_Sorter/2_LivingRoom_16x16.png",
+    "bedroom": "1_Interiors/16x16/Theme_Sorter/4_Bedroom_16x16.png",
+    "conference": "1_Interiors/16x16/Theme_Sorter/13_Conference_Hall_16x16.png",
+    "floors": "1_Interiors/16x16/Room_Builder_subfiles/Room_Builder_Floors_16x16.png",
+    "walls": "1_Interiors/16x16/Room_Builder_subfiles/Room_Builder_3d_walls_16x16.png",
+    "basement": "1_Interiors/16x16/Theme_Sorter/14_Basement_16x16.png"
+  },
+  "floors": [
+    [
+      "floor.oak",
+      "Oak planks",
+      1,
+      24
+    ],
+    [
+      "floor.walnut",
+      "Walnut planks",
+      5,
+      12
+    ],
+    [
+      "floor.parquet",
+      "Parquet",
+      9,
+      10
+    ],
+    [
+      "floor.stone",
+      "Stone tiles",
+      13,
+      3
+    ],
+    [
+      "floor.carpet",
+      "Slate carpet",
+      13,
+      16
+    ],
+    [
+      "floor.cream",
+      "Cream tile",
+      13,
+      34
+    ],
+    [
+      "floor.limestone",
+      "Limestone pavers",
+      13,
+      34
+    ]
+  ],
+  "walls": [
+    [
+      "modern.green",
+      "Green wainscot",
+      0,
+      112,
+      "#eef0e5",
+      "#65817a"
+    ],
+    [
+      "modern.oak",
+      "Warm oak",
+      0,
+      0,
+      "#ececf2",
+      "#947352"
+    ],
+    [
+      "modern.ivory",
+      "Soft ivory",
+      128,
+      0,
+      "#eeeef0",
+      "#c8c7c2"
+    ],
+    [
+      "modern.slate",
+      "Slate",
+      128,
+      112,
+      "#ebebec",
+      "#535b68"
+    ],
+    [
+      "modern.blue",
+      "Ocean blue",
+      256,
+      112,
+      "#eeeeef",
+      "#527cb7"
+    ],
+    [
+      "modern.cream",
+      "Warm cream",
+      128,
+      336,
+      "#f4eee0",
+      "#bba682"
+    ]
+  ],
+  "collisionOverrides": {
+    "buildings.apartment-medium-grey": [
+      {
+        "x": 1,
+        "y": 10,
+        "state": "door"
+      },
+      {
+        "x": 1,
+        "y": 11,
+        "state": "door"
+      },
+      {
+        "x": 2,
+        "y": 10,
+        "state": "door"
+      },
+      {
+        "x": 2,
+        "y": 11,
+        "state": "door"
+      }
+    ]
+  },
+  "objects": [
+    {
+      "key": "office.copier",
+      "name": "Information kiosk",
+      "group": "Office",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_54.png"
+    },
+    {
+      "key": "office.monitor",
+      "name": "Desktop monitor",
+      "group": "Office",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": false,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_164.png",
+      "layer": "Surface"
+    },
+    {
+      "key": "office.desk.oak",
+      "name": "Oak desk",
+      "group": "Office",
+      "footprint": [
+        3,
+        2
+      ],
+      "blocking": true,
+      "sheet": "generic",
+      "rect": [
+        8,
+        544,
+        49,
+        42
+      ],
+      "supportsItems": true
+    },
+    {
+      "key": "office.desk.birch",
+      "name": "Birch desk",
+      "group": "Office",
+      "footprint": [
+        3,
+        2
+      ],
+      "blocking": true,
+      "sheet": "generic",
+      "rect": [
+        88,
+        544,
+        49,
+        42
+      ],
+      "supportsItems": true
+    },
+    {
+      "key": "office.desk.walnut",
+      "name": "Walnut desk",
+      "group": "Office",
+      "footprint": [
+        3,
+        2
+      ],
+      "blocking": true,
+      "sheet": "generic",
+      "rect": [
+        88,
+        592,
+        49,
+        42
+      ],
+      "supportsItems": true
+    },
+    {
+      "key": "office.chair",
+      "name": "Wooden chair",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_93.png"
+    },
+    {
+      "key": "office.chair.dark",
+      "name": "Wooden chair facing right",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "sheet": "generic",
+      "rect": [
+        64,
+        176,
+        16,
+        32
+      ]
+    },
+    {
+      "key": "office.chair.light",
+      "name": "Wooden chair facing left",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "sheet": "generic",
+      "rect": [
+        80,
+        176,
+        16,
+        32
+      ]
+    },
+    {
+      "key": "living.sofa.red",
+      "name": "Amber loveseat",
+      "group": "Living",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "parts": [
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_16.png",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_18.png",
+          "x": 16,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "key": "living.table.oak",
+      "name": "Oak dining table",
+      "group": "Living",
+      "footprint": [
+        3,
+        2
+      ],
+      "blocking": true,
+      "sheet": "generic",
+      "rect": [
+        8,
+        80,
+        49,
+        43
+      ],
+      "supportsItems": true
+    },
+    {
+      "key": "living.table.birch",
+      "name": "Birch dining table",
+      "group": "Living",
+      "footprint": [
+        3,
+        2
+      ],
+      "blocking": true,
+      "sheet": "generic",
+      "rect": [
+        8,
+        128,
+        49,
+        43
+      ],
+      "supportsItems": true
+    },
+    {
+      "key": "living.coffee-table",
+      "name": "Coffee table",
+      "group": "Living",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_3.png",
+      "supportsItems": true
+    },
+    {
+      "key": "living.sideboard",
+      "name": "Wide sideboard",
+      "group": "Living",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_53.png"
+    },
+    {
+      "key": "living.cabinet.oak",
+      "name": "Oak cabinet",
+      "group": "Living",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_37.png"
+    },
+    {
+      "key": "living.cabinet.glass",
+      "name": "Glass cabinet",
+      "group": "Living",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_38.png"
+    },
+    {
+      "key": "living.bookcase",
+      "name": "Oak bookcase",
+      "group": "Living",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_45.png"
+    },
+    {
+      "key": "living.bookcase.wide",
+      "name": "Birch bookcase",
+      "group": "Living",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_47.png"
+    },
+    {
+      "key": "living.sofa.slate",
+      "name": "Slate sofa",
+      "group": "Living",
+      "footprint": [
+        3,
+        1
+      ],
+      "blocking": true,
+      "parts": [
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_4.png",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_5.png",
+          "x": 16,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_6.png",
+          "x": 32,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "key": "living.sofa.linen",
+      "name": "Linen sofa",
+      "group": "Living",
+      "footprint": [
+        3,
+        1
+      ],
+      "blocking": true,
+      "parts": [
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_10.png",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_11.png",
+          "x": 16,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_12.png",
+          "x": 32,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "key": "living.sofa.amber",
+      "name": "Amber sofa",
+      "group": "Living",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "parts": [
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_16.png",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_17.png",
+          "x": 16,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_18.png",
+          "x": 32,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "key": "living.armchair.slate",
+      "name": "Slate chaise",
+      "group": "Living",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_7.png"
+    },
+    {
+      "key": "living.armchair.linen",
+      "name": "Linen chaise",
+      "group": "Living",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_14.png"
+    },
+    {
+      "key": "decor.indoor-palm",
+      "name": "Indoor palm",
+      "group": "Decor",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_14.png"
+    },
+    {
+      "key": "decor.indoor-tree",
+      "name": "Indoor tree",
+      "group": "Decor",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_13.png"
+    },
+    {
+      "key": "decor.indoor-plant",
+      "name": "Potted plant",
+      "group": "Decor",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_16.png"
+    },
+    {
+      "key": "decor.floor-lamp.red",
+      "name": "Red floor lamp",
+      "group": "Decor",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_81.png"
+    },
+    {
+      "key": "decor.floor-lamp.blue",
+      "name": "Blue floor lamp",
+      "group": "Decor",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_80.png"
+    },
+    {
+      "key": "bedroom.bed.green",
+      "name": "Green double bed",
+      "group": "Bedroom",
+      "footprint": [
+        2,
+        3
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_229.png"
+    },
+    {
+      "key": "bedroom.bed.blue",
+      "name": "Blue double bed",
+      "group": "Bedroom",
+      "footprint": [
+        2,
+        3
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_230.png"
+    },
+    {
+      "key": "bedroom.bed.slate",
+      "name": "Slate double bed",
+      "group": "Bedroom",
+      "footprint": [
+        2,
+        3
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_224.png"
+    },
+    {
+      "key": "bedroom.dresser",
+      "name": "Oak dresser",
+      "group": "Bedroom",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_392.png"
+    },
+    {
+      "key": "bedroom.nightstand",
+      "name": "Oak nightstand",
+      "group": "Bedroom",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_429.png"
+    },
+    {
+      "key": "decor.rug.red",
+      "name": "Red rug",
+      "group": "Decor",
+      "footprint": [
+        4,
+        3
+      ],
+      "blocking": false,
+      "sheet": "generic",
+      "rect": [
+        144,
+        64,
+        64,
+        48
+      ],
+      "layer": "Floor"
+    },
+    {
+      "key": "decor.rug.blue",
+      "name": "Blue rug",
+      "group": "Decor",
+      "footprint": [
+        4,
+        3
+      ],
+      "blocking": false,
+      "sheet": "generic",
+      "rect": [
+        144,
+        112,
+        64,
+        48
+      ],
+      "layer": "Floor"
+    },
+    {
+      "key": "office.table.conference",
+      "name": "Conference table",
+      "group": "Office",
+      "footprint": [
+        5,
+        2
+      ],
+      "blocking": true,
+      "sheet": "conference",
+      "rect": [
+        0,
+        16,
+        80,
+        48
+      ],
+      "supportsItems": true,
+      "canvas": [
+        80,
+        48
+      ]
+    },
+    {
+      "key": "office.chair.padded",
+      "name": "Padded conference chair",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_40.png"
+    },
+    {
+      "key": "office.chair.grey",
+      "name": "Grey conference chair",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_39.png"
+    },
+    {
+      "key": "office.lectern",
+      "name": "Presentation lectern",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_45.png"
+    },
+    {
+      "key": "office.presentation-screen",
+      "name": "Presentation screen",
+      "group": "Office",
+      "footprint": [
+        5,
+        1
+      ],
+      "blocking": true,
+      "parts": [
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_66.png",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_67.png",
+          "x": 32,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_68.png",
+          "x": 64,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "key": "office.chair.blue.north",
+      "name": "Blue office chair facing north",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_209.png"
+    },
+    {
+      "key": "office.chair.blue.south",
+      "name": "Blue office chair facing south",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_205.png"
+    },
+    {
+      "key": "office.chair.blue.east",
+      "name": "Blue office chair facing east",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_216.png"
+    },
+    {
+      "key": "office.chair.blue.west",
+      "name": "Blue office chair facing west",
+      "group": "Office",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_212.png"
+    },
+    {
+      "key": "living.console.birch",
+      "name": "Birch console",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_33.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "living.console.oak",
+      "name": "Oak console",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_29.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "living.vanity.birch",
+      "name": "Birch dressing table",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_20.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.vanity.oak",
+      "name": "Oak dressing table",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_24.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.cabinet.narrow",
+      "name": "Narrow oak cabinet",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_41.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.cabinet.display",
+      "name": "Glass display cabinet",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_91.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.sideboard.oak",
+      "name": "Oak sideboard",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_57.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "living.coffee-table.square",
+      "name": "Square coffee table",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_4.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "living.chair.oak",
+      "name": "Oak dining chair",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_93.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "decor.plant.vine",
+      "name": "Trailing vine",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_17.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "decor.plant.tall",
+      "name": "Tall indoor tree",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_18.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "decor.fruit-basket.citrus",
+      "name": "Citrus fruit basket",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_48.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "decor.fruit-basket.orchard",
+      "name": "Orchard fruit basket",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_50.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "decor.floor-lamp.cream",
+      "name": "Cream floor lamp",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_87.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "decor.floor-lamp.tripod",
+      "name": "Tripod floor lamp",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_79.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "decor.stove.oak",
+      "name": "Wood-burning stove",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_107.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "decor.table-lamp.blue",
+      "name": "Blue table lamp",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_73.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "decor.table-lamp.red",
+      "name": "Red table lamp",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_71.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "decor.table-lamp.cream",
+      "name": "Cream table lamp",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/2_Living_Room_Singles/Living_Room_Singles_72.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "office.study-desk",
+      "name": "Study table with books",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_25.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": false
+    },
+    {
+      "key": "office.study-desk.books",
+      "name": "Study desk with books",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_28.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.desk.compact",
+      "name": "Compact writing desk",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_6.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "office.desk.right",
+      "name": "Writing desk facing right",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_13.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "office.desk.left",
+      "name": "Writing desk facing left",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_19.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "office.chalkboard",
+      "name": "Rolling chalkboard",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_39.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.globe",
+      "name": "Globe on a stand",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_34.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.locker",
+      "name": "Grey locker",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_40.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.ladder",
+      "name": "Library stepladder",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_41.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.bookcase.red",
+      "name": "Red bookcase",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_43.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.bookcase.blue",
+      "name": "Blue library bookcase",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_46.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.bookcase.tall",
+      "name": "Tall oak library cabinet",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_58.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.bookcase.grey",
+      "name": "Tall grey library cabinet",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_65.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.bookcase.narrow",
+      "name": "Narrow library cabinet",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_59.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.chair.study",
+      "name": "Study chair",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/5_Classroom_and_Library_Singles/Classroom_and_Library_Singles_1.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.fire-extinguisher",
+      "name": "Fire extinguisher",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_59.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.lectern.badge",
+      "name": "Lecture podium",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/13_Conference_Hall_Singles/Conference_Hall_Singles_46.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.armchair.gold",
+      "name": "Gold armchair",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_202.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.armchair.padded.linen",
+      "name": "Linen armchair",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_203.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.armchair.rose",
+      "name": "Rose armchair",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_204.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.ottoman.linen",
+      "name": "Linen ottoman",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_198.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.ottoman.oat",
+      "name": "Oat ottoman",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_200.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "living.table.round.birch",
+      "name": "Round birch table",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_1.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "living.table.round.oak",
+      "name": "Round oak table",
+      "group": "Living",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_3.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "office.chair.gold",
+      "name": "Gold office chair facing north",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_206.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "office.chair.rose",
+      "name": "Rose office chair facing north",
+      "group": "Office",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_208.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "recreation.arcade.red",
+      "name": "Red arcade cabinet",
+      "group": "Recreation",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_218.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "recreation.arcade.green",
+      "name": "Green arcade cabinet",
+      "group": "Recreation",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_219.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "recreation.pool-table",
+      "name": "Green pool table",
+      "group": "Recreation",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_246.png",
+      "footprint": [
+        3,
+        3
+      ],
+      "blocking": true
+    },
+    {
+      "key": "recreation.table-tennis",
+      "name": "Table tennis",
+      "group": "Recreation",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_241.png",
+      "footprint": [
+        3,
+        3
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.barstool.blue",
+      "name": "Blue bar stool",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_103.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.barstool.gold",
+      "name": "Gold bar stool",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_105.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.barstool.cream",
+      "name": "Cream bar stool",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/14_Basement_Singles/Basement_Singles_111.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bedroom.bed.single.blue",
+      "name": "Blue single bed",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_166.png",
+      "footprint": [
+        1,
+        3
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bedroom.bed.single.sage",
+      "name": "Sage single bed",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_163.png",
+      "footprint": [
+        1,
+        3
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bedroom.bed.double.rose",
+      "name": "Rose double bed",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_225.png",
+      "footprint": [
+        2,
+        3
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bedroom.bed.double.gold",
+      "name": "Gold double bed",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_226.png",
+      "footprint": [
+        2,
+        3
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bedroom.bunk-bed",
+      "name": "Blue bunk bed",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_131.png",
+      "footprint": [
+        2,
+        3
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bedroom.nightstand.cream",
+      "name": "Cream nightstand",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_430.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "bedroom.wardrobe.cream",
+      "name": "Cream wardrobe",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_540.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bedroom.wardrobe.open",
+      "name": "Open wardrobe",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_539.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bedroom.crib.oak",
+      "name": "Oak crib",
+      "group": "Bedroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_498.png",
+      "footprint": [
+        2,
+        2
+      ],
+      "blocking": true
+    },
+    {
+      "key": "decor.rug.blush",
+      "name": "Blush check rug",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_382.png",
+      "footprint": [
+        2,
+        2
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "decor.rug.round.blush",
+      "name": "Round blush rug",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_383.png",
+      "footprint": [
+        2,
+        2
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "decor.rug.cocoa",
+      "name": "Cocoa check rug",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_385.png",
+      "footprint": [
+        2,
+        2
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "decor.rug.round.cocoa",
+      "name": "Round cocoa rug",
+      "group": "Decor",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/4_Bedroom_Singles/Bedroom_Singles_386.png",
+      "footprint": [
+        2,
+        2
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "kitchen.oven",
+      "name": "Steel oven",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_148.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.oven.cooking",
+      "name": "Oven with frying pan",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_150.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.fridge.cream",
+      "name": "Cream refrigerator",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_158.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.fridge.steel",
+      "name": "Steel refrigerator",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_159.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.dishwasher",
+      "name": "Dishwasher",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_192.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.counter.birch",
+      "name": "Birch kitchen counter",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_309.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "kitchen.counter.oak",
+      "name": "Oak kitchen counter",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_311.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "kitchen.counter.walnut",
+      "name": "Walnut kitchen counter",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_310.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "kitchen.display",
+      "name": "Bakery display",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_408.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "kitchen.coffee-machine",
+      "name": "Coffee machine",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_177.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.mixer",
+      "name": "Stand mixer",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_185.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.microwave",
+      "name": "Microwave",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_187.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.rice-cooker",
+      "name": "Rice cooker",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_196.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.blender",
+      "name": "Blender",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_199.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.cutting-board",
+      "name": "Cutting board",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_207.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.plate.salad",
+      "name": "Plate of salad",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_384.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.plate.sandwich",
+      "name": "Sandwich plate",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_389.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.coffee-cup",
+      "name": "Coffee cup",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_394.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.glass",
+      "name": "Drinking glass",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_395.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "kitchen.runner.blue",
+      "name": "Blue kitchen runner",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_139.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "kitchen.runner.rose",
+      "name": "Rose kitchen runner",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_140.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "kitchen.rug.gold",
+      "name": "Gold border rug",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_226.png",
+      "footprint": [
+        2,
+        2
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "kitchen.rug.blue",
+      "name": "Blue border rug",
+      "group": "Kitchen",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/12_Kitchen_Singles/Kitchen_Singles_236.png",
+      "footprint": [
+        2,
+        2
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "bathroom.vanity",
+      "name": "Bathroom vanity",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_8.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "bathroom.vanity.mirror",
+      "name": "Bathroom vanity with mirror",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_12.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.toilet",
+      "name": "White toilet",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_32.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.laundry",
+      "name": "Washer and dryer",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_87.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.washer",
+      "name": "Washing machine",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_90.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.laundry-basket",
+      "name": "Laundry basket",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_95.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.shelves",
+      "name": "Bathroom shelves",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_82.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.shelves.stocked",
+      "name": "Stocked bathroom shelves",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_83.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.cabinet.blue",
+      "name": "Blue bathroom cabinet",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_120.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.cabinet.cream",
+      "name": "Cream bathroom cabinet",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_126.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.bin",
+      "name": "Waste basket",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_110.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.sink",
+      "name": "Pedestal sink",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_151.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "bathroom.mat.white",
+      "name": "White bath mat",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_74.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "bathroom.mat.striped",
+      "name": "Striped bath mat",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_75.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "bathroom.mat.pink",
+      "name": "Pink bath mat",
+      "group": "Bathroom",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/3_Bathroom_Singles/Bathroom_Singles_76.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": false,
+      "layer": "Floor"
+    },
+    {
+      "key": "studio.workbench.oak",
+      "name": "Oak artist workbench",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_22.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "studio.workbench.birch",
+      "name": "Birch artist workbench",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_26.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true,
+      "supportsItems": true
+    },
+    {
+      "key": "studio.workbench.paint",
+      "name": "Artist workbench with paints",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_24.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "studio.stool.oak",
+      "name": "Oak studio stool",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_30.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "studio.stool.linen",
+      "name": "Linen studio stool",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_32.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "studio.easel",
+      "name": "Empty easel",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_34.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "studio.easel.landscape",
+      "name": "Landscape on an easel",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_40.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "studio.easel.portrait",
+      "name": "Portrait on an easel",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_38.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "studio.plant.bonsai",
+      "name": "Bonsai",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_21.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "studio.paint.red",
+      "name": "Red paint pot",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_16.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "studio.paint.blue",
+      "name": "Blue paint pot",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_15.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "studio.paint-bucket",
+      "name": "Paint bucket",
+      "group": "Studio",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/7_Art_Singles/Art_Singles_1.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": false,
+      "layer": "Surface"
+    },
+    {
+      "key": "music.piano.oak",
+      "name": "Oak upright piano",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_1.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.piano.cream",
+      "name": "Cream upright piano",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_17.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.piano.grand",
+      "name": "Grand piano",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_28.png",
+      "footprint": [
+        2,
+        2
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.piano-bench",
+      "name": "Piano bench",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_25.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.speaker",
+      "name": "Tall studio speaker",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_43.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.amplifier",
+      "name": "Guitar amplifier",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_44.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.guitar.acoustic",
+      "name": "Acoustic guitar on a stand",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_45.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.guitar.electric",
+      "name": "Blue electric guitar",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_51.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.harp",
+      "name": "Oak harp",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_58.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.microphone",
+      "name": "Microphone stand",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_62.png",
+      "footprint": [
+        1,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.keyboard",
+      "name": "Keyboard on a stand",
+      "group": "Music",
+      "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_173.png",
+      "footprint": [
+        2,
+        1
+      ],
+      "blocking": true
+    },
+    {
+      "key": "music.drums",
+      "name": "Studio drum kit",
+      "group": "Music",
+      "footprint": [
+        3,
+        2
+      ],
+      "blocking": true,
+      "parts": [
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_237.png",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "file": "1_Interiors/16x16/Theme_Sorter_Singles/6_Music_and_Sport/Music_and_Sport_Singles_238.png",
+          "x": 32,
+          "y": 0
+        }
+      ]
+    }
+  ]
+}

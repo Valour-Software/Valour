@@ -161,6 +161,48 @@ public class UserServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task HardDelete_DetachesUploadsUsedByAnotherUsersThread()
+    {
+        var model = await RegisterDisposableUserAsync();
+        var hash = Guid.NewGuid().ToString("N");
+        var itemId = $"Image/{model.Id}/{hash}";
+        var threadId = IdManager.Generate();
+        var attachmentId = IdManager.Generate();
+        _db.CdnBucketItems.Add(new Valour.Database.CdnBucketItem
+        {
+            Id = itemId, Hash = hash, UserId = model.Id, MimeType = "image/webp",
+            FileName = "test.webp", Category = Valour.Shared.Cdn.ContentCategory.Image,
+            CreatedAt = DateTime.UtcNow, SizeBytes = 10
+        });
+        _db.PlanetThreads.Add(new Valour.Database.PlanetThread
+        {
+            Id = threadId, PlanetId = ISharedPlanet.ValourCentralId, AuthorUserId = _client.Me.Id,
+            Title = "Shared upload regression", Content = "Body", TimeCreated = DateTime.UtcNow
+        });
+        _db.ThreadAttachments.Add(new Valour.Database.ThreadAttachment
+        {
+            Id = attachmentId, ThreadId = threadId, CdnBucketItemId = itemId,
+            Location = "https://example.test/test.webp", Type = MessageAttachmentType.Image
+        });
+        await _db.SaveChangesAsync();
+        try
+        {
+            var result = await _userService.HardDelete(model);
+            Assert.True(result.Success, result.Message);
+            _createdUsers.Remove(model);
+            var attachment = await _db.ThreadAttachments.AsNoTracking().SingleAsync(x => x.Id == attachmentId);
+            Assert.Null(attachment.CdnBucketItemId);
+            Assert.True(attachment.Missing);
+            Assert.Equal(Valour.Sdk.Models.MessageAttachment.MissingLocation, attachment.Location);
+        }
+        finally
+        {
+            await _db.ThreadAttachments.Where(x => x.Id == attachmentId).ExecuteDeleteAsync();
+            await _db.PlanetThreads.IgnoreQueryFilters().Where(x => x.Id == threadId).ExecuteDeleteAsync();
+        }
+    }
+
+    [Fact]
     public async Task HardDelete_RemovesReportsAndDirectMessageChannels()
     {
         var model = await RegisterDisposableUserAsync();

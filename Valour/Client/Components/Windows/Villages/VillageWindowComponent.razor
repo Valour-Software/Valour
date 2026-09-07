@@ -18,19 +18,19 @@
 else if (_error is not null)
 {
     <div class="village-empty-state" role="alert">
-        <i class="bi bi-exclamation-triangle-fill"></i>
+        <i aria-hidden="true" class="bi bi-exclamation-triangle-fill"></i>
         <span>@_error</span>
         @if (Data?.EnableVillage == true)
         {
             <button class="v-btn" disabled="@_loading" @onclick="RetryLoadAsync">
-                <i class="bi bi-arrow-clockwise"></i> Retry
+                <i aria-hidden="true" class="bi bi-arrow-clockwise"></i> Retry
             </button>
         }
     </div>
 }
 else
 {
-    <div class="village-window @(_activeVoiceChannel is not null ? "has-call" : string.Empty) @(_buildMode ? "build-mode-active" : string.Empty) @(_adminMode ? "admin-mode-active" : string.Empty) @(HandheldControlsVisible ? "handheld-controls-active" : string.Empty)">
+    <div class="village-window @(_buildMode ? "build-mode-active" : string.Empty) @(_adminMode ? "admin-mode-active" : string.Empty) @(HandheldControlsVisible ? "handheld-controls-active" : string.Empty)">
         <canvas id="@_canvasId"
                 class="village-canvas"
                 tabindex="0"
@@ -45,23 +45,24 @@ else
         @if (!_presenceConnected)
         {
             <div class="village-connection-banner" role="status" aria-live="polite">
-                <i class="bi bi-wifi-off"></i>
+                <i aria-hidden="true" class="bi bi-wifi-off"></i>
                 <span>@(_presenceConnecting ? "Connecting to village presence…" : _presenceError ?? "Village presence is offline.")</span>
                 <button disabled="@_presenceConnecting" @onclick="RetryPresenceAsync">
-                    <i class="bi bi-arrow-clockwise"></i>
+                    <i aria-hidden="true" class="bi bi-arrow-clockwise"></i>
                     <span>@(_presenceConnecting ? "Connecting…" : "Retry")</span>
                 </button>
             </div>
         }
 
+        <div class="village-topbar">
         <div class="village-overlay village-world-header">
-            <div class="overlay-card village-brand-card">
+            <div class="overlay-card village-brand-card @(_currentMap?.MapKind == "Interior" || _buildMode ? "compact" : string.Empty)">
                 <div class="village-kicker">Valour Village</div>
                 <div class="village-title">@_scene!.Title</div>
                 <div class="village-subtitle">@_scene.Subtitle</div>
             </div>
             <div class="overlay-inline-group">
-                <span class="hud-chip"><i class="bi bi-geo-alt-fill"></i> @(_currentMap?.Name ?? "Unknown Map")</span>
+                <span class="hud-chip"><i aria-hidden="true" class="bi bi-geo-alt-fill"></i> @(_currentMap?.Name ?? "Unknown Map")</span>
                 <span class="hud-chip @(_presenceConnected ? "live" : "offline")">
                     <span class="live-dot"></span>
                     @(_presenceConnected ? $"{VillageService.Presences.Count + 1} here" : "Presence offline")
@@ -77,7 +78,7 @@ else
                         aria-label="Browse village places"
                         aria-expanded="@_placesPanelOpen"
                         aria-controls="@_placesPanelId">
-                    <i class="bi bi-list-ul"></i>
+                    <i aria-hidden="true" class="bi bi-list-ul"></i>
                 </button>
                 @if (DeviceInfo.IsMobile)
                 {
@@ -86,7 +87,7 @@ else
                             title="@(_handheldControls ? "Use floating joystick" : "Use handheld controls")"
                             aria-label="@(_handheldControls ? "Switch to floating joystick controls" : "Switch to handheld controls")"
                             aria-pressed="@_handheldControls">
-                        <i class="bi bi-controller"></i>
+                        <i aria-hidden="true" class="bi bi-controller"></i>
                     </button>
                 }
                 @if (CanBuildCurrentMap)
@@ -95,7 +96,7 @@ else
                             @onclick="ToggleBuildModeAsync"
                             title="@(_buildMode ? "Close build mode" : "Furnish and paint")"
                             aria-label="@(_buildMode ? "Close build mode" : "Open build mode")">
-                        <i class="bi bi-hammer"></i>
+                        <i aria-hidden="true" class="bi bi-hammer"></i>
                     </button>
                 }
                 @if (_scene?.CanManageVillage == true)
@@ -103,7 +104,7 @@ else
                     <button class="village-icon-button @(_adminMode ? "active" : string.Empty)"
                             @onclick="ToggleAdminModeAsync"
                             title="Village administration" aria-label="Open village administration">
-                        <i class="bi bi-shield-lock-fill"></i>
+                        <i aria-hidden="true" class="bi bi-shield-lock-fill"></i>
                     </button>
                 }
                 <div class="village-zoom-control" role="group" aria-label="Map zoom">
@@ -112,7 +113,7 @@ else
                             @onclick="ZoomOutAsync"
                             title="Zoom out (or scroll down)"
                             aria-label="Zoom out">
-                        <i class="bi bi-dash-lg"></i>
+                        <i aria-hidden="true" class="bi bi-dash-lg"></i>
                     </button>
                     <button class="village-zoom-level"
                             @onclick="ResetZoomAsync"
@@ -125,13 +126,13 @@ else
                             @onclick="ZoomInAsync"
                             title="Zoom in (or scroll up)"
                             aria-label="Zoom in">
-                        <i class="bi bi-plus-lg"></i>
+                        <i aria-hidden="true" class="bi bi-plus-lg"></i>
                     </button>
                 </div>
                 @if (_currentMap?.MapKind == "Interior")
                 {
                     <button class="village-icon-button" @onclick="ReturnOutsideAsync" title="Leave building" aria-label="Leave building">
-                        <i class="bi bi-door-open-fill"></i>
+                        <i aria-hidden="true" class="bi bi-door-open-fill"></i>
                     </button>
                 }
                 @if (CurrentSpaceCanHostVoice)
@@ -141,21 +142,23 @@ else
                             title="@(IsVoiceActiveHere ? "Leave nearby voice" : $"Join nearby voice in {CurrentSpaceName}")"
                             aria-label="@(IsVoiceActiveHere ? "Leave nearby voice" : $"Join nearby voice in {CurrentSpaceName}")"
                             aria-pressed="@IsVoiceActiveHere">
-                        <i class="bi @(IsVoiceActiveHere ? "bi-telephone-x-fill" : "bi-headset")"></i>
+                        <i aria-hidden="true" class="bi @(IsVoiceActiveHere ? "bi-telephone-x-fill" : "bi-headset")"></i>
                     </button>
                 }
                 <label class="village-icon-toggle @(_proximityVoice ? "active" : string.Empty)"
                        title="Spatial sound: nearby voices are louder and voices beyond 16 tiles fade out">
                     <input type="checkbox" checked="@_proximityVoice" @onchange="OnToggleProximityVoice" />
-                    <i class="bi bi-soundwave"></i>
+                    <i aria-hidden="true" class="bi bi-soundwave"></i>
                     <span>Spatial sound</span>
                 </label>
                 <label class="village-icon-toggle @(_autoJoinVoice ? "active" : string.Empty)" title="Automatically follow nearby voice between village spaces">
                     <input type="checkbox" checked="@_autoJoinVoice" @onchange="OnToggleAutoJoin" />
-                    <i class="bi bi-mic-fill"></i>
+                    <i aria-hidden="true" class="bi bi-mic-fill"></i>
                     <span>Auto join</span>
                 </label>
             </div>
+        </div>
+
         </div>
 
         @if (_placesPanelOpen && !_buildMode && !_adminMode)
@@ -167,16 +170,23 @@ else
                         <strong>@(_currentMap?.Name ?? "Map")</strong>
                     </div>
                     <button class="village-icon-button compact" @onclick="TogglePlacesPanel" title="Close places" aria-label="Close places">
-                        <i class="bi bi-x-lg"></i>
+                        <i aria-hidden="true" class="bi bi-x-lg"></i>
                     </button>
                 </div>
                 <div class="places-panel-list">
+                    @if (ParentBuilding is { } parentBuilding)
+                    {
+                        <button class="place-list-item" @onclick="() => SelectBuildingFromPlacesAsync(parentBuilding)">
+                            <i aria-hidden="true" class="bi bi-house-gear"></i>
+                            <span><strong>@parentBuilding.Name</strong><small>Room settings · channels and ownership</small></span>
+                        </button>
+                    }
                     @foreach (var building in _currentMap?.Buildings ?? [])
                     {
                         <button class="place-list-item @(_selectedBuilding?.Id == building.Id ? "active" : string.Empty)"
                                 aria-pressed="@(_selectedBuilding?.Id == building.Id)"
                                 @onclick="() => SelectBuildingFromPlacesAsync(building)">
-                            <i class="bi bi-building-fill"></i>
+                            <i aria-hidden="true" class="bi bi-building-fill"></i>
                             <span><strong>@building.Name</strong><small>@(building.Hint ?? "Building")</small></span>
                         </button>
                     }
@@ -185,11 +195,11 @@ else
                         <button class="place-list-item @(_selectedPlot?.Id == plot.Id ? "active" : string.Empty)"
                                 aria-pressed="@(_selectedPlot?.Id == plot.Id)"
                                 @onclick="() => SelectPlotFromPlacesAsync(plot)">
-                            <i class="bi bi-bounding-box"></i>
+                            <i aria-hidden="true" class="bi bi-bounding-box"></i>
                             <span><strong>@plot.Name</strong><small>Land parcel · @plot.Width × @plot.Height tiles</small></span>
                         </button>
                     }
-                    @if ((_currentMap?.Buildings.Count ?? 0) == 0 && (_currentMap?.Plots.Count ?? 0) == 0)
+                    @if (ParentBuilding is null && (_currentMap?.Buildings.Count ?? 0) == 0 && (_currentMap?.Plots.Count ?? 0) == 0)
                     {
                         <div class="places-panel-empty">There are no named places on this map yet.</div>
                     }
@@ -199,36 +209,12 @@ else
 
         @if (_activeVoiceChannel is not null)
         {
-            <aside class="village-call-surface @(_voicePanelCollapsed ? "collapsed" : string.Empty)">
-                <div class="village-call-titlebar">
-                    <div>
-                        <span class="eyebrow">
-                            @(_activeVoiceVideoMode ? "Nearby video" : "Nearby voice") · @(_proximityVoice ? "Spatial on" : "Even volume")
-                        </span>
-                        <strong>@(_activeVoiceBuildingName ?? _activeVoiceChannel.Name)</strong>
-                    </div>
-                    <div class="village-call-actions">
-                        <button class="village-icon-button compact"
-                                @onclick="ToggleVoicePanel"
-                                title="@(_voicePanelCollapsed ? "Expand meeting" : "Minimize meeting")"
-                                aria-label="@(_voicePanelCollapsed ? "Expand meeting" : "Minimize meeting")">
-                            <i class="bi @(_voicePanelCollapsed ? "bi-chevron-up" : "bi-chevron-down")"></i>
-                        </button>
-                        <button class="village-icon-button compact leave-call"
-                                @onclick="LeaveVoiceAsync"
-                                title="Leave nearby voice" aria-label="Leave nearby voice">
-                            <i class="bi bi-telephone-x-fill"></i>
-                        </button>
-                    </div>
-                </div>
-                @if (!_voicePanelCollapsed)
-                {
-                    <div class="village-call-body">
-                        <CallPanelComponent @key="_activeVoiceChannel.Id"
-                                            Channel="_activeVoiceChannel"
-                                            VideoMode="_activeVoiceVideoMode" />
-                    </div>
-                }
+            <aside class="village-nearby-people" aria-label="Nearby call">
+                <CallPanelComponent @key="_activeVoiceChannel.Id"
+                                    Channel="_activeVoiceChannel"
+                                    VideoMode="_activeVoiceVideoMode"
+                                    NearbyMode="true"
+                                    IsNearbyUser="IsUserInHearingRange" />
             </aside>
         }
 
@@ -239,11 +225,12 @@ else
                     @if (_selectedBuilding is not null)
                     {
                         <div class="inspector-heading">
-                            <div class="place-icon"><i class="bi bi-building-fill"></i></div>
+                            <div class="place-icon"><i aria-hidden="true" class="bi bi-building-fill"></i></div>
                             <div>
                                 <div class="overlay-card-title">Place</div>
                                 <div class="sidebar-building-name">@_selectedBuilding.Name</div>
                             </div>
+                            <button class="village-icon-button compact" @onclick="ClearPlaceSelectionAsync" aria-label="Close place details" title="Close place details"><i aria-hidden="true" class="bi bi-x-lg"></i></button>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(_selectedBuilding.Hint))
                         {
@@ -252,33 +239,33 @@ else
                         <div class="place-facts">
                             @if (_selectedBuilding.IsOwnedByLocalMember)
                             {
-                                <span class="place-fact owned"><i class="bi bi-key-fill"></i> Yours</span>
+                                <span class="place-fact owned"><i aria-hidden="true" class="bi bi-key-fill"></i> Yours</span>
                             }
                             else if (!string.IsNullOrWhiteSpace(_selectedBuilding.OwnerName))
                             {
-                                <span class="place-fact"><i class="bi bi-person-fill"></i> @_selectedBuilding.OwnerName</span>
+                                <span class="place-fact"><i aria-hidden="true" class="bi bi-person-fill"></i> @_selectedBuilding.OwnerName</span>
                             }
                             else
                             {
-                                <span class="place-fact"><i class="bi bi-people-fill"></i> Community property</span>
+                                <span class="place-fact"><i aria-hidden="true" class="bi bi-people-fill"></i> Community property</span>
                             }
                             @if (!string.IsNullOrWhiteSpace(_selectedBuilding.ChannelName))
                             {
-                                <span class="place-fact"><i class="bi bi-hash"></i> @_selectedBuilding.ChannelName</span>
+                                <span class="place-fact"><i aria-hidden="true" class="bi bi-hash"></i> @_selectedBuilding.ChannelName</span>
                             }
                             else if (_selectedBuilding.VoiceMode == VillageVoiceMode.AutoRoom)
                             {
-                                <span class="place-fact"><i class="bi bi-stars"></i> Private area room</span>
+                                <span class="place-fact"><i aria-hidden="true" class="bi bi-stars"></i> Private area room</span>
                             }
                             @if (_selectedBuilding.ForSale)
                             {
-                                <span class="place-fact sale"><i class="bi bi-tag-fill"></i> @FormatPrice(_selectedBuilding.Price)</span>
+                                <span class="place-fact sale"><i aria-hidden="true" class="bi bi-tag-fill"></i> @FormatPrice(_selectedBuilding.Price)</span>
                             }
                         </div>
                         @if (CanEditProperty(_selectedBuilding.IsOwnedByLocalMember))
                         {
                             <button class="manage-toggle @(_editingProperty ? "open" : string.Empty)" @onclick="ToggleEditProperty">
-                                <i class="bi bi-gear-fill"></i>
+                                <i aria-hidden="true" class="bi bi-gear-fill"></i>
                                 @(_editingProperty ? "Close manage panel" : "Manage this building")
                             </button>
                         }
@@ -351,27 +338,27 @@ else
                                 <button class="v-btn village-primary-action"
                                         disabled="@_purchaseInProgress"
                                         @onclick="ConfirmPurchaseSelectedBuilding">
-                                    <i class="bi bi-bag-check-fill"></i>
+                                    <i aria-hidden="true" class="bi bi-bag-check-fill"></i>
                                     @(_purchaseInProgress ? "Completing purchase…" : $"Buy for {FormatPrice(_selectedBuilding.Price)}")
                                 </button>
                             }
-                            @if (_selectedBuilding.InteriorMapId is not null)
+                            @if (_selectedBuilding.InteriorMapId is not null && _selectedBuilding.InteriorMapId != _currentMap?.Id)
                             {
                                 <button class="v-btn" @onclick="EnterSelectedBuildingAsync">
-                                    <i class="bi bi-door-open-fill"></i> Enter
+                                    <i aria-hidden="true" class="bi bi-door-open-fill"></i> Enter
                                 </button>
                             }
                             @if (CanOpenChat(_selectedBuilding))
                             {
                                 <button class="v-btn secondary" @onclick="OpenSelectedChannelAsync">
-                                    <i class="bi bi-chat-left-text-fill"></i>
+                                    <i aria-hidden="true" class="bi bi-chat-left-text-fill"></i>
                                     @(_selectedBuilding.ChannelId is null ? "Open area chat" : "Open channel")
                                 </button>
                             }
                             @if (CanJoinVoiceFromHere(_selectedBuilding) && _activeVoiceBuildingId != _selectedBuilding.Id)
                             {
                                 <button class="v-btn secondary" @onclick="() => JoinBuildingVoiceAsync(_selectedBuilding)">
-                                    <i class="bi bi-headset"></i> Join meeting here
+                                    <i aria-hidden="true" class="bi bi-headset"></i> Join meeting here
                                 </button>
                             }
                         </div>
@@ -379,35 +366,36 @@ else
                     else if (_selectedPlot is not null)
                     {
                         <div class="inspector-heading">
-                            <div class="place-icon plot"><i class="bi bi-bounding-box"></i></div>
+                            <div class="place-icon plot"><i aria-hidden="true" class="bi bi-bounding-box"></i></div>
                             <div>
                                 <div class="overlay-card-title">Land parcel</div>
                                 <div class="sidebar-building-name">@_selectedPlot.Name</div>
                             </div>
+                            <button class="village-icon-button compact" @onclick="ClearPlaceSelectionAsync" aria-label="Close place details" title="Close place details"><i aria-hidden="true" class="bi bi-x-lg"></i></button>
                         </div>
                         <div class="place-facts">
-                            <span class="place-fact"><i class="bi bi-aspect-ratio-fill"></i> @_selectedPlot.Width × @_selectedPlot.Height tiles</span>
+                            <span class="place-fact"><i aria-hidden="true" class="bi bi-aspect-ratio-fill"></i> @_selectedPlot.Width × @_selectedPlot.Height tiles</span>
                             @if (_selectedPlot.IsOwnedByLocalMember)
                             {
-                                <span class="place-fact owned"><i class="bi bi-key-fill"></i> Yours</span>
+                                <span class="place-fact owned"><i aria-hidden="true" class="bi bi-key-fill"></i> Yours</span>
                             }
                             else if (!string.IsNullOrWhiteSpace(_selectedPlot.OwnerName))
                             {
-                                <span class="place-fact"><i class="bi bi-person-fill"></i> @_selectedPlot.OwnerName</span>
+                                <span class="place-fact"><i aria-hidden="true" class="bi bi-person-fill"></i> @_selectedPlot.OwnerName</span>
                             }
                             else
                             {
-                                <span class="place-fact"><i class="bi bi-people-fill"></i> Community land</span>
+                                <span class="place-fact"><i aria-hidden="true" class="bi bi-people-fill"></i> Community land</span>
                             }
                             @if (_selectedPlot.ForSale)
                             {
-                                <span class="place-fact sale"><i class="bi bi-tag-fill"></i> @FormatPrice(_selectedPlot.Price)</span>
+                                <span class="place-fact sale"><i aria-hidden="true" class="bi bi-tag-fill"></i> @FormatPrice(_selectedPlot.Price)</span>
                             }
                         </div>
                         @if (CanEditProperty(_selectedPlot.IsOwnedByLocalMember))
                         {
                             <button class="manage-toggle @(_editingProperty ? "open" : string.Empty)" @onclick="ToggleEditProperty">
-                                <i class="bi bi-gear-fill"></i>
+                                <i aria-hidden="true" class="bi bi-gear-fill"></i>
                                 @(_editingProperty ? "Close manage panel" : "Manage this parcel")
                             </button>
                         }
@@ -456,7 +444,7 @@ else
                             <button class="v-btn village-primary-action"
                                     disabled="@_purchaseInProgress"
                                     @onclick="ConfirmPurchaseSelectedPlot">
-                                <i class="bi bi-bag-check-fill"></i>
+                                <i aria-hidden="true" class="bi bi-bag-check-fill"></i>
                                 @(_purchaseInProgress ? "Claiming parcel…" : $"Claim for {FormatPrice(_selectedPlot.Price)}")
                             </button>
                         }
@@ -470,14 +458,14 @@ else
             <aside class="village-admin-panel" aria-label="Village administration">
                 <div class="build-panel-header">
                     <div><span class="eyebrow">Village admin</span><strong>@(_currentMap?.Name ?? "Map")</strong></div>
-                    <button class="village-icon-button compact" @onclick="ToggleAdminModeAsync" title="Close admin panel"><i class="bi bi-x-lg"></i></button>
+                    <button class="village-icon-button compact" @onclick="ToggleAdminModeAsync" title="Close admin panel"><i aria-hidden="true" class="bi bi-x-lg"></i></button>
                 </div>
                 <div class="admin-panel-body">
                     <section class="admin-section">
                         <div class="admin-section-heading">
                             <div><strong>Parcels</strong><small>Editable land regions</small></div>
                             <button class="admin-primary @(_adminDrawing ? "active" : string.Empty)" @onclick="BeginParcelDrawAsync">
-                                <i class="bi bi-bounding-box-circles"></i> @(_adminDrawing ? "Drag on map…" : "Draw parcel")
+                                <i aria-hidden="true" class="bi bi-bounding-box-circles"></i> @(_adminDrawing ? "Drag on map…" : "Draw parcel")
                             </button>
                         </div>
                         <div class="admin-parcel-list">
@@ -535,43 +523,49 @@ else
                     <div class="build-panel-actions">
                         @if (_buildEditInProgress)
                         {
-                            <span class="build-saving"><i class="bi bi-arrow-repeat"></i> Saving</span>
+                            <span class="build-saving"><i aria-hidden="true" class="bi bi-arrow-repeat"></i> Saving</span>
                         }
                         <button class="village-icon-button compact" @onclick="ToggleBuildModeAsync" title="Done building">
-                            <i class="bi bi-x-lg"></i>
+                            <i aria-hidden="true" class="bi bi-x-lg"></i>
                         </button>
                     </div>
                 </div>
 
                 <div class="build-tool-row" role="tablist" aria-label="Build tools">
                     <button class="@GetBuildToolClass("Furnish")" @onclick='() => SetBuildToolAsync("Furnish")'>
-                        <i class="bi bi-lamp-fill"></i><span>Furnish</span>
+                        <i aria-hidden="true" class="bi bi-lamp-fill"></i><span>Furnish</span>
                     </button>
                     <button class="@GetBuildToolClass("Paint")" @onclick='() => SetBuildToolAsync("Paint")'>
-                        <i class="bi bi-paint-bucket"></i><span>Paint</span>
+                        <i aria-hidden="true" class="bi bi-paint-bucket"></i><span>Paint</span>
                     </button>
                     <button class="@GetBuildToolClass("Walls")" @onclick='() => SetBuildToolAsync("Walls")'>
-                        <i class="bi bi-bricks"></i><span>Walls</span>
+                        <i aria-hidden="true" class="bi bi-bricks"></i><span>Walls</span>
+                    </button>
+                    <button class="@GetBuildToolClass("Pan")" @onclick='() => SetBuildToolAsync("Pan")'>
+                        <i aria-hidden="true" class="bi bi-hand-index"></i><span>Pan</span>
+                    </button>
+                    <button class="@GetBuildToolClass("Move")" @onclick='() => SetBuildToolAsync("Move")'>
+                        <i aria-hidden="true" class="bi bi-arrows-move"></i><span>Move</span>
                     </button>
                     <button class="@GetBuildToolClass("Erase")" @onclick='() => SetBuildToolAsync("Erase")'>
-                        <i class="bi bi-eraser-fill"></i><span>Erase</span>
+                        <i aria-hidden="true" class="bi bi-eraser-fill"></i><span>Erase</span>
                     </button>
                 </div>
 
-                @if (_buildTool == "Erase")
+                @if (_buildTool is "Erase" or "Move" or "Pan")
                 {
                     <div class="build-erase-hint">
-                        <i class="bi bi-cursor-fill"></i>
-                        <span>Select furniture or a painted tile in your editable area to remove it.</span>
+                        <i aria-hidden="true" class="bi bi-cursor-fill"></i>
+                        <span>@(_buildTool == "Pan" ? "Drag to explore the map. You can also hold Space and drag with any build tool." : _buildTool == "Move" ? "Select furniture, then click its new position. Press Escape to cancel." : "Select furniture, a wall, or a painted tile to remove it.")</span>
                     </div>
                 }
                 else
                 {
                     <div class="build-catalog-controls">
                         <label class="build-search">
-                            <i class="bi bi-search"></i>
+                            <i aria-hidden="true" class="bi bi-search"></i>
                             <input value="@_buildSearch"
-                                   @oninput="e => _buildSearch = e.Value?.ToString() ?? string.Empty"
+                                   @oninput="OnBuildSearchChanged"
                                    placeholder="Search the catalog…"
                                    aria-label="Search build catalog" />
                         </label>
@@ -603,7 +597,7 @@ else
                                         <span class="build-item-sprite" style="@GetBuildPreviewStyle(terrain)"></span>
                                     </span>
                                     <span class="build-item-name">@terrain.Name</span>
-                                    <span class="build-item-size terrain"><i class="bi bi-bezier2"></i> Auto</span>
+                                    <span class="build-item-size terrain"><i aria-hidden="true" class="bi bi-bezier2"></i> Auto</span>
                                 </button>
                             }
                             @if (!GetVisibleBuildTerrains().Any())
@@ -673,7 +667,7 @@ else
                                         <span class="wall-set-preview" style="@GetBuildWallPreviewStyle(wallSet)"></span>
                                     </span>
                                     <span class="build-item-name">@wallSet.Name</span>
-                                    <span class="build-item-size terrain"><i class="bi bi-bezier2"></i> Auto</span>
+                                    <span class="build-item-size terrain"><i aria-hidden="true" class="bi bi-bezier2"></i> Auto</span>
                                 </button>
                             }
                             @if (!GetVisibleBuildWallSets().Any())
@@ -709,11 +703,19 @@ else
                 <div class="build-panel-footer">
                     @if (_buildTool is "Paint" or "Walls")
                     {
-                        <span><kbd>Shift</kbd> drag to fill an area</span>
+                        <span><kbd>Shift</kbd> drag to @(_buildTool == "Walls" ? "outline a room" : "fill an area")</span>
+                    }
+                    else if (_buildTool == "Pan")
+                    {
+                        <span>Drag the map to pan</span>
+                    }
+                    else if (_buildTool == "Move")
+                    {
+                        <span><kbd>Esc</kbd> cancels the selected move</span>
                     }
                     else
                     {
-                        <span><i class="bi bi-cursor-fill"></i> Click a tile to @_buildTool.ToLowerInvariant()</span>
+                        <span><i aria-hidden="true" class="bi bi-cursor-fill"></i> Click a tile to @_buildTool.ToLowerInvariant()</span>
                     }
                     @if (!string.IsNullOrWhiteSpace(_buildStatus))
                     {
@@ -732,6 +734,7 @@ else
                 </div>
                 <div class="composer-row">
                     <input @ref="_chatInput"
+                           aria-label="Nearby message"
                            value="@_chatDraft"
                            @oninput="OnChatDraftChanged"
                            @onkeydown="OnChatKeyDown"
@@ -742,7 +745,7 @@ else
                             disabled="@(_sendingChat || string.IsNullOrWhiteSpace(_chatDraft))"
                             @onclick="SendVillageMessageAsync"
                             title="Send message">
-                        <i class="bi bi-send-fill"></i>
+                        <i aria-hidden="true" class="bi bi-send-fill"></i>
                     </button>
                 </div>
             </div>
@@ -763,26 +766,26 @@ else
                             @onpointerup='() => SetHandheldDirectionAsync("up", false)'
                             @onpointercancel='() => SetHandheldDirectionAsync("up", false)'
                             @onpointerleave='() => SetHandheldDirectionAsync("up", false)'
-                            @onclick='() => NudgeHandheldDirectionAsync("up")'><i class="bi bi-caret-up-fill"></i></button>
+                            @onclick='() => NudgeHandheldDirectionAsync("up")'><i aria-hidden="true" class="bi bi-caret-up-fill"></i></button>
                     <button class="dpad-key dpad-left" aria-label="Move left"
                             @onpointerdown='() => SetHandheldDirectionAsync("left", true)'
                             @onpointerup='() => SetHandheldDirectionAsync("left", false)'
                             @onpointercancel='() => SetHandheldDirectionAsync("left", false)'
                             @onpointerleave='() => SetHandheldDirectionAsync("left", false)'
-                            @onclick='() => NudgeHandheldDirectionAsync("left")'><i class="bi bi-caret-left-fill"></i></button>
+                            @onclick='() => NudgeHandheldDirectionAsync("left")'><i aria-hidden="true" class="bi bi-caret-left-fill"></i></button>
                     <span class="dpad-center" aria-hidden="true"></span>
                     <button class="dpad-key dpad-right" aria-label="Move right"
                             @onpointerdown='() => SetHandheldDirectionAsync("right", true)'
                             @onpointerup='() => SetHandheldDirectionAsync("right", false)'
                             @onpointercancel='() => SetHandheldDirectionAsync("right", false)'
                             @onpointerleave='() => SetHandheldDirectionAsync("right", false)'
-                            @onclick='() => NudgeHandheldDirectionAsync("right")'><i class="bi bi-caret-right-fill"></i></button>
+                            @onclick='() => NudgeHandheldDirectionAsync("right")'><i aria-hidden="true" class="bi bi-caret-right-fill"></i></button>
                     <button class="dpad-key dpad-down" aria-label="Move down"
                             @onpointerdown='() => SetHandheldDirectionAsync("down", true)'
                             @onpointerup='() => SetHandheldDirectionAsync("down", false)'
                             @onpointercancel='() => SetHandheldDirectionAsync("down", false)'
                             @onpointerleave='() => SetHandheldDirectionAsync("down", false)'
-                            @onclick='() => NudgeHandheldDirectionAsync("down")'><i class="bi bi-caret-down-fill"></i></button>
+                            @onclick='() => NudgeHandheldDirectionAsync("down")'><i aria-hidden="true" class="bi bi-caret-down-fill"></i></button>
                 </div>
 
                 <div class="handheld-system-buttons">
@@ -808,30 +811,30 @@ else
         @if (!string.IsNullOrWhiteSpace(_actionMessage))
         {
             <div class="village-toast @(_actionIsError ? "error" : string.Empty)">
-                <i class="bi @(_actionIsError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill")"></i>
+                <i aria-hidden="true" class="bi @(_actionIsError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill")"></i>
                 <span>@_actionMessage</span>
-                <button @onclick="DismissActionMessage" aria-label="Dismiss"><i class="bi bi-x-lg"></i></button>
+                <button @onclick="DismissActionMessage" aria-label="Dismiss"><i aria-hidden="true" class="bi bi-x-lg"></i></button>
             </div>
         }
 
         <div class="village-movement-hint @((_buildMode || _adminMode) ? "building" : string.Empty)">
             @if (_adminMode)
             {
-                <i class="bi bi-bounding-box-circles"></i><span>Parcel admin mode · movement is paused while editing</span>
+                <i aria-hidden="true" class="bi bi-bounding-box-circles"></i><span>Parcel admin mode · movement is paused while editing</span>
             }
             else if (_buildMode)
             {
-                <i class="bi bi-grid-3x3-gap-fill"></i><span>Editable tiles glow · choose Done to walk normally</span>
+                <i aria-hidden="true" class="bi bi-grid-3x3-gap-fill"></i><span>Editable tiles glow · choose Done to walk normally</span>
             }
             else if (DeviceInfo.IsMobile)
             {
                 @if (_handheldControls)
                 {
-                    <i class="bi bi-controller"></i><span>D-pad to move · A to interact</span>
+                    <i aria-hidden="true" class="bi bi-controller"></i><span>D-pad to move · A to interact</span>
                 }
                 else
                 {
-                    <i class="bi bi-hand-index-thumb-fill"></i><span>Drag anywhere to move · tap places to inspect</span>
+                    <i aria-hidden="true" class="bi bi-hand-index-thumb-fill"></i><span>Drag anywhere to move · tap places to inspect</span>
                 }
             }
             else
@@ -840,6 +843,7 @@ else
                 <span>Move · walk into glowing doors</span>
             }
         </div>
+        <a class="village-art-credit" href="https://limezu.itch.io/" target="_blank" rel="noopener noreferrer">Art by LimeZu</a>
     </div>
 }
 
@@ -851,6 +855,7 @@ else
     private ElementReference _chatInput;
     private IJSObjectReference? _module;
     private IJSObjectReference? _runtime;
+    private Dictionary<string, string> _buildPreviewImages = new();
     private DotNetObjectReference<VillageWindowComponent>? _selfRef;
     private VillagePocScene? _scene;
     private VillagePocMap? _currentMap;
@@ -872,7 +877,7 @@ else
     private bool HandheldControlsVisible => HandheldControlsActive && !_buildMode && !_adminMode;
     private bool _proximityVoice = true;
     private bool _autoJoinVoice;
-    private int _zoomPercent = 100;
+    private int _zoomPercent = 65;
     private long? _currentBuildingId;
     private string? _currentBuildingName;
     private long? _activeVoiceBuildingId;
@@ -884,8 +889,8 @@ else
     private long? _ephemeralRoomBuildingId;
     private long? _ephemeralRoomMapId;
     private bool _activeVoiceVideoMode;
-    private bool _voicePanelCollapsed;
     private string _chatDraft = string.Empty;
+    private readonly SemaphoreSlim _chatConnectionGate = new(1, 1);
     private bool _sendingChat;
     private bool _purchaseInProgress;
     private bool _listingInProgress;
@@ -1035,6 +1040,8 @@ else
 
             await _runtime.InvokeVoidAsync("setTouchControlMode", HandheldControlsActive ? "handheld" : "floating");
             await _runtime.InvokeVoidAsync("setSpatialAudioEnabled", _proximityVoice);
+            await LoadBuildPreviewImagesAsync();
+            if (_disposed) return;
             HookVillageEvents();
             if (await JoinCurrentMapAsync())
             {
@@ -1062,6 +1069,8 @@ else
         Data.VillageBuildings.Changed += OnVillageBuildingChanged;
         Data.VillagePlots.Changed += OnVillagePlotChanged;
         Data.VillageObjects.Changed += OnVillageObjectChanged;
+        Data.Members.Changed += OnVillageMemberChanged;
+        Data.Roles.Changed += OnVillageRoleChanged;
         _villageEventsHooked = true;
     }
 
@@ -1079,6 +1088,8 @@ else
             Data.VillageBuildings.Changed -= OnVillageBuildingChanged;
             Data.VillagePlots.Changed -= OnVillagePlotChanged;
             Data.VillageObjects.Changed -= OnVillageObjectChanged;
+            Data.Members.Changed -= OnVillageMemberChanged;
+            Data.Roles.Changed -= OnVillageRoleChanged;
         }
 
         _villageEventsHooked = false;
@@ -1141,15 +1152,26 @@ else
     }
 
     [JSInvokable]
-    public async Task OnMapChanged(string? mapIdRaw, int x, int y)
+    public async Task<bool> OnMapChanged(string? mapIdRaw, int x, int y)
     {
         if (_scene is null || _disposed)
-            return;
+            return false;
 
         var mapId = ParseId(mapIdRaw);
 
         _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == mapId) ?? _currentMap;
         _currentBuildingId = _currentMap?.ParentBuildingId;
+        _placesPanelOpen = false;
+        _selectedBuilding = null;
+        _selectedPlot = null;
+        _editingProperty = false;
+        _buildMode = false;
+        _adminMode = false;
+        _adminDrawing = false;
+        _buildCategory = "All";
+        _buildSearch = string.Empty;
+        if (_buildTool == "Furnish" && !GetBuildItemsForTool(_buildTool).Any(item => item.Key == _selectedBuildKey))
+            _selectedBuildKey = GetBuildItemsForTool(_buildTool).FirstOrDefault()?.Key ?? string.Empty;
         _playerX = x;
         _playerY = y;
 
@@ -1157,10 +1179,23 @@ else
             _buildMode = false;
         await SyncBuildModeAsync();
 
+        if (_adminMode && !_scene.CanManageVillage)
+        {
+            _adminMode = false;
+            _adminDrawing = false;
+            if (_runtime is not null)
+                await _runtime.InvokeVoidAsync("setAdminMode", false);
+        }
+
+        if (_editingProperty && !CanEditProperty(
+                _selectedBuilding?.IsOwnedByLocalMember == true || _selectedPlot?.IsOwnedByLocalMember == true))
+            _editingProperty = false;
+
         // The room endpoint only leases to members who are actually present in
         // the area. Join at the runtime's real destination before resolving the
         // area's temporary chat/call.
-        if (await JoinCurrentMapAsync(x, y))
+        var joined = await JoinCurrentMapAsync(x, y);
+        if (joined)
             await OnBuildingContextChangedAsync();
         else
             await ClearPresenceDependentContextAsync();
@@ -1173,6 +1208,7 @@ else
         // Presence is per-map, so stepping through a door moves us between
         // realtime groups as well as between maps.
         await ReRender();
+        return joined;
     }
 
     [JSInvokable]
@@ -1248,16 +1284,20 @@ else
         await ReRender();
     }
 
-    private void TogglePlacesPanel() => _placesPanelOpen = !_placesPanelOpen;
+    private VillagePocBuilding? ParentBuilding => _currentMap?.ParentBuildingId is { } id
+        ? _scene?.Maps.SelectMany(map => map.Buildings).FirstOrDefault(building => building.Id == id)
+        : null;
+
+    private Task TogglePlacesPanel()
+    {
+        _placesPanelOpen = !_placesPanelOpen;
+        return ReRender();
+    }
 
     private async Task ToggleHandheldControlsAsync()
     {
         _handheldControls = !_handheldControls;
         await DevicePreferences.SetVillageHandheldControlsEnabled(_handheldControls, LocalStorage);
-        ShowActionMessage(_handheldControls
-            ? "Valour Pocket controls are on."
-            : "Floating joystick controls are on.");
-
         if (_runtime is not null)
             await _runtime.InvokeVoidAsync("setTouchControlMode", _handheldControls ? "handheld" : "floating");
 
@@ -1296,13 +1336,20 @@ else
         }
         else if (_selectedBuilding is not null || _selectedPlot is not null)
         {
-            _selectedBuilding = null;
-            _selectedPlot = null;
-            _editingProperty = false;
-            if (_runtime is not null)
-                await _runtime.InvokeVoidAsync("setSelection", null, null);
+            await ClearPlaceSelectionAsync();
+            return;
         }
 
+        await ReRender();
+    }
+
+    private async Task ClearPlaceSelectionAsync()
+    {
+        _selectedBuilding = null;
+        _selectedPlot = null;
+        _editingProperty = false;
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("setSelection", null, null);
         await ReRender();
     }
 
@@ -1316,6 +1363,7 @@ else
 
     private async Task SelectBuildingFromPlacesAsync(VillagePocBuilding building)
     {
+        _placesPanelOpen = false;
         _selectedBuilding = building;
         _selectedPlot = null;
         _editingProperty = false;
@@ -1327,6 +1375,7 @@ else
 
     private async Task SelectPlotFromPlacesAsync(VillagePocPlot plot)
     {
+        _placesPanelOpen = false;
         _selectedBuilding = null;
         _selectedPlot = plot;
         _editingProperty = false;
@@ -1396,7 +1445,7 @@ else
         {
             try
             {
-                await _runtime.InvokeVoidAsync("pushBubble", message.AuthorUserId.ToString(), bubbleText);
+                await _runtime.InvokeVoidAsync("pushBubble", message.AuthorUserId.ToString(), bubbleText, message.Id.ToString());
             }
             catch (JSDisconnectedException) { }
             catch (JSException) { }
@@ -1439,6 +1488,18 @@ else
         QueueSceneRefresh();
 
     private void OnVillagePlotChanged(Valour.Sdk.ModelLogic.IModelEvent<VillagePlot> _) =>
+        QueueSceneRefresh();
+
+    private void OnVillageMemberChanged(Valour.Sdk.ModelLogic.IModelEvent<PlanetMember> eventData)
+    {
+        if (eventData is Valour.Sdk.ModelLogic.IModelInsertionEvent<PlanetMember> insertion &&
+            insertion.GetModel().Id == _scene?.LocalMemberId &&
+            (eventData is not ModelUpdatedEvent<PlanetMember> updated ||
+             updated.Changes is null || updated.Changes.On(x => x.RoleMembership)))
+            QueueSceneRefresh();
+    }
+
+    private void OnVillageRoleChanged(Valour.Sdk.ModelLogic.IModelEvent<PlanetRole> _) =>
         QueueSceneRefresh();
 
     private void OnVillageObjectChanged(
@@ -1572,7 +1633,7 @@ else
 
         try
         {
-            await _runtime.InvokeVoidAsync("setPresences", others);
+            await _runtime.InvokeVoidAsync("setPresences", (object)others);
         }
         catch (JSDisconnectedException) { }
         catch (JSException) { }
@@ -1582,9 +1643,9 @@ else
     /// Called by the runtime each time the local player finishes a step.
     /// </summary>
     [JSInvokable]
-    public async Task OnLocalMoved(int x, int y, int facing, string? buildingIdRaw)
+    public async Task OnLocalMoved(int x, int y, int facing, string? buildingIdRaw, string? mapIdRaw)
     {
-        if (_disposed)
+        if (_disposed || _presenceConnecting || ParseId(mapIdRaw) != _currentMap?.Id)
             return;
 
         var buildingId = ParseId(buildingIdRaw);
@@ -1596,7 +1657,11 @@ else
         await VillageService.ReportMoveAsync(x, y, (VillageFacing)facing, buildingId);
 
         if (buildingId == _currentBuildingId)
+        {
+            if (_activeVoiceChannel is not null)
+                await ReRender();
             return;
+        }
 
         _currentBuildingId = buildingId;
         await OnBuildingContextChangedAsync();
@@ -1635,9 +1700,35 @@ else
 
     private string CurrentSpaceName => CurrentBuilding?.Name ?? _currentMap?.Name ?? "Village";
 
+    private async Task SetActiveChatChannelAsync(Channel? channel)
+    {
+        await _chatConnectionGate.WaitAsync();
+        try
+        {
+            if ((_disposed && channel is not null) || _activeChatChannel?.Id == channel?.Id)
+                return;
+            var previous = _activeChatChannel;
+            _activeChatChannel = null;
+            if (previous is not null)
+                await previous.Close(_canvasId);
+            if (channel is not null)
+            {
+                var result = await channel.OpenWithResult(_canvasId);
+                if (result.Success)
+                    _activeChatChannel = channel;
+                else
+                    ShowActionMessage(result.Message ?? "Nearby chat could not connect.", isError: true);
+            }
+        }
+        finally
+        {
+            _chatConnectionGate.Release();
+        }
+    }
+
     private async Task ClearPresenceDependentContextAsync()
     {
-        _activeChatChannel = null;
+        await SetActiveChatChannelAsync(null);
         _currentBuildingName = null;
 
         if (_activeVoiceChannel is not null)
@@ -1691,7 +1782,6 @@ else
             await LeaveVoiceAsync();
 
         _currentBuildingName = building?.Name;
-        _activeChatChannel = null;
 
         long? chatChannelId;
         VillageEphemeralRoom? room = null;
@@ -1707,12 +1797,12 @@ else
             chatChannelId = building?.ChatChannelId;
         }
 
-        if (chatChannelId is not null && Data is not null)
-        {
-            var contextChannel = await Data.FetchChannelAsync(chatChannelId.Value);
-            if (contextChannel?.IsChatChannel == true)
-                _activeChatChannel = contextChannel;
-        }
+        var contextChannel = chatChannelId is not null && Data is not null
+            ? await Data.FetchChannelAsync(chatChannelId.Value)
+            : null;
+        if (_disposed || _currentMap?.Id != mapId)
+            return;
+        await SetActiveChatChannelAsync(contextChannel?.IsChatChannel == true ? contextChannel : null);
 
         var expectedVoiceChannelId = building is null
             ? room?.ChannelId
@@ -1795,7 +1885,6 @@ else
         _activeVoiceBuildingName = CurrentSpaceName;
         _activeVoiceChannel = channel;
         _activeVoiceVideoMode = channel.ChannelType == ChannelTypeEnum.PlanetVideo;
-        _voicePanelCollapsed = false;
         await CallSession.InitializeAsync(channel, _activeVoiceVideoMode);
         await PushVoicePeersAsync();
         await ReRender();
@@ -1888,7 +1977,7 @@ else
 
         try
         {
-            await _runtime.InvokeVoidAsync("setVoicePeers", peers);
+            await _runtime.InvokeVoidAsync("setVoicePeers", (object)peers);
         }
         catch (JSDisconnectedException) { }
         catch (JSException) { }
@@ -1903,6 +1992,16 @@ else
         var separator = source.IndexOf(':');
         var value = separator > 0 ? source[..separator] : source;
         return long.TryParse(value, out var parsed) ? parsed : 0;
+    }
+
+    private bool IsUserInHearingRange(long userId)
+    {
+        if (!_proximityVoice)
+            return true;
+
+        var presence = VillageService.Presences.FirstOrDefault(p => p.UserId == userId);
+        return presence is not null && _playerX is { } x && _playerY is { } y &&
+               Math.Pow(presence.X - x, 2) + Math.Pow(presence.Y - y, 2) < 16 * 16;
     }
 
     private async Task OnToggleProximityVoice(ChangeEventArgs e)
@@ -1927,12 +2026,6 @@ else
         // Entering the toggle while already standing inside a room should take
         // effect immediately rather than on the next step.
         await OnBuildingContextChangedAsync();
-        await ReRender();
-    }
-
-    private async Task ToggleVoicePanel()
-    {
-        _voicePanelCollapsed = !_voicePanelCollapsed;
         await ReRender();
     }
 
@@ -1967,13 +2060,9 @@ else
             _chatDraft = content;
             ShowActionMessage(result.Message ?? "That message could not be sent.", isError: true);
         }
-        else if (_runtime is not null && Client.Me is not null)
+        else if (result.Data is not null)
         {
-            // The server echo will append the confirmed bubble; rendering immediately
-            // makes the composer feel local even on a high-latency community node.
-            var bubbleText = MarkdownManager.GetPlainText(content);
-            if (!string.IsNullOrWhiteSpace(bubbleText))
-                await _runtime.InvokeVoidAsync("pushBubble", Client.Me.Id.ToString(), bubbleText, true);
+            OnMessageReceived(result.Data);
         }
 
         _sendingChat = false;
@@ -2277,6 +2366,7 @@ else
 
         if (_runtime is not null)
             await _runtime.InvokeVoidAsync("replaceScene", _scene);
+        await LoadBuildPreviewImagesAsync();
 
         if (_buildMode && !CanBuildCurrentMap)
             _buildMode = false;
@@ -2485,9 +2575,16 @@ else
         await ReRender();
     }
 
+    private Task OnBuildSearchChanged(ChangeEventArgs e)
+    {
+        _buildSearch = e.Value?.ToString() ?? string.Empty;
+        return ReRender();
+    }
+
     private async Task SetBuildToolAsync(string tool)
     {
         _buildTool = tool;
+        _buildSearch = string.Empty;
         _buildStatus = tool == "Erase"
             ? "Select an item or painted tile to remove it."
             : string.Empty;
@@ -2565,7 +2662,8 @@ else
     private IEnumerable<VillagePocCatalogItem> GetBuildItemsForTool(string tool)
     {
         return (_scene?.BuildCatalog ?? [])
-            .Where(x => string.Equals(x.Kind, "Sprite", StringComparison.OrdinalIgnoreCase));
+            .Where(x => string.Equals(x.Kind, "Sprite", StringComparison.OrdinalIgnoreCase))
+            .Where(x => _currentMap?.MapKind != "Interior" || x.Category != "Buildings");
     }
 
     private IEnumerable<VillagePocCatalogItem> GetVisibleBuildItems()
@@ -2688,7 +2786,7 @@ else
             return "visibility:hidden;";
 
         var tileSize = Math.Max(1, _scene?.BuildCatalogTileSize ?? 16);
-        var image = (_scene?.BuildCatalogImageUrl ?? string.Empty)
+        var image = GetBuildPreviewImageUrl(_scene?.BuildCatalogImageUrl)
             .Replace("'", "\\'", StringComparison.Ordinal);
         return string.Create(System.Globalization.CultureInfo.InvariantCulture,
             $"width:{tileSize}px;height:{tileSize}px;background-image:url('{image}');background-position:{-definition.X * tileSize}px {-definition.Y * tileSize}px;");
@@ -2700,21 +2798,40 @@ else
         var sourceWidth = Math.Max(1, width) * tileSize;
         var sourceHeight = Math.Max(1, height) * tileSize;
         var scale = Math.Min(2d, 52d / Math.Max(sourceWidth, sourceHeight));
-        var image = (_scene?.BuildCatalogImageUrl ?? string.Empty)
+        var image = GetBuildPreviewImageUrl(_scene?.BuildCatalogImageUrl)
             .Replace("'", "\\'", StringComparison.Ordinal);
 
         return string.Create(System.Globalization.CultureInfo.InvariantCulture,
             $"width:{sourceWidth}px;height:{sourceHeight}px;background-image:url('{image}');background-position:{-x * tileSize}px {-y * tileSize}px;transform:translate(-50%,-50%) scale({scale:0.###});");
     }
 
-    private static string GetBuildWallPreviewStyle(VillagePocWallSet wallSet)
+    private async Task LoadBuildPreviewImagesAsync()
+    {
+        if (_module is null || _scene is null || _disposed) return;
+        var urls = _scene.BuildWallSets.Select(x => x.ImageUrl).Append(_scene.BuildCatalogImageUrl).Distinct().ToArray();
+        try
+        {
+            var images = await _module.InvokeAsync<Dictionary<string, string>>("resolveVillagePreviewImages", (object)urls);
+            if (!_disposed) _buildPreviewImages = images;
+        }
+        catch (JSException)
+        {
+            if (!_disposed) ShowActionMessage("Village artwork could not be loaded. Refresh to try again.", isError: true);
+        }
+    }
+
+    private string GetBuildPreviewImageUrl(string? url) =>
+        _buildPreviewImages.GetValueOrDefault(url ?? string.Empty,
+            url?.Contains(".vtex.bin", StringComparison.Ordinal) == true ? string.Empty : url ?? string.Empty);
+
+    private string GetBuildWallPreviewStyle(VillagePocWallSet wallSet)
     {
         var topColor = wallSet.TopColor.Replace("'", string.Empty, StringComparison.Ordinal);
         var faceColor = wallSet.FaceColor.Replace("'", string.Empty, StringComparison.Ordinal);
         if (string.IsNullOrWhiteSpace(wallSet.ImageUrl))
             return $"--wall-top:{topColor};--wall-face:{faceColor};";
 
-        var image = wallSet.ImageUrl.Replace("'", "\\'", StringComparison.Ordinal);
+        var image = GetBuildPreviewImageUrl(wallSet.ImageUrl).Replace("'", "\\'", StringComparison.Ordinal);
         var tileSize = Math.Max(1, wallSet.TileSize);
         var columns = Math.Max(1, wallSet.Columns);
         var frame = Math.Clamp(wallSet.PreviewFrame, 0, VillageWallTopology.FrameCount - 1);
@@ -2754,7 +2871,8 @@ else
 
         var request = new VillageBuildRequest
         {
-            Action = _buildTool == "Erase" ? VillageBuildAction.Erase : VillageBuildAction.Furnish,
+            Action = _buildTool == "Erase" ? VillageBuildAction.Erase :
+                _buildTool == "Move" ? VillageBuildAction.Move : VillageBuildAction.Furnish,
             DefinitionKey = _buildTool == "Furnish" ? selectedItem?.Key : null,
             X = x,
             Y = y,
@@ -2766,7 +2884,7 @@ else
             request,
             request.Action == VillageBuildAction.Erase
                 ? "Item removed."
-                : $"{selectedItem?.Name ?? "Item"} placed.");
+                : request.Action == VillageBuildAction.Move ? "Item moved." : $"{selectedItem?.Name ?? "Item"} placed.");
     }
 
     [JSInvokable]
@@ -3100,6 +3218,7 @@ else
         if (Data is not null)
             Data.Updated -= OnPlanetUpdated;
 
+        await SetActiveChatChannelAsync(null);
         await VillageService.LeaveMapAsync();
 
         // Closing the village must not leave the member sitting in a call they

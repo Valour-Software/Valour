@@ -39,6 +39,7 @@ public class S3ObjectStorage : IObjectStorage
         {
             Key = key,
             InputStream = data,
+            AutoCloseStream = false,
             BucketName = _bucket,
             DisablePayloadSigning = true,
             ContentType = contentType
@@ -173,7 +174,7 @@ public class S3ObjectStorage : IObjectStorage
 
                 return await _client.PutObjectAsync(request);
             }
-            catch (Exception ex) when (ShouldRetryPut(ex) && attempt < RetryDelays.Length)
+            catch (Exception ex) when (request.InputStream.CanSeek && ShouldRetryPut(ex) && attempt < RetryDelays.Length)
             {
                 var delay = RetryDelays[attempt];
                 _logger.LogWarning(

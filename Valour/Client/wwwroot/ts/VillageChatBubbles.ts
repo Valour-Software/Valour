@@ -5,44 +5,27 @@ export const VILLAGE_BUBBLE_STACK_LIMIT = 4;
 export type VillageChatBubble = {
     text: string;
     bornAt: number;
-    optimistic: boolean;
+    messageId?: string;
 };
 
-/**
- * Adds a bubble to a speaker's bounded queue. A matching line arriving soon
- * afterward is the server echo of our optimistic local bubble, so refresh it
- * rather than displaying the same message twice.
- */
+/** Adds each confirmed message once, regardless of HTTP and realtime arrival order. */
 export function enqueueVillageBubble(
     bubbles: Map<string, VillageChatBubble[]>,
     userId: string | number,
     text: string,
     now = performance.now(),
-    optimistic = false
+    messageId?: string
 ): VillageChatBubble[] {
     const key = String(userId);
     const safeText = String(text);
     const queue = bubbles.get(key) ?? [];
-    let pendingIndex = -1;
-    if (!optimistic) {
-        for (let index = queue.length - 1; index >= 0; index--) {
-            if (queue[index].optimistic && queue[index].text === safeText) {
-                pendingIndex = index;
-                break;
-            }
-        }
+    if (messageId && queue.some(bubble => bubble.messageId === messageId)) {
+        return queue;
     }
 
-    if (pendingIndex >= 0) {
-        // Replace the optimistic card with its confirmed server echo and move
-        // it to the end so the visual order follows confirmed message order.
-        queue.splice(pendingIndex, 1);
-        queue.push({ text: safeText, bornAt: now, optimistic: false });
-    } else {
-        queue.push({ text: safeText, bornAt: now, optimistic });
-        if (queue.length > VILLAGE_BUBBLE_STACK_LIMIT) {
-            queue.splice(0, queue.length - VILLAGE_BUBBLE_STACK_LIMIT);
-        }
+    queue.push({ text: safeText, bornAt: now, messageId });
+    if (queue.length > VILLAGE_BUBBLE_STACK_LIMIT) {
+        queue.splice(0, queue.length - VILLAGE_BUBBLE_STACK_LIMIT);
     }
 
     bubbles.set(key, queue);

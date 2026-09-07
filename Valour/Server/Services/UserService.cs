@@ -1256,6 +1256,21 @@ public class UserService
                         .SetProperty(a => a.Missing, true)
                         .SetProperty(a => a.Data, (string)null)
                         .SetProperty(a => a.OpenGraphData, (string)null));
+
+                await _db.ThreadAttachments.IgnoreQueryFilters()
+                    .Where(x => attachmentItemIds.Contains(x.CdnBucketItemId))
+                    .ExecuteUpdateAsync(x => x
+                        .SetProperty(a => a.CdnBucketItemId, (string)null)
+                        .SetProperty(a => a.Location, Valour.Sdk.Models.MessageAttachment.MissingLocation)
+                        .SetProperty(a => a.Type, MessageAttachmentType.File)
+                        .SetProperty(a => a.MimeType, "application/octet-stream")
+                        .SetProperty(a => a.FileName, "Attachment not found")
+                        .SetProperty(a => a.Width, 0)
+                        .SetProperty(a => a.Height, 0)
+                        .SetProperty(a => a.Inline, false)
+                        .SetProperty(a => a.Missing, true)
+                        .SetProperty(a => a.Data, (string)null)
+                        .SetProperty(a => a.OpenGraphData, (string)null));
             }
 
             await _db.CdnBucketItems.IgnoreQueryFilters()

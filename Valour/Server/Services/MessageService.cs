@@ -441,6 +441,8 @@ public class MessageService
         updated.WebhookAvatarAssetId = old.WebhookAvatarAssetId;
         updated.WebhookAvatarAnimated = old.WebhookAvatarAnimated;
         
+        updated.Content ??= string.Empty;
+
         // Sanity checks
         if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))
             return TaskResult<Message>.FromFailure("Updated message cannot be empty");

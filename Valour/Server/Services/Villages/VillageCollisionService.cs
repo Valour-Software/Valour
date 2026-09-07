@@ -42,6 +42,9 @@ public sealed class VillageCollisionService
             ? _defaultImageUrl
             : string.Empty;
 
+    internal (int Width, int Height) GetFootprint(string key) =>
+        VillageObjectGeometry.GetFootprint(key, _defaultDefinitions.GetValueOrDefault(key));
+
     internal int GetBuildCatalogTileSize(string? tilesetKey) =>
         string.Equals(tilesetKey, DefaultTileset, StringComparison.Ordinal)
             ? _defaultTileSize
@@ -336,7 +339,13 @@ public sealed class VillageCollisionService
                     NormalizeTerrainRole(terrainRole),
                     NormalizeTerrainDirection(terrainDirection),
                     terrainAgainst,
-                    Math.Max(1, terrainWeight));
+                    Math.Max(1, terrainWeight))
+                {
+                    PlacementLayer = TryGetString(item, "PlacementLayer", "placementLayer", out var layer) && layer is "Floor" or "Surface" ? layer : "Furniture",
+                    SupportsItems = TryGetProperty(item, "SupportsItems", "supportsItems", out var supports) && supports.ValueKind == JsonValueKind.True,
+                    FootprintWidth = TryGetInt(item, "FootprintWidth", "footprintWidth", out var fw) ? fw : 0,
+                    FootprintHeight = TryGetInt(item, "FootprintHeight", "footprintHeight", out var fh) ? fh : 0,
+                };
             }
 
             return (
@@ -395,7 +404,11 @@ public sealed class VillageCollisionService
                 frameCount == VillageWallTopology.FrameCount ? frameCount : VillageWallTopology.FrameCount,
                 previewFrame is >= 0 and < VillageWallTopology.FrameCount ? previewFrame : 46,
                 string.IsNullOrWhiteSpace(topColor) ? "#c9d5cf" : topColor,
-                string.IsNullOrWhiteSpace(faceColor) ? "#758782" : faceColor);
+                string.IsNullOrWhiteSpace(faceColor) ? "#758782" : faceColor)
+            {
+                Layout = TryGetString(item, "Layout", "layout", out var layout) && layout == "RoomBuilder"
+                    ? "RoomBuilder" : "Blob47",
+            };
         }
 
         return wallSets;
@@ -742,6 +755,26 @@ public sealed class VillageCollisionService
         _ => VillageCollisionState.Solid,
     };
 
+    internal IEnumerable<(int X, int Y)> GetBuildingCollisionCells(string tilesetKey, string definitionKey, int width, int height)
+    {
+        TryGetDefinition(tilesetKey, definitionKey ?? string.Empty, out var definition);
+        return GetBuildingCollisionCells(definition, width, height);
+    }
+
+    private static IEnumerable<(int X, int Y)> GetBuildingCollisionCells(CollisionDefinition? definition, int width, int height)
+    {
+        for (var y = 0; y < height; y++)
+        for (var x = 0; x < width; x++)
+        {
+            var row = y + (definition?.Height ?? height) - height;
+            var index = row * (definition?.Width ?? width) + x;
+            if (definition is null || x >= definition.Width || row < 0 ||
+                index >= definition.CollisionStates.Length ||
+                VillageCollisionState.BlocksMovement(definition.CollisionStates[index]))
+                yield return (x, y);
+        }
+    }
+
     private static IReadOnlyList<(int X, int Y)> GetDoorOffsets(
         CollisionDefinition definition,
         int footprintWidth,
@@ -811,6 +844,10 @@ public sealed class VillageCollisionService
         string TerrainAgainst,
         int TerrainWeight)
     {
+        public string PlacementLayer { get; init; } = "Furniture";
+        public bool SupportsItems { get; init; }
+        public int FootprintWidth { get; init; }
+        public int FootprintHeight { get; init; }
         public bool BlocksMovement => CollisionStates.Any(VillageCollisionState.BlocksMovement);
         public bool HasDoors => CollisionStates.Any(VillageCollisionState.IsDoor);
     }
@@ -845,7 +882,10 @@ public sealed class VillageCollisionService
         int FrameCount,
         int PreviewFrame,
         string TopColor,
-        string FaceColor);
+        string FaceColor)
+    {
+        public string Layout { get; init; } = "Blob47";
+    }
 
     private sealed class TerrainIndexEntry(TerrainDefinition terrain)
     {
@@ -927,36 +967,12 @@ public sealed class VillageCollisionService
                 if (!item.BlocksMovement)
                     continue;
 
-                var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey);
+                var footprint = VillageObjectGeometry.GetFootprint(item.DefinitionKey, definitions.GetValueOrDefault(item.DefinitionKey));
                 if (item.DefinitionKey.StartsWith("buildings.", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Building facades extend far above their ground footprint.
-                    // Blocking the full opaque sprite would create invisible
-                    // walls behind the structure instead of a compact base.
-                    // Authored door states then carve reachable entrances out
-                    // of that base without losing their semantic meaning.
-                    AddRect(blocked, item.X, item.Y, footprint.Width, footprint.Height);
-                    if (definitions.TryGetValue(item.DefinitionKey, out var buildingDefinition) &&
-                        buildingDefinition.HasDoors)
-                    {
-                        var originY = item.Y + Math.Max(1, footprint.Height) - buildingDefinition.Height;
-                        var cellCount = Math.Min(
-                            buildingDefinition.CollisionStates.Length,
-                            buildingDefinition.Width * buildingDefinition.Height);
-                        for (var index = 0; index < cellCount; index++)
-                        {
-                            if (!VillageCollisionState.IsDoor(buildingDefinition.CollisionStates[index]))
-                                continue;
-
-                            var doorX = item.X + index % buildingDefinition.Width;
-                            var doorY = originY + index / buildingDefinition.Width;
-                            if (doorX >= item.X && doorX < item.X + footprint.Width &&
-                                doorY >= item.Y && doorY < item.Y + footprint.Height)
-                            {
-                                blocked.Remove(TileKey(doorX, doorY));
-                            }
-                        }
-                    }
+                    definitions.TryGetValue(item.DefinitionKey, out var buildingDefinition);
+                    foreach (var cell in GetBuildingCollisionCells(buildingDefinition, footprint.Width, footprint.Height))
+                        blocked.Add(TileKey(item.X + cell.X, item.Y + cell.Y));
                 }
                 else if (definitions.TryGetValue(item.DefinitionKey, out var definition) &&
                     definition.BlocksMovement)
@@ -983,7 +999,9 @@ public sealed class VillageCollisionService
 
             foreach (var building in buildings)
             {
-                AddRect(blocked, building.X, building.Y, building.Width, building.Height);
+                definitions.TryGetValue(building.SpriteKey ?? string.Empty, out var buildingDefinition);
+                foreach (var cell in GetBuildingCollisionCells(buildingDefinition, building.Width, building.Height))
+                    blocked.Add(TileKey(building.X + cell.X, building.Y + cell.Y));
 
                 var doorOffsets = !string.IsNullOrWhiteSpace(building.SpriteKey) &&
                                   definitions.TryGetValue(building.SpriteKey, out var definition)

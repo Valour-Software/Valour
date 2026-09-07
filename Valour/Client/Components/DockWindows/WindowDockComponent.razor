@@ -35,6 +35,10 @@
     public ElementDimensions Dimensions { get; private set; }
 
     private ResizeObserver _resizeObserver;
+    private bool _disposed;
+    private bool _initializingInterop;
+    private Task _cleanupTask;
+    private readonly string _historyOwner = Guid.NewGuid().ToString();
     
     private ElementReference _ref;
     
@@ -58,11 +62,13 @@
         
         // check if state is saved
         var layoutJson = await LocalStorage.GetStringAsync("coreLayout");
+        if (_disposed) return;
         if (!string.IsNullOrWhiteSpace(layoutJson))
         {
             try
             {
                 Layout = await _saveLoadAdapter.DeserializeLayout(layoutJson);
+        if (_disposed) return;
                 Layout.SetDockRecursiveRaw(this);
 
                 // If every saved tab failed to restore, fall back to home
@@ -87,6 +93,7 @@
         if (!DeviceInfo.IsMobile)
         {
             var floatersJson = await LocalStorage.GetStringAsync("coreFloaters");
+        if (_disposed) return;
             if (!string.IsNullOrWhiteSpace(floatersJson))
             {
                 try
@@ -116,6 +123,7 @@
         }
 
         await TryOpenStartTargetAsync();
+        if (_disposed) return;
 
         // First-run onboarding: opens until the user completes or skips it. A
         // restored layout may already hold the tab from a previous session.
@@ -326,35 +334,48 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_disposed) return;
         _canRender = false;
-        
-        if (firstRender)
+        if (!firstRender)
         {
-            _resizeObserver = new ResizeObserver();
-            _resizeObserver.ResizeEvent += OnWindowResize;
-            await _resizeObserver.Initialize(_ref, JsRuntime, 3);
-
-            if (WindowService.MainDock == this)
-            {
-                _historyModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
-                    "import", "./_content/Valour.Client/Components/DockWindows/WindowDockComponent.razor.js");
-                _historyRef = DotNetObjectReference.Create(this);
-                _historyEntryHandler = PushBrowserHistoryEntryAsync;
-
-                var focused = WindowService.FocusedTab ?? Layout?.FocusedTab;
-                if (focused?.Content is not null)
-                {
-                    await _historyModule.InvokeVoidAsync(
-                        "initialize", _historyRef, focused.Id, focused.Content.Id);
-                }
-
-                WindowService.SetBrowserHistoryEntryHandler(_historyEntryHandler);
-            }
+            await RefreshSize();
+            return;
         }
+        _initializingInterop = true;
+        try
+        {
+            if (firstRender)
+            {
+                _resizeObserver = new ResizeObserver();
+                _resizeObserver.ResizeEvent += OnWindowResize;
+                await _resizeObserver.Initialize(_ref, JsRuntime, 3);
+                if (_disposed) return;
 
-        await RefreshSize();
+                if (WindowService.MainDock == this)
+                {
+                    _historyModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                        "import", "./_content/Valour.Client/Components/DockWindows/WindowDockComponent.razor.js");
+                    if (_disposed) return;
+                    _historyRef = DotNetObjectReference.Create(this);
+                    _historyEntryHandler = PushBrowserHistoryEntryAsync;
+
+                    var focused = WindowService.FocusedTab ?? Layout?.FocusedTab;
+                    if (focused?.Content is not null)
+                        await _historyModule.InvokeVoidAsync("initialize", _historyRef, focused.Id, focused.Content.Id, _historyOwner);
+                    if (_disposed) return;
+                    WindowService.SetBrowserHistoryEntryHandler(_historyEntryHandler);
+                }
+            }
+
+            if (!_disposed) await RefreshSize();
+        }
+        finally
+        {
+            _initializingInterop = false;
+            if (_disposed) await CleanupAsync();
+        }
     }
-    
+
     private void Render()
     {
         _canRender = true;
@@ -373,41 +394,53 @@
 
     private Task PushBrowserHistoryEntryAsync(WindowTab tab)
     {
-        if (_historyModule is null || tab?.Content is null)
+        if (_disposed || _historyModule is null || tab?.Content is null)
             return Task.CompletedTask;
 
-        return InvokeAsync(() => _historyModule.InvokeVoidAsync(
-            "push", tab.Id, tab.Content.Id).AsTask());
+        return InvokeAsync(() => _disposed || _historyModule is null ? Task.CompletedTask :
+            _historyModule.InvokeVoidAsync("push", tab.Id, tab.Content.Id, _historyOwner).AsTask());
     }
 
     [JSInvokable]
     public Task OnBrowserHistoryNavigation(string tabId, string contentId) =>
         InvokeAsync(() => WindowService.NavigateBrowserHistoryAsync(tabId, contentId));
     
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_deepLinkHandler is not null)
-            DeepLinkBridge.ClearHandler(_deepLinkHandler);
-
-        if (_resizeObserver is not null)
-            await _resizeObserver.DisposeAsync();
-
-        if (_historyEntryHandler is not null)
-            WindowService.ClearBrowserHistoryEntryHandler(_historyEntryHandler);
-
-        if (_historyModule is not null)
+        if (!_disposed)
         {
-            try
-            {
-                await _historyModule.InvokeVoidAsync("dispose");
-                await _historyModule.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // The browser or native WebView closed before component disposal.
-            }
+            _disposed = true;
+            if (_deepLinkHandler is not null)
+                DeepLinkBridge.ClearHandler(_deepLinkHandler);
+            if (_historyEntryHandler is not null)
+                WindowService.ClearBrowserHistoryEntryHandler(_historyEntryHandler);
+            WindowService.RemoveDock(this);
         }
+        return _initializingInterop ? ValueTask.CompletedTask : new ValueTask(CleanupAsync());
+    }
 
+    private Task CleanupAsync() => _cleanupTask ??= ReleaseReferencesAsync();
+
+    private async Task ReleaseReferencesAsync()
+    {
+        if (_resizeObserver is not null)
+        {
+            _resizeObserver.ResizeEvent -= OnWindowResize;
+            await _resizeObserver.DisposeAsync();
+            _resizeObserver = null;
+        }
+        var module = _historyModule;
+        _historyModule = null;
+        if (module is not null)
+        {
+            try { await module.InvokeVoidAsync("dispose", _historyOwner); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+            try { await module.DisposeAsync(); }
+            catch (JSException) { }
+            catch (ObjectDisposedException) { }
+        }
         _historyRef?.Dispose();
+        _historyRef = null;
     }
 }

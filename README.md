@@ -1,187 +1,131 @@
 ![Valour logo](Valour/Client/wwwroot/media/logo/wide/logo_wide_blue_black_trans.png)
 
-![.NET Test](https://github.com/Valour-Software/Valour/actions/workflows/dotnet.yml/badge.svg)
-
 # Valour
 
-### Valour is an open-source community platform with real-time chat, thread feeds, wikis, and voice, designed by communities for communities.
+Valour is an open-source community platform built with .NET and Blazor.
+Communities are called planets. Each planet can have chat channels, thread feeds,
+wikis, voice and video calls, roles, an economy, and a village where members walk
+around and meet. The client supports tabs, splits, and multiple open conversations.
 
-## Try it at [app.valour.gg](https://app.valour.gg) · Learn more at [valour.gg](https://valour.gg/)
+Use the app at [app.valour.gg](https://app.valour.gg) or visit
+[valour.gg](https://valour.gg) for the public website. The
+[documentation index](Docs/README.md) covers development, hosting, and architecture.
 
-[▶ Watch the platform reel](Valour/Web/wwwroot/media/videos/platform-reel.mp4)
+## Codebase
 
-![The Valour platform](Valour/Web/wwwroot/media/images/platform-lg.webp)
+| Directory | Purpose |
+| --- | --- |
+| `Config/` | Server configuration classes and a sample settings file |
+| `Valour/Client/` | Shared Razor UI, client services, TypeScript, styles, and assets |
+| `Valour/Client.Blazor/` | Browser WebAssembly host for the shared UI |
+| `Valour/Client.Maui/` | Native application host |
+| `Valour/Sdk/` | API client, models, caches, and SignalR connections |
+| `Valour/Shared/` | Shared contracts, permissions, requests, and utilities |
+| `Valour/Database/` | Entity Framework models and migrations |
+| `Valour/Server/` | HTTP APIs, SignalR, application services, and content delivery |
+| `Valour/Web/` | Public website and static exporter |
+| `Valour/Tests/` | C#, JavaScript, and browser tests |
+| `Tools/Villages/` | Artwork tools and isolated local test/server runners |
 
-## What Valour is
-
-Communities on Valour live on **planets**, spaces with real-time chat channels, a reddit-style post feed, a publishable wiki, voice channels, roles and per-channel permissions, and their own economy. The client is built atop the same official API available to bots and applications, and the whole platform, client and server alike, is open source under AGPL.
-
-- **No ads. No data selling. No ID or phone verification.** An email address is all it takes to join.
-- Web app, plus Windows and Android apps ([download](https://github.com/Valour-Software/Valour/releases/latest)).
-- Move an existing community over with the built-in Discord importer.
-
-### Windows and multi-chat
-
-Open multiple chats at once, even across communities. Valour's window system gives you tabs, splits, and resizable panes, letting you multitask and letting moderation teams keep an eye on everything at once. It's your client, after all.
-
-### Threads: posts that persist
-
-Every planet can enable a thread feed of lasting posts with comments, boosts, and hot/new/top sorting, so the good conversations don't scroll away. Public thread feeds get their own server-rendered pages at `threads.valour.gg`, visible to the whole web.
-
-### Wikis with public pages
-
-Build your community's knowledge base with a full revision history, search, and a tree of pages, then publish it to the web at `wiki.valour.gg/your-vanity-url` as a real documentation site.
-
-### Voice channels
-
-Drop into voice with your community. Voice runs on managed infrastructure by default, and self-hosted instances (or individual planets) can bring their own LiveKit server instead.
-
-### Economies
-
-Planets can deploy a currency in two clicks. Skip managing twenty different bot 'coins' and XP systems. One built-in currency tracks value, lets members pay each other, and hooks into your own systems through the API so your community can reward anything.
-
-### Themes, bots, and automation
-
-Restyle the entire client with community-made themes from the theme marketplace. Automate with bots and OAuth apps on the official API, pipe external services in with incoming webhooks, and let the built-in automod handle spam, blocklists, and raids.
-
-### Node-based backend
-
-Valour runs as a set of nodes that scale horizontally, so large communities get dedicated resources without losing features. The provider-agnostic design also keeps Valour independent of any single cloud vendor.
-
-## Federation
-
-Federation lets a planet move from Valour's official infrastructure to an
-independently operated community server without giving that server a user's
-Valour login token. It has two roles:
-
-| Role | Purpose | Configuration |
-| --- | --- | --- |
-| Official hub cluster | Accounts, planet registry, node verification, grants, and federation sessions. Every official Valour app instance is a hub-capable replica. | `Federation:HubEnabled=true` on every official instance; all replicas share the official database and Data Protection KEK. |
-| Community node | Independently hosts planets after its operator proves control of a public domain. | `Federation:HubUrl` and `Federation:NodeDomain`; do not enable `HubEnabled`. |
-
-Official `Node:WorkerId` values distinguish concurrent writers to the shared
-official database only. They are not federation registrations and community
-operators neither receive nor compete for them.
-
-A community-node operator starts a public HTTPS server, registers its bare
-domain in **User Settings → Federation** on the hub, installs the issued
-challenge, and verifies it. A planet owner then opens that planet's settings →
-**Federation**, enters the verified destination domain, and starts the move.
-The source planet is read-only while the destination imports a signed snapshot.
-The owner pastes the resulting grant into **User Settings → Federation**,
-verifies the destination, and explicitly finalizes removal of the official
-source copy. There is no direct community-node-to-community-node move; pull a
-planet back to the hub first.
-
-Community nodes are closed to other owners by default. Their operator may
-approve a hub owner or one planet, or deliberately opt into public migration
-hosting. Clients connect directly to a community node with short-lived,
-destination-bound federation credentials; the user's real Valour token never
-leaves the hub. See [Federation](Docs/Federation.md) for the full role model,
-operator steps, security properties, and migration limits.
+The web host references the shared client UI. The server serves API and SignalR
+requests and can serve the browser client and its static assets. Bots use the same
+SDK and API contracts as the client.
 
 ## Self-hosting
 
-Run your own Valour instance with Docker Compose: Postgres, Redis, local-disk
-media storage, and automatic HTTPS via Caddy, all on a single domain:
+The root Docker Compose bundle includes Valour, PostgreSQL, Redis, Caddy, and
+filesystem media storage. Point a public domain at the host and allow inbound
+ports 80 and 443. From the repository root:
 
 ```sh
-cp .env.example .env   # set your domain, passwords, and admin account
+cp .env.example .env
+```
+
+Edit `.env` to set the domain, database password, and bootstrap administrator
+credentials, then start the services:
+
+```sh
 docker compose up -d
 ```
 
-Point your domain's DNS at the machine and open `https://your-domain`. Media
-is stored on the `media` volume by default; any S3-compatible storage (R2,
-MinIO, Garage, B2) works via the `CDN__*` environment variables, and an
-optional bundled MinIO is available with `docker compose --profile minio up`.
-Optional services (Stripe payments, SendGrid email, Cloudflare RealtimeKit
-voice, push notifications) activate when configured and the UI adapts
-automatically. See [Config/appsettings.helper.json](Config/appsettings.helper.json)
-for every section. Production-cluster deployment (blue/green, nginx) is
-documented in [Docs/Deployment/](Docs/Deployment/README.md).
+Caddy obtains the HTTPS certificate and proxies the application. The Compose
+file maps supported `.env` values into the container. Additional server settings,
+such as S3 storage or optional integrations, need corresponding entries in the
+service environment or a Compose override. Merely adding an arbitrary setting
+to `.env` does not pass it to the application.
 
-To turn a self-hosted instance into a community node, run the interactive
-wizard before starting Docker Compose:
+See [Deployment](Docs/Deployment/README.md) for storage, optional services, and
+cluster operation. [Self-hosted voice](Docs/Deployment/SelfHostVoice.md) covers
+the LiveKit overlay and required media ports.
+
+## Federation
+
+A federation hub owns accounts and the global planet registry. Registered
+community nodes host planets on independent domains. Clients connect directly
+to those nodes using destination-specific credentials issued by the hub.
+Their normal Valour session token stays with the hub.
+
+To configure a community node in the Compose bundle, run:
 
 ```sh
 ./scripts/valour-node-setup
 ```
 
-It configures the community-node settings, generates the required private Data
-Protection KEK, and walks through the public/approval-only migration-hosting
-choice. The normal self-hosted Compose bundle is a community node, not an
-official hub replica. See [Federation](Docs/Federation.md#community-node-operator-flow)
-for the registration ceremony and [the deployment checklist](Docs/Deployment/README.md#federation-production-checklist)
-for production requirements.
+The wizard configures the domain and hub, creates a private Data Protection key,
+and asks which owners may move planets to the node. The operator then registers
+and verifies the public node in the hub's User Settings, Federation screen.
+Without federation settings, the Compose deployment runs as a standalone instance.
+
+Planet owners start a move from their planet's Federation settings, import the
+signed grant, verify the destination, and finalize source deletion. Read
+[the federation guide](Docs/Federation.md) before moving a planet, including its
+transfer limits and the distinction between a pending and completed handoff.
 
 ## Contribute
 
-To contribute to Valour, set up a local server + client environment first.
+Install the exact SDK in [global.json](global.json):
+`11.0.100-preview.3.26207.106`. SDK roll-forward is disabled. Local server work also
+requires PostgreSQL and Redis. JavaScript tests use Node.js, and browser tests
+require Playwright. Native application builds require their platform workloads.
 
-### 1) Prerequisites
+Restore dependencies from the repository root:
 
-1. Install the .NET 11 preview SDK (the repo is pinned to `11.0.100-preview.3` in `global.json`): [https://dotnet.microsoft.com/en-us/download/dotnet/11.0](https://dotnet.microsoft.com/en-us/download/dotnet/11.0)
-2. Use any IDE/editor with modern .NET support (Rider, Visual Studio, VS Code, etc.)
-3. Install PostgreSQL: [https://www.postgresql.org/](https://www.postgresql.org/)
-4. Install Redis: [https://redis.com/](https://redis.com/)
-
-### 2) Restore dependencies
-
-From the repo root:
-
-```bash
+```sh
 dotnet workload restore
 dotnet restore
 ```
 
-### 3) Configure local settings
+Create the ignored `Valour/Server/appsettings.json` using
+[Config/appsettings.helper.json](Config/appsettings.helper.json) as a guide.
+Configure `Database`, `Redis`, and `Node` for your local services. Choose filesystem
+media storage for local uploads, and configure optional services only when needed.
+The helper file is a list of settings with placeholders, not a ready-to-run config.
 
-1. Create `Valour/Server/appsettings.json` (the file is gitignored).
-2. You can start from `Config/appsettings.helper.json`.
-3. Fill in at least these required sections for local startup:
-   - `Database` (`Host`, `Database`, `Username`, `Password`)
-   - `Redis` (`ConnectionString`)
-   - `Node` (`Key`, `Name`, `Location`)
-4. Optional integrations:
-   - `CDN` for uploads / media storage (S3-compatible)
-   - `Email` for real email delivery
-   - `Notifications` for push notifications
-   - `Cloudflare` for Cloudflare-backed features
-     - For RealtimeKit voice, set `RealtimeAccountId`, `RealtimeAppId`, and `RealtimeApiToken`
-   - `Voice` for self-hosted LiveKit voice instead of RealtimeKit (see [Docs/Deployment/SelfHostVoice.md](Docs/Deployment/SelfHostVoice.md))
+The server applies Entity Framework migrations on startup. Start it with:
 
-### 4) Database setup
-
-Valour applies EF Core migrations automatically on server startup (`db.Database.Migrate()`).
-
-### 5) Run locally
-
-Run the server project (it serves API + SignalR + client assets):
-
-```bash
-cd Valour/Server
-dotnet run
+```sh
+dotnet run --project Valour/Server/Valour.Server.csproj
 ```
 
-Default local URLs:
+The development launch profile uses `https://localhost:5001` and
+`http://localhost:5000`. The server's startup output identifies the listening URLs.
+The browser client resolves its API address through its hosting configuration.
 
-- `https://localhost:5001`
-- `http://localhost:5000`
+Build from the root with `dotnet build`. C# integration tests start application
+services and need a dedicated test database and Redis instance. Use the
+[isolated test runner](Valour/Tests/Browser/README.md#isolated-c-regression) rather
+than running them with a personal or shared server configuration. JavaScript tests
+run with `node --test Valour/Tests/Js/*.test.mjs` after compiling the client sources.
 
-### 6) Build and test
+Release builds that reference the local village atlas require the matching private
+art asset. Follow [Village tilesets](Docs/VillageTilesets.md) to generate or restore
+it before publishing.
 
-From the repo root:
-
-```bash
-dotnet build
-dotnet test
-```
-
-### Notes
-
-- The active web app flow is centered on `Valour.Client.Blazor` + server-hosted assets.
-- You generally should not need to manually edit `ValourClient.cs` `BaseAddress` for normal local development.
-- Docker images are published by CI to `ghcr.io/valour-software/valour`, but still require valid appsettings and backing services (Postgres/Redis/etc.).
+Read [Reactive models](Docs/ReactiveModelSystem.md) before changing model caches,
+events, or node connections. For server work, see
+[API routing](Valour/Docs/API_ROUTES.md) and [Roles](Valour/Docs/ROLES.md).
+Use [GitHub issues](https://github.com/Valour-Software/Valour/issues) for bug reports
+and feature discussions. Report vulnerabilities using [SECURITY.md](SECURITY.md).
 
 ## Trademark Notice
 

@@ -1,4 +1,4 @@
-﻿async function hljsHighlight(el){
+async function hljsHighlight(el){
     const prior = el.parentElement.querySelector('.hljs-clone');
     if (prior) {
         el.parentElement.removeChild(prior);
@@ -53,6 +53,8 @@ function dispatchFilesToInput(inputFile, files) {
 }
 
 function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement) {
+    if (!dropZoneElement || !inputFile) return { dispose() {} };
+
     // Add a class when the user drags a file over the drop zone
     function onDragHover(e) {
         e.preventDefault();
@@ -94,7 +96,7 @@ function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement)
     dropZoneElement.addEventListener("dragleave", onDragLeave);
     dropZoneElement.addEventListener("drop", onDrop);
     dropZoneElement.addEventListener('paste', onPaste);
-    uploadButtonElement.addEventListener('click', onUploadButtonClick);
+    uploadButtonElement?.addEventListener('click', onUploadButtonClick);
     
     console.log("File drop zone initialized");
 
@@ -106,7 +108,7 @@ function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement)
             dropZoneElement.removeEventListener('dragleave', onDragLeave);
             dropZoneElement.removeEventListener("drop", onDrop);
             dropZoneElement.removeEventListener('paste', onPaste);
-            uploadButtonElement.removeEventListener('click', onUploadButtonClick);
+            uploadButtonElement?.removeEventListener('click', onUploadButtonClick);
         }
     }
 }

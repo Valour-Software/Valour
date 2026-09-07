@@ -422,12 +422,22 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
 
             var hasManageBeforeDelete = await _planetMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);
             Assert.True(hasManageBeforeDelete);
+            var cachedBeforeDelete = await _planetMemberService.GetByUserAsync(member.UserId, planet.Id);
+            Assert.True(cachedBeforeDelete.RoleMembership.HasRole(roleFlagBitIndex));
 
             var deleteRoleResult = await _roleService.DeleteAsync(planet.Id, role.Id);
             Assert.True(deleteRoleResult.Success, deleteRoleResult.Message);
 
             // Role is now deleted; clear local reference to avoid cleanup calling delete again.
             role = null;
+
+            var cachedAfterDelete = await _planetMemberService.GetByUserAsync(member.UserId, planet.Id);
+            Assert.False(cachedAfterDelete.RoleMembership.HasRole(roleFlagBitIndex));
+            Assert.True(cachedBeforeDelete.RoleMembership.HasRole(roleFlagBitIndex),
+                "Updating the hosted member cache must not mutate previously returned member models.");
+
+            var trackedAfterDelete = await _planetMemberService.GetAsync(member.Id);
+            Assert.False(trackedAfterDelete.RoleMembership.HasRole(roleFlagBitIndex));
 
             // Verify with a fresh service scope (same behavior as a new API request),
             // so ExecuteUpdate/ExecuteDelete tracker staleness can't hide regressions.
@@ -439,6 +449,21 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
 
             var hasManageAfterDelete = await verifyMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);
             Assert.False(hasManageAfterDelete, "Deleting a role should remove its granted planet permissions.");
+
+            var replacementResult = await _roleService.CreateAsync(new PlanetRole()
+            {
+                Name = $"perm-reuse-{Guid.NewGuid():N}".Substring(0, 20),
+                PlanetId = planet.Id,
+                IsAdmin = true
+            });
+            Assert.True(replacementResult.Success, replacementResult.Message);
+            role = replacementResult.Data;
+            Assert.Equal(roleFlagBitIndex, role.FlagBitIndex);
+
+            var memberAfterReuse = await _planetMemberService.GetByUserAsync(member.UserId, planet.Id);
+            Assert.False(memberAfterReuse.RoleMembership.HasRole(role.FlagBitIndex));
+            Assert.False(await _permissionService.HasPlanetPermissionAsync(memberAfterReuse, PlanetPermissions.Manage),
+                "Reusing a deleted role's bit must not grant its new permissions to former members.");
         }
         finally
         {

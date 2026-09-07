@@ -1,8 +1,7 @@
 @inject ValourClient Client
 
-<div class="badge-settings-page">
-    <div class="editor-section">
-        <h3 class="editor-section-title">
+<section class="editor-section badge-settings-section" aria-labelledby="badge-settings-heading">
+        <h3 id="badge-settings-heading" class="editor-section-title">
             <i class="bi bi-patch-check-fill"></i>
             Badge visibility
         </h3>
@@ -42,6 +41,7 @@
                         </div>
                         <label class="switch" @key="@(badge.Badge.ToString() + ":" + _toggleRenderKey)">
                             <input type="checkbox"
+                                   aria-label="Show @badge.Name badge"
                                    checked="@isVisible"
                                    disabled="@(_savingKeys.Count > 0)"
                                    @onchange="args => SetVisibilityAsync(badge.Badge, args.Value is true)" />
@@ -54,12 +54,12 @@
 
         @if (!string.IsNullOrWhiteSpace(_status))
         {
-            <p class="save-status @(_statusIsError ? "error" : string.Empty)">@_status</p>
+            <p role="status" aria-live="polite" class="save-status @(_statusIsError ? "error" : string.Empty)">@_status</p>
         }
-    </div>
-</div>
+</section>
 
 @code {
+    [Parameter] public EventCallback OnChanged { get; set; }
     private sealed record BadgeOption(
         PlatformBadge Badge, string Name, string Description, string Icon, string CssClass, string? Style = null);
 
@@ -71,7 +71,7 @@
 
     protected override void OnInitialized()
     {
-        if (Client.Me.HasStargazer)
+        if (PlatformBadgeCatalog.IsEarned(Client.Me, PlatformBadge.Stargazer))
         {
             _badges.Add(new BadgeOption(
                 PlatformBadge.Stargazer,
@@ -82,7 +82,7 @@
                 $"--badge-star-start: {Client.Me.GetStarColor1()}; --badge-star-end: {Client.Me.GetStarColor2()};"));
         }
 
-        if (Client.Me.Id <= 22113735421460480)
+        if (PlatformBadgeCatalog.IsEarned(Client.Me, PlatformBadge.FirstOneThousand))
         {
             _badges.Add(new BadgeOption(
                 PlatformBadge.FirstOneThousand,
@@ -91,7 +91,7 @@
                 "bi-award-fill",
                 "milestone-1k"));
         }
-        else if (Client.Me.Id <= 42076534464053248)
+        else if (PlatformBadgeCatalog.IsEarned(Client.Me, PlatformBadge.FirstTenThousand))
         {
             _badges.Add(new BadgeOption(
                 PlatformBadge.FirstTenThousand,
@@ -122,21 +122,33 @@
         if (_savingKeys.Count > 0 || !_savingKeys.Add(badgeKey)) return;
         _status = string.Empty;
 
-        var result = await Client.PrimaryNode.PostAsyncWithResponse<User>(
-            "api/users/me/badges/visibility",
-            new SetUserBadgeVisibilityRequest { Badge = badge, Visible = visible });
+        try
+        {
+            var result = await Client.PrimaryNode.PostAsyncWithResponse<User>(
+                "api/users/me/badges/visibility",
+                new SetUserBadgeVisibilityRequest { Badge = badge, Visible = visible });
 
-        _savingKeys.Remove(badgeKey);
-        _toggleRenderKey++;
-        _statusIsError = !result.Success;
-        if (result.Success && result.Data is not null)
-        {
-            Client.Me = result.Data.Sync(Client);
-            _status = visible ? "Badge shown." : "Badge hidden.";
+            _statusIsError = !result.Success || result.Data is null;
+            if (!_statusIsError)
+            {
+                Client.Me = result.Data.Sync(Client);
+                _status = visible ? "Badge shown." : "Badge hidden.";
+                await OnChanged.InvokeAsync();
+            }
+            else
+            {
+                _status = result.Message ?? "The badge visibility could not be changed.";
+            }
         }
-        else
+        catch (Exception)
         {
-            _status = result.Message ?? "The badge visibility could not be changed.";
+            _statusIsError = true;
+            _status = "Could not save badge visibility. Please try again.";
+        }
+        finally
+        {
+            _savingKeys.Remove(badgeKey);
+            _toggleRenderKey++;
         }
 
         await InvokeAsync(StateHasChanged);

@@ -86,11 +86,14 @@ public partial class Program
             builder.WebHost.ConfigureKestrel((context, options) =>
             {
                 options.Configure(builder.Configuration.GetSection("Kestrel"));
-                options.Listen(IPAddress.Any, 5000, listenOptions =>
+                if (!builder.Configuration.GetSection("Kestrel:Endpoints").Exists() &&
+                    string.IsNullOrWhiteSpace(builder.Configuration[WebHostDefaults.ServerUrlsKey]))
                 {
-                    listenOptions.Protocols =
- Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
-                });
+                    options.Listen(IPAddress.Any, 5000, listenOptions =>
+                    {
+                        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
+                    });
+                }
             });
 #endif
 
@@ -537,6 +540,7 @@ public partial class Program
         services.AddSingleton<Valour.Server.Services.Villages.VillageCollisionService>();
         services.AddScoped<Valour.Server.Services.Villages.VillagePresenceService>();
         services.AddScoped<Valour.Server.Services.Villages.VillageMarketService>();
+        services.AddScoped<Valour.Server.Services.Villages.VillageTemplateService>();
         services.AddScoped<Valour.Server.Services.Villages.VillageWorldService>();
         services.AddSingleton<Valour.Server.Services.Villages.VillageRoomService>();
         services.AddScoped<OauthAppService>();

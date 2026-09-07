@@ -1,8 +1,8 @@
 # Offline federation invite grants
 
 Federation protocol v5 lets a recipient join a private community-hosted planet
-while the hub is unavailable. It intentionally does **not** let a community
-node invent hub memberships or trust its ordinary local invite codes.
+while the hub is unavailable. The grant authorizes one named recipient;
+ordinary community-node invite codes do not establish hub membership.
 
 The official hub is a cluster role: every official app replica serves the same
 hub APIs and reads the same shared signing key material. Community nodes trust
@@ -24,12 +24,12 @@ the official hub origin and protocol, not a particular official worker node.
    When the hub is reachable, it first reports the exact proof and waits for
    the hub to accept the redemption before creating the local membership and
    short node-local session.
-5. Only a genuine hub outage can use the bounded offline path: the node
+5. When the hub is unreachable, the offline path applies: the node
    atomically records the redemption, creates the local shadow membership,
    and queues the passport and proof for reconciliation. The hub independently
    verifies the queued proof before adding the durable hub membership.
 
-The recipient binding plus proof is important: a node that has observed a
+The recipient binding and proof prevent replay: a node that has observed a
 passport cannot replay it to join that account to another private planet.
 
 ## Availability and limits
@@ -49,11 +49,10 @@ node-local federated membership and revokes its federation session tokens.
 Nodes retain the passport/proof only until the hub acknowledges or rejects the
 receipt.
 
-Every node well-known document and every federation credential (including
-node-to-hub S2S credentials) carries the exact protocol version. A missing or
-mismatched version is rejected. Deploy a protocol upgrade to the hub and every
-node together; recipient-bound invite grants issued by an older protocol must
-be revoked and reissued.
+Every node descriptor and federation credential, including server-to-server
+credentials, carries the exact protocol version. A missing or mismatched version
+is rejected. The hub, node, grant, and passport must agree on the version defined
+by `ValourFederation.ProtocolVersion`.
 
 ## Client storage
 

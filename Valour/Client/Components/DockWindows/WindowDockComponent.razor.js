@@ -1,4 +1,5 @@
 let dotNetRef = null;
+let owner = null;
 
 function createState(tabId, contentId) {
     return {
@@ -18,13 +19,15 @@ function onPopState(event) {
         navigation.contentId);
 }
 
-export function initialize(ref, tabId, contentId) {
+export function initialize(ref, tabId, contentId, ownerId) {
+    owner = ownerId;
     dotNetRef = ref;
     window.history.replaceState(createState(tabId, contentId), "");
     window.addEventListener("popstate", onPopState);
 }
 
-export function push(tabId, contentId) {
+export function push(tabId, contentId, ownerId) {
+    if (owner !== ownerId) return;
     const current = window.history.state?.valourNavigation;
     if (current?.tabId === tabId && current?.contentId === contentId)
         return;
@@ -32,7 +35,9 @@ export function push(tabId, contentId) {
     window.history.pushState(createState(tabId, contentId), "");
 }
 
-export function dispose() {
+export function dispose(ownerId) {
+    if (owner !== ownerId) return;
+    owner = null;
     window.removeEventListener("popstate", onPopState);
     dotNetRef = null;
 }

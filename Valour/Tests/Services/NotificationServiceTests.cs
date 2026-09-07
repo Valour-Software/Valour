@@ -51,6 +51,25 @@ public class NotificationServiceTests : IAsyncLifetime
         return ValueTask.CompletedTask;
     }
 
+    [Fact]
+    public async Task NotificationWithoutOptionalFields_IsPersistedWithUsableDefaults()
+    {
+        var notification = new Notification { Title = "Reminder", Source = NotificationSource.EventReminder };
+        await _notificationService.SendUserNotification(_client.Me.Id, notification);
+        var saved = await _db.Notifications.AsNoTracking().SingleAsync(x => x.Id == notification.Id);
+        Assert.Equal("/", saved.ClickUrl);
+        Assert.Equal("", saved.ImageUrl);
+        Assert.Equal("", saved.Body);
+    }
+
+    [Fact]
+    public async Task NotificationForDeletedRecipient_IsNotPersisted()
+    {
+        var notification = new Notification { Title = "Reminder", Source = NotificationSource.EventReminder };
+        await _notificationService.SendUserNotification(IdManager.Generate(), notification);
+        Assert.False(await _db.Notifications.AnyAsync(x => x.Id == notification.Id));
+    }
+
     private async Task<PlanetMember> AddRestrictedMemberAsync()
     {
         var details = await _fixture.RegisterUser();

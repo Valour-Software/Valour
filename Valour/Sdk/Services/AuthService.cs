@@ -56,6 +56,23 @@ public class AuthService : ServiceBase
         SetupLogging(client.Logger, LogOptions);
     }
     
+    public async Task<TaskResult> ResendConfirmationEmailAsync(RegisterUserRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request?.Email))
+            return TaskResult.FromFailure("Enter the email address used to register.");
+        try
+        {
+            using var response = await _client.Http.PostAsJsonAsync("api/users/resendemail", request);
+            return response.IsSuccessStatusCode
+                ? TaskResult.FromSuccess("Verification email sent. Please check your inbox.")
+                : TaskResult.FromFailure("Unable to resend the verification email. Please try again later.", (int)response.StatusCode);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
+        {
+            return TaskResult.FromFailure("Unable to reach the server. Check your connection and try again.");
+        }
+    }
+
     /// <summary>
     /// Gets the Token for the client
     /// </summary>
@@ -68,30 +85,30 @@ public class AuthService : ServiceBase
             MultiFactorCode = multiFactorCode
         };
 
-        var httpContent = JsonContent.Create(request);
-        var response = await _client.Http.PostAsync($"api/users/token", httpContent);
-        
-        
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var result = await response.Content.ReadFromJsonAsync<AuthResult>();
-
-            if (result.Token is not null){
-                // A fresh login can represent a different account. Clear the
-                // previous account's device-bound passport and proof key
-                // before any federation operation can reuse them.
-                SetToken(result.Token.Id);
+            using var httpContent = JsonContent.Create(request);
+            using var response = await _client.Http.PostAsync("api/users/token", httpContent);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AuthResult>();
+                if (result is null)
+                    return new AuthResult { Success = false, Message = "The server returned an empty login response." };
+                if (result.Success && result.Token is not null)
+                    SetToken(result.Token.Id);
+                return result;
             }
-
-            return result;
+            return new AuthResult
+            {
+                Success = false,
+                Message = await response.Content.ReadAsStringAsync(),
+                Code = (int)response.StatusCode
+            };
         }
-
-        return new AuthResult()
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
-            Success = false,
-            Message = await response.Content.ReadAsStringAsync(),
-            Code = (int) response.StatusCode
-        };
+            return new AuthResult { Success = false, Message = "Unable to reach the login server. Check your connection and try again." };
+        }
     }
     
     public void SetToken(string token)

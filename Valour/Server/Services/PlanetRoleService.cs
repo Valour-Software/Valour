@@ -204,6 +204,11 @@ public class PlanetRoleService
         if (role.IsDefault)
             return new (false, "Cannot delete default roles");
 
+        var affectedMemberIds = await _db.PlanetMembers
+            .WithRoleByLocalIndex(planetId, role.FlagBitIndex)
+            .Select(x => x.Id)
+            .ToListAsync();
+
         await using var trans = await _db.Database.BeginTransactionAsync();
         
         try
@@ -238,12 +243,28 @@ public class PlanetRoleService
             return new(false, e.Message);
         }
         
-        // Update permissions related to the role
-        await _permissionService.HandleRoleChange(role);
-        
-        // Remove from hosted cache
+        // Bulk updates bypass EF tracking and the authoritative hosted member cache.
+        // Refresh both before the freed role bit can be used by permission checks.
+        var affectedIds = affectedMemberIds.ToHashSet();
+        foreach (var tracked in _db.ChangeTracker.Entries<Valour.Database.PlanetMember>()
+                     .Where(x => affectedIds.Contains(x.Entity.Id)).ToList())
+            await tracked.ReloadAsync();
+
+        var updatedMembers = await _db.PlanetMembers.AsNoTracking()
+            .Where(x => affectedIds.Contains(x.Id))
+            .Include(x => x.User)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+        foreach (var member in updatedMembers)
+            hostedPlanet.UpsertMember(member);
+
         hostedPlanet.RemoveRole(role.Id);
-        
+        await _permissionService.HandleRoleChange(role);
+
+        foreach (var member in updatedMembers)
+            _coreHub.NotifyPlanetItemChange(member);
+
+        await _permissionService.NotifyDeletedRoleAccessAsync(hostedPlanet, affectedIds);
         _coreHub.NotifyPlanetItemDelete(role);
 
         return new(true, "Success");

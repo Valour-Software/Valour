@@ -41,29 +41,29 @@
         if (User is null)
             return;
 
-        if (User.HasStargazer && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Stargazer))
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Stargazer) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Stargazer))
         {
             _badges.Add(new BadgeDef(PlatformBadge.Stargazer, "stargazer", "bi-star-fill", "Stargazer",
                 $"--user-badge-star-start: {User.GetStarColor1()}; --user-badge-star-end: {User.GetStarColor2()};"));
         }
 
-        if (User.Id <= 22113735421460480 &&
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.FirstOneThousand) &&
             PlatformBadgeCatalog.IsVisible(User, PlatformBadge.FirstOneThousand))
         {
             _badges.Add(new BadgeDef(PlatformBadge.FirstOneThousand, "milestone-1k", "bi-award-fill", "First 1k users"));
         }
-        else if (User.Id <= 42076534464053248 &&
-                 PlatformBadgeCatalog.IsVisible(User, PlatformBadge.FirstTenThousand))
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.FirstTenThousand) &&
+            PlatformBadgeCatalog.IsVisible(User, PlatformBadge.FirstTenThousand))
         {
             _badges.Add(new BadgeDef(PlatformBadge.FirstTenThousand, "milestone-10k", "bi-award-fill", "First 10k users"));
         }
 
-        if (User.Bot && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Bot))
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Bot) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Bot))
         {
             _badges.Add(new BadgeDef(PlatformBadge.Bot, "bot", "bi-cpu-fill", "Bot"));
         }
 
-        if (User.ValourStaff && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Staff))
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Staff) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Staff))
         {
             _badges.Add(new BadgeDef(PlatformBadge.Staff, "staff", "bi-shield-fill", "Valour Staff"));
         }
