@@ -51,6 +51,9 @@ public class RegisterService
     
     public async Task<TaskResult<User>> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null)
     {
+        if (!request.IsNotTexasResident)
+            return new(false, "New registrations are not available to legal residents of Texas. Visit valour.gg/texas to learn why.");
+
         request.Email = UserUtils.SanitizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(request.Email))
             return new(false, "Email was invalid.");

@@ -1,0 +1,93 @@
+@{
+    ViewData["Title"] = "Why Valour Paused Texas Registrations";
+    ViewData["Description"] = "Valour will take the registration hit in Texas instead of collecting biometric data or handing identity checks to third parties.";
+    ViewData["Keywords"] = "Valour, Texas, age verification, biometric privacy, Discord, App Store Accountability Act, KIDS Act";
+    ViewData["CardType"] = "summary_large_image";
+    ViewData["Image"] = "https://valour.gg/media/twitter-card.png";
+    ViewData["ImageAlt"] = "The Valour logo against a dark blue background";
+    ViewData["OpenGraphType"] = "article";
+
+    var articleJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "Article",
+        ["headline"] = "Why Valour Paused Texas Registrations",
+        ["description"] = ViewData["Description"],
+        ["mainEntityOfPage"] = "https://valour.gg/texas/",
+        ["publisher"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "Organization",
+            ["name"] = "Valour",
+            ["url"] = "https://valour.gg",
+            ["logo"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "ImageObject",
+                ["url"] = "https://valour.gg/media/logo/logo-256.png",
+            },
+        },
+    });
+}
+
+@Html.Raw($"<script type=\"application/ld+json\">{articleJsonLd}</script>")
+
+<main class="texas-notice">
+    <article class="texas-notice-card">
+        <p class="texas-notice-eyebrow">Registration notice</p>
+        <h1>Texas and Valour</h1>
+
+        <p class="texas-notice-lead">
+            Hello, future Valournaut. If Texas is your legal home, we cannot welcome you aboard right now.
+        </p>
+
+        <section class="texas-notice-stance">
+            <p>
+                We refuse to store your biometric data or hand it to third parties, so we will take the registration hit instead.
+            </p>
+        </section>
+
+        <p>
+            Texas has joined a growing push to make online services verify ages and identities at the gate. Its
+            <a href="https://tcss.legis.texas.gov/resources/BC/htm/BC.121.v3.htm" target="_blank" rel="noopener noreferrer">App Store Accountability Act</a>
+            created a new age-verification system for app stores and developers. In July 2026, the Texas Attorney General also
+            <a href="https://www.oag.state.tx.us/news/releases/attorney-general-ken-paxton-secures-historic-legal-victory-forcing-discord-protect-texas-children" target="_blank" rel="noopener noreferrer">secured an agreement with Discord</a>
+            requiring age assurance for Texans and new restrictions on how minors use the service.
+        </p>
+
+        <section class="texas-notice-context">
+            <h2>This is not a defense of Discord</h2>
+            <p>
+                Discord has serious child-safety and predator problems. We are not denying them, excusing them, or suggesting that protecting children can wait. Calling those failures acceptable would be absurd.
+            </p>
+            <p>
+                What we reject is the idea that a huge platform failing to staff, moderate, and police itself turns identity checks for innocent people into a civil-liberties victory. Hold Discord accountable. Invest in competent safety teams. Find predators and prosecute them. Do not treat every person who wants to speak online as a suspect who must first prove their identity.
+            </p>
+            <p>
+                The Texas agreement targets Discord and Texans today. The precedent and the identity machinery will not politely stay there. Once platforms build an identity checkpoint for one government, it is remarkably convenient to put that checkpoint in front of Americans in every state and Valournauts around the world.
+            </p>
+        </section>
+
+        <p>
+            Congress is pushing in the same direction. The
+            <a href="https://www.govinfo.gov/app/details/BILLS-119hr7757eh" target="_blank" rel="noopener noreferrer">KIDS Act</a>
+            passed the House in June 2026 with another collection of age, parental-control, and messaging rules. It is not law yet, but the destination is not subtle.
+        </p>
+
+        <section class="texas-notice-answer">
+            <h2>Our answer</h2>
+            <p>
+                We are not going to turn every Valournaut's face or government ID into a login credential. We are not going to give an identity vendor a seat at every Planet. New registrations for legal residents of Texas are paused instead.
+            </p>
+            <p>
+                Valour does not collect your state of residence, so we are not retroactively interrogating existing Valournauts about which patch of Earth they call home. The checkbox on registration is a one-time statement. We do not save it to your account.
+            </p>
+            <p>
+                If Texas changes course, we will happily reconsider. Until then, we would rather close one launch gate than build an identity checkpoint in front of everyone.
+            </p>
+        </section>
+
+        <div class="texas-notice-actions">
+            <a class="btn btn-gradient" href="https://app.valour.gg/Register">Back to registration <i class="bi bi-arrow-right"></i></a>
+            <a class="texas-notice-home-link" href="/">Return to Valour</a>
+        </div>
+    </article>
+</main>

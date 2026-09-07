@@ -3,70 +3,132 @@
 @page "/Register/from/{Source}"
 @page "/Register/referral/{Referral}"
 
-@inject IJSRuntime JsRuntime
 @inject AuthService AuthService
 
-<body class="login-background" style="background-image: url(_content/Valour.Client/media/Abstract-Background.png)">
-    <div class="popup-box">
-        <div class="col-md-12">
+<PageTitle>Join Valour</PageTitle>
+
+<main class="register-page">
+    <div class="register-shell">
+        <aside class="register-intro">
+            <a class="register-brand" href="/" aria-label="Valour home">
+                <img src="_content/Valour.Client/media/logo/logo-64.png" alt="" />
+                <span>Valour</span>
+            </a>
+
+            <div class="register-intro-copy">
+                <p class="register-eyebrow">A home for your people</p>
+                <h1>Find your Planet.</h1>
+                <p>
+                    Join other Valournauts building communities with chat, threads, voice, wikis, and a little more personality.
+                </p>
+            </div>
+
+            <div class="register-perks" aria-label="Valour highlights">
+                <span><i class="bi bi-code-slash"></i> Open source</span>
+                <span><i class="bi bi-badge-ad"></i> No ads</span>
+                <span><i class="bi bi-person-bounding-box"></i> No ID checks</span>
+            </div>
+
+            <p class="register-sign-in">
+                Already a Valournaut? <a href="/">Log in</a>
+            </p>
+        </aside>
+
+        <section class="register-panel" aria-labelledby="register-title">
             @if (!_completed)
             {
-                <section>
-                    <h2>Register for Valour</h2>
+                <header class="register-header">
+                    <p class="register-eyebrow">New transmission</p>
+                    <h2 id="register-title">Become a Valournaut</h2>
+                    <p>No phone number, face scan, or government ID required.</p>
+                </header>
 
-                    <h4>Welcome to our app!</h4>
-                    <hr />
-                    <div asp-validation-summary="All" class="text-danger"></div>
-                    <div class="form-group mt-2">
-                        <label>Username</label>
-                        <input class="form-control" @bind-value="@_username" />
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Email</label>
-                        <input type="email" class="form-control" @bind-value="@_email" />
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Password</label>
-                        <PasswordInput autocomplete="new-password" @bind-Value="@_password" />
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Confirm Password</label>
-                        <PasswordInput autocomplete="new-password" @bind-Value="@_passwordConf" />
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Birthday</label>
-                        <InputDate @bind-Value="@_dob" class="form-control"></InputDate>
-                        <br />
-                        <span id="date-span" class="text-danger">@_dobSpan</span>
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Referral (Optional)</label>
-                        <input type="text" class="form-control" @bind-value="@_referral" disabled="@_lockReferral" />
-                        <span id="referral-info-span" class="text-info">This is the username of a user who sent you to Valour! (ie SpikeViper#0000)</span>
-                    </div>
-                    <div class="form-group mt-4">
-                        <div style="display: inline-block">
-                            <p>
-                                <input type="checkbox" @bind-value="@_termsAgreed" /> &nbsp; By checking this box, you acknowledge you have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service </a>
-                                and to follow the <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md"> Platform Rules</a> and <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_ECO_RULES.md"> Eco Rules</a>.
-                            </p>
+                <form class="register-form" @onsubmit="OnSubmit" @onsubmit:preventDefault>
+                    <div class="register-fields">
+                        <div class="register-field">
+                            <label for="register-username">Username</label>
+                            <input id="register-username" class="form-control" autocomplete="username" placeholder="How Valournauts will know you" @bind-value="@_username" />
+                        </div>
+
+                        <div class="register-field">
+                            <label for="register-email">Email</label>
+                            <input id="register-email" type="email" class="form-control" autocomplete="email" placeholder="you@example.com" @bind-value="@_email" />
+                        </div>
+
+                        <div class="register-field">
+                            <label for="register-password">Password</label>
+                            <PasswordInput id="register-password" autocomplete="new-password" placeholder="Choose a strong password" @bind-Value="@_password" />
+                        </div>
+
+                        <div class="register-field">
+                            <label for="register-password-confirm">Confirm password</label>
+                            <PasswordInput id="register-password-confirm" autocomplete="new-password" placeholder="Type it once more" @bind-Value="@_passwordConf" />
+                        </div>
+
+                        <div class="register-field">
+                            <label for="register-birthday">Birthday</label>
+                            <InputDate id="register-birthday" @bind-Value="@_dob" class="form-control" />
+                            @if (!string.IsNullOrWhiteSpace(_dobSpan))
+                            {
+                                <span id="date-span" class="register-field-error">@_dobSpan</span>
+                            }
+                        </div>
+
+                        <div class="register-field">
+                            <label for="register-referral">Referral <span>Optional</span></label>
+                            <input id="register-referral" type="text" class="form-control" autocomplete="off" placeholder="Valournaut#0000" @bind-value="@_referral" disabled="@_lockReferral" />
+                            <small>@(_lockReferral ? "Referral added from your invite." : "The Valournaut who sent you.")</small>
                         </div>
                     </div>
-                    <span id="error-span" class="text-danger">@_errorSpan</span>
-                    <span id="success-span" class="text-info">@_successSpan</span>
 
-                    <div class="form-group mt-4">
-                        <button class="btn v-btn primary mt-2" @onclick="OnClickSubmit">Submit</button>
+                    <div class="register-agreements">
+                        <div class="register-agreement">
+                            <input id="texas-residency" type="checkbox" @bind-value="@_isNotTexasResident" />
+                            <label for="texas-residency">
+                                I am not a legal resident of the <a href="https://valour.gg/texas/" target="_blank" rel="noopener noreferrer">State of Texas</a>.
+                            </label>
+                        </div>
+
+                        <div class="register-agreement">
+                            <input id="valour-terms" type="checkbox" @bind-value="@_termsAgreed" />
+                            <label for="valour-terms">
+                                I agree to Valour's <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md" target="_blank" rel="noopener noreferrer">Terms of Service</a>,
+                                <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md" target="_blank" rel="noopener noreferrer">Platform Rules</a>, and
+                                <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_ECO_RULES.md" target="_blank" rel="noopener noreferrer">Eco Rules</a>.
+                            </label>
+                        </div>
                     </div>
-                </section>
+
+                    @if (!string.IsNullOrWhiteSpace(_errorSpan))
+                    {
+                        <div id="error-span" class="register-error" role="alert">
+                            <i class="bi bi-exclamation-circle"></i>
+                            <span>@_errorSpan</span>
+                        </div>
+                    }
+
+                    <button type="submit" class="v-btn primary register-submit" disabled="@_submitting">
+                        @if (_submitting)
+                        {
+                            <span>Creating your account...</span>
+                        }
+                        else
+                        {
+                            <span>Create account</span>
+                            <i class="bi bi-arrow-right"></i>
+                        }
+                    </button>
+                </form>
             }
             else
             {
-                <ConfirmationEmailComponent RegisterRequest="@_regRequest"></ConfirmationEmailComponent>
+                <div class="register-confirmation">
+                    <ConfirmationEmailComponent RegisterRequest="@_regRequest"></ConfirmationEmailComponent>
+                </div>
             }
-        </div>
+        </section>
     </div>
-</body>
+</main>
 
 @code {
 
@@ -90,12 +152,13 @@
     private string _username;
     private string _referral;
     private bool _lockReferral;
-    private DateTime _dob = DateTime.Today;
+    private DateTime? _dob;
     private bool _termsAgreed;
+    private bool _isNotTexasResident;
+    private bool _submitting;
 
     // Spans
     private string _errorSpan;
-    private string _successSpan;
     private string _dobSpan;
 
     protected override void OnInitialized()
@@ -107,10 +170,19 @@
         }
     }
 
-    private async Task OnClickSubmit(MouseEventArgs e)
+    private async Task OnSubmit()
     {
+        if (_submitting)
+            return;
+
         _errorSpan = "";
-        _successSpan = "";
+        _dobSpan = "";
+
+        if (!_isNotTexasResident)
+        {
+            _errorSpan = "Valour is not accepting new registrations from legal residents of Texas. Please read the Texas registration notice.";
+            return;
+        }
 
         if (!_termsAgreed)
         {
@@ -120,31 +192,38 @@
 
         if (string.IsNullOrWhiteSpace(_email))
         {
-            _errorSpan = "Please input an email.";
+            _errorSpan = "Please enter your email.";
             return;
         }
 
         if (string.IsNullOrWhiteSpace(_password))
         {
-            _errorSpan = "Please input a password.";
+            _errorSpan = "Please enter a password.";
             return;
         }
 
         if (!string.Equals(_password, _passwordConf))
         {
-            _errorSpan = "Passwords do not match";
+            _errorSpan = "Those passwords do not match.";
             return;
         }
 
         if (string.IsNullOrWhiteSpace(_username))
         {
-            _errorSpan = "Please input an username.";
+            _errorSpan = "Please choose a username.";
+            return;
+        }
+
+        if (!_dob.HasValue)
+        {
+            _dobSpan = "Please enter your birthday.";
             return;
         }
 
         var now = DateTime.Today;
-        var age = now.Year - _dob.Year;
-        if (_dob > now.AddYears(-age)) age--;
+        var dateOfBirth = _dob.Value;
+        var age = now.Year - dateOfBirth.Year;
+        if (dateOfBirth > now.AddYears(-age)) age--;
         
         switch (age)
         {
@@ -168,30 +247,38 @@
             Email = _email,
             Password = _password,
             Referrer = _referral,
-            DateOfBirth = _dob,
+            DateOfBirth = dateOfBirth,
             InviteCode = InviteCode,
             Source = Source,
+            IsNotTexasResident = _isNotTexasResident,
         };
 
-        var result = await AuthService.RegisterAsync(_regRequest);
+        _submitting = true;
 
-        if (!result.Success)
+        try
         {
-            if (result.Code == 409)
+            var result = await AuthService.RegisterAsync(_regRequest);
+
+            if (!result.Success)
             {
-                // Email exists but is not verified — show the confirmation/resend screen
-                _completed = true;
+                if (result.Code == 409)
+                {
+                    // Email exists but is not verified — show the confirmation/resend screen
+                    _completed = true;
+                }
+                else
+                {
+                    _errorSpan = result.Message;
+                }
             }
             else
             {
-                _errorSpan = result.Message;
+                _completed = true;
             }
         }
-        else
+        finally
         {
-            // This is important so that the flag cannot be unset by a double click of the button
-            _completed = true;
-            _successSpan = "Logging you in!";
+            _submitting = false;
         }
     }
-    }
+}

@@ -51,7 +51,7 @@
 
         <!-- Versions -->
         <ApplicationDisplayVersion>0.8.0</ApplicationDisplayVersion>
-        <ApplicationVersion>89</ApplicationVersion>
+        <ApplicationVersion>91</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>

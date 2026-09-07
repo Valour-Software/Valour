@@ -68,7 +68,8 @@ public class LoginTestFixture : IAsyncLifetime
             Password = testPassword,
             Username = testUsername,
             DateOfBirth = new DateTime(2000, 1, 1),
-            Source = "test"
+            Source = "test",
+            IsNotTexasResident = true
         };
         
         if (primary)

@@ -1181,3 +1181,107 @@ a:hover {
   margin-top: 40px;
   text-align: center;
 }
+
+/* Texas registration notice */
+.texas-notice {
+  padding: clamp(3rem, 8vw, 6rem) var(--space-sm);
+}
+
+.texas-notice-card {
+  width: min(100%, 780px);
+  margin: 0 auto;
+  padding: clamp(1.6rem, 6vw, 3.5rem);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018));
+  box-shadow: var(--shadow-lg);
+}
+
+.texas-notice-eyebrow {
+  margin-bottom: 0.5rem;
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.texas-notice-card h1 {
+  margin-bottom: 1.5rem;
+}
+
+.texas-notice-lead {
+  color: var(--text-secondary);
+  font-size: clamp(1.1rem, 3vw, 1.3rem);
+  line-height: 1.65;
+}
+
+.texas-notice-stance {
+  margin: 2rem 0;
+  padding: 1.4rem 1.6rem;
+  border-left: 4px solid var(--accent-cyan);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: rgba(0, 250, 255, 0.08);
+}
+
+.texas-notice-stance p {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(1.1rem, 3vw, 1.3rem);
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.texas-notice-card > p,
+.texas-notice-answer p {
+  line-height: 1.75;
+}
+
+.texas-notice-card p a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.texas-notice-answer {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.texas-notice-context {
+  margin: 2.5rem 0;
+  padding: 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  background: rgba(7, 20, 32, 0.42);
+}
+
+.texas-notice-context p:last-child {
+  margin-bottom: 0;
+}
+
+.texas-notice-context h2,
+.texas-notice-answer h2 {
+  font-size: clamp(1.6rem, 4vw, 2rem);
+}
+
+.texas-notice-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+.texas-notice-home-link {
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 575.98px) {
+  .texas-notice-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}

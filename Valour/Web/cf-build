@@ -37,6 +37,7 @@ dotnet run \
 for required in \
   index.html \
   faq/index.html \
+  texas/index.html \
   userCount/index.html \
   sitemap.xml \
   _redirects \
