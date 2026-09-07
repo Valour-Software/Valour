@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+python3 Tools/Villages/restore-release-assets.py
+
 # Install the .NET 11 preview SDK pinned by global.json
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh

@@ -118,9 +118,31 @@ and alpha and remain stable on subsequent round trips.
 The generated `Valour/Client/wwwroot/media/villages/library-atlas.png` is a private
 build input, excluded from Git and from the app's static assets. Add
 `--release-zip artifacts/villages-release-assets.zip` to the packing command to
-bundle the PNG, matching manifest and original licenses. Keep that ZIP private,
-for example in R2, and extract its `Valour/` directory at the repository root
-before building in CI. The manifest and PNG in the package must match the release.
+bundle the PNG, matching manifest and original licenses. Keep that ZIP private.
+For an offline restore, run:
+
+```sh
+python3 Tools/Villages/restore-release-assets.py --archive artifacts/villages-release-assets.zip
+```
+
+The package must match the checked-in manifest; restoring never replaces that
+manifest.
+
+Production Docker, Android, Windows and Cloudflare builds run
+`Tools/Villages/restore-release-assets.py` before compiling. It downloads the
+protected runtime binary from
+`https://public-cdn.valour.gg/valour-public/villages/atlas/<imageSha256>.vtex.bin`,
+decodes it locally and verifies the PNG fingerprint and dimensions against the
+checked-in manifest. No download credential is required. An existing local PNG
+is verified without downloading. `VILLAGE_ATLAS_URL` can override the URL with
+another HTTPS location; redirects are rejected.
+
+When changing the atlas, run the packer and upload its generated `.vtex.bin` to
+that fingerprinted CDN path before building the corresponding commit in CI.
+Use `application/octet-stream` and `Cache-Control: public, max-age=31536000,
+immutable`. The CDN package is the same protected binary served by the app.
+Keep the raw PNG, purchased sheets, licenses and source ZIP out of public storage.
+The restore step fails if the package is missing, corrupt or from another atlas.
 
 The app build runs `BuildTools/VillageAtlasPacker`. It verifies the PNG's SHA-256
 and dimensions against the manifest and produces `library-atlas.vtex.bin` in the
@@ -142,6 +164,8 @@ After building, `python3 Tools/Villages/test_atlas_packaging.py` checks the pack
 with a generated single-pixel fixture: parallel builds, damaged output,
 mismatched fingerprints and dimensions, and readable official-image URLs.
 The JavaScript tests use the same format vector as the C# encoder tests.
+`python3 Tools/Villages/test_release_restore.py` checks CDN decoding, input
+validation and restoring without replacing the checked-in manifest.
 
 This is reversible obfuscation intended to discourage casual copying. Browser
 code can recover the image, and rendered pixels can be captured. It is not DRM,

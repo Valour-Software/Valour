@@ -141,7 +141,7 @@
     <Error Condition="'$(Configuration)' == 'Release' and '$(_VillageUsesLocalAtlas)' != 'True'"
            Text="The official Village manifest must reference the protected app atlas. Regenerate the library or restore the current private release package." />
     <Error Condition="'$(Configuration)' == 'Release' and '$(_VillageUsesLocalAtlas)' == 'True' and !Exists('$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.png')"
-           Text="The licensed Village atlas is missing. Run Tools/Villages/pack-library.py with the purchased source sheets or restore the private release artifact before building Release. See Docs/VillageTilesets.md." />
+           Text="The licensed Village atlas is missing. Run python3 Tools/Villages/restore-release-assets.py from the repository root before building Release. See Docs/VillageTilesets.md." />
     <Exec Condition="'$(_VillageUsesLocalAtlas)' == 'True' and Exists('$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.png')"
           Command="&quot;$(_VillageAtlasDotNet)&quot; run --project &quot;$(_VillageAtlasPacker)&quot; -- &quot;$(MSBuildProjectDirectory)/wwwroot/tilesets/exterior-tileset-0.json&quot; &quot;$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.png&quot; &quot;$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.vtex.bin&quot;" />
     <ItemGroup Condition="'$(_VillageAtlasExistedAtEvaluation)' != 'true' and Exists('$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.vtex.bin')">
