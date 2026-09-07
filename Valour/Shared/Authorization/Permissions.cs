@@ -502,6 +502,7 @@ public enum PlanetPermissionsEnum
     Manage,
     Kick,
     Ban,
+    ManageIdentity,
     ViewReports,
     ManageCategories,
     ManageChannels,
@@ -558,6 +559,7 @@ public static class PlanetPermissions
                 Manage,
                 Kick,
                 Ban,
+                ManageIdentity,
                 ViewReports,
                 CreateChannels,
                 ManageRoles,
@@ -626,6 +628,8 @@ public static class PlanetPermissions
 
     // Village Permissions
     public static readonly PlanetPermission ManageVillage = new PlanetPermission(0x800000, "Manage Village", "Allow members to edit the planet's village map, buildings, and village settings.");
+    
+    public static readonly PlanetPermission ManageIdentity = new PlanetPermission(0x1000000, "Manage Identity", "Allow members to edit other members' planet nickname and avatar.");
 }
 
 public enum PermissionState
