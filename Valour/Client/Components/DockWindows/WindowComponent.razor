@@ -21,9 +21,20 @@
         {
             <div
                 class="tab"
-                title="@Title">
+                title="@Title"
+                @oncontextpress:stopPropagation="true"
+                @oncontextpress="@OnTabContextMenu">
                 <div class="tab-info">
-                    <img alt="tab icon" class="tab-icon @(IsPlanetTab ? "circle" : "")" src="@Icon"/>
+                    @if (IconUser is not null)
+                    {
+                        <div class="tab-icon-avatar">
+                            <UserAvatar User="@IconUser" Size="22" ShowState="true"/>
+                        </div>
+                    }
+                    else
+                    {
+                        <img alt="tab icon" class="tab-icon @(IsPlanetTab ? "circle" : "")" src="@Icon"/>
+                    }
                     <span class="tab-title">@Title</span>
                 </div>
                 <div class="tab-buttons"
@@ -111,7 +122,7 @@
     public bool IsActive => Layout?.FocusedTab == WindowTab;
     public bool IsFloating => WindowTab.IsFloating;
     private bool IsLastTab => Layout is not null && (Layout.Tabs.Last().Id == WindowTab.Id);
-    private bool CanPopOutToNativeWindow => NativeWindowService.SupportsTabPopout && !DeviceInfo.IsMobile;
+    public bool CanPopOutToNativeWindow => NativeWindowService.SupportsTabPopout && !DeviceInfo.IsMobile;
 
     ///////////////////////
     // Private properties //
@@ -175,7 +186,8 @@
     }
 
     private string Icon => WindowTab.Content?.Icon ?? ThreadsWindowComponent.DefaultContent.Icon;
-    
+    private User IconUser => WindowTab.Content?.IconUser;
+
     /// <summary>
     /// Planet tabs show circular icons; user/app tabs show rounded squares
     /// </summary>
@@ -204,6 +216,7 @@
     
     // Render flag: blocks or allows rendering
     private bool _canRender = false;
+    private bool _disposed;
     protected override bool ShouldRender() => _canRender;
 
     protected override void OnInitialized()
@@ -241,6 +254,7 @@
     
     public void ReRender()
     {
+        if (_disposed) return;
         _canRender = true;
         InvokeAsync(StateHasChanged);
     }
@@ -318,7 +332,12 @@
         await CloseAsync();
     }
 
-    private async Task OnClickPopout()
+    private Task OnClickPopout()
+    {
+        return PopOutAsync();
+    }
+
+    public async Task PopOutAsync()
     {
         if (!CanPopOutToNativeWindow || WindowTab?.Content is null)
             return;
@@ -342,6 +361,14 @@
     private Task OnClickTab(MouseEventArgs e)
     {
         return SetFocused();
+    }
+
+    private void OnTabContextMenu(ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<WindowTabContextMenu>(e, new WindowTabContextMenu.TabContextParams()
+        {
+            Window = this
+        });
     }
     
     private Task OnClickWindow()
@@ -378,6 +405,10 @@
     /// </summary>
     private async Task OnTabDown(MouseEventArgs e)
     {
+        // Only left-click starts a drag; right-click is for the context menu
+        if (e.Button != 0)
+            return;
+
         // Store the start position
         _dragStartX = (float)e.ClientX;
         _dragStartY = (float)e.ClientY;
@@ -411,6 +442,7 @@
 
     private async Task OnTabUp(MouseUpEvent e)
     {
+        if (_disposed) return;
         var wasDragging = _dragging || WindowService.DraggingTab == WindowTab;
 
         try
@@ -448,6 +480,7 @@
 
     private async Task OnDragTab(MousePosition e)
     {
+        if (_disposed || WindowTab is null || (!IsFloating && Layout?.DockComponent is null)) return;
         if (!IsFloating)
         {
             if (_armFloatEvent)
@@ -600,6 +633,10 @@
     
     ValueTask IAsyncDisposable.DisposeAsync()
     {
+        _disposed = true;
+        MouseListener.UnsubscribeMouseMove(OnDragTab);
+        MouseListener.UnsubscribeMouseUp(OnTabUp);
+        _subscribedToMove = false;
         BrowserUtils.OnWindowResize -= OnWindowResize;
         WindowService.OnTabDragging -= OnGlobalTabDragging;
         ChannelDragManager.ChannelDragChanged -= OnChannelDragChanged;

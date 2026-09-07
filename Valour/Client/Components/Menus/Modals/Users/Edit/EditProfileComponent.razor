@@ -15,7 +15,7 @@
     return;
 }
 
-<div class="profile-editor-container">
+<div class="settings-page profile-editor-container">
 
     @* ===== Avatar ===== *@
     <div class="editor-section">
@@ -91,6 +91,8 @@
 
         <ResultLabel Result="@_result" />
     </div>
+
+    <EditBadgesComponent OnChanged="@OnBadgesChanged" />
 
     @* ===== Star Badge ===== *@
     @if (Client.Me.HasStargazer)
@@ -321,6 +323,8 @@
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
+    private void OnBadgesChanged() => _infoPreview?.UpdateAll();
+
     private UserInfoComponent _infoPreview;
 
     private ITaskResult _result;
@@ -459,6 +463,7 @@
 
     private async Task LoadAvatarFile(InputFileChangeEventArgs e)
     {
+        if (e.FileCount == 0) return;
         var file = e.File;
 
         if (file.Size > 20971520)
@@ -663,6 +668,7 @@
 
     private async Task LoadBackgroundImage(InputFileChangeEventArgs e)
     {
+        if (e.FileCount == 0) return;
         var file = e.File;
 
         if (file == null)

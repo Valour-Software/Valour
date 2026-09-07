@@ -85,9 +85,11 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public string OverrideName { get; set; }
 
     /// <summary>
-    /// Avatar override for webhook messages. Server-managed.
+    /// Immutable Valour CDN avatar asset used by this webhook message.
     /// </summary>
-    public string OverrideAvatarUrl { get; set; }
+    public long? WebhookAvatarAssetId { get; set; }
+
+    public bool WebhookAvatarAnimated { get; set; }
 
     public async ValueTask<IMessageAuthor> FetchAuthorAsync()
     {

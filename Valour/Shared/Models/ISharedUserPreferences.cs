@@ -6,6 +6,7 @@ public interface ISharedUserPreferences : ISharedModel<long>
     int NotificationVolume { get; set; }
     long EnabledNotificationSources { get; set; }
     DmPolicy DmPolicy { get; set; }
+    DmPolicy CallPolicy { get; set; }
     bool ForceGpuAcceleration { get; set; }
 
     /// <summary>

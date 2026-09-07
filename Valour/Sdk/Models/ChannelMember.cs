@@ -18,6 +18,8 @@ public class ChannelMember : ClientModel<ChannelMember, long>
     /// Id of the user that has this membership
     /// </summary>
     public long UserId { get; set; }
+
+    public bool IsAdmin { get; set; }
     
     private ChannelMember() {}
     public ChannelMember(ValourClient client) : base(client) { }

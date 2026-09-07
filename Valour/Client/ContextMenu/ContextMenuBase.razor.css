@@ -5,6 +5,8 @@
     top: 0;
     left: 0;
     z-index: 100000;
+    /* clips the pre-reposition first-paint overflow, see #1624 */
+    overflow: hidden;
 }
 
 .context {

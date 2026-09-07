@@ -52,11 +52,11 @@ public class AutomodService
 
     public async Task<QueryResponse<AutomodTrigger>> QueryPlanetTriggersAsync(long planetId, QueryRequest request)
     {
-        var take = Math.Min(50, request.Take);
-        var skip = request.Skip;
+        var take = Math.Clamp(request.Take, 0, 50);
+        var skip = Math.Max(0, request.Skip);
         var query = _db.AutomodTriggers.Where(x => x.PlanetId == planetId).AsQueryable();
         var total = await query.CountAsync();
-        var items = await query.Skip(skip).Take(take).Select(x => x.ToModel()).ToListAsync();
+        var items = await query.OrderBy(x => x.Id).Skip(skip).Take(take).Select(x => x.ToModel()).ToListAsync();
         return new QueryResponse<AutomodTrigger>
         {
             Items = items,
@@ -66,13 +66,13 @@ public class AutomodService
 
     public async Task<QueryResponse<AutomodAction>> QueryTriggerActionsAsync(long planetId, Guid triggerId, QueryRequest request)
     {
-        var take = Math.Min(50, request.Take);
-        var skip = request.Skip;
+        var take = Math.Clamp(request.Take, 0, 50);
+        var skip = Math.Max(0, request.Skip);
         var query = _db.AutomodActions
             .Where(x => x.PlanetId == planetId && x.TriggerId == triggerId)
             .AsQueryable();
         var total = await query.CountAsync();
-        var items = await query.Skip(skip).Take(take).Select(x => x.ToModel()).ToListAsync();
+        var items = await query.OrderBy(x => x.Id).Skip(skip).Take(take).Select(x => x.ToModel()).ToListAsync();
         return new QueryResponse<AutomodAction>
         {
             Items = items,

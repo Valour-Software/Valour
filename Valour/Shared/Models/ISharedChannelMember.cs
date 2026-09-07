@@ -20,4 +20,10 @@ public interface ISharedChannelMember
     /// Id of the user that has this membership
     /// </summary>
     long UserId { get; set; }
+
+    /// <summary>
+    /// Whether this member can rename the group and add or remove members.
+    /// Direct chats do not use this flag.
+    /// </summary>
+    bool IsAdmin { get; set; }
 }

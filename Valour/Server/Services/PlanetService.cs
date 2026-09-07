@@ -720,6 +720,15 @@ public class PlanetService
         if (old.LockedForMigration)
             return new TaskResult<Planet>(false, MigrationLock.Message);
 
+        if (planet.VanityInviteEnabled && !old.VanityInviteEnabled)
+        {
+            if (string.IsNullOrWhiteSpace(old.Vanity))
+                return new TaskResult<Planet>(false, "Set a vanity URL before using it as an invite link.");
+
+            if (!planet.Public)
+                return new TaskResult<Planet>(false, "Invites must be enabled to use the vanity URL as an invite link.");
+        }
+
         await using var tran = await _db.Database.BeginTransactionAsync();
         
         try
@@ -762,6 +771,10 @@ public class PlanetService
             return new TaskResult<Planet>(false, "Error updating planet.");
         }
 
+        // Planet reads on the hosting node come from HostedPlanet, not directly
+        // from the database. Keep that authoritative cache in step with the
+        // persisted model before broadcasting the update to clients.
+        _hostedPlanetService.GetCached(planet.Id)?.Update(planet);
         _coreHub.NotifyPlanetChange(planet);
         
         return new TaskResult<Planet>(true, "Planet updated successfully.", planet);
@@ -881,6 +894,8 @@ public class PlanetService
         if (string.IsNullOrWhiteSpace(name))
         {
             dbPlanet.Vanity = null;
+            // No vanity left to invite through, so don't leave this dangling.
+            dbPlanet.VanityInviteEnabled = false;
         }
         else
         {
@@ -922,6 +937,24 @@ public class PlanetService
 
         var planet = await _db.Planets.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Vanity == name);
+
+        return planet?.Id;
+    }
+
+    /// <summary>
+    /// Like ResolveVanityAsync, but only matches planets that have opted
+    /// their vanity name in as an invite link. Used to let /i/{code} accept
+    /// a vanity name as well as a real invite code.
+    /// </summary>
+    public async Task<long?> ResolveVanityInviteAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        name = name.Trim().ToLowerInvariant();
+
+        var planet = await _db.Planets.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Vanity == name && x.VanityInviteEnabled);
 
         return planet?.Id;
     }

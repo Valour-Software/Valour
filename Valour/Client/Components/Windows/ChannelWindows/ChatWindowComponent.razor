@@ -1430,6 +1430,7 @@
     [JSInvokable("OnScrollTopInvoke")]
     public async Task OnScrollTop()
     {
+        if (_disposed) return;
         _scrollLatestWindowAfterNextRender = false;
 
         if (_loadingBackward)
@@ -1451,11 +1452,12 @@
 
             var messages = await Channel.GetMessagesAsync(firstId, MessagePageSize);
 
-            if (messages is null || !messages.Any())
+            if (_disposed || messages is null || !messages.Any())
                 return;
 
             // Insert older messages above, then preserve the viewport after the DOM has rendered them.
             await UpdateScrollPosition();
+            if (_disposed) return;
             DisplayedMessages.InsertRange(0, messages);
             _scaleScrollAfterNextRender = true;
             _trimBottomAfterScale = DisplayedMessages.Count > TrimThreshold;
@@ -1556,9 +1558,12 @@
             await planet.EnsureReadyAsync();
         }
 
+        var dmUser = await channel.GetDmUserAsync();
+
         return new()
         {
-            Icon = await channel.GetIconAsync(),
+            Icon = await channel.GetIconAsync(dmUser),
+            IconUser = dmUser,
             Title = await channel.GetTitleAsync(),
             PlanetId = channel.PlanetId,
             Data = channel

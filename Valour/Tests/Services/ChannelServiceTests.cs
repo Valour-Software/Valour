@@ -5,6 +5,7 @@ using Valour.Database.Context;
 using Valour.Database.Extensions;
 using Valour.Sdk.Client;
 using Valour.Server;
+using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
 using Valour.Server.Services;
@@ -50,6 +51,18 @@ public class ChannelServiceTests : IAsyncLifetime
         
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Sentry_MissingDmParticipant_ReturnsNullWithoutStagingOrphans(bool self)
+    {
+        var missingId = IdManager.Generate();
+        var result = await _channelService.GetDirectChannelByUsersAsync(self ? missingId : _client.Me.Id, missingId);
+        Assert.Null(result);
+        Assert.DoesNotContain(_db.ChangeTracker.Entries(), x => x.State == EntityState.Added);
+        Assert.False(await _db.ChannelMembers.AnyAsync(x => x.UserId == missingId));
+    }
+
     [Fact]
     public async Task GetDirectChannel_SelfDm_DoesNotReturnAnotherUsersDm()
     {
@@ -80,6 +93,129 @@ public class ChannelServiceTests : IAsyncLifetime
         // The two-user lookup still returns the pair channel, not the self channel
         var otherDmAgain = await _channelService.GetDirectChannelByUsersAsync(myId, otherUser.Id, create: true);
         Assert.Equal(otherDm.Id, otherDmAgain.Id);
+    }
+
+    [Fact]
+    public async Task GroupDm_Create_StoresMembersAndCreatorAdmin()
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        var otherUserIds = await _db.Users
+            .Where(x => x.Id != _client.Me.Id)
+            .Select(x => x.Id)
+            .Take(2)
+            .ToListAsync();
+        Assert.Equal(2, otherUserIds.Count);
+
+        var result = await _channelService.CreateGroupDmAsync(_client.Me.Id, new CreateGroupDmRequest
+        {
+            Name = "Test group",
+            UserIds = otherUserIds
+        });
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(ChannelTypeEnum.GroupChat, result.Data.ChannelType);
+        Assert.Equal(3, result.Data.Members.Count);
+        Assert.Contains(result.Data.Members, x => x.UserId == _client.Me.Id && x.IsAdmin);
+        Assert.All(result.Data.Members.Where(x => x.UserId != _client.Me.Id), x => Assert.False(x.IsAdmin));
+
+        await transaction.RollbackAsync();
+    }
+
+    [Fact]
+    public async Task AddingPeopleToDirectDm_CreatesFreshGroupAndPreservesPrivateHistory()
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        var otherUserIds = await _db.Users
+            .Where(x => x.Id != _client.Me.Id)
+            .Select(x => x.Id)
+            .Take(2)
+            .ToListAsync();
+        Assert.Equal(2, otherUserIds.Count);
+
+        var direct = await _channelService.GetDirectChannelByUsersAsync(
+            _client.Me.Id,
+            otherUserIds[0],
+            create: true);
+        Assert.NotNull(direct);
+
+        var privateMessageId = IdManager.Generate();
+        await _db.Messages.AddAsync(new Valour.Database.Message
+        {
+            Id = privateMessageId,
+            ChannelId = direct.Id,
+            AuthorUserId = _client.Me.Id,
+            Content = "This must remain private",
+            TimeSent = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _channelService.ConvertDirectDmToGroupAsync(
+            direct.Id,
+            _client.Me.Id,
+            [otherUserIds[1]],
+            "Expanded call");
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotEqual(direct.Id, result.Data.Id);
+        Assert.Equal(ChannelTypeEnum.GroupChat, result.Data.ChannelType);
+        Assert.Equal(3, result.Data.Members.Count);
+
+        var original = await _db.Channels.AsNoTracking()
+            .Include(x => x.Members)
+            .FirstAsync(x => x.Id == direct.Id);
+        Assert.Equal(ChannelTypeEnum.DirectChat, original.ChannelType);
+        Assert.DoesNotContain(original.Members, x => x.UserId == otherUserIds[1]);
+        Assert.True(await _db.Messages.AnyAsync(x => x.Id == privateMessageId && x.ChannelId == direct.Id));
+        Assert.False(await _db.Messages.AnyAsync(x => x.ChannelId == result.Data.Id));
+
+        await transaction.RollbackAsync();
+    }
+
+    [Fact]
+    public async Task GroupDm_AdminControlsAddingAndLeavingPromotesSuccessor()
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        var otherUserIds = await _db.Users
+            .Where(x => x.Id != _client.Me.Id)
+            .Select(x => x.Id)
+            .Take(3)
+            .ToListAsync();
+        Assert.Equal(3, otherUserIds.Count);
+
+        var created = await _channelService.CreateGroupDmAsync(_client.Me.Id, new CreateGroupDmRequest
+        {
+            Name = "Admin test",
+            UserIds = otherUserIds.Take(2).ToList()
+        });
+        Assert.True(created.Success, created.Message);
+
+        var denied = await _channelService.AddGroupDmMembersAsync(
+            created.Data.Id,
+            otherUserIds[0],
+            [otherUserIds[2]]);
+        Assert.False(denied.Success);
+        Assert.Contains("admin", denied.Message, StringComparison.OrdinalIgnoreCase);
+
+        var added = await _channelService.AddGroupDmMembersAsync(
+            created.Data.Id,
+            _client.Me.Id,
+            [otherUserIds[2]]);
+        Assert.True(added.Success, added.Message);
+        Assert.Equal(4, added.Data.Members.Count);
+
+        var left = await _channelService.RemoveGroupDmMemberAsync(
+            created.Data.Id,
+            _client.Me.Id,
+            _client.Me.Id);
+        Assert.True(left.Success, left.Message);
+
+        var remaining = await _db.Channels.AsNoTracking()
+            .Include(x => x.Members)
+            .SingleAsync(x => x.Id == created.Data.Id);
+        Assert.DoesNotContain(remaining.Members, x => x.UserId == _client.Me.Id);
+        Assert.Single(remaining.Members, x => x.IsAdmin);
+
+        await transaction.RollbackAsync();
     }
 
     [Fact]

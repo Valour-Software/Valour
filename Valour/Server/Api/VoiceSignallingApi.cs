@@ -12,20 +12,20 @@ public class VoiceSignallingApi
     {
         // Provider-neutral routes (canonical). The handlers act through IVoiceProvider,
         // so a single path serves whichever backend the instance runs.
-        app.MapPost("api/voice/token/{channelId:long}", GetVoiceToken);
-        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant);
-        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant);
-        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant);
-        app.MapPost("api/voice/channels/{channelId:long}/leave", LeaveVoiceChannel);
-        app.MapPost("api/voice/heartbeat", VoiceHeartbeat);
+        app.MapPost("api/voice/token/{channelId:long}", GetVoiceToken).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/channels/{channelId:long}/leave", LeaveVoiceChannel).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/heartbeat", VoiceHeartbeat).AddEndpointFilter<NotHostedExceptionFilter>();
 
         // Legacy provider-named aliases, retained so already-loaded clients keep working.
-        app.MapPost("api/voice/realtimekit/token/{channelId:long}", GetVoiceToken);
-        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant);
-        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant);
-        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant);
-        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/leave", LeaveVoiceChannel);
-        app.MapPost("api/voice/realtimekit/heartbeat", VoiceHeartbeat);
+        app.MapPost("api/voice/realtimekit/token/{channelId:long}", GetVoiceToken).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/leave", LeaveVoiceChannel).AddEndpointFilter<NotHostedExceptionFilter>();
+        app.MapPost("api/voice/realtimekit/heartbeat", VoiceHeartbeat).AddEndpointFilter<NotHostedExceptionFilter>();
     }
 
     public static async Task<IResult> GetVoiceToken(

@@ -25,7 +25,7 @@ self.addEventListener('fetch', event => {
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}-${COMMIT_HASH}`;
-const offlineAssetsInclude = [/\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff2$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/];
+const offlineAssetsInclude = [/\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff2$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /\.vtex\.bin$/];
 // index.html is excluded because Cloudflare Pages serves it through a pretty-URL redirect
 // whose cached body can come from a different deployment, failing the SRI integrity check
 // and breaking the entire service worker install (which kills push notifications).

@@ -113,7 +113,11 @@ public class LiveKitService : IVoiceProvider
     // ================= IVoiceProvider (instance SFU) =================
 
     public Task<TaskResult<RealtimeKitVoiceTokenResponse>> CreateParticipantTokenAsync(
-        Channel channel, long userId, string displayName, string? sessionId)
+        Channel channel,
+        long userId,
+        string displayName,
+        string? sessionId,
+        TimeSpan? tokenLifetime = null)
     {
         if (!IsConfigured)
         {
@@ -122,7 +126,7 @@ public class LiveKitService : IVoiceProvider
         }
 
         var response = CreateParticipantTokenWithCredentials(
-            InstanceCredentials, channel.Id, userId, displayName, sessionId);
+            InstanceCredentials, channel.Id, userId, displayName, sessionId, tokenLifetime);
 
         _roomsByChannel[channel.Id] = response.MeetingId;
 
@@ -192,7 +196,12 @@ public class LiveKitService : IVoiceProvider
     /// no network call, so it cannot fail against a live SFU.
     /// </summary>
     public RealtimeKitVoiceTokenResponse CreateParticipantTokenWithCredentials(
-        LiveKitCredentials creds, long channelId, long userId, string displayName, string? sessionId)
+        LiveKitCredentials creds,
+        long channelId,
+        long userId,
+        string displayName,
+        string? sessionId,
+        TimeSpan? tokenLifetime = null)
     {
         var roomName = RoomName(channelId);
         var identity = BuildIdentity(userId, sessionId);
@@ -208,7 +217,7 @@ public class LiveKitService : IVoiceProvider
         };
 
         var token = SignAccessToken(creds.ApiKey, creds.ApiSecret, identity, displayName,
-            metadata, grant, TokenLifetime);
+            metadata, grant, tokenLifetime ?? TokenLifetime);
 
         return new RealtimeKitVoiceTokenResponse
         {

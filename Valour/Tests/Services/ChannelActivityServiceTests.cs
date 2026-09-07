@@ -66,17 +66,74 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             .Select(x => x.ToModel())
             .FirstAsync();
 
-    private ChannelActivityEvaluation MakeEvaluation(Channel channel, bool conversationStart = true) =>
-        new()
+    [Theory]
+    [InlineData("  First line\nsecond   line  ", 0, "First line second line")]
+    [InlineData("", 1, "Sent an attachment")]
+    [InlineData("", 3, "Sent 3 attachments")]
+    [InlineData("", 0, "Sent a message")]
+    public void BuildMessagePreview_NormalizesAndHandlesEmptyContent(
+        string content,
+        int attachmentCount,
+        string expected)
+    {
+        Assert.Equal(expected, ChannelActivityService.BuildMessagePreview(content, attachmentCount));
+    }
+
+    [Fact]
+    public void BuildMessagePreview_TruncatesLongMessages()
+    {
+        var preview = ChannelActivityService.BuildMessagePreview(
+            new string('a', ChannelActivityService.MessagePreviewLength + 20),
+            0);
+
+        Assert.Equal(ChannelActivityService.MessagePreviewLength, preview.Length);
+        Assert.EndsWith("…", preview);
+    }
+
+    [Theory]
+    [InlineData(0, "Alex in Valour Central")]
+    [InlineData(1, "Alex in Valour Central (+1 other)")]
+    [InlineData(4, "Alex in Valour Central (+4 others)")]
+    public void BuildActivityTitle_FormatsOtherAuthors(int otherCount, string expected)
+    {
+        Assert.Equal(expected,
+            ChannelActivityService.BuildActivityTitle("Alex", "Valour Central", otherCount));
+    }
+
+    private async Task<ChannelActivityEvaluation> MakeEvaluationAsync(
+        Channel channel,
+        bool conversationStart = true,
+        string content = "The latest activity message")
+    {
+        var messageId = IdManager.Generate();
+        var authorMemberId = await _db.PlanetMembers.AsNoTracking()
+            .Where(x => x.UserId == _client.Me.Id && x.PlanetId == _valourCentralId)
+            .Select(x => (long?)x.Id)
+            .FirstOrDefaultAsync();
+
+        await _db.Messages.AddAsync(new Valour.Database.Message
+        {
+            Id = messageId,
+            PlanetId = _valourCentralId,
+            ChannelId = channel.Id,
+            AuthorUserId = _client.Me.Id,
+            AuthorMemberId = authorMemberId,
+            Content = content,
+            TimeSent = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        return new ChannelActivityEvaluation
         {
             ChannelId = channel.Id,
             PlanetId = _valourCentralId,
-            TriggerMessageId = IdManager.Generate(),
+            TriggerMessageId = messageId,
             WindowMessageCount = 5,
             WindowAuthorCount = 2,
             WindowAuthorUserIds = [_client.Me.Id],
             ConversationStart = conversationStart,
         };
+    }
 
     [Fact]
     public async Task Evaluate_NotifiesRecentViewer()
@@ -88,7 +145,8 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
         Assert.True(stateResult.Success, stateResult.Message);
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+        var eval = await MakeEvaluationAsync(channel);
+        await _activityService.EvaluateAsync(eval);
 
         var notification = await _db.Notifications.AsNoTracking().FirstOrDefaultAsync(x =>
             x.UserId == viewer.UserId
@@ -97,7 +155,13 @@ public class ChannelActivityServiceTests : IAsyncLifetime
 
         Assert.NotNull(notification);
         Assert.Null(notification.TimeRead);
-        Assert.Contains("picking up", notification.Title);
+        var planetName = await _db.Planets.AsNoTracking()
+            .Where(x => x.Id == _valourCentralId)
+            .Select(x => x.Name)
+            .FirstAsync();
+        Assert.Equal($"{_client.Me.Name} in {planetName} (+1 other)", notification.Title);
+        Assert.Equal("The latest activity message", notification.Body);
+        Assert.Equal(eval.TriggerMessageId, notification.SourceId);
     }
 
     [Fact]
@@ -109,8 +173,8 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         await _unreadService.UpdateReadState(
             channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel));
-        await _activityService.EvaluateAsync(MakeEvaluation(channel, conversationStart: false));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel, conversationStart: false));
 
         var count = await _db.Notifications.AsNoTracking().CountAsync(x =>
             x.UserId == viewer.UserId
@@ -137,7 +201,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         // Muting must not clobber the view time
         Assert.NotEqual(DateTime.UnixEpoch, muteResult.Data.LastViewedTime);
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
 
         Assert.False(await _db.Notifications.AnyAsync(x =>
             x.UserId == viewer.UserId
@@ -154,7 +218,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         await _unreadService.UpdateReadState(
             channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
 
-        var eval = MakeEvaluation(channel);
+        var eval = await MakeEvaluationAsync(channel);
         eval.WindowAuthorUserIds = [viewer.UserId];
 
         await _activityService.EvaluateAsync(eval);
@@ -181,7 +245,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         });
         await _db.SaveChangesAsync();
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
 
         Assert.True(await _db.Notifications.AnyAsync(x =>
             x.UserId == favoriter.UserId
@@ -205,7 +269,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
 
         try
         {
-            await _activityService.EvaluateAsync(MakeEvaluation(channel));
+            await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
 
             Assert.False(await _db.Notifications.AnyAsync(x =>
                 x.UserId == viewer.UserId
@@ -220,7 +284,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             });
             await _db.SaveChangesAsync();
 
-            await _activityService.EvaluateAsync(MakeEvaluation(channel));
+            await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
 
             Assert.True(await _db.Notifications.AnyAsync(x =>
                 x.UserId == viewer.UserId
@@ -242,8 +306,10 @@ public class ChannelActivityServiceTests : IAsyncLifetime
 
         var template = new Notification()
         {
-            Title = "#general is picking up",
-            Body = "3 messages from 2 people",
+            Title = "Alex in Valour Central (+1 other)",
+            Body = "First contextual preview",
+            ImageUrl = ISharedUser.DefaultAvatar,
+            ClickUrl = $"/planetchannels/{_valourCentralId}/{channel.Id}",
             PlanetId = _valourCentralId,
             ChannelId = channel.Id,
             Source = NotificationSource.ChannelActivity,
@@ -252,8 +318,8 @@ public class ChannelActivityServiceTests : IAsyncLifetime
 
         await _notificationService.SendChannelActivityNotificationsAsync([viewer.UserId], template);
 
-        template.Title = "#general is active";
-        template.Body = "14 messages from 4 people";
+        template.Title = "Sam in Valour Central (+3 others)";
+        template.Body = "Updated contextual preview";
         await _notificationService.SendChannelActivityNotificationsAsync([viewer.UserId], template);
 
         var rows = await _db.Notifications.AsNoTracking().Where(x =>
@@ -263,8 +329,8 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             .ToListAsync();
 
         var row = Assert.Single(rows);
-        Assert.Equal("14 messages from 4 people", row.Body);
-        Assert.Contains("is active", row.Title);
+        Assert.Equal("Updated contextual preview", row.Body);
+        Assert.Equal("Sam in Valour Central (+3 others)", row.Title);
     }
 
     [Fact]
@@ -276,7 +342,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         await _unreadService.UpdateReadState(
             channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow.AddMinutes(-10));
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
 
         Assert.True(await _db.Notifications.AnyAsync(x =>
             x.UserId == viewer.UserId
@@ -302,7 +368,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             .ExecuteUpdateAsync(x => x.SetProperty(
                 s => s.LastViewedTime, DateTime.UtcNow.AddMinutes(-10)));
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel, conversationStart: false));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel, conversationStart: false));
 
         Assert.False(await _db.Notifications.AnyAsync(x =>
             x.UserId == viewer.UserId
@@ -322,7 +388,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         await _unreadService.UpdateReadState(
             channel.Id, viewer.UserId, _valourCentralId, viewer.Id, DateTime.UtcNow);
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
 
         Assert.False(await _db.Notifications.AnyAsync(x =>
             x.UserId == viewer.UserId
@@ -345,7 +411,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         Assert.Equal(ChannelActivityAlerts.Off,
             await _activityService.GetPlanetActivityAlertsAsync(_valourCentralId, viewer.UserId));
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
 
         Assert.False(await _db.Notifications.AnyAsync(x =>
             x.UserId == viewer.UserId
@@ -356,7 +422,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
         await _activityService.SetPlanetActivityAlertsAsync(
             _valourCentralId, viewer.UserId, ChannelActivityAlerts.Auto);
 
-        await _activityService.EvaluateAsync(MakeEvaluation(channel));
+        await _activityService.EvaluateAsync(await MakeEvaluationAsync(channel));
 
         Assert.True(await _db.Notifications.AnyAsync(x =>
             x.UserId == viewer.UserId

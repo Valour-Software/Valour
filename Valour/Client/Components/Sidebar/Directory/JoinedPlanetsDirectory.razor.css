@@ -16,6 +16,198 @@
     min-height: 0;
 }
 
+.planet-folder {
+    margin-bottom: 4px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    transition: border-color var(--duration-fast), background-color var(--duration-fast);
+}
+
+.planet-folder.drag-over {
+    border-color: var(--color-primary-border);
+    background: var(--color-primary-soft);
+}
+
+.folder-header {
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+}
+
+.folder-toggle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--font-alt-color);
+    background: transparent;
+    border: 0;
+    text-align: left;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+}
+
+.folder-toggle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-toggle i { font-size: 10px; }
+.folder-actions { display: flex; opacity: 0; transition: opacity var(--duration-fast); }
+.folder-header:hover .folder-actions { opacity: 1; }
+.folder-actions button,
+.folder-editor button {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--font-alt-color);
+    background: transparent;
+}
+.folder-actions button:hover, .folder-editor button:hover { color: var(--font-color); background: var(--main-4); }
+
+.folder-editor,
+.folder-header:has(input) { display: flex; gap: 4px; padding: 4px; }
+.folder-editor input,
+.folder-header input {
+    min-width: 0;
+    flex: 1;
+    height: 30px;
+    padding: 4px 8px;
+    border: 1px solid var(--medium-tint);
+    border-radius: var(--radius-sm);
+    outline: none;
+    color: var(--font-color);
+    background: var(--main-3);
+}
+.folder-editor input:focus, .folder-header input:focus { border-color: var(--color-primary); }
+.folder-planets {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 8px 6px 24px;
+    overflow: visible;
+}
+
+.folder-planet-icon {
+    position: relative;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 180ms var(--ease-standard), opacity 150ms var(--ease-standard);
+}
+
+.folder-planet-icon > ::deep .tooltip-trigger,
+.folder-planet-icon button {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.folder-planet-icon button {
+    position: relative;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    color: inherit;
+    background: transparent;
+    transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.folder-planet-icon button:hover { transform: translateY(-2px); }
+.folder-planet-icon[draggable="true"] { cursor: grab; }
+.folder-planet-icon[draggable="true"]:active { cursor: grabbing; opacity: .65; }
+.folder-planet-icon.dragging { opacity: .3; }
+.folder-planet-icon.insert-before { transform: translateX(10px); }
+.folder-planet-icon.insert-before::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: -6px;
+    width: 2px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    box-shadow: 0 0 8px var(--color-primary);
+}
+
+.folder-notif {
+    position: absolute;
+    top: -4px;
+    right: -5px;
+    min-width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border: 2px solid var(--main-2);
+    border-radius: var(--radius-full);
+    color: white;
+    background: var(--color-danger);
+    font-size: 8px;
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
+
+.empty-folder { padding: 8px; color: var(--font-alt-color); font-size: var(--font-size-xs); text-align: center; }
+.planet-drag-row {
+    position: relative;
+    border-radius: var(--radius-sm);
+    transition: transform 180ms var(--ease-standard), opacity 150ms var(--ease-standard);
+}
+.planet-drag-row[draggable="true"] { cursor: grab; }
+.planet-drag-row[draggable="true"]:active { cursor: grabbing; opacity: .65; }
+.planet-drag-row.dragging { opacity: .3; }
+.planet-drag-row.insert-before { transform: translateY(7px); }
+.planet-drag-row.insert-before::before {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: -4px;
+    right: 8px;
+    left: 8px;
+    height: 2px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    box-shadow: 0 0 8px var(--color-primary);
+}
+
+.unfiled-planets {
+    position: relative;
+    min-height: 12px;
+    border-radius: var(--radius-md);
+}
+
+.folder-planets.insert-at-end::after,
+.unfiled-planets.insert-at-end::after {
+    content: '';
+    display: block;
+    flex: 0 0 auto;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    box-shadow: 0 0 8px var(--color-primary);
+}
+
+.folder-planets.insert-at-end::after {
+    width: 2px;
+    height: 30px;
+    margin-left: 3px;
+}
+
+.unfiled-planets.insert-at-end::after {
+    height: 2px;
+    margin: 5px 8px;
+}
+
 /* Bottom pinned actions */
 .bottom-actions {
     flex-shrink: 0;

@@ -9,6 +9,7 @@ public static class DevicePreferences
 {
     public const string ErrorReportingEnabledStorageKey = "ErrorReportingEnabled";
     public const string ForceGpuAccelerationStorageKey = "ForceGpuAcceleration";
+    public const string VillageHandheldControlsStorageKey = "VillageHandheldControls";
 
     public static event Func<string?, Task>? OnMicrophoneDeviceIdChanged;
     public static event Func<string?, Task>? OnCameraDeviceIdChanged;
@@ -23,6 +24,7 @@ public static class DevicePreferences
     public static string? CameraDeviceId { get; set; }
     public static bool ErrorReportingEnabled { get; private set; }
     public static bool ForceGpuAcceleration { get; private set; }
+    public static bool VillageHandheldControls { get; private set; }
 
     public static async Task SetMicrophoneDeviceId(string? deviceId, IAppStorage localStorage)
     {
@@ -53,6 +55,12 @@ public static class DevicePreferences
     {
         ForceGpuAcceleration = isEnabled;
         await localStorage.SetAsync(ForceGpuAccelerationStorageKey, isEnabled);
+    }
+
+    public static async Task SetVillageHandheldControlsEnabled(bool isEnabled, IAppStorage localStorage)
+    {
+        VillageHandheldControls = isEnabled;
+        await localStorage.SetAsync(VillageHandheldControlsStorageKey, isEnabled);
     }
 
     public static async Task ApplyForceGpuAccelerationAsync(IJSRuntime jsRuntime)
@@ -88,6 +96,9 @@ public static class DevicePreferences
 
         ForceGpuAcceleration = await localStorage.ContainsKeyAsync(ForceGpuAccelerationStorageKey)
             && await localStorage.GetAsync<bool>(ForceGpuAccelerationStorageKey);
+
+        VillageHandheldControls = await localStorage.ContainsKeyAsync(VillageHandheldControlsStorageKey)
+            && await localStorage.GetAsync<bool>(VillageHandheldControlsStorageKey);
 
         SentryGate.IsEnabled = ErrorReportingEnabled;
 

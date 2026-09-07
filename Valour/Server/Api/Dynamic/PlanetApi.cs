@@ -8,6 +8,7 @@ using Valour.Shared.Models;
 using Valour.Shared.Queries;
 using Valour.Server.Models;
 using Valour.Server.Services;
+using Valour.Server.Services.Villages;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -151,7 +152,9 @@ public class PlanetApi
         long id,
         PlanetService planetService,
         PlanetMemberService memberService,
-        FederationNodeClient federationNodeClient)
+        FederationNodeClient federationNodeClient,
+        VillagePresenceService villagePresenceService,
+        VillageRoomService villageRoomService)
     {
         var member = await memberService.GetCurrentAsync(id);
         if (member is null)
@@ -188,6 +191,7 @@ public class PlanetApi
                 return ValourResult.Problem(sync.Message ?? "Could not update this community planet at the hub.");
         }
 
+        var villageWasEnabled = old.EnableVillage;
         var result = await planetService.UpdateAsync(planet);
 
         if (!result.Success)
@@ -197,6 +201,12 @@ public class PlanetApi
             if (previousStub is not null)
                 await federationNodeClient.UpsertPlanetAsync(id, previousStub);
             return ValourResult.Problem(result.Message);
+        }
+
+        if (villageWasEnabled && !planet.EnableVillage)
+        {
+            await villagePresenceService.LeavePlanetAsync(id);
+            await villageRoomService.ClosePlanetRoomsAsync(id);
         }
         
         return Results.Json(planet);

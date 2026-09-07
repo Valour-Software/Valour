@@ -10,19 +10,19 @@
             switch (match.Item)
             {
                 case PlanetRole role:
-                    <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)" />
+                    <MentionSelectRoleComponent @key="(match.Item.GetType(), match.Key)" Index="x" Parent="this" Role="@role" Selected="(x == Selected)" />
                     break;
                 case PlanetMember member:
-                    <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)" />
+                    <MentionSelectMemberComponent @key="(match.Item.GetType(), match.Key)" Index="x" Parent="this" Member="member" Selected="(x == Selected)" />
                     break;
                 case User user:
-                    <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)" />
+                    <MentionSelectUserComponent @key="(match.Item.GetType(), match.Key)" Index="x" Parent="this" User="user" Selected="(x == Selected)" />
                     break;
                 case Channel channel:
-                    <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)" />
+                    <MentionSelectChannelComponent @key="(match.Item.GetType(), match.Key)" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)" />
                     break;
                 case EmojiClickEvent emoji:
-                    <MentionSelectEmojiComponent @key="@match.Key" Index="x" Parent="this" Emoji="@emoji" Selected="(x == Selected)" />
+                    <MentionSelectEmojiComponent @key="(match.Item.GetType(), match.Key)" Index="x" Parent="this" Emoji="@emoji" Selected="(x == Selected)" />
                     break;
             }
         }
@@ -48,9 +48,10 @@
         public object Item { get; set; }
     }
 
-    private List<MentionMatch> _matches;
+    private List<MentionMatch> _matches = new();
+    private int _searchVersion;
     
-    private List<User> _users;
+    private List<User> _users = new();
 
     protected override void OnInitialized()
     {
@@ -60,7 +61,9 @@
 
     public async Task SetVisible(bool value, char mode = ' ')
     {
+        _searchVersion++;
         Visible = value;
+        Mode = value ? mode : ' ';
 
         if (!value)
         {
@@ -72,13 +75,11 @@
         }
 
         // On made visible, fetch all needed data
-        if (ChannelComponent.Channel.PlanetId is null)
+        if (ChannelComponent?.Channel is { PlanetId: null } channel)
         {
-            _users = await ChannelComponent.Channel.GetChannelMemberUsersAsync();
+            _users = await channel.GetChannelMemberUsersAsync() ?? new();
         }
 
-        // Set mode
-        Mode = mode;
         Selected = 0;
 
         StateHasChanged();
@@ -145,33 +146,39 @@
 
     public async Task SetText(string newText)
     {
-        Text = newText.TrimStart(Mode).ToLowerInvariant();
+        var version = ++_searchVersion;
+        var channel = ChannelComponent?.Channel;
+        var planet = channel?.Planet;
+        var mode = Mode;
+        var text = (newText ?? string.Empty).TrimStart(mode).ToLowerInvariant();
+        Text = text;
+        var matches = new List<MentionMatch>();
+        if (channel is null || !Visible)
+            return;
 
-        _matches.Clear();
-
-        if (Mode == '@')
+        if (mode == '@')
         {
-            if (ChannelComponent.Channel.PlanetId is not null)
+            if (planet is not null)
             {
-                if (string.IsNullOrEmpty(Text))
+                if (string.IsNullOrEmpty(text))
                 {
-                    _matches.AddRange((await ChannelComponent.GetLastChatMembers(10))
+                    matches.AddRange((await ChannelComponent.GetLastChatMembers(10) ?? new())
                         .Select(x => new MentionMatch { Key = x.Id.ToString(), Item = x }));
                 }
                 else
                 {
                     // Get members which may match
-                    var members = ChannelComponent.Channel.Planet.Members
-                                     .Where(x => x.Id != long.MaxValue && x.Name.ToLower().Contains(Text))
-                                     .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
-                                     .ThenBy(x => x.Name.Length)
+                    var members = planet.Members
+                                     .Where(x => x.Id != long.MaxValue && (x.Name ?? string.Empty).ToLowerInvariant().Contains(text))
+                                     .OrderByDescending(x => (x.Name ?? string.Empty).ToLowerInvariant().StartsWith(text))
+                                     .ThenBy(x => (x.Name?.Length ?? 0))
                                      .Take(10)
                                      .Select(x => new MentionMatch() { Key = x.Id.ToString(), Item = x });
 
-                    _matches.AddRange(members);
+                    matches.AddRange(members);
 
                     var canMentionAll = false;
-                    var myMember = ChannelComponent.Channel.Planet.MyMember;
+                    var myMember = planet.MyMember;
                     if (myMember is not null)
                     {
                         if (myMember.HasPermission(PlanetPermissions.MentionAll))
@@ -180,42 +187,42 @@
                         }
                     }
 
-                    var roleQuery = ChannelComponent.Channel.Planet.Roles.Where(x => x.Name.ToLower().Contains(Text));
+                    var roleQuery = planet.Roles.Where(x => (x.Name ?? string.Empty).ToLowerInvariant().Contains(text));
                     if (!canMentionAll)
                         roleQuery = roleQuery.Where(x => x.AnyoneCanMention);
 
                     var roles =
-                        roleQuery.OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
-                        .ThenBy(x => x.Name.Length)
+                        roleQuery.OrderByDescending(x => (x.Name ?? string.Empty).ToLowerInvariant().StartsWith(text))
+                        .ThenBy(x => (x.Name?.Length ?? 0))
                         .Take(5)
                         .Select(x => new MentionMatch() { Key = x.Id.ToString(), Item = x });
 
-                    _matches.AddRange(roles);
+                    matches.AddRange(roles);
                 }
             }
             else
             {
-                _matches.AddRange(_users.Where(x => x.Name.ToLower().Contains(Text))
-                                                 .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
-                                                 .ThenBy(x => x.Name.Length)
+                matches.AddRange(_users.Where(x => (x.Name ?? string.Empty).ToLowerInvariant().Contains(text))
+                                                 .OrderByDescending(x => (x.Name ?? string.Empty).ToLowerInvariant().StartsWith(text))
+                                                 .ThenBy(x => (x.Name?.Length ?? 0))
                                                  .Take(10)
                                                  .Select(x => new MentionMatch() { Key = x.Id.ToString(), Item = x }));
             }
         }
-        else if (Mode == '#')
+        else if (mode == '#' && planet is not null)
         {
-            _matches.AddRange(ChannelComponent.Channel.Planet.Channels.Where(x => x.ChannelType == ChannelTypeEnum.PlanetChat && x.Name.ToLower().Contains(Text))
-                             .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
-                             .ThenBy(x => x.Name.Length)
+            matches.AddRange(planet.Channels.Where(x => x.ChannelType == ChannelTypeEnum.PlanetChat && (x.Name ?? string.Empty).ToLowerInvariant().Contains(text))
+                             .OrderByDescending(x => (x.Name ?? string.Empty).ToLowerInvariant().StartsWith(text))
+                             .ThenBy(x => (x.Name?.Length ?? 0))
                              .Take(10)
                              .Select(x => new MentionMatch() { Key = x.Id.ToString(), Item = x }));
         }
-        else if (Mode == ':')
+        else if (mode == ':')
         {
-            if (!string.IsNullOrWhiteSpace(Text))
+            if (!string.IsNullOrWhiteSpace(text))
             {
-                var emojis = await ChannelComponent.InputComponent.SearchEmojisAsync(Text, 10);
-                _matches.AddRange(emojis.Select(x => new MentionMatch()
+                var emojis = await ChannelComponent.InputComponent.SearchEmojisAsync(text, 10);
+                matches.AddRange(emojis.Select(x => new MentionMatch()
                 {
                     Key = x.IsCustom ? $"c-{x.CustomId ?? 0}" : (x.Id ?? x.Unified ?? x.Native),
                     Item = x
@@ -223,6 +230,11 @@
             }
         }
 
+        // An older search must not append to a newer search or reopen a closed selector.
+        if (version != _searchVersion || !Visible || mode != Mode || channel != ChannelComponent?.Channel)
+            return;
+
+        _matches = matches.DistinctBy(x => (x.Item.GetType(), x.Key)).ToList();
         if (_matches.Count == 0)
         {
             Selected = 0;

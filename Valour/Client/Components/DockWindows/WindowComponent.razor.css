@@ -264,6 +264,18 @@
     border-radius: var(--radius-full);
 }
 
+.tab-icon-avatar {
+    margin-right: 4px;
+    flex-shrink: 0;
+    opacity: 0.8;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.tab:hover .tab-icon-avatar,
+.active .tab .tab-icon-avatar {
+    opacity: 1;
+}
+
 .tab:hover .tab-icon,
 .active .tab .tab-icon {
     opacity: 1;

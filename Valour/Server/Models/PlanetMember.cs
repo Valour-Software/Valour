@@ -47,4 +47,9 @@ public class PlanetMember : ServerModel<long>, ISharedPlanetMember
     /// The last time this member connected to planet realtime.
     /// </summary>
     public DateTime TimeLastConnected { get; set; }
+
+    /// <summary>
+    /// Planet-local badge bits this member has chosen not to display.
+    /// </summary>
+    public long HiddenBadgeFlags { get; set; }
 }

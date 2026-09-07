@@ -40,6 +40,12 @@ public class PlanetService : ServiceBase
     public HybridEvent JoinedPlanetsUpdated;
 
     /// <summary>
+    /// Requests that the active planet directory start creating a personal
+    /// list folder containing the supplied planet.
+    /// </summary>
+    public HybridEvent<long> PlanetFolderCreationRequested;
+
+    /// <summary>
     /// Run when a planet is left
     /// </summary>
     public HybridEvent<Planet> PlanetLeft;
@@ -103,9 +109,18 @@ public class PlanetService : ServiceBase
         SetupLogging(client.Logger, _logOptions);
 
         // Setup reconnect logic
-        _client.NodeService.NodeReconnected += OnNodeReconnect;
         _client.NodeService.NodeAdded += HookHubEvents;
     }
+
+    /// <summary>
+    /// Public-facing screens (e.g. invite/discover) can be reached before login,
+    /// when SetupPrimaryNodeAsync has not yet run as part of the auth flow. This
+    /// ensures a primary node connection exists so those requests don't NRE.
+    /// </summary>
+    private Task EnsurePrimaryNodeAsync() =>
+        _client.PrimaryNode is null
+            ? _client.NodeService.SetupPrimaryNodeAsync()
+            : Task.CompletedTask;
 
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
@@ -208,8 +223,11 @@ public class PlanetService : ServiceBase
         return invite.Sync(_client);
     }
 
-    public Task<TaskResult<PlanetListInfo>> FetchInviteScreenDataAsync(string code) =>
-        _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
+    public async Task<TaskResult<PlanetListInfo>> FetchInviteScreenDataAsync(string code)
+    {
+        await EnsurePrimaryNodeAsync();
+        return await _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
+    }
 
     /// <summary>
     /// Imports a Discord server template (discord.new link or plain code) as a
@@ -225,6 +243,7 @@ public class PlanetService : ServiceBase
     /// </summary>
     public async Task<TaskResult<PlanetListInfo>> FetchPlanetInfoAsync(long planetId)
     {
+        await EnsurePrimaryNodeAsync();
         var response = await _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"api/planets/{planetId}/info");
         if (!response.Success)
             return TaskResult<PlanetListInfo>.FromFailure(response.Message);
@@ -919,15 +938,6 @@ public class PlanetService : ServiceBase
         planet.NotifyRoleOrderChange(e);
     }
 
-    private async Task OnNodeReconnect(Node node)
-    {
-        foreach (var planet in _connectedPlanets.Where(x => x.NodeName == node.Name))
-        {
-            await node.HubConnection.SendAsync("JoinPlanet", planet.Id);
-            Log($"Rejoined SignalR group for planet {planet.Id}");
-        }
-    }
-
     private void HookHubEvents(Node node)
     {
         node.HubConnection.On<RoleOrderEvent>("RoleOrder-Update", update =>
@@ -957,6 +967,26 @@ public class PlanetService : ServiceBase
 
         return response.Success ? response.Data : TaskResult.FromFailure(response.Message);
     }
+
+    public void RequestPlanetFolderCreation(long planetId) =>
+        PlanetFolderCreationRequested?.Invoke(planetId);
+
+    public Task<TaskResult<PlanetListLayout>> FetchPlanetListLayoutAsync() =>
+        _client.PrimaryNode.GetJsonAsync<PlanetListLayout>("api/users/me/planet-list-layout");
+
+    public Task<TaskResult<PlanetListFolder>> CreatePlanetListFolderAsync(string name) =>
+        _client.PrimaryNode.PostAsyncWithResponse<PlanetListFolder>("api/users/me/planet-list-folders",
+            new CreatePlanetListFolderRequest { Name = name });
+
+    public Task<TaskResult> RenamePlanetListFolderAsync(long folderId, string name) =>
+        _client.PrimaryNode.PostAsync($"api/users/me/planet-list-folders/{folderId}/rename",
+            new RenamePlanetListFolderRequest { Name = name });
+
+    public Task<TaskResult> DeletePlanetListFolderAsync(long folderId) =>
+        _client.PrimaryNode.DeleteAsync($"api/users/me/planet-list-folders/{folderId}");
+
+    public Task<TaskResult> SavePlanetListLayoutAsync(SavePlanetListLayoutRequest request) =>
+        _client.PrimaryNode.PostAsync("api/users/me/planet-list-layout", request);
 
     public async Task<TaskResult> SetVanityAsync(Planet planet, string name)
     {

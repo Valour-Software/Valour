@@ -52,7 +52,7 @@
             StateHasChanged();
         }
         
-        _responseResult = await Client.PrimaryNode.PostAsync("api/users/resendemail", RegisterRequest);
+        _responseResult = await Client.AuthService.ResendConfirmationEmailAsync(RegisterRequest);
 
         _time = DateTime.Now;
 

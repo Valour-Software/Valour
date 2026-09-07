@@ -1,0 +1,715 @@
+@inherits WindowContentComponentBase
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Globalization
+@using System.Text.Json
+
+@if (_loading)
+{
+    <Loading Title="Loading map editor..." Spin="@true" />
+}
+else
+{
+    <div class="map-editor-tool">
+        <div class="map-editor-topbar">
+            <div class="map-editor-title-block">
+                <div class="map-editor-title">Village Map Editor</div>
+                <div class="map-editor-subtitle">@_mapWidth x @_mapHeight · @_paintedTileCount tiles · @_spriteCount sprites</div>
+                @if (!string.IsNullOrWhiteSpace(_status))
+                {
+                    <div class="map-editor-status">@_status</div>
+                }
+            </div>
+
+            <div class="map-editor-controls">
+                <label class="size-field" title="Map width">
+                    <span>W</span>
+                    <input type="number" min="1" max="240" value="@_mapWidthInput" @onchange="OnWidthChanged" />
+                </label>
+                <label class="size-field" title="Map height">
+                    <span>H</span>
+                    <input type="number" min="1" max="240" value="@_mapHeightInput" @onchange="OnHeightChanged" />
+                </label>
+                <label class="size-field" title="Tile paint radius">
+                    <span>R</span>
+                    <input type="number" min="0" max="24" value="@_tileRadius" @onchange="OnTileRadiusChangedAsync" />
+                </label>
+                <button class="icon-btn" title="Apply map size" @onclick="ApplyMapSizeAsync">
+                    <i class="bi bi-check2"></i>
+                </button>
+                <button class="icon-btn" title="Fit map" @onclick="FitMapAsync">
+                    <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+                <button class="icon-btn danger-btn" title="Clear map" @onclick="ClearMapAsync">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="map-editor-toolbar">
+            <button class="@GetToolClass("Tile")" title="Paint selected tile" @onclick='() => SetToolAsync("Tile")'>
+                <i class="bi bi-grid-3x3-gap"></i>
+                <span>Tile</span>
+            </button>
+            @if (_terrains.Count > 0)
+            {
+                <button class="@GetToolClass("Terrain")" title="Paint terrain with automatic transitions" @onclick='() => SetToolAsync("Terrain")'>
+                    <i class="bi bi-layers"></i>
+                    <span>Terrain</span>
+                </button>
+            }
+            <button class="@GetToolClass("Brush")" title="Paint selected brush" @onclick='() => SetToolAsync("Brush")'>
+                <i class="bi bi-brush"></i>
+                <span>Brush</span>
+            </button>
+            <button class="@GetToolClass("Sprite")" title="Place selected sprite" @onclick='() => SetToolAsync("Sprite")'>
+                <i class="bi bi-bounding-box"></i>
+                <span>Sprite</span>
+            </button>
+            <button class="@GetToolClass("Erase")" title="Erase tile or sprite" @onclick='() => SetToolAsync("Erase")'>
+                <i class="bi bi-eraser"></i>
+                <span>Erase</span>
+            </button>
+        </div>
+
+        <div class="map-editor-body">
+            <section class="map-stage">
+                <canvas id="@_canvasId" class="map-canvas"></canvas>
+            </section>
+
+            <aside class="map-palette">
+                <div class="panel-tabs">
+                    <button class="@GetPanelTabClass("Tiles")" @onclick='() => SetPanelTab("Tiles")'>
+                        <i class="bi bi-grid-3x3-gap"></i>
+                        <span>Tiles</span>
+                    </button>
+                    @if (_terrains.Count > 0)
+                    {
+                        <button class="@GetPanelTabClass("Terrains")" @onclick='() => SetPanelTab("Terrains")'>
+                            <i class="bi bi-layers"></i>
+                            <span>Terrains</span>
+                        </button>
+                    }
+                    <button class="@GetPanelTabClass("Brushes")" @onclick='() => SetPanelTab("Brushes")'>
+                        <i class="bi bi-brush"></i>
+                        <span>Brushes</span>
+                    </button>
+                    <button class="@GetPanelTabClass("Sprites")" @onclick='() => SetPanelTab("Sprites")'>
+                        <i class="bi bi-bounding-box"></i>
+                        <span>Sprites</span>
+                    </button>
+                </div>
+
+                @if (_activePanelTab == "Terrains")
+                {
+                    <div class="palette-list">
+                        @foreach (var terrain in _terrains)
+                        {
+                            <button class="@GetPaletteItemClass(_selectedTerrainKey == terrain.Key)"
+                                    title="@terrain.Key"
+                                    @onclick="() => SelectTerrainAsync(terrain.Key)">
+                                <span class="tile-preview" style="@GetTerrainPreviewStyle(terrain)"></span>
+                                <span>@(string.IsNullOrWhiteSpace(terrain.Name) ? terrain.Key : terrain.Name)</span>
+                            </button>
+                        }
+                    </div>
+                }
+                else if (_activePanelTab == "Tiles")
+                {
+                    <div class="palette-list">
+                        @foreach (var definition in _tileDefinitions)
+                        {
+                            <button class="@GetPaletteItemClass(_selectedTileKey == definition.Key)"
+                                    title="@definition.Key"
+                                    @onclick="() => SelectTileAsync(definition.Key)">
+                                <span class="tile-preview" style="@GetDefinitionPreviewStyle(definition, 34)"></span>
+                                <span>@GetDefinitionDisplayName(definition)</span>
+                            </button>
+                        }
+                    </div>
+                }
+                else if (_activePanelTab == "Brushes")
+                {
+                    <div class="palette-list">
+                        @foreach (var brush in _brushes)
+                        {
+                            <button class="@GetPaletteItemClass(_selectedBrushKey == brush.Key)"
+                                    title="@brush.Key"
+                                    @onclick="() => SelectBrushAsync(brush.Key)">
+                                <span class="brush-preview-grid" style="@GetBrushPreviewGridStyle(brush)">
+                                    @for (var i = 0; i < brush.Cells.Count; i++)
+                                    {
+                                        var cell = brush.Cells[i];
+                                        <span class="brush-preview-cell @(string.IsNullOrWhiteSpace(cell.TileKey) ? "empty" : string.Empty)"
+                                              style="@GetBrushCellPreviewStyle(brush, cell)"></span>
+                                    }
+                                </span>
+                                <span>@GetBrushDisplayName(brush)</span>
+                            </button>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="palette-list">
+                        @foreach (var definition in _spriteDefinitions)
+                        {
+                            <button class="@GetPaletteItemClass(_selectedSpriteKey == definition.Key)"
+                                    title="@definition.Key"
+                                    @onclick="() => SelectSpriteAsync(definition.Key)">
+                                <span class="tile-preview" style="@GetDefinitionPreviewStyle(definition, 34)"></span>
+                                <span>@GetDefinitionDisplayName(definition)</span>
+                            </button>
+                        }
+                    </div>
+                }
+            </aside>
+        </div>
+
+        <div class="map-export">
+            <div class="map-export-actions">
+                <span>Map JSON</span>
+                <button class="secondary-action" title="Copy map JSON" @onclick="CopyJsonAsync">
+                    <i class="bi bi-clipboard"></i>
+                    <span>Copy</span>
+                </button>
+            </div>
+            <textarea class="json-output" readonly>@_exportJson</textarea>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly string _canvasId = $"village-map-editor-{Guid.NewGuid():N}";
+    private readonly JsonSerializerOptions _jsonReadOptions = new() { PropertyNameCaseInsensitive = true };
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _runtime;
+    private DotNetObjectReference<VillageMapEditorWindowComponent>? _selfRef;
+
+    private const int TileSize = 16;
+    private const string DefaultTilesetDefinitionUrl = "_content/Valour.Client/tilesets/exterior-tileset-0.json";
+
+    private string _imageUrl = "https://public-cdn.valour.gg/valour-public/tilesets/official/Modern_Exteriors_Complete_Tileset.png";
+    private int _imageWidth;
+    private int _imageHeight;
+    private bool _imageFailed;
+    private bool _initializing;
+    private bool _disposed;
+    private int _mapWidth = 32;
+    private int _mapHeight = 20;
+    private int _mapWidthInput = 32;
+    private int _mapHeightInput = 20;
+    private int _tileRadius;
+    private int _paintedTileCount;
+    private int _spriteCount;
+    private bool _loading = true;
+    private string _tool = "Tile";
+    private string _activePanelTab = "Tiles";
+    private string _selectedTileKey = string.Empty;
+    private string _selectedBrushKey = string.Empty;
+    private string _selectedSpriteKey = string.Empty;
+    private string _selectedTerrainKey = string.Empty;
+    private string _status = string.Empty;
+    private string _exportJson = string.Empty;
+
+    private readonly List<TilesetDefinitionDraft> _definitions = new();
+    private readonly List<TilesetDefinitionDraft> _tileDefinitions = new();
+    private readonly List<TilesetDefinitionDraft> _spriteDefinitions = new();
+    private readonly List<BrushDraft> _brushes = new();
+    private readonly List<TerrainDraft> _terrains = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDefaultTilesetAsync();
+        _loading = false;
+        await ReRender();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_loading || _runtime is not null || _initializing || _disposed)
+            return;
+
+        // init calls back into OnMapChanged before it returns, which re-renders
+        // while _runtime is still null - without this guard a second runtime is
+        // created, leaking the first one's window listeners.
+        _initializing = true;
+        try
+        {
+        _selfRef = DotNetObjectReference.Create(this);
+        _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/Components/Windows/Villages/VillageMapEditorWindowComponent.razor.js");
+        _runtime = await _module.InvokeAsync<IJSObjectReference>("init", _canvasId, _selfRef, new
+        {
+            tileSize = TileSize,
+            image = _imageUrl,
+            definitions = _definitions,
+            brushes = _brushes,
+            terrains = _terrains,
+            mapWidth = _mapWidth,
+            mapHeight = _mapHeight,
+            selectedTileKey = _selectedTileKey,
+            selectedBrushKey = _selectedBrushKey,
+            selectedSpriteKey = _selectedSpriteKey,
+            selectedTerrainKey = _selectedTerrainKey,
+            tileRadius = _tileRadius,
+            tool = _tool
+        });
+
+            if (_disposed)
+                await ShutdownRuntimeAsync();
+        }
+        finally
+        {
+            _initializing = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnMapChanged(string exportJson, int width, int height, int paintedTileCount, int spriteCount)
+    {
+        _exportJson = exportJson;
+        _mapWidth = width;
+        _mapHeight = height;
+        _mapWidthInput = width;
+        _mapHeightInput = height;
+        _paintedTileCount = paintedTileCount;
+        _spriteCount = spriteCount;
+        await ReRender();
+    }
+
+    [JSInvokable]
+    public async Task OnTilesetImageLoaded(int width, int height)
+    {
+        _imageWidth = width;
+        _imageHeight = height;
+        _imageFailed = false;
+        await ReRender();
+    }
+
+    [JSInvokable]
+    public async Task OnTilesetImageFailed(string url)
+    {
+        _imageFailed = true;
+        _status = $"Could not load the tilesheet at {url}. Tile previews and the map will stay blank until it loads.";
+        await ReRender();
+    }
+
+    private async Task LoadDefaultTilesetAsync()
+    {
+        try
+        {
+            using var http = new HttpClient();
+            await using var stream = await http.GetStreamAsync(Navigation.ToAbsoluteUri(DefaultTilesetDefinitionUrl));
+            var import = await JsonSerializer.DeserializeAsync<TilesetDefinitionImport>(stream, _jsonReadOptions);
+            if (import is null)
+            {
+                _status = "Default tileset was empty.";
+                return;
+            }
+
+            _imageUrl = ResolveImportImageReference(import.Image, DefaultTilesetDefinitionUrl);
+
+            _definitions.Clear();
+            _tileDefinitions.Clear();
+            _spriteDefinitions.Clear();
+            foreach (var definition in import.Definitions)
+            {
+                NormalizeImportedDefinition(definition);
+                if (string.IsNullOrWhiteSpace(definition.Key))
+                    continue;
+
+                _definitions.Add(definition);
+                if (IsSpriteDefinition(definition))
+                    _spriteDefinitions.Add(definition);
+                else
+                    _tileDefinitions.Add(definition);
+            }
+
+            _brushes.Clear();
+            foreach (var brush in import.Brushes)
+            {
+                NormalizeBrush(brush);
+                if (!string.IsNullOrWhiteSpace(brush.Key))
+                    _brushes.Add(brush);
+            }
+
+            _terrains.Clear();
+            foreach (var terrain in import.Terrains)
+            {
+                if (!string.IsNullOrWhiteSpace(terrain?.Key))
+                    _terrains.Add(terrain);
+            }
+
+            _selectedTileKey = _tileDefinitions.FirstOrDefault()?.Key ?? string.Empty;
+            _selectedBrushKey = _brushes.FirstOrDefault()?.Key ?? string.Empty;
+            _selectedSpriteKey = _spriteDefinitions.FirstOrDefault()?.Key ?? string.Empty;
+            _selectedTerrainKey = _terrains.FirstOrDefault()?.Key ?? string.Empty;
+            _status = $"Loaded {_definitions.Count} definitions, {_brushes.Count} brushes and {_terrains.Count} terrains.";
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or System.IO.IOException or InvalidOperationException or TaskCanceledException)
+        {
+            _status = "Default tileset failed to load.";
+        }
+    }
+
+    private async Task SetToolAsync(string tool)
+    {
+        _tool = tool;
+        if (tool == "Tile")
+            _activePanelTab = "Tiles";
+        else if (tool == "Terrain")
+            _activePanelTab = "Terrains";
+        else if (tool == "Brush")
+            _activePanelTab = "Brushes";
+        else if (tool == "Sprite")
+            _activePanelTab = "Sprites";
+
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("setTool", _tool);
+
+        await ReRender();
+    }
+
+    private async Task SelectTileAsync(string key)
+    {
+        _selectedTileKey = key;
+        _tool = "Tile";
+        if (_runtime is not null)
+        {
+            await _runtime.InvokeVoidAsync("setSelectedTile", key);
+            await _runtime.InvokeVoidAsync("setTool", _tool);
+        }
+
+        await ReRender();
+    }
+
+    private async Task SelectBrushAsync(string key)
+    {
+        _selectedBrushKey = key;
+        _tool = "Brush";
+        if (_runtime is not null)
+        {
+            await _runtime.InvokeVoidAsync("setSelectedBrush", key);
+            await _runtime.InvokeVoidAsync("setTool", _tool);
+        }
+
+        await ReRender();
+    }
+
+    private async Task SelectSpriteAsync(string key)
+    {
+        _selectedSpriteKey = key;
+        _tool = "Sprite";
+        if (_runtime is not null)
+        {
+            await _runtime.InvokeVoidAsync("setSelectedSprite", key);
+            await _runtime.InvokeVoidAsync("setTool", _tool);
+        }
+
+        await ReRender();
+    }
+
+    private async Task SelectTerrainAsync(string key)
+    {
+        _selectedTerrainKey = key;
+        _tool = "Terrain";
+        if (_runtime is not null)
+        {
+            await _runtime.InvokeVoidAsync("setSelectedTerrain", key);
+            await _runtime.InvokeVoidAsync("setTool", _tool);
+        }
+
+        await ReRender();
+    }
+
+    private async Task SetPanelTab(string tab)
+    {
+        _activePanelTab = tab;
+        await ReRender();
+    }
+
+    private async Task ApplyMapSizeAsync()
+    {
+        _mapWidthInput = Math.Clamp(_mapWidthInput, 1, 240);
+        _mapHeightInput = Math.Clamp(_mapHeightInput, 1, 240);
+
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("resizeMap", _mapWidthInput, _mapHeightInput);
+    }
+
+    private async Task ClearMapAsync()
+    {
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("clearMap");
+    }
+
+    private async Task FitMapAsync()
+    {
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("fit");
+    }
+
+    private async Task CopyJsonAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _exportJson);
+    }
+
+    private void OnWidthChanged(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            _mapWidthInput = Math.Clamp(value, 1, 240);
+    }
+
+    private void OnHeightChanged(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            _mapHeightInput = Math.Clamp(value, 1, 240);
+    }
+
+    private async Task OnTileRadiusChangedAsync(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            _tileRadius = Math.Clamp(value, 0, 24);
+
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("setTileRadius", _tileRadius);
+
+        await ReRender();
+    }
+
+    private string GetToolClass(string tool) => _tool == tool ? "map-tool-btn active" : "map-tool-btn";
+
+    private string GetPanelTabClass(string tab) => _activePanelTab == tab ? "active" : string.Empty;
+
+    private static string GetPaletteItemClass(bool active) => active ? "palette-item active" : "palette-item";
+
+    private static string GetDefinitionDisplayName(TilesetDefinitionDraft definition) =>
+        string.IsNullOrWhiteSpace(definition.Name) ? definition.Key : definition.Name;
+
+    private static string GetBrushDisplayName(BrushDraft brush) =>
+        string.IsNullOrWhiteSpace(brush.Name) ? brush.Key : brush.Name;
+
+    private string GetBrushPreviewGridStyle(BrushDraft brush) =>
+        $"grid-template-columns: repeat({Math.Max(1, brush.Size)}, minmax(0, 1fr)); grid-template-rows: repeat({Math.Max(1, brush.Size)}, minmax(0, 1fr));";
+
+    private string GetBrushCellPreviewStyle(BrushDraft brush, BrushCellDraft cell)
+    {
+        if (string.IsNullOrWhiteSpace(cell.TileKey))
+            return string.Empty;
+
+        var definition = _definitions.FirstOrDefault(existing =>
+            string.Equals(existing.Key, cell.TileKey, StringComparison.OrdinalIgnoreCase));
+        if (definition is null)
+            return string.Empty;
+
+        var cellSize = 34d / Math.Max(1, brush.Size);
+        return GetDefinitionPreviewStyle(definition, cellSize);
+    }
+
+    private string GetDefinitionPreviewStyle(TilesetDefinitionDraft definition, double previewSize)
+    {
+        // Until the sheet reports its real size, any offset computed here would
+        // fall outside the background box and render an unexplained blank.
+        if (_imageWidth <= 0 || _imageHeight <= 0)
+            return "background-image: none;";
+
+        var width = Math.Max(1, definition.Width);
+        var height = Math.Max(1, definition.Height);
+        var scale = previewSize / (double)(Math.Max(width, height) * TileSize);
+        var sourceX = definition.X * TileSize * scale;
+        var sourceY = definition.Y * TileSize * scale;
+        var backgroundWidth = _imageWidth * scale;
+        var backgroundHeight = _imageHeight * scale;
+        var imageUrl = (_imageUrl ?? string.Empty).Replace("'", "\\'", StringComparison.Ordinal);
+
+        return string.Create(CultureInfo.InvariantCulture,
+            $"background-image: url('{imageUrl}'); background-size: {backgroundWidth:0.###}px {backgroundHeight:0.###}px; background-position: {-sourceX:0.###}px {-sourceY:0.###}px;");
+    }
+
+    private string GetTerrainPreviewStyle(TerrainDraft terrain)
+    {
+        var baseDefinition = _definitions.FirstOrDefault(definition =>
+            string.Equals(definition.TerrainKey, terrain.Key, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(definition.TerrainRole, "Base", StringComparison.OrdinalIgnoreCase));
+
+        return baseDefinition is null ? "background-image: none;" : GetDefinitionPreviewStyle(baseDefinition, 34);
+    }
+
+    private static bool IsSpriteDefinition(TilesetDefinitionDraft definition) =>
+        string.Equals(definition.Kind, "Sprite", StringComparison.OrdinalIgnoreCase);
+
+    private static string ResolveImportImageReference(string image, string? importUrl)
+    {
+        if (string.IsNullOrWhiteSpace(image))
+            return string.Empty;
+
+        image = image.Trim();
+        if (CanLoadImageReference(image))
+            return image;
+
+        if (string.IsNullOrWhiteSpace(importUrl))
+            return image;
+
+        var lastSlashIndex = importUrl.LastIndexOf('/');
+        return lastSlashIndex < 0
+            ? image
+            : $"{importUrl[..(lastSlashIndex + 1)]}{image}";
+    }
+
+    private static bool CanLoadImageReference(string image)
+    {
+        return image.StartsWith("/", StringComparison.Ordinal) ||
+            image.StartsWith("./", StringComparison.Ordinal) ||
+            image.StartsWith("_content/", StringComparison.Ordinal) ||
+            image.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            image.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+            image.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
+            image.StartsWith("blob:", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void NormalizeImportedDefinition(TilesetDefinitionDraft definition)
+    {
+        definition.Kind = string.IsNullOrWhiteSpace(definition.Kind) ? "Tile" : definition.Kind;
+        definition.Name ??= string.Empty;
+        definition.Key ??= string.Empty;
+        definition.X = Math.Max(0, definition.X);
+        definition.Y = Math.Max(0, definition.Y);
+        definition.Width = Math.Max(1, definition.Width);
+        definition.Height = Math.Max(1, definition.Height);
+    }
+
+    private static void NormalizeBrush(BrushDraft brush)
+    {
+        brush.Name ??= string.Empty;
+        brush.Key ??= string.Empty;
+        brush.Size = Math.Clamp(brush.Size, 1, 9);
+        brush.Cells ??= new List<BrushCellDraft>();
+
+        var cellCount = brush.Size * brush.Size;
+        while (brush.Cells.Count < cellCount)
+            brush.Cells.Add(new BrushCellDraft());
+
+        if (brush.Cells.Count > cellCount)
+            brush.Cells.RemoveRange(cellCount, brush.Cells.Count - cellCount);
+
+        foreach (var cell in brush.Cells)
+        {
+            cell.TileKey ??= string.Empty;
+            cell.Strength = Math.Clamp(cell.Strength, 1, 5);
+            cell.Weight = Math.Max(1, cell.Weight);
+        }
+    }
+
+    // The terrain fields must round-trip through this class: the definitions
+    // are re-serialized into the JS runtime config, and a property missing
+    // here is silently stripped from the ruleset.
+    public class TilesetDefinitionDraft
+    {
+        public string Kind { get; set; } = "Tile";
+        public string Name { get; set; } = string.Empty;
+        public string Key { get; set; } = string.Empty;
+        public string TerrainKey { get; set; } = string.Empty;
+        public string TerrainRole { get; set; } = "Base";
+        public string TerrainDirection { get; set; } = "None";
+        public string TerrainAgainst { get; set; } = string.Empty;
+        public int TerrainWeight { get; set; } = 1;
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Width { get; set; } = 1;
+        public int Height { get; set; } = 1;
+    }
+
+    public class TerrainDraft
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int Priority { get; set; }
+    }
+
+    public class BrushDraft
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Key { get; set; } = string.Empty;
+        public int Size { get; set; } = 1;
+        public List<BrushCellDraft> Cells { get; set; } = new();
+    }
+
+    public class BrushCellDraft
+    {
+        public string TileKey { get; set; } = string.Empty;
+        public int Strength { get; set; } = 1;
+        public int Weight { get; set; } = 1;
+    }
+
+    private class TilesetDefinitionImport
+    {
+        public int TileSize { get; set; } = 16;
+        public string Image { get; set; } = string.Empty;
+        public List<TerrainDraft> Terrains { get; set; } = new();
+        public List<TilesetDefinitionDraft> Definitions { get; set; } = new();
+        public List<BrushDraft> Brushes { get; set; } = new();
+    }
+
+    public class Content : WindowContent<VillageMapEditorWindowComponent>
+    {
+    }
+
+    public static WindowContent GetDefaultContent()
+    {
+        return new Content
+        {
+            Icon = "./_content/Valour.Client/media/logo/logo-64.png",
+            Title = "Map Editor"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        await ShutdownRuntimeAsync();
+
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+
+            _module = null;
+        }
+
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+
+    /// <summary>
+    /// Tears down the JS runtime. It owns window-level listeners, so releasing
+    /// the .NET reference alone would leave them attached for the page lifetime.
+    /// </summary>
+    private async ValueTask ShutdownRuntimeAsync()
+    {
+        if (_runtime is null)
+            return;
+
+        var runtime = _runtime;
+        _runtime = null;
+
+        try
+        {
+            await runtime.InvokeVoidAsync("dispose");
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+
+        try
+        {
+            await runtime.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+    }
+}

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Valour.Shared;
 using Valour.Server.Requests;
 using Valour.Shared.Authorization;
 using Valour.Shared.Channels;
@@ -217,6 +218,109 @@ public class ChannelApi
         return Results.Json(channel);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/channels/group")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> CreateGroupDmAsync(
+        [FromBody] CreateGroupDmRequest request,
+        ChannelService channelService,
+        UserService userService,
+        UserBlockService userBlockService,
+        ValourDb db,
+        CoreHubService coreHubService,
+        NodeLifecycleService nodeLifecycleService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var targetIds = request.UserIds.Distinct().Where(x => x != userId).ToList();
+        var accessResult = await ValidateDirectRecipientsAsync(userId, targetIds, false, userBlockService, db);
+        if (!accessResult.Success)
+            return ValourResult.Forbid(accessResult.Message);
+
+        var result = await channelService.CreateGroupDmAsync(userId, request);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        await coreHubService.RelayDirectChannelUpdate(
+            result.Data,
+            nodeLifecycleService,
+            result.Data.Members.Select(x => x.UserId));
+        return Results.Json(result.Data);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/channels/group/{channelId}/members")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> AddGroupDmMembersAsync(
+        long channelId,
+        [FromBody] AddGroupDmMembersRequest request,
+        ChannelService channelService,
+        UserService userService,
+        UserBlockService userBlockService,
+        ValourDb db,
+        CoreHubService coreHubService,
+        NodeLifecycleService nodeLifecycleService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var targetIds = request.UserIds.Distinct().Where(x => x != userId).ToList();
+        var accessResult = await ValidateDirectRecipientsAsync(userId, targetIds, false, userBlockService, db);
+        if (!accessResult.Success)
+            return ValourResult.Forbid(accessResult.Message);
+
+        var result = await channelService.AddGroupDmMembersAsync(channelId, userId, targetIds);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        await coreHubService.RelayDirectChannelUpdate(
+            result.Data,
+            nodeLifecycleService,
+            result.Data.Members.Select(x => x.UserId));
+        return Results.Json(result.Data);
+    }
+
+    [ValourRoute(HttpVerbs.Put, "api/channels/group/{channelId}")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> UpdateGroupDmAsync(
+        long channelId,
+        [FromBody] UpdateGroupDmRequest request,
+        ChannelService channelService,
+        UserService userService,
+        CoreHubService coreHubService,
+        NodeLifecycleService nodeLifecycleService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await channelService.UpdateGroupDmAsync(channelId, userId, request.Name);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        await coreHubService.RelayDirectChannelUpdate(
+            result.Data,
+            nodeLifecycleService,
+            result.Data.Members.Select(x => x.UserId));
+        return Results.Json(result.Data);
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/channels/group/{channelId}/members/{memberUserId}")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> RemoveGroupDmMemberAsync(
+        long channelId,
+        long memberUserId,
+        ChannelService channelService,
+        UserService userService,
+        CoreHubService coreHubService,
+        NodeLifecycleService nodeLifecycleService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await channelService.RemoveGroupDmMemberAsync(channelId, userId, memberUserId);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        await coreHubService.RelayDirectChannelRemoved(channelId, memberUserId, nodeLifecycleService);
+        var updated = await channelService.GetChannelAsync(null, channelId);
+        if (updated is not null)
+        {
+            await coreHubService.RelayDirectChannelUpdate(
+                updated,
+                nodeLifecycleService,
+                updated.Members.Select(x => x.UserId));
+        }
+        return Results.Ok();
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/channels/direct/self")] 
     [UserRequired(UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> GetAllDirectRouteAsync(
@@ -230,6 +334,38 @@ public class ChannelApi
             channels = new List<Channel>();
 
         return Results.Json(channels);
+    }
+
+    internal static async Task<TaskResult> ValidateDirectRecipientsAsync(
+        long actingUserId,
+        IEnumerable<long> targetUserIds,
+        bool useCallPolicy,
+        UserBlockService userBlockService,
+        ValourDb db)
+    {
+        foreach (var targetUserId in targetUserIds.Distinct())
+        {
+            if (targetUserId == actingUserId)
+                continue;
+            if (await userBlockService.IsBlockedEitherWayAsync(actingUserId, targetUserId))
+                return TaskResult.FromFailure("One or more people cannot be contacted.");
+
+            var prefs = await db.UserPreferences.FindAsync(targetUserId);
+            var policy = useCallPolicy ? prefs?.CallPolicy : prefs?.DmPolicy;
+            if (policy != DmPolicy.FriendsOnly)
+                continue;
+
+            var isMutualFriend = await db.UserFriends.AnyAsync(
+                x => x.UserId == actingUserId && x.FriendId == targetUserId) &&
+                await db.UserFriends.AnyAsync(
+                    x => x.UserId == targetUserId && x.FriendId == actingUserId);
+            if (!isMutualFriend)
+                return TaskResult.FromFailure(useCallPolicy
+                    ? "One or more people only accept calls from friends."
+                    : "One or more people only accept DMs from friends.");
+        }
+
+        return TaskResult.SuccessResult;
     }
 
     [ValourRoute(HttpVerbs.Get, "api/channels/direct/self/query")]

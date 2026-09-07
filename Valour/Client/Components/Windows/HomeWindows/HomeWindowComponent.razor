@@ -73,6 +73,12 @@
                                                        OnItemsChanged="OnDirectMessagesLoaded" />
                 </div>
             </div>
+            <div class="bottom-actions">
+                <button class="action-btn" @onclick="OnClickCreateGroupDm">
+                    <i class="bi bi-people-fill"></i>
+                    <span>New group conversation</span>
+                </button>
+            </div>
         </TabTwo>
 
         <TabThree>
@@ -245,6 +251,19 @@
         };
 
         ModalRoot.OpenModal<EditUserComponent>(data);
+    }
+
+    private void OnClickCreateGroupDm()
+    {
+        ModalRoot.OpenModal<CreateGroupDmModalComponent>(new CreateGroupDmModalComponent.ModalParams
+        {
+            Created = async channel =>
+            {
+                await _dmList.RefreshAsync();
+                var content = await ChatWindowComponent.GetDefaultContent(channel);
+                await WindowService.OpenWindowAtFocused(content, WindowCtx.Tab);
+            }
+        });
     }
 
     private void OnFriendsListUpdate(FriendEventData e)

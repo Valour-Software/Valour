@@ -209,6 +209,11 @@ namespace Valour.Database
         public string StarColor2 { get; set; }
 
         /// <summary>
+        /// Platform badge bits the user has chosen to hide.
+        /// </summary>
+        public long HiddenBadgeFlags { get; set; }
+
+        /// <summary>
         /// The user who owns this bot (if applicable).
         /// </summary>
         public virtual User Owner { get; set; }
@@ -328,6 +333,10 @@ namespace Valour.Database
 
                 e.Property(x => x.StarColor2)
                     .HasColumnName("star_color_2");
+
+                e.Property(x => x.HiddenBadgeFlags)
+                    .HasColumnName("hidden_badge_flags")
+                    .HasDefaultValue(0L);
 
                 // Relationships
 

@@ -20,6 +20,22 @@
         </div>
     </div>
 
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-telephone-lock"></i>
+            Call Privacy
+        </h3>
+
+        <div class="form-group">
+            <label>Who can call you</label>
+            <select class="form-select dm-select" @onchange="OnCallPolicyChanged">
+                <option value="0" selected="@(_callPolicy == DmPolicy.Everyone)">Everyone in a conversation</option>
+                <option value="1" selected="@(_callPolicy == DmPolicy.FriendsOnly)">Friends Only</option>
+            </select>
+            <ResultLabel Result="@_callPolicyResult" />
+        </div>
+    </div>
+
     @* ===== Username Privacy ===== *@
     <div class="editor-section">
         <h3 class="editor-section-title">
@@ -27,17 +43,17 @@
             Username Privacy
         </h3>
 
-        <div class="form-group">
-            <label>
-                <input type="checkbox" checked="@Client.Me.HidePriorName" @onchange="OnHidePriorNameChanged" />
-                Hide my previous username from other users
-            </label>
-            <p class="helper-text">
-                When enabled, your profile no longer shows the name you used
-                before your last name change.
-            </p>
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Hide previous username</span>
+                <label class="switch">
+                    <input type="checkbox" aria-label="Hide previous username" checked="@Client.Me.HidePriorName" @onchange="OnHidePriorNameChanged" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Keep the name you used before your last name change off your profile.</p>
             <ResultLabel Result="@_priorNameResult" />
-        </div>
+    </div>
     </div>
 
     @* ===== Blocking ===== *@
@@ -122,12 +138,14 @@
     }
 
     private DmPolicy _dmPolicy = DmPolicy.Everyone;
+    private DmPolicy _callPolicy = DmPolicy.FriendsOnly;
     private string _blockName;
     private int _selectedBlockType = 0;
 
     private Dictionary<long, User> _blockedUsers = new();
 
     private ITaskResult _dmPolicyResult;
+    private ITaskResult _callPolicyResult;
     private ITaskResult _blockResult;
     private ITaskResult _unblockResult;
 
@@ -143,6 +161,32 @@
         if (response.Success && response.Data is not null)
         {
             _dmPolicy = response.Data.DmPolicy;
+            _callPolicy = response.Data.CallPolicy;
+        }
+    }
+
+    private async Task OnCallPolicyChanged(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var val) || !Enum.IsDefined(typeof(DmPolicy), val))
+            return;
+
+        var nextPolicy = (DmPolicy)val;
+        var previousPolicy = _callPolicy;
+        if (nextPolicy == previousPolicy)
+            return;
+
+        _callPolicy = nextPolicy;
+        var result = await Client.PrimaryNode.PostAsyncWithResponse<UserPreferences>(
+            $"api/users/me/preferences/callPolicy/{val}");
+        if (result.Success && result.Data is not null)
+        {
+            _callPolicy = result.Data.CallPolicy;
+            _callPolicyResult = new TaskResult(true, "Call policy updated.");
+        }
+        else
+        {
+            _callPolicy = previousPolicy;
+            _callPolicyResult = new TaskResult(false, result.Message);
         }
     }
 

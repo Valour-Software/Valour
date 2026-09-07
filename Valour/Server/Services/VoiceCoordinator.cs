@@ -55,14 +55,19 @@ public class VoiceCoordinator : IVoiceProvider
     // ================= Routing =================
 
     public async Task<TaskResult<RealtimeKitVoiceTokenResponse>> CreateParticipantTokenAsync(
-        Channel channel, long userId, string displayName, string? sessionId)
+        Channel channel,
+        long userId,
+        string displayName,
+        string? sessionId,
+        TimeSpan? tokenLifetime = null)
     {
         var creds = await ResolveAsync(channel.Id, channel.PlanetId);
         if (creds is null)
-            return await _instance.CreateParticipantTokenAsync(channel, userId, displayName, sessionId);
+            return await _instance.CreateParticipantTokenAsync(
+                channel, userId, displayName, sessionId, tokenLifetime);
 
         var response = _liveKit.CreateParticipantTokenWithCredentials(
-            creds.Value, channel.Id, userId, displayName, sessionId);
+            creds.Value, channel.Id, userId, displayName, sessionId, tokenLifetime);
 
         return TaskResult<RealtimeKitVoiceTokenResponse>.FromData(response);
     }

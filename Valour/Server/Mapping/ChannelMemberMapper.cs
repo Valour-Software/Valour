@@ -11,7 +11,8 @@ public static class ChannelMemberMapper
         {
             Id = member.Id,
             ChannelId = member.ChannelId,
-            UserId = member.UserId
+            UserId = member.UserId,
+            IsAdmin = member.IsAdmin
         };
     }
     
@@ -24,7 +25,8 @@ public static class ChannelMemberMapper
         {
             Id = member.Id,
             ChannelId = member.ChannelId,
-            UserId = member.UserId
+            UserId = member.UserId,
+            IsAdmin = member.IsAdmin
         };
     }
 }

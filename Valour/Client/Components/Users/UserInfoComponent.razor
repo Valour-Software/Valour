@@ -138,6 +138,7 @@
         {
             UserId = Member.UserId;
             Member.Updated += OnMemberUpdate;
+            Member.Planet.Roles.Changed += OnRoleUpdate;
         }
 
         CalculateAll();
@@ -164,6 +165,7 @@
         if (Member is not null)
         {
             Member.Updated -= OnMemberUpdate;
+            Member.Planet.Roles.Changed -= OnRoleUpdate;
         }
     }
 
@@ -298,7 +300,30 @@
             }
         });
     }
-    
+
+    private void OnRoleUpdate(IModelEvent<PlanetRole> eventData)
+    {
+        // A role's own permissions/color can change without this member's
+        // RoleMembership changing at all, so that's not enough on its own -
+        // this is what catches "someone edited a role the member already has".
+        if (eventData is not ModelUpdatedEvent<PlanetRole> updated)
+            return;
+
+        if (!Member.Roles.Any(x => x.Id == updated.Model.Id))
+            return;
+
+        if (!updated.Changes.On(x => x.Permissions) && !updated.Changes.On(x => x.Color))
+            return;
+
+        InvokeAsync(() =>
+        {
+            if (DetermineColorChange())
+            {
+                StateHasChanged();
+            }
+        });
+    }
+
     private async Task ShowProfileAsync(MouseEventArgs e = null)
     {
         double x = e?.ClientX ?? 0;

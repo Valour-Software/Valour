@@ -96,61 +96,9 @@
     else
     {
         <div class="tokens-list">
-            @foreach (var token in Tokens)
+            @foreach (var token in _activeTokens)
             {
-                var isExpired = IsExpired(token);
-                var expiresSoon = ExpiresSoon(token);
-
-                <div class="token-item @(isExpired ? "expired" : expiresSoon ? "expires-soon" : "")">
-                    <div class="token-header">
-                        <div class="token-app">
-                            @if (token.AppId == "VALOUR")
-                            {
-                                <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="Valour" class="app-icon" />
-                                <span class="app-name">Valour Web Client</span>
-                            }
-                            else if (_appInfoCache.TryGetValue(token.AppId, out var appInfo))
-                            {
-                                <img src="@appInfo.ImageUrl" alt="@appInfo.Name" class="app-icon" />
-                                <span class="app-name">@appInfo.Name</span>
-                            }
-                            else
-                            {
-                                <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="OAuth App" class="app-icon" />
-                                <span class="app-name">OAuth App (@token.AppId)</span>
-                            }
-                        </div>
-                        <div class="token-actions">
-                            @if (!isExpired)
-                            {
-                                <VButton Variant="danger" Size="sm" OnClick="@(() => RevokeToken(token))">Revoke</VButton>
-                            }
-                        </div>
-                    </div>
-
-                    <div class="token-details">
-                        <div class="token-info">
-                            <span class="label">Created:</span>
-                            <span>@token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
-                        </div>
-                        <div class="token-info">
-                            <span class="label">Expires:</span>
-                            <span class="@(isExpired ? "expired" : expiresSoon ? "expires-soon" : "")">
-                                @token.TimeExpires.ToString("MMM dd, yyyy 'at' HH:mm UTC")
-                                @if (!isExpired)
-                                {
-                                    <span class="time-remaining">(@GetTimeRemainingString(token) remaining)</span>
-                                }
-                            </span>
-                        </div>
-                        @if (token.IsCurrent)
-                        {
-                            <div class="current-session">
-                                <span class="badge badge-primary">Current Session</span>
-                            </div>
-                        }
-                    </div>
-                </div>
+                @RenderTokenItem(token)
             }
         </div>
 
@@ -161,6 +109,29 @@
     }
 </div>
 
+@* ===== Expired Sessions ===== *@
+@if (_expiredTokens.Count > 0)
+{
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-clock-history"></i>
+            Expired Sessions
+        </h3>
+
+        <div class="tokens-list">
+            @foreach (var token in _expiredTokens)
+            {
+                @RenderTokenItem(token)
+            }
+        </div>
+
+        <div class="token-actions-bulk">
+            <VButton Variant="danger" OnClick="@ClearExpiredSessions">Clear Expired Sessions</VButton>
+            <p class="help-text">This will permanently delete sessions that have expired</p>
+        </div>
+    </div>
+}
+
 </div>
 
 @code {
@@ -168,6 +139,8 @@
     public ModalRoot ModalRoot { get; set; }
 
     private List<AuthTokenInfo> Tokens { get; set; }
+    private List<AuthTokenInfo> _activeTokens = new();
+    private List<AuthTokenInfo> _expiredTokens = new();
     private bool IsLoading { get; set; } = true;
     private Dictionary<string, PublicOauthAppData> _appInfoCache = new();
 
@@ -176,6 +149,20 @@
     private bool IsExpired(AuthTokenInfo token)
     {
         return token.TimeExpires < DateTime.UtcNow;
+    }
+
+    private void SplitTokensByExpiry()
+    {
+        _activeTokens.Clear();
+        _expiredTokens.Clear();
+
+        if (Tokens is null)
+            return;
+
+        foreach (var token in Tokens)
+        {
+            (IsExpired(token) ? _expiredTokens : _activeTokens).Add(token);
+        }
     }
 
     private bool ExpiresSoon(AuthTokenInfo token)
@@ -194,6 +181,55 @@
             return $"{(int)remaining.TotalMinutes} minutes";
         return "less than a minute";
     }
+
+    private RenderFragment RenderTokenItem(AuthTokenInfo token) => @<div class="token-item @(IsExpired(token) ? "expired" : ExpiresSoon(token) ? "expires-soon" : "")">
+        <div class="token-header">
+            <div class="token-app">
+                @if (token.AppId == "VALOUR")
+                {
+                    <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="Valour" class="app-icon" />
+                    <span class="app-name">Valour Web Client</span>
+                }
+                else if (_appInfoCache.TryGetValue(token.AppId, out var appInfo))
+                {
+                    <img src="@appInfo.ImageUrl" alt="@appInfo.Name" class="app-icon" />
+                    <span class="app-name">@appInfo.Name</span>
+                }
+                else
+                {
+                    <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="OAuth App" class="app-icon" />
+                    <span class="app-name">OAuth App (@token.AppId)</span>
+                }
+                @if (token.IsCurrent)
+                {
+                    <span class="badge badge-primary">Current Session</span>
+                }
+            </div>
+            <div class="token-actions">
+                @if (!IsExpired(token))
+                {
+                    <VButton Variant="danger" Size="sm" OnClick="@(() => RevokeToken(token))">Revoke</VButton>
+                }
+            </div>
+        </div>
+
+        <div class="token-details">
+            <div class="token-info">
+                <span class="label">Created:</span>
+                <span>@token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
+            </div>
+            <div class="token-info">
+                <span class="label">Expires:</span>
+                <span class="@(IsExpired(token) ? "expired" : ExpiresSoon(token) ? "expires-soon" : "")">
+                    @token.TimeExpires.ToString("MMM dd, yyyy 'at' HH:mm UTC")
+                    @if (!IsExpired(token))
+                    {
+                        <span class="time-remaining">(@GetTimeRemainingString(token) remaining)</span>
+                    }
+                </span>
+            </div>
+        </div>
+    </div>;
 
     private DateTime? _pendingMfaRemovalAt;
 
@@ -239,6 +275,7 @@
         {
             IsLoading = true;
             Tokens = await Client.AuthService.GetMyTokensAsync();
+            SplitTokensByExpiry();
 
             // Load OAuth app info for non-VALOUR tokens
             await LoadOAuthAppInfo();
@@ -326,6 +363,34 @@
         };
 
         ModalRoot.OpenModal<RevokeTokenModal>(modalParams);
+    }
+
+    private void ClearExpiredSessions()
+    {
+        var expiredCount = _expiredTokens.Count;
+        var modalParams = new RevokeExpiredTokensModal.Params
+        {
+            ExpiredCount = expiredCount,
+            RequireMfa = _multiAuthMethods is { Count: > 0 },
+            OnConfirmAsync = async (code) =>
+            {
+                var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>()
+                {
+                    ProgressTask = AuthService.RevokeExpiredTokensAsync(code),
+                    Title = "Clearing Expired Sessions",
+                    Message = "Removing expired sessions...",
+                });
+
+                if (result.Success)
+                {
+                    await LoadTokens();
+                }
+
+                return result;
+            }
+        };
+
+        ModalRoot.OpenModal<RevokeExpiredTokensModal>(modalParams);
     }
 
     // ===== MFA =====

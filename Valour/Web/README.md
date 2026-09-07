@@ -1,32 +1,34 @@
-# Valour.Web
+# Public website
 
-The public marketing website for Valour.
+`Valour.Web` contains the public website and its static exporter. The exporter
+renders MVC pages and copies `wwwroot` assets into a directory suitable for
+Cloudflare Pages.
 
-## Static export
+From this directory, run:
 
-Run the exporter from this directory:
-
-```bash
+```sh
 dotnet run -- export
 ```
 
-The generated Cloudflare Pages site is written to `dist/`. It includes the rendered MVC pages, `wwwroot` assets, `sitemap.xml`, and `_redirects`.
+The output is `dist/`, including rendered pages, static assets, `sitemap.xml`, and
+`_redirects`. Use the repository's pinned .NET SDK for local builds.
 
-For a production-equivalent Pages build:
+## Cloudflare Pages
 
-```bash
-sh ./cf-build
-```
+The website's Pages project uses these settings:
 
-## Cloudflare Pages project
+| Setting | Value |
+| --- | --- |
+| Production branch | `main` |
+| Root directory | `Valour/Web` |
+| Build command | `sh ./cf-build` |
+| Output directory | `dist` |
 
-Create a second Pages project connected to the same Git repository as the Valour app project, with these independent settings:
+`cf-build` installs the expected SDK when needed, performs a Release export, and
+checks that required output files exist. `VALOUR_WEB_BASE_URL` sets the canonical
+site URL and defaults to `https://valour.gg`. Attach `valour.gg` and `www.valour.gg`
+to the website's Pages project when configuring its domains.
 
-- Production branch: `main`
-- Root directory: `Valour/Web`
-- Build command: `sh ./cf-build`
-- Build output directory: `dist`
-
-The existing app Pages project remains rooted at the repository root and continues to use the root `cf-build` script and `output` directory.
-
-After the first successful marketing deployment, attach `valour.gg` and `www.valour.gg` to this Pages project. The canonical site URL defaults to `https://valour.gg`; it can be overridden with the `VALOUR_WEB_BASE_URL` Pages environment variable.
+The application has its own Pages configuration at the repository root, using
+the root `cf-build` script and `output` directory. Website and application builds
+have separate roots and output directories.

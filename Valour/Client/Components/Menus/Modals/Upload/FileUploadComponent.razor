@@ -37,6 +37,13 @@
                 }
             }
         </div>
+        @if (Data.Attachment.Type is MessageAttachmentType.Image or MessageAttachmentType.Video)
+        {
+            <label class="spoiler-toggle">
+                <input type="checkbox" checked="@Data.Attachment.IsSpoiler" @onchange="OnSpoilerToggled" />
+                Mark as spoiler
+            </label>
+        }
         @if (_isUploading)
         {
             <div class="upload-progress-container">
@@ -121,6 +128,12 @@
         }
         
         _loaded = true;
+    }
+
+    private void OnSpoilerToggled(ChangeEventArgs e)
+    {
+        Data.Attachment.IsSpoiler = e.Value is bool value && value;
+        StateHasChanged();
     }
 
     [JSInvokable]

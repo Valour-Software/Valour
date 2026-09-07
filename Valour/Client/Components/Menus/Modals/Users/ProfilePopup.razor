@@ -68,12 +68,13 @@
         _posY = y;
         _corner = corner;
 
+        var resolvedUser = await ResolveUserAsync(user);
+        if (resolvedUser is null) return;
+        var profile = await resolvedUser.FetchProfileAsync();
+        if (profile is null) return;
         _member = null;
-        _user = await ResolveUserAsync(user);
-
-        _profile = await _user.FetchProfileAsync();
-        if (_profile is null)
-            return;
+        _user = resolvedUser;
+        _profile = profile;
 
         _hidden = false;
         _needsPositioning = true;
@@ -91,12 +92,13 @@
         _posY = y;
         _corner = corner;
 
+        var resolvedUser = await ResolveUserAsync(member.User);
+        if (resolvedUser is null) return;
+        var profile = await resolvedUser.FetchProfileAsync();
+        if (profile is null) return;
         _member = member;
-        _user = await ResolveUserAsync(member.User);
-
-        _profile =  await _user.FetchProfileAsync();
-        if (_profile is null)
-            return;
+        _user = resolvedUser;
+        _profile = profile;
 
         _hidden = false;
         _needsPositioning = true;

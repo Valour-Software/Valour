@@ -1,0 +1,131 @@
+@inherits ContextMenu<WindowTabContextMenu.TabContextParams>
+
+@if (IsDocked)
+{
+    <ContextMenuItem OnClickAsync="@OnClickNewTab">
+        <Label>New Tab</Label>
+        <Icon><i class="bi bi-plus-lg"></i></Icon>
+    </ContextMenuItem>
+}
+
+@if (Data.Window.CanPopOutToNativeWindow)
+{
+    <ContextMenuItem OnClickAsync="@OnClickPopOut">
+        <Label>Pop Out</Label>
+        <Icon><i class="bi bi-box-arrow-up-right"></i></Icon>
+    </ContextMenuItem>
+}
+
+<ContextMenuItem OnClickAsync="@OnClickClose">
+    <Label>Close Tab</Label>
+    <Icon><i class="bi bi-x-lg"></i></Icon>
+</ContextMenuItem>
+
+@if (HasOtherTabs)
+{
+    <ContextMenuItem OnClickAsync="@OnClickCloseOthers">
+        <Label>Close Other Tabs</Label>
+        <Icon><i class="bi bi-x-circle"></i></Icon>
+    </ContextMenuItem>
+}
+
+@if (HasTabsToRight)
+{
+    <ContextMenuItem OnClickAsync="@OnClickCloseToRight">
+        <Label>Close Tabs to the Right</Label>
+        <Icon><i class="bi bi-arrow-bar-right"></i></Icon>
+    </ContextMenuItem>
+}
+
+@if (HasOtherTabs)
+{
+    <ContextMenuItem OnClickAsync="@OnClickCloseAll" Color="red">
+        <Label>Close All Tabs</Label>
+        <Icon><i class="bi bi-x-octagon"></i></Icon>
+    </ContextMenuItem>
+}
+
+@code {
+
+    public class TabContextParams
+    {
+        public WindowComponent Window;
+    }
+
+    private WindowTab Tab => Data.Window.WindowTab;
+    private WindowLayout Layout => Data.Window.Layout;
+
+    private bool IsDocked => !Data.Window.IsFloating && Layout is not null;
+    private bool HasOtherTabs => IsDocked && Layout.Tabs.Count > 1;
+    private bool HasTabsToRight => IsDocked && Layout.Tabs.IndexOf(Tab) < Layout.Tabs.Count - 1;
+
+    private async Task OnClickNewTab()
+    {
+        await CloseAsync();
+        await Data.Window.AddSiblingTab(ThreadsWindowComponent.DefaultContent);
+    }
+
+    private async Task OnClickPopOut()
+    {
+        await CloseAsync();
+        await Data.Window.PopOutAsync();
+    }
+
+    private async Task OnClickClose()
+    {
+        await CloseAsync();
+        await Data.Window.CloseAsync();
+    }
+
+    private async Task OnClickCloseOthers()
+    {
+        await CloseAsync();
+
+        if (!IsDocked)
+            return;
+
+        var layout = Layout;
+        var others = layout.Tabs.Where(t => t != Tab).ToList();
+
+        foreach (var tab in others)
+            await layout.RemoveTab(tab, false);
+
+        await layout.DockComponent.NotifyLayoutChanged();
+    }
+
+    private async Task OnClickCloseToRight()
+    {
+        await CloseAsync();
+
+        if (!IsDocked)
+            return;
+
+        var layout = Layout;
+        var index = layout.Tabs.IndexOf(Tab);
+        if (index == -1)
+            return;
+
+        var toRight = layout.Tabs.Skip(index + 1).ToList();
+
+        foreach (var tab in toRight)
+            await layout.RemoveTab(tab, false);
+
+        await layout.DockComponent.NotifyLayoutChanged();
+    }
+
+    private async Task OnClickCloseAll()
+    {
+        await CloseAsync();
+
+        if (!IsDocked)
+            return;
+
+        var layout = Layout;
+        var all = layout.Tabs.ToList();
+
+        foreach (var tab in all)
+            await layout.RemoveTab(tab, false);
+
+        await layout.DockComponent.NotifyLayoutChanged();
+    }
+}

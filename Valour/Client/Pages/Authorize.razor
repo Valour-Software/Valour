@@ -166,7 +166,7 @@
                     return;
                 }
 
-                await JsRuntime.InvokeAsync<object>("open", res.Data, "_blank");
+                await JsRuntime.InvokeVoidAsync("open", res.Data, "_blank", "noopener,noreferrer");
 
                 finishedAuth = true;
 

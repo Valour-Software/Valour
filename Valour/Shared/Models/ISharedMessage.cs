@@ -69,8 +69,13 @@ public interface ISharedMessage : ISharedModel<long>
     string OverrideName { get; set; }
 
     /// <summary>
-    /// Avatar override for webhook messages. Stamped by the server with the
-    /// effective value at send time; never client-authored.
+    /// Immutable Valour CDN avatar asset used by this webhook message.
+    /// Stamped by the server at send time; never client-authored.
     /// </summary>
-    string OverrideAvatarUrl { get; set; }
+    long? WebhookAvatarAssetId { get; set; }
+
+    /// <summary>
+    /// Whether the stamped webhook avatar asset has multiple frames.
+    /// </summary>
+    bool WebhookAvatarAnimated { get; set; }
 }

@@ -38,6 +38,7 @@ public class Node : ServiceBase // each node acts like a service
     /// </summary>
     public bool IsReconnecting { get; private set; }
     private int _reconnectInProgress;
+    private readonly SemaphoreSlim _realtimeSetupLock = new(1, 1);
 
     /// <summary>
     /// True if this is the primary node for this client
@@ -180,6 +181,8 @@ public class Node : ServiceBase // each node acts like a service
 
     public async Task<TaskResult> InitializeAsync(string name, bool isPrimary = false)
     {
+        if (name?.Any(char.IsControl) == true || Client.AuthService.Token?.Any(char.IsControl) == true)
+            return TaskResult.FromFailure("The node or saved login token is invalid. Sign in again.");
         Name = name?.Trim();
         if (string.IsNullOrWhiteSpace(Name))
             return TaskResult.FromFailure("Node name was empty.");
@@ -230,26 +233,57 @@ public class Node : ServiceBase // each node acts like a service
 
     public async Task<TaskResult> SetupRealtimeConnection()
     {
-        if (IsRealtimeSetup)
+        await _realtimeSetupLock.WaitAsync();
+        try
+        {
+            if (IsRealtimeSetup)
+                return TaskResult.SuccessResult;
+
+            _intentionalDisconnect = false;
+            Log("Setting up new realtime hub connection...");
+            await ConnectSignalRHub();
+
+            var result = await AuthenticateSignalR();
+            if (result.Success)
+                result = await ConnectToUserChannel();
+            if (!result.Success)
+            {
+                await DisposeFailedRealtimeConnectionAsync();
+                return result;
+            }
+
+            IsRealtimeSetup = true;
+            BeginPings();
             return TaskResult.SuccessResult;
-        
-        _intentionalDisconnect = false;
-        
-        Log("Setting up new realtime hub connection...");
+        }
+        catch (Exception ex) when (IsRealtimeConnectionFailure(ex))
+        {
+            await DisposeFailedRealtimeConnectionAsync();
+            return TaskResult.FromFailure("Unable to connect to realtime services. Please try again.");
+        }
+        finally
+        {
+            _realtimeSetupLock.Release();
+        }
+    }
 
-        await ConnectSignalRHub();
-        
-        var authResult = await AuthenticateSignalR();
-        if (!authResult.Success)
-            return authResult;
-        
-        await ConnectToUserChannel();
+    private static bool IsRealtimeConnectionFailure(Exception ex) =>
+        ex is HttpRequestException or IOException or TimeoutException or OperationCanceledException or
+            InvalidOperationException or Microsoft.AspNetCore.SignalR.HubException or System.Net.WebSockets.WebSocketException;
 
-        BeginPings();
-        
-        IsRealtimeSetup = true;
-        
-        return TaskResult.SuccessResult;
+    internal static async Task<TaskResult> InvokeRealtimeAsync(HubConnection connection, string method, params object[] args)
+    {
+        if (connection?.State != HubConnectionState.Connected)
+            return TaskResult.FromFailure("Hub connection is not active.");
+
+        try
+        {
+            return await connection.InvokeCoreAsync<TaskResult>(method, args);
+        }
+        catch (Exception ex) when (IsRealtimeConnectionFailure(ex))
+        {
+            return TaskResult.FromFailure("Realtime request failed: " + ex.Message);
+        }
     }
 
     /// <summary>
@@ -289,36 +323,12 @@ public class Node : ServiceBase // each node acts like a service
     /// bearer only authorizes a federation membership; planet and channel
     /// groups are joined explicitly after the membership checks succeed.
     /// </summary>
-    private Task ConnectToUserChannel()
+    private Task<TaskResult> ConnectToUserChannel()
     {
         if (IsExternal)
-        {
-            Log("Skipping user-wide SignalR group on external node.");
-            return Task.CompletedTask;
-        }
+            return Task.FromResult(TaskResult.SuccessResult);
 
-        return ConnectToUserChannelInternal();
-    }
-
-    private async Task ConnectToUserChannelInternal()
-    {
-        TaskResult userResult;
-        int tries = 0;
-
-        do
-        {
-            userResult = await ConnectToUserSignalRChannel();
-            if (!userResult.Success)
-            {
-                // TODO: This should probably retry
-                LogError($"Error connecting to User SignalR channel (Retry {tries})");
-                LogError(userResult.Message);
-                await Task.Delay(3000);
-            }
-        } while (!userResult.Success);
-
-
-        Log("Connected to user channel for SignalR.");
+        return ConnectToUserSignalRChannel();
     }
 
     public void UpdateToken()
@@ -356,7 +366,7 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Hub connection is not active.");
         }
 
-        var result = await hubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
+        var result = await InvokeRealtimeAsync(hubConnection, "JoinPlanet", planet.Id);
 
         if (result.Success)
         {
@@ -386,11 +396,12 @@ public class Node : ServiceBase // each node acts like a service
     {
         if (!IsRealtimeSetup)
         {
+            _realtimePlanets.TryRemove(planet.Id, out _);
             LogError("Node is not set up for real-time communication.");
             return TaskResult.FromFailure("Node is not set up for real-time communication.");
         }
 
-        if (!_realtimePlanets.ContainsKey(planet.Id))
+        if (!_realtimePlanets.TryRemove(planet.Id, out _))
         {
             LogError($"Node is not connected to planet {planet.Id}.");
             return TaskResult.FromFailure("Node is not connected to planet.");
@@ -405,7 +416,7 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Hub connection is not active.");
         }
 
-        var result = await hubConnection.InvokeAsync<TaskResult>("LeavePlanet", planet.Id);
+        var result = await InvokeRealtimeAsync(hubConnection, "LeavePlanet", planet.Id);
 
         if (result.Success)
         {
@@ -448,7 +459,7 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Hub connection is not active.");
         }
 
-        var result = await hubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
+        var result = await InvokeRealtimeAsync(hubConnection, "JoinChannel", channel.Id);
 
         if (result.Success)
         {
@@ -462,11 +473,12 @@ public class Node : ServiceBase // each node acts like a service
     {
         if (!IsRealtimeSetup)
         {
+            _realtimeChannels.TryRemove(channel.Id, out _);
             LogError("Node is not set up for real-time communication.");
             return TaskResult.FromFailure("Node is not set up for real-time communication.");
         }
 
-        if (!_realtimeChannels.ContainsKey(channel.Id))
+        if (!_realtimeChannels.TryRemove(channel.Id, out _))
         {
             LogError($"Node is not connected to channel {channel.Id}.");
             return TaskResult.FromFailure("Node is not connected to channel.");
@@ -481,7 +493,7 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Hub connection is not active.");
         }
 
-        var result = await hubConnection.InvokeAsync<TaskResult>("LeaveChannel", channel.Id);
+        var result = await InvokeRealtimeAsync(hubConnection, "LeaveChannel", channel.Id);
 
         if (result.Success)
         {
@@ -505,7 +517,7 @@ public class Node : ServiceBase // each node acts like a service
         if (HubConnection?.State != HubConnectionState.Connected)
             return TaskResult.FromFailure("Hub connection is not active.");
 
-        return await HubConnection.InvokeAsync<TaskResult>("RefreshActiveChannelView", channelId);
+        return await InvokeRealtimeAsync(HubConnection, "RefreshActiveChannelView", channelId);
     }
 
     public async Task ClearActiveChannelView(long channelId)
@@ -513,7 +525,12 @@ public class Node : ServiceBase // each node acts like a service
         if (!IsRealtimeSetup || HubConnection?.State != HubConnectionState.Connected)
             return;
 
-        await HubConnection.SendAsync("ClearActiveChannelView", channelId);
+        var connection = HubConnection;
+        try { await connection.SendAsync("ClearActiveChannelView", channelId); }
+        catch (Exception ex) when (IsRealtimeConnectionFailure(ex))
+        {
+            LogWarning("Could not clear the active channel view: " + ex.Message);
+        }
     }
 
     /// <summary>
@@ -525,6 +542,10 @@ public class Node : ServiceBase // each node acts like a service
         _onlineTimer?.Dispose();
         _onlineTimer = new Timer(OnPingTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
     }
+
+    internal static Task<string> InvokeHeartbeatAsync(HubConnection connection, bool userState,
+        CancellationToken cancellationToken = default) =>
+        connection.InvokeAsync<string>("ping", userState, cancellationToken);
 
     private readonly Stopwatch _pingStopwatch = new();
 
@@ -559,7 +580,7 @@ public class Node : ServiceBase // each node acts like a service
 
             _pingStopwatch.Reset();
             _pingStopwatch.Start();
-            var response = await hubConnection.InvokeAsync<string>("ping", IsPrimary);
+            var response = await InvokeHeartbeatAsync(hubConnection, IsPrimary);
             _pingStopwatch.Stop();
 
             if (response == "pong")
@@ -896,13 +917,16 @@ public class Node : ServiceBase // each node acts like a service
 
         try
         {
-            var pingTask = HubConnection.InvokeAsync<string>("ping");
-            var completed = await Task.WhenAny(pingTask, Task.Delay(TimeSpan.FromSeconds(6)));
-
-            if (completed != pingTask)
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+            string response;
+            try
+            {
+                response = await InvokeHeartbeatAsync(HubConnection, IsPrimary, timeout.Token);
+            }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            {
                 throw new HeartbeatTimeoutException("SignalR ping timed out.");
-
-            var response = await pingTask;
+            }
             if (response != "pong")
                 throw new Exception("Unexpected ping response: " + response);
         }
@@ -992,7 +1016,7 @@ public class Node : ServiceBase // each node acts like a service
             {
                 // Test connection if it thinks it's safe
                 if (hubConnection.State == HubConnectionState.Connected)
-                    _ = await hubConnection.InvokeAsync<string>("ping");
+                    _ = await InvokeHeartbeatAsync(hubConnection, IsPrimary);
             }
             catch (System.Exception ex)
             {
@@ -1046,9 +1070,9 @@ public class Node : ServiceBase // each node acts like a service
     private Task OnSignalRClosed(Exception ex)
     {
         // Disconnect was requested by the client itself; do not reconnect
-        if (_intentionalDisconnect)
+        if (_intentionalDisconnect || !IsRealtimeSetup)
         {
-            Log("SignalR closed intentionally.");
+            Log("SignalR closed intentionally or during setup.");
             return Task.CompletedTask;
         }
 
@@ -1086,7 +1110,12 @@ public class Node : ServiceBase // each node acts like a service
         if (!authorization.Success)
             return;
 
-        await ConnectToUserChannel();
+        var userChannel = await ConnectToUserChannel();
+        if (!userChannel.Success)
+        {
+            LogWarning(userChannel.Message);
+            return;
+        }
 
         await RejoinRealtimeSubscriptionsAsync();
     }
@@ -1150,7 +1179,7 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Hub connection is not active.");
         }
 
-        return await hubConnection.InvokeAsync<TaskResult>("JoinUser", IsPrimary);
+        return await InvokeRealtimeAsync(hubConnection, "JoinUser", IsPrimary);
     }
 
     #endregion
@@ -1207,6 +1236,9 @@ public class Node : ServiceBase // each node acts like a service
         int retries = 0
     )
     {
+        if (cacheDurationMs is null)
+            return await ActuallyGetJsonAsync<T>(uri, allow404, retries);
+
         var cache = LazyGetRequestCache<T>.Cache;
         // The cache is static per response type. A bare relative route lets a
         // response from one community origin satisfy a request to the hub (or
@@ -1234,16 +1266,7 @@ public class Node : ServiceBase // each node acts like a service
                 // This line actually invokes the real request once.
                 var result = await newLazy.Value;
 
-                if (cacheDurationMs is not null)
-                {
-                    // 4A) Schedule removal from the cache after "cacheDurationMs".
-                    _ = Task.Delay(cacheDurationMs.Value).ContinueWith(_ => { cache.TryRemove(cacheKey, out var _); });
-                }
-                else
-                {
-                    // 4B) Or remove it immediately if no cache duration was specified.
-                    cache.TryRemove(cacheKey, out var _);
-                }
+                _ = Task.Delay(cacheDurationMs.Value).ContinueWith(_ => { cache.TryRemove(cacheKey, out var _); });
 
                 return result;
             }
@@ -1309,7 +1332,7 @@ public class Node : ServiceBase // each node acts like a service
             
             return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - GET {uri}:", ex);
             return TaskResult<T>.FromFailure(ex);
@@ -1363,7 +1386,7 @@ public class Node : ServiceBase // each node acts like a service
             
             return TaskResult<string>.FromFailure(msg, (int)response.StatusCode);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - GET {uri}:", ex);
             return TaskResult<string>.FromFailure(ex);
@@ -1412,7 +1435,7 @@ public class Node : ServiceBase // each node acts like a service
 
             return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - PUT {uri}:", ex);
             return TaskResult<T>.FromFailure(ex);
@@ -1461,7 +1484,7 @@ public class Node : ServiceBase // each node acts like a service
 
             return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - POST {uri}:", ex);
             return TaskResult<T>.FromFailure(ex);
@@ -1508,7 +1531,7 @@ public class Node : ServiceBase // each node acts like a service
 
             return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - POST {uri}:", ex);
             return TaskResult<T>.FromFailure(ex);
@@ -1568,7 +1591,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
         return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
     }
-    catch (HttpRequestException ex)
+    catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
     {
         LogError($"Critical HTTP Failure - POST {uri}:", ex);
         return TaskResult<T>.FromFailure(ex);
@@ -1618,7 +1641,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
             return TaskResult.FromFailure($"Error PUTing data to {uri}", (int)response.StatusCode, msg);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - PUT {uri}:", ex);
             return TaskResult.FromFailure(ex);
@@ -1667,7 +1690,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             
             return TaskResult.FromFailure(msg, (int)response.StatusCode);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - POST {uri}:", ex);
             return TaskResult.FromFailure(ex);
@@ -1711,7 +1734,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
             return TaskResult.FromFailure(msg, (int)response.StatusCode);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - POST {uri}:", ex);
             return TaskResult.FromFailure(ex);
@@ -1752,7 +1775,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             LogError($"{response.StatusCode} - DELETE {uri}: \n{msg}");
             return TaskResult.FromFailure(msg, (int)response.StatusCode);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
         {
             LogError($"Critical HTTP Failure - DELETE {uri}:", ex);
             return TaskResult.FromFailure(ex);

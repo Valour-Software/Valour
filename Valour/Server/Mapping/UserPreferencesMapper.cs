@@ -14,6 +14,7 @@ public static class UserPreferencesMapper
             NotificationVolume = prefs.NotificationVolume,
             EnabledNotificationSources = prefs.EnabledNotificationSources,
             DmPolicy = prefs.DmPolicy,
+            CallPolicy = prefs.CallPolicy,
             ForceGpuAcceleration = prefs.ForceGpuAcceleration,
             ActivityCooldownSeconds = prefs.ActivityCooldownSeconds
         };
@@ -31,6 +32,7 @@ public static class UserPreferencesMapper
             NotificationVolume = prefs.NotificationVolume,
             EnabledNotificationSources = prefs.EnabledNotificationSources,
             DmPolicy = prefs.DmPolicy,
+            CallPolicy = prefs.CallPolicy,
             ForceGpuAcceleration = prefs.ForceGpuAcceleration,
             ActivityCooldownSeconds = prefs.ActivityCooldownSeconds
         };

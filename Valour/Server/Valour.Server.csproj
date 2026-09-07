@@ -59,6 +59,8 @@
     <None Remove="EntityFrameworkCore.Exceptions.PostgreSQL" />
     <Content Remove="bin/**;obj/**" />
     <None Remove="bin/**;obj/**" />
+    <EmbeddedResource Include="..\Client\wwwroot\tilesets\exterior-tileset-0.json"
+                      LogicalName="Valour.Server.VillageTilesets.exterior-tileset-0.json" />
   </ItemGroup>
 
 

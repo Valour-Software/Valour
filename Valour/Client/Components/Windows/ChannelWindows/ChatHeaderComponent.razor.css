@@ -140,3 +140,8 @@
 .results-scroll::-webkit-scrollbar-track {
     border-radius: var(--radius-md);
 }
+.call-btn {
+    border: 0;
+    background: transparent;
+    color: inherit;
+}

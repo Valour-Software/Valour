@@ -249,7 +249,7 @@
         {
             await _jsModule.InvokeVoidAsync("reset").AsTask().WaitAsync(DisposeInteropTimeout);
         }
-        catch (JSDisconnectedException)
+        catch (JSException)
         {
             // Ignore if the runtime is already disconnected.
         }
@@ -266,7 +266,7 @@
         {
             await _jsModule.DisposeAsync().AsTask().WaitAsync(DisposeInteropTimeout);
         }
-        catch (JSDisconnectedException)
+        catch (JSException)
         {
             // Ignore if the runtime is already disconnected.
         }

@@ -1,0 +1,72 @@
+@inherits Modal<CreateGroupDmModalComponent.ModalParams>
+@inject ValourClient Client
+
+<BasicModalLayout Title="New group conversation" Icon="people-fill" MaxWidth="520px">
+    <MainArea>
+        <div class="group-dm-form">
+            <label for="group-dm-name">Group name</label>
+            <input id="group-dm-name" class="v-input" maxlength="64" @bind="_name" placeholder="Group chat" />
+
+            <span class="group-dm-label">Choose at least two friends</span>
+            <div class="group-dm-friends">
+                @foreach (var friend in Client.FriendService.Friends)
+                {
+                    <label @key="friend.Id">
+                        <input type="checkbox"
+                               checked="@_selected.Contains(friend.Id)"
+                               @onchange="e => Select(friend.Id, (bool)e.Value!)" />
+                        <UserInfoComponent User="friend" ShowBadges="false" />
+                    </label>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <p class="group-dm-error">@_error</p>
+            }
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="Close">Cancel</button>
+            <button class="v-btn primary" disabled="@(_selected.Count < 2 || _busy)" @onclick="CreateAsync">Create group</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public sealed class ModalParams
+    {
+        public Func<Channel, Task>? Created { get; set; }
+    }
+
+    private string _name = "";
+    private string? _error;
+    private bool _busy;
+    private readonly HashSet<long> _selected = [];
+
+    private void Select(long userId, bool selected)
+    {
+        if (selected) _selected.Add(userId);
+        else _selected.Remove(userId);
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_busy || _selected.Count < 2)
+            return;
+
+        _busy = true;
+        _error = null;
+        var result = await Client.ChannelService.CreateGroupDmAsync(_name, _selected);
+        _busy = false;
+        if (!result.Success || result.Data is null)
+        {
+            _error = result.Message;
+            return;
+        }
+
+        Close();
+        if (Data.Created is not null)
+            await Data.Created(result.Data);
+    }
+}

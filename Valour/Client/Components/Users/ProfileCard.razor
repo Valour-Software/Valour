@@ -51,21 +51,21 @@
                                 @if (HasBadges)
                                 {
                                     <div class="badge-cluster">
-                                        @if (User.HasStargazer)
+                                        @if (User.HasStargazer && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Stargazer))
                                         {
                                             <div class="badge-chip stargazer">
                                                 <img alt="Stargazer badge" src="@StarBadge.GetDataUri(User.Id, User.GetStarColor1(), User.GetStarColor2())"/>
                                                 <span>Stargazer</span>
                                             </div>
                                         }
-                                        @if (User.Bot)
+                                        @if (User.Bot && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Bot))
                                         {
                                             <div class="badge-chip bot">
                                                 <i class="bi bi-cpu-fill"></i>
                                                 <span>Bot</span>
                                             </div>
                                         }
-                                        @if (User.ValourStaff)
+                                        @if (User.ValourStaff && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Staff))
                                         {
                                             <div class="badge-chip staff">
                                                 <i class="bi bi-patch-check-fill"></i>
@@ -211,7 +211,10 @@
     }
 
     private bool HasAnimatedBorder => Profile?.AnimatedBorder == true;
-    private bool HasBadges => User?.HasStargazer == true || User?.Bot == true || User?.ValourStaff == true;
+    private bool HasBadges => User is not null &&
+        (User.HasStargazer && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Stargazer) ||
+         User.Bot && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Bot) ||
+         User.ValourStaff && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Staff));
     private bool HasHeadline => !string.IsNullOrWhiteSpace(Profile?.Headline);
     private bool ShowActions => User is not null && Client.Me is not null && User.Id != Client.Me.Id;
     private string StatusText => string.IsNullOrWhiteSpace(_status) ? "No status set." : _status;
@@ -340,6 +343,11 @@
     private async Task OnClickMessage()
     {
         var channel = await ChannelService.FetchDmChannelAsync(User.Id, true);
+        if (channel is null)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Unable to open conversation", "The conversation could not be loaded. Please try again."));
+            return;
+        }
         var newWindowContent = await ChatWindowComponent.GetDefaultContent(channel);
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }

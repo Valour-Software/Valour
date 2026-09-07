@@ -137,15 +137,28 @@ public class PlanetInviteService
     {
         var invite = await _db.PlanetInvites.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == inviteCode);
-        
-        if (invite is null)
-            return new TaskResult<ISharedPlanetListInfo>(false, "Invite not found.");
-        
-        // Check if invite is expired
-        if (invite.TimeExpires is not null && invite.TimeExpires < DateTime.UtcNow)
-            return new TaskResult<ISharedPlanetListInfo>(false, "Invite has expired.");
-        
-        var planetInfo = await _planetService.GetPlanetInfoAsync(invite.PlanetId);
+
+        long planetId;
+
+        if (invite is not null)
+        {
+            if (invite.TimeExpires is not null && invite.TimeExpires < DateTime.UtcNow)
+                return new TaskResult<ISharedPlanetListInfo>(false, "Invite has expired.");
+
+            planetId = invite.PlanetId;
+        }
+        else
+        {
+            // Not a real invite code - a planet may have opted its
+            // vanity name in as a standing invite link, so check for that too.
+            var vanityPlanetId = await _planetService.ResolveVanityInviteAsync(inviteCode);
+            if (vanityPlanetId is null)
+                return new TaskResult<ISharedPlanetListInfo>(false, "Invite not found.");
+
+            planetId = vanityPlanetId.Value;
+        }
+
+        var planetInfo = await _planetService.GetPlanetInfoAsync(planetId);
 
         if (planetInfo is null)
         {

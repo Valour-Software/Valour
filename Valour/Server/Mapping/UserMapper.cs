@@ -33,7 +33,8 @@ public static class UserMapper
             TutorialState = user.TutorialState,
             OwnerId = user.OwnerId,
             StarColor1 = user.StarColor1,
-            StarColor2 = user.StarColor2
+            StarColor2 = user.StarColor2,
+            HiddenBadgeFlags = user.HiddenBadgeFlags
         };
     }
 
@@ -66,7 +67,8 @@ public static class UserMapper
             TutorialState = user.TutorialState,
             OwnerId = user.OwnerId,
             StarColor1 = user.StarColor1,
-            StarColor2 = user.StarColor2
+            StarColor2 = user.StarColor2,
+            HiddenBadgeFlags = user.HiddenBadgeFlags
         };
     }
 }

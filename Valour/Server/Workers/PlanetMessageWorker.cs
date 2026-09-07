@@ -216,44 +216,63 @@ namespace Valour.Server.Workers
             if (messages.Count == 0)
                 return;
 
-            try
-            {
-                await db.Messages.AddRangeAsync(messages);
-                await db.SaveChangesAsync();
-            } 
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Failed to save messages to database. Falling back to per-message save.");
-                
-                // If we fail to save all messages at once, we can try to save them one by one
-                // We will just dump any messages that fail to save
-                
-                foreach (var message in messages)
-                {
-                    try
-                    {
-                        await db.Messages.AddAsync(message);
-                        await db.SaveChangesAsync();
-                        StagedMessages.TryRemove(message.Id, out _);
-                        RemoveStagedMessageFromChannel(message.ChannelId, message.Id);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to save message {MessageId} to database. Skipping.", message.Id);
-                    }
-                }
-            }
+            var savedIds = await PersistMessagesAsync(db, messages, _logger);
             foreach (var staged in stagedSnapshot)
             {
+                if (!savedIds.Contains(staged.Id)) continue;
                 StagedMessages.TryRemove(staged.Id, out _);
                 RemoveStagedMessageFromChannel(staged);
             }
-            _logger.LogInformation($"Saved successfully.");
+            _logger.LogInformation("Saved {SavedCount} of {MessageCount} staged messages.", savedIds.Count, messages.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Message flush failed. Unsaved messages remain staged for retry.");
             }
             finally
             {
                 Volatile.Write(ref _isFlushing, 0);
             }
+        }
+
+        internal static async Task<HashSet<long>> PersistMessagesAsync(
+            ValourDb db, IReadOnlyList<Valour.Database.Message> messages, ILogger logger)
+        {
+            var savedIds = new HashSet<long>();
+            try
+            {
+                await db.Messages.AddRangeAsync(messages);
+                await db.SaveChangesAsync();
+                savedIds.UnionWith(messages.Select(x => x.Id));
+                return savedIds;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Batch message save failed. Retrying messages individually.");
+            }
+
+            foreach (var message in messages)
+            {
+                // A failed SaveChanges leaves every batch entity tracked as Added.
+                // Each fallback must contain only the message being retried.
+                db.ChangeTracker.Clear();
+                try
+                {
+                    // A previous commit can succeed even when its acknowledgement is lost.
+                    if (!await db.Messages.IgnoreQueryFilters().AnyAsync(x => x.Id == message.Id))
+                    {
+                        await db.Messages.AddAsync(message);
+                        await db.SaveChangesAsync();
+                    }
+                    savedIds.Add(message.Id);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to save message {MessageId}. Keeping it staged for retry.", message.Id);
+                }
+            }
+            db.ChangeTracker.Clear();
+            return savedIds;
         }
 
         /// <summary>

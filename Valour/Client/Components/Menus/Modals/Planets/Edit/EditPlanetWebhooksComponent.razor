@@ -1,0 +1,462 @@
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+@implements IDisposable
+
+<div class="settings-page">
+    @if (!_canManage)
+    {
+        <div class="empty-state">
+            <i class="bi bi-lock-fill"></i>
+            <span>You need the Manage Webhooks permission to view this page</span>
+        </div>
+    }
+    else
+    {
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-plus-circle-fill"></i>
+                Create Webhook
+            </h3>
+
+            <p class="webhook-description">
+                Webhooks let external apps and services post messages to a channel using a simple URL —
+                no bot account needed. Anyone with a webhook's URL can post to its channel, so treat the URL like a secret.
+            </p>
+
+            <div class="form-group">
+                <label>Name</label>
+                <input class="v-input" @bind="_createName" maxlength="@ISharedPlanetWebhook.MaxNameLength" placeholder="Captain Hook" />
+            </div>
+            <div class="form-group">
+                <label>Channel</label>
+                <select class="v-input" @bind="_createChannelId">
+                    <option value="0" disabled>Select a channel...</option>
+                    @foreach (var channel in Planet.Channels.Where(x => x.ChannelType == ChannelTypeEnum.PlanetChat))
+                    {
+                        <option value="@channel.Id">@channel.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Avatar (optional)</label>
+                <div class="webhook-avatar-picker">
+                    <img class="webhook-avatar-preview"
+                         src="@(_createAvatarPreview ?? ISharedUser.DefaultAvatar)"
+                         alt="Webhook avatar preview" />
+                    <div class="webhook-avatar-picker-actions">
+                        <label for="create-webhook-avatar" class="v-btn secondary small">
+                            <i class="bi bi-upload"></i>
+                            @(_createAvatarBytes is null ? "Choose image" : "Change image")
+                        </label>
+                        @if (_createAvatarBytes is not null)
+                        {
+                            <button type="button" class="v-btn small" @onclick="ClearPendingAvatar">
+                                <i class="bi bi-x-lg"></i> Remove
+                            </button>
+                        }
+                        <span class="webhook-avatar-help">Uploaded to Valour and safely re-encoded. PNG, JPG, GIF, or WEBP; 20 MB max.</span>
+                    </div>
+                    <div class="hidden-file-input">
+                        <InputFile id="create-webhook-avatar"
+                                   accept=".png,.jpg,.jpeg,.gif,.webp"
+                                   OnChange="SelectCreateAvatarAsync" />
+                    </div>
+                </div>
+            </div>
+
+            <button class="v-btn primary mt-2" disabled="@_creating" @onclick="CreateWebhookAsync">
+                <i class="bi bi-plus-lg"></i> Create Webhook
+            </button>
+            <ResultLabel Result="@_createResult" />
+
+            @if (_newWebhookUrl is not null)
+            {
+                <div class="token-reveal">
+                    <div class="token-reveal-header">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Webhook created! This is its URL:</span>
+                    </div>
+                    <div class="token-reveal-url">
+                        <input class="v-input" readonly value="@_newWebhookUrl" />
+                        <button class="v-btn small" title="Copy webhook URL" @onclick="() => CopyUrl(_newWebhookUrl)">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                    <p class="token-reveal-note">
+                        POST a JSON body like <code>{ "content": "Hello!" }</code> to this URL to send a message.
+                    </p>
+                </div>
+            }
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-plug-fill"></i>
+                Webhooks
+            </h3>
+
+            @if (!Planet.Webhooks.Any())
+            {
+                <div class="empty-state">
+                    <i class="bi bi-plug"></i>
+                    <span>No webhooks yet</span>
+                </div>
+            }
+            else
+            {
+                <div class="webhook-list">
+                    @foreach (var webhook in Planet.Webhooks)
+                    {
+                        var avatarUrl = ISharedPlanetWebhook.GetAvatar(
+                            webhook.Id,
+                            webhook.AvatarAssetId,
+                            webhook.AvatarAnimated,
+                            webhook.AvatarAnimated ? AvatarFormat.WebpAnimated64 : AvatarFormat.Webp64)
+                            ?? ISharedUser.DefaultAvatar;
+                        <div class="webhook-card">
+                            <div class="webhook-identity">
+                                <img class="webhook-avatar" src="@avatarUrl" alt="" />
+                                <div class="webhook-info">
+                                    <span class="webhook-name">@webhook.Name</span>
+                                    <div class="webhook-meta">
+                                        <span><i class="bi bi-hash"></i>@(Planet.Channels.Get(webhook.ChannelId)?.Name ?? "Unknown channel")</span>
+                                        <span class="separator">·</span>
+                                        <span>Created @webhook.TimeCreated.ToLocalTime().ToShortDateString()</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="webhook-actions">
+                                <label for="webhook-avatar-@webhook.Id"
+                                       class="v-btn small @(_avatarUploads.Contains(webhook.Id) ? "disabled" : "")"
+                                       title="Upload or replace avatar">
+                                    <i class="bi bi-image"></i>
+                                </label>
+                                <div class="hidden-file-input">
+                                    <InputFile id="@($"webhook-avatar-{webhook.Id}")"
+                                               accept=".png,.jpg,.jpeg,.gif,.webp"
+                                               disabled="@_avatarUploads.Contains(webhook.Id)"
+                                               OnChange="args => SelectExistingAvatarAsync(webhook, args)" />
+                                </div>
+                                @if (webhook.AvatarAssetId is not null)
+                                {
+                                    <button class="v-btn small"
+                                            disabled="@_avatarUploads.Contains(webhook.Id)"
+                                            title="Remove avatar"
+                                            @onclick="() => RemoveAvatarAsync(webhook)">
+                                        <i class="bi bi-person-x"></i>
+                                    </button>
+                                }
+                                <button class="v-btn small" title="Copy webhook URL" @onclick="() => CopyWebhookUrl(webhook)">
+                                    <i class="bi bi-clipboard"></i> Copy URL
+                                </button>
+                                <button class="v-btn small" title="Rotate token (invalidates the current URL)" @onclick="() => ConfirmRotate(webhook)">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                                <button class="v-btn small danger" title="Delete webhook" @onclick="() => ConfirmDelete(webhook)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _canManage;
+
+    private string _createName;
+    private long _createChannelId;
+    private byte[] _createAvatarBytes;
+    private string _createAvatarContentType;
+    private string _createAvatarPreview;
+    private bool _creating;
+    private ITaskResult _createResult;
+    private readonly HashSet<long> _avatarUploads = new();
+
+    private string _newWebhookUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canManage = Planet.MyMember?.HasPermission(PlanetPermissions.ManageWebhooks) ?? false;
+
+        if (!_canManage)
+            return;
+
+        Planet.Webhooks.Changed += OnWebhooksChange;
+        await Planet.LoadWebhooksAsync();
+    }
+
+    public void Dispose()
+    {
+        Planet.Webhooks.Changed -= OnWebhooksChange;
+    }
+
+    private void OnWebhooksChange(IModelEvent<PlanetWebhook> eventData)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string BuildExecuteUrl(long id, string token) =>
+        $"{Client.BaseAddress}{ISharedPlanetWebhook.GetExecuteRoute(id, token)}";
+
+    private async Task CreateWebhookAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_createName))
+        {
+            _createResult = TaskResult.FromFailure("A name is required.");
+            return;
+        }
+
+        if (_createChannelId == 0)
+        {
+            _createResult = TaskResult.FromFailure("Select a channel for the webhook to post to.");
+            return;
+        }
+
+        _creating = true;
+
+        var webhook = new PlanetWebhook(Client)
+        {
+            PlanetId = Planet.Id,
+            ChannelId = _createChannelId,
+            Name = _createName.Trim(),
+        };
+
+        var result = await webhook.CreateAsync();
+        _createResult = result;
+
+        if (result.Success && result.Data is not null)
+        {
+            _newWebhookUrl = BuildExecuteUrl(result.Data.Id, result.Data.Token);
+
+            if (_createAvatarBytes is not null)
+            {
+                var avatarResult = await UploadAvatarAsync(
+                    result.Data,
+                    _createAvatarBytes,
+                    _createAvatarContentType);
+                if (!avatarResult.Success)
+                {
+                    _createResult = TaskResult.FromFailure(
+                        $"Webhook created, but its avatar could not be uploaded: {avatarResult.Message}");
+                }
+                else
+                {
+                    _createResult = null;
+                }
+            }
+
+            _createName = null;
+            _createChannelId = 0;
+            ClearPendingAvatar();
+
+            await Planet.LoadWebhooksAsync();
+        }
+
+        _creating = false;
+        StateHasChanged();
+    }
+
+    private async Task SelectCreateAvatarAsync(InputFileChangeEventArgs args)
+    {
+        await OpenAvatarCropperAsync(args, (bytes, contentType, preview) =>
+        {
+            _createAvatarBytes = bytes;
+            _createAvatarContentType = contentType;
+            _createAvatarPreview = preview;
+            _createResult = null;
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task SelectExistingAvatarAsync(PlanetWebhook webhook, InputFileChangeEventArgs args)
+    {
+        if (_avatarUploads.Contains(webhook.Id))
+            return;
+
+        await OpenAvatarCropperAsync(args, async (bytes, contentType, _) =>
+        {
+            _avatarUploads.Add(webhook.Id);
+            StateHasChanged();
+
+            var result = await UploadAvatarAsync(webhook, bytes, contentType);
+            _avatarUploads.Remove(webhook.Id);
+
+            ToastContainer.Instance.AddToast(result.Success
+                ? new ToastData("Avatar updated", $"{webhook.Name} has a new avatar", ToastProgressState.Success)
+                : new ToastData("Avatar upload failed", result.Message, ToastProgressState.Failure));
+            StateHasChanged();
+        });
+    }
+
+    private async Task OpenAvatarCropperAsync(
+        InputFileChangeEventArgs args,
+        Func<byte[], string, string, Task> onReady)
+    {
+        const long maxBytes = 20_971_520;
+        var file = args.File;
+        if (file.Size > maxBytes)
+        {
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Image too large",
+                "Webhook avatars must be 20 MB or smaller.",
+                ToastProgressState.Failure));
+            return;
+        }
+
+        await using var stream = file.OpenReadStream(maxBytes);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+        var dataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+
+        ModalRoot.Instance.OpenModal<ImageCropperModal>(new ImageCropperModal.ModalParams
+        {
+            ImageDataUrl = dataUrl,
+            AspectRatio = 1d,
+            OutputMimeType = file.ContentType,
+            OnCropped = async croppedDataUrl =>
+            {
+                if (!EditProfileComponent.TryDecodeImageDataUrl(
+                        croppedDataUrl,
+                        out var bytes,
+                        out var contentType))
+                {
+                    ToastContainer.Instance.AddToast(new ToastData(
+                        "Invalid image",
+                        "The cropped image could not be read.",
+                        ToastProgressState.Failure));
+                    return;
+                }
+
+                await onReady(bytes, contentType, croppedDataUrl);
+            },
+            OnCancel = () => { }
+        });
+    }
+
+    private async Task<TaskResult<PlanetWebhook>> UploadAvatarAsync(
+        PlanetWebhook webhook,
+        byte[] bytes,
+        string contentType)
+    {
+        using var multipart = new MultipartFormDataContent();
+        using var image = new ByteArrayContent(bytes);
+        image.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        multipart.Add(image, "avatar", "avatar");
+
+        var result = await Planet.Node.PostMultipartDataWithResponse<PlanetWebhook>(
+            $"upload/webhook/{webhook.Id}",
+            multipart);
+        if (result.Success && result.Data is not null)
+            result.Data.Sync(Client);
+
+        return result;
+    }
+
+    private async Task RemoveAvatarAsync(PlanetWebhook webhook)
+    {
+        if (!_avatarUploads.Add(webhook.Id))
+            return;
+
+        var result = await Planet.Node.DeleteAsync($"{ISharedPlanetWebhook.BaseRoute}/{webhook.Id}/avatar");
+        _avatarUploads.Remove(webhook.Id);
+        if (result.Success)
+        {
+            webhook.AvatarAssetId = null;
+            webhook.AvatarAnimated = false;
+        }
+
+        ToastContainer.Instance.AddToast(result.Success
+            ? new ToastData("Avatar removed", $"{webhook.Name} now uses the default avatar", ToastProgressState.Success)
+            : new ToastData("Could not remove avatar", result.Message, ToastProgressState.Failure));
+        StateHasChanged();
+    }
+
+    private void ClearPendingAvatar()
+    {
+        _createAvatarBytes = null;
+        _createAvatarContentType = null;
+        _createAvatarPreview = null;
+    }
+
+    private async Task CopyWebhookUrl(PlanetWebhook webhook)
+    {
+        // List responses don't carry tokens, so fetch by id when needed
+        if (webhook.Token is null)
+        {
+            var result = await webhook.Node.GetJsonAsync<PlanetWebhook>($"{ISharedPlanetWebhook.BaseRoute}/{webhook.Id}");
+            if (!result.Success || result.Data?.Token is null)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Error", "Failed to fetch the webhook token", ToastProgressState.Failure));
+                return;
+            }
+
+            webhook.Token = result.Data.Token;
+        }
+
+        await CopyUrl(BuildExecuteUrl(webhook.Id, webhook.Token));
+    }
+
+    private async Task CopyUrl(string url)
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Webhook URL copied to clipboard", ToastProgressState.Success));
+    }
+
+    private void ConfirmRotate(PlanetWebhook webhook)
+    {
+        var modalData = new ConfirmModalComponent.ModalParams(
+            $"Rotate token for {webhook.Name}?",
+            "The current webhook URL will stop working immediately. Anything using it will need the new URL.",
+            "Rotate",
+            "Cancel",
+            async () =>
+            {
+                var result = await webhook.RotateTokenAsync();
+                if (result.Success)
+                {
+                    await CopyUrl(BuildExecuteUrl(webhook.Id, webhook.Token));
+                }
+                else
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Error", result.Message, ToastProgressState.Failure));
+                }
+            },
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+    }
+
+    private void ConfirmDelete(PlanetWebhook webhook)
+    {
+        var modalData = new ConfirmModalComponent.ModalParams(
+            $"Delete {webhook.Name}?",
+            "The webhook URL will stop working immediately. This cannot be undone.",
+            "Delete",
+            "Cancel",
+            async () =>
+            {
+                var result = await webhook.DeleteAsync();
+                if (result.Success)
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Deleted", "Webhook has been deleted", ToastProgressState.Success));
+                }
+                else
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Error", result.Message, ToastProgressState.Failure));
+                }
+            },
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+    }
+}

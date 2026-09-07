@@ -1,4 +1,4 @@
-﻿.image-attachment-wrapper {
+.image-attachment-wrapper {
     margin-top: 5px;
     margin-bottom: 5px;
     border-radius: var(--radius-md);
@@ -17,4 +17,36 @@
 }
 
 .attached-image {
+}
+
+.image-attachment-wrapper.spoiler-hidden {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+/* Separate blurred div rather than a filter on the real img - keeps this
+   sized off the wrapper directly instead of a child component's own image. */
+.spoiler-blur-bg {
+    position: absolute;
+    inset: -12px;
+    background-image: var(--spoiler-bg);
+    background-size: cover;
+    background-position: center;
+    filter: blur(20px);
+}
+
+.spoiler-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    background-color: rgba(0, 0, 0, 0.35);
+    color: white;
+    font-weight: 600;
+    pointer-events: none;
 }

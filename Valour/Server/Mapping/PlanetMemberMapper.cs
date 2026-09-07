@@ -23,6 +23,7 @@ public static class PlanetMemberMapper
             RoleMembership = core.RoleMembership,
             DismissedPinThreadId = core.DismissedPinThreadId,
             TimeLastConnected = core.TimeLastConnected,
+            HiddenBadgeFlags = core.HiddenBadgeFlags,
             User = user
         };
     }
@@ -42,6 +43,7 @@ public static class PlanetMemberMapper
             RoleMembership = member.RoleMembership,
             DismissedPinThreadId = member.DismissedPinThreadId,
             TimeLastConnected = member.TimeLastConnected,
+            HiddenBadgeFlags = member.HiddenBadgeFlags,
             User = member.User?.ToModel()
         };
     }
@@ -60,7 +62,8 @@ public static class PlanetMemberMapper
             MemberAvatar = member.MemberAvatar,
             RoleMembership = member.RoleMembership,
             DismissedPinThreadId = member.DismissedPinThreadId,
-            TimeLastConnected = member.TimeLastConnected
+            TimeLastConnected = member.TimeLastConnected,
+            HiddenBadgeFlags = member.HiddenBadgeFlags
         };
     }
 }

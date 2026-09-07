@@ -41,6 +41,11 @@
     private string _customCategoryIcon = string.Empty;
     private string _customCategoryName = "Planet";
 
+    private bool _disposed;
+    private bool _loadingModule;
+    private bool _initializing;
+    private Task _cleanupTask;
+
     private bool _shown;
     private bool _hiding;
     private CancellationTokenSource _hideCts;
@@ -61,6 +66,7 @@
 
     private void Show()
     {
+        if (_disposed) return;
         _hideCts?.Cancel();
         _hiding = false;
         _shown = true;
@@ -70,6 +76,7 @@
 
     private void Hide()
     {
+        if (_disposed) return;
         _shown = false;
 
         // On mobile the picker animates closed, so it stays rendered (with a
@@ -89,7 +96,7 @@
     {
         // Matches the emoji-picker-drop animation duration (--duration-slow)
         await Task.Delay(300);
-        if (ct.IsCancellationRequested)
+        if (_disposed || ct.IsCancellationRequested)
             return;
 
         _hiding = false;
@@ -98,7 +105,7 @@
 
     public async Task<List<EmojiClickEvent>> SearchAsync(string query, int maxResults = 10)
     {
-        if (string.IsNullOrWhiteSpace(query))
+        if (_disposed || string.IsNullOrWhiteSpace(query))
             return new();
 
         // Searching must not require the picker to have been opened: the JS
@@ -107,6 +114,14 @@
         try
         {
             await EnsureModuleLoadedAsync();
+            if (_disposed || _module is null)
+                return new();
+            var results = await _module.InvokeAsync<EmojiClickEvent[]>("search", query, maxResults);
+            return results?.ToList() ?? new();
+        }
+        catch (ObjectDisposedException) when (_disposed)
+        {
+            return new();
         }
         catch (JSException)
         {
@@ -115,8 +130,6 @@
             return new();
         }
 
-        var results = await _module.InvokeAsync<EmojiClickEvent[]>("search", query, maxResults);
-        return results?.ToList() ?? new();
     }
 
     private const string ModulePath = "./_content/Valour.Client/Components/Utility/EmojiMart/EmojiMart.razor.js";
@@ -129,7 +142,7 @@
     {
         try
         {
-            var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+            await using var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
             var results = await module.InvokeAsync<EmojiClickEvent[]>("getFrequent", maxResults);
             return results?.ToList() ?? new();
         }
@@ -150,7 +163,7 @@
 
         try
         {
-            var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+            await using var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
             await module.InvokeVoidAsync("recordFrequent", emojiId);
         }
         catch (JSException)
@@ -164,13 +177,16 @@
         string? customCategoryIcon = null,
         string? customCategoryName = null)
     {
+        if (_disposed) return;
         _customEmojis = emojis?.ToList() ?? new();
         _customCategoryIcon = customCategoryIcon ?? string.Empty;
         _customCategoryName = string.IsNullOrWhiteSpace(customCategoryName) ? "Planet" : customCategoryName;
 
         if (_module is not null)
         {
-            await _module.InvokeVoidAsync("setCustom", _id, _customEmojis, _customCategoryIcon, _customCategoryName);
+            try { await _module.InvokeVoidAsync("setCustom", _id, _customEmojis, _customCategoryIcon, _customCategoryName); }
+            catch (ObjectDisposedException) when (_disposed) { }
+            catch (JSDisconnectedException) { }
         }
     }
 
@@ -182,53 +198,93 @@
 
     private Task EnsureInitializedAsync()
     {
-        return _initializationTask ??= InitializeCoreAsync();
+        return _disposed ? Task.CompletedTask : _initializationTask ??= InitializeCoreAsync();
     }
 
     private Task EnsureModuleLoadedAsync()
     {
-        return _moduleLoadTask ??= LoadModuleAsync();
+        return _disposed ? Task.CompletedTask : _moduleLoadTask ??= LoadModuleAsync();
     }
 
     private async Task LoadModuleAsync()
     {
-        _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", ModulePath);
+        _loadingModule = true;
+        try
+        {
+            _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", ModulePath);
+        }
+        finally
+        {
+            _loadingModule = false;
+            if (_disposed && !_initializing)
+                await CleanupAsync();
+        }
     }
 
     private async Task InitializeCoreAsync()
     {
-        _dotNetReference = DotNetObjectReference.Create(this);
-        await EnsureModuleLoadedAsync();
-        await _module.InvokeVoidAsync("init", _id, _dotNetReference, EmojiSet, _customEmojis, _customCategoryIcon, _customCategoryName);
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
+        _initializing = true;
         try
         {
-            if (_module is not null)
+            await EnsureModuleLoadedAsync();
+            if (_disposed)
+                return;
+            _dotNetReference = DotNetObjectReference.Create(this);
+            await _module.InvokeVoidAsync("init", _id, _dotNetReference, EmojiSet, _customEmojis, _customCategoryIcon, _customCategoryName);
+        }
+        finally
+        {
+            _initializing = false;
+            if (_disposed)
+                await CleanupAsync();
+        }
+    }
+
+    ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        _disposed = true;
+        _hideCts?.Cancel();
+        _hideCts?.Dispose();
+        _hideCts = null;
+        return _loadingModule || _initializing ? ValueTask.CompletedTask : new ValueTask(CleanupAsync());
+    }
+
+    private Task CleanupAsync() => _cleanupTask ??= ReleaseReferencesAsync();
+
+    private async Task ReleaseReferencesAsync()
+    {
+        var module = _module;
+        _module = null;
+        try
+        {
+            if (module is not null)
             {
-                await _module.InvokeVoidAsync("destroy", _id);
-                await _module.DisposeAsync();
+                try { await module.InvokeVoidAsync("destroy", _id); }
+                catch (JSException) { }
+                catch (ObjectDisposedException) { }
+                try { await module.DisposeAsync(); }
+                catch (JSException) { }
+                catch (ObjectDisposedException) { }
             }
         }
-        catch (JSDisconnectedException) { }
-        catch (JSException) { }
-
-        _dotNetReference?.Dispose();
+        finally
+        {
+            _dotNetReference?.Dispose();
+            _dotNetReference = null;
+        }
     }
 
     [JSInvokable]
     public async Task EmojiClick(EmojiClickEvent e)
     {
-        if (OnEmojiClick is not null)
+        if (!_disposed && OnEmojiClick is not null)
             await OnEmojiClick.Invoke(e);
     }
 
     [JSInvokable]
     public async Task ClickOutside(OutsidePickerClickEvent e)
     {
-        if (!_shown)
+        if (_disposed || !_shown)
             return;
 
         if (OnClickOutside is not null)

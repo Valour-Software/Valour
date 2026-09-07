@@ -1,0 +1,6 @@
+.group-dm-form { display: flex; flex-direction: column; gap: .65rem; }
+.group-dm-label { margin-top: .35rem; font-weight: 600; }
+.group-dm-friends { display: flex; max-height: 300px; overflow-y: auto; flex-direction: column; gap: .35rem; }
+.group-dm-friends label { display: flex; align-items: center; gap: .55rem; padding: .45rem; border-radius: 8px; }
+.group-dm-friends label:hover { background: var(--main-2); }
+.group-dm-error { color: #ff9e9e; }

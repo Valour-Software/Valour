@@ -1,52 +1,51 @@
 @inject ValourClient Client
 @inject OauthService OauthService
 
-<div class="oauth-management-container">
+<div class="settings-page">
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-code-slash"></i>
             OAuth Applications
         </h3>
-        <p class="subtitle">Manage your OAuth applications and API access</p>
 
-        <div class="oauth-actions">
+        <div class="settings-toolbar">
             <VButton Variant="primary" Icon="plus-circle" OnClick="@OnCreateApp">Create New App</VButton>
         </div>
 
         @if (_apps is null)
         {
-            <div class="loading-state">
+            <div class="settings-empty" role="status">
                 <i class="bi bi-arrow-clockwise"></i>
                 <p>Loading your applications...</p>
             </div>
         }
         else if (_apps.Count == 0)
         {
-            <div class="empty-state">
+            <div class="settings-empty">
                 <i class="bi bi-code-square"></i>
                 <h4>No OAuth Applications</h4>
                 <p>You haven't created any OAuth applications yet. Create your first app to get started with the Valour API.</p>
-                <VButton Variant="primary" OnClick="@OnCreateApp">Create Your First App</VButton>
+
             </div>
         }
         else
         {
-            <div class="apps-grid">
+            <div class="settings-list">
                 @foreach (var app in _apps)
                 {
-                    <div class="app-card" @onclick="() => OnEditApp(app)">
-                        <div class="app-icon">
+                    <button type="button" class="settings-row settings-row-button" @onclick="() => OnEditApp(app)" aria-label="Edit @app.Name">
+                        <div class="settings-row-icon">
                             <img src="@app.ImageUrl" alt="@app.Name" onerror="this.src='_content/Valour.Client/media/logo/logo-512.png'" />
                         </div>
-                        <div class="app-info">
-                            <h4 class="app-name">@app.Name</h4>
-                            <p class="app-uses">Used @app.Uses time@(app.Uses == 1 ? "" : "s")</p>
-                            <p class="app-id">ID: @app.Id</p>
+                        <div class="settings-row-copy">
+                            <h4 class="settings-row-title">@app.Name</h4>
+                            <p class="settings-row-description">Used @app.Uses time@(app.Uses == 1 ? "" : "s")</p>
+                            <p class="settings-row-description">ID: @app.Id</p>
                         </div>
-                        <div class="app-actions">
+                        <div class="settings-row-action">
                             <i class="bi bi-chevron-right"></i>
                         </div>
-                    </div>
+                    </button>
                 }
             </div>
         }
@@ -57,24 +56,9 @@
             <i class="bi bi-info-circle"></i>
             About OAuth
         </h3>
-        <p class="subtitle">Learn how to use OAuth with Valour</p>
 
-        <div class="oauth-info">
-            <div class="info-item">
-                <h4>What is OAuth?</h4>
-                <p>OAuth allows third-party applications to access your Valour account with your explicit permission. This is useful for bots, integrations, and custom applications.</p>
-            </div>
-            
-            <div class="info-item">
-                <h4>How it works</h4>
-                <p>When you create an OAuth app, you get a Client ID and Secret. Other applications can use these to request access to your account through a secure authorization flow.</p>
-            </div>
-            
-            <div class="info-item">
-                <h4>Security</h4>
-                <p>Your OAuth apps are secure and can be revoked at any time. You can see how many times each app has been used and manage their permissions.</p>
-            </div>
-        </div>
+        <p class="helper-text">OAuth applications request permission to use an account. Configure your app's redirect URLs and scopes, and keep its client secret private.</p>
+
     </div>
 </div>
 
@@ -117,7 +101,7 @@
             App = app,
             ViewComponent = null // We don't need the ViewAppsComponent reference here
         };
-        
+
         ModalRoot.OpenModal<EditAppComponent>(data);
     }
 }

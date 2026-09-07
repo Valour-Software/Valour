@@ -1,6 +1,6 @@
 <div class="dm-row" @onclick="OnClick">
     <div class="left">
-        @if (IsTwoPersonChat)
+        @if (IsTwoPersonChat && OtherUser is not null)
         {
             <UserAvatar User="@OtherUser" Size="36" Unread="@IsUnread" ShowState="true"/>
         }
@@ -11,7 +11,7 @@
             </div>
         }
         <div class="info">
-            <span class="name">@OtherUser.Name</span>
+            <span class="name">@(DisplayName ?? OtherUser?.Name ?? Channel.Name)</span>
             <span class="description">@MemberCountText</span>
         </div>
     </div>
@@ -31,6 +31,9 @@
 
     [Parameter]
     public User OtherUser { get; set; }
+
+    [Parameter]
+    public string DisplayName { get; set; }
 
     [Parameter]
     public bool IsUnread { get; set; }

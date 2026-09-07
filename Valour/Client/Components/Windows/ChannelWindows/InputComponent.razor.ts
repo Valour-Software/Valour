@@ -1,7 +1,7 @@
 ﻿import DotnetObject = DotNet.DotnetObject;
 
 type InputContext = {
-    dotnet: DotnetObject;
+    dotnet: Pick<DotnetObject, "invokeMethodAsync">;
     inputEl: HTMLElement;
     caretMoveHandler: (offset?: number) => Promise<void>;
     getCurrentWord: (off: number) => string;
@@ -169,8 +169,17 @@ function findTextNodeAndOffset(node: Node, offset: number): { node: Text, offset
 }
 
 export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
+    if (!inputEl) return null;
+    let disposed = false;
+    const callback: Pick<DotnetObject, "invokeMethodAsync"> = {
+        invokeMethodAsync: async <T>(method: string, ...args: any[]): Promise<T> => {
+            if (disposed) return;
+            try { return await dotnet.invokeMethodAsync<T>(method, ...args); }
+            catch (error) { if (!disposed) throw error; }
+        }
+    };
     const ctx: InputContext = {
-        dotnet,
+        dotnet: callback,
         inputEl,
         currentWord: '',
         currentIndex: 0,
@@ -456,6 +465,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
 
         // Debounced input handler for performance
         inputHandler: debounce(async (e: InputEvent) => {
+            if (disposed) return;
             ctx.selectionChangeHandler();
             ctx.currentWord = ctx.getCurrentWord(0);
             await ctx.dotnet.invokeMethodAsync(
@@ -490,6 +500,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
         },
 
         cleanup: () => {
+            disposed = true;
             ctx.inputEl.removeEventListener('keydown', ctx.keyDownHandler);
             ctx.inputEl.removeEventListener('click', ctx.clickHandler);
             ctx.inputEl.removeEventListener('paste', ctx.pasteHandler);

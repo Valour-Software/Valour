@@ -129,8 +129,24 @@ function findTextNodeAndOffset(node, offset) {
     return null;
 }
 export function init(dotnet, inputEl) {
+    if (!inputEl)
+        return null;
+    let disposed = false;
+    const callback = {
+        invokeMethodAsync: async (method, ...args) => {
+            if (disposed)
+                return;
+            try {
+                return await dotnet.invokeMethodAsync(method, ...args);
+            }
+            catch (error) {
+                if (!disposed)
+                    throw error;
+            }
+        }
+    };
     const ctx = {
-        dotnet,
+        dotnet: callback,
         inputEl,
         currentWord: '',
         currentIndex: 0,
@@ -393,6 +409,8 @@ export function init(dotnet, inputEl) {
         },
         // Debounced input handler for performance
         inputHandler: debounce(async (e) => {
+            if (disposed)
+                return;
             ctx.selectionChangeHandler();
             ctx.currentWord = ctx.getCurrentWord(0);
             await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
@@ -415,6 +433,7 @@ export function init(dotnet, inputEl) {
             document.addEventListener('selectionchange', ctx.selectionChangeHandler);
         },
         cleanup: () => {
+            disposed = true;
             ctx.inputEl.removeEventListener('keydown', ctx.keyDownHandler);
             ctx.inputEl.removeEventListener('click', ctx.clickHandler);
             ctx.inputEl.removeEventListener('paste', ctx.pasteHandler);

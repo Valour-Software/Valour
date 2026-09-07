@@ -16,7 +16,10 @@ public enum StaffActionType
     CancelMfaRemoval = 11,
     ExecuteMfaRemoval = 12,
     SetPlatformBanner = 13,
-    ClearPlatformBanner = 14
+    ClearPlatformBanner = 14,
+    SelectVillageTemplateDraft = 15,
+    PublishVillageTemplate = 16,
+    ResetVillage = 17
 }
 
 public interface ISharedStaffAuditLog

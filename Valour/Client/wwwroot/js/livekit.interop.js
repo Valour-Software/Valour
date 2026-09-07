@@ -13,6 +13,7 @@
 let room = null;
 let pendingConnect = null;
 let lastActiveSpeakerSid = null;
+const videoBindings = new Map();
 
 const DEFAULT_AUDIO_CONSTRAINTS = {
     echoCancellation: true,
@@ -382,6 +383,13 @@ function mapParticipantSnapshot(participant, isSelf = false) {
 }
 
 async function teardownRoom(activeRoom) {
+    for (const element of videoBindings.keys()) {
+        try {
+            clearVideoElement(element);
+        } catch {
+            // A detached view must never prevent capture/connection teardown.
+        }
+    }
     if (!activeRoom) {
         return;
     }
@@ -624,6 +632,7 @@ export function getParticipantsSnapshot() {
     }
 
     return {
+        connectionState: room?.state ?? null,
         activeSpeakerPeerId: lastActiveSpeakerSid,
         participants: Array.from(participantMap.values())
     };
@@ -734,33 +743,62 @@ function getElementVideoTrack(videoElement) {
 }
 
 function clearVideoElement(videoElement) {
-    if (!(videoElement?.srcObject instanceof MediaStream)) {
+    const attachedTrack = videoBindings.get(videoElement);
+    try {
+        attachedTrack?.detach(videoElement);
+    } finally {
+        videoBindings.delete(videoElement);
+        if (videoElement?.srcObject instanceof MediaStream) {
+            for (const track of videoElement.srcObject.getTracks()) {
+                videoElement.srcObject.removeTrack(track);
+            }
+        }
         videoElement.srcObject = null;
-        return;
+    }
+}
+
+/**
+ * Returns a participant's microphone stream so it can be routed through a Web
+ * Audio graph, which is how the village does positional voice. Returns null
+ * when the participant is not publishing audio, is muted, or is the local user
+ * - hearing yourself panned around the map would be worse than useless.
+ */
+export function getParticipantAudioStream(participantId) {
+    if (!isInitialized()) {
+        return null;
     }
 
-    const currentStream = videoElement.srcObject;
-    for (const track of currentStream.getTracks()) {
-        currentStream.removeTrack(track);
+    const participant = getParticipantBySid(participantId);
+    if (!participant || participant.sid === getLocalParticipant()?.sid) {
+        return null;
     }
 
-    videoElement.srcObject = null;
+    if (!participant.isMicrophoneEnabled) {
+        return null;
+    }
+
+    const track = getMicMediaStreamTrack(participant);
+    if (!track) {
+        return null;
+    }
+
+    return new MediaStream([track]);
 }
 
 export function syncParticipantVideo(elementId, participantId, preferScreenShare = true) {
     getRoomOrThrow();
+    for (const element of videoBindings.keys()) {
+        if (!element.isConnected) clearVideoElement(element);
+    }
     const videoElement = getVideoElement(elementId);
     if (!videoElement) {
         return;
     }
 
     const participant = getParticipantBySid(participantId);
-    const videoTrack = getCameraMediaStreamTrack(participant);
-    const screenShareTrack = getScreenShareMediaStreamTrack(participant);
-    const selectedTrack = preferScreenShare ? screenShareTrack : videoTrack;
-    const shouldRenderTrack = preferScreenShare
-        ? !!screenShareTrack
-        : !!videoTrack && !!participant?.isCameraEnabled;
+    const sdkTrack = getPublication(participant, preferScreenShare ? "ScreenShare" : "Camera")?.track;
+    const selectedTrack = sdkTrack?.mediaStreamTrack;
+    const shouldRenderTrack = !!selectedTrack && (preferScreenShare || !!participant?.isCameraEnabled);
 
     videoElement.autoplay = true;
     videoElement.playsInline = true;
@@ -772,8 +810,13 @@ export function syncParticipantVideo(elementId, participantId, preferScreenShare
     }
 
     const existingTrack = getElementVideoTrack(videoElement);
-    if (!existingTrack || existingTrack.id !== selectedTrack.id) {
-        videoElement.srcObject = new MediaStream([selectedTrack]);
+    if (videoBindings.get(videoElement) !== sdkTrack || existingTrack?.id !== selectedTrack.id) {
+        clearVideoElement(videoElement);
+        // Adaptive stream needs SDK attachment to observe tile visibility and
+        // size, including the larger host created for full-screen sharing.
+        sdkTrack.attach(videoElement);
+        videoBindings.set(videoElement, sdkTrack);
+        videoElement.muted = true;
     }
 
     const playResult = videoElement.play();

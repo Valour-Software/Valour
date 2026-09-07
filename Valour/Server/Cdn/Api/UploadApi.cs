@@ -12,6 +12,7 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Staff;
 using Valour.Shared.Utilities;
 
 namespace Valour.Server.Cdn.Api;
@@ -122,17 +123,18 @@ public class UploadApi
 
     public static void AddRoutes(WebApplication app)
     {
-        app.MapPost("/upload/profile", AvatarImageRoute);
-        app.MapPost("/upload/memberavatar/{planetId}", MemberAvatarImageRoute);
-        app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute);
-        app.MapPost("/upload/image", ImageRoute);
-        app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
-        app.MapPost("/upload/planetbg/{planetId}", PlanetBackgroundImageRoute);
-        app.MapPost("/upload/planetemoji/{planetId}", PlanetEmojiImageRoute);
-        app.MapPost("/upload/app/{appId}", AppImageRoute);
-        app.MapPost("/upload/file", FileRoute);
-        app.MapPost("upload/themeBanner/{themeId}", ThemeBannerRoute);
-        app.MapPost("upload/themeAsset/{themeId}", ThemeAssetRoute);
+        app.MapPost("/upload/profile", AvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/memberavatar/{planetId}/{memberId}", MemberAvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/image", ImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/planet/{planetId}", PlanetImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/planetbg/{planetId}", PlanetBackgroundImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/planetemoji/{planetId}", PlanetEmojiImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/webhook/{webhookId}", WebhookAvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/app/{appId}", AppImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/file", FileRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("upload/themeBanner/{themeId}", ThemeBannerRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("upload/themeAsset/{themeId}", ThemeAssetRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
     }
 
     /// <summary>
@@ -253,7 +255,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
         
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -290,16 +292,33 @@ public class UploadApi
         HttpContext ctx,
         TokenService tokenService,
         PlanetMemberService memberService,
+        ModerationAuditService moderationAuditService,
         CdnBucketService bucketService,
-        long planetId)
+        long planetId,
+        long memberId)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null)
             return ValourResult.InvalidToken();
 
-        var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
-        if (member is null)
+        var targetMember = await memberService.GetAsync(memberId);
+        if (targetMember is null || targetMember.PlanetId != planetId)
+            return ValourResult.NotFound("Member not found.");
+
+        var selfMember = await memberService.GetByUserAsync(authToken.UserId, planetId);
+        if (selfMember is null)
             return ValourResult.NotPlanetMember();
+
+        // You can always edit your own avatar, so we only check permissions
+        // if you are not the same as the target
+        if (selfMember.UserId != targetMember.UserId)
+        {
+            if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.ManageIdentity))
+                return ValourResult.LacksPermission(PlanetPermissions.ManageIdentity);
+
+            if (await memberService.GetAuthorityAsync(selfMember) <= await memberService.GetAuthorityAsync(targetMember))
+                return ValourResult.Forbid("The target has equal or higher authority than you.");
+        }
 
         var file = ctx.Request.Form.Files.FirstOrDefault();
         if (file is null)
@@ -315,15 +334,101 @@ public class UploadApi
             file.OpenReadStream());
         HandleExif(image);
 
-        var imageId = $"{planetId}/{authToken.UserId}";
+        var imageId = $"{planetId}/{targetMember.UserId}";
         var upload = await UploadPublicImageVariants(
             bucketService, image, "memberavatars", imageId, AvatarSizes, 0, true, false);
         if (!upload.Success)
             return ValourResult.Problem(upload.Message);
 
         var fullPath = $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{upload.Message}?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
-        var result = await memberService.UpdateAvatarAsync(member.Id, fullPath);
-        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
+        var result = await memberService.UpdateAvatarAsync(targetMember.Id, fullPath);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        if (selfMember.UserId != targetMember.UserId)
+        {
+            await moderationAuditService.LogAsync(
+                targetMember.PlanetId,
+                ModerationActionSource.Manual,
+                ModerationActionType.EditIdentity,
+                actorUserId: selfMember.UserId,
+                targetUserId: targetMember.UserId,
+                targetMemberId: targetMember.Id);
+        }
+
+        return Results.Json(result.Data);
+    }
+
+    [FileUploadOperation.FileContentType]
+    [RequestSizeLimit(20_971_520)]
+    private static async Task<IResult> WebhookAvatarImageRoute(
+        HttpContext ctx,
+        TokenService tokenService,
+        PlanetMemberService memberService,
+        PlanetWebhookService webhookService,
+        CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
+        long webhookId)
+    {
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        if (authToken is null)
+            return ValourResult.InvalidToken();
+
+        var webhook = await webhookService.GetAsync(webhookId);
+        if (webhook is null)
+            return ValourResult.NotFound<Valour.Server.Models.PlanetWebhook>();
+
+        var member = await memberService.GetByUserAsync(authToken.UserId, webhook.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageWebhooks))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageWebhooks);
+
+        var file = ctx.Request.Form.Files.FirstOrDefault();
+        if (file is null)
+            return ValourResult.BadRequest("Please attach a file.");
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
+            return ValourResult.BadRequest("Unsupported file type.");
+
+        var oversized = await RejectIfOversizedAsync(file);
+        if (oversized is not null)
+            return oversized;
+
+        using var source = new MemoryStream();
+        await file.CopyToAsync(source);
+        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(
+            source,
+            file.FileName,
+            file.ContentType);
+        if (safetyHashMatch.ShouldBlock)
+            return ValourResult.Forbid("Unable to upload this image.");
+
+        source.Position = 0;
+        using var image = await Image.LoadAsync(
+            new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) },
+            source);
+        HandleExif(image);
+
+        // A fresh path makes the asset immutable. Messages stamp this id at
+        // send time, so replacing a webhook avatar cannot rewrite history.
+        var assetId = Valour.Server.Database.IdManager.Generate();
+        var upload = await UploadPublicImageVariants(
+            bucketService,
+            image,
+            "webhookavatars",
+            $"{webhookId}/{assetId}",
+            AvatarSizes,
+            0,
+            true,
+            false);
+        if (!upload.Success)
+            return ValourResult.Problem(upload.Message);
+
+        var update = await webhookService.SetAvatarAsync(webhookId, assetId, upload.Data);
+        return update.Success
+            ? Results.Json(update.Data)
+            : ValourResult.BadRequest(update.Message);
     }
     
     public static ImageSize[] ThemeBannerSizes =
@@ -364,7 +469,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
         
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(ThemeBannerSizes[0].Width, ThemeBannerSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -560,7 +665,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -628,7 +733,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -694,7 +799,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
         
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(PlanetSizes[0].Width, PlanetSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -843,7 +948,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(AppSizes[0].Width, AppSizes[0].Height) }, 
             file.OpenReadStream()
         );

@@ -1,142 +1,371 @@
-﻿@inherits ControlledRenderComponentBase
+@inherits ControlledRenderComponentBase
 @implements IDisposable
 @inject PlanetService PlanetService
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
+@inject ContextMenuService ContextMenuService
 
 <div class="joined-planets">
     @if (_renderPlanets.Count > 0)
     {
-        <TutorialHint TutorialId="@UserTutorials.OpenPlanetChat"
-                      Text="Your planets have live chat — click one to jump in" />
+        <TutorialHint TutorialId="@UserTutorials.OpenPlanetChat" Text="Your planets have live chat — click one to jump in" />
     }
     <div class="list hover-scrollbar">
-        @foreach (var joinedPlanet in _renderPlanets)
+        @if (_creatingFolder)
         {
-            <PlanetRowComponent @key='joinedPlanet.Planet.Id'
-                                Planet='joinedPlanet.Planet'
-                                IsUnread='joinedPlanet.HasUnread'
-                                NotificationCount='joinedPlanet.Notifications'
-                                OnClicked='new EventCallback(this, async () => await OnPlanetClick(joinedPlanet.Planet))' />
+            <div class="folder-editor">
+                <input maxlength="64" placeholder="Folder name" @bind="_folderName" @bind:event="oninput"
+                       @onkeydown="OnCreateFolderKeyDown" autofocus />
+                <button title="Create folder" @onclick="CreateFolderAsync"><i class="bi bi-check-lg"></i></button>
+                <button title="Cancel" @onclick="CancelFolderEdit"><i class="bi bi-x-lg"></i></button>
+            </div>
         }
+
+        @foreach (var folder in _folders.OrderBy(x => x.Position))
+        {
+            <section @key="folder.Id" class="planet-folder @(_dragOverFolderId == folder.Id ? "drag-over" : "")"
+                     @ondragover:preventDefault @ondragenter="() => SetEndDropTarget(folder.Id)"
+                     @ondrop="() => DropInFolderAsync(folder.Id)">
+                <div class="folder-header">
+                    @if (_editingFolderId == folder.Id)
+                    {
+                        <input maxlength="64" @bind="_folderName" @bind:event="oninput" @onkeydown="e => OnRenameFolderKeyDown(e, folder)" autofocus />
+                    }
+                    else
+                    {
+                        <button class="folder-toggle" @onclick="() => ToggleFolder(folder.Id)">
+                            <i class="bi bi-chevron-@(_collapsedFolders.Contains(folder.Id) ? "right" : "down")"></i>
+                            <span>@folder.Name</span>
+                        </button>
+                        <div class="folder-actions">
+                            <button title="Rename folder" @onclick="() => BeginRename(folder)"><i class="bi bi-pencil"></i></button>
+                            <button title="Delete folder" @onclick="() => DeleteFolderAsync(folder)"><i class="bi bi-trash"></i></button>
+                        </div>
+                    }
+                </div>
+                @if (!_collapsedFolders.Contains(folder.Id))
+                {
+                    <div class="folder-planets @(IsEndDropTarget(folder.Id) ? "insert-at-end" : "")">
+                        @{ var folderPlanets = PlanetsIn(folder.Id).ToList(); }
+                        @foreach (var joinedPlanet in folderPlanets)
+                        {
+                            @FolderPlanetIcon(joinedPlanet)
+                        }
+                        @if (folderPlanets.Count == 0)
+                        {
+                            <div class="empty-folder">Drag planets here</div>
+                        }
+                    </div>
+                }
+            </section>
+        }
+
+        <div class="unfiled-planets @(IsEndDropTarget(null) ? "insert-at-end" : "")"
+             @ondragover:preventDefault @ondragenter="() => SetEndDropTarget(null)"
+             @ondrop="() => DropInFolderAsync(null)">
+            @foreach (var joinedPlanet in PlanetsIn(null))
+            {
+                @PlanetRow(joinedPlanet)
+            }
+        </div>
     </div>
     <div class="bottom-actions">
-        <VButton Variant="secondary" Icon="compass" FullWidth="true" OnClick="@OnClickExplore">
-            Discover Planets
-        </VButton>
-        <VButton Variant="secondary" Icon="plus-circle" FullWidth="true" OnClick="@OnClickCreatePlanet">
-            Create a Planet
-        </VButton>
+        <VButton Variant="secondary" Icon="compass" FullWidth="true" OnClick="@OnClickExplore">Discover Planets</VButton>
+        <VButton Variant="secondary" Icon="plus-circle" FullWidth="true" OnClick="@OnClickCreatePlanet">Create a Planet</VButton>
     </div>
 </div>
 
 @code {
-
-    public class JoinedPlanetRenderInfo
+    private const long UnfiledDropId = -1;
+    private sealed class JoinedPlanetRenderInfo
     {
-        public Planet Planet { get; set; }
-        public bool HasUnread { get; set; }
-        public int Notifications { get; set; }
+        public Planet Planet { get; init; }
+        public bool HasUnread { get; init; }
+        public int Notifications { get; init; }
+        public long? FolderId { get; set; }
+        public int Position { get; set; }
     }
 
-    [Parameter]
-    public string FilterText { get; set; }
-
-    private List<JoinedPlanetRenderInfo> _renderPlanets = new();
+    [Parameter] public string FilterText { get; set; }
+    private readonly List<PlanetListFolder> _folders = [];
+    private readonly HashSet<long> _collapsedFolders = [];
+    private List<JoinedPlanetRenderInfo> _renderPlanets = [];
     private string _lastFilterText;
+    private string _folderName = string.Empty;
+    private bool _creatingFolder;
+    private long? _editingFolderId;
+    private long? _draggedPlanetId;
+    private long? _dragOverFolderId;
+    private long? _dropTargetPlanetId;
+    private bool _hasEndDropTarget;
+    private long? _endDropFolderId;
+    private long? _newFolderPlanetId;
 
-    protected override Task OnInitializedAsync()
+    private RenderFragment PlanetRow(JoinedPlanetRenderInfo item) => @<div class="planet-drag-row @DropTargetClass(item)" draggable="true"
+        @ondragstart="() => StartPlanetDrag(item.Planet.Id)" @ondragend="EndPlanetDragAsync"
+        @ondragover:preventDefault @ondragenter:stopPropagation @ondragenter="() => SetPlanetDropTarget(item)" @ondrop:stopPropagation
+        @ondrop="() => DropBeforePlanetAsync(item)">
+        <PlanetRowComponent Planet="item.Planet" IsUnread="item.HasUnread" NotificationCount="item.Notifications"
+                            OnClicked="new EventCallback(this, async () => await OnPlanetClick(item.Planet))" />
+    </div>;
+
+    private RenderFragment FolderPlanetIcon(JoinedPlanetRenderInfo item) => @<div class="folder-planet-icon @DropTargetClass(item)" draggable="true"
+        @ondragstart="() => StartPlanetDrag(item.Planet.Id)" @ondragend="EndPlanetDragAsync"
+        @ondragover:preventDefault @ondragenter:stopPropagation @ondragenter="() => SetPlanetDropTarget(item)" @ondrop:stopPropagation
+        @ondrop="() => DropBeforePlanetAsync(item)" @oncontextpress="e => OnPlanetContextPress(e, item.Planet)">
+        <TooltipTrigger>
+            <ChildContent>
+                <button type="button" aria-label="@item.Planet.Name" @onclick="() => OnPlanetClick(item.Planet)">
+                    <PlanetIcon Planet="item.Planet" Size="28" Unread="item.HasUnread" />
+                    @if (item.Notifications > 0)
+                    {
+                        <span class="folder-notif">@(item.Notifications > 9 ? "9+" : item.Notifications)</span>
+                    }
+                </button>
+            </ChildContent>
+            <TooltipContent><span>@item.Planet.Name</span></TooltipContent>
+        </TooltipTrigger>
+    </div>;
+
+    protected override async Task OnInitializedAsync()
     {
         PlanetService.JoinedPlanetsUpdated += OnJoinedPlanetsUpdated;
+        PlanetService.PlanetFolderCreationRequested += OnFolderCreationRequested;
         UnreadService.PlanetUnreadChanged += OnPlanetUnreadChanged;
-        OnJoinedPlanetsUpdated();
-        return Task.CompletedTask;
+
+        // SlideSwap remounts this directory when the Channels tab disappears.
+        // If that happens during bootstrap/reconnection, don't snapshot a
+        // transient empty joined-planets collection and leave the list blank.
+        if (PlanetService.JoinedPlanets.Count == 0)
+            await PlanetService.FetchJoinedPlanetsAsync();
+
+        var layout = await PlanetService.FetchPlanetListLayoutAsync();
+        if (layout.Success && layout.Data is not null)
+        {
+            _folders.AddRange(layout.Data.Folders.OrderBy(x => x.Position));
+            _placements = layout.Data.Planets.ToDictionary(x => x.PlanetId);
+        }
+        CalculatePlanets();
+        await ReRender();
     }
+
+    private Dictionary<long, PlanetListPlacement> _placements = [];
 
     protected override void OnParametersSet()
     {
-        if (_lastFilterText != FilterText)
-        {
-            _lastFilterText = FilterText;
-            CalculatePlanets();
-            _ = ReRender();
-        }
+        if (_lastFilterText == FilterText) return;
+        _lastFilterText = FilterText;
+        CalculatePlanets();
+        _ = ReRender();
     }
 
-    private void OnJoinedPlanetsUpdated()
-    {
-        _ = InvokeAsync(() =>
-        {
-            CalculatePlanets();
-            _ = ReRender();
-        });
-    }
+    private IEnumerable<JoinedPlanetRenderInfo> AllPlanetsIn(long? folderId) =>
+        _renderPlanets.Where(x => x.FolderId == folderId).OrderBy(x => x.Position);
 
-    private void OnPlanetUnreadChanged(long planetId)
-    {
-        _ = InvokeAsync(() =>
-        {
-            CalculatePlanets();
-            _ = ReRender();
-        });
-    }
-
-    private async Task OnClickExplore()
-    {
-        var windowContent = new DiscoveryPageWindowContent();
-        await WindowService.OpenWindowAtFocused(windowContent);
-    }
-
-    private void OnClickCreatePlanet()
-    {
-        var data = new CreatePlanetComponent.ModalParams()
-        {
-        };
-
-        ModalRoot.Instance.OpenModal<CreatePlanetComponent>(data);
-    }
+    private IEnumerable<JoinedPlanetRenderInfo> PlanetsIn(long? folderId) =>
+        AllPlanetsIn(folderId).Where(x => string.IsNullOrWhiteSpace(FilterText) ||
+            x.Planet.Name.Contains(FilterText, StringComparison.OrdinalIgnoreCase));
 
     private void CalculatePlanets()
     {
-        _renderPlanets.Clear();
-        var planets = PlanetService.JoinedPlanets;
-
-        if (!string.IsNullOrWhiteSpace(FilterText))
+        _renderPlanets = PlanetService.JoinedPlanets.Select((p, index) =>
         {
-            planets = planets.Where(p => p.Name.Contains(FilterText, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-
-        _renderPlanets = planets.Select(p => new JoinedPlanetRenderInfo
-        {
-            Planet = p,
-            HasUnread = UnreadService.IsPlanetUnread(p.Id),
-            Notifications = NotificationService.GetPlanetNotifications(p.Id)
+            _placements.TryGetValue(p.Id, out var placement);
+            return new JoinedPlanetRenderInfo
+            {
+                Planet = p, HasUnread = UnreadService.IsPlanetUnread(p.Id),
+                Notifications = NotificationService.GetPlanetNotifications(p.Id),
+                FolderId = placement?.FolderId, Position = placement?.Position ?? (int.MaxValue / 2 + index)
+            };
         }).ToList();
     }
 
+    private void OnJoinedPlanetsUpdated() => _ = InvokeAsync(() => { CalculatePlanets(); _ = ReRender(); });
+    private void OnPlanetUnreadChanged(long planetId) => OnJoinedPlanetsUpdated();
+    private void StartPlanetDrag(long planetId) => _draggedPlanetId = planetId;
+
+    private string DropTargetClass(JoinedPlanetRenderInfo item)
+    {
+        if (_draggedPlanetId == item.Planet.Id) return "dragging";
+        return _dropTargetPlanetId == item.Planet.Id ? "insert-before" : string.Empty;
+    }
+
+    private void SetPlanetDropTarget(JoinedPlanetRenderInfo item)
+    {
+        if (_draggedPlanetId is null || _draggedPlanetId == item.Planet.Id || _dropTargetPlanetId == item.Planet.Id)
+            return;
+        _dropTargetPlanetId = item.Planet.Id;
+        _hasEndDropTarget = false;
+        _dragOverFolderId = item.FolderId;
+        _ = ReRender();
+    }
+
+    private void SetEndDropTarget(long? folderId)
+    {
+        if (_draggedPlanetId is null || (_hasEndDropTarget && _endDropFolderId == folderId)) return;
+        _dropTargetPlanetId = null;
+        _hasEndDropTarget = true;
+        _endDropFolderId = folderId;
+        _dragOverFolderId = folderId ?? UnfiledDropId;
+        _ = ReRender();
+    }
+
+    private bool IsEndDropTarget(long? folderId) =>
+        _draggedPlanetId is not null && _hasEndDropTarget && _endDropFolderId == folderId;
+
+    private async Task EndPlanetDragAsync()
+    {
+        ClearDragState();
+        await ReRender();
+    }
+
+    private void ClearDragState()
+    {
+        _draggedPlanetId = null;
+        _dragOverFolderId = null;
+        _dropTargetPlanetId = null;
+        _hasEndDropTarget = false;
+        _endDropFolderId = null;
+    }
+
+    private async Task DropBeforePlanetAsync(JoinedPlanetRenderInfo target)
+    {
+        if (_draggedPlanetId is null || _draggedPlanetId == target.Planet.Id) return;
+        var dragged = _renderPlanets.First(x => x.Planet.Id == _draggedPlanetId);
+        var group = AllPlanetsIn(target.FolderId).Where(x => x.Planet.Id != dragged.Planet.Id).ToList();
+        group.Insert(group.IndexOf(target), dragged);
+        dragged.FolderId = target.FolderId;
+        for (var i = 0; i < group.Count; i++) group[i].Position = i;
+        ClearDragState();
+        await PersistLayoutAsync();
+    }
+
+    private async Task DropInFolderAsync(long? folderId)
+    {
+        if (_draggedPlanetId is null) return;
+        var dragged = _renderPlanets.First(x => x.Planet.Id == _draggedPlanetId);
+        dragged.FolderId = folderId;
+        dragged.Position = AllPlanetsIn(folderId).Where(x => x.Planet.Id != dragged.Planet.Id).Select(x => x.Position).DefaultIfEmpty(-1).Max() + 1;
+        ClearDragState();
+        await PersistLayoutAsync();
+    }
+
+    private async Task PersistLayoutAsync()
+    {
+        var ordered = _folders.OrderBy(x => x.Position).SelectMany(f => AllPlanetsIn(f.Id)).Concat(AllPlanetsIn(null)).ToList();
+        _placements = ordered.Select((x, i) => new PlanetListPlacement { PlanetId = x.Planet.Id, FolderId = x.FolderId, Position = i })
+            .ToDictionary(x => x.PlanetId);
+        await ReRender();
+        var result = await PlanetService.SavePlanetListLayoutAsync(new SavePlanetListLayoutRequest
+        {
+            FolderIds = _folders.OrderBy(x => x.Position).Select(x => x.Id).ToList(),
+            Planets = _placements.Values.OrderBy(x => x.Position).ToList()
+        });
+        if (!result.Success) await ReloadLayoutAsync("Could not save planet order");
+    }
+
+    private Task OnFolderCreationRequested(long planetId) => InvokeAsync(async () =>
+    {
+        _newFolderPlanetId = planetId;
+        _folderName = string.Empty;
+        _editingFolderId = null;
+        _creatingFolder = true;
+        await ReRender();
+    });
+
+    private async Task CancelFolderEdit()
+    {
+        _creatingFolder = false;
+        _editingFolderId = null;
+        _newFolderPlanetId = null;
+        _folderName = string.Empty;
+        await ReRender();
+    }
+
+    private async Task OnCreateFolderKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await CreateFolderAsync();
+        else if (e.Key == "Escape") await CancelFolderEdit();
+    }
+    private async Task CreateFolderAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_folderName)) return;
+        var result = await PlanetService.CreatePlanetListFolderAsync(_folderName.Trim());
+        if (result.Success && result.Data is not null)
+        {
+            _folders.Add(result.Data);
+            var planet = _renderPlanets.FirstOrDefault(x => x.Planet.Id == _newFolderPlanetId);
+            if (planet is not null)
+            {
+                planet.FolderId = result.Data.Id;
+                planet.Position = 0;
+            }
+            _creatingFolder = false;
+            _editingFolderId = null;
+            _newFolderPlanetId = null;
+            _folderName = string.Empty;
+            await PersistLayoutAsync();
+            return;
+        }
+        else ShowError("Could not create folder", result.Message);
+        await CancelFolderEdit();
+    }
+
+    private async Task BeginRename(PlanetListFolder folder)
+    {
+        _creatingFolder = false;
+        _editingFolderId = folder.Id;
+        _folderName = folder.Name;
+        await ReRender();
+    }
+    private async Task OnRenameFolderKeyDown(KeyboardEventArgs e, PlanetListFolder folder)
+    {
+        if (e.Key == "Escape") { await CancelFolderEdit(); return; }
+        if (e.Key != "Enter" || string.IsNullOrWhiteSpace(_folderName)) return;
+        var result = await PlanetService.RenamePlanetListFolderAsync(folder.Id, _folderName.Trim());
+        if (result.Success) folder.Name = _folderName.Trim(); else ShowError("Could not rename folder", result.Message);
+        await CancelFolderEdit();
+    }
+
+    private async Task DeleteFolderAsync(PlanetListFolder folder)
+    {
+        var result = await PlanetService.DeletePlanetListFolderAsync(folder.Id);
+        if (!result.Success) { ShowError("Could not delete folder", result.Message); return; }
+        foreach (var planet in _renderPlanets.Where(x => x.FolderId == folder.Id)) planet.FolderId = null;
+        _folders.Remove(folder);
+        await PersistLayoutAsync();
+    }
+
+    private async Task ToggleFolder(long id)
+    {
+        if (!_collapsedFolders.Add(id)) _collapsedFolders.Remove(id);
+        await ReRender();
+    }
+    private async Task ReloadLayoutAsync(string title)
+    {
+        ShowError(title, "Your previous layout has been restored.");
+        var result = await PlanetService.FetchPlanetListLayoutAsync();
+        if (!result.Success || result.Data is null) return;
+        _folders.Clear(); _folders.AddRange(result.Data.Folders); _placements = result.Data.Planets.ToDictionary(x => x.PlanetId); CalculatePlanets(); await ReRender();
+    }
+    private static void ShowError(string title, string message) => ToastContainer.Instance.AddToast(new ToastData { Title = title, Message = message, Type = ToastProgressState.Failure });
+
+    private void OnPlanetContextPress(ContextPressEventArgs e, Planet planet) =>
+        ContextMenuService.Root.OpenMenu<PlanetContextMenu>(e,
+            new PlanetContextMenu.PlanetContextParams { Planet = planet });
+
+    private async Task OnClickExplore() => await WindowService.OpenWindowAtFocused(new DiscoveryPageWindowContent());
+    private void OnClickCreatePlanet() => ModalRoot.Instance.OpenModal<CreatePlanetComponent>(new CreatePlanetComponent.ModalParams());
+    public async Task OnPlanetClick(Planet planet)
+    {
+        var content = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(planet);
+        if (content is null) { ShowError("Failure loading planet", $"Error accessing {planet.Name}"); return; }
+        await WindowService.OpenWindowAtFocused(content); await Sidebar.ToggleMobileSidebar();
+    }
     void IDisposable.Dispose()
     {
         PlanetService.JoinedPlanetsUpdated -= OnJoinedPlanetsUpdated;
+        PlanetService.PlanetFolderCreationRequested -= OnFolderCreationRequested;
         UnreadService.PlanetUnreadChanged -= OnPlanetUnreadChanged;
     }
-
-    public async Task OnPlanetClick(Planet planet)
-    {
-        var newWindowContent = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(planet);
-
-        if (newWindowContent is null)
-        {
-            ToastContainer.Instance.AddToast(new ToastData()
-            {
-                Title = "Failure loading planet",
-                Message = $"Error accessing {planet.Name}",
-                Type = ToastProgressState.Failure
-            });
-        }
-
-        await WindowService.OpenWindowAtFocused(newWindowContent);
-
-        await Sidebar.ToggleMobileSidebar();
-    }
-
 }

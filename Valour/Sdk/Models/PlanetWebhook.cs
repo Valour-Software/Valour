@@ -27,9 +27,11 @@ public class PlanetWebhook : ClientPlanetModel<PlanetWebhook, long>, ISharedPlan
     public string Name { get; set; }
 
     /// <summary>
-    /// The default avatar for messages sent by this webhook
+    /// The immutable CDN asset currently used as this webhook's avatar.
     /// </summary>
-    public string? AvatarUrl { get; set; }
+    public long? AvatarAssetId { get; set; }
+
+    public bool AvatarAnimated { get; set; }
 
     /// <summary>
     /// The secret execute token. Only present in create, rotate, and

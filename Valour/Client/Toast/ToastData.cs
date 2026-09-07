@@ -33,6 +33,7 @@ public class ToastData
 
 public abstract class ProgressToastDataBase : ToastData
 {
+    public ToastProgressState ProgressState { get; set; } = ToastProgressState.Running;
     public string SuccessMessage { get; set; }
     public string FailureMessage { get; set; }
     

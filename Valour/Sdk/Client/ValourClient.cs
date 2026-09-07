@@ -61,9 +61,11 @@ public class ValourClient
     public readonly UnreadService UnreadService;
     public readonly PlanetTagService PlanetTagService;
     public readonly VoiceStateService VoiceStateService;
+    public readonly DirectCallService DirectCallService;
     public readonly AttachmentService AttachmentService;
     public readonly ThreadService ThreadService;
     public readonly WikiService WikiService;
+    public readonly VillageService VillageService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -142,9 +144,11 @@ public class ValourClient
         UnreadService = new UnreadService(this);
         PlanetTagService = new PlanetTagService(this);
         VoiceStateService = new VoiceStateService(this);
+        DirectCallService = new DirectCallService(this);
         AttachmentService = new AttachmentService(this);
         ThreadService = new ThreadService(this);
         WikiService = new WikiService(this);
+        VillageService = new VillageService(this);
 
         KlipyService = new KlipyService(this);
     }
@@ -270,7 +274,10 @@ public class ValourClient
         // await NodeService.SetupPrimaryNodeAsync(); Already done in LoginAsync
         
         if (await TryLoadBootstrapAsync())
+        {
+            await DirectCallService.LoadCurrentAsync();
             return TaskResult.SuccessResult;
+        }
 
         // Compatibility fallback for servers that predate api/bootstrap.
         var loadTasks = new List<Task>()
@@ -282,6 +289,7 @@ public class ValourClient
             KlipyService.LoadGifFavoritesAsync(),
             ChannelFavoriteService.LoadFavoritesAsync(),
             ChannelService.LoadDmChannelsAsync(),
+            DirectCallService.LoadCurrentAsync(),
             NotificationService.LoadUnreadNotificationsAsync(),
             UnreadService.FetchUnreadPlanetsAsync(),
             UnreadService.FetchUnreadDirectChannelsAsync()
@@ -356,8 +364,22 @@ public class ValourClient
         var result =  await PrimaryNode.PostAsync("api/users/me/username", model);
 
         if (result.Success)
+        {
+            var old = Me.Name;
             Me.Name = newUsername;
-        
+
+            if (old != newUsername)
+            {
+                // Pre-mutating our own cached user means the realtime echo
+                // of this change won't detect a diff, so other UI watching
+                // User.Updated (member lists, chat name tags) never fires
+                // for our own client without this - see ClientModel.Sync().
+                var changes = ModelUpdateUtils.ChangeDictPool.Get();
+                changes[nameof(User.Name)] = new Change<string>(old, newUsername);
+                Me.InvokeUpdatedEvent(new ModelUpdatedEvent<User>(Me, new ModelChange<User>(changes)));
+            }
+        }
+
         return result;
     }
     

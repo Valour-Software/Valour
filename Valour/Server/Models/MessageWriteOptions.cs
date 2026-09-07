@@ -16,9 +16,11 @@ public class MessageWriteOptions
     public string OverrideName { get; set; }
 
     /// <summary>
-    /// Effective avatar override, already resolved against the webhook's default.
+    /// Immutable avatar asset selected from the webhook at send time.
     /// </summary>
-    public string OverrideAvatarUrl { get; set; }
+    public long? WebhookAvatarAssetId { get; set; }
+
+    public bool WebhookAvatarAnimated { get; set; }
 
     /// <summary>
     /// Strips role mentions; used when there is no member to check

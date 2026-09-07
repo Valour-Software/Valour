@@ -150,6 +150,12 @@ public class Planet : ISharedPlanet
     public bool EnableWiki { get; set; }
 
     /// <summary>
+    /// True if the village is enabled for this planet
+    /// </summary>
+    [Column("enable_village")]
+    public bool EnableVillage { get; set; }
+
+    /// <summary>
     /// True if this planet's docs can be read publicly without an account
     /// </summary>
     [Column("public_wiki")]
@@ -168,6 +174,13 @@ public class Planet : ISharedPlanet
     /// </summary>
     [Column("vanity")]
     public string Vanity { get; set; }
+
+    /// <summary>
+    /// True when the planet's vanity name also works as a permanent invite link (/i/{vanity}).
+    /// Only takes effect while Public and Vanity are both set.
+    /// See <cref>PlanetService.UpdateAsync</cref> and <cref>ResolveVanityInviteAsync</cref>.
+    /// </summary>
+    public bool VanityInviteEnabled { get; set; }
 
     /// <summary>
     /// True when this planet stores media on its own infrastructure
@@ -234,6 +247,11 @@ public class Planet : ISharedPlanet
             e.HasIndex(x => x.Vanity)
                 .IsUnique()
                 .HasFilter("vanity IS NOT NULL");
+
+            e.Property(x => x.VanityInviteEnabled)
+                .HasColumnName("vanity_invite_enabled")
+                .HasDefaultValue(false)
+                .IsRequired();
         });
     }
 }

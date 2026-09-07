@@ -40,7 +40,7 @@ public class MessageApi
         if (!await channelService.HasAccessAsync(channel, userId))
             return ValourResult.Forbid("You are not a member of this channel");
 
-        if (channel.ChannelType == ChannelTypeEnum.DirectChat)
+        if (channel.ChannelType is ChannelTypeEnum.DirectChat or ChannelTypeEnum.GroupChat)
         {
             if (!token.HasScope(UserPermissions.DirectMessages))
             {
@@ -49,8 +49,7 @@ public class MessageApi
 
             // Check for blocks between DM participants
             var members = await channelService.GetDirectChannelMembersAsync(channel.Id);
-            var otherUser = members?.FirstOrDefault(x => x.Id != userId);
-            if (otherUser is not null)
+            foreach (var otherUser in members?.Where(x => x.Id != userId) ?? [])
             {
                 if (await userBlockService.IsBlockedEitherWayAsync(userId, otherUser.Id))
                     return ValourResult.Forbid("Cannot send messages to this user.");

@@ -159,6 +159,12 @@ public interface  ISharedUser : ISharedModel<long>
     public string StarColor2 { get; set; }
 
     /// <summary>
+    /// Platform badge bits the user has chosen not to display. Zero means every
+    /// earned platform badge is visible, including newly introduced badges.
+    /// </summary>
+    public long HiddenBadgeFlags { get; set; }
+
+    /// <summary>
     /// The subscription the user currently has
     /// </summary>
     public static UserSubscriptionType GetSubscription(ISharedUser user)

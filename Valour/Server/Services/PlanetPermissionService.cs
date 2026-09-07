@@ -310,6 +310,22 @@ public class PlanetPermissionService
     }
 
     /// <summary>
+    /// Reconcile live channel visibility after a role and its permission nodes are deleted.
+    /// Membership and permission caches must already reflect the committed deletion.
+    /// </summary>
+    public async Task NotifyDeletedRoleAccessAsync(HostedPlanet hostedPlanet, IReadOnlySet<long> affectedMemberIds)
+    {
+        var affected = GetConnectedMembers(hostedPlanet)
+            .Where(x => affectedMemberIds.Contains(x.Id))
+            .ToList();
+        if (affected.Count == 0)
+            return;
+
+        foreach (var channel in hostedPlanet.Channels.List)
+            await NotifyChannelAccessChangeAsync(hostedPlanet, channel.Id, affected);
+    }
+
+    /// <summary>
     /// When a role changes, clear all caches for any role–combo that includes it and clear the inverse mapping cache.
     /// </summary>
     public async Task HandleRoleChange(PlanetRole role)

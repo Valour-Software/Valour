@@ -43,6 +43,11 @@ public class MessageAttachment
     /// </summary>
     public string ReportedSha256 { get; set; }
 
+    /// <summary>
+    /// When true, the client blurs this attachment until the user clicks to reveal it.
+    /// </summary>
+    public bool IsSpoiler { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<MessageAttachment>(e =>
@@ -108,6 +113,11 @@ public class MessageAttachment
 
             e.Property(x => x.ReportedSha256)
                 .HasColumnName("reported_sha256");
+
+            e.Property(x => x.IsSpoiler)
+                .HasColumnName("is_spoiler")
+                .HasDefaultValue(false)
+                .IsRequired();
 
             e.HasOne(x => x.Message)
                 .WithMany(x => x.Attachments)

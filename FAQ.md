@@ -1,77 +1,73 @@
-# Valour Frequently Asked Questions
+# Frequently asked questions
 
-| Content                                           |
-| ------------------------------------------------- |
-| [About Valour](#about-valour)                     |
-| [Using Valour](#using-valour)                     |
-| [Privacy](#privacy)                               |
-| [Self-hosting & Federation](#self-hosting--federation) |
-| [Building on Valour](#building-on-valour)         |
-| [Supporting Valour](#supporting-valour)           |
+## What is Valour?
 
-## About Valour
+Valour is an open-source community platform. Communities are called planets and
+can contain chat, thread feeds, wikis, voice and video channels, roles, an economy,
+and a village. The client lets you keep several conversations open in separate
+tabs and panes.
 
-### What is Valour?
-Valour is an open-source community platform. Communities live on **planets**, spaces you shape with real-time chat, a reddit-style thread feed, a publishable wiki, voice channels, roles and permissions, themes, and your own economy.
+## How do I use it?
 
-### Is Valour a Discord knock-off?
-Nope! Valour is built on a different stack (Blazor/.NET rather than Electron) and a broader idea. Multi-window chat, thread feeds, public wikis, and built-in economies aren't things a chat clone does. We want to be a home for your community, not just a room.
+Open [app.valour.gg](https://app.valour.gg) in a browser. Application downloads are
+listed in [GitHub releases](https://github.com/Valour-Software/Valour/releases).
 
-### Is Valour free?
-Yes. Optional **Stargazer** subscriptions add perks like larger upload limits and profile flair, and help fund the platform.
+## Is it free?
 
-## Using Valour
+Valour offers optional Stargazer subscriptions with additional account perks.
+The server's configured payment services determine which purchase controls are
+available on a self-hosted instance.
 
-### How do I use Valour?
-Use it in any browser at [app.valour.gg](https://app.valour.gg), or download the Windows and Android apps from [GitHub releases](https://github.com/Valour-Software/Valour/releases/latest).
+## Does Valour support voice and video?
 
-### Does Valour have voice chat?
-Yes! Planets can create voice channels. Voice runs on our infrastructure by default, and self-hosted instances (or individual planets) can bring their own LiveKit server.
+Yes. Planets have call channels, and direct and group conversations support private
+calls. The instance can use Cloudflare RealtimeKit or LiveKit. A planet can also
+configure its own LiveKit server for planet calls. Private calls use the instance
+provider. See [Direct and group calls](Docs/DirectAndGroupCalls.md).
 
-### Can I bring my existing community?
-Yes. Valour has a built-in Discord importer, plus incoming webhooks, bots, and an open API for integrating anything else.
+## Can I bring a community or connect other services?
 
-### I found a bug / have a suggestion!
-Please check the [GitHub issues](https://github.com/Valour-Software/Valour/issues) first, then open a new one if it hasn't been reported.
+The client includes a Discord importer. Bots, OAuth applications, and incoming
+webhooks provide ways to connect other systems. Bots follow the planet's membership
+and permission rules. See [the bot guide](Valour/Docs/BOT_GUIDE.md).
 
-## Privacy
+## What account information is required?
 
-### Do I need to show ID or a phone number?
-No. All you need to register is an email address. No government ID, no face scans, no phone verification.
+Registration uses an email address, username, and password. Email delivery and
+verification behavior depend on the instance's email configuration. The registration
+flow does not require a phone number or government ID.
 
-### Would Valour see my messages?
-Valour staff only access private messages when legally required, or when needed to confirm a user's report of illegal activity.
+## Can I host Valour myself?
 
-### How is Valour funded?
-Through optional subscriptions. Not ads, and definitely not your data. We never sell user data.
+Yes. The Compose bundle includes the application and its PostgreSQL, Redis, media,
+and HTTPS services. See [Self-hosting](README.md#self-hosting) for setup and
+[Deployment](Docs/Deployment/README.md) for operational details.
 
-## Self-hosting & Federation
+## What is federation?
 
-### Can I run my own Valour?
-Yes! A single `docker compose up -d` runs a full instance with Postgres, Redis, media storage, and automatic HTTPS. See the [README](README.md#self-hosting).
+A hub manages accounts and the planet registry while independent community nodes
+host planet data. The client uses separate credentials to connect to each community
+node. Planet owners can move between hub and community hosting through a verified
+handoff. See [Federation](Docs/Federation.md).
 
-### What is federation?
-Communities on official infrastructure can migrate to independently operated **community nodes** without handing that server your Valour login. See [Docs/Federation.md](Docs/Federation.md).
+## Is there an SDK?
 
-## Building on Valour
+The .NET SDK is in [Valour/Sdk](Valour/Sdk). It handles API requests, real-time node
+connections, model caching, and client services. Its source is built alongside the
+application, so use a project reference when developing against this checkout.
 
-### Are bots allowed?
-Yes. Bots and OAuth apps are built on the same official API the client uses, and automated accounts are welcome here.
+## How can I contribute or report a problem?
 
-### Is there anything I have to worry about if I make something for Valour?
-Valour is licensed AGPL-3.0: you can modify and use it however you like, but derivatives must also be open source under AGPL-3.0. See [LICENSE](LICENSE). Bots and integrations may use the Valour name; forks of the platform itself may not (see the [trademark notice](README.md#trademark-notice)).
+Follow [the local setup guide](README.md#contribute). Search
+[GitHub issues](https://github.com/Valour-Software/Valour/issues) before filing a bug
+or suggestion. Include reproduction steps and relevant logs without credentials.
+Security reports go to the address in [the security policy](SECURITY.md).
 
-### Are there API wrappers?
-The official .NET SDK lives in this repo at [`Valour/Sdk`](Valour/Sdk). It's what the client itself uses, so it's always up to date.
+## What license and rules apply?
 
-## Supporting Valour
+The source license is in [LICENSE](LICENSE). The
+[trademark notice](README.md#trademark-notice) covers the Valour name and branding.
+Platform use is covered by [the terms](TERMS_OF_SERVICE.md),
+[platform rules](PLATFORM_RULES.md), and [economy rules](PLATFORM_ECO_RULES.md).
 
-### I want to contribute code!
-See the [contribution guide in the README](README.md#contribute) for local setup. Signed commits are required.
-
-### I want to support the project!
-You can subscribe to a Stargazer tier in the app, or support us on [Patreon](https://www.patreon.com/valourapp).
-
-<br/>
-
-# [I need to contact Valour Staff!](https://static.valour.gg/contact)
+For account or support questions, contact support@valour.gg.

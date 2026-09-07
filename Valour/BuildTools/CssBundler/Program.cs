@@ -113,7 +113,11 @@ var cssSettings = new CssSettings
 };
 
 var combined = sb.ToString();
-var minified = Uglify.Css(combined, cssSettings);
+// NUglify treats container conditions as unknown syntax and joins `and (` or
+// a nested container name to `(`, silently making valid responsive rules invalid.
+var containerQueries = new ContainerQueries();
+var protectedCss = containerQueries.Protect(combined);
+var minified = Uglify.Css(protectedCss, cssSettings);
 
 if (minified.HasErrors)
 {
@@ -121,7 +125,7 @@ if (minified.HasErrors)
         Console.Error.WriteLine($"CSS minification error: {error}");
 }
 
-var css = minified.Code ?? combined;
+var css = containerQueries.Restore(minified.Code ?? protectedCss);
 File.WriteAllText(outputFile, css);
 Console.WriteLine($"CSS bundle generated: {outputFile} ({css.Length} bytes, from {combined.Length} combined)");
 

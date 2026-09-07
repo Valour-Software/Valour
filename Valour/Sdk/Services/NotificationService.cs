@@ -24,32 +24,28 @@ public class NotificationService
     /// </summary>
     public HybridEvent NotificationsCleared;
     
-    /// <summary>
-    /// Pain and suffering for thee
-    /// </summary>
-    public IReadOnlyList<Notification> UnreadNotifications { get; private set; }
-    private List<Notification> _unreadNotifications = new();
-    
-    // Needs to be here to be used as virtualized, unfortunately
-    public List<Notification> GetUnreadInternal() => _unreadNotifications;
-    
-    /// <summary>
-    /// A set from the source of notifications to the notification.
-    /// Used for extremely efficient lookups.
-    /// </summary>
-    public IReadOnlyDictionary<long, Notification> UnreadNotificationsLookupBySource { get; private set; }
-    private Dictionary<long, Notification> _unreadNotificationsLookupBySource = new();
-    
+    private readonly object _unreadLock = new();
+    private readonly List<Notification> _unreadNotifications = new();
+    private readonly Dictionary<long, Notification> _unreadNotificationsLookupBySource = new();
     private readonly ValourClient _client;
-    
-    public NotificationService(ValourClient client)
+
+    public IReadOnlyList<Notification> UnreadNotifications => GetUnreadInternal();
+
+    public List<Notification> GetUnreadInternal()
     {
-        _client = client;
-        
-        UnreadNotifications = _unreadNotifications;
-        UnreadNotificationsLookupBySource = _unreadNotificationsLookupBySource;
+        lock (_unreadLock) return _unreadNotifications.ToList();
     }
-    
+
+    public IReadOnlyDictionary<long, Notification> UnreadNotificationsLookupBySource
+    {
+        get
+        {
+            lock (_unreadLock) return new Dictionary<long, Notification>(_unreadNotificationsLookupBySource);
+        }
+    }
+
+    public NotificationService(ValourClient client) => _client = client;
+
     public async Task LoadUnreadNotificationsAsync()
     {
         var response = await _client.PrimaryNode.GetJsonAsync<List<Notification>>($"api/notifications/self/unread/all");
@@ -62,26 +58,17 @@ public class NotificationService
 
     public void ApplyUnreadNotifications(IEnumerable<Notification> notifications)
     {
-        notifications ??= [];
-
-        _unreadNotifications.Clear();
-        _unreadNotificationsLookupBySource.Clear();
-        
-        // Add to cache
-        foreach (var notification in notifications)
+        var unread = (notifications ?? []).Where(x => x is not null)
+            .Select(x => x.Sync(_client)).Where(x => x.TimeRead is null)
+            .DistinctBy(x => x.Id).ToList();
+        lock (_unreadLock)
         {
-            var cached = notification.Sync(_client);
-            
-            // Only add if unread
-            if (notification.TimeRead is not null)
-                continue;
-            
-            _unreadNotifications.Add(cached);
-
-            if (cached.SourceId is not null)
-            {
-                _unreadNotificationsLookupBySource[notification.SourceId!.Value] = notification;
-            }
+            _unreadNotifications.Clear();
+            _unreadNotificationsLookupBySource.Clear();
+            _unreadNotifications.AddRange(unread);
+            foreach (var notification in unread)
+                if (notification.SourceId is { } sourceId)
+                    _unreadNotificationsLookupBySource[sourceId] = notification;
         }
     }
 
@@ -115,46 +102,31 @@ public class NotificationService
 
     public void OnNotificationReceived(Notification notification)
     {
+        if (notification is null) return;
         var cached = notification.Sync(_client);
-        
-        if (cached.TimeRead is null)
+        bool contentUpdated;
+        lock (_unreadLock)
         {
-            // Coalesced notifications (channel activity) re-relay the same id
-            // with updated content. Notifications have no model cache, so
-            // replace the list entry in place (keeping its position). Updates
-            // fire NotificationContentUpdated only — re-firing
-            // NotificationReceived would replay sounds and popups per update
-            var existingIndex = _unreadNotifications.FindIndex(x => x.Id == cached.Id);
-            if (existingIndex >= 0)
+            var index = _unreadNotifications.FindIndex(x => x.Id == cached.Id);
+            contentUpdated = index >= 0 && cached.TimeRead is null;
+            // Sync may already have changed the canonical model's source ID.
+            foreach (var oldSourceId in _unreadNotificationsLookupBySource
+                         .Where(x => x.Value.Id == cached.Id).Select(x => x.Key).ToList())
+                _unreadNotificationsLookupBySource.Remove(oldSourceId);
+
+            if (cached.TimeRead is null)
             {
-                _unreadNotifications[existingIndex] = cached;
-
-                if (cached.SourceId is not null)
-                {
-                    _unreadNotificationsLookupBySource[cached.SourceId.Value] = cached;
-                }
-
-                NotificationContentUpdated?.Invoke(cached);
-                return;
+                if (index >= 0) _unreadNotifications[index] = cached;
+                else _unreadNotifications.Add(cached);
+                if (cached.SourceId is { } sourceId)
+                    _unreadNotificationsLookupBySource[sourceId] = cached;
             }
-
-            _unreadNotifications.Add(cached);
-
-            if (cached.SourceId is not null)
-            {
-                _unreadNotificationsLookupBySource[cached.SourceId.Value] = cached;
-            }
+            else if (index >= 0)
+                _unreadNotifications.RemoveAt(index);
         }
-        else
-        {
-            _unreadNotifications.RemoveAll(x => x.Id == cached.Id);
-            if (cached.SourceId is not null)
-            {
-                _unreadNotificationsLookupBySource.Remove(cached.SourceId.Value);
-            }
-        }
-        
-        NotificationReceived?.Invoke(cached);
+
+        if (contentUpdated) NotificationContentUpdated?.Invoke(cached);
+        else NotificationReceived?.Invoke(cached);
     }
 
     /// <summary>
@@ -163,9 +135,11 @@ public class NotificationService
     /// </summary>
     public void OnNotificationsCleared()
     {
-        _unreadNotifications.Clear();
-        _unreadNotificationsLookupBySource.Clear();
-        
+        lock (_unreadLock)
+        {
+            _unreadNotifications.Clear();
+            _unreadNotificationsLookupBySource.Clear();
+        }
         NotificationsCleared?.Invoke();
     }
 }

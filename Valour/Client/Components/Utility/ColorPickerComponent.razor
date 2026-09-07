@@ -27,33 +27,69 @@
 
     private DotNetObjectReference<ColorPickerComponent> _dotnetRef;
 
+    private bool _disposed;
+    private bool _initializing;
+    private Task _cleanupTask;
+
     private string _id = "pickr-" + Guid.NewGuid().ToString();
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender || _disposed)
+            return;
+
+        _initializing = true;
+        try
         {
-            _dotnetRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/ColorPickerComponent.razor.js?version=$(SHORTHASH)");
+            if (_disposed)
+                return;
+            _dotnetRef = DotNetObjectReference.Create(this);
             await _jsModule.InvokeVoidAsync("init", _id, _dotnetRef, StartColor, UseAsButton);
+        }
+        finally
+        {
+            _initializing = false;
+            if (_disposed)
+                await CleanupAsync();
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_jsModule is not null)
-        {
-            await _jsModule.InvokeVoidAsync("destroy", _id);
-            await _jsModule.DisposeAsync();
-        }
+        _disposed = true;
+        return _initializing ? ValueTask.CompletedTask : new ValueTask(CleanupAsync());
+    }
 
-        _dotnetRef?.Dispose();
+    private Task CleanupAsync() => _cleanupTask ??= ReleaseReferencesAsync();
+
+    private async Task ReleaseReferencesAsync()
+    {
+        var module = _jsModule;
+        _jsModule = null;
+        try
+        {
+            if (module is not null)
+            {
+                try { await module.InvokeVoidAsync("destroy", _id); }
+                catch (JSException) { }
+                catch (ObjectDisposedException) { }
+                try { await module.DisposeAsync(); }
+                catch (JSException) { }
+                catch (ObjectDisposedException) { }
+            }
+        }
+        finally
+        {
+            _dotnetRef?.Dispose();
+            _dotnetRef = null;
+        }
     }
 
     [JSInvokable]
     public async Task ColorChange(string newColor)
     {
-        if (OnColorChange is not null)
+        if (!_disposed && OnColorChange is not null)
             await OnColorChange.Invoke(newColor);
     }
 }

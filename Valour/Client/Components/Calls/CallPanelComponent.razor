@@ -3,109 +3,214 @@
 @inject GlobalCallSessionService CallSession
 @implements IAsyncDisposable
 
-<div class="call-panel @((VideoMode ? "video-mode" : "audio-mode"))">
-    <div class="call-header">
-        <div class="call-header-info">
-            <span class="call-channel-name">@ActiveChannel?.Name</span>
-        </div>
-        <div class="call-status-badge @StatusBadgeClass">
-            <span class="call-status-dot"></span>
-            <span>@StatusText</span>
-        </div>
-    </div>
-
-    <div class="call-controls">
-        @if (_waitingForPeer)
-        {
-            <button class="call-ctrl-btn reconnect" disabled="true" title="Waiting for another participant">
-                <i class="bi bi-hourglass-split"></i>
-            </button>
-        }
-        else if (!_joined)
-        {
-            <button class="call-ctrl-btn reconnect" disabled="@_connecting" @onmousedown="OnClickReconnect" title="Connect">
-                <i class="bi bi-arrow-clockwise"></i>
-            </button>
-        }
-        else
-        {
-            <button class="call-ctrl-btn @(_audioEnabled ? "" : "toggled-danger")" @onmousedown="OnClickMute" title="@(_audioEnabled ? "Mute" : "Unmute")">
-                <i class="bi @(_audioEnabled ? "bi-mic-fill" : "bi-mic-mute-fill")"></i>
-            </button>
-        }
-
-        @if (VideoMode && _joined)
-        {
-            <button class="call-ctrl-btn @(_videoEnabled ? "" : "toggled-danger")" @onmousedown="OnClickToggleVideo" title="@(_videoEnabled ? "Disable Camera" : "Enable Camera")">
-                <i class="bi @(_videoEnabled ? "bi-camera-video-fill" : "bi-camera-video-off-fill")"></i>
-            </button>
-
-            <button class="call-ctrl-btn @(_screenShareEnabled ? "toggled" : "")" @onmousedown="OnClickToggleScreenShare" title="@(_screenShareEnabled ? "Stop Sharing Screen" : "Share Screen")">
-                <i class="bi @(_screenShareEnabled ? "bi-display-fill" : "bi-display")"></i>
-            </button>
-        }
-
-        <button class="call-ctrl-btn" @onmousedown="OnClickSettings" title="Settings">
-            <i class="bi bi-gear-fill"></i>
-        </button>
-
-        <button class="call-ctrl-btn danger" @onmousedown="OnClickLeave" title="Leave Call">
-            <i class="bi bi-box-arrow-right"></i>
-        </button>
-    </div>
-
-    @if (VideoMode)
+<div class="call-panel @((VideoMode ? "video-mode" : "audio-mode")) @(NearbyMode ? "nearby-mode" : string.Empty)">
+    @if (NearbyMode)
     {
-        <div class="video-stage">
+        @RenderNearbyParticipants
+    }
+    else
+    {
+        <div class="call-header">
+            <div class="call-header-info">
+                <span class="call-channel-name">@ActiveChannel?.Name</span>
+            </div>
+            <div class="call-status-badge @StatusBadgeClass">
+                <span class="call-status-dot"></span>
+                <span>@StatusText</span>
+            </div>
+        </div>
+
+        <div class="call-controls">
             @if (_waitingForPeer)
             {
-                <p class="video-empty">Waiting for someone else to join.</p>
-            }
-            else if (_joined && _participants.Count == 0)
-            {
-                <p class="video-empty">Waiting for participants…</p>
+                <button class="call-ctrl-btn reconnect" disabled="true" title="Waiting for another participant">
+                    <i class="bi bi-hourglass-split"></i>
+                </button>
             }
             else if (!_joined)
             {
-                <p class="video-empty">Join the call to start video.</p>
+                <button class="call-ctrl-btn reconnect" disabled="@_connecting" @onmousedown="OnClickReconnect" title="Connect">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
             }
             else
             {
-                
-                var videoTiles = BuildVideoTiles();
-                
-                if (GetFocusedVideoTile(videoTiles) is { } focusedVideoTile)
+                <button class="call-ctrl-btn @(_audioEnabled ? "" : "toggled-danger")" @onmousedown="OnClickMute" title="@(_audioEnabled ? "Mute" : "Unmute")">
+                    <i class="bi @(_audioEnabled ? "bi-mic-fill" : "bi-mic-mute-fill")"></i>
+                </button>
+            }
+
+            @if (VideoMode && _joined)
+            {
+                <button class="call-ctrl-btn @(_videoEnabled ? "" : "toggled-danger")" @onmousedown="OnClickToggleVideo" title="@(_videoEnabled ? "Disable Camera" : "Enable Camera")">
+                    <i class="bi @(_videoEnabled ? "bi-camera-video-fill" : "bi-camera-video-off-fill")"></i>
+                </button>
+
+                <button class="call-ctrl-btn @(_screenShareEnabled ? "toggled" : "")" @onmousedown="OnClickToggleScreenShare" title="@(_screenShareEnabled ? "Stop Sharing Screen" : "Share Screen")">
+                    <i class="bi @(_screenShareEnabled ? "bi-display-fill" : "bi-display")"></i>
+                </button>
+            }
+
+            <button class="call-ctrl-btn" @onmousedown="OnClickSettings" title="Settings">
+                <i class="bi bi-gear-fill"></i>
+            </button>
+
+            <button class="call-ctrl-btn danger" @onmousedown="OnClickLeave" title="Leave Call">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </div>
+
+        @if (VideoMode)
+        {
+            <div class="video-stage">
+                @if (_waitingForPeer)
                 {
-                    <div class="video-focus-layout">
-                        <div class="video-focus-main">
-                            @RenderVideoTile(new VideoTileRenderModel(focusedVideoTile.Participant, focusedVideoTile.Source, true, false))
-                        </div>
-                        <div class="video-focus-strip">
-                            @foreach (var videoTile in GetThumbnailVideoTiles(videoTiles, focusedVideoTile.TileKey))
-                            {
-                                @RenderVideoTile(new VideoTileRenderModel(videoTile.Participant, videoTile.Source, false, true))
-                            }
-                        </div>
-                    </div>
+                    <p class="video-empty">Waiting for someone else to join.</p>
+                }
+                else if (_joined && _participants.Count == 0)
+                {
+                    <p class="video-empty">Waiting for participants…</p>
+                }
+                else if (!_joined)
+                {
+                    <p class="video-empty">Join the call to start video.</p>
                 }
                 else
                 {
-                    <div class="video-grid @GetVideoGridClass(videoTiles.Count)">
-                        @foreach (var videoTile in videoTiles)
+
+                    var videoTiles = BuildVideoTiles();
+
+                    if (GetFocusedVideoTile(videoTiles) is { } focusedVideoTile)
+                    {
+                        <div class="video-focus-layout">
+                            <div class="video-focus-main">
+                                @RenderVideoTile(new VideoTileRenderModel(focusedVideoTile.Participant, focusedVideoTile.Source, true, false))
+                            </div>
+                            <div class="video-focus-strip">
+                                @foreach (var videoTile in GetThumbnailVideoTiles(videoTiles, focusedVideoTile.TileKey))
+                                {
+                                    @RenderVideoTile(new VideoTileRenderModel(videoTile.Participant, videoTile.Source, false, true))
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="video-grid @GetVideoGridClass(videoTiles.Count)">
+                            @foreach (var videoTile in videoTiles)
+                            {
+                                @RenderVideoTile(new VideoTileRenderModel(videoTile.Participant, videoTile.Source, false, false))
+                            }
+                        </div>
+                    }
+
+                    <div class="video-audio-hosts">
+                        @foreach (var participant in _participants)
                         {
-                            @RenderVideoTile(new VideoTileRenderModel(videoTile.Participant, videoTile.Source, false, false))
+                            <audio id="@GetParticipantAudioElementId(participant.PeerId)" class="participant-audio" autoplay playsinline></audio>
                         }
                     </div>
                 }
+            </div>
 
-                <div class="video-audio-hosts">
+
+        }
+        else if (_waitingForPeer)
+        {
+            <div class="call-participants">
+                <div class="call-participants-header">
+                    <span class="call-participants-label">Participants</span>
+                    <span class="call-participants-count">1</span>
+                </div>
+
+                <p class="call-participants-empty">Waiting for someone else to join.</p>
+            </div>
+        }
+        else if (_joined)
+        {
+            <div class="call-participants">
+                <div class="call-participants-header">
+                    <span class="call-participants-label">Participants</span>
+                    <span class="call-participants-count">@_participants.Count</span>
+                </div>
+
+                @if (_participants.Count == 0)
+                {
+                    <p class="call-participants-empty">No one else is here yet.</p>
+                }
+                else
+                {
                     @foreach (var participant in _participants)
                     {
-                        <audio id="@GetParticipantAudioElementId(participant.PeerId)" class="participant-audio" autoplay playsinline></audio>
+                        <div class="@GetParticipantClass(participant)" @key="participant.PeerId">
+                            <div class="participant-info">
+                                @if (GetParticipantMember(participant.UserId) is { } participantMember)
+                                {
+                                    <UserInfoComponent Member="@participantMember" Style="width: 100%;" />
+                                }
+                                else
+                                {
+                                    <UserInfoComponent UserId="@participant.UserId" Style="width: 100%;" />
+                                }
+                            </div>
+                            @if (participant.IsSelf)
+                            {
+                                @if (!_audioEnabled)
+                                {
+                                    <span class="participant-self-muted" title="You are muted">
+                                        <i class="bi bi-mic-mute-fill"></i>
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+
+                                var participantVolume = GetParticipantVolume(participant.PeerId);
+                                var participantVolumeMuted = participantVolume == 0;
+                                var moderatorMuted = IsParticipantModeratorMuted(participant);
+
+                                <div class="participant-volume">
+                                    <input type="range" min="0" max="100"
+                                           value="@participantVolume"
+                                           @oninput="(e) => OnParticipantVolumeChanged(participant.PeerId, e)"
+                                           class="participant-volume-slider" />
+                                    <button class="participant-volume-btn @(participantVolumeMuted ? "muted" : "")"
+                                            @onmousedown="() => ToggleParticipantMute(participant.PeerId)"
+                                            title="@(participantVolumeMuted ? "Unmute" : "Mute")">
+                                        <i class="bi @GetVolumeIcon(participantVolume)"></i>
+                                    </button>
+                                </div>
+
+                                @if ((_canMuteParticipants || _canKickParticipants) && participant.UserId > 0)
+                                {
+                                    <div class="participant-moderation">
+                                        @if (_canMuteParticipants)
+                                        {
+                                            <button class="participant-mod-btn warn @(moderatorMuted ? "toggled" : "")"
+                                                    @onmousedown="() => OnClickToggleMuteParticipant(participant)"
+                                                    title="@(moderatorMuted ? "Unmute participant" : "Mute participant")">
+                                                <i class="bi @(moderatorMuted ? "bi-mic-fill" : "bi-mic-mute-fill")"></i>
+                                            </button>
+                                        }
+                                        @if (_canKickParticipants)
+                                        {
+                                            <button class="participant-mod-btn danger"
+                                                    @onmousedown="() => OnClickKickParticipant(participant)"
+                                                    title="Kick from call">
+                                                <i class="bi bi-door-open-fill"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            }
+                            <audio id="@GetParticipantAudioElementId(participant.PeerId)" class="participant-audio" autoplay playsinline></audio>
+                        </div>
                     }
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
+
+    }
 
         @if (_joined && GetFullscreenVideoTile(BuildVideoTiles()) is { } fullscreenVideoTile)
         {
@@ -126,101 +231,6 @@
                 </div>
             </div>
         }
-    }
-    else if (_waitingForPeer)
-    {
-        <div class="call-participants">
-            <div class="call-participants-header">
-                <span class="call-participants-label">Participants</span>
-                <span class="call-participants-count">1</span>
-            </div>
-
-            <p class="call-participants-empty">Waiting for someone else to join.</p>
-        </div>
-    }
-    else if (_joined)
-    {
-        <div class="call-participants">
-            <div class="call-participants-header">
-                <span class="call-participants-label">Participants</span>
-                <span class="call-participants-count">@_participants.Count</span>
-            </div>
-
-            @if (_participants.Count == 0)
-            {
-                <p class="call-participants-empty">No one else is here yet.</p>
-            }
-            else
-            {
-                @foreach (var participant in _participants)
-                {
-                    <div class="@GetParticipantClass(participant)" @key="participant.PeerId">
-                        <div class="participant-info">
-                            @if (GetParticipantMember(participant.UserId) is { } participantMember)
-                            {
-                                <UserInfoComponent Member="@participantMember" Style="width: 100%;" />
-                            }
-                            else
-                            {
-                                <UserInfoComponent UserId="@participant.UserId" Style="width: 100%;" />
-                            }
-                        </div>
-                        @if (participant.IsSelf)
-                        {
-                            @if (!_audioEnabled)
-                            {
-                                <span class="participant-self-muted" title="You are muted">
-                                    <i class="bi bi-mic-mute-fill"></i>
-                                </span>
-                            }
-                        }
-                        else
-                        {
-                            
-                            var participantVolume = GetParticipantVolume(participant.PeerId);
-                            var participantVolumeMuted = participantVolume == 0;
-                            var moderatorMuted = IsParticipantModeratorMuted(participant);
-                        
-                            <div class="participant-volume">
-                                <input type="range" min="0" max="100"
-                                       value="@participantVolume"
-                                       @oninput="(e) => OnParticipantVolumeChanged(participant.PeerId, e)"
-                                       class="participant-volume-slider" />
-                                <button class="participant-volume-btn @(participantVolumeMuted ? "muted" : "")"
-                                        @onmousedown="() => ToggleParticipantMute(participant.PeerId)"
-                                        title="@(participantVolumeMuted ? "Unmute" : "Mute")">
-                                    <i class="bi @GetVolumeIcon(participantVolume)"></i>
-                                </button>
-                            </div>
-
-                            @if ((_canMuteParticipants || _canKickParticipants) && participant.UserId > 0)
-                            {
-                                <div class="participant-moderation">
-                                    @if (_canMuteParticipants)
-                                    {
-                                        <button class="participant-mod-btn warn @(moderatorMuted ? "toggled" : "")"
-                                                @onmousedown="() => OnClickToggleMuteParticipant(participant)"
-                                                title="@(moderatorMuted ? "Unmute participant" : "Mute participant")">
-                                            <i class="bi @(moderatorMuted ? "bi-mic-fill" : "bi-mic-mute-fill")"></i>
-                                        </button>
-                                    }
-                                    @if (_canKickParticipants)
-                                    {
-                                        <button class="participant-mod-btn danger"
-                                                @onmousedown="() => OnClickKickParticipant(participant)"
-                                                title="Kick from call">
-                                            <i class="bi bi-door-open-fill"></i>
-                                        </button>
-                                    }
-                                </div>
-                            }
-                        }
-                        <audio id="@GetParticipantAudioElementId(participant.PeerId)" class="participant-audio" autoplay playsinline></audio>
-                    </div>
-                }
-            }
-        </div>
-    }
 
     @if (_pendingCommunityVoiceAck)
     {
@@ -266,6 +276,92 @@
 
     [Parameter]
     public bool VideoMode { get; set; }
+
+    [Parameter]
+    public DirectCall? DirectCall { get; set; }
+
+    [Parameter] public bool NearbyMode { get; set; }
+    [Parameter] public Func<long, bool>? IsNearbyUser { get; set; }
+
+    private string? _nearbyVideoTileKey;
+    private bool _nearbyControlsOpen;
+
+    private IEnumerable<VoiceParticipantState> NearbyParticipants => _participants.Where(p =>
+        !p.IsSelf && (IsNearbyUser?.Invoke(p.UserId) ?? true));
+
+    private VideoTileRenderModel? NearbyVideoTile => BuildVideoTiles().FirstOrDefault(t =>
+        t.TileKey == _nearbyVideoTileKey && HasVisualTrackForTile(t) &&
+        !t.Participant.IsSelf && (IsNearbyUser?.Invoke(t.Participant.UserId) ?? true));
+
+    private void ToggleNearbyVideo(string? tileKey)
+    {
+        _nearbyVideoTileKey = _nearbyVideoTileKey == tileKey ? null : tileKey;
+        _pendingParticipantMediaSync = true;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (NearbyMode && _nearbyVideoTileKey is not null && NearbyVideoTile is null)
+        {
+            _nearbyVideoTileKey = null;
+            _fullscreenVideoTileKey = null;
+        }
+    }
+
+    private RenderFragment RenderNearbyParticipants => @<div class="nearby-people" aria-label="People in hearing range">
+        <div class="nearby-avatar-list">
+            @foreach (var participant in NearbyParticipants)
+            {
+                <div class="nearby-person @(participant.IsActiveSpeaker && participant.AudioEnabled && GetParticipantVolume(participant.PeerId) > 0 ? "speaking" : string.Empty)" @key="participant.PeerId">
+                    <img class="nearby-avatar" src="@GetParticipantAvatarUrl(participant)" alt="@participant.DisplayName" title="@participant.DisplayName" />
+                    <div class="nearby-video-buttons">
+                        @foreach (var tile in BuildVideoTiles(new[] { participant }).Where(HasVisualTrackForTile))
+                        {
+                            <button class="nearby-video-button @(tile.TileKey == _nearbyVideoTileKey ? "selected" : string.Empty)"
+                                    title="@($"Show {participant.DisplayName}'s {(tile.IsScreenShareTile ? "screen" : "camera")}")"
+                                    aria-label="@($"Show {participant.DisplayName}'s {(tile.IsScreenShareTile ? "screen" : "camera")}")"
+                                    aria-pressed="@(tile.TileKey == _nearbyVideoTileKey)"
+                                    @onclick="() => ToggleNearbyVideo(tile.TileKey)">
+                                <i class="bi @(tile.IsScreenShareTile ? "bi-display" : "bi-camera-video-fill")" aria-hidden="true"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <button class="nearby-options-button" title="Call controls" aria-label="Call controls" aria-expanded="@_nearbyControlsOpen" @onclick="() => _nearbyControlsOpen = !_nearbyControlsOpen">
+            <i class="bi bi-three-dots" aria-hidden="true"></i>
+        </button>
+        @if (_nearbyControlsOpen)
+        {
+            <div class="nearby-controls">
+                <span class="nearby-call-status" role="status">@StatusText</span>
+                @if (!_joined && !_waitingForPeer)
+                {
+                    <button class="call-ctrl-btn reconnect" disabled="@_connecting" title="Reconnect" @onclick="OnClickReconnect"><i class="bi bi-arrow-clockwise"></i></button>
+                }
+                <button class="call-ctrl-btn @(_audioEnabled ? "" : "toggled-danger")" disabled="@(!_joined)" title="@(_audioEnabled ? "Mute microphone" : "Unmute microphone")" @onclick="OnClickMute"><i class="bi @(_audioEnabled ? "bi-mic-fill" : "bi-mic-mute-fill")"></i></button>
+                @if (VideoMode && _joined)
+                {
+                    <button class="call-ctrl-btn" title="@(_videoEnabled ? "Disable camera" : "Enable camera")" @onclick="OnClickToggleVideo"><i class="bi @(_videoEnabled ? "bi-camera-video-fill" : "bi-camera-video-off-fill")"></i></button>
+                    <button class="call-ctrl-btn" title="@(_screenShareEnabled ? "Stop sharing screen" : "Share screen")" @onclick="OnClickToggleScreenShare"><i class="bi bi-display"></i></button>
+                }
+                <button class="call-ctrl-btn" title="Call settings" @onclick="OnClickSettings"><i class="bi bi-gear-fill"></i></button>
+                <button class="call-ctrl-btn danger" title="Leave call" @onclick="OnClickLeave"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        }
+        @if (NearbyVideoTile is { } tilePreview)
+        {
+            <div class="nearby-video-popout" role="region" aria-label="@($"{tilePreview.Participant.DisplayName}'s video")">
+                <div class="nearby-video-heading"><span>@tilePreview.Participant.DisplayName</span><button title="Close video" aria-label="Close video" @onclick="() => ToggleNearbyVideo(null)"><i class="bi bi-x-lg"></i></button></div>
+                @RenderVideoTile(tilePreview)
+            </div>
+        }
+        @foreach (var participant in _participants)
+        {
+            <audio id="@GetParticipantAudioElementId(participant.PeerId)" class="participant-audio" autoplay playsinline></audio>
+        }
+    </div>;
 
     private RealtimeKitComponent? _rtk => RealtimeKitHost.Component;
     private readonly object _memberPrefetchLock = new();
@@ -351,11 +447,11 @@
                 }
                 else
                 {
-                    
+
                     var participantVolume = GetParticipantVolume(model.Participant.PeerId);
                     var participantVolumeMuted = participantVolume == 0;
                     var moderatorMuted = IsParticipantModeratorMuted(model.Participant);
-                
+
                     <div class="video-tile-controls">
                         <input type="range" min="0" max="100"
                                value="@participantVolume"
@@ -389,6 +485,8 @@
                     </div>
                 }
 
+                @if (!NearbyMode)
+                {
                 <button class="video-focus-btn @(model.IsFocusedMain ? "active" : "")"
                         @onmousedown:stopPropagation="true"
                         @onmousedown="() => ToggleFocusedVideoTile(model.TileKey)"
@@ -396,6 +494,7 @@
                     <i class="bi @(model.IsFocusedMain ? "bi-fullscreen-exit" : "bi-arrows-fullscreen")"></i>
                 </button>
 
+                }
                 <button class="video-viewport-btn @(IsFullscreenVideoTile(model.TileKey) ? "active" : "")"
                         @onmousedown:stopPropagation="true"
                         @onmousedown="() => ToggleViewportFullscreen(model.TileKey)"
@@ -439,6 +538,7 @@
     private async Task Initialize(Channel channel)
     {
         if (CallSession.ActiveChannel?.Id == channel.Id &&
+            CallSession.ActiveDirectCall?.Id == DirectCall?.Id &&
             (CallSession.Joined || CallSession.Connecting || CallSession.WaitingForPeer))
         {
             SyncFromGlobalCallSession();
@@ -446,7 +546,10 @@
             return;
         }
 
-        await CallSession.InitializeAsync(channel, VideoMode);
+        if (DirectCall is not null)
+            await CallSession.InitializeDirectCallAsync(channel, DirectCall);
+        else
+            await CallSession.InitializeAsync(channel, VideoMode);
         SyncFromGlobalCallSession();
         StateHasChanged();
     }
@@ -536,7 +639,7 @@
     private async Task LeaveRoom()
     {
         // Manual leave should preserve the channel context so the panel stays in pre-connect state.
-        await SafeLeaveRoomInternalAsync(clearChannel: false);
+        await SafeLeaveRoomInternalAsync(clearChannel: NearbyMode);
         CallSession.ClearError();
         SyncFromGlobalCallSession();
         _error = null;
@@ -595,7 +698,8 @@
         if (!VideoMode || videoTiles is null)
             return;
 
-        foreach (var videoTile in videoTiles)
+        var nearbyVideoTile = NearbyMode ? NearbyVideoTile : null;
+        foreach (var videoTile in videoTiles.Where(t => !NearbyMode || t.TileKey == nearbyVideoTile?.TileKey))
         {
             await _rtk.SyncParticipantVideoAsync(
                 GetParticipantVideoElementId(videoTile.Participant.PeerId, videoTile.Source, false),
@@ -755,9 +859,13 @@
             : model.Participant.VideoEnabled && model.Participant.HasVideoTrack;
     }
 
+    private string GetParticipantAvatarUrl(VoiceParticipantState participant) =>
+        GetParticipantMember(participant.UserId)?.GetAvatar() ??
+        (string.IsNullOrWhiteSpace(participant.AvatarUrl) ? ISharedUser.DefaultAvatar : participant.AvatarUrl);
+
     private string GetParticipantAvatarStyle(VoiceParticipantState participant)
     {
-        var avatar = GetParticipantMember(participant.UserId)?.GetAvatar() ?? ISharedUser.DefaultAvatar;
+        var avatar = GetParticipantAvatarUrl(participant);
         return $"background-image: url('{avatar}');";
     }
 
@@ -874,6 +982,7 @@
                 PeerId = x.PeerId!,
                 UserId = ResolveUserId(x),
                 DisplayName = string.IsNullOrWhiteSpace(x.Name) ? "Unknown Participant" : x.Name,
+                AvatarUrl = x.Picture,
                 AudioEnabled = x.AudioEnabled,
                 VideoEnabled = x.VideoEnabled,
                 ScreenShareEnabled = x.ScreenShareEnabled,
@@ -946,6 +1055,7 @@
                 || left.HasScreenShareAudioTrack != right.HasScreenShareAudioTrack
                 || !string.Equals(left.ScreenShareAudioTrackId, right.ScreenShareAudioTrackId, StringComparison.Ordinal)
                 || left.IsSelf != right.IsSelf
+                || left.AvatarUrl != right.AvatarUrl
                 || left.IsActiveSpeaker != right.IsActiveSpeaker)
             {
                 return false;
@@ -979,6 +1089,7 @@
         public string PeerId { get; init; } = string.Empty;
         public long UserId { get; init; }
         public string DisplayName { get; init; } = "Unknown Participant";
+        public string? AvatarUrl { get; init; }
         public bool AudioEnabled { get; init; }
         public bool VideoEnabled { get; init; }
         public bool ScreenShareEnabled { get; init; }
@@ -1044,6 +1155,11 @@
             return;
 
         _participants = nextParticipants;
+        if (NearbyMode && NearbyVideoTile is null)
+        {
+            _nearbyVideoTileKey = null;
+            _fullscreenVideoTileKey = null;
+        }
         var nextVideoTiles = BuildVideoTiles(nextParticipants);
 
         if (!string.IsNullOrWhiteSpace(_focusedVideoTileKey) &&

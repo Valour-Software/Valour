@@ -90,5 +90,14 @@ public class UnreadServiceTests : IClassFixture<LoginTestFixture>, IDisposable
         Assert.All(unreadChannelIds, id => Assert.Contains(id, ownDirectChannelIds));
     }
 
+    [Fact]
+    public async Task ReadStateForDeletedChannel_ReturnsFailureWithoutCreatingState()
+    {
+        var channelId = IdManager.Generate();
+        var result = await _unreadService.UpdateReadState(channelId, _fixture.Client.Me.Id, null, null, DateTime.UtcNow);
+        Assert.False(result.Success);
+        Assert.False(await _db.UserChannelStates.AnyAsync(x => x.ChannelId == channelId));
+    }
+
     public void Dispose() => _scope.Dispose();
 }

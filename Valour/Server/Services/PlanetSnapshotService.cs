@@ -117,6 +117,7 @@ public class PlanetSnapshotService
                 PublicThreads = planet.PublicThreads,
                 PinnedThreadId = planet.PinnedThreadId,
                 EnableWiki = planet.EnableWiki,
+                EnableVillage = planet.EnableVillage,
                 PublicWiki = planet.PublicWiki,
                 Vanity = planet.Vanity,
                 Version = planet.Version,
@@ -335,7 +336,7 @@ public class PlanetSnapshotService
                 HasCustomBackground = p.HasCustomBackground, SelfHostedMedia = p.SelfHostedMedia,
                 SelfHostedVoice = p.SelfHostedVoice,
                 EnableThreads = p.EnableThreads, PublicThreads = p.PublicThreads,
-                PinnedThreadId = p.PinnedThreadId, EnableWiki = p.EnableWiki, PublicWiki = p.PublicWiki,
+                PinnedThreadId = p.PinnedThreadId, EnableWiki = p.EnableWiki, EnableVillage = p.EnableVillage, PublicWiki = p.PublicWiki,
                 Vanity = p.Vanity, Version = p.Version, IsDeleted = false,
                 Tags = tags,
             });

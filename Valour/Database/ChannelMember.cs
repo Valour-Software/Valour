@@ -40,4 +40,7 @@ public class ChannelMember
     /// </summary>
     [Column("user_id")]
     public long UserId { get; set; }
+
+    [Column("is_admin")]
+    public bool IsAdmin { get; set; }
 }

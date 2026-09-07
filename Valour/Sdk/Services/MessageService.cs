@@ -54,18 +54,18 @@ public class MessageService : ServiceBase
         if (!skipCache && _client.Cache.Messages.TryGet(id, out var cached))
             return cached;
         
-        var response = await _client.PrimaryNode.GetJsonAsync<Message>($"api/message/{id}");
+        var response = await _client.PrimaryNode.GetJsonAsync<Message>($"api/messages/{id}");
 
         return response.Data.Sync(_client);
     }
-    
+
     public async ValueTask<Message> FetchMessageAsync(long id, Planet planet, bool skipCache = false)
     {
         var scope = planet?.Node?.IsExternal == true ? planet.Node.Name : null;
         if (!skipCache && _client.Cache.Messages.TryGet(id, scope, out var cached))
             return cached;
-        
-        var response = await (planet?.Node ?? _client.PrimaryNode).GetJsonAsync<Message>($"api/message/{id}");
+
+        var response = await (planet?.Node ?? _client.PrimaryNode).GetJsonAsync<Message>($"api/messages/{id}");
 
         return response.Data.Sync(_client);
     }
@@ -165,7 +165,7 @@ public class MessageService : ServiceBase
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    private void OnDirectMessageReceived(Message message)
+    private async Task OnDirectMessageReceived(Message message)
     {
         message = message.Sync(_client);
         
@@ -173,10 +173,10 @@ public class MessageService : ServiceBase
         
         MessageReceived?.Invoke(message);
         
-        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
-        {
-            channel?.NotifyMessageReceived(message);
-        }
+        if (!_cache.Channels.TryGet(message.ChannelId, out var channel))
+            channel = await _client.ChannelService.FetchDirectChannelAsync(message.ChannelId);
+
+        channel?.NotifyMessageReceived(message);
     }
     
     /// <summary>

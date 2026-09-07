@@ -69,7 +69,8 @@ public class RealtimeKitService : IVoiceProvider
         Channel channel,
         long userId,
         string displayName,
-        string? sessionId)
+        string? sessionId,
+        TimeSpan? tokenLifetime = null)
     {
         if (!IsConfigured)
         {
@@ -288,13 +289,20 @@ public class RealtimeKitService : IVoiceProvider
     {
         try
         {
+            var participantRecords = await GetMeetingParticipantsAsync(meetingId);
+            var matchingRecords = participantRecords.Success && participantRecords.Data is not null
+                ? participantRecords.Data
+                    .Where(participant => IsParticipantForUser(participant.CustomParticipantId, userId))
+                    .ToArray()
+                : Array.Empty<CloudflareMeetingParticipantInfo>();
+
             var sessionsResult = await GetLiveSessionsForMeetingAsync(meetingId);
-            if (!sessionsResult.Success || sessionsResult.Data is null)
-                return;
+            var customParticipantIds = matchingRecords
+                .Select(participant => participant.CustomParticipantId)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToHashSet(StringComparer.Ordinal);
 
-            var customParticipantIds = new HashSet<string>(StringComparer.Ordinal);
-
-            foreach (var session in sessionsResult.Data)
+            foreach (var session in sessionsResult.Data ?? new List<CloudflareSessionInfo>())
             {
                 if (session is null || string.IsNullOrWhiteSpace(session.Id) || session.LiveParticipants <= 0)
                     continue;
@@ -313,10 +321,8 @@ public class RealtimeKitService : IVoiceProvider
                 }
             }
 
-            if (customParticipantIds.Count == 0)
-                return;
-
             await KickParticipantsFromMeetingAsync(meetingId, customParticipantIds);
+            await DeleteParticipantRecordsAsync(meetingId, matchingRecords.Select(participant => participant.Id));
         }
         catch (Exception ex)
         {
@@ -375,9 +381,57 @@ public class RealtimeKitService : IVoiceProvider
         }
     }
 
-    private Task KickParticipantFromMeetingAsync(string meetingId, string customParticipantId)
+    private async Task KickParticipantFromMeetingAsync(string meetingId, string customParticipantId)
     {
-        return KickParticipantsFromMeetingAsync(meetingId, new[] { customParticipantId });
+        await KickParticipantsFromMeetingAsync(meetingId, new[] { customParticipantId });
+
+        var participantRecords = await GetMeetingParticipantsAsync(meetingId);
+        if (!participantRecords.Success || participantRecords.Data is null)
+            return;
+
+        await DeleteParticipantRecordsAsync(
+            meetingId,
+            participantRecords.Data
+                .Where(participant => string.Equals(
+                    participant.CustomParticipantId,
+                    customParticipantId,
+                    StringComparison.Ordinal))
+                .Select(participant => participant.Id));
+    }
+
+    private static bool IsParticipantForUser(string customParticipantId, long userId)
+    {
+        var userIdText = userId.ToString();
+        return string.Equals(customParticipantId, userIdText, StringComparison.Ordinal) ||
+               customParticipantId.StartsWith($"{userIdText}:", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Removes durable participant records after ejecting their active peers. RealtimeKit
+    /// participant tokens can otherwise be reused to join another session for the same meeting.
+    /// </summary>
+    private async Task DeleteParticipantRecordsAsync(string meetingId, IEnumerable<string> participantIds)
+    {
+        foreach (var participantId in participantIds
+                     .Where(id => !string.IsNullOrWhiteSpace(id))
+                     .Distinct(StringComparer.Ordinal))
+        {
+            var endpoint = BuildEndpoint(
+                $"meetings/{Uri.EscapeDataString(meetingId)}/participants/{Uri.EscapeDataString(participantId)}");
+            var request = new HttpRequestMessage(HttpMethod.Delete, endpoint);
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+
+            var result = await SendCommandAsync(request, "delete meeting participant");
+            if (!result.Success)
+            {
+                _logger.LogDebug(
+                    "Failed to delete participant record {ParticipantId} from meeting {MeetingId}: {Message}",
+                    participantId,
+                    meetingId,
+                    result.Message);
+            }
+        }
     }
 
     /// <summary>
@@ -453,6 +507,7 @@ public class RealtimeKitService : IVoiceProvider
         {
             if (session is null ||
                 string.IsNullOrWhiteSpace(session.AssociatedId) ||
+                _meetingIdsByChannel.Values.Contains(session.AssociatedId) ||
                 session.LiveParticipants >= minParticipants ||
                 !IsPastOrphanSessionGracePeriod(session))
             {
@@ -956,15 +1011,90 @@ public class RealtimeKitService : IVoiceProvider
         if (!IsConfigured)
             return TaskResult<List<CloudflareSessionParticipantInfo>>.FromFailure("RealtimeKit is not configured.");
 
-        var endpoint = BuildEndpoint($"sessions/{sessionId}/participants?per_page=500");
-        var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
-        request.Headers.Authorization =
-            new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+        const int pageSize = 200;
+        var participants = new List<CloudflareSessionParticipantInfo>();
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        for (var page = 1; ; page++)
+        {
+            var endpoint = BuildEndpoint($"sessions/{Uri.EscapeDataString(sessionId)}/participants?per_page={pageSize}&page_no={page}");
+            var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+            var result = await SendAsync<CloudflareSessionParticipantsResult, CloudflareSessionParticipantsResult>(
+                request, data => data, "list session participants");
+            if (!result.Success)
+                return TaskResult<List<CloudflareSessionParticipantInfo>>.FromFailure(result);
 
-        return await SendAsync<CloudflareSessionParticipantsResult, List<CloudflareSessionParticipantInfo>>(
-            request,
-            data => data.Participants ?? new List<CloudflareSessionParticipantInfo>(),
-            "list session participants");
+            var batch = result.Data.Participants ?? [];
+            var previousCount = participants.Count;
+            foreach (var participant in batch)
+            {
+                if (participant is not null && seenIds.Add(participant.Id))
+                    participants.Add(participant);
+            }
+
+            var totalCount = result.Data.Paging?.TotalCount;
+            if (totalCount.HasValue && participants.Count >= totalCount.Value ||
+                !totalCount.HasValue && batch.Count < pageSize)
+                return TaskResult<List<CloudflareSessionParticipantInfo>>.FromData(participants);
+
+            if (participants.Count == previousCount)
+                return TaskResult<List<CloudflareSessionParticipantInfo>>.FromFailure("The participant list was incomplete. Reconciliation was skipped.");
+        }
+    }
+
+    private async Task<TaskResult<List<CloudflareMeetingParticipantInfo>>> GetMeetingParticipantsAsync(
+        string meetingId)
+    {
+        if (!IsConfigured)
+        {
+            return TaskResult<List<CloudflareMeetingParticipantInfo>>.FromFailure(
+                "RealtimeKit is not configured.");
+        }
+
+        const int pageSize = 100;
+        var participants = new List<CloudflareMeetingParticipantInfo>();
+        var seenParticipantIds = new HashSet<string>(StringComparer.Ordinal);
+
+        for (var pageNumber = 1; ; pageNumber++)
+        {
+            var endpoint = BuildEndpoint(
+                $"meetings/{Uri.EscapeDataString(meetingId)}/participants?per_page={pageSize}&page_no={pageNumber}");
+            var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+
+            var pageResult = await SendWrapperAsync<List<CloudflareMeetingParticipantInfo>>(
+                request,
+                "list meeting participants");
+            if (!pageResult.Success || pageResult.Data is null)
+                return TaskResult<List<CloudflareMeetingParticipantInfo>>.FromFailure(pageResult);
+
+            var pageParticipants = pageResult.Data.Result ?? new List<CloudflareMeetingParticipantInfo>();
+            var addedCount = 0;
+            foreach (var participant in pageParticipants)
+            {
+                if (participant is null ||
+                    string.IsNullOrWhiteSpace(participant.Id) ||
+                    !seenParticipantIds.Add(participant.Id))
+                {
+                    continue;
+                }
+
+                participants.Add(participant);
+                addedCount++;
+            }
+
+            var totalCount = pageResult.Data.Paging?.TotalCount;
+            if (pageParticipants.Count == 0 ||
+                addedCount == 0 ||
+                pageParticipants.Count < pageSize ||
+                (totalCount.HasValue && participants.Count >= totalCount.Value))
+            {
+                break;
+            }
+        }
+
+        return TaskResult<List<CloudflareMeetingParticipantInfo>>.FromData(participants);
     }
 
     private async Task<TaskResult<TOut>> SendAsync<TCloudflare, TOut>(
@@ -1271,6 +1401,15 @@ public class RealtimeKitService : IVoiceProvider
         public string Token { get; set; } = string.Empty;
     }
 
+    private sealed class CloudflareMeetingParticipantInfo
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("custom_participant_id")]
+        public string CustomParticipantId { get; set; } = string.Empty;
+    }
+
     private sealed class ParticipantTokenResult
     {
         public string ParticipantId { get; set; } = string.Empty;
@@ -1315,6 +1454,9 @@ public class RealtimeKitService : IVoiceProvider
 
     private sealed class CloudflareSessionParticipantsResult
     {
+        [JsonPropertyName("paging")]
+        public CloudflarePaging? Paging { get; set; }
+
         [JsonPropertyName("participants")]
         public List<CloudflareSessionParticipantInfo>? Participants { get; set; }
     }

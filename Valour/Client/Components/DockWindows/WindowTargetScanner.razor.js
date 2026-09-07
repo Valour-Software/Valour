@@ -1,8 +1,17 @@
 export const init = () => {
+    let disposed = false;
     const service = {
+        dispose: () => {
+            disposed = true;
+            document.removeEventListener('dragover', onDragOver, true);
+            service.currentTarget?.classList.remove('w-target-active');
+            service.currentTarget = null;
+        },
         scanTimer: 0,
         currentTarget: null,
         scan: (mouseX, mouseY) => {
+            if (disposed)
+                return;
             // Optimize scan to only run every 5th frame
             service.scanTimer++;
             if (service.scanTimer < 5) {
@@ -38,6 +47,8 @@ export const init = () => {
             }
         },
         finalize: (mouseX, mouseY) => {
+            if (disposed)
+                return;
             if (service.currentTarget) {
                 const ev = new MouseEvent('click', {
                     'view': window,
@@ -51,6 +62,22 @@ export const init = () => {
             }
         }
     };
+    // clientX/clientY on the relayed @ondrag event don't track the real
+    // cursor for native drags, so scan() above misses channel drags -
+    // dragover always has the real hovered element. Capture phase because
+    // .drop-targets calls stopPropagation() on the bubble.
+    const onDragOver = (e) => {
+        if (disposed)
+            return;
+        const hit = e.target?.closest?.('.w-drop-target');
+        if (hit === service.currentTarget) {
+            return;
+        }
+        service.currentTarget?.classList.remove('w-target-active');
+        service.currentTarget = hit;
+        service.currentTarget?.classList.add('w-target-active');
+    };
+    document.addEventListener('dragover', onDragOver, true);
     return service;
 };
 //# sourceMappingURL=WindowTargetScanner.razor.js.map

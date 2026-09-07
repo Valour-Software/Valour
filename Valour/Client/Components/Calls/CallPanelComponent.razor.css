@@ -767,3 +767,181 @@
     color: var(--color-warning, #e0a030);
     margin-top: 2px;
 }
+
+.call-panel.nearby-mode {
+    height: auto;
+    background: transparent;
+}
+
+.nearby-people {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.nearby-avatar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: min(65cqh, 540px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding: 4px;
+}
+
+.nearby-person {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    opacity: .45;
+    transition: opacity 160ms ease;
+}
+
+.nearby-person.speaking,
+.nearby-person:hover,
+.nearby-person:focus-within {
+    opacity: 1;
+}
+
+.nearby-avatar {
+    object-fit: cover;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--main-2);
+    border: 2px solid var(--slight-tint);
+}
+
+.nearby-person.speaking .nearby-avatar {
+    object-fit: cover;
+    border-color: var(--color-success);
+    box-shadow: 0 0 0 2px var(--color-success-soft);
+}
+
+.nearby-video-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.nearby-video-buttons:empty,
+.nearby-avatar-list:empty {
+    display: none;
+}
+
+.nearby-video-button,
+.nearby-options-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--main-2) 75%, transparent);
+    color: var(--font-color);
+    cursor: pointer;
+}
+
+.nearby-video-button.selected {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.nearby-options-button {
+    opacity: .6;
+}
+
+.nearby-options-button:hover,
+.nearby-options-button:focus-visible {
+    opacity: 1;
+}
+
+.nearby-video-button:focus-visible,
+.nearby-options-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.nearby-controls,
+.nearby-video-popout {
+    position: absolute;
+    right: calc(100% + 10px);
+    width: min(320px, calc(100cqw - 100px));
+    border: 1px solid var(--medium-tint);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--main-2) 92%, transparent);
+    box-shadow: 0 8px 24px #0005;
+}
+
+.nearby-controls {
+    bottom: 0;
+    width: max-content;
+    max-width: calc(100cqw - 100px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    z-index: 2;
+}
+
+.nearby-video-popout {
+    top: 50%;
+    transform: translateY(-50%);
+    overflow: hidden;
+}
+
+.nearby-video-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    gap: 8px;
+    font-size: var(--font-size-sm);
+}
+
+.nearby-video-heading span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nearby-video-heading button {
+    border: 0;
+    color: var(--font-color);
+    background: transparent;
+    min-width: 32px;
+    min-height: 32px;
+    cursor: pointer;
+}
+
+.nearby-video-popout .video-tile {
+    aspect-ratio: 16 / 9;
+    min-height: 0;
+    border-radius: 0;
+}
+
+.nearby-mode > .custom-media-warning,
+.nearby-mode > .call-error,
+.nearby-mode > .call-controls {
+    width: min(320px, calc(100cqw - 100px));
+    align-self: flex-end;
+    background: var(--main-2);
+    border-radius: var(--radius-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nearby-person { transition: none; }
+}
+
+.nearby-call-status {
+    font-size: var(--font-size-xs);
+    color: var(--font-color);
+    align-self: center;
+}

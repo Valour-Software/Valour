@@ -1,12 +1,12 @@
 @inject ValourClient Client
+<div class="settings-page">
 <div class="editor-section">
     <h3 class="editor-section-title">
         <i class="bi bi-robot"></i>
         Bot Accounts
     </h3>
-    <p class="subtitle">Create and manage bot accounts for automation and integrations</p>
 
-    <div class="bot-actions">
+    <div class="settings-toolbar">
         <button class="v-btn primary" @onclick="OnCreateBot" disabled="@(_bots is not null && _bots.Count >= 10)">
             <i class="bi bi-plus-circle"></i>
             Create New Bot
@@ -19,38 +19,38 @@
 
     @if (_bots is null)
     {
-        <div class="loading-state">
+        <div class="settings-empty" role="status">
             <i class="bi bi-arrow-clockwise"></i>
             <p>Loading your bots...</p>
         </div>
     }
     else if (_bots.Count == 0)
     {
-        <div class="empty-state">
+        <div class="settings-empty">
             <i class="bi bi-robot"></i>
             <h4>No Bot Accounts</h4>
             <p>You haven't created any bot accounts yet. Create your first bot to start building integrations with Valour.</p>
-            <button class="v-btn primary" @onclick="OnCreateBot">Create Your First Bot</button>
+
         </div>
     }
     else
     {
-        <div class="bots-grid">
+        <div class="settings-list">
             @foreach (var bot in _bots)
             {
-                <div class="bot-card" @onclick="() => OnEditBot(bot)">
-                    <div class="bot-icon">
+                <button type="button" class="settings-row settings-row-button" @onclick="() => OnEditBot(bot)" aria-label="Edit @bot.Name">
+                    <div class="settings-row-icon">
                         <img src="@GetBotAvatar(bot)" alt="@bot.Name" onerror="this.src='_content/Valour.Client/media/user-icons/icon-0.webp'" />
                     </div>
-                    <div class="bot-info">
-                        <h4 class="bot-name">@bot.Name</h4>
-                        <p class="bot-tag">#@bot.Tag</p>
-                        <p class="bot-id">ID: @bot.Id</p>
+                    <div class="settings-row-copy">
+                        <h4 class="settings-row-title">@bot.Name</h4>
+                        <p class="settings-row-description">#@bot.Tag</p>
+                        <p class="settings-row-description">ID: @bot.Id</p>
                     </div>
-                    <div class="bot-actions-icon">
+                    <div class="settings-row-action">
                         <i class="bi bi-chevron-right"></i>
                     </div>
-                </div>
+                </button>
             }
         </div>
     }
@@ -61,24 +61,11 @@
         <i class="bi bi-info-circle"></i>
         About Bots
     </h3>
-    <p class="subtitle">Learn how to use bots with Valour</p>
 
-    <div class="bot-info-section">
-        <div class="info-item">
-            <h4>What are bots?</h4>
-            <p>Bots are automated accounts that can interact with Valour on your behalf. They can send messages, respond to commands, and integrate with external services.</p>
-        </div>
+    <p class="helper-text">Bots are automated accounts that can join planets, send messages, and respond to commands through the Valour SDK. Keep each bot's token private. Regenerate it if someone else gains access.</p>
 
-        <div class="info-item">
-            <h4>How to use your bot</h4>
-            <p>Use your bot's token with the Valour SDK to authenticate. Your bot can then join planets, send messages, and respond to events.</p>
-        </div>
+</div>
 
-        <div class="info-item">
-            <h4>Security</h4>
-            <p>Keep your bot token secret! Anyone with access to it can control your bot. If your token is compromised, regenerate it immediately.</p>
-        </div>
-    </div>
 </div>
 
 @code {

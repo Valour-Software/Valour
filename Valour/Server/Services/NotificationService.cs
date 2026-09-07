@@ -135,15 +135,30 @@ public class NotificationService
         notification.UserId = userId;
         notification.TimeSent = DateTime.UtcNow;
         
-        if (!await IsNotificationSourceEnabledForUserAsync(userId, notification.Source))
+        if (!await _db.Users.AnyAsync(x => x.Id == userId) ||
+            !await IsNotificationSourceEnabledForUserAsync(userId, notification.Source))
             return;
 
         notification.Id = Guid.NewGuid();
 
         notification.Body ??= "";
-        
-        await _db.Notifications.AddAsync(notification.ToDatabase());
-        await _db.SaveChangesAsync();
+        notification.Title ??= "";
+        notification.ImageUrl ??= "";
+        notification.ClickUrl ??= "/";
+
+        var entity = notification.ToDatabase();
+        await _db.Notifications.AddAsync(entity);
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception ex) when (ex.GetBaseException() is Npgsql.PostgresException
+                                   { SqlState: Npgsql.PostgresErrorCodes.ForeignKeyViolation, TableName: "notifications" })
+        {
+            // A recipient or source can disappear while this notification is queued.
+            _db.Entry(entity).State = EntityState.Detached;
+            return;
+        }
         
         _coreHub.RelayNotification(notification, _nodeLifecycleService);
 
@@ -568,7 +583,7 @@ public class NotificationService
     /// Replaces all mention tags («@m-123», «@u-123», «@r-123», «@c-123») in message
     /// content with readable names so notifications don't show raw tags or bare '@'.
     /// </summary>
-    private async Task<string> ReplaceMentionTagsAsync(string? content)
+    internal async Task<string> ReplaceMentionTagsAsync(string? content)
     {
         if (string.IsNullOrEmpty(content) || !content.Contains('«'))
             return content ?? string.Empty;

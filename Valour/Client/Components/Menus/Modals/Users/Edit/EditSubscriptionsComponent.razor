@@ -2,18 +2,29 @@
 @inject NavigationManager NavManager
 @inject ValourClient Client
 
+<div class="settings-page subscriptions-page">
+<fieldset class="subscription-controls" disabled="@_busy" aria-busy="@(_busy || _loading)">
 @if (Client.InstanceManifest is not null && !Client.InstanceManifest.Capabilities.Payments)
 {
-    <h4 class="title">Subscriptions</h4>
-    <p class="mt-4">Subscriptions are not available on this instance.</p>
+    <div class="editor-section"><p class="helper-text">Subscriptions are not available on this instance.</p></div>
+}
+else if (_loading)
+{
+    <div class="editor-section" role="status"><p class="helper-text">Loading your subscription...</p></div>
+}
+else if (_loadError is not null)
+{
+    <div class="editor-section" role="alert">
+        <p class="helper-text">@_loadError</p>
+        <button type="button" class="v-btn secondary" @onclick="OnInitializedAsync">Try again</button>
+    </div>
 }
 else if (_page == SubPage.Redirecting)
 {
-    <h4 class="title">Subscriptions</h4>
-    <h5 class="subtitle">@_redirectingMessage</h5>
 
-    <div class="redirecting-container mt-4">
-        <h3 style="color: var(--color-secondary);">Redirecting to checkout...</h3>
+
+    <div class="editor-section" role="status">
+        <h3 class="editor-section-title">@_redirectingMessage</h3>
         <p>@_redirectingDetail</p>
 
         @if (!string.IsNullOrWhiteSpace(_errorSpan))
@@ -26,11 +37,9 @@ else if (_page == SubPage.Redirecting)
 }
 else if (_page == SubPage.StripeResult)
 {
-    <h4 class="title">Subscriptions</h4>
 
-    <div class="result-container mt-4">
-        <h3 style="color: var(--color-secondary);">@_stripeResultTitle</h3>
-        <br />
+    <div class="editor-section" role="status">
+        <h3 class="editor-section-title">@_stripeResultTitle</h3>
         <p>@_stripeResultMessage</p>
 
         <button class="v-btn mt-4" @onclick="BackToMain">Back to Subscriptions</button>
@@ -38,10 +47,12 @@ else if (_page == SubPage.StripeResult)
 }
 else
 {
+    <section class="editor-section">
+        <h3 class="editor-section-title"><i class="bi bi-credit-card"></i>Your subscription</h3>
     @* Active Subscription Banner *@
     @if (_activeSub is not null)
     {
-        <div class="active-banner @GetBannerStatusClass()">
+        <div class="settings-row active-banner @GetBannerStatusClass()">
             <div class="banner-content">
                 <div class="banner-info">
                     <div class="banner-header">
@@ -69,7 +80,7 @@ else
                     }
                     @if (_activeSub.Cancelled && _activeSub.StripeSubscriptionId is null)
                     {
-                        <button class="v-btn primary" @onclick="OnClickReactivate">Re-activate</button>
+                        <button class="v-btn primary" @onclick="OnClickReactivate">Reactivate</button>
                     }
                     else if (!_activeSub.Cancelled)
                     {
@@ -82,7 +93,7 @@ else
                             <span class="cancel-confirm-text">Are you sure?</span>
                             <div class="cancel-confirm-buttons">
                                 <button class="v-btn danger" @onclick="OnConfirmCancel">Yes, Cancel</button>
-                                <button class="v-btn" @onclick="() => { _confirmingCancel = false; StateHasChanged(); }">Keep It</button>
+                                <button class="v-btn" @onclick="() => { _confirmingCancel = false; StateHasChanged(); }">Keep subscription</button>
                             </div>
                         }
                     }
@@ -90,16 +101,26 @@ else
             </div>
             @if (!string.IsNullOrWhiteSpace(_errorSpan) && _selectedTier is null)
             {
-                <span class="v-text-red mt-2" style="display: block; padding: 0 1rem 1rem;">@_errorSpan</span>
+                <span class="v-text-red mt-2" role="alert">@_errorSpan</span>
             }
         </div>
     }
 
+    else
+    {
+        <p class="helper-text">You do not have an active subscription. Choose a plan below to support Valour and unlock profile features.</p>
+    }
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(_errorSpan) && _activeSub is null && _selectedTier is null)
+    {
+        <p class="v-text-red" role="alert">@_errorSpan</p>
+    }
     @* Subscription Tiers *@
     <div class="editor-section">
         <div class="editor-section-title">
             <i class="bi bi-star-fill"></i>
-            SUBSCRIPTION TIERS
+            Plans
         </div>
 
         <div class="tier-grid">
@@ -111,7 +132,7 @@ else
                 var tierAction = GetTierAction(tier);
 
                 <div class="tier-card @(isActive ? "active" : "") @(isPending ? "pending" : "") @(isExpanded ? "expanded" : "")">
-                    <img alt="@tier.Name logo" class="tier-img" src="@GetTierImage(tier.Name)" />
+                    <div class="tier-summary">
                     <div class="tier-header">
                         <span class="tier-name">@tier.Name</span>
                         @if (isActive)
@@ -124,17 +145,21 @@ else
                         }
                     </div>
                     <div class="tier-pricing">
-                        <span class="tier-price-vc">@tier.Price VC/mo</span>
-                        <span class="tier-price-usd">$@((tier.StripePriceCents / 100m).ToString("0.00"))/mo</span>
+                        <span class="tier-price-vc">@tier.Price  VC / month</span>
+                        <span class="tier-price-usd">$@((tier.StripePriceCents / 100m).ToString("0.00")) / month</span>
                     </div>
                     <p class="tier-desc">@tier.Description</p>
+                    <details class="tier-benefits">
+                        <summary>Included features</summary>
                     <ul class="tier-perks">
                         @foreach (var perk in GetPerks(tier.Name))
                         {
                             <li>@perk</li>
                         }
                     </ul>
-
+                    </details>
+                    </div>
+                    <div class="tier-actions">
                     @if (isActive || isPending)
                     {
                         @if (_activeSub.PendingType is not null && isPending)
@@ -147,7 +172,7 @@ else
 
                         @if (isActive && _activeSub.StripeSubscriptionId is null)
                         {
-                            <button class="v-btn tertiary tier-subscribe-btn" @onclick="() => OnClickStripeSubscribe(tier)">
+                            <button class="v-btn secondary tier-subscribe-btn" @onclick="() => OnClickStripeSubscribe(tier)">
                                 Switch to Card Billing
                             </button>
                             <span class="upgrade-note">Keep this tier, move billing to Stripe, and apply your unused VC time as first-month credit.</span>
@@ -158,22 +183,22 @@ else
                         @* New subscription — show payment choice *@
                         <div class="payment-choice">
                             <button class="v-btn primary" @onclick="() => OnClickSubscribe(tier)">
-                                Pay with VC (@tier.Price VC/mo)
+                                Pay with VC (@tier.Price  VC / month)
                             </button>
                             @if (_globalAccount is not null && _globalAccount.BalanceValue < _dueNow)
                             {
-                                <span class="balance-warning">Balance: @(_globalAccount.BalanceValue)VC (not enough)</span>
+                                <span class="balance-warning">Balance: @(_globalAccount.BalanceValue) VC (not enough)</span>
                             }
                             else if (_dueNow != tier.Price)
                             {
-                                <span class="upgrade-note">Due now: @(_dueNow)VC (upgrade credit applied)</span>
+                                <span class="upgrade-note">Due now: @(_dueNow) VC (upgrade credit applied)</span>
                             }
 
-                            <button class="v-btn tertiary" @onclick="() => OnClickStripeSubscribe(tier)">
-                                Pay with Card ($@((tier.StripePriceCents / 100m).ToString("0.00"))/mo + @(tier.VcReward)VC reward!)
+                            <button class="v-btn secondary" @onclick="() => OnClickStripeSubscribe(tier)">
+                                Pay with Card ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
                             </button>
 
-                            <button class="v-btn" @onclick="() => { _selectedTier = null; _errorSpan = null; StateHasChanged(); }">Nevermind</button>
+                            <button class="v-btn" @onclick="() => { _selectedTier = null; _errorSpan = null; StateHasChanged(); }">Back</button>
 
                             @if (!string.IsNullOrWhiteSpace(_errorSpan))
                             {
@@ -188,27 +213,27 @@ else
                             @if (_activeSub.StripeSubscriptionId is not null)
                             {
                                 <button class="v-btn primary" @onclick="() => OnClickStripeChange(tier)">
-                                    Confirm Upgrade ($@((tier.StripePriceCents / 100m).ToString("0.00"))/mo)
+                                    Confirm Upgrade ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month)
                                 </button>
                                 <span class="upgrade-note">Prorated charges will apply for the current period.</span>
                             }
                             else
                             {
                                 <button class="v-btn primary" @onclick="() => OnClickSubscribe(tier)">
-                                    Confirm Upgrade (@(_dueNow)VC due now)
+                                    Confirm Upgrade (@(_dueNow) VC due now)
                                 </button>
                                 @if (_globalAccount is not null && _globalAccount.BalanceValue < _dueNow)
                                 {
-                                    <span class="balance-warning">Balance: @(_globalAccount.BalanceValue)VC (not enough)</span>
+                                    <span class="balance-warning">Balance: @(_globalAccount.BalanceValue) VC (not enough)</span>
                                 }
 
-                                <button class="v-btn tertiary" @onclick="() => OnClickStripeSubscribe(tier)">
-                                    Switch to Card Billing ($@((tier.StripePriceCents / 100m).ToString("0.00"))/mo + @(tier.VcReward)VC reward!)
+                                <button class="v-btn secondary" @onclick="() => OnClickStripeSubscribe(tier)">
+                                    Switch to Card Billing ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
                                 </button>
                                 <span class="upgrade-note">Use Stripe billing, with unused VC time credited on your first Stripe month.</span>
                             }
 
-                            <button class="v-btn" @onclick="() => { _selectedTier = null; _errorSpan = null; StateHasChanged(); }">Nevermind</button>
+                            <button class="v-btn" @onclick="() => { _selectedTier = null; _errorSpan = null; StateHasChanged(); }">Back</button>
 
                             @if (!string.IsNullOrWhiteSpace(_errorSpan))
                             {
@@ -232,8 +257,8 @@ else
                                     Confirm Downgrade
                                 </button>
 
-                                <button class="v-btn tertiary" @onclick="() => OnClickStripeSubscribe(tier)">
-                                    Switch to Card Billing ($@((tier.StripePriceCents / 100m).ToString("0.00"))/mo + @(tier.VcReward)VC reward!)
+                                <button class="v-btn secondary" @onclick="() => OnClickStripeSubscribe(tier)">
+                                    Switch to Card Billing ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
                                 </button>
                             }
                             @if (_activeSub.StripeSubscriptionId is not null)
@@ -245,7 +270,7 @@ else
                                 <span class="upgrade-note">VC downgrade takes effect next cycle. Stripe switch applies after checkout.</span>
                             }
 
-                            <button class="v-btn" @onclick="() => { _selectedTier = null; _errorSpan = null; StateHasChanged(); }">Nevermind</button>
+                            <button class="v-btn" @onclick="() => { _selectedTier = null; _errorSpan = null; StateHasChanged(); }">Back</button>
 
                             @if (!string.IsNullOrWhiteSpace(_errorSpan))
                             {
@@ -265,6 +290,7 @@ else
                     {
                         <button class="v-btn tier-subscribe-btn" @onclick="async () => await OnSelectTier(tier)">Downgrade</button>
                     }
+                    </div>
                 </div>
             }
         </div>
@@ -274,33 +300,38 @@ else
     <div class="editor-section">
         <div class="editor-section-title">
             <i class="bi bi-coin"></i>
-            BUY VALOUR CREDITS
+            Valour Credits
         </div>
 
+        <p class="helper-text">Use Valour Credits for subscriptions and the community economy. Purchases open secure checkout.</p>
+        @if (_globalAccount is not null)
+        {
+            <p class="credit-balance">Your balance: <strong>@_globalAccount.BalanceValue VC</strong></p>
+        }
         <div class="vc-grid">
-            <div class="vc-card" @onclick="async () => await OnClickBuyCredits(500)">
-                <img alt="500 VC" class="vc-img" src="_content/Valour.Client/media/subscriptions/credits_1.webp" />
+            <button type="button" class="vc-card" @onclick="async () => await OnClickBuyCredits(500)">
                 <span class="vc-amount">500 VC</span>
                 <span class="vc-price">$5</span>
-                <span class="vc-desc">$1 / 100VC</span>
-            </div>
-            <div class="vc-card" @onclick="async () => await OnClickBuyCredits(1000)">
-                <img alt="1000 VC" class="vc-img" src="_content/Valour.Client/media/subscriptions/credits_2.webp" />
+                <span class="vc-desc">$1 / 100 VC</span>
+            </button>
+            <button type="button" class="vc-card" @onclick="async () => await OnClickBuyCredits(1000)">
                 <span class="vc-amount">1000 VC</span>
                 <span class="vc-price">$9.50</span>
                 <span class="vc-savings">Save 5%</span>
-                <span class="vc-desc">$0.95 / 100VC</span>
-            </div>
-            <div class="vc-card" @onclick="async () => await OnClickBuyCredits(2000)">
-                <img alt="2000 VC" class="vc-img" src="_content/Valour.Client/media/subscriptions/credits_3.webp" />
+                <span class="vc-desc">$0.95 / 100 VC</span>
+            </button>
+            <button type="button" class="vc-card" @onclick="async () => await OnClickBuyCredits(2000)">
                 <span class="vc-amount">2000 VC</span>
                 <span class="vc-price">$18</span>
                 <span class="vc-savings">Save 10%</span>
-                <span class="vc-desc">$0.90 / 100VC</span>
-            </div>
+                <span class="vc-desc">$0.90 / 100 VC</span>
+            </button>
         </div>
     </div>
 }
+
+</fieldset>
+</div>
 
 <div class="page-wrapper">
     <div class="top-confetti-container"></div>
@@ -316,6 +347,9 @@ else
     private SubPage _page = SubPage.Main;
     private UserSubscriptionType _selectedTier = null;
     private bool _confirmingCancel = false;
+    private bool _loading = true;
+    private bool _busy;
+    private string _loadError;
 
     private EcoAccount _globalAccount = null;
     private UserSubscription _activeSub = null;
@@ -337,37 +371,56 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _globalAccount = await Client.EcoService.GetSelfGlobalAccountAsync();
-        _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
+        if (Client.InstanceManifest?.Capabilities.Payments == false)
+        {
+            _loading = false;
+            return;
+        }
 
-        // Check for Stripe return query params
-        var uri = new Uri(NavManager.Uri);
-        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        var stripeResult = query["stripe"];
-        if (stripeResult == "success")
+        _loading = true;
+        _loadError = null;
+        try
         {
-            _page = SubPage.StripeResult;
-            _stripeResultTitle = "Thank you for your purchase!";
-            _stripeResultMessage = "Your Valour Credits will be delivered to your account shortly.";
-        }
-        else if (stripeResult == "cancel")
-        {
-            _page = SubPage.StripeResult;
-            _stripeResultTitle = "Purchase Cancelled";
-            _stripeResultMessage = "Your purchase was cancelled. No charges were made.";
-        }
-        else if (stripeResult == "sub_success")
-        {
-            _page = SubPage.StripeResult;
-            _stripeResultTitle = "Subscription Activated!";
-            _stripeResultMessage = "Your subscription is now active. Thank you for supporting Valour!";
+            _globalAccount = await Client.EcoService.GetSelfGlobalAccountAsync();
             _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
+
+            // Check for Stripe return query params
+            var uri = new Uri(NavManager.Uri);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            var stripeResult = query["stripe"];
+            if (stripeResult == "success")
+            {
+                _page = SubPage.StripeResult;
+                _stripeResultTitle = "Thank you for your purchase!";
+                _stripeResultMessage = "Your Valour Credits will be delivered to your account shortly.";
+            }
+            else if (stripeResult == "cancel")
+            {
+                _page = SubPage.StripeResult;
+                _stripeResultTitle = "Purchase Cancelled";
+                _stripeResultMessage = "Your purchase was cancelled. No charges were made.";
+            }
+            else if (stripeResult == "sub_success")
+            {
+                _page = SubPage.StripeResult;
+                _stripeResultTitle = "Subscription Activated!";
+                _stripeResultMessage = "Your subscription is now active. Thank you for supporting Valour!";
+                _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
+            }
+            else if (stripeResult == "sub_cancel")
+            {
+                _page = SubPage.StripeResult;
+                _stripeResultTitle = "Subscription Setup Cancelled";
+                _stripeResultMessage = "Your subscription setup was cancelled. No charges were made.";
+            }
         }
-        else if (stripeResult == "sub_cancel")
+        catch (Exception)
         {
-            _page = SubPage.StripeResult;
-            _stripeResultTitle = "Subscription Setup Cancelled";
-            _stripeResultMessage = "Your subscription setup was cancelled. No charges were made.";
+            _loadError = "Could not load your subscription. Please try again.";
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 
@@ -390,139 +443,230 @@ else
 
     private async Task OnSelectTier(UserSubscriptionType tier)
     {
-        _selectedTier = tier;
-        _errorSpan = null;
-        _dueNow = tier.Price;
-        _dueNow = await Client.SubscriptionService.GetSubscriptionPriceAsync(tier.Name);
-        StateHasChanged();
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            _selectedTier = tier;
+            _errorSpan = null;
+            _dueNow = tier.Price;
+            _dueNow = await Client.SubscriptionService.GetSubscriptionPriceAsync(tier.Name);
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            _errorSpan = "Could not complete the request. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task OnClickSubscribe(UserSubscriptionType tier)
     {
-        _errorSpan = null;
-
-        var result = await Client.SubscriptionService.SubscribeAsync(tier.Name);
-        if (!result.Success)
+        if (_busy) return;
+        _busy = true;
+        try
         {
-            _errorSpan = result.Message;
+            _errorSpan = null;
+
+            var result = await Client.SubscriptionService.SubscribeAsync(tier.Name);
+            if (!result.Success)
+            {
+                _errorSpan = result.Message;
+                StateHasChanged();
+                return;
+            }
+
+            Client.Me.SubscriptionType = tier.Name;
+            await _jsModule.InvokeVoidAsync("init");
+
+            _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
+            _selectedTier = null;
             StateHasChanged();
-            return;
         }
-
-        Client.Me.SubscriptionType = tier.Name;
-        await _jsModule.InvokeVoidAsync("init");
-
-        _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
-        _selectedTier = null;
-        StateHasChanged();
+        catch (Exception)
+        {
+            _errorSpan = "Could not complete the request. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task OnClickStripeSubscribe(UserSubscriptionType tier)
     {
-        var isVcToStripeMigration = _activeSub is not null
-                                    && _activeSub.StripeSubscriptionId is null;
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            var isVcToStripeMigration = _activeSub is not null
+            && _activeSub.StripeSubscriptionId is null;
 
-        _page = SubPage.Redirecting;
-        _redirectingMessage = isVcToStripeMigration
+            _page = SubPage.Redirecting;
+            _redirectingMessage = isVcToStripeMigration
             ? "Switching to card billing..."
             : "Setting up your subscription...";
-        _redirectingDetail = isVcToStripeMigration
+            _redirectingDetail = isVcToStripeMigration
             ? $"You will be redirected to Stripe to switch from VC billing to the {tier.Name} card subscription. Any unused VC billing time will be credited on your first month."
             : $"You will be redirected to Stripe to set up your {tier.Name} subscription.";
-        _errorSpan = null;
-        StateHasChanged();
-
-        var response = await Client.PrimaryNode.PostAsyncWithResponse<CheckoutResponse>($"api/stripe/subscribe/{tier.Name}");
-        if (!response.Success || response.Data?.SessionUrl is null)
-        {
-            _errorSpan = response.Message ?? "Failed to create checkout session.";
+            _errorSpan = null;
             StateHasChanged();
-            return;
-        }
 
-        NavManager.NavigateTo(response.Data.SessionUrl, forceLoad: true);
+            var response = await Client.PrimaryNode.PostAsyncWithResponse<CheckoutResponse>($"api/stripe/subscribe/{tier.Name}");
+            if (!response.Success || response.Data?.SessionUrl is null)
+            {
+                _errorSpan = response.Message ?? "Failed to create checkout session.";
+                StateHasChanged();
+                return;
+            }
+
+            NavManager.NavigateTo(response.Data.SessionUrl, forceLoad: true);
+        }
+        catch (Exception)
+        {
+            _errorSpan = "Could not complete the request. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task OnConfirmCancel()
     {
-        _errorSpan = null;
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            _errorSpan = null;
 
-        TaskResult result;
-        if (_activeSub.StripeSubscriptionId is not null)
-        {
-            result = await Client.SubscriptionService.CancelStripeSubscriptionAsync();
-        }
-        else
-        {
-            result = await Client.SubscriptionService.UnsubscribeAsync();
-        }
+            TaskResult result;
+            if (_activeSub.StripeSubscriptionId is not null)
+            {
+                result = await Client.SubscriptionService.CancelStripeSubscriptionAsync();
+            }
+            else
+            {
+                result = await Client.SubscriptionService.UnsubscribeAsync();
+            }
 
-        if (!result.Success)
-        {
-            _errorSpan = result.Message;
+            if (!result.Success)
+            {
+                _errorSpan = result.Message;
+                StateHasChanged();
+                return;
+            }
+
+            _activeSub.Cancelled = true;
+            _confirmingCancel = false;
             StateHasChanged();
-            return;
         }
-
-        _activeSub.Cancelled = true;
-        _confirmingCancel = false;
-        StateHasChanged();
+        catch (Exception)
+        {
+            _errorSpan = "Could not complete the request. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task OnClickReactivate()
     {
-        _errorSpan = null;
-
-        var type = UserSubscriptionTypes.TypeMap.GetValueOrDefault(_activeSub.Type);
-        if (type is null) return;
-
-        var result = await Client.SubscriptionService.SubscribeAsync(type.Name);
-        if (!result.Success)
+        if (_busy) return;
+        _busy = true;
+        try
         {
-            _errorSpan = result.Message;
-            StateHasChanged();
-            return;
-        }
+            _errorSpan = null;
 
-        _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
-        StateHasChanged();
+            var type = UserSubscriptionTypes.TypeMap.GetValueOrDefault(_activeSub.Type);
+            if (type is null) return;
+
+            var result = await Client.SubscriptionService.SubscribeAsync(type.Name);
+            if (!result.Success)
+            {
+                _errorSpan = result.Message;
+                StateHasChanged();
+                return;
+            }
+
+            _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            _errorSpan = "Could not complete the request. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task OnClickStripeChange(UserSubscriptionType tier)
     {
-        _errorSpan = null;
-
-        var result = await Client.SubscriptionService.ChangeStripeSubscriptionAsync(tier.Name);
-        if (!result.Success)
+        if (_busy) return;
+        _busy = true;
+        try
         {
-            _errorSpan = result.Message;
+            _errorSpan = null;
+
+            var result = await Client.SubscriptionService.ChangeStripeSubscriptionAsync(tier.Name);
+            if (!result.Success)
+            {
+                _errorSpan = result.Message;
+                StateHasChanged();
+                return;
+            }
+
+            _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
+            _selectedTier = null;
+
+            if (_activeSub is not null)
+                Client.Me.SubscriptionType = _activeSub.Type;
+
             StateHasChanged();
-            return;
         }
-
-        _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
-        _selectedTier = null;
-
-        if (_activeSub is not null)
-            Client.Me.SubscriptionType = _activeSub.Type;
-
-        StateHasChanged();
+        catch (Exception)
+        {
+            _errorSpan = "Could not complete the request. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task OnClickCancelPending()
     {
-        _errorSpan = null;
-
-        var result = await Client.SubscriptionService.CancelPendingChangeAsync();
-        if (!result.Success)
+        if (_busy) return;
+        _busy = true;
+        try
         {
-            _errorSpan = result.Message;
-            StateHasChanged();
-            return;
-        }
+            _errorSpan = null;
 
-        _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
-        StateHasChanged();
+            var result = await Client.SubscriptionService.CancelPendingChangeAsync();
+            if (!result.Success)
+            {
+                _errorSpan = result.Message;
+                StateHasChanged();
+                return;
+            }
+
+            _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            _errorSpan = "Could not complete the request. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private TierAction GetTierAction(UserSubscriptionType tier)
@@ -541,34 +685,41 @@ else
 
     private async Task OnClickBuyCredits(int plan)
     {
-        _page = SubPage.Redirecting;
-        _redirectingMessage = "Purchasing Valour Credits...";
-        _redirectingDetail = $"You will be redirected to Stripe to complete your purchase of {plan} Valour Credits.";
-        _errorSpan = null;
-        StateHasChanged();
-
-        var response = await Client.PrimaryNode.PostAsyncWithResponse<CheckoutResponse>($"api/stripe/checkout/VC{plan}");
-        if (!response.Success || response.Data?.SessionUrl is null)
+        if (_busy) return;
+        _busy = true;
+        try
         {
-            _errorSpan = response.Message ?? "Failed to create checkout session.";
+            _page = SubPage.Redirecting;
+            _redirectingMessage = "Purchasing Valour Credits...";
+            _redirectingDetail = $"You will be redirected to Stripe to complete your purchase of {plan} Valour Credits.";
+            _errorSpan = null;
             StateHasChanged();
-            return;
+
+            var response = await Client.PrimaryNode.PostAsyncWithResponse<CheckoutResponse>($"api/stripe/checkout/VC{plan}");
+            if (!response.Success || response.Data?.SessionUrl is null)
+            {
+                _errorSpan = response.Message ?? "Failed to create checkout session.";
+                StateHasChanged();
+                return;
+            }
+
+            NavManager.NavigateTo(response.Data.SessionUrl, forceLoad: true);
         }
-
-        NavManager.NavigateTo(response.Data.SessionUrl, forceLoad: true);
+        catch (Exception)
+        {
+            _errorSpan = "Could not complete the request. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
-
-    private static string GetTierImage(string name) => name switch
-    {
-        "Stargazer" => "_content/Valour.Client/media/subscriptions/stargazer.webp",
-        _ => "_content/Valour.Client/media/subscriptions/stargazer.webp"
-    };
 
     private static string[] GetPerks(string name) => name switch
     {
         "Stargazer" => new[] { "Profile gradient borders", "Profile animations", "Stargazer badge", "50 MB upload limit" },
-        "Stargazer Plus" => new[] { "All Stargazer perks", "Stargazer Plus badge (soon)", "100 MB upload limit" },
-        "Stargazer Pro" => new[] { "All Stargazer Plus perks", "Stargazer Pro badge (soon)", "250 MB upload limit" },
+        "Stargazer Plus" => new[] { "All Stargazer perks", "100 MB upload limit" },
+        "Stargazer Pro" => new[] { "All Stargazer Plus perks", "250 MB upload limit" },
         _ => Array.Empty<string>()
     };
 

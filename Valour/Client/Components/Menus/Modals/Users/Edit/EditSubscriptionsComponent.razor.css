@@ -1,360 +1,247 @@
-/* ========================================
-   Active Subscription Banner
-   ======================================== */
-
-.active-banner {
-    background: linear-gradient(135deg, var(--main-2), var(--main-3));
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-xl);
-    padding: 1rem 1.25rem;
-    margin-top: 1rem;
-    border-left: 4px solid var(--color-primary);
+.subscription-controls {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
 }
 
-.active-banner.cancelled {
-    border-left-color: var(--font-alt-color);
+.active-banner {
+    display: block;
 }
 
 .active-banner.payment-failed {
-    border-left-color: var(--color-danger);
+    border-color: var(--color-danger);
 }
 
-.banner-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-}
-
-.banner-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
+.banner-content,
 .banner-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: .75rem;
 }
 
-.banner-tier-name {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
+.banner-content {
+    justify-content: space-between;
 }
 
-.banner-billing {
-    font-size: var(--font-size-sm);
-    opacity: 0.7;
-}
-
-.banner-warning {
-    font-size: var(--font-size-sm);
-    color: var(--color-danger);
-    font-weight: var(--font-weight-semibold);
-}
-
-.banner-note {
-    font-size: var(--font-size-sm);
-    opacity: 0.6;
-    font-style: italic;
-}
-
-.banner-actions {
+.banner-info,
+.banner-actions,
+.tier-actions {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 0.5rem;
-    flex-shrink: 0;
+    align-items: stretch;
+    gap: .5rem;
+    min-width: 0;
 }
 
-.cancel-confirm-text {
-    font-size: var(--font-size-sm);
+.banner-info {
+    flex: 1 1 240px;
+}
+
+.banner-tier-name,
+.tier-name {
+    font-size: var(--font-size-md);
     font-weight: var(--font-weight-semibold);
-    opacity: 0.9;
+}
+
+.banner-billing,
+.banner-note,
+.tier-desc,
+.upgrade-note,
+.credit-balance {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-base);
+}
+
+.banner-warning,
+.balance-warning {
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
 }
 
 .cancel-confirm-buttons {
     display: flex;
-    gap: 0.5rem;
-}
-
-/* ========================================
-   Status Badges
-   ======================================== */
-
-.status-badge {
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
-    padding: 0.15em 0.6em;
-    border-radius: var(--radius-full);
+    flex-wrap: wrap;
+    gap: .5rem;
 }
 
 .status-badge.active {
-    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    background: var(--color-primary-soft);
     color: var(--color-primary);
 }
 
-.status-badge.cancelled {
-    background: color-mix(in srgb, var(--font-alt-color) 20%, transparent);
-    color: var(--font-alt-color);
-}
-
 .status-badge.failed {
-    background: color-mix(in srgb, var(--color-danger) 20%, transparent);
     color: var(--color-danger);
 }
 
-/* ========================================
-   Tier Cards Grid
-   ======================================== */
-
 .tier-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: 0.75rem;
+    gap: .75rem;
 }
 
 .tier-card {
-    background: linear-gradient(135deg, var(--main-2), var(--main-3));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 160px;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--main-3);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-xl);
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    transition: border-color 0.2s ease;
-}
-
-.tier-card:hover {
-    border-color: var(--medium-tint);
-}
-
-.tier-card.active {
-    border: 2px solid var(--color-primary);
-}
-
-.tier-card.expanded {
-    border-color: var(--color-secondary);
-}
-
-.tier-img {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
     border-radius: var(--radius-md);
-    margin-bottom: 0.75rem;
+    align-items: start;
+}
+
+.tier-card.active,
+.tier-card.expanded {
+    border-color: var(--color-primary);
+}
+
+.tier-summary {
+    min-width: 0;
 }
 
 .tier-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.25rem;
-}
-
-.tier-name {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
+    gap: .5rem;
+    margin-bottom: .35rem;
 }
 
 .tier-pricing {
     display: flex;
-    gap: 0.75rem;
-    align-items: baseline;
-    margin-bottom: 0.5rem;
+    flex-direction: column;
+    gap: .15rem;
+    margin-bottom: .5rem;
+    font-size: var(--font-size-sm);
 }
 
 .tier-price-vc {
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-secondary);
+    color: var(--font-color);
+    font-weight: var(--font-weight-medium);
 }
 
 .tier-price-usd {
-    font-size: var(--font-size-sm);
-    opacity: 0.6;
+    color: var(--font-alt-color);
 }
 
 .tier-desc {
+    margin: 0 0 .5rem;
+}
+
+.tier-benefits {
     font-size: var(--font-size-sm);
-    opacity: 0.7;
-    margin-bottom: 0.5rem;
-    line-height: var(--line-height-base);
+}
+
+.tier-benefits summary {
+    cursor: pointer;
+    color: var(--font-alt-color);
 }
 
 .tier-perks {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 0.75rem 0;
-    flex-grow: 1;
+    padding-left: 1.15rem;
+    margin: .5rem 0 0;
+    color: var(--font-alt-color);
 }
 
 .tier-perks li {
-    font-size: var(--font-size-sm);
-    padding: 0.2em 0;
-    opacity: 0.85;
+    padding: .15rem 0;
 }
-
-.tier-perks li::before {
-    content: "\2713 ";
-    color: var(--color-primary);
-    font-weight: var(--font-weight-bold);
-    margin-right: 0.35em;
-}
-
-.tier-subscribe-btn {
-    width: 100%;
-    margin-bottom: 1em;
-}
-
-/* ========================================
-   Payment Choice (inline expansion)
-   ======================================== */
 
 .payment-choice {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
-    padding-top: 0.75rem;
+    gap: .5rem;
+}
+
+.tier-card.expanded {
+    grid-template-columns: 1fr;
+}
+
+.tier-card.expanded .tier-actions {
     border-top: 1px solid var(--slight-tint);
+    padding-top: 1rem;
 }
 
-.balance-warning {
-    font-size: var(--font-size-sm);
-    color: var(--color-danger);
-    opacity: 0.9;
-    margin-top: -0.25rem;
+.tier-actions .v-btn,
+.banner-actions .v-btn {
+    margin: 0;
+    white-space: normal;
+    line-height: var(--line-height-base);
 }
-
-.upgrade-note {
-    font-size: var(--font-size-sm);
-    color: var(--color-primary);
-    opacity: 0.8;
-    margin-top: -0.25rem;
-}
-
-/* ========================================
-   VC Credits Grid
-   ======================================== */
 
 .vc-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
 }
 
 .vc-card {
-    background: linear-gradient(135deg, var(--main-2), var(--main-3));
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-xl);
-    padding: 1rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
+    gap: .35rem;
+    padding: 1rem;
+    color: var(--font-color);
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: border-color 0.2s ease, transform 0.15s ease;
+    font: inherit;
+    text-align: left;
+    min-width: 0;
 }
 
 .vc-card:hover {
-    border-color: var(--color-secondary);
-    transform: translateY(-2px);
+    border-color: var(--medium-tint);
+    background: var(--main-4);
 }
 
-.vc-img {
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: var(--radius-md);
-    margin-bottom: 0.5rem;
+.vc-card:focus-visible,
+.tier-benefits summary:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
 }
 
-.vc-amount {
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-secondary);
-}
-
+.vc-amount,
 .vc-price {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    margin: 0.15rem 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
+.vc-desc,
+.vc-savings {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
 }
 
 .vc-savings {
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
     color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
-    padding: 0.1em 0.5em;
-    border-radius: var(--radius-full);
-    margin-bottom: 0.15rem;
 }
-
-.vc-desc {
-    font-size: var(--font-size-xs);
-    opacity: 0.6;
-}
-
-/* ========================================
-   Redirecting / Result pages
-   ======================================== */
-
-.redirecting-container,
-.result-container {
-    padding: 1rem 0;
-}
-
-/* ========================================
-   Confetti (keep existing structure)
-   ======================================== */
 
 .page-wrapper {
     pointer-events: none;
     position: fixed;
-    left: 0;
-    top: 0;
-    width: 100vw;
-    height: 100vh;
+    inset: 0;
 }
 
-.confetti-container {
-    perspective: 700px;
-    position: absolute;
-    overflow: hidden;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-}
+@media (max-width: 600px) {
+    .tier-card {
+        grid-template-columns: 1fr;
+    }
 
-/* ========================================
-   Responsive
-   ======================================== */
-
-@media (max-width: 768px) {
-    .tier-grid,
     .vc-grid {
         grid-template-columns: 1fr;
     }
 
-    .banner-content {
-        flex-direction: column;
+    .vc-card {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
     }
 
     .banner-actions {
-        align-items: flex-start;
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-
-    .cancel-confirm-buttons {
-        flex-wrap: wrap;
+        width: 100%;
     }
 }

@@ -253,7 +253,13 @@
                 }
                 case ModelUpdatedEvent<PlanetMember> updated:
                 {
-                    // TODO: handle name / whatever changes
+                    // Gaining/losing a role can move the member to a different
+                    // section - name/avatar-only changes don't need a re-bucket.
+                    if (updated.Changes.On(x => x.RoleMembership))
+                    {
+                        DetermineDisplayedRole(updated.Model);
+                    }
+
                     break;
                 }
                 case ModelRemovedEvent<PlanetMember> deleted:

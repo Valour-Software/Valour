@@ -89,7 +89,9 @@ public class VoiceStateCleanupWorker : BackgroundService
         if (server is null)
             return;
 
-        var channelKeys = server.Keys(RedisDbTypes.Cluster, "voice:channel:*").ToList();
+        var channelKeys = new List<RedisKey>();
+        await foreach (var key in server.KeysAsync(RedisDbTypes.Cluster, "voice:channel:*"))
+            channelKeys.Add(key);
 
         using var scope = _serviceProvider.CreateScope();
         var hostedPlanetService = scope.ServiceProvider.GetRequiredService<HostedPlanetService>();
@@ -210,6 +212,13 @@ public class VoiceStateCleanupWorker : BackgroundService
         {
             try
             {
+                // Direct/group calls use the same provider room tracking, but their
+                // lifecycle is stored in direct_calls rather than Redis planet voice
+                // presence. DirectCallCleanupWorker owns those rooms.
+                if (await valourDb.DirectCalls.AsNoTracking().AnyAsync(x =>
+                        x.Id == channelId && x.State != DirectCallState.Ended))
+                    continue;
+
                 // Get the set of user IDs Redis thinks are in this channel
                 var redisMembers = await db.SetMembersAsync($"voice:channel:{channelId}");
                 var redisUserIds = new HashSet<long>();
@@ -333,9 +342,18 @@ public class VoiceStateCleanupWorker : BackgroundService
         var closedMeetings = 0;
         var failedMeetings = 0;
 
+        using var scope = _serviceProvider.CreateScope();
+        var valourDb = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        var activeDirectCallIds = await valourDb.DirectCalls.AsNoTracking()
+            .Where(x => x.State != DirectCallState.Ended)
+            .Select(x => x.Id)
+            .ToHashSetAsync();
+
         foreach (var (channelId, meetingId) in trackedMeetings)
         {
             if (string.IsNullOrWhiteSpace(meetingId))
+                continue;
+            if (activeDirectCallIds.Contains(channelId))
                 continue;
 
             checkedMeetings++;
@@ -386,10 +404,12 @@ public class VoiceStateCleanupWorker : BackgroundService
             if (servers.Length == 0)
                 return null;
 
-            var channelKeys = servers
-                .SelectMany(server => server.Keys(RedisDbTypes.Cluster, "voice:channel:*"))
-                .Distinct()
-                .ToList();
+            var channelKeys = new HashSet<RedisKey>();
+            foreach (var server in servers)
+            {
+                await foreach (var key in server.KeysAsync(RedisDbTypes.Cluster, "voice:channel:*"))
+                    channelKeys.Add(key);
+            }
 
             foreach (var channelKey in channelKeys)
             {

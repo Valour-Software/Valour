@@ -348,6 +348,20 @@
     overflow: auto;
 }
 
+.embed-spoiler-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 120px;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .preview-message .reply:hover .reply-remove {
     display: block;
 }

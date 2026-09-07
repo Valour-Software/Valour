@@ -1,0 +1,180 @@
+@inject ValourClient Client
+@inject GlobalCallSessionService CallSession
+@implements IDisposable
+
+@if (_call is not null && _channel is not null)
+{
+    <aside class="direct-call-overlay @(_call.State == DirectCallState.Active && IsJoined ? "active" : "ringing")">
+        @if (_call.State == DirectCallState.Active && IsJoined)
+        {
+            <div class="direct-call-toolbar">
+                <strong>@_channel.Name</strong>
+                @if (CanInvite)
+                {
+                    <button type="button" @onclick="ToggleInvitePicker" title="Add people">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </button>
+                }
+                @if (_call.CallerUserId == Client.Me?.Id)
+                {
+                    <button type="button" class="danger" @onclick="EndCall" title="End for everyone">
+                        <i class="bi bi-telephone-x-fill"></i>
+                    </button>
+                }
+            </div>
+
+            @if (_showInvitePicker)
+            {
+                <div class="direct-call-invites">
+                    <span>Add friends to this call</span>
+                    @foreach (var friend in AvailableFriends)
+                    {
+                        <label>
+                            <input type="checkbox"
+                                   checked="@_selectedInvitees.Contains(friend.Id)"
+                                   @onchange="e => SelectInvitee(friend.Id, (bool)e.Value!)" />
+                            @friend.Name
+                        </label>
+                    }
+                    <button type="button" disabled="@(_selectedInvitees.Count == 0 || _busy)" @onclick="AddPeople">Invite</button>
+                </div>
+            }
+
+            <CallPanelComponent @key="_call.Id" Channel="_channel" DirectCall="_call" VideoMode="@(_call.Kind == DirectCallKind.Video)" />
+        }
+        else
+        {
+            <div class="direct-call-prompt">
+                <i class="bi @(_call.Kind == DirectCallKind.Video ? "bi-camera-video-fill" : "bi-telephone-fill")"></i>
+                <div>
+                    <strong>@PromptTitle</strong>
+                    <span>@PromptSubtitle</span>
+                </div>
+                <div class="direct-call-actions">
+                    @if (IsInvited)
+                    {
+                        <button type="button" class="accept" disabled="@_busy" @onclick="AcceptCall" title="Accept">
+                            <i class="bi bi-telephone-fill"></i>
+                        </button>
+                        <button type="button" class="decline" disabled="@_busy" @onclick="DeclineCall" title="Decline">
+                            <i class="bi bi-telephone-x-fill"></i>
+                        </button>
+                    }
+                    else if (_call.CallerUserId == Client.Me?.Id)
+                    {
+                        <button type="button" class="decline" disabled="@_busy" @onclick="EndCall" title="Cancel">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="direct-call-error">@_error</div>
+        }
+    </aside>
+}
+
+@code {
+    private DirectCall? _call;
+    private Channel? _channel;
+    private User? _caller;
+    private bool _busy;
+    private bool _showInvitePicker;
+    private string? _error;
+    private readonly HashSet<long> _selectedInvitees = [];
+
+    private DirectCallMember? MyMembership =>
+        _call?.Members.FirstOrDefault(x => x.UserId == Client.Me?.Id);
+    private bool IsInvited => MyMembership?.State == DirectCallMemberState.Invited;
+    private bool IsJoined => MyMembership?.State == DirectCallMemberState.Joined;
+    private bool CanInvite => _channel?.ChannelType == ChannelTypeEnum.DirectChat ||
+        _channel?.Members.Any(x => x.UserId == Client.Me?.Id && x.IsAdmin) == true;
+    private IEnumerable<User> AvailableFriends => Client.FriendService.Friends.Where(friend =>
+        _call?.Members.All(x => x.UserId != friend.Id) == true);
+    private string PromptTitle => _call?.CallerUserId == Client.Me?.Id
+        ? "Calling…"
+        : $"{_caller?.Name ?? "Someone"} is calling";
+    private string PromptSubtitle => _call?.Kind == DirectCallKind.Video ? "Video call" : "Voice call";
+
+    protected override void OnInitialized()
+    {
+        Client.DirectCallService.CallUpdated += OnCallUpdated;
+        _call = Client.DirectCallService.CurrentCalls.Values
+            .OrderByDescending(x => x.State == DirectCallState.Active)
+            .ThenByDescending(x => x.CreatedAt)
+            .FirstOrDefault();
+        if (_call is not null)
+            _ = LoadContextAsync(_call);
+    }
+
+    private void OnCallUpdated(DirectCall call) => _ = InvokeAsync(async () =>
+    {
+        var myMembership = call.Members.FirstOrDefault(x => x.UserId == Client.Me?.Id);
+        var isUnavailableForMe = call.State == DirectCallState.Ended ||
+            myMembership?.State is DirectCallMemberState.Declined or DirectCallMemberState.Left;
+
+        if (isUnavailableForMe)
+        {
+            if (CallSession.ActiveDirectCall?.Id == call.Id)
+                await CallSession.LeaveAsync(clearChannel: true);
+
+            if (_call?.Id == call.Id)
+            {
+                _call = Client.DirectCallService.CurrentCalls.Values.FirstOrDefault();
+                _channel = null;
+                if (_call is not null)
+                    await LoadContextAsync(_call);
+            }
+        }
+        else
+        {
+            _call = call;
+            await LoadContextAsync(call);
+        }
+
+        StateHasChanged();
+    });
+
+    private async Task LoadContextAsync(DirectCall call)
+    {
+        _channel = await Client.ChannelService.FetchDirectChannelAsync(call.ChannelId, skipCache: true);
+        _caller = await Client.UserService.FetchUserAsync(call.CallerUserId);
+        StateHasChanged();
+    }
+
+    private async Task AcceptCall() => await RunAsync(() => Client.DirectCallService.AcceptAsync(_call!.Id));
+    private async Task DeclineCall() => await RunAsync(() => Client.DirectCallService.DeclineAsync(_call!.Id));
+    private async Task EndCall() => await RunAsync(() => Client.DirectCallService.EndAsync(_call!.Id));
+
+    private async Task AddPeople()
+    {
+        await RunAsync(() => Client.DirectCallService.AddParticipantsAsync(_call!.Id, _selectedInvitees));
+        _selectedInvitees.Clear();
+        _showInvitePicker = false;
+    }
+
+    private async Task RunAsync(Func<Task<TaskResult<DirectCall>>> operation)
+    {
+        if (_busy)
+            return;
+        _busy = true;
+        _error = null;
+        var result = await operation();
+        if (!result.Success)
+            _error = result.Message;
+        _busy = false;
+        StateHasChanged();
+    }
+
+    private void ToggleInvitePicker() => _showInvitePicker = !_showInvitePicker;
+    private void SelectInvitee(long userId, bool selected)
+    {
+        if (selected) _selectedInvitees.Add(userId);
+        else _selectedInvitees.Remove(userId);
+    }
+
+    public void Dispose() => Client.DirectCallService.CallUpdated -= OnCallUpdated;
+}

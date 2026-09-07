@@ -1,14 +1,24 @@
 ﻿@using Valour.Client.Components.Menus.Modals.Attachments
 @inherits AttachmentComponent
 
-<div class="image-attachment-wrapper" style="@GetWrapperStyle()" @onclick="OnClick">
-    <LazyImage CssClass="attached-image"
-               Style="@GetImageStyle()"
-               Alt="@Attachment.FileName"
-               Src="@_location"
-               FallbackSrc="_content/Valour.Client/media/image-not-found.webp"
-               RootMargin="400px 0px"
-               data-og-src="@Attachment.Location" />
+<div class="image-attachment-wrapper @(IsHiddenSpoiler ? "spoiler-hidden" : "")" style="@GetWrapperStyle()" @onclick="OnClick">
+    @if (IsHiddenSpoiler)
+    {
+        <div class="spoiler-blur-bg" style="--spoiler-bg: url('@_location')"></div>
+        <div class="spoiler-overlay">
+            <span>Spoiler &mdash; click to reveal</span>
+        </div>
+    }
+    else
+    {
+        <LazyImage CssClass="attached-image"
+                   Style="@GetImageStyle()"
+                   Alt="@Attachment.FileName"
+                   Src="@_location"
+                   FallbackSrc="_content/Valour.Client/media/image-not-found.webp"
+                   RootMargin="400px 0px"
+                   data-og-src="@Attachment.Location" />
+    }
 </div>
 
 @code {
@@ -23,10 +33,16 @@
     private string GetWrapperStyle()
     {
         // No size metadata (e.g. older thread attachments): let the image
-        // render at natural size, clamped by the max constraints below
+        // render at natural size, clamped by the max constraints below.
+        // The spoiler blur/overlay are both position:absolute though,
+        // so without size to go on they'd collapse to nothing - give them a fixed height.
         if (_width <= 0 || _height <= 0)
-            return $"max-width: min({MaxSize}px, 100%);";
+            return IsHiddenSpoiler
+                ? $"max-width: min({MaxSize}px, 100%); height: 200px;"
+                : $"max-width: min({MaxSize}px, 100%);";
 
+        // This also sizes the spoiler placeholder (see markup below) - since LazyImage
+        // isn't rendered while hidden, nothing else is competing to size the wrapper.
         if (DoAspect)
             return $"aspect-ratio: {_width} / {_height}; max-width: min({MaxSize}px, 100%); width: {_width}px";
 
@@ -51,6 +67,9 @@
     public string CustomStyle { get; set; }
     
     private string _location;
+    private bool _revealed;
+
+    private bool IsHiddenSpoiler => Attachment.IsSpoiler && !_revealed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,8 +109,14 @@
 
     private void OnClick()
     {
+        if (IsHiddenSpoiler)
+        {
+            _revealed = true;
+            return;
+        }
+
         if (!Clickable || Attachment.Missing) return;
-        
+
         var modalParams = new AttachmentModal.ModalParams()
         {
             Attachment = Attachment,

@@ -49,37 +49,26 @@ public class NodeService : ServiceBase
     
     public async Task<TaskResult> SetupPrimaryNodeAsync()
     {
-        string nodeName = null;
-
-        do
+        string nodeName;
+        try
         {
-            // Get primary node identity
-            var nodeNameResponse = await _client.Http.GetAsync("api/node/name");
-            var msg = await nodeNameResponse.Content.ReadAsStringAsync();
-            if (!nodeNameResponse.IsSuccessStatusCode)
-            {
-                LogError("Failed to get primary node name... trying again in three seconds. Network issues? \n \n" + msg);
-                await Task.Delay(3000);
-            }
-            else
-            {
-                nodeName = msg?.Trim();
-                if (string.IsNullOrWhiteSpace(nodeName) || nodeName.Contains('<'))
-                {
-                    LogError("Received invalid primary node name response... trying again in three seconds. Response was:\n\n" + msg);
-                    nodeName = null;
-                    await Task.Delay(3000);
-                }
-            }
-        } while (nodeName is null);
-        
-        // Initialize primary node
+            using var response = await _client.Http.GetAsync("api/node/name");
+            if (!response.IsSuccessStatusCode)
+                return TaskResult.FromFailure("Unable to reach the primary node. Please try again.");
+
+            nodeName = (await response.Content.ReadAsStringAsync())?.Trim();
+            if (string.IsNullOrWhiteSpace(nodeName) || nodeName.Contains('<'))
+                return TaskResult.FromFailure("The primary node returned an invalid response. Please try again.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.WebException or OperationCanceledException)
+        {
+            return TaskResult.FromFailure("Unable to reach the primary node. Check your connection and try again.");
+        }
+
         _client.PrimaryNode = new Node(_client);
-        
         return await _client.PrimaryNode.InitializeAsync(nodeName, true);
     }
-    
-    
+
     /// <summary>
     /// Returns the node that a planet is known to be on,
     /// but will not reach out to the server to find new ones

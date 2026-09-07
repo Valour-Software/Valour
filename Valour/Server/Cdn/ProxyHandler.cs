@@ -74,10 +74,17 @@ public class ProxyHandler
 
         foreach (Match match in urls)
         {
+            // <url> is standard markdown for "link this, but don't embed it" -
+            // it still renders as a normal clickable link, it just shouldn't
+            // also generate a preview card here.
+            if (IsBracketed(url, match))
+                continue;
+
             var attachment = await GetAttachmentFromUrl(match.Value, db);
             if (attachment != null)
             {
                 attachment.Inline = true;
+                attachment.IsSpoiler = IsInsideSpoiler(url, match.Index);
 
                 if (attachments is null)
                     attachments = new();
@@ -87,6 +94,42 @@ public class ProxyHandler
         }
 
         return attachments;
+    }
+
+    private static bool IsBracketed(string url, Match match)
+    {
+        var start = match.Index - 1;
+        var end = match.Index + match.Length;
+
+        if (start < 0 || end >= url.Length)
+            return false;
+
+        return url[start] == '<' && url[end] == '>';
+    }
+
+    /// <summary>
+    /// True if the given index falls inside a ||spoiler|| span, so an embed
+    /// generated from a URL there can inherit the spoiler too. Just counts
+    /// '||' pairs up to that point rather than running a full Markdig parse.
+    /// </summary>
+    private static bool IsInsideSpoiler(string url, int index)
+    {
+        var openSpans = 0;
+        var i = 0;
+        while (i < index)
+        {
+            if (url[i] == '|' && i + 1 < url.Length && url[i + 1] == '|')
+            {
+                openSpans++;
+                i += 2;
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        return openSpans % 2 == 1;
     }
 
     /// <summary>

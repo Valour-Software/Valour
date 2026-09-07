@@ -69,7 +69,7 @@ public class PlanetWebhookService
         if (!migrationGuard.Success)
             return new(false, migrationGuard.Message);
 
-        var profileResult = ValidateProfile(webhook.Name, webhook.AvatarUrl, nameRequired: true);
+        var profileResult = ValidateName(webhook.Name, nameRequired: true);
         if (!profileResult.Success)
             return new(false, profileResult.Message);
 
@@ -86,6 +86,8 @@ public class PlanetWebhookService
         webhook.CreatorUserId = creator.UserId;
         webhook.Token = GenerateToken();
         webhook.TimeCreated = DateTime.UtcNow;
+        webhook.AvatarAssetId = null;
+        webhook.AvatarAnimated = false;
 
         try
         {
@@ -114,7 +116,7 @@ public class PlanetWebhookService
         if (!migrationGuard.Success)
             return new(false, migrationGuard.Message);
 
-        var profileResult = ValidateProfile(updated.Name, updated.AvatarUrl, nameRequired: true);
+        var profileResult = ValidateName(updated.Name, nameRequired: true);
         if (!profileResult.Success)
             return new(false, profileResult.Message);
 
@@ -126,7 +128,6 @@ public class PlanetWebhookService
         }
 
         old.Name = updated.Name;
-        old.AvatarUrl = updated.AvatarUrl;
         old.ChannelId = updated.ChannelId;
 
         try
@@ -200,6 +201,66 @@ public class PlanetWebhookService
     }
 
     /// <summary>
+    /// Activates an immutable, Valour-managed avatar asset after the CDN
+    /// variants have been written successfully.
+    /// </summary>
+    public async Task<TaskResult<PlanetWebhook>> SetAvatarAsync(long id, long assetId, bool animated)
+    {
+        var webhook = await _db.PlanetWebhooks.FindAsync(id);
+        if (webhook is null)
+            return new(false, "Webhook not found.");
+
+        var migrationGuard = await MigrationLock.GuardAsync(_db, webhook.PlanetId);
+        if (!migrationGuard.Success)
+            return new(false, migrationGuard.Message);
+
+        webhook.AvatarAssetId = assetId;
+        webhook.AvatarAnimated = animated;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to update webhook avatar");
+            return new(false, "Failed to update webhook avatar.");
+        }
+
+        var model = webhook.ToModel().WithoutToken();
+        _coreHub.NotifyPlanetItemChange(model);
+        return new(true, "Success", model);
+    }
+
+    public async Task<TaskResult<PlanetWebhook>> RemoveAvatarAsync(long id)
+    {
+        var webhook = await _db.PlanetWebhooks.FindAsync(id);
+        if (webhook is null)
+            return new(false, "Webhook not found.");
+
+        var migrationGuard = await MigrationLock.GuardAsync(_db, webhook.PlanetId);
+        if (!migrationGuard.Success)
+            return new(false, migrationGuard.Message);
+
+        webhook.AvatarAssetId = null;
+        webhook.AvatarAnimated = false;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to remove webhook avatar");
+            return new(false, "Failed to remove webhook avatar.");
+        }
+
+        var model = webhook.ToModel().WithoutToken();
+        _coreHub.NotifyPlanetItemChange(model);
+        return new(true, "Success", model);
+    }
+
+    /// <summary>
     /// Posts a message to the webhook's channel. The webhook must already be
     /// authenticated; no channel permissions are re-checked here because the
     /// channel binding was authorized by a ManageWebhooks holder.
@@ -209,7 +270,7 @@ public class PlanetWebhookService
         if (request is null)
             return new(false, "Include a request body.");
 
-        var profileResult = ValidateProfile(request.OverrideName, request.OverrideAvatarUrl, nameRequired: false);
+        var profileResult = ValidateName(request.OverrideName, nameRequired: false);
         if (!profileResult.Success)
             return new(false, profileResult.Message);
 
@@ -246,7 +307,8 @@ public class PlanetWebhookService
         {
             WebhookId = webhook.Id,
             OverrideName = request.OverrideName ?? webhook.Name,
-            OverrideAvatarUrl = request.OverrideAvatarUrl ?? webhook.AvatarUrl,
+            WebhookAvatarAssetId = webhook.AvatarAssetId,
+            WebhookAvatarAnimated = webhook.AvatarAnimated,
             SuppressRoleMentions = true,
         };
 
@@ -367,23 +429,13 @@ public class PlanetWebhookService
         return attachments;
     }
 
-    private static TaskResult ValidateProfile(string name, string avatarUrl, bool nameRequired)
+    private static TaskResult ValidateName(string name, bool nameRequired)
     {
         if (nameRequired && string.IsNullOrWhiteSpace(name))
             return TaskResult.FromFailure("Webhook name is required.");
 
         if (name is not null && name.Length > ISharedPlanetWebhook.MaxNameLength)
             return TaskResult.FromFailure($"Name must be {ISharedPlanetWebhook.MaxNameLength} characters or fewer.");
-
-        if (avatarUrl is not null)
-        {
-            if (avatarUrl.Length > ISharedPlanetWebhook.MaxAvatarUrlLength)
-                return TaskResult.FromFailure($"Avatar URL must be {ISharedPlanetWebhook.MaxAvatarUrlLength} characters or fewer.");
-
-            if (!Uri.TryCreate(avatarUrl, UriKind.Absolute, out var uri) ||
-                !uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
-                return TaskResult.FromFailure("Avatar URL must be an absolute https URL.");
-        }
 
         return TaskResult.SuccessResult;
     }

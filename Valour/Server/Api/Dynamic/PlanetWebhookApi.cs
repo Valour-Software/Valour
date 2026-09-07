@@ -158,6 +158,30 @@ public class PlanetWebhookApi
         return Results.Json(result.Data);
     }
 
+    [ValourRoute(HttpVerbs.Delete, "api/planetwebhooks/{id}/avatar")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> DeleteAvatarRouteAsync(
+        long id,
+        PlanetMemberService memberService,
+        PlanetWebhookService webhookService)
+    {
+        var webhook = await webhookService.GetAsync(id);
+        if (webhook is null)
+            return ValourResult.NotFound<PlanetWebhook>();
+
+        var member = await memberService.GetCurrentAsync(webhook.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageWebhooks))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageWebhooks);
+
+        var result = await webhookService.RemoveAvatarAsync(id);
+        return result.Success
+            ? Results.Json(result.Data)
+            : ValourResult.Problem(result.Message);
+    }
+
     ////////////////////////////////////////////////////////////////
     // Execute routes — anonymous; the token in the URL is the
     // credential (invite-code pattern), verified fixed-time
@@ -179,7 +203,7 @@ public class PlanetWebhookApi
 
     [ValourRoute(HttpVerbs.Post, "api/webhooks/{id}/{token}")]
     public static async Task<IResult> ExecuteRouteAsync(
-        [FromBody] WebhookExecuteRequest request,
+        JsonRequestBody<WebhookExecuteRequest> body,
         long id,
         string token,
         HttpContext ctx,
@@ -193,6 +217,10 @@ public class PlanetWebhookApi
         if (!TryAcquireRate(webhook.Id, ctx, rateLimiter, out var limited))
             return limited;
 
+        var request = body.Value;
+        if (request is null)
+            return ValourResult.BadRequest("Invalid JSON body. Embed items must include a supported $type discriminator.");
+
         var result = await webhookService.ExecuteAsync(webhook, request);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
@@ -202,7 +230,7 @@ public class PlanetWebhookApi
 
     [ValourRoute(HttpVerbs.Put, "api/webhooks/{id}/{token}/messages/{messageId}")]
     public static async Task<IResult> EditMessageRouteAsync(
-        [FromBody] WebhookMessageEditRequest request,
+        JsonRequestBody<WebhookMessageEditRequest> body,
         long id,
         string token,
         long messageId,
@@ -216,6 +244,10 @@ public class PlanetWebhookApi
 
         if (!TryAcquireRate(webhook.Id, ctx, rateLimiter, out var limited))
             return limited;
+
+        var request = body.Value;
+        if (request is null)
+            return ValourResult.BadRequest("Invalid JSON body. Embed items must include a supported $type discriminator.");
 
         var result = await webhookService.EditMessageAsync(webhook, messageId, request);
         if (!result.Success)

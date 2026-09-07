@@ -44,6 +44,12 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
     /// The last time this member connected to planet realtime.
     /// </summary>
     DateTime TimeLastConnected { get; set; }
+
+    /// <summary>
+    /// Planet-local badge bits this member has chosen not to display. Bit
+    /// assignments are resolved through the owning planet's badge lookup.
+    /// </summary>
+    long HiddenBadgeFlags { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

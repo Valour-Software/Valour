@@ -58,6 +58,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
     }
 
     public Channel? ActiveChannel { get; private set; }
+    public DirectCall? ActiveDirectCall { get; private set; }
     public bool VideoMode { get; private set; }
     public bool Joined { get; private set; }
     public bool Connecting { get; private set; }
@@ -114,20 +115,26 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         NotifyStateChanged();
     }
 
-    public async Task InitializeAsync(Channel channel, bool videoMode)
+    public Task InitializeAsync(Channel channel, bool videoMode) =>
+        InitializeCoreAsync(channel, videoMode, null);
+
+    public Task InitializeDirectCallAsync(Channel channel, DirectCall call) =>
+        InitializeCoreAsync(channel, call.Kind == DirectCallKind.Video, call);
+
+    private async Task InitializeCoreAsync(Channel channel, bool videoMode, DirectCall? directCall)
     {
         if (_disposed)
             return;
 
         SubscribeToVoiceHubEvents();
 
-        if (!ISharedChannel.VoiceChannelTypes.Contains(channel.ChannelType))
+        if (directCall is null && !ISharedChannel.VoiceChannelTypes.Contains(channel.ChannelType))
             return;
 
         // Community-hosted voice: pause on an explicit warning before the first
         // join of a planet whose calls run on its own SFU. The user's IP (and the
         // call itself) go to that operator's server, not Valour.
-        var planet = channel.PlanetId is null ? null : channel.Planet;
+        var planet = directCall is not null || channel.PlanetId is null ? null : channel.Planet;
         if (planet?.SelfHostedVoice == true && !_acknowledgedVoicePlanets.Contains(planet.Id))
         {
             _pendingCommunityVoiceJoin = (channel, videoMode);
@@ -163,6 +170,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
             Error = null;
             ActiveChannel = channel;
+            ActiveDirectCall = directCall;
             VideoMode = videoMode;
             await RefreshModerationPermissionsAsync(channel);
             Connecting = true;
@@ -179,10 +187,12 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
             // Once the token request is in flight, the server may have registered us
             // in Valour voice state even if the HTTP response times out locally.
-            _registeredWithVoiceState = true;
+            _registeredWithVoiceState = directCall is null;
 
             var tokenResult = await _client.PrimaryNode.PostAsyncWithResponse<RealtimeKitVoiceTokenResponse>(
-                    $"api/voice/token/{channel.Id}?sessionId={Uri.EscapeDataString(_voiceSessionId)}")
+                    directCall is null
+                        ? $"api/voice/token/{channel.Id}?sessionId={Uri.EscapeDataString(_voiceSessionId)}"
+                        : $"api/direct-calls/{directCall.Id}/token?sessionId={Uri.EscapeDataString(_voiceSessionId)}")
                 .WaitAsync(TokenRequestTimeout);
 
             if (!tokenResult.Success || tokenResult.Data is null)
@@ -201,7 +211,8 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
                 WaitingForPeer = true;
                 Connecting = false;
                 Error = null;
-                StartHeartbeatLoop();
+                if (directCall is null)
+                    StartHeartbeatLoop();
                 NotifyStateChanged();
                 return;
             }
@@ -260,7 +271,8 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             await RefreshStateFromSdkAsync();
             await RefreshParticipantsAsync();
             StartParticipantRefreshLoop();
-            StartHeartbeatLoop();
+            if (directCall is null)
+                StartHeartbeatLoop();
             NotifyStateChanged();
         }
         catch (Exception ex)
@@ -282,7 +294,10 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         if (channel is null)
             return;
 
-        await InitializeAsync(channel, VideoMode);
+        if (ActiveDirectCall is not null)
+            await InitializeDirectCallAsync(channel, ActiveDirectCall);
+        else
+            await InitializeAsync(channel, VideoMode);
     }
 
     public async Task ToggleAudioAsync()
@@ -313,7 +328,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -347,7 +362,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -382,7 +397,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -425,7 +440,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
     {
         var leaveChannelId = ActiveChannel?.Id;
         var wasJoined = Joined;
-        var wasRegisteredWithVoiceState = _registeredWithVoiceState || WaitingForPeer;
+        var wasRegisteredWithVoiceState = _registeredWithVoiceState || WaitingForPeer || ActiveDirectCall is not null;
 
         if ((wasJoined || wasRegisteredWithVoiceState) &&
             leaveChannelId is not null &&
@@ -434,7 +449,9 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             try
             {
                 await _client.PrimaryNode.PostAsync(
-                    $"api/voice/channels/{leaveChannelId}/leave?sessionId={Uri.EscapeDataString(_voiceSessionId)}",
+                    ActiveDirectCall is null
+                        ? $"api/voice/channels/{leaveChannelId}/leave?sessionId={Uri.EscapeDataString(_voiceSessionId)}"
+                        : $"api/direct-calls/{ActiveDirectCall.Id}/leave?sessionId={Uri.EscapeDataString(_voiceSessionId)}",
                     new { })
                     .WaitAsync(TimeSpan.FromSeconds(3));
             }
@@ -486,6 +503,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         if (clearChannel)
         {
             ActiveChannel = null;
+            ActiveDirectCall = null;
             Error = null;
             VideoMode = false;
         }
@@ -520,7 +538,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -545,7 +563,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -691,12 +709,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         try
         {
             var snapshot = await rtk.GetParticipantsSnapshotAsync().WaitAsync(ParticipantSnapshotTimeout);
-            if (AreParticipantSnapshotsEqual(ParticipantsSnapshot, snapshot))
-                return;
-
-            ParticipantsSnapshot = snapshot;
-            ParticipantsVersion++;
-            NotifyStateChanged();
+            ApplyParticipantsSnapshot(snapshot);
         }
         catch (Exception ex)
         {
@@ -707,6 +720,31 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         {
             Interlocked.Exchange(ref _participantRefreshInProgress, 0);
         }
+    }
+
+    internal void ApplyParticipantsSnapshot(RealtimeKitParticipantsSnapshot? snapshot)
+    {
+        if (string.Equals(snapshot?.ConnectionState, "disconnected", StringComparison.OrdinalIgnoreCase))
+        {
+            Joined = false;
+            Connecting = false;
+            AudioEnabled = false;
+            VideoEnabled = false;
+            ScreenShareEnabled = false;
+            ParticipantsSnapshot = null;
+            ParticipantsVersion++;
+            Error = "Voice connection was lost. Reconnect to continue.";
+            AppLifecycle.NotifyCallEnded();
+            NotifyStateChanged();
+            return;
+        }
+
+        if (AreParticipantSnapshotsEqual(ParticipantsSnapshot, snapshot))
+            return;
+
+        ParticipantsSnapshot = snapshot;
+        ParticipantsVersion++;
+        NotifyStateChanged();
     }
 
     private void StartParticipantRefreshLoop()
@@ -857,7 +895,10 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             var participantCount = _client.VoiceStateService.GetParticipantCount(ActiveChannel.Id);
             if (participantCount >= MinimumRealtimeKitParticipants)
             {
-                await InitializeAsync(ActiveChannel, VideoMode);
+                if (ActiveDirectCall is not null)
+                    await InitializeDirectCallAsync(ActiveChannel, ActiveDirectCall);
+                else
+                    await InitializeAsync(ActiveChannel, VideoMode);
             }
 
             return;
@@ -875,7 +916,10 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             var channel = ActiveChannel;
             if (channel is not null)
             {
-                await InitializeAsync(channel, VideoMode);
+                if (ActiveDirectCall is not null)
+                    await InitializeDirectCallAsync(channel, ActiveDirectCall);
+                else
+                    await InitializeAsync(channel, VideoMode);
             }
         }
     }
@@ -957,6 +1001,8 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
     private void OnVoiceParticipantsChanged(long channelId)
     {
+        if (ActiveDirectCall is not null)
+            return;
         if (ActiveChannel?.Id != channelId)
             return;
 
@@ -1162,6 +1208,9 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
     private static string GetExceptionMessage(Exception exception, string fallbackMessage)
     {
+        if (exception is Microsoft.JSInterop.JSException)
+            return fallbackMessage;
+
         if (!string.IsNullOrWhiteSpace(exception.Message))
             return exception.Message;
 

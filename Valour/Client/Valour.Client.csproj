@@ -124,4 +124,29 @@
     <Exec Command="&quot;$(_EmojiTrieDotNet)&quot; run --project &quot;$(_EmojiTrieCompilerProject)&quot; -- &quot;$(_EmojiTrieInput)&quot; &quot;$(_EmojiTrieOutput)&quot;" />
   </Target>
 
+  <PropertyGroup>
+    <_VillageAtlasExistedAtEvaluation>$([System.IO.File]::Exists('$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.vtex.bin'))</_VillageAtlasExistedAtEvaluation>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Remove="wwwroot/media/villages/library-atlas.png;wwwroot/media/villages/library-atlas.png.br;wwwroot/media/villages/library-atlas.png.gz;wwwroot/media/villages/library-atlas.vtex.bin*.tmp" />
+  </ItemGroup>
+
+  <Target Name="PrepareVillageAtlas" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_VillageUsesLocalAtlas>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/wwwroot/tilesets/exterior-tileset-0.json').Contains('/_content/Valour.Client/media/villages/library-atlas.vtex.bin'))</_VillageUsesLocalAtlas>
+      <_VillageAtlasPacker>$(MSBuildProjectDirectory)/../BuildTools/VillageAtlasPacker/VillageAtlasPacker.csproj</_VillageAtlasPacker>
+      <_VillageAtlasDotNet Condition="'$(DotNetHostPath)' != ''">$(DotNetHostPath)</_VillageAtlasDotNet>
+      <_VillageAtlasDotNet Condition="'$(_VillageAtlasDotNet)' == ''">dotnet</_VillageAtlasDotNet>
+    </PropertyGroup>
+    <Error Condition="'$(Configuration)' == 'Release' and '$(_VillageUsesLocalAtlas)' != 'True'"
+           Text="The official Village manifest must reference the protected app atlas. Regenerate the library or restore the current private release package." />
+    <Error Condition="'$(Configuration)' == 'Release' and '$(_VillageUsesLocalAtlas)' == 'True' and !Exists('$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.png')"
+           Text="The licensed Village atlas is missing. Run Tools/Villages/pack-library.py with the purchased source sheets or restore the private release artifact before building Release. See Docs/VillageTilesets.md." />
+    <Exec Condition="'$(_VillageUsesLocalAtlas)' == 'True' and Exists('$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.png')"
+          Command="&quot;$(_VillageAtlasDotNet)&quot; run --project &quot;$(_VillageAtlasPacker)&quot; -- &quot;$(MSBuildProjectDirectory)/wwwroot/tilesets/exterior-tileset-0.json&quot; &quot;$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.png&quot; &quot;$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.vtex.bin&quot;" />
+    <ItemGroup Condition="'$(_VillageAtlasExistedAtEvaluation)' != 'true' and Exists('$(MSBuildProjectDirectory)/wwwroot/media/villages/library-atlas.vtex.bin')">
+      <Content Include="wwwroot/media/villages/library-atlas.vtex.bin" />
+    </ItemGroup>
+  </Target>
+
 </Project>

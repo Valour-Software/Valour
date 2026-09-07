@@ -1,0 +1,156 @@
+@inject ValourClient Client
+
+<section class="editor-section badge-settings-section" aria-labelledby="badge-settings-heading">
+        <h3 id="badge-settings-heading" class="editor-section-title">
+            <i class="bi bi-patch-check-fill"></i>
+            Badge visibility
+        </h3>
+        <p class="section-description">
+            Choose which earned badges appear beside your avatar and on your profile.
+            Hidden badges remain attached to your account and can be shown again at any time.
+        </p>
+
+        @if (_badges.Count == 0)
+        {
+            <div class="badge-empty-state">
+                <i class="bi bi-award"></i>
+                <span>You do not have any configurable badges yet.</span>
+            </div>
+        }
+        else
+        {
+            <div class="badge-preview" aria-label="Visible badge preview">
+                <div>
+                    <span class="preview-label">Preview</span>
+                    <strong>@Client.Me.Name</strong>
+                </div>
+                <UserBadges User="@Client.Me" />
+            </div>
+
+            <div class="badge-toggle-list">
+                @foreach (var badge in _badges)
+                {
+                    var isVisible = PlatformBadgeCatalog.IsVisible(Client.Me, badge.Badge);
+                    <div class="badge-toggle-item">
+                        <span class="badge-icon @badge.CssClass" style="@badge.Style">
+                            <i class="bi @badge.Icon" aria-hidden="true"></i>
+                        </span>
+                        <div class="badge-copy">
+                            <span class="badge-title">@badge.Name</span>
+                            <span class="badge-description">@badge.Description</span>
+                        </div>
+                        <label class="switch" @key="@(badge.Badge.ToString() + ":" + _toggleRenderKey)">
+                            <input type="checkbox"
+                                   aria-label="Show @badge.Name badge"
+                                   checked="@isVisible"
+                                   disabled="@(_savingKeys.Count > 0)"
+                                   @onchange="args => SetVisibilityAsync(badge.Badge, args.Value is true)" />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_status))
+        {
+            <p role="status" aria-live="polite" class="save-status @(_statusIsError ? "error" : string.Empty)">@_status</p>
+        }
+</section>
+
+@code {
+    [Parameter] public EventCallback OnChanged { get; set; }
+    private sealed record BadgeOption(
+        PlatformBadge Badge, string Name, string Description, string Icon, string CssClass, string? Style = null);
+
+    private readonly List<BadgeOption> _badges = [];
+    private readonly HashSet<string> _savingKeys = new(StringComparer.Ordinal);
+    private string _status = string.Empty;
+    private bool _statusIsError;
+    private int _toggleRenderKey;
+
+    protected override void OnInitialized()
+    {
+        if (PlatformBadgeCatalog.IsEarned(Client.Me, PlatformBadge.Stargazer))
+        {
+            _badges.Add(new BadgeOption(
+                PlatformBadge.Stargazer,
+                "Stargazer",
+                "Shows your active Valour subscription badge.",
+                "bi-star-fill",
+                "stargazer",
+                $"--badge-star-start: {Client.Me.GetStarColor1()}; --badge-star-end: {Client.Me.GetStarColor2()};"));
+        }
+
+        if (PlatformBadgeCatalog.IsEarned(Client.Me, PlatformBadge.FirstOneThousand))
+        {
+            _badges.Add(new BadgeOption(
+                PlatformBadge.FirstOneThousand,
+                "First 1k users",
+                "Recognizes the first one thousand Valour accounts.",
+                "bi-award-fill",
+                "milestone-1k"));
+        }
+        else if (PlatformBadgeCatalog.IsEarned(Client.Me, PlatformBadge.FirstTenThousand))
+        {
+            _badges.Add(new BadgeOption(
+                PlatformBadge.FirstTenThousand,
+                "First 10k users",
+                "Recognizes the first ten thousand Valour accounts.",
+                "bi-award-fill",
+                "milestone-10k"));
+        }
+
+        if (Client.Me.Bot)
+        {
+            _badges.Add(new BadgeOption(
+                PlatformBadge.Bot, "Bot", "Identifies this account as an automated user.",
+                "bi-cpu-fill", "bot"));
+        }
+
+        if (Client.Me.ValourStaff)
+        {
+            _badges.Add(new BadgeOption(
+                PlatformBadge.Staff, "Valour Staff", "Identifies this account as a Valour staff member.",
+                "bi-shield-fill", "staff"));
+        }
+    }
+
+    private async Task SetVisibilityAsync(PlatformBadge badge, bool visible)
+    {
+        var badgeKey = badge.ToString();
+        if (_savingKeys.Count > 0 || !_savingKeys.Add(badgeKey)) return;
+        _status = string.Empty;
+
+        try
+        {
+            var result = await Client.PrimaryNode.PostAsyncWithResponse<User>(
+                "api/users/me/badges/visibility",
+                new SetUserBadgeVisibilityRequest { Badge = badge, Visible = visible });
+
+            _statusIsError = !result.Success || result.Data is null;
+            if (!_statusIsError)
+            {
+                Client.Me = result.Data.Sync(Client);
+                _status = visible ? "Badge shown." : "Badge hidden.";
+                await OnChanged.InvokeAsync();
+            }
+            else
+            {
+                _status = result.Message ?? "The badge visibility could not be changed.";
+            }
+        }
+        catch (Exception)
+        {
+            _statusIsError = true;
+            _status = "Could not save badge visibility. Please try again.";
+        }
+        finally
+        {
+            _savingKeys.Remove(badgeKey);
+            _toggleRenderKey++;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

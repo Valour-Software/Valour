@@ -119,6 +119,11 @@ public interface ISharedPlanet : ISharedModel<long>
     bool EnableWiki { get; set; }
 
     /// <summary>
+    /// True if the village is enabled for this planet
+    /// </summary>
+    bool EnableVillage { get; set; }
+
+    /// <summary>
     /// True if this planet's docs can be read publicly without an account
     /// </summary>
     bool PublicWiki { get; set; }
@@ -135,6 +140,13 @@ public interface ISharedPlanet : ISharedModel<long>
     /// Set only via the vanity endpoint.
     /// </summary>
     string? Vanity { get; set; }
+
+    /// <summary>
+    /// True when the planet's vanity name also works as a permanent invite
+    /// link (/i/{vanity}), letting a memorable name double as a share link
+    /// instead of a random invite code. Only takes effect while Public and Vanity are both set.
+    /// </summary>
+    bool VanityInviteEnabled { get; set; }
 
     /// <summary>
     /// Owner-chosen default cadence for channel activity notifications.

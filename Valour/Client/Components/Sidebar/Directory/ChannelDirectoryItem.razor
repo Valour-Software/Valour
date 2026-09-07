@@ -13,7 +13,7 @@
 <div
     style="margin-left: @(Depth > 1 ? 18 : 0)px"
     class="channel-wrapper"
-    draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded)"
+    draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded ? "true" : "false")"
     data-channel-drag-id="@Channel.Id"
     data-channel-drag-category="@(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "true" : "false")"
     depth="@Depth"
@@ -673,6 +673,9 @@
 
     private async Task OnDragEnd(MouseEventArgs e)
     {
+        // Finalizes onto whatever crosshair target was last highlighted,
+        // same as tab dragging - avoids needing a pixel-perfect drop.
+        await WindowTargetScanner.FinalizeAsync((float)e.ClientX, (float)e.ClientY);
         DragManager.OnCancelDrag();
     }
 

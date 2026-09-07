@@ -678,14 +678,15 @@ public class UserService
     }
 
     /// <summary>
-    /// Revokes all tokens for a user except the current one
+    /// Revokes all active (non-expired) tokens for a user except the current one.
+    /// Expired tokens are left alone; use RevokeExpiredTokensAsync to clear those.
     /// </summary>
     public async Task<TaskResult> RevokeAllOtherTokensAsync(long userId, string currentTokenId)
     {
         try
         {
             var tokens = await _db.AuthTokens
-                .Where(x => x.UserId == userId && x.Id != currentTokenId)
+                .Where(x => x.UserId == userId && x.Id != currentTokenId && x.TimeExpires > DateTime.UtcNow)
                 .ToListAsync();
 
             _db.AuthTokens.RemoveRange(tokens);
@@ -699,6 +700,35 @@ public class UserService
             }
 
             return new TaskResult(true, $"Revoked {tokens.Count} tokens");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new TaskResult(false, e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Revokes all expired tokens for a user
+    /// </summary>
+    public async Task<TaskResult> RevokeExpiredTokensAsync(long userId)
+    {
+        try
+        {
+            var tokens = await _db.AuthTokens
+                .Where(x => x.UserId == userId && x.TimeExpires < DateTime.UtcNow)
+                .ToListAsync();
+
+            _db.AuthTokens.RemoveRange(tokens);
+            await _db.SaveChangesAsync();
+
+            // Evict after commit to avoid re-cache race
+            foreach (var token in tokens)
+            {
+                _tokenService.RemoveFromQuickCache(token.Id);
+            }
+
+            return new TaskResult(true, $"Revoked {tokens.Count} expired session(s)");
         }
         catch (Exception e)
         {
@@ -760,6 +790,32 @@ public class UserService
         if (token is null) return null;
         _currentUser = await GetAsync(token.UserId);
         return _currentUser;
+    }
+
+    /// <summary>
+    /// Updates one platform badge's public visibility by flipping its durable
+    /// catalog bit in the user's hidden-badge mask.
+    /// </summary>
+    public async Task<TaskResult<User>> SetBadgeVisibilityAsync(
+        long userId, PlatformBadge badge, bool visible)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return TaskResult<User>.FromFailure("User not found.");
+
+        if (!PlatformBadgeCatalog.Definitions.ContainsKey(badge))
+            return TaskResult<User>.FromFailure("That badge is not configurable.");
+
+        if (!PlatformBadgeCatalog.IsEarned(user, badge))
+            return TaskResult<User>.FromFailure("You do not have that badge.");
+
+        user.HiddenBadgeFlags = BadgeVisibility.SetVisible(
+            user.HiddenBadgeFlags, (long)badge, visible);
+        await _db.SaveChangesAsync();
+
+        var model = user.ToModel();
+        await _coreHub.NotifyUserChange(model);
+        return TaskResult<User>.FromData(model);
     }
     
     /// <summary>
@@ -980,6 +1036,12 @@ public class UserService
                 .Select(x => x.Id)
                 .ToListAsync();
 
+            var directCallIds = await _db.DirectCallMembers
+                .Where(x => x.UserId == dbUser.Id)
+                .Select(x => x.CallId)
+                .Distinct()
+                .ToListAsync();
+
             var authoredMessageIds = await _db.Messages
                 .IgnoreQueryFilters()
                 .Where(x => x.AuthorUserId == dbUser.Id)
@@ -1028,6 +1090,16 @@ public class UserService
             await _db.UserPreferences.IgnoreQueryFilters()
                 .Where(x => x.Id == dbUser.Id)
                 .ExecuteDeleteAsync();
+
+            if (directCallIds.Count > 0)
+            {
+                await _db.DirectCallMembers
+                    .Where(x => directCallIds.Contains(x.CallId))
+                    .ExecuteDeleteAsync();
+                await _db.DirectCalls
+                    .Where(x => directCallIds.Contains(x.Id))
+                    .ExecuteDeleteAsync();
+            }
 
             foreach (var entry in _db.ChangeTracker.Entries<Valour.Database.AuthToken>()
                          .Where(x => x.Entity.UserId == dbUser.Id)
@@ -1184,6 +1256,21 @@ public class UserService
                         .SetProperty(a => a.Missing, true)
                         .SetProperty(a => a.Data, (string)null)
                         .SetProperty(a => a.OpenGraphData, (string)null));
+
+                await _db.ThreadAttachments.IgnoreQueryFilters()
+                    .Where(x => attachmentItemIds.Contains(x.CdnBucketItemId))
+                    .ExecuteUpdateAsync(x => x
+                        .SetProperty(a => a.CdnBucketItemId, (string)null)
+                        .SetProperty(a => a.Location, Valour.Sdk.Models.MessageAttachment.MissingLocation)
+                        .SetProperty(a => a.Type, MessageAttachmentType.File)
+                        .SetProperty(a => a.MimeType, "application/octet-stream")
+                        .SetProperty(a => a.FileName, "Attachment not found")
+                        .SetProperty(a => a.Width, 0)
+                        .SetProperty(a => a.Height, 0)
+                        .SetProperty(a => a.Inline, false)
+                        .SetProperty(a => a.Missing, true)
+                        .SetProperty(a => a.Data, (string)null)
+                        .SetProperty(a => a.OpenGraphData, (string)null));
             }
 
             await _db.CdnBucketItems.IgnoreQueryFilters()
@@ -1208,9 +1295,28 @@ public class UserService
             await _db.SaveChangesAsync();
             
             // Channel membership
+            var affectedGroupChannelIds = await _db.ChannelMembers.IgnoreQueryFilters()
+                .Where(x => x.UserId == dbUser.Id && x.Channel.ChannelType == ChannelTypeEnum.GroupChat)
+                .Select(x => x.ChannelId)
+                .Distinct()
+                .ToListAsync();
             var dchannelMembers = _db.ChannelMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.ChannelMembers.RemoveRange(dchannelMembers);
 
+            await _db.SaveChangesAsync();
+
+            foreach (var groupChannelId in affectedGroupChannelIds)
+            {
+                if (await _db.ChannelMembers.AnyAsync(x => x.ChannelId == groupChannelId && x.IsAdmin))
+                    continue;
+
+                var replacementAdmin = await _db.ChannelMembers
+                    .Where(x => x.ChannelId == groupChannelId)
+                    .OrderBy(x => x.Id)
+                    .FirstOrDefaultAsync();
+                if (replacementAdmin is not null)
+                    replacementAdmin.IsAdmin = true;
+            }
             await _db.SaveChangesAsync();
             
             // Direct Message Channels
@@ -1319,11 +1425,6 @@ public class UserService
             await _db.SaveChangesAsync();
 
             // Message reactions were already removed before message deletion to avoid FK violations.
-
-            // Remove old planet role members (before planet members, since role members FK to members)
-            await _db.OldPlanetRoleMembers.IgnoreQueryFilters()
-                .Where(x => x.UserId == dbUser.Id)
-                .ExecuteDeleteAsync();
 
             // Remove planet membership
             var members = _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);

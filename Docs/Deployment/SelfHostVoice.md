@@ -1,112 +1,102 @@
-# Self-hosted voice & video (LiveKit)
+# Self-hosted voice with LiveKit
 
-Valour's managed deployment uses Cloudflare RealtimeKit for voice/video. Self-hosters
-can instead run their **own** [LiveKit](https://livekit.io) SFU so that call media
-never leaves their infrastructure. Both backends are feature-equivalent from the
-client's point of view; the server picks one via config.
+Valour supports Cloudflare RealtimeKit and LiveKit for audio and video. This guide
+configures the instance-wide LiveKit provider using the Compose overlay in the
+repository. Without a configured provider, instance voice is unavailable.
 
-By default voice is **disabled** (no backend configured). This guide enables the
-self-hosted LiveKit backend using the bundled Compose overlay.
+## Connections
 
-## How it fits together
+The browser obtains a join token from Valour, then connects to the LiveKit server.
+Caddy terminates the public signalling WebSocket's TLS connection and proxies it
+to LiveKit on port 7880. Audio and video travel directly to LiveKit over UDP 7882
+or the TCP 7881 fallback, so those media ports must be reachable independently of
+Caddy.
 
-```
-        wss (signalling, TLS via Caddy)          direct UDP/TCP (media)
-Browser ───────────────────────────► Caddy ──► LiveKit ◄──────────────────── Browser
-   │                                   :443      :7880          :7882/udp, :7881/tcp
-   │  api/voice/token  (join token)                  ▲
-   └──────────────────────────────► Valour ──────────┘
-                                     server   room admin over the compose network
-```
+The Valour server signs participant tokens and uses LiveKit's room API for
+moderation and cleanup. In this bundle it reaches that API at
+`http://livekit:7880` over the Compose network.
 
-- **Signalling** is a WebSocket the browser opens to `voice.$VALOUR_DOMAIN`; Caddy
-  terminates TLS and proxies it to the LiveKit container. 
-- **Media** (the actual audio/video) flows **directly** between each browser and the
-  host over UDP `7882` (falling back to TCP `7881`). It does *not* pass through Caddy,
-  so those ports must be reachable from the internet.
-- The **Valour server** mints LiveKit access tokens locally (no round trip) and talks
-  to LiveKit's room API over the internal compose network for moderation/cleanup.
+## Configure DNS and ports
 
-## Steps
-
-### 1. DNS
-
-Add an A/AAAA record `voice.$VALOUR_DOMAIN` pointing at the host (in addition to the
-existing record for `$VALOUR_DOMAIN`).
-
-### 2. Firewall / NAT — the #1 thing to get right
-
-Forward these host ports to the machine running the stack:
+Point `voice.your-domain.example` at the machine running the stack, in addition
+to the application domain. Allow these inbound ports:
 
 | Port | Protocol | Purpose |
-|------|----------|---------|
-| 7882 | UDP | Primary media path. **Required.** |
-| 7881 | TCP | Media fallback for networks that block UDP. |
-| 443  | TCP | Signalling websocket (already open for the app). |
+| --- | --- | --- |
+| 80 | TCP | Caddy HTTPS setup for the application and voice domain |
+| 443 | TCP | HTTPS and signalling WebSocket |
+| 7882 | UDP | Primary media traffic |
+| 7881 | TCP | Media fallback |
 
-If the host is behind NAT (most cloud VPSes are), LiveKit discovers its public IP via
-STUN automatically (`use_external_ip: true` in `selfhost/livekit.yaml`). If discovery
-fails, set `node_ip:` explicitly in that file.
+`selfhost/livekit.yaml` sets `use_external_ip: true` for public-address discovery.
+If discovery does not identify the reachable address, configure `node_ip` in that
+file. Networks that block direct media may require a TURN relay with its own port
+and certificate configuration.
 
-For clients behind very restrictive firewalls, enable LiveKit's embedded TURN-over-TLS
-relay (`turn.enabled` in `selfhost/livekit.yaml`); it needs its own port and certificate.
+## Configure credentials
 
-### 3. Configure `.env`
+Generate a random secret by running `openssl rand -hex 32`. Copy its output into
+`.env` as a literal value. Compose does not execute shell commands written in
+`.env`.
 
-```bash
+```dotenv
 VOICE_PROVIDER=livekit
 VOICE_LIVEKIT_URL=wss://voice.your-domain.example
 VOICE_LIVEKIT_API_KEY=valour
-VOICE_LIVEKIT_API_SECRET=$(openssl rand -hex 32)   # keep it long (>= 32 chars) and secret
+VOICE_LIVEKIT_API_SECRET=PASTE_GENERATED_SECRET_HERE
 ```
 
-The server signs join tokens with the key/secret; the same pair is handed to the
-LiveKit container via `LIVEKIT_KEYS`. `VOICE_LIVEKIT_API_URL` defaults to
-`http://livekit:7880` (the internal address) and rarely needs changing.
+Use the same key and secret for Valour and LiveKit. The overlay supplies that pair
+to LiveKit through `LIVEKIT_KEYS`. Valour's server-facing API URL defaults to
+`http://livekit:7880`; set `VOICE_LIVEKIT_API_URL` only if that address differs in
+your deployment.
 
-### 4. Enable the Caddy voice block
+Uncomment the `voice.{$VALOUR_DOMAIN}` site block in `selfhost/Caddyfile`. Then run:
 
-Uncomment the `voice.{$VALOUR_DOMAIN}` block at the bottom of `selfhost/Caddyfile`.
-
-### 5. Start the stack with the voice Compose overlay
-
-```bash
+```sh
 docker compose -f docker-compose.yml -f docker-compose.voice.yml up -d
 ```
 
-The manifest at `https://$VALOUR_DOMAIN/.well-known/valour-instance` should now report
-`"voice": true`, `"voiceProvider": "livekit"`, and the `voiceEndpoint`. Voice/video
-channels become available in the client automatically.
+The overlay requires the API key and secret. After changing environment settings,
+run the Compose command again so affected containers are recreated with them.
 
-## Provider selection logic
+## Verify the provider
 
-The server resolves the active backend from config:
+Check `https://your-domain.example/.well-known/valour-instance`. A configured
+LiveKit instance reports `voice: true`, `voiceProvider: livekit`, and its public
+`voiceEndpoint`. Join a call with two accounts and verify microphone, camera,
+screen sharing, leaving, and reconnecting.
 
-- `Voice__Provider=livekit` → LiveKit (this guide).
-- `Voice__Provider=realtimekit` → Cloudflare RealtimeKit (needs the `Cloudflare__Realtime*` keys).
-- unset → auto: LiveKit **only if** it is configured and RealtimeKit is not; otherwise
-  RealtimeKit. So the managed deployment is never silently switched.
+`Voice:Provider` explicitly selects `livekit` or `realtimekit`. With no explicit
+selection, Valour selects LiveKit when it is configured and RealtimeKit is not;
+otherwise it selects RealtimeKit. The selected provider still needs its credentials
+to report itself configured. RealtimeKit uses the `Cloudflare:Realtime*` settings.
 
-## Feature parity & minor differences
+An enabled planet-specific LiveKit configuration takes precedence for that
+planet's calls. Direct and group calls use the instance provider. The manifest
+reports instance capability, not every planet's individual voice configuration.
 
-Everything the client does — join/leave, mute/unmute, camera, screen share (with audio),
-active-speaker highlighting, device switching, moderation (server-side kick, client-relayed
-mute) — works identically on both backends.
+## Client behavior
 
-- **Noise suppression / echo cancellation:** on LiveKit these use the browser's built-in
-  `noiseSuppression` / `echoCancellation` / `autoGainControl` constraints (enabled by
-  default). RealtimeKit's managed enhancement isn't present; browser-level processing is
-  what you get, which is fine for the vast majority of calls.
-- **Scaling:** a single LiveKit container comfortably handles small/medium communities on
-  a modest VPS. Voice is cheap; video/screen-share bandwidth scales with how many streams
-  are being forwarded. For large deployments, see LiveKit's distributed/SFU-mesh docs.
+The call UI supports joining, muting, camera, screen sharing, participant controls,
+and device selection through the provider integrations. LiveKit uses browser
+`noiseSuppression`, `echoCancellation`, and `autoGainControl` constraints for audio
+processing. Its video elements attach through the SDK so adaptive streaming can
+respond to their displayed size.
+
+Call capacity depends on stream count, video resolution, available bandwidth, and
+host resources. Measure the expected workload instead of inferring capacity from
+a successful two-person call.
 
 ## Troubleshooting
 
-- **Connects then no audio/video, or "connecting" hangs:** almost always UDP `7882` isn't
-  reachable. Verify the port-forward and that `use_external_ip`/`node_ip` resolves to the
-  right public address. Confirm TCP `7881` is open as a fallback.
-- **Signalling fails immediately:** check `voice.$VALOUR_DOMAIN` DNS and that the Caddy
-  voice block is uncommented and got a certificate (`docker compose logs caddy`).
-- **Server logs "LiveKit is not configured":** the `Voice__LiveKit*` env vars didn't reach
-  the `valour` container — confirm they're in `.env` and re-run compose.
+If signalling connects but media does not arrive, check UDP 7882 and TCP 7881,
+NAT forwarding, and the public address advertised by LiveKit. If signalling fails,
+check voice DNS, Caddy's site block, and certificate logs. If Valour reports an
+unconfigured provider, check that the Compose service receives the `Voice__LiveKit*`
+settings and recreate it after configuration changes.
+
+The [local media suite](../../Valour/Tests/Browser/README.md#local-media-regression)
+exercises the application with an isolated local SFU and synthetic capture.
+Public deployment still needs verification through the actual provider endpoint
+and intended client devices.

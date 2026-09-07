@@ -149,6 +149,11 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     public string StarColor2 { get; set; }
 
     /// <summary>
+    /// Platform badge bits this user has chosen not to display.
+    /// </summary>
+    public long HiddenBadgeFlags { get; set; }
+
+    /// <summary>
     /// The subscription the user currently has
     /// </summary>
     [JsonIgnore]

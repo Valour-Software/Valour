@@ -1,0 +1,22 @@
+@inherits Modal<EditIdentityModal.Params>
+
+<BasicModalLayout Title="@Title" Icon="person-vcard" MaxWidth="500px">
+    <MainArea>
+        <EditIdentity Member="@Data.Member" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@Close" class="v-btn">Done</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+
+    public class Params
+    {
+        public PlanetMember Member { get; set; }
+    }
+
+    private string Title => $"Edit Identity - {Data.Member.Name}";
+}

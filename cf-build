@@ -145,20 +145,29 @@ cat > "$OUTPUT_DIR/_headers" <<'EOF'
 /service-worker-assets.js
   Cache-Control: no-cache
 
-# Framework resources below have content hashes in their filenames. They can be
-# kept indefinitely because a content change produces a different request URL.
+# Framework resources below have content hashes in their filenames, so they get a
+# long max-age: a content change produces a different request URL.
+#
+# Deliberately NOT `immutable`. Pages cannot 404 a missing fingerprint -- the SPA
+# fallback in _redirects rewrites it to index.html with a 200, and _headers match
+# on request path, so that HTML body is stored under a .wasm URL with these very
+# headers. A request that races a deploy (an open tab, or the service worker
+# precaching an asset set that just went stale) can therefore poison the browser
+# cache. Without `immutable` a normal reload revalidates and repairs the entry;
+# with it, nothing short of a hard refresh could. See the boot recovery handler
+# in Valour/Client/wwwroot/index.html, which repairs it without any refresh.
 /_framework/*.wasm
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=31536000
 
 /_framework/*.dat
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=31536000
 
 /_framework/*.pdb
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=31536000
 
 /_framework/dotnet.native.*.js
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=31536000
 
 /_framework/dotnet.runtime.*.js
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=31536000
 EOF

@@ -68,11 +68,13 @@ public class MessageService
             return staged;
         }
         
-        var message = await _db.Messages.AsNoTracking()
+        var message = await _db.Messages.AsNoTracking().AsSplitQuery()
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -207,7 +209,8 @@ public class MessageService
         // a client submitting a native message.
         message.WebhookId = writeOptions?.WebhookId;
         message.OverrideName = writeOptions?.OverrideName;
-        message.OverrideAvatarUrl = writeOptions?.OverrideAvatarUrl;
+        message.WebhookAvatarAssetId = writeOptions?.WebhookAvatarAssetId;
+        message.WebhookAvatarAnimated = writeOptions?.WebhookAvatarAnimated ?? false;
         
         var attachments = message.Attachments?.Where(x => x is not null).ToList();
         if (attachments is not null)
@@ -292,7 +295,7 @@ public class MessageService
 
         if (planet is null)
         {
-            if (channel.ChannelType == ChannelTypeEnum.DirectChat)
+            if (channel.ChannelType is ChannelTypeEnum.DirectChat or ChannelTypeEnum.GroupChat)
             {
                 var channelMembers = await _db.ChannelMembers
                     .AsNoTracking()
@@ -398,6 +401,12 @@ public class MessageService
         Message stagedOld = null;
         
         var dbOld = await _db.Messages
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Attachments)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
             .Include(x => x.Reactions)
@@ -433,8 +442,11 @@ public class MessageService
         updated.ImportSource = old.ImportSource;
         updated.WebhookId = old.WebhookId;
         updated.OverrideName = old.OverrideName;
-        updated.OverrideAvatarUrl = old.OverrideAvatarUrl;
+        updated.WebhookAvatarAssetId = old.WebhookAvatarAssetId;
+        updated.WebhookAvatarAnimated = old.WebhookAvatarAnimated;
         
+        updated.Content ??= string.Empty;
+
         // Sanity checks
         if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))
             return TaskResult<Message>.FromFailure("Updated message cannot be empty");
@@ -657,13 +669,15 @@ public class MessageService
             return await _chatCacheService.GetLastMessagesAsync(channelId);
         }
 
-        var messages = await _db.Messages
+        var messages = await _db.Messages.AsSplitQuery()
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id < index)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -718,13 +732,15 @@ public class MessageService
                 .ToList();
         }
 
-        var messages = await _db.Messages
+        var messages = await _db.Messages.AsSplitQuery()
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id > afterId)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -752,7 +768,7 @@ public class MessageService
             return [];
         
         // Use postgres functions to search for the search string
-        var messages = await _db.Messages
+        var messages = await _db.Messages.AsSplitQuery()
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id)
             .Where(x => EF.Functions.ILike(x.Content, $"%{search}%"))
@@ -760,6 +776,8 @@ public class MessageService
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -1067,7 +1085,7 @@ public class MessageService
         return TaskResult.SuccessResult;
     }
 
-    private static string? TryParseCdnBucketItemId(string? location)
+    internal static string? TryParseCdnBucketItemId(string? location)
     {
         if (string.IsNullOrWhiteSpace(location))
             return null;
@@ -1075,7 +1093,7 @@ public class MessageService
         if (!Uri.TryCreate(location, UriKind.Absolute, out var uri))
             return null;
 
-        if (!uri.Host.Equals(ValourHosts.ContentCdnHost, StringComparison.OrdinalIgnoreCase))
+        if (!MediaUriHelper.MatchesConfiguredOrigin(uri, ValourHosts.ContentCdnHost))
             return null;
 
         var segments = uri.AbsolutePath

@@ -32,9 +32,11 @@ public class PlanetWebhook : ISharedPlanetWebhook
     public string Name { get; set; }
 
     /// <summary>
-    /// The default avatar for messages sent by this webhook
+    /// The immutable CDN asset currently used as this webhook's avatar.
     /// </summary>
-    public string AvatarUrl { get; set; }
+    public long? AvatarAssetId { get; set; }
+
+    public bool AvatarAnimated { get; set; }
 
     /// <summary>
     /// The secret token used to execute the webhook
@@ -75,9 +77,11 @@ public class PlanetWebhook : ISharedPlanetWebhook
                 .HasColumnName("name")
                 .HasMaxLength(ISharedPlanetWebhook.MaxNameLength);
 
-            e.Property(x => x.AvatarUrl)
-                .HasColumnName("avatar_url")
-                .HasMaxLength(ISharedPlanetWebhook.MaxAvatarUrlLength);
+            e.Property(x => x.AvatarAssetId)
+                .HasColumnName("avatar_asset_id");
+
+            e.Property(x => x.AvatarAnimated)
+                .HasColumnName("avatar_animated");
 
             e.Property(x => x.Token)
                 .HasColumnName("token")

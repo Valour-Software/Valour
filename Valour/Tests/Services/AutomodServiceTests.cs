@@ -86,6 +86,34 @@ public class AutomodServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Sentry_QueryPages_AreOrderedAndClampNegativeBounds()
+    {
+        var ids = new[] { Guid.Parse("30000000-0000-0000-0000-000000000000"), Guid.Parse("10000000-0000-0000-0000-000000000000"), Guid.Parse("20000000-0000-0000-0000-000000000000") };
+        // Shuffle the leading bytes but keep IDs unique between repeated test runs.
+        var suffix = Guid.NewGuid().ToString()[8..];
+        ids = ids.Select(x => Guid.Parse(x.ToString()[..8] + suffix)).ToArray();
+        foreach (var id in ids)
+        {
+            _db.AutomodTriggers.Add(new Valour.Database.AutomodTrigger { Id = id, PlanetId = _planet.Id, MemberAddedBy = _ownerMember.Id, Name = "Paging", Type = AutomodTriggerType.Blacklist });
+            _db.AutomodActions.Add(new Valour.Database.AutomodAction { Id = id, TriggerId = ids[0], PlanetId = _planet.Id, MemberAddedBy = _ownerMember.Id, Message = "Paging", ActionType = AutomodActionType.Respond });
+        }
+        await _db.SaveChangesAsync();
+        var expected = ids.Order().ToArray();
+        for (var i = 0; i < ids.Length; i++)
+        {
+            var request = new QueryRequest { Skip = i, Take = 1 };
+            var triggers = await _automodService.QueryPlanetTriggersAsync(_planet.Id, request);
+            var actions = await _automodService.QueryTriggerActionsAsync(_planet.Id, ids[0], request);
+            Assert.Equal(3, triggers.TotalCount);
+            Assert.Equal(expected[i], Assert.Single(triggers.Items).Id);
+            Assert.Equal(3, actions.TotalCount);
+            Assert.Equal(expected[i], Assert.Single(actions.Items).Id);
+        }
+        Assert.Equal(expected[0], Assert.Single((await _automodService.QueryPlanetTriggersAsync(_planet.Id, new QueryRequest { Skip = -1, Take = 1 })).Items).Id);
+        Assert.Empty((await _automodService.QueryTriggerActionsAsync(_planet.Id, ids[0], new QueryRequest { Take = -1 })).Items);
+    }
+
+    [Fact]
     public async Task CreateTriggerWithActions_AddRoleAction_PersistsRoleId()
     {
         // Server-side contract behind #1477: the selected role of an

@@ -97,6 +97,11 @@ public class Planet : ServerModel<long>, ISharedPlanet
     public bool EnableWiki { get; set; }
 
     /// <summary>
+    /// True if the village is enabled for this planet
+    /// </summary>
+    public bool EnableVillage { get; set; }
+
+    /// <summary>
     /// True if this planet's docs can be read publicly without an account
     /// </summary>
     public bool PublicWiki { get; set; }
@@ -110,6 +115,11 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// The vanity name claimed for this planet's public docs site, if any
     /// </summary>
     public string Vanity { get; set; }
+
+    /// <summary>
+    /// True when the planet's vanity name also works as a permanent invite link
+    /// </summary>
+    public bool VanityInviteEnabled { get; set; }
 
     /// <summary>
     /// Owner-chosen default cadence for channel activity notifications

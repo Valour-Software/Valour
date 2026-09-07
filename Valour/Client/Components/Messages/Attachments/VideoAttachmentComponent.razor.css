@@ -2,3 +2,28 @@
     max-width: 100%;
     max-height: min(400px, 80vh);
 }
+
+.video-attachment-wrapper {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.video-attachment-wrapper.spoiler-hidden .video-attachment {
+    filter: blur(24px);
+}
+
+.spoiler-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    background-color: rgba(0, 0, 0, 0.35);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}

@@ -387,6 +387,7 @@
 
     private async Task LoadIconFiles(InputFileChangeEventArgs e)
     {
+        if (e.FileCount == 0) return;
         var file = e.File;
 
         if (file == null)
@@ -404,7 +405,8 @@
         }
 
         byte[] data = new byte[file.Size];
-        await file.OpenReadStream(8 * 1024 * 1024).ReadAsync(data);
+        await using var stream = file.OpenReadStream(8 * 1024 * 1024);
+        await stream.ReadExactlyAsync(data);
 
         var content = new MultipartFormDataContent();
         var arrContent = new ByteArrayContent(data);
@@ -420,6 +422,7 @@
     
     private async Task LoadBackgroundFiles(InputFileChangeEventArgs e)
     {
+        if (e.FileCount == 0) return;
         var file = e.File;
 
         if (file == null)
@@ -437,7 +440,8 @@
         }
 
         byte[] data = new byte[file.Size];
-        await file.OpenReadStream(10 * 1024 * 1024).ReadAsync(data);
+        await using var stream = file.OpenReadStream(10 * 1024 * 1024);
+        await stream.ReadExactlyAsync(data);
 
         var content = new MultipartFormDataContent();
         var arrContent = new ByteArrayContent(data);

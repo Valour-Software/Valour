@@ -23,7 +23,7 @@
 
                         <div class="tree-row @(isLast ? "last" : "")" depth="2">
                             <div class="channel-wrapper" style="margin-left: 18px" depth="2"
-                                 draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded)"
+                                 draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded ? "true" : "false")"
                                  ondragover="event.preventDefault();"
 
                                  @onclick="@(() => OnClickChannel(channel))"

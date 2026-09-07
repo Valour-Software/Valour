@@ -12,6 +12,25 @@ namespace Valour.Tests.Client;
 public class MarkdownLinkRenderingTests
 {
     [Theory]
+    [InlineData("**Hello** [village](https://example.com)", "Hello village")]
+    [InlineData("«@m-123» waved «e-:party_blob:~456»", "@user waved :party_blob:")]
+    [InlineData("A   message\nwith spacing", "A message with spacing")]
+    [InlineData("Hi 🙂", "Hi 🙂")]
+    [InlineData("That is ||classified||", "That is classified")]
+    [InlineData("Watching $SPY today", "Watching $SPY today")]
+    public void PlainTextProjection_UsesMessagePipeline(string markdown, string expected)
+    {
+        Assert.Equal(expected, MarkdownManager.GetPlainText(markdown));
+    }
+
+    [Fact]
+    public void PlainTextProjection_TruncatesForCompactSurfaces()
+    {
+        Assert.Equal("1234567\u2026", MarkdownManager.GetPlainText("1234567890", 8));
+        Assert.Equal("🙂🙂🙂\u2026", MarkdownManager.GetPlainText("🙂🙂🙂🙂🙂", 4));
+    }
+
+    [Theory]
     [InlineData("https://example.com/path")]
     [InlineData("http://example.com/path")]
     public async Task ExternalLink_RendersAsPassiveHardenedAnchor(string url)

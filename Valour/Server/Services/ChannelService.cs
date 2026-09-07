@@ -10,6 +10,8 @@ namespace Valour.Server.Services;
 
 public class ChannelService
 {
+    public const int MaxGroupDmMembers = 25;
+
     private readonly ValourDb _db;
     private readonly PlanetMemberService _memberService;
     private readonly ILogger<ChannelService> _logger;
@@ -143,7 +145,8 @@ public class ChannelService
         else
         {
             query = query.Where(x => x.Members.Any(m => m.UserId == userOneId) &&
-                                     x.Members.Any(m => m.UserId == userTwoId));
+                                     x.Members.Any(m => m.UserId == userTwoId) &&
+                                     x.Members.All(m => m.UserId == userOneId || m.UserId == userTwoId));
         }
 
         var channel = await query.FirstOrDefaultAsync();
@@ -151,6 +154,9 @@ public class ChannelService
         // If there is no channel and we have this set to create it if missing...
         if (channel is null && create)
         {
+            var userCount = await _db.Users.CountAsync(x => x.Id == userOneId || x.Id == userTwoId);
+            if (userCount != (isSelf ? 1 : 2)) return null;
+
             var newId = IdManager.Generate();
 
             // A self-DM gets a single member row; a normal DM gets one per user
@@ -199,7 +205,18 @@ public class ChannelService
             };
             
             await _db.Channels.AddAsync(channel);
-            await _db.SaveChangesAsync();
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException e) when (e.GetBaseException() is Npgsql.PostgresException
+                { SqlState: Npgsql.PostgresErrorCodes.ForeignKeyViolation, TableName: "channel_members" })
+            {
+                // A participant can disappear between the lookup and insertion.
+                foreach (var member in members) _db.Entry(member).State = EntityState.Detached;
+                _db.Entry(channel).State = EntityState.Detached;
+                return null;
+            }
         }
         
         return channel?.ToModel();
@@ -211,7 +228,8 @@ public class ChannelService
     public Task<List<Channel>> GetAllDirectAsync(long userId)
     {
         return _db.Channels.Include(x => x.Members)
-            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat &&
+            .Where(x => (x.ChannelType == ChannelTypeEnum.DirectChat ||
+                         x.ChannelType == ChannelTypeEnum.GroupChat) &&
                         x.Members.Any(m => m.UserId == userId))
             .Select(x => x.ToModel())
             .ToListAsync();
@@ -227,7 +245,8 @@ public class ChannelService
         return _db.Channels
             .AsNoTracking()
             .Include(x => x.Members)
-            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat &&
+            .Where(x => (x.ChannelType == ChannelTypeEnum.DirectChat ||
+                         x.ChannelType == ChannelTypeEnum.GroupChat) &&
                         x.Members.Any(m => m.UserId == userId))
             .OrderByDescending(x => x.LastUpdateTime)
             .ThenByDescending(x => x.Id)
@@ -255,7 +274,8 @@ public class ChannelService
             .Include(x => x.Members)
             .ThenInclude(x => x.User)
             .Where(x => !x.IsDeleted &&
-                        x.ChannelType == ChannelTypeEnum.DirectChat &&
+                        (x.ChannelType == ChannelTypeEnum.DirectChat ||
+                         x.ChannelType == ChannelTypeEnum.GroupChat) &&
                         x.Members.Any(m => m.UserId == userId) &&
                         x.Members.Any(m => m.UserId != userId));
 
@@ -263,11 +283,13 @@ public class ChannelService
         {
             var normalizedSearch = search.Trim().ToLower();
 
-            query = query.Where(x => x.Members.Any(m =>
-                m.UserId != userId &&
-                EF.Functions.ILike(
-                    (m.User.Name.ToLower() + "#" + m.User.Tag.ToLower()),
-                    "%" + normalizedSearch + "%")));
+            query = query.Where(x =>
+                EF.Functions.ILike(x.Name, "%" + normalizedSearch + "%") ||
+                x.Members.Any(m =>
+                    m.UserId != userId &&
+                    EF.Functions.ILike(
+                        (m.User.Name.ToLower() + "#" + m.User.Tag.ToLower()),
+                        "%" + normalizedSearch + "%")));
         }
 
         var totalCount = await query.CountAsync();
@@ -279,23 +301,263 @@ public class ChannelService
             .Take(take)
             .ToListAsync();
 
-        var items = channels
-            .Select(x => new DirectMessageListItem
+        var items = channels.Select(x =>
+        {
+            var users = x.Members
+                .Where(m => m.UserId != userId)
+                .Select(m => m.User.ToModel())
+                .ToList();
+
+            return new DirectMessageListItem
             {
                 Channel = x.ToModel(),
-                OtherUser = x.Members
-                    .Where(m => m.UserId != userId)
-                    .Select(m => m.User.ToModel())
-                    .FirstOrDefault()
-            })
-            .Where(x => x.OtherUser is not null)
-            .ToList();
+                OtherUser = users.FirstOrDefault(),
+                Users = users,
+                DisplayName = x.ChannelType == ChannelTypeEnum.GroupChat
+                    ? x.Name
+                    : users.FirstOrDefault()?.Name
+            };
+        }).ToList();
 
         return new QueryResponse<DirectMessageListItem>
         {
             TotalCount = totalCount,
             Items = items
         };
+    }
+
+    public async Task<TaskResult<Channel>> CreateGroupDmAsync(
+        long creatorUserId,
+        CreateGroupDmRequest request)
+    {
+        var userIds = request.UserIds
+            .Append(creatorUserId)
+            .Distinct()
+            .ToList();
+
+        if (userIds.Count < 3)
+            return TaskResult<Channel>.FromFailure("A group DM requires at least three people.");
+        if (userIds.Count > MaxGroupDmMembers)
+            return TaskResult<Channel>.FromFailure($"Group DMs support up to {MaxGroupDmMembers} people.");
+
+        var existingUserCount = await _db.Users.CountAsync(x => userIds.Contains(x.Id));
+        if (existingUserCount != userIds.Count)
+            return TaskResult<Channel>.FromFailure("One or more users could not be found.");
+
+        var channelId = IdManager.Generate();
+        var channel = new Valour.Database.Channel
+        {
+            Id = channelId,
+            Name = NormalizeGroupDmName(request.Name),
+            Description = "A private group discussion",
+            ChannelType = ChannelTypeEnum.GroupChat,
+            LastUpdateTime = DateTime.UtcNow,
+            IsDeleted = false,
+            RawPosition = 0,
+            InheritsPerms = false,
+            IsDefault = false,
+            PlanetId = null,
+            ParentId = null,
+            Version = ISharedChannel.CurrentVersion,
+            Members = userIds.Select(userId => new Valour.Database.ChannelMember
+            {
+                Id = IdManager.Generate(),
+                ChannelId = channelId,
+                UserId = userId,
+                IsAdmin = userId == creatorUserId
+            }).ToList()
+        };
+
+        await _db.Channels.AddAsync(channel);
+        await _db.SaveChangesAsync();
+        return TaskResult<Channel>.FromData(channel.ToModel());
+    }
+
+    public async Task<TaskResult<Channel>> AddGroupDmMembersAsync(
+        long channelId,
+        long actingUserId,
+        IEnumerable<long> requestedUserIds)
+    {
+        var channel = await _db.Channels
+            .Include(x => x.Members)
+            .FirstOrDefaultAsync(x => x.Id == channelId && !x.IsDeleted);
+
+        if (channel is null || channel.ChannelType != ChannelTypeEnum.GroupChat)
+            return TaskResult<Channel>.FromFailure("Group DM not found.");
+        if (!channel.Members.Any(x => x.UserId == actingUserId && x.IsAdmin))
+            return TaskResult<Channel>.FromFailure("Only group admins can add people.");
+
+        var existingIds = channel.Members.Select(x => x.UserId).ToHashSet();
+        var userIds = requestedUserIds.Distinct().Where(x => !existingIds.Contains(x)).ToList();
+        if (channel.Members.Count + userIds.Count > MaxGroupDmMembers)
+            return TaskResult<Channel>.FromFailure($"Group DMs support up to {MaxGroupDmMembers} people.");
+
+        var existingUserCount = await _db.Users.CountAsync(x => userIds.Contains(x.Id));
+        if (existingUserCount != userIds.Count)
+            return TaskResult<Channel>.FromFailure("One or more users could not be found.");
+
+        foreach (var userId in userIds)
+        {
+            var member = new Valour.Database.ChannelMember
+            {
+                Id = IdManager.Generate(),
+                ChannelId = channel.Id,
+                UserId = userId
+            };
+            channel.Members.Add(member);
+            _db.ChannelMembers.Add(member);
+        }
+
+        channel.LastUpdateTime = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return TaskResult<Channel>.FromData(channel.ToModel());
+    }
+
+    public async Task<TaskResult<Channel>> ConvertDirectDmToGroupAsync(
+        long channelId,
+        long actingUserId,
+        IEnumerable<long> requestedUserIds,
+        string? name = null)
+    {
+        var channel = await _db.Channels
+            .Include(x => x.Members)
+            .FirstOrDefaultAsync(x => x.Id == channelId && !x.IsDeleted);
+
+        if (channel is null || channel.PlanetId is not null ||
+            channel.ChannelType is not (ChannelTypeEnum.DirectChat or ChannelTypeEnum.GroupChat))
+            return TaskResult<Channel>.FromFailure("Direct message channel not found.");
+        if (!channel.Members.Any(x => x.UserId == actingUserId))
+            return TaskResult<Channel>.FromFailure("You are not a member of this channel.");
+        if (channel.ChannelType == ChannelTypeEnum.GroupChat &&
+            !channel.Members.Any(x => x.UserId == actingUserId && x.IsAdmin))
+            return TaskResult<Channel>.FromFailure("Only group admins can add people.");
+
+        if (channel.ChannelType == ChannelTypeEnum.DirectChat)
+        {
+            // Preserve 1:1 history: new invitees receive a fresh group channel.
+            // The media room remains stable because it is keyed by call id.
+            var allUserIds = channel.Members.Select(x => x.UserId)
+                .Concat(requestedUserIds)
+                .Distinct()
+                .ToList();
+            if (allUserIds.Count > MaxGroupDmMembers)
+                return TaskResult<Channel>.FromFailure($"Group DMs support up to {MaxGroupDmMembers} people.");
+
+            var existingUserCount = await _db.Users.CountAsync(x => allUserIds.Contains(x.Id));
+            if (existingUserCount != allUserIds.Count)
+                return TaskResult<Channel>.FromFailure("One or more users could not be found.");
+
+            var groupId = IdManager.Generate();
+            var group = new Valour.Database.Channel
+            {
+                Id = groupId,
+                Name = NormalizeGroupDmName(name),
+                Description = "A private group discussion",
+                ChannelType = ChannelTypeEnum.GroupChat,
+                LastUpdateTime = DateTime.UtcNow,
+                IsDeleted = false,
+                RawPosition = 0,
+                InheritsPerms = false,
+                IsDefault = false,
+                PlanetId = null,
+                ParentId = null,
+                Version = ISharedChannel.CurrentVersion,
+                Members = allUserIds.Select(userId => new Valour.Database.ChannelMember
+                {
+                    Id = IdManager.Generate(),
+                    ChannelId = groupId,
+                    UserId = userId,
+                    IsAdmin = userId == actingUserId
+                }).ToList()
+            };
+
+            await _db.Channels.AddAsync(group);
+            await _db.SaveChangesAsync();
+            return TaskResult<Channel>.FromData(group.ToModel());
+        }
+
+        var addResult = await AddGroupDmMembersCoreAsync(channel, requestedUserIds);
+        if (!addResult.Success)
+            return TaskResult<Channel>.FromFailure(addResult);
+
+        channel.LastUpdateTime = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return TaskResult<Channel>.FromData(channel.ToModel());
+    }
+
+    public async Task<TaskResult<Channel>> UpdateGroupDmAsync(long channelId, long actingUserId, string name)
+    {
+        var channel = await _db.Channels.Include(x => x.Members)
+            .FirstOrDefaultAsync(x => x.Id == channelId && !x.IsDeleted);
+        if (channel is null || channel.ChannelType != ChannelTypeEnum.GroupChat)
+            return TaskResult<Channel>.FromFailure("Group DM not found.");
+        if (!channel.Members.Any(x => x.UserId == actingUserId && x.IsAdmin))
+            return TaskResult<Channel>.FromFailure("Only group admins can rename this group.");
+
+        channel.Name = NormalizeGroupDmName(name);
+        channel.LastUpdateTime = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return TaskResult<Channel>.FromData(channel.ToModel());
+    }
+
+    public async Task<TaskResult> RemoveGroupDmMemberAsync(long channelId, long actingUserId, long userId)
+    {
+        var channel = await _db.Channels.Include(x => x.Members)
+            .FirstOrDefaultAsync(x => x.Id == channelId && !x.IsDeleted);
+        if (channel is null || channel.ChannelType != ChannelTypeEnum.GroupChat)
+            return TaskResult.FromFailure("Group DM not found.");
+
+        var actor = channel.Members.FirstOrDefault(x => x.UserId == actingUserId);
+        var member = channel.Members.FirstOrDefault(x => x.UserId == userId);
+        if (actor is null || member is null)
+            return TaskResult.FromFailure("Group member not found.");
+        if (actingUserId != userId && !actor.IsAdmin)
+            return TaskResult.FromFailure("Only group admins can remove other people.");
+
+        _db.ChannelMembers.Remove(member);
+        channel.Members.Remove(member);
+        if (channel.Members.Count == 0)
+            channel.IsDeleted = true;
+        else if (member.IsAdmin && channel.Members.All(x => !x.IsAdmin))
+            channel.Members.OrderBy(x => x.Id).First().IsAdmin = true;
+
+        channel.LastUpdateTime = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return TaskResult.SuccessResult;
+    }
+
+    private async Task<TaskResult> AddGroupDmMembersCoreAsync(
+        Valour.Database.Channel channel,
+        IEnumerable<long> requestedUserIds)
+    {
+        var existingIds = channel.Members.Select(x => x.UserId).ToHashSet();
+        var userIds = requestedUserIds.Distinct().Where(x => !existingIds.Contains(x)).ToList();
+        if (channel.Members.Count + userIds.Count > MaxGroupDmMembers)
+            return TaskResult.FromFailure($"Group DMs support up to {MaxGroupDmMembers} people.");
+
+        var existingUserCount = await _db.Users.CountAsync(x => userIds.Contains(x.Id));
+        if (existingUserCount != userIds.Count)
+            return TaskResult.FromFailure("One or more users could not be found.");
+
+        foreach (var userId in userIds)
+        {
+            var member = new Valour.Database.ChannelMember
+            {
+                Id = IdManager.Generate(),
+                ChannelId = channel.Id,
+                UserId = userId
+            };
+            channel.Members.Add(member);
+            _db.ChannelMembers.Add(member);
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    private static string NormalizeGroupDmName(string? name)
+    {
+        var normalized = string.IsNullOrWhiteSpace(name) ? "Group chat" : name.Trim();
+        return normalized.Length <= 64 ? normalized : normalized[..64];
     }
     
     /// <summary>

@@ -109,6 +109,63 @@ public class RealtimeKitReconciliationTests
         Assert.Equal(new HashSet<long> { 123, 456 }, result);
     }
 
+    [Fact]
+    public async Task KickSpecificSession_DeletesParticipantRecordSoItsTokenCannotRejoin()
+    {
+        var handler = new RouteHandler
+        {
+            ["/active-session/kick"] = (HttpStatusCode.OK, """{"success":true,"data":{}}"""),
+            ["/meetings/meet-1/participants?"] = (HttpStatusCode.OK,
+                """{"success":true,"data":[{"id":"record-1","custom_participant_id":"123:session-a"},{"id":"record-2","custom_participant_id":"123:session-b"}]}"""),
+            ["/meetings/meet-1/participants/record-1"] = (HttpStatusCode.OK,
+                """{"success":true,"data":{"custom_participant_id":"123:session-a"}}""")
+        };
+        var service = CreateService(handler);
+        service.TrackMeetingMapping(42, "meet-1");
+
+        await service.KickUserSessionFromTrackedChannelAsync(42, 123, "session-a");
+
+        Assert.Contains(handler.Requests, request =>
+            request.Method == HttpMethod.Post && request.Uri.Contains("/active-session/kick"));
+        Assert.Contains(handler.Requests, request =>
+            request.Method == HttpMethod.Delete && request.Uri.Contains("/participants/record-1"));
+        Assert.DoesNotContain(handler.Requests, request =>
+            request.Method == HttpMethod.Delete && request.Uri.Contains("/participants/record-2"));
+    }
+
+    [Fact]
+    public async Task ParticipantQueries_UseSupportedPageSizeAndIncludeLaterPages()
+    {
+        var firstPage = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            success = true,
+            data = new { participants = Enumerable.Range(1, 200).Select(i => new { id = $"p{i}", custom_participant_id = i.ToString() }) }
+        });
+        var handler = new RouteHandler
+        {
+            ["page_no=1"] = (HttpStatusCode.OK, firstPage),
+            ["page_no=2"] = (HttpStatusCode.OK, """{"success":true,"data":{"participants":[{"id":"p201","custom_participant_id":"201"}]}}""")
+        };
+        var result = await CreateService(handler).GetSessionParticipantsAsync("sess-1");
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(201, result.Data.Count);
+        Assert.All(handler.Requests, x => Assert.Contains("per_page=200", x.Uri));
+    }
+
+    [Fact]
+    public async Task ParticipantQueries_RepeatedPageDoesNotReturnPartialSuccess()
+    {
+        var body = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            success = true,
+            data = new { participants = Enumerable.Range(1, 200).Select(i => new { id = $"p{i}", custom_participant_id = i.ToString() }) }
+        });
+        var service = CreateService(new RouteHandler { ["/participants?"] = (HttpStatusCode.OK, body) });
+        var result = await service.GetSessionParticipantsAsync("sess-1");
+        Assert.False(result.Success);
+        Assert.Null(result.Data);
+    }
+
     private static RealtimeKitService CreateService(RouteHandler handler) =>
         new(new StubHttpClientFactory(handler),
             NullLogger<RealtimeKitService>.Instance,
@@ -120,6 +177,7 @@ public class RealtimeKitReconciliationTests
     private sealed class RouteHandler : HttpMessageHandler
     {
         private readonly List<(string Fragment, HttpStatusCode Status, string Body)> _routes = new();
+        public List<(HttpMethod Method, string Uri)> Requests { get; } = [];
 
         public (HttpStatusCode, string) this[string urlFragment]
         {
@@ -130,6 +188,7 @@ public class RealtimeKitReconciliationTests
             HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var url = request.RequestUri!.ToString();
+            Requests.Add((request.Method, url));
             foreach (var (fragment, status, body) in _routes)
             {
                 if (url.Contains(fragment, StringComparison.Ordinal))

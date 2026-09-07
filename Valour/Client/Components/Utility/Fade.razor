@@ -1,4 +1,5 @@
-﻿@inject IJSRuntime JsRuntime
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
 
 <div @ref="@_containerRef" class="fade-container">
     @ChildContent
@@ -7,52 +8,74 @@
 @code {
     [Parameter]
     public RenderFragment ChildContent { get; set; }
-    
-    /// <summary>
-    /// Module for calling Javascript functions
-    /// </summary>
-    private IJSObjectReference _jsModule;
 
-    private ElementReference _containerRef;
-    
     [Parameter]
     public Func<Task> OnFadeOut { get; set; }
 
-    protected override Task OnInitializedAsync()
-    {
-        return Task.CompletedTask;
-    }
-    
+    private IJSObjectReference _jsModule;
+    private ElementReference _containerRef;
+    private bool _disposed;
+    private bool _initializing;
+    private Task _cleanupTask;
+    private Task _fadeOutTask;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/Fade.razor.js?version=$(SHORTHASH)");
-            await _jsModule.InvokeVoidAsync("fadeIn", _containerRef);
-        }
-    }
-    
-    public async Task FadeOut()
-    {
-        // The visual fade is best-effort: OnFadeOut must always run, otherwise
-        // callers waiting on it (e.g. modal removal) would be stuck forever.
+        if (!firstRender || _disposed)
+            return;
+
+        _initializing = true;
         try
         {
-            if (_jsModule is not null)
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/Fade.razor.js?version=$(SHORTHASH)");
+            if (!_disposed)
+                await _jsModule.InvokeVoidAsync("fadeIn", _containerRef);
+        }
+        catch (JSException) { }
+        catch (ObjectDisposedException) when (_disposed) { }
+        finally
+        {
+            _initializing = false;
+            if (_disposed)
+                await CleanupAsync();
+        }
+    }
+
+    public Task FadeOut() => _fadeOutTask ??= FadeOutCoreAsync();
+
+    private async Task FadeOutCoreAsync()
+    {
+        try
+        {
+            if (!_disposed && _jsModule is not null)
             {
                 await _jsModule.InvokeVoidAsync("fadeOut", _containerRef);
                 await Task.Delay(200);
             }
         }
-        catch
-        {
-            // JS interop failed - skip the animation and finish immediately
-        }
+        catch (JSException) { }
+        catch (ObjectDisposedException) { }
 
         if (OnFadeOut is not null)
-        {
             await OnFadeOut.Invoke();
-        }
     }
 
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        return _initializing ? ValueTask.CompletedTask : new ValueTask(CleanupAsync());
+    }
+
+    private Task CleanupAsync() => _cleanupTask ??= ReleaseModuleAsync();
+
+    private async Task ReleaseModuleAsync()
+    {
+        var module = _jsModule;
+        _jsModule = null;
+        if (module is null)
+            return;
+        try { await module.DisposeAsync(); }
+        catch (JSException) { }
+        catch (ObjectDisposedException) { }
+    }
 }

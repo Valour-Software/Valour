@@ -465,6 +465,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("channel_id");
 
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_admin");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
@@ -516,6 +520,103 @@ namespace Valour.Database.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("credentials");
+                });
+
+            modelBuilder.Entity("Valour.Database.DirectCall", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<long>("CallerUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("caller_user_id");
+
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("EndReason")
+                        .HasColumnType("integer")
+                        .HasColumnName("end_reason");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer")
+                        .HasColumnName("state");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CallerUserId");
+
+                    b.HasIndex("ChannelId");
+
+                    b.HasIndex("State", "ExpiresAt");
+
+                    b.ToTable("direct_calls", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.DirectCallMember", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("CallId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("call_id");
+
+                    b.Property<bool>("IsCaller")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_caller");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("responded_at");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer")
+                        .HasColumnName("state");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("state IN (0, 1)");
+
+                    b.HasIndex("CallId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("direct_call_members", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.Economy.Currency", b =>
@@ -1248,11 +1349,6 @@ namespace Valour.Database.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("import_source");
 
-                    b.Property<string>("OverrideAvatarUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("override_avatar_url");
-
                     b.Property<string>("OverrideName")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
@@ -1269,6 +1365,14 @@ namespace Valour.Database.Migrations
                     b.Property<DateTime>("TimeSent")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("time_sent");
+
+                    b.Property<bool>("WebhookAvatarAnimated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("webhook_avatar_animated");
+
+                    b.Property<long?>("WebhookAvatarAssetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("webhook_avatar_asset_id");
 
                     b.Property<long?>("WebhookId")
                         .HasColumnType("bigint")
@@ -1319,6 +1423,12 @@ namespace Valour.Database.Migrations
                     b.Property<bool>("Inline")
                         .HasColumnType("boolean")
                         .HasColumnName("inline");
+
+                    b.Property<bool>("IsSpoiler")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_spoiler");
 
                     b.Property<string>("Location")
                         .IsRequired()
@@ -1679,40 +1789,6 @@ namespace Valour.Database.Migrations
                     b.ToTable("oauth_apps", (string)null);
                 });
 
-            modelBuilder.Entity("Valour.Database.OldPlanetRoleMember", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<long>("MemberId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("member_id");
-
-                    b.Property<long>("PlanetId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("planet_id");
-
-                    b.Property<long>("RoleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("role_id");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MemberId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("planet_role_members", (string)null);
-                });
-
             modelBuilder.Entity("Valour.Database.PasswordRecovery", b =>
                 {
                     b.Property<string>("Code")
@@ -1861,6 +1937,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("enable_threads");
 
+                    b.Property<bool>("EnableVillage")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enable_village");
+
                     b.Property<bool>("EnableWiki")
                         .HasColumnType("boolean")
                         .HasColumnName("enable_wiki");
@@ -1935,6 +2015,12 @@ namespace Valour.Database.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("vanity");
+
+                    b.Property<bool>("VanityInviteEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("vanity_invite_enabled");
 
                     b.Property<int>("Version")
                         .HasColumnType("integer")
@@ -2157,6 +2243,12 @@ namespace Valour.Database.Migrations
                     b.Property<long?>("DismissedPinThreadId")
                         .HasColumnType("bigint")
                         .HasColumnName("dismissed_pin_thread_id");
+
+                    b.Property<long>("HiddenBadgeFlags")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("hidden_badge_flags");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
@@ -2859,10 +2951,13 @@ namespace Valour.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("AvatarUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("avatar_url");
+                    b.Property<bool>("AvatarAnimated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("avatar_animated");
+
+                    b.Property<long?>("AvatarAssetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("avatar_asset_id");
 
                     b.Property<long>("ChannelId")
                         .HasColumnType("bigint")
@@ -3891,6 +3986,12 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("custom_avatar");
 
+                    b.Property<long>("HiddenBadgeFlags")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("hidden_badge_flags");
+
                     b.Property<bool>("HidePriorName")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -4106,6 +4207,36 @@ namespace Valour.Database.Migrations
                     b.ToTable("user_friends");
                 });
 
+            modelBuilder.Entity("Valour.Database.UserPlanetFolder", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Position");
+
+                    b.ToTable("user_planet_folders", (string)null);
+                });
+
             modelBuilder.Entity("Valour.Database.UserPlanetSetting", b =>
                 {
                     b.Property<long>("UserId")
@@ -4121,6 +4252,14 @@ namespace Valour.Database.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0)
                         .HasColumnName("activity_alerts");
+
+                    b.Property<long?>("FolderId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("folder_id");
+
+                    b.Property<int?>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
 
                     b.HasKey("UserId", "PlanetId");
 
@@ -4141,6 +4280,10 @@ namespace Valour.Database.Migrations
                     b.Property<int?>("ActivityCooldownSeconds")
                         .HasColumnType("integer")
                         .HasColumnName("activity_cooldown_seconds");
+
+                    b.Property<int>("CallPolicy")
+                        .HasColumnType("integer")
+                        .HasColumnName("call_policy");
 
                     b.Property<int>("DmPolicy")
                         .HasColumnType("integer")
@@ -4318,6 +4461,385 @@ namespace Valour.Database.Migrations
                     b.ToTable("user_subscriptions", (string)null);
                 });
 
+            modelBuilder.Entity("Valour.Database.VillageBuilding", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<long?>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("DoorX")
+                        .HasColumnType("integer")
+                        .HasColumnName("door_x");
+
+                    b.Property<int>("DoorY")
+                        .HasColumnType("integer")
+                        .HasColumnName("door_y");
+
+                    b.Property<bool>("ForSale")
+                        .HasColumnType("boolean")
+                        .HasColumnName("for_sale");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<long?>("InteriorMapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("interior_map_id");
+
+                    b.Property<long>("MapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("map_id");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("OwnerMemberId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_member_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<long?>("PlotId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("plot_id");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric")
+                        .HasColumnName("price");
+
+                    b.Property<string>("SaleId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("sale_id");
+
+                    b.Property<string>("SpriteKey")
+                        .HasColumnType("text")
+                        .HasColumnName("sprite_key");
+
+                    b.Property<int>("VoiceMode")
+                        .HasColumnType("integer")
+                        .HasColumnName("voice_mode");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.Property<int>("X")
+                        .HasColumnType("integer")
+                        .HasColumnName("x");
+
+                    b.Property<int>("Y")
+                        .HasColumnType("integer")
+                        .HasColumnName("y");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("village_buildings", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageMap", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AmbientColor")
+                        .HasColumnType("text")
+                        .HasColumnName("ambient_color");
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<int>("MapType")
+                        .HasColumnType("integer")
+                        .HasColumnName("map_type");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("ParentBuildingId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("parent_building_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<int>("SpawnX")
+                        .HasColumnType("integer")
+                        .HasColumnName("spawn_x");
+
+                    b.Property<int>("SpawnY")
+                        .HasColumnType("integer")
+                        .HasColumnName("spawn_y");
+
+                    b.Property<int>("TemplateRevision")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_revision");
+
+                    b.Property<int>("TileSize")
+                        .HasColumnType("integer")
+                        .HasColumnName("tile_size");
+
+                    b.Property<string>("TilesetKey")
+                        .HasColumnType("text")
+                        .HasColumnName("tileset_key");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("village_maps", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageMapChunk", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ChunkX")
+                        .HasColumnType("integer")
+                        .HasColumnName("chunk_x");
+
+                    b.Property<int>("ChunkY")
+                        .HasColumnType("integer")
+                        .HasColumnName("chunk_y");
+
+                    b.Property<string>("CollisionData")
+                        .HasColumnType("text")
+                        .HasColumnName("collision_data");
+
+                    b.Property<string>("LayerData")
+                        .HasColumnType("text")
+                        .HasColumnName("layer_data");
+
+                    b.Property<long>("MapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("map_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("MapId", "ChunkX", "ChunkY")
+                        .IsUnique();
+
+                    b.ToTable("village_map_chunks", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageObject", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("BlocksMovement")
+                        .HasColumnType("boolean")
+                        .HasColumnName("blocks_movement");
+
+                    b.Property<string>("DefinitionKey")
+                        .HasColumnType("text")
+                        .HasColumnName("definition_key");
+
+                    b.Property<long>("MapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("map_id");
+
+                    b.Property<long?>("OwnerMemberId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_member_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<int>("Rotation")
+                        .HasColumnType("integer")
+                        .HasColumnName("rotation");
+
+                    b.Property<int>("X")
+                        .HasColumnType("integer")
+                        .HasColumnName("x");
+
+                    b.Property<int>("Y")
+                        .HasColumnType("integer")
+                        .HasColumnName("y");
+
+                    b.Property<int>("ZIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("z_index");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("village_objects", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillagePlot", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("EditMode")
+                        .HasColumnType("integer")
+                        .HasColumnName("edit_mode");
+
+                    b.Property<bool>("ForSale")
+                        .HasColumnType("boolean")
+                        .HasColumnName("for_sale");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<long>("MapId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("map_id");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("OwnerMemberId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_member_id");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric")
+                        .HasColumnName("price");
+
+                    b.Property<string>("SaleId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("sale_id");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.Property<int>("X")
+                        .HasColumnType("integer")
+                        .HasColumnName("x");
+
+                    b.Property<int>("Y")
+                        .HasColumnType("integer")
+                        .HasColumnName("y");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MapId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.ToTable("village_plots", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<long?>("DraftPlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("draft_planet_id");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<long?>("PublishedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("published_by_user_id");
+
+                    b.Property<string>("PublishedJson")
+                        .HasColumnType("text")
+                        .HasColumnName("published_json");
+
+                    b.Property<int>("ResetBeforeRevision")
+                        .HasColumnType("integer")
+                        .HasColumnName("reset_before_revision");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("village_template", (string)null);
+                });
+
             modelBuilder.Entity("planet_tags", b =>
                 {
                     b.Property<long>("planet_id")
@@ -4385,6 +4907,44 @@ namespace Valour.Database.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Valour.Database.DirectCall", b =>
+                {
+                    b.HasOne("Valour.Database.User", "CallerUser")
+                        .WithMany()
+                        .HasForeignKey("CallerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Valour.Database.Channel", "Channel")
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CallerUser");
+
+                    b.Navigation("Channel");
+                });
+
+            modelBuilder.Entity("Valour.Database.DirectCallMember", b =>
+                {
+                    b.HasOne("Valour.Database.DirectCall", "Call")
+                        .WithMany("Members")
+                        .HasForeignKey("CallId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Valour.Database.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Call");
 
                     b.Navigation("User");
                 });
@@ -4602,25 +5162,6 @@ namespace Valour.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Owner");
-                });
-
-            modelBuilder.Entity("Valour.Database.OldPlanetRoleMember", b =>
-                {
-                    b.HasOne("Valour.Database.PlanetMember", "Member")
-                        .WithMany("OldRoleMembers")
-                        .HasForeignKey("MemberId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Valour.Database.PlanetRole", "Role")
-                        .WithMany("OldRoleMembers")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Member");
-
-                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("Valour.Database.PasswordRecovery", b =>
@@ -5096,6 +5637,61 @@ namespace Valour.Database.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Valour.Database.VillageBuilding", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageMap", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageMapChunk", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillageObject", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.VillagePlot", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany()
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
             modelBuilder.Entity("planet_tags", b =>
                 {
                     b.HasOne("Valour.Database.Planet", null)
@@ -5124,6 +5720,11 @@ namespace Valour.Database.Migrations
                     b.Navigation("Permissions");
 
                     b.Navigation("UserChannelStates");
+                });
+
+            modelBuilder.Entity("Valour.Database.DirectCall", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("Valour.Database.Message", b =>
@@ -5169,14 +5770,10 @@ namespace Valour.Database.Migrations
                     b.Navigation("MessageReactions");
 
                     b.Navigation("Messages");
-
-                    b.Navigation("OldRoleMembers");
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetRole", b =>
                 {
-                    b.Navigation("OldRoleMembers");
-
                     b.Navigation("PermissionNodes");
                 });
 

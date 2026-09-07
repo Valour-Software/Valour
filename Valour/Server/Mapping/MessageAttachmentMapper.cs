@@ -41,7 +41,8 @@ public static class MessageAttachmentMapper
             Data = attachment.Data,
             OpenGraph = openGraph,
             PlanetHosted = attachment.PlanetHosted,
-            ReportedSha256 = attachment.ReportedSha256
+            ReportedSha256 = attachment.ReportedSha256,
+            IsSpoiler = attachment.IsSpoiler
         };
     }
 
@@ -70,7 +71,8 @@ public static class MessageAttachmentMapper
             Data = attachment.Data,
             OpenGraphData = attachment.OpenGraph is null ? null : JsonSerializer.Serialize(attachment.OpenGraph),
             PlanetHosted = attachment.PlanetHosted,
-            ReportedSha256 = attachment.ReportedSha256
+            ReportedSha256 = attachment.ReportedSha256,
+            IsSpoiler = attachment.IsSpoiler
         };
     }
 }

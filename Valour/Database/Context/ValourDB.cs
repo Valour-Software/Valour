@@ -161,6 +161,32 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<PlanetWebhook> PlanetWebhooks { get; set; }
 
     /// <summary>
+    /// Table for village maps
+    /// </summary>
+    public DbSet<VillageTemplate> VillageTemplates { get; set; }
+    public DbSet<VillageMap> VillageMaps { get; set; }
+
+    /// <summary>
+    /// Table for village map chunks
+    /// </summary>
+    public DbSet<VillageMapChunk> VillageMapChunks { get; set; }
+
+    /// <summary>
+    /// Table for village plots
+    /// </summary>
+    public DbSet<VillagePlot> VillagePlots { get; set; }
+
+    /// <summary>
+    /// Table for village buildings
+    /// </summary>
+    public DbSet<VillageBuilding> VillageBuildings { get; set; }
+
+    /// <summary>
+    /// Table for village objects
+    /// </summary>
+    public DbSet<VillageObject> VillageObjects { get; set; }
+
+    /// <summary>
     /// Table for automod triggers
     /// </summary>
     public DbSet<AutomodTrigger> AutomodTriggers { get; set; }
@@ -250,17 +276,18 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<UserChannelState> UserChannelStates { get; set; }
 
     public DbSet<UserPlanetSetting> UserPlanetSettings { get; set; }
+    public DbSet<UserPlanetFolder> UserPlanetFolders { get; set; }
 
     public DbSet<NodeStats> NodeStats { get; set; }
     
     public DbSet<Report> Reports { get; set; }
     
-    public DbSet<OldPlanetRoleMember> OldPlanetRoleMembers { get; set; }
-    
     public DbSet<MessageReaction> MessageReactions { get; set; }
     public DbSet<MessageAttachment> MessageAttachments { get; set; }
     public DbSet<MessageMention> MessageMentions { get; set; }
     public DbSet<RealtimeKitMeeting> RealtimeKitMeetings { get; set; }
+    public DbSet<DirectCall> DirectCalls { get; set; }
+    public DbSet<DirectCallMember> DirectCallMembers { get; set; }
     
     
 
@@ -347,12 +374,15 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         MessageAttachment.SetupDbModel(modelBuilder);
         MessageMention.SetupDbModel(modelBuilder);
         RealtimeKitMeeting.SetupDbModel(modelBuilder);
+        DirectCall.SetupDbModel(modelBuilder);
+        DirectCallMember.SetupDbModel(modelBuilder);
         Message.SetupDbModel(modelBuilder);
         User.SetupDbModel(modelBuilder);
         UserSubscription.SetupDbModel(modelBuilder);
         UserActivityDay.SetupDbModel(modelBuilder);
         UserChannelState.SetupDbModel(modelBuilder);
         UserPlanetSetting.SetupDbModel(modelBuilder);
+        UserPlanetFolder.SetupDbModel(modelBuilder);
         PlanetMember.SetupDbModel(modelBuilder);
         PlanetRole.SetupDbModel(modelBuilder);
         PlanetEmoji.SetupDbModel(modelBuilder);
@@ -369,6 +399,12 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         Report.SetupDbModel(modelBuilder);
         PlanetInvite.SetupDbModel(modelBuilder);
         PlanetWebhook.SetupDbModel(modelBuilder);
+        VillageTemplate.SetupDbModel(modelBuilder);
+        VillageMap.SetupDbModel(modelBuilder);
+        VillageMapChunk.SetupDbModel(modelBuilder);
+        VillagePlot.SetupDbModel(modelBuilder);
+        VillageBuilding.SetupDbModel(modelBuilder);
+        VillageObject.SetupDbModel(modelBuilder);
         AuthToken.SetupDbModel(modelBuilder);
         OauthApp.SetupDbModel(modelBuilder);
         Channel.SetupDbModel(modelBuilder);
@@ -388,7 +424,6 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         PendingMfaRemoval.SetupDbModel(modelBuilder);
 
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);
-        OldPlanetRoleMember.SetupDbModel(modelBuilder);
         
         CdnBucketItem.SetupDbModel(modelBuilder);
         PlanetStorageConfig.SetupDbModel(modelBuilder);

@@ -1,5 +1,3 @@
-using Valour.Shared.Models;
-
 namespace Valour.Server.Workers;
 
 /// <summary>
@@ -24,7 +22,6 @@ public class MigrationWorker : IHostedService
         
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-        var permService = scope.ServiceProvider.GetRequiredService<PlanetPermissionService>();
         var channelService = scope.ServiceProvider.GetRequiredService<ChannelService>();
         
         // Perform startup tasks
@@ -41,65 +38,6 @@ public class MigrationWorker : IHostedService
             .ExecuteUpdateAsync(x => x.SetProperty(x => x.Position, uint.MaxValue));
         
         _logger.LogInformation("Updated {Count} default roles", defRowsUpdated);
-        
-        // Now, for each planet, ensure role indices are good
-        var planetsToUpdate = await db.Planets.Where(x => x.Version < 1).ToListAsync();
-        foreach (var planet in planetsToUpdate)
-        {
-            var trans = db.Database.BeginTransaction();
-            
-            try
-            {
-                // Get roles ordered from weakest to strongest
-                var roles = await db.PlanetRoles.Where(x => x.PlanetId == planet.Id)
-                    .OrderByDescending(x => x.Position)
-                    .ToListAsync();
-
-                for (int i = 0; i < roles.Count; i++)
-                {
-                    var role = roles[i];
-                    
-                    await db.PlanetRoles.Where(x => x.Id == role.Id)
-                        .ExecuteUpdateAsync(x => x.SetProperty(x => x.FlagBitIndex, i));
-                }
-
-                await db.SaveChangesAsync();
-
-                // Now we generate member role indices
-#pragma warning disable CS0618 // This worker exists solely to transfer legacy role memberships.
-                var membersToUpdate = await db.PlanetMembers
-                    .Include(x => x.OldRoleMembers)
-                    .Where(x => x.PlanetId == planet.Id)
-                    .Select(x => new
-                    {
-                        MemberId = x.Id,
-                        Indices = x.OldRoleMembers.Select(y => y.Role.FlagBitIndex)
-                    }).ToListAsync();
-#pragma warning restore CS0618
-
-                foreach (var member in membersToUpdate)
-                {
-                    var membership = PlanetRoleMembership.FromRoleIndices(member.Indices);
-                    await db.PlanetMembers.Where(x => x.Id == member.MemberId)
-                        .ExecuteUpdateAsync(x => x.SetProperty(x => x.RoleMembership, membership));
-                }
-                
-                _logger.LogInformation("Updated {Count} roles for planet {PlanetId}", membersToUpdate.Count, planet.Id);
-                
-                planet.Version = 1;
-                
-                await db.SaveChangesAsync();
-
-                await trans.CommitAsync();
-                
-                _logger.LogInformation("Migrated roles for planet {PlanetId}", planet.Id);
-            }
-            catch (Exception e)
-            {
-                await trans.RollbackAsync();
-                _logger.LogError(e, "Error migrating roles for planet {PlanetId}", planet.Id);
-            }
-        }
         
         // Create profiles for bots that are missing them
         var botsWithoutProfiles = await db.Users
@@ -149,7 +87,6 @@ public class MigrationWorker : IHostedService
             _logger.LogInformation("Removed {Count} members who had active bans", bannedMembersRemoved);
         }
 
-        // await permService.BulkUpdateMemberRoleHashesAsync();
         _logger.LogInformation("Migration Worker has finished");
 
         // Migrate channels

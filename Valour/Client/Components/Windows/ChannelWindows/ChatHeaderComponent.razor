@@ -1,4 +1,6 @@
-﻿<div class="header-row">
+﻿@inject ValourClient Client
+
+<div class="header-row">
     <div class="h-left">
         <ChannelWatchingComponent Channel="@Channel" ParentComponent="@ChatComponent" />
     </div>
@@ -15,6 +17,25 @@
         }
     </div>
     <div class="h-right">
+        @if (Channel?.PlanetId is null && Channel?.ChannelType is ChannelTypeEnum.DirectChat or ChannelTypeEnum.GroupChat)
+        {
+            <TooltipTrigger Position="left">
+                <ChildContent>
+                    <button @onclick="() => StartCall(DirectCallKind.Audio)" disabled="@_startingCall" class="members-btn call-btn">
+                        <i class="bi bi-telephone-fill"></i>
+                    </button>
+                </ChildContent>
+                <TooltipContent><span>Start voice call</span></TooltipContent>
+            </TooltipTrigger>
+            <TooltipTrigger Position="left">
+                <ChildContent>
+                    <button @onclick="() => StartCall(DirectCallKind.Video)" disabled="@_startingCall" class="members-btn call-btn">
+                        <i class="bi bi-camera-video-fill"></i>
+                    </button>
+                </ChildContent>
+                <TooltipContent><span>Start video call</span></TooltipContent>
+            </TooltipTrigger>
+        }
         <TooltipTrigger Position="left">
             <ChildContent>
                 <div @onclick="@OnClickSearch" type="button" tabindex="0" class="search-btn">
@@ -44,12 +65,23 @@
 
 @code {
     private bool _searchVisible = false;
+    private bool _startingCall;
     
     [Parameter]
     public Channel Channel { get; set; }
     
     [Parameter]
     public ChatWindowComponent ChatComponent { get; set; }
+
+    private async Task StartCall(DirectCallKind kind)
+    {
+        if (Channel is null || _startingCall)
+            return;
+
+        _startingCall = true;
+        await Client.DirectCallService.StartAsync(Channel.Id, kind);
+        _startingCall = false;
+    }
 
     private void OnClickMembers()
     {

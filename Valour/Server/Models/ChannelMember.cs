@@ -15,4 +15,6 @@ public class ChannelMember : ServerModel<long>
     /// Id of the user that has this membership
     /// </summary>
     public long UserId { get; set; }
+
+    public bool IsAdmin { get; set; }
 }

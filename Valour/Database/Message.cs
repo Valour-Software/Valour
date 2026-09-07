@@ -82,9 +82,11 @@ public class Message : ISharedMessage
     public string OverrideName { get; set; }
 
     /// <summary>
-    /// Avatar override for webhook messages, stamped at send time.
+    /// Immutable Valour CDN avatar asset used by this webhook message.
     /// </summary>
-    public string OverrideAvatarUrl { get; set; }
+    public long? WebhookAvatarAssetId { get; set; }
+
+    public bool WebhookAvatarAnimated { get; set; }
 
     public static void SetupDbModel(ModelBuilder builder)
     {
@@ -138,9 +140,11 @@ public class Message : ISharedMessage
                 .HasColumnName("override_name")
                 .HasMaxLength(32);
 
-            e.Property(x => x.OverrideAvatarUrl)
-                .HasColumnName("override_avatar_url")
-                .HasMaxLength(512);
+            e.Property(x => x.WebhookAvatarAssetId)
+                .HasColumnName("webhook_avatar_asset_id");
+
+            e.Property(x => x.WebhookAvatarAnimated)
+                .HasColumnName("webhook_avatar_animated");
             
             // Keys
             e.HasKey(x => x.Id);

@@ -1,0 +1,71 @@
+@inject ValourClient Client
+@using Valour.Client.Components.Windows.Villages
+
+<div class="settings-inner">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-house-heart"></i>
+            Village
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Enable Village</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckEnableVillage" checked="@_enableVillageValue"/>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Give this planet a 2D village members can walk around, with buildings that open your channels</p>
+            <ResultLabel Result="@_enableVillageResult"/>
+        </div>
+
+        <div class="open-village">
+            <button class="v-btn" @onclick="OpenVillageAsync" disabled="@(!_enableVillageValue)">
+                <i class="bi bi-house-heart"></i> Open Village
+            </button>
+            @if (_canManage)
+            {
+                <p class="toggle-description">
+                    Open the village and use its shield and hammer controls to manage parcels, furnish, and paint.
+                </p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _enableVillageValue;
+    private ITaskResult _enableVillageResult;
+    private bool _canManage;
+
+    protected override void OnInitialized()
+    {
+        _enableVillageValue = Planet.EnableVillage;
+        _canManage = Planet.MyMember?.HasPermission(PlanetPermissions.ManageVillage) ?? false;
+    }
+
+    private async Task OnCheckEnableVillage()
+    {
+        _enableVillageValue = !_enableVillageValue;
+
+        Planet.EnableVillage = _enableVillageValue;
+        _enableVillageResult = await Planet.UpdateAsync();
+
+        if (!_enableVillageResult.Success)
+        {
+            _enableVillageValue = !_enableVillageValue;
+            Planet.EnableVillage = _enableVillageValue;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OpenVillageAsync()
+    {
+        await WindowService.OpenWindowAtFocused(VillageWindowComponent.GetDefaultContent(Planet));
+    }
+}

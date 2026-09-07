@@ -24,7 +24,8 @@ public enum ModerationActionType
     UnlockThread = 13,
     PinThread = 14,
     UnpinThread = 15,
-    DeleteThreadComment = 16
+    DeleteThreadComment = 16,
+    EditIdentity = 17
 }
 
 public interface ISharedModerationAuditLog : ISharedPlanetModel<long>

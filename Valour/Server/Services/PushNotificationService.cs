@@ -135,6 +135,18 @@ public class PushNotificationService
         });
     }
     
+    internal static string GetNotificationImageUrl(string iconUrl, string appBaseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(iconUrl))
+            return null;
+
+        if (!Uri.TryCreate(appBaseUrl.TrimEnd('/') + "/", UriKind.Absolute, out var baseUri) ||
+            !Uri.TryCreate(baseUri, iconUrl, out var imageUri))
+            return null;
+
+        return imageUri.Scheme is "https" or "http" ? imageUri.AbsoluteUri : null;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Task SendNotificationAsync(
         ISharedPushNotificationSubscription sub,
@@ -211,7 +223,7 @@ public class PushNotificationService
             {
                 Title = title,
                 Body = body,
-                ImageUrl = iconUrl,
+                ImageUrl = GetNotificationImageUrl(iconUrl, HostingConfig.Current?.AppBaseUrl ?? "https://app.valour.gg"),
             },
             Android = new FirebaseAdmin.Messaging.AndroidConfig
             {

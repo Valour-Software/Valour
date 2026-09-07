@@ -27,7 +27,11 @@ public interface IVoiceProvider
     /// is folded into the participant identity.
     /// </summary>
     Task<TaskResult<RealtimeKitVoiceTokenResponse>> CreateParticipantTokenAsync(
-        Channel channel, long userId, string displayName, string? sessionId);
+        Channel channel,
+        long userId,
+        string displayName,
+        string? sessionId,
+        TimeSpan? tokenLifetime = null);
 
     /// <summary>Best-effort: eject every live session of a user from a channel's meeting.</summary>
     Task KickUserFromTrackedChannelAsync(long channelId, long userId);

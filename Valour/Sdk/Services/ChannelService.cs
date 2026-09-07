@@ -131,7 +131,8 @@ public class ChannelService : ServiceBase
             return null;
         }
 
-        var response = await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetPlanetIdRoute(planet.Id, id));
+        var response = await planet.Node.GetJsonAsync<Channel>(
+            ISharedChannel.GetPlanetIdRoute(planet.Id, id), cacheDurationMs: skipCache ? null : 100);
         if (!response.Success || response.Data is null)
         {
             LogError($"Failed to fetch planet channel {id} in planet {planet.Id}: {response.Message}");
@@ -184,6 +185,39 @@ public class ChannelService : ServiceBase
 
         return response.Data.Sync(_client);
     }
+
+    public async Task<TaskResult<Channel>> CreateGroupDmAsync(string name, IEnumerable<long> userIds)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<Channel>(
+            "api/channels/group",
+            new CreateGroupDmRequest { Name = name, UserIds = userIds.Distinct().ToList() });
+        if (result.Success && result.Data is not null)
+            RegisterDirectChannel(result.Data);
+        return result;
+    }
+
+    public async Task<TaskResult<Channel>> AddGroupDmMembersAsync(long channelId, IEnumerable<long> userIds)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<Channel>(
+            $"api/channels/group/{channelId}/members",
+            new AddGroupDmMembersRequest { UserIds = userIds.Distinct().ToList() });
+        if (result.Success && result.Data is not null)
+            RegisterDirectChannel(result.Data);
+        return result;
+    }
+
+    public async Task<TaskResult<Channel>> RenameGroupDmAsync(long channelId, string name)
+    {
+        var result = await _client.PrimaryNode.PutAsyncWithResponse<Channel>(
+            $"api/channels/group/{channelId}",
+            new UpdateGroupDmRequest { Name = name });
+        if (result.Success && result.Data is not null)
+            RegisterDirectChannel(result.Data);
+        return result;
+    }
+
+    public Task<TaskResult> RemoveGroupDmMemberAsync(long channelId, long userId) =>
+        _client.PrimaryNode.DeleteAsync($"api/channels/group/{channelId}/members/{userId}");
     
     public async Task<List<PlanetMember>> FetchRecentChattersAsync(Channel channel)
     {
@@ -257,7 +291,7 @@ public class ChannelService : ServiceBase
         _cache.DmChannelKeyToId.Clear();
 
         foreach (var channel in channels ?? [])
-            RegisterDirectChatChannel(channel);
+            RegisterDirectChannel(channel);
         
         Log($"Loaded {DirectChatChannels.Count} direct chat channels...");
     }
@@ -284,13 +318,13 @@ public class ChannelService : ServiceBase
         foreach (var item in response.Data.Items)
         {
             item.Sync(_client);
-            RegisterDirectChatChannel(item.Channel);
+            RegisterDirectChannel(item.Channel);
         }
 
         return response.Data;
     }
 
-    private void RegisterDirectChatChannel(Channel channel)
+    public void RegisterDirectChannel(Channel channel)
     {
         if (channel is null)
             return;
@@ -561,6 +595,16 @@ public class ChannelService : ServiceBase
 
     private void HookHubEvents(Node node)
     {
+        if (!node.IsExternal)
+        {
+            node.HubConnection.On<Channel>("Direct-Channel-Update", channel =>
+            {
+                if (channel is not null)
+                    RegisterDirectChannel(channel);
+            });
+            node.HubConnection.On<long>("Direct-Channel-Removed", RemoveDirectChannel);
+        }
+
         node.HubConnection.On<ChannelsMovedEvent>("Channels-Moved", update =>
         {
             if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
@@ -576,6 +620,14 @@ public class ChannelService : ServiceBase
             if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
                 OnTypingUpdate(update);
         });
+    }
+
+    private void RemoveDirectChannel(long channelId)
+    {
+        if (_directChatChannelsLookup.Remove(channelId, out var channel))
+            _directChatChannels.RemoveAll(x => x.Id == channelId);
+        else if (_cache.Channels.TryGet(channelId, out channel))
+            channel.RemoveFromCache();
     }
     
     private async Task OnNodeReconnect(Node node)

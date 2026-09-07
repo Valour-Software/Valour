@@ -12,6 +12,19 @@ public class DevicePreferencesTests
         await DevicePreferences.LoadPreferences(new MemoryAppStorage());
 
         Assert.False(DevicePreferences.ForceGpuAcceleration);
+        Assert.False(DevicePreferences.VillageHandheldControls);
+    }
+
+    [Fact]
+    public async Task VillageHandheldControls_RoundTripsThroughDeviceStorage()
+    {
+        var storage = new MemoryAppStorage();
+
+        await DevicePreferences.SetVillageHandheldControlsEnabled(true, storage);
+        await DevicePreferences.LoadPreferences(storage);
+
+        Assert.True(DevicePreferences.VillageHandheldControls);
+        Assert.True(await storage.GetAsync<bool>(DevicePreferences.VillageHandheldControlsStorageKey));
     }
 
     private sealed class MemoryAppStorage : IAppStorage

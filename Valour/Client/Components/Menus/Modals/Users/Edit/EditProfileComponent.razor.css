@@ -1,50 +1,9 @@
-/* Profile Editor */
-.profile-editor-container {
-    max-width: 640px;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Section styling - clean dividers */
-.editor-section {
-    padding: 1.75rem 0;
-    border-bottom: 1px solid var(--slight-tint);
-}
-
-.editor-section:first-child {
-    padding-top: 0.5rem;
-}
-
-.editor-section:last-child {
-    border-bottom: none;
-}
-
-/* Section headings - typography-driven */
-.editor-section-title {
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
-    color: var(--font-alt-color);
-    margin-bottom: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.editor-section-title i {
-    font-size: var(--font-size-sm);
-    color: var(--font-color);
-}
-
 .profile-preview-container {
     position: sticky;
     top: 1rem;
+    overflow: clip;
 }
 
-/* User preview - subtle card */
 .preview {
     background-color: var(--main-3);
     display: inline-block;
@@ -54,21 +13,8 @@
     border: 1px solid var(--slight-tint);
 }
 
-/* Form controls */
-.form-group {
-    margin-bottom: 1.25rem;
-}
-
 .form-group:last-child {
     margin-bottom: 0;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.4rem;
-    font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-sm);
-    color: var(--font-color);
 }
 
 .input-group {
@@ -87,14 +33,6 @@ textarea.v-input {
     resize: vertical;
 }
 
-.helper-text {
-    font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
-    margin-top: 0.4rem;
-    margin-bottom: 0;
-}
-
-/* Avatar row - image left, controls right */
 .avatar-container {
     display: flex;
     flex-direction: row;
@@ -130,7 +68,6 @@ textarea.v-input {
     margin: 0;
 }
 
-/* Star badge preview */
 .star-preview {
     display: flex;
     align-items: center;
@@ -143,52 +80,6 @@ textarea.v-input {
     font-size: var(--font-size-sm);
 }
 
-/* Toggle/Setting rows */
-.toggle-item {
-    padding: 0.85rem 1rem;
-    margin-bottom: 0.5rem;
-    border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
-}
-
-.toggle-item .toggle-item {
-    /* Nested toggles sit inside their parent card */
-    background-color: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
-}
-
-.toggle-item:last-child {
-    margin-bottom: 0;
-}
-
-.toggle-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-}
-
-.toggle-title {
-    font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-sm);
-}
-
-.toggle-description {
-    color: var(--font-alt-color);
-    font-size: var(--font-size-xs);
-    margin: 0.25rem 0 0;
-}
-
-.toggle-content {
-    margin-top: 0.85rem;
-    padding-top: 0.85rem;
-    border-top: 1px solid var(--slight-tint);
-}
-
-/* Color picker grid */
 .color-pickers {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -213,15 +104,6 @@ textarea.v-input {
     color: var(--font-alt-color);
 }
 
-/* Actions */
-.actions {
-    margin-top: 1.5rem;
-    display: flex;
-    justify-content: flex-start;
-    gap: 0.5rem;
-}
-
-/* Custom file input */
 .custom-file-input {
     display: flex;
     flex-direction: column;
@@ -234,22 +116,17 @@ textarea.v-input {
     margin: 0;
 }
 
-/* Mobile responsiveness */
 @media (max-width: 768px) {
     .avatar-container {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .input-group {
-        flex-direction: column;
-    }
-
     .color-pickers {
         grid-template-columns: 1fr 1fr;
     }
+}
 
-    .actions {
-        flex-direction: column;
-    }
+.profile-preview-container ::deep .card-wrapper {
+    max-width: 100%;
 }

@@ -19,6 +19,8 @@ namespace Valour.Server.Services;
 /// </summary>
 public class ChannelActivityService
 {
+    internal const int MessagePreviewLength = 180;
+
     private readonly ValourDb _db;
     private readonly IConnectionMultiplexer _redis;
     private readonly ChannelActivityWorker _worker;
@@ -136,13 +138,6 @@ public class ChannelActivityService
         var planet = (await _db.Planets.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == eval.PlanetId))?.ToModel();
         if (planet is null)
-            return;
-
-        var channelName = await _db.Channels.AsNoTracking()
-            .Where(x => x.Id == eval.ChannelId)
-            .Select(x => x.Name)
-            .FirstOrDefaultAsync();
-        if (channelName is null)
             return;
 
         var planetBaseCooldown = ChannelActivityPreferences.GetBaseCooldown(planet.ActivityNotificationCadence);
@@ -276,6 +271,40 @@ public class ChannelActivityService
         if (eligible.Count == 0)
             return;
 
+        // The evaluation is queued when the activity threshold is crossed,
+        // but more messages may arrive before the worker reaches it. Resolve
+        // the newest message still present in the Redis activity window so
+        // the notification carries useful, current conversation context.
+        var activityMessage = await GetLatestActivityMessageAsync(eval);
+        if (activityMessage is null)
+        {
+            _logger.LogDebug(
+                "Skipping channel activity notification for channel {ChannelId}: no recent message could be resolved",
+                eval.ChannelId);
+            return;
+        }
+
+        var readableContent = await _notificationService.ReplaceMentionTagsAsync(activityMessage.Content);
+        var attachmentCount = string.IsNullOrWhiteSpace(readableContent)
+            ? await _db.MessageAttachments.AsNoTracking()
+                .CountAsync(x => x.MessageId == activityMessage.Id)
+            : 0;
+        var preview = BuildMessagePreview(readableContent, attachmentCount);
+        var senderName = GetSenderName(activityMessage);
+        var senderAvatar = GetSenderAvatar(activityMessage);
+
+        // A message that arrived after this evaluation was queued will not be
+        // in its author snapshot. In that case every snapshotted author is an
+        // "other" author relative to the newly resolved sender.
+        var senderWasInWindow = eval.WindowAuthorUserIds.Contains(activityMessage.AuthorUserId);
+        var otherAuthorCount = Math.Max(0, eval.WindowAuthorCount - (senderWasInWindow ? 1 : 0));
+
+        // The resolved message may have arrived after the queued author
+        // snapshot. Never notify its author about their own activity.
+        eligible.RemoveAll(x => x.UserId == activityMessage.AuthorUserId);
+        if (eligible.Count == 0)
+            return;
+
         // Never notify users already looking at the channel
         var notViewing = (await _channelWatchingService.FilterUsersNotViewingChannelAsync(
             eval.ChannelId, eligible.Select(c => c.UserId))).ToHashSet();
@@ -305,20 +334,18 @@ public class ChannelActivityService
         if (recipients.Count == 0)
             return;
 
-        var title = eval.ConversationStart
-            ? $"#{channelName} is picking up"
-            : $"#{channelName} is active";
+        var title = BuildActivityTitle(senderName, planet.Name, otherAuthorCount);
 
         var template = new Notification
         {
             Title = title,
-            Body = $"{eval.WindowMessageCount} messages from {eval.WindowAuthorCount} people in {planet.Name}",
-            ImageUrl = planet.GetIconUrl(IconFormat.Webp128),
-            ClickUrl = $"/planetchannels/{eval.PlanetId}/{eval.ChannelId}/{eval.TriggerMessageId}",
+            Body = preview,
+            ImageUrl = senderAvatar,
+            ClickUrl = $"/planetchannels/{eval.PlanetId}/{eval.ChannelId}/{activityMessage.Id}",
             PlanetId = eval.PlanetId,
             ChannelId = eval.ChannelId,
             Source = NotificationSource.ChannelActivity,
-            SourceId = eval.TriggerMessageId,
+            SourceId = activityMessage.Id,
         };
 
         await _notificationService.SendChannelActivityNotificationsAsync(
@@ -330,6 +357,89 @@ public class ChannelActivityService
             eval.ChannelId,
             candidates.Count,
             recipients.Count);
+    }
+
+    private async Task<Valour.Database.Message?> GetLatestActivityMessageAsync(ChannelActivityEvaluation eval)
+    {
+        const int recentMessageCandidateLimit = 20;
+
+        var messageIds = new HashSet<long> { eval.TriggerMessageId };
+        var redisDb = _redis.GetDatabase(RedisDbTypes.Cluster);
+        var recentEntries = await redisDb.SortedSetRangeByRankAsync(
+            GetMessagesKey(eval.ChannelId),
+            0,
+            recentMessageCandidateLimit - 1,
+            Order.Descending);
+
+        foreach (var entry in recentEntries)
+        {
+            if (long.TryParse(entry.ToString(), out var messageId))
+                messageIds.Add(messageId);
+        }
+
+        return await _db.Messages.AsNoTracking()
+            .Where(x => messageIds.Contains(x.Id)
+                        && x.ChannelId == eval.ChannelId
+                        && x.PlanetId == eval.PlanetId)
+            .Include(x => x.AuthorUser)
+            .Include(x => x.AuthorMember)
+            .OrderByDescending(x => x.TimeSent)
+            .ThenByDescending(x => x.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    internal static string BuildActivityTitle(string senderName, string planetName, int otherAuthorCount)
+    {
+        var title = $"{senderName} in {planetName}";
+        if (otherAuthorCount <= 0)
+            return title;
+
+        return $"{title} (+{otherAuthorCount} {(otherAuthorCount == 1 ? "other" : "others")})";
+    }
+
+    internal static string BuildMessagePreview(string? content, int attachmentCount)
+    {
+        var normalized = string.Join(' ',
+            (content ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        if (normalized.Length == 0)
+        {
+            return attachmentCount == 1
+                ? "Sent an attachment"
+                : attachmentCount > 1
+                    ? $"Sent {attachmentCount} attachments"
+                    : "Sent a message";
+        }
+
+        if (normalized.Length <= MessagePreviewLength)
+            return normalized;
+
+        return normalized[..(MessagePreviewLength - 1)].TrimEnd() + "…";
+    }
+
+    private static string GetSenderName(Valour.Database.Message message)
+    {
+        if (!string.IsNullOrWhiteSpace(message.OverrideName))
+            return message.OverrideName;
+        if (!string.IsNullOrWhiteSpace(message.AuthorMember?.Nickname))
+            return message.AuthorMember.Nickname;
+
+        return message.AuthorUser?.Name ?? "Someone";
+    }
+
+    private static string GetSenderAvatar(Valour.Database.Message message)
+    {
+        var webhookAvatar = ISharedPlanetWebhook.GetAvatar(
+            message.WebhookId,
+            message.WebhookAvatarAssetId,
+            message.WebhookAvatarAnimated,
+            AvatarFormat.Webp128);
+        if (webhookAvatar is not null)
+            return webhookAvatar;
+        if (!string.IsNullOrWhiteSpace(message.AuthorMember?.MemberAvatar))
+            return ISharedPlanetMember.GetAvatar(message.AuthorMember, AvatarFormat.Webp128);
+
+        return ISharedUser.GetAvatar(message.AuthorUser, AvatarFormat.Webp128);
     }
 
     /// <summary>

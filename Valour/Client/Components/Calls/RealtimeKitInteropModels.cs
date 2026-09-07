@@ -169,6 +169,9 @@ public class RealtimeKitSelfState
 
 public class RealtimeKitParticipantsSnapshot
 {
+    [JsonPropertyName("connectionState")]
+    public string? ConnectionState { get; set; }
+
     [JsonPropertyName("activeSpeakerPeerId")]
     public string? ActiveSpeakerPeerId { get; set; }
 

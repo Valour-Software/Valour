@@ -11,7 +11,7 @@
     @for (var i = 0; i < _badges.Count; i++)
     {
         var badge = _badges[i];
-        <span class="badge-slot" style="@GetSlotStyle(i)" @key="@badge.CssClass">
+        <span class="badge-slot" style="@GetSlotStyle(i)" @key="@badge.Badge">
             <TooltipTrigger>
                 <ChildContent>
                     <span class="user-badge-item icon @badge.CssClass" style="@badge.Style" aria-label="@badge.Label">
@@ -30,7 +30,7 @@
     [Parameter]
     public User User { get; set; }
 
-    private record BadgeDef(string CssClass, string Icon, string Label, string Style = null);
+    private record BadgeDef(PlatformBadge Badge, string CssClass, string Icon, string Label, string Style = null);
 
     private readonly List<BadgeDef> _badges = new();
 
@@ -41,29 +41,31 @@
         if (User is null)
             return;
 
-        if (User.HasStargazer)
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Stargazer) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Stargazer))
         {
-            _badges.Add(new BadgeDef("stargazer", "bi-star-fill", "Stargazer",
+            _badges.Add(new BadgeDef(PlatformBadge.Stargazer, "stargazer", "bi-star-fill", "Stargazer",
                 $"--user-badge-star-start: {User.GetStarColor1()}; --user-badge-star-end: {User.GetStarColor2()};"));
         }
 
-        if (User.Id <= 22113735421460480)
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.FirstOneThousand) &&
+            PlatformBadgeCatalog.IsVisible(User, PlatformBadge.FirstOneThousand))
         {
-            _badges.Add(new BadgeDef("milestone-1k", "bi-award-fill", "First 1k users"));
+            _badges.Add(new BadgeDef(PlatformBadge.FirstOneThousand, "milestone-1k", "bi-award-fill", "First 1k users"));
         }
-        else if (User.Id <= 42076534464053248)
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.FirstTenThousand) &&
+            PlatformBadgeCatalog.IsVisible(User, PlatformBadge.FirstTenThousand))
         {
-            _badges.Add(new BadgeDef("milestone-10k", "bi-award-fill", "First 10k users"));
-        }
-
-        if (User.Bot)
-        {
-            _badges.Add(new BadgeDef("bot", "bi-cpu-fill", "Bot"));
+            _badges.Add(new BadgeDef(PlatformBadge.FirstTenThousand, "milestone-10k", "bi-award-fill", "First 10k users"));
         }
 
-        if (User.ValourStaff)
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Bot) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Bot))
         {
-            _badges.Add(new BadgeDef("staff", "bi-shield-fill", "Valour Staff"));
+            _badges.Add(new BadgeDef(PlatformBadge.Bot, "bot", "bi-cpu-fill", "Bot"));
+        }
+
+        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Staff) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Staff))
+        {
+            _badges.Add(new BadgeDef(PlatformBadge.Staff, "staff", "bi-shield-fill", "Valour Staff"));
         }
     }
 

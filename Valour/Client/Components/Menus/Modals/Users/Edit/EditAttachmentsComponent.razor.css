@@ -57,10 +57,8 @@
     min-height: 112px;
     overflow: hidden;
     border: 1px solid var(--main-4);
-    border-radius: var(--radius-xl);
-    background:
-        radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--font-color) 10%, transparent), transparent 35%),
-        linear-gradient(135deg, var(--main-3), var(--main-4));
+    border-radius: var(--radius-md);
+    background: var(--main-4);
 }
 
 .attachment-preview img,
@@ -83,7 +81,7 @@
     width: 56px;
     height: 56px;
     margin-top: 0.9rem;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-md);
     background: var(--main-4);
     color: var(--font-color);
     font-size: var(--font-size-2xl);
@@ -94,7 +92,7 @@
     place-items: center;
     width: 48px;
     height: 48px;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-md);
     background: var(--main-4);
     color: var(--font-color);
     font-size: var(--font-size-2xl);

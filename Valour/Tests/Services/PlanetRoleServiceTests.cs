@@ -60,6 +60,23 @@ namespace Valour.Tests.Services
         public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
         [Fact]
+        public async Task Sentry_DeleteRole_AcceptsLongName()
+        {
+            var result = await _roleService.CreateAsync(new PlanetRole
+            {
+                PlanetId = _valourCentralId, Name = new string('r', 51), Color = "#abcdef"
+            });
+            Assert.True(result.Success, result.Message);
+            var role = result.Data;
+            _createdRoles.Add(role);
+            var deleted = await _roleService.DeleteAsync(role);
+            Assert.True(deleted.Success, deleted.Message);
+            Assert.False(await _db.PlanetRoles.AnyAsync(x => x.Id == role.Id));
+            Assert.Null((await _hostedService.GetRequiredAsync(role.PlanetId)).GetRoleById(role.Id));
+            _createdRoles.Remove(role);
+        }
+
+        [Fact]
         public async Task CreateRole()
         {
             // Create a valid role

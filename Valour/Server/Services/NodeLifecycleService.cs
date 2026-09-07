@@ -311,6 +311,9 @@ public class NodeLifecycleService
         DirectMessage,
         DirectMessageEdit,
         DirectMessageDelete,
+        DirectCall,
+        DirectChannel,
+        DirectChannelRemoved,
         VoiceModeration,
         Notification,
         Friend,
@@ -539,6 +542,24 @@ public class NodeLifecycleService
                     OnRelayDirectMessageDelete(message, data.TargetUser);
                 break;
             }
+            case NodeEventType.DirectCall:
+            {
+                if (TryReadRelayPayload(data, out DirectCall call))
+                    OnRelayDirectCall(call, data.TargetUser);
+                break;
+            }
+            case NodeEventType.DirectChannel:
+            {
+                if (TryReadRelayPayload(data, out Channel channel))
+                    OnRelayDirectChannel(channel, data.TargetUser);
+                break;
+            }
+            case NodeEventType.DirectChannelRemoved:
+            {
+                if (TryReadRelayPayload(data, out long channelId))
+                    OnRelayDirectChannelRemoved(channelId, data.TargetUser);
+                break;
+            }
             case NodeEventType.VoiceModeration:
             {
                 if (TryReadRelayPayload(data, out VoiceModerationEvent moderation))
@@ -626,6 +647,21 @@ public class NodeLifecycleService
     private void OnRelayDirectMessageDelete(Message message, long targetUser)
     {
         _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("DeleteMessage", message);
+    }
+
+    private void OnRelayDirectCall(DirectCall call, long targetUser)
+    {
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("Direct-Call-Update", call);
+    }
+
+    private void OnRelayDirectChannel(Channel channel, long targetUser)
+    {
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("Direct-Channel-Update", channel);
+    }
+
+    private void OnRelayDirectChannelRemoved(long channelId, long targetUser)
+    {
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("Direct-Channel-Removed", channelId);
     }
 
     private void OnRelayVoiceModerationAction(VoiceModerationEvent moderation, long targetUser)
