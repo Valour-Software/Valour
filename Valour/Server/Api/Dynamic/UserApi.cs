@@ -897,7 +897,8 @@ public class UserApi
     public static async Task<IResult> SavePlanetListLayoutAsync(
         [FromBody] SavePlanetListLayoutRequest request, UserService userService, ValourDb db)
     {
-        if (request is null) return ValourResult.BadRequest("Include request in body.");
+        if (request?.Planets is null || request.FolderIds is null || request.Planets.Any(x => x is null))
+            return ValourResult.BadRequest("Include non-null planets and folderIds lists with valid entries.");
         var userId = await userService.GetCurrentUserIdAsync();
         var folderIds = await db.UserPlanetFolders.Where(x => x.UserId == userId).Select(x => x.Id).ToHashSetAsync();
         if (request.FolderIds.Count != request.FolderIds.Distinct().Count() ||

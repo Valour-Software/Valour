@@ -20,6 +20,7 @@ public class SpoilerRenderer : BlazorObjectRenderer<SpoilerInline>
         // The reveal is purely visual, and this way it still works
         // in ghost/preview renders that never wire up Blazor's event dispatch.
         renderer.AddAttribute("onclick", "this.classList.toggle('revealed')", 4);
+        renderer.AddAttribute("onkeydown", "if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();this.classList.toggle('revealed');}", 5);
 
         foreach (var child in obj)
         {
