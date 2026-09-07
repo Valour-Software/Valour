@@ -1426,11 +1426,6 @@ public class UserService
 
             // Message reactions were already removed before message deletion to avoid FK violations.
 
-            // Remove old planet role members (before planet members, since role members FK to members)
-            await _db.OldPlanetRoleMembers.IgnoreQueryFilters()
-                .Where(x => x.UserId == dbUser.Id)
-                .ExecuteDeleteAsync();
-
             // Remove planet membership
             var members = _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.PlanetMembers.RemoveRange(members);

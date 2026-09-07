@@ -38,8 +38,8 @@ public class MediaUriHelper
 
         var host = NormalizeHost(uri.Host);
 
-        if (host.Equals(ValourHosts.ContentCdnHost, StringComparison.OrdinalIgnoreCase) ||
-            host.Equals(ValourHosts.AppHost, StringComparison.OrdinalIgnoreCase) ||
+        if (MatchesConfiguredOrigin(uri, ValourHosts.ContentCdnHost) ||
+            MatchesConfiguredOrigin(uri, ValourHosts.AppHost) ||
             host == "media.tenor.com" ||
             KlipyMediaUrls.IsAllowed(attachment.Location))
             return true;
@@ -58,6 +58,15 @@ public class MediaUriHelper
             MessageAttachmentType.Bluesky => host == "embed.bsky.app",
             _ => false
         };
+    }
+
+    internal static bool MatchesConfiguredOrigin(Uri location, string configuredHost)
+    {
+        return Uri.TryCreate($"https://{configuredHost}", UriKind.Absolute, out var configured) &&
+               location.Scheme.Equals(configured.Scheme, StringComparison.OrdinalIgnoreCase) &&
+               NormalizeHost(location.Host).Equals(NormalizeHost(configured.Host), StringComparison.OrdinalIgnoreCase) &&
+               location.Port == configured.Port &&
+               string.IsNullOrEmpty(location.UserInfo);
     }
 
     private static string NormalizeHost(string host)

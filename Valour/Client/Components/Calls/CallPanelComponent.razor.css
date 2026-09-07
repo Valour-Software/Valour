@@ -939,3 +939,9 @@
 @media (prefers-reduced-motion: reduce) {
     .nearby-person { transition: none; }
 }
+
+.nearby-call-status {
+    font-size: var(--font-size-xs);
+    color: var(--font-color);
+    align-self: center;
+}

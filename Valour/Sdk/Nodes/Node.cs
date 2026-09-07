@@ -543,6 +543,10 @@ public class Node : ServiceBase // each node acts like a service
         _onlineTimer = new Timer(OnPingTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
     }
 
+    internal static Task<string> InvokeHeartbeatAsync(HubConnection connection, bool userState,
+        CancellationToken cancellationToken = default) =>
+        connection.InvokeAsync<string>("ping", userState, cancellationToken);
+
     private readonly Stopwatch _pingStopwatch = new();
 
     /// <summary>
@@ -576,7 +580,7 @@ public class Node : ServiceBase // each node acts like a service
 
             _pingStopwatch.Reset();
             _pingStopwatch.Start();
-            var response = await hubConnection.InvokeAsync<string>("ping", IsPrimary);
+            var response = await InvokeHeartbeatAsync(hubConnection, IsPrimary);
             _pingStopwatch.Stop();
 
             if (response == "pong")
@@ -917,7 +921,7 @@ public class Node : ServiceBase // each node acts like a service
             string response;
             try
             {
-                response = await HubConnection.InvokeAsync<string>("ping", timeout.Token);
+                response = await InvokeHeartbeatAsync(HubConnection, IsPrimary, timeout.Token);
             }
             catch (OperationCanceledException) when (timeout.IsCancellationRequested)
             {
@@ -1012,7 +1016,7 @@ public class Node : ServiceBase // each node acts like a service
             {
                 // Test connection if it thinks it's safe
                 if (hubConnection.State == HubConnectionState.Connected)
-                    _ = await hubConnection.InvokeAsync<string>("ping");
+                    _ = await InvokeHeartbeatAsync(hubConnection, IsPrimary);
             }
             catch (System.Exception ex)
             {

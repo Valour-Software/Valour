@@ -47,7 +47,22 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         _anonymous = _fixture.Factory.CreateClient();
     }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_planet is not null)
+            {
+                using var scope = _fixture.Factory.Services.CreateScope();
+                var result = await scope.ServiceProvider.GetRequiredService<Valour.Server.Services.PlanetService>().DeleteAsync(_planet.Id);
+                Assert.True(result.Success, result.Message);
+            }
+        }
+        finally
+        {
+            _anonymous?.Dispose();
+        }
+    }
 
     private async Task<PlanetWebhook> CreateWebhookAsync(string name = "Test Hook")
     {
@@ -79,6 +94,24 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         }
 
         Assert.Fail("Message was not persisted in time.");
+    }
+
+    [Theory]
+    [InlineData("{\"Embeds\":[{\"Pages\":[{\"Children\":[{}]}]}]}", false)]
+    [InlineData("{\"Embeds\":[{\"Pages\":[{\"Children\":[{\"$type\":\"unknown\"}]}]}]}", false)]
+    [InlineData("{\"Embeds\":[{\"Pages\":[{\"Children\":[{}]}]}]}", true)]
+    [InlineData("{", false)]
+    [InlineData("null", false)]
+    public async Task Sentry_InvalidWebhookBody_ReturnsBadRequest(string json, bool edit)
+    {
+        var webhook = await CreateWebhookAsync();
+        var url = ISharedPlanetWebhook.GetExecuteRoute(webhook.Id, webhook.Token!);
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = edit
+            ? await _anonymous.PutAsync(url + "/messages/1", content)
+            : await _anonymous.PostAsync(url, content);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("Invalid JSON body", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]

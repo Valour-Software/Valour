@@ -136,6 +136,13 @@ path. SignalR callbacks can arrive off the UI context. Components inheriting
 `ControlledRenderComponentBase` explicitly request updates with `ReRender()`.
 Use Blazor `EventCallback` for parent/child component parameters.
 
+## Message replies and reactions
+
+History and search responses include reactions on both messages and their embedded
+reply previews. The SDK synchronizes reply previews into the same scoped message
+cache as ordinary messages, so those previews must contain current reaction data.
+The server updates cached reply previews when their referenced message changes.
+
 ## Staged planet messages
 
 `PlanetMessageWorker` holds accepted planet messages in memory until a database

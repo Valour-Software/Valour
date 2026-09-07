@@ -1,4 +1,6 @@
-﻿<CascadingValue Value="@this">
+﻿@implements IDisposable
+
+<CascadingValue Value="@this">
     @ChildContent
     <div class="toast-container">
         @for (int i = 0; i < ActiveToasts.Count; i++)
@@ -10,211 +12,120 @@
 </CascadingValue>
 
 @code {
-    
     public static ToastContainer Instance { get; set; }
-
-    protected override void OnInitialized()
-    {
-        Instance = this;
-    }
+    private const string FailureMessage = "An error occurred. Please try again later.";
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _disposed;
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
-    
-    public List<ToastData> ActiveToasts { get; set; } = new List<ToastData>();
 
-    public async Task ErrorToast(ToastData toast)
+    public List<ToastData> ActiveToasts { get; set; } = new();
+
+    protected override void OnInitialized() => Instance = this;
+
+    private Task UpdateAsync(Action update) => _disposed ? Task.CompletedTask : InvokeAsync(() =>
     {
-        var progressToast = new ProgressToastData()
-        {
-            Message = toast.Message,
-            ProgressTask = Task.CompletedTask,
-        };
-    }
+        if (_disposed) return;
+        update();
+        StateHasChanged();
+    });
+
+    public Task ErrorToast(ToastData toast) => UpdateAsync(() =>
+    {
+        toast.Type = ToastProgressState.Failure;
+        ActiveToasts.Add(toast);
+    });
 
     public async Task WaitToast(ProgressToastData toast)
     {
-        AddToast(toast);
-
+        await UpdateAsync(() => ActiveToasts.Add(toast));
+        bool success;
         try
         {
             await toast.ProgressTask;
-
-            if (toast.Card is null)
-            {
-                RemoveToast(toast);
-            }
-
-            toast.Card.SetProgressState(ToastProgressState.Success);
+            success = true;
         }
         catch (Exception e)
         {
-            toast.Card.SetProgressState(ToastProgressState.Failure);
+            success = false;
             Console.WriteLine($"Exception in Toast Task: {e.Message}");
         }
-        
-        await Task.Delay(500);
-
-        await toast.Card.ShrinkAndRemove();
-        
-        StateHasChanged();
-    }
-    
-    public async Task<T> WaitToastWithTaskResult<T>(ProgressToastData<T> toast) where T : ITaskResult
-    {
-        AddToast(toast);
-
-        try {
-            var result = await toast.ProgressTask;
-
-            if (toast.Card is null)
-            {
-                RemoveToast(toast);
-            }
-            
-            toast.Message = result.Message;
-
-            if (result.Success)
-            {
-                if (toast.SuccessMessage is not null)
-                {
-                    toast.Message = toast.SuccessMessage;
-                }
-                
-                toast.Card.SetProgressState(ToastProgressState.Success);
-            }
-            else
-            {
-                if (toast.FailureMessage is not null)
-                {
-                    toast.Message = toast.FailureMessage;
-                }
-                
-                toast.Card.SetProgressState(ToastProgressState.Failure);
-            }
-        }
-        catch (Exception e)
-        {
-            toast.Message = "An error occurred. Please try again later.";
-            toast.Card.SetProgressState(ToastProgressState.Failure);
-            Console.WriteLine($"Exception in Toast Task: {e.Message}");
-        }
-
-        // Fire this off async so it doesn't block task completion
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(500);
-
-            await InvokeAsync(async () =>
-            {
-                await toast.Card.ShrinkAndRemove();
-                StateHasChanged();
-            });
-        });
-
-        return toast.ProgressTask.Result;
+        await CompleteAsync(toast, success, success ? toast.Message : FailureMessage);
     }
 
-    public async Task<TaskResult> WaitToastWithTaskResult(ProgressToastData<TaskResult> toast)
+    public async Task<T> WaitToastWithTaskResult<T>(ProgressToastData<T> toast) where T : ITaskResult, new()
     {
-        AddToast(toast);
-
-        try {
-            var result = await toast.ProgressTask;
-
-            if (toast.Card is null)
-            {
-                RemoveToast(toast);
-            }
-
-            toast.Message = result.Message;
-
-            if (result.Success)
-            {
-                if (toast.SuccessMessage is not null)
-                {
-                    toast.Message = toast.SuccessMessage;
-                }
-
-                toast.Card.SetProgressState(ToastProgressState.Success);
-            }
-            else
-            {
-                if (toast.FailureMessage is not null)
-                {
-                    toast.Message = toast.FailureMessage;
-                }
-
-                toast.Card.SetProgressState(ToastProgressState.Failure);
-            }
+        await UpdateAsync(() => ActiveToasts.Add(toast));
+        T result;
+        try
+        {
+            result = await toast.ProgressTask;
         }
         catch (Exception e)
         {
-            toast.Message = "An error occurred. Please try again later.";
-            toast.Card.SetProgressState(ToastProgressState.Failure);
+            result = new T { Success = false, Message = FailureMessage };
             Console.WriteLine($"Exception in Toast Task: {e.Message}");
         }
-
-        // Fire this off async so it doesn't block task completion
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(500);
-
-            await InvokeAsync(async () =>
-            {
-                await toast.Card.ShrinkAndRemove();
-                StateHasChanged();
-            });
-        });
-
-        return toast.ProgressTask.Result;
+        await CompleteAsync(toast, result.Success, result.Message);
+        return result;
     }
 
     public async Task<T> WaitToastWithResult<T>(ProgressToastData<T> toast)
     {
-        AddToast(toast);
-
+        await UpdateAsync(() => ActiveToasts.Add(toast));
         T result = default;
-
-        try {
+        bool success;
+        try
+        {
             result = await toast.ProgressTask;
-
-            if (toast.Card is null)
-            {
-                RemoveToast(toast);
-            }
-
-            toast.Card?.SetProgressState(ToastProgressState.Success);
+            success = true;
         }
         catch (Exception e)
         {
-            toast.Message = "An error occurred. Please try again later.";
-            toast.Card?.SetProgressState(ToastProgressState.Failure);
+            success = false;
             Console.WriteLine($"Exception in Toast Task: {e.Message}");
         }
-
-        await Task.Delay(500);
-
-        if (toast.Card is not null)
-        {
-            await toast.Card.ShrinkAndRemove();
-        }
-
-        StateHasChanged();
-
-        // Faulted tasks return default rather than rethrowing into the caller
+        await CompleteAsync(toast, success, success ? toast.Message : FailureMessage);
         return result;
     }
-    
-    public void AddToast(ToastData toast)
+
+    private async Task CompleteAsync(ProgressToastDataBase toast, bool success, string message)
     {
-        ActiveToasts.Add(toast);
-        StateHasChanged();
+        await UpdateAsync(() =>
+        {
+            toast.Message = (success ? toast.SuccessMessage : toast.FailureMessage) ?? message;
+            toast.ProgressState = success ? ToastProgressState.Success : ToastProgressState.Failure;
+        });
+        if (!_disposed) _ = RemoveCompletedAsync(toast);
     }
-    
-    public void RemoveToast(ToastData toast)
+
+    private async Task RemoveCompletedAsync(ToastData toast)
     {
-        ActiveToasts.Remove(toast);
-        StateHasChanged();
+        try
+        {
+            await Task.Delay(500, _lifetime.Token);
+            await InvokeAsync(async () =>
+            {
+                if (_disposed) return;
+                if (toast.Card is { } card) await card.ShrinkAndRemove();
+                else RemoveToast(toast);
+            });
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+    }
+
+    public void AddToast(ToastData toast) => _ = UpdateAsync(() => ActiveToasts.Add(toast));
+
+    public void RemoveToast(ToastData toast) => _ = UpdateAsync(() => ActiveToasts.Remove(toast));
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        ActiveToasts.Clear();
+        if (ReferenceEquals(Instance, this)) Instance = null;
     }
 }

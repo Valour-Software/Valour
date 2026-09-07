@@ -86,3 +86,12 @@ test('an SDK detach failure cannot leave the call connected', async () => {
     assert.equal(room.disconnected, true);
     assert.equal(media.isInitialized(), false);
 });
+
+test('participant snapshots expose a disconnected transport after an unexpected room loss', async () => {
+    const room = await setup();
+    room.state = 'connected';
+    assert.equal(media.getParticipantsSnapshot().connectionState, 'connected');
+    room.state = 'disconnected';
+    assert.equal(media.getParticipantsSnapshot().connectionState, 'disconnected');
+    await media.leaveRoom();
+});

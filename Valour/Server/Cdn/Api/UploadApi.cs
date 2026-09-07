@@ -123,18 +123,18 @@ public class UploadApi
 
     public static void AddRoutes(WebApplication app)
     {
-        app.MapPost("/upload/profile", AvatarImageRoute);
-        app.MapPost("/upload/memberavatar/{planetId}/{memberId}", MemberAvatarImageRoute);
-        app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute);
-        app.MapPost("/upload/image", ImageRoute);
-        app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
-        app.MapPost("/upload/planetbg/{planetId}", PlanetBackgroundImageRoute);
-        app.MapPost("/upload/planetemoji/{planetId}", PlanetEmojiImageRoute);
-        app.MapPost("/upload/webhook/{webhookId}", WebhookAvatarImageRoute);
-        app.MapPost("/upload/app/{appId}", AppImageRoute);
-        app.MapPost("/upload/file", FileRoute);
-        app.MapPost("upload/themeBanner/{themeId}", ThemeBannerRoute);
-        app.MapPost("upload/themeAsset/{themeId}", ThemeAssetRoute);
+        app.MapPost("/upload/profile", AvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/memberavatar/{planetId}/{memberId}", MemberAvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/image", ImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/planet/{planetId}", PlanetImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/planetbg/{planetId}", PlanetBackgroundImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/planetemoji/{planetId}", PlanetEmojiImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/webhook/{webhookId}", WebhookAvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/app/{appId}", AppImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("/upload/file", FileRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("upload/themeBanner/{themeId}", ThemeBannerRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+        app.MapPost("upload/themeAsset/{themeId}", ThemeAssetRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
     }
 
     /// <summary>
@@ -255,7 +255,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
         
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -469,7 +469,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
         
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(ThemeBannerSizes[0].Width, ThemeBannerSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -665,7 +665,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -733,7 +733,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -799,7 +799,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
         
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(PlanetSizes[0].Width, PlanetSizes[0].Height) }, 
             file.OpenReadStream()
         );
@@ -948,7 +948,7 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var image = await Image.LoadAsync(
+        using var image = await Image.LoadAsync(
             new() { TargetSize = new(AppSizes[0].Width, AppSizes[0].Height) }, 
             file.OpenReadStream()
         );

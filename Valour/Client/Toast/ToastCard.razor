@@ -1,4 +1,6 @@
-﻿@if (_hide)
+﻿@implements IDisposable
+
+@if (_hide)
 {
     return;
 }
@@ -14,7 +16,7 @@
                 <div class="toast-left">
                     <div style="width: 30px; height: 30px"></div>
                     <lottie-player class="lottie-overlay" src="./_content/Valour.Client/media/animations/victor_spin.json" background="transparent" speed="1" style="width: 30px; height: 30px;" loop autoplay></lottie-player>
-                    @switch (_progressState)
+                    @switch (((ProgressToastDataBase)Toast).ProgressState)
                     {
                         case ToastProgressState.Success:
                         {
@@ -85,7 +87,9 @@
     
     private bool _shrink = false;
     private bool _hide = false;
-    private ToastProgressState _progressState = ToastProgressState.Running;
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _disposed;
+    private Task _removal;
     
     public string GetAnimClass()
     {
@@ -94,34 +98,53 @@
 
     public void Shrink()
     {
+        if (_disposed) return;
         _shrink = true;
         StateHasChanged(); // Start shrinking
     }
 
     public void Hide()
     {
+        if (_disposed) return;
         _hide = true;
         StateHasChanged(); // Stop rendering before animation resets
     }
 
     public void Remove()
     {
-        Container.RemoveToast(Toast); // Remove
+        if (!_disposed) Container.RemoveToast(Toast);
     }
 
     public void SetProgressState(ToastProgressState state)
     {
-        _progressState = state;
+        if (_disposed) return;
+        if (Toast is ProgressToastDataBase progress) progress.ProgressState = state;
         StateHasChanged();
     }
 
-    public async Task ShrinkAndRemove()
+    public Task ShrinkAndRemove() => _disposed ? Task.CompletedTask : _removal ??= RemoveAsync();
+
+    private async Task RemoveAsync()
     {
-        await Task.Delay(2000);
-        Shrink();
-        await Task.Delay(200);
-        Hide();
-        Remove();
+        try
+        {
+            var token = _lifetime.Token;
+            await Task.Delay(2000, token);
+            Shrink();
+            await Task.Delay(200, token);
+            Hide();
+            Remove();
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        if (ReferenceEquals(Toast.Card, this)) Toast.Card = null;
     }
 
     protected override async Task OnInitializedAsync()

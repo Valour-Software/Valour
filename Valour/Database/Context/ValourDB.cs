@@ -282,8 +282,6 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     
     public DbSet<Report> Reports { get; set; }
     
-    public DbSet<OldPlanetRoleMember> OldPlanetRoleMembers { get; set; }
-    
     public DbSet<MessageReaction> MessageReactions { get; set; }
     public DbSet<MessageAttachment> MessageAttachments { get; set; }
     public DbSet<MessageMention> MessageMentions { get; set; }
@@ -426,7 +424,6 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         PendingMfaRemoval.SetupDbModel(modelBuilder);
 
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);
-        OldPlanetRoleMember.SetupDbModel(modelBuilder);
         
         CdnBucketItem.SetupDbModel(modelBuilder);
         PlanetStorageConfig.SetupDbModel(modelBuilder);

@@ -34,8 +34,9 @@ the reorder route.
 ## Membership flags
 
 Each role receives a `FlagBitIndex` from 0 through 255 within its planet. A member
-stores role membership in four 64-bit fields, `RoleMembership0` through
-`RoleMembership3`. Index division by 64 chooses the field, and the remainder
+stores role membership in `RoleMembership.Rf0` through `Rf3`, mapped to the
+`planet_members.rf0` through `rf3` database columns. These are four 64-bit fields.
+Index division by 64 chooses the field, and the remainder
 chooses its bit. The system therefore has 256 role slots per planet.
 
 Role creation selects the first unused bit index. Deletion clears that bit from

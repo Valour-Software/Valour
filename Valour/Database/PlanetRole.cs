@@ -14,9 +14,6 @@ public class PlanetRole : ISharedPlanetRole
     public Planet Planet { get; set; }
     public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
     
-    [JsonIgnore]
-    [Obsolete("Use new RoleMembership!")]
-    public virtual ICollection<OldPlanetRoleMember> OldRoleMembers { get; set; }
 
     ///////////////////////
     // Entity Properties //

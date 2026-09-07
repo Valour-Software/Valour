@@ -93,6 +93,18 @@ reading `Data`, then translate the result into the endpoint's HTTP response.
 Avoid returning internal exception details to clients; keep diagnostic context
 in server logs.
 
+Webhook execution and editing bind their JSON through `JsonRequestBody<T>`.
+Malformed JSON, null bodies, and embed items with missing or unsupported `$type`
+discriminators return a bad-request response. The binder preserves the underlying
+request type in endpoint metadata. Image upload routes return bad requests for
+unsupported or damaged image data, including failures after header validation.
+
+Error-reporting preference writes use an atomic insert or update that preserves
+other settings. Requests whose account no longer exists return not-found responses.
+
+Voice routes and their provider-named aliases use `NotHostedExceptionFilter` to
+translate unavailable planets into not-found or correct-node responses.
+
 ## Rate limits and verification
 
 `RateLimit` names a registered rate-limit policy. Route discovery applies it

@@ -1885,7 +1885,15 @@ else
         _activeVoiceBuildingName = CurrentSpaceName;
         _activeVoiceChannel = channel;
         _activeVoiceVideoMode = channel.ChannelType == ChannelTypeEnum.PlanetVideo;
-        await CallSession.InitializeAsync(channel, _activeVoiceVideoMode);
+        _joiningVoice = true;
+        try
+        {
+            await CallSession.InitializeAsync(channel, _activeVoiceVideoMode);
+        }
+        finally
+        {
+            _joiningVoice = false;
+        }
         await PushVoicePeersAsync();
         await ReRender();
     }
@@ -1937,6 +1945,8 @@ else
             await VillageService.ReleaseMapRoomAsync(Data, mapId.Value);
     }
 
+    private bool _joiningVoice;
+
     private async Task LeaveVoiceAsync()
     {
         _activeVoiceBuildingId = null;
@@ -1954,6 +1964,19 @@ else
     {
         _ = InvokeAsync(async () =>
         {
+            if (_disposed)
+                return;
+
+            if (!_joiningVoice && !CallSession.PendingCommunityVoiceAck &&
+                _activeVoiceChannel is not null && !ReferenceEquals(CallSession.ActiveChannel, _activeVoiceChannel))
+            {
+                _activeVoiceChannel = null;
+                _activeVoiceBuildingId = null;
+                _activeVoiceMapId = null;
+                _activeVoiceBuildingName = null;
+                _activeVoiceVideoMode = false;
+            }
+
             await PushVoicePeersAsync();
             await ReRender();
         });

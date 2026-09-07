@@ -632,6 +632,7 @@ export function getParticipantsSnapshot() {
     }
 
     return {
+        connectionState: room?.state ?? null,
         activeSpeakerPeerId: lastActiveSpeakerSid,
         participants: Array.from(participantMap.values())
     };

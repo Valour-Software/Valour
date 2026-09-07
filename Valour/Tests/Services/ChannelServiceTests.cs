@@ -51,6 +51,18 @@ public class ChannelServiceTests : IAsyncLifetime
         
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Sentry_MissingDmParticipant_ReturnsNullWithoutStagingOrphans(bool self)
+    {
+        var missingId = IdManager.Generate();
+        var result = await _channelService.GetDirectChannelByUsersAsync(self ? missingId : _client.Me.Id, missingId);
+        Assert.Null(result);
+        Assert.DoesNotContain(_db.ChangeTracker.Entries(), x => x.State == EntityState.Added);
+        Assert.False(await _db.ChannelMembers.AnyAsync(x => x.UserId == missingId));
+    }
+
     [Fact]
     public async Task GetDirectChannel_SelfDm_DoesNotReturnAnotherUsersDm()
     {

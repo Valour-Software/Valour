@@ -68,11 +68,13 @@ public class MessageService
             return staged;
         }
         
-        var message = await _db.Messages.AsNoTracking()
+        var message = await _db.Messages.AsNoTracking().AsSplitQuery()
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -403,6 +405,8 @@ public class MessageService
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
             .Include(x => x.Reactions)
@@ -665,13 +669,15 @@ public class MessageService
             return await _chatCacheService.GetLastMessagesAsync(channelId);
         }
 
-        var messages = await _db.Messages
+        var messages = await _db.Messages.AsSplitQuery()
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id < index)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -726,13 +732,15 @@ public class MessageService
                 .ToList();
         }
 
-        var messages = await _db.Messages
+        var messages = await _db.Messages.AsSplitQuery()
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id > afterId)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -760,7 +768,7 @@ public class MessageService
             return [];
         
         // Use postgres functions to search for the search string
-        var messages = await _db.Messages
+        var messages = await _db.Messages.AsSplitQuery()
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id)
             .Where(x => EF.Functions.ILike(x.Content, $"%{search}%"))
@@ -768,6 +776,8 @@ public class MessageService
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Mentions)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Reactions)
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -1075,7 +1085,7 @@ public class MessageService
         return TaskResult.SuccessResult;
     }
 
-    private static string? TryParseCdnBucketItemId(string? location)
+    internal static string? TryParseCdnBucketItemId(string? location)
     {
         if (string.IsNullOrWhiteSpace(location))
             return null;
@@ -1083,7 +1093,7 @@ public class MessageService
         if (!Uri.TryCreate(location, UriKind.Absolute, out var uri))
             return null;
 
-        if (!uri.Host.Equals(ValourHosts.ContentCdnHost, StringComparison.OrdinalIgnoreCase))
+        if (!MediaUriHelper.MatchesConfiguredOrigin(uri, ValourHosts.ContentCdnHost))
             return null;
 
         var segments = uri.AbsolutePath

@@ -335,11 +335,12 @@
         @if (_nearbyControlsOpen)
         {
             <div class="nearby-controls">
+                <span class="nearby-call-status" role="status">@StatusText</span>
                 @if (!_joined && !_waitingForPeer)
                 {
                     <button class="call-ctrl-btn reconnect" disabled="@_connecting" title="Reconnect" @onclick="OnClickReconnect"><i class="bi bi-arrow-clockwise"></i></button>
                 }
-                <button class="call-ctrl-btn @(_audioEnabled ? "" : "toggled-danger")" title="@(_audioEnabled ? "Mute microphone" : "Unmute microphone")" @onclick="OnClickMute"><i class="bi @(_audioEnabled ? "bi-mic-fill" : "bi-mic-mute-fill")"></i></button>
+                <button class="call-ctrl-btn @(_audioEnabled ? "" : "toggled-danger")" disabled="@(!_joined)" title="@(_audioEnabled ? "Mute microphone" : "Unmute microphone")" @onclick="OnClickMute"><i class="bi @(_audioEnabled ? "bi-mic-fill" : "bi-mic-mute-fill")"></i></button>
                 @if (VideoMode && _joined)
                 {
                     <button class="call-ctrl-btn" title="@(_videoEnabled ? "Disable camera" : "Enable camera")" @onclick="OnClickToggleVideo"><i class="bi @(_videoEnabled ? "bi-camera-video-fill" : "bi-camera-video-off-fill")"></i></button>
@@ -638,7 +639,7 @@
     private async Task LeaveRoom()
     {
         // Manual leave should preserve the channel context so the panel stays in pre-connect state.
-        await SafeLeaveRoomInternalAsync(clearChannel: false);
+        await SafeLeaveRoomInternalAsync(clearChannel: NearbyMode);
         CallSession.ClearError();
         SyncFromGlobalCallSession();
         _error = null;

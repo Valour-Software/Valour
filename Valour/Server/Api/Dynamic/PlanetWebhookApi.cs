@@ -203,7 +203,7 @@ public class PlanetWebhookApi
 
     [ValourRoute(HttpVerbs.Post, "api/webhooks/{id}/{token}")]
     public static async Task<IResult> ExecuteRouteAsync(
-        [FromBody] WebhookExecuteRequest request,
+        JsonRequestBody<WebhookExecuteRequest> body,
         long id,
         string token,
         HttpContext ctx,
@@ -217,6 +217,10 @@ public class PlanetWebhookApi
         if (!TryAcquireRate(webhook.Id, ctx, rateLimiter, out var limited))
             return limited;
 
+        var request = body.Value;
+        if (request is null)
+            return ValourResult.BadRequest("Invalid JSON body. Embed items must include a supported $type discriminator.");
+
         var result = await webhookService.ExecuteAsync(webhook, request);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
@@ -226,7 +230,7 @@ public class PlanetWebhookApi
 
     [ValourRoute(HttpVerbs.Put, "api/webhooks/{id}/{token}/messages/{messageId}")]
     public static async Task<IResult> EditMessageRouteAsync(
-        [FromBody] WebhookMessageEditRequest request,
+        JsonRequestBody<WebhookMessageEditRequest> body,
         long id,
         string token,
         long messageId,
@@ -240,6 +244,10 @@ public class PlanetWebhookApi
 
         if (!TryAcquireRate(webhook.Id, ctx, rateLimiter, out var limited))
             return limited;
+
+        var request = body.Value;
+        if (request is null)
+            return ValourResult.BadRequest("Invalid JSON body. Embed items must include a supported $type discriminator.");
 
         var result = await webhookService.EditMessageAsync(webhook, messageId, request);
         if (!result.Success)

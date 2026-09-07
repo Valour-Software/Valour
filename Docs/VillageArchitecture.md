@@ -133,8 +133,11 @@ track is available. Selecting one opens a small video view beside the list. The
 view closes when that track disappears or the person leaves hearing range.
 
 The list does not reserve space for an empty call. An options button exposes call
-controls, while audio hosts stay mounted independently of the visible avatars and
-video. LiveKit video hosts use track `attach()` and `detach()` so stream adaptation
+controls and connection status, while audio hosts stay mounted independently of
+the visible avatars and video. Microphone controls are disabled while waiting for
+a peer. Leaving through either the options menu or the village toolbar clears
+the village call state. If LiveKit reports a disconnected transport, the client
+clears media indicators and offers reconnection to the same channel. LiveKit video hosts use track `attach()` and `detach()` so stream adaptation
 follows the displayed size. Removing one host must not stop a track still
 displayed in another view.
 

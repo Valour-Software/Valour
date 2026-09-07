@@ -328,7 +328,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -362,7 +362,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -397,7 +397,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -538,7 +538,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -563,7 +563,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Error = ex.Message;
+            Error = GetExceptionMessage(ex, "Unable to update the media device. Check the connection and try again.");
         }
 
         NotifyStateChanged();
@@ -709,12 +709,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         try
         {
             var snapshot = await rtk.GetParticipantsSnapshotAsync().WaitAsync(ParticipantSnapshotTimeout);
-            if (AreParticipantSnapshotsEqual(ParticipantsSnapshot, snapshot))
-                return;
-
-            ParticipantsSnapshot = snapshot;
-            ParticipantsVersion++;
-            NotifyStateChanged();
+            ApplyParticipantsSnapshot(snapshot);
         }
         catch (Exception ex)
         {
@@ -725,6 +720,31 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         {
             Interlocked.Exchange(ref _participantRefreshInProgress, 0);
         }
+    }
+
+    internal void ApplyParticipantsSnapshot(RealtimeKitParticipantsSnapshot? snapshot)
+    {
+        if (string.Equals(snapshot?.ConnectionState, "disconnected", StringComparison.OrdinalIgnoreCase))
+        {
+            Joined = false;
+            Connecting = false;
+            AudioEnabled = false;
+            VideoEnabled = false;
+            ScreenShareEnabled = false;
+            ParticipantsSnapshot = null;
+            ParticipantsVersion++;
+            Error = "Voice connection was lost. Reconnect to continue.";
+            AppLifecycle.NotifyCallEnded();
+            NotifyStateChanged();
+            return;
+        }
+
+        if (AreParticipantSnapshotsEqual(ParticipantsSnapshot, snapshot))
+            return;
+
+        ParticipantsSnapshot = snapshot;
+        ParticipantsVersion++;
+        NotifyStateChanged();
     }
 
     private void StartParticipantRefreshLoop()
@@ -1188,6 +1208,9 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
     private static string GetExceptionMessage(Exception exception, string fallbackMessage)
     {
+        if (exception is Microsoft.JSInterop.JSException)
+            return fallbackMessage;
+
         if (!string.IsNullOrWhiteSpace(exception.Message))
             return exception.Message;
 

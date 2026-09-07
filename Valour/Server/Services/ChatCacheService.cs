@@ -47,12 +47,14 @@ public class ChatCacheService
         // Fill the cache if it's empty
         if (created)
         {
-            var messages = await _db.Messages
+            var messages = await _db.Messages.AsSplitQuery()
                 .AsNoTracking()
                 .Include(x => x.ReplyToMessage)
                     .ThenInclude(x => x.Attachments)
                 .Include(x => x.ReplyToMessage)
                     .ThenInclude(x => x.Mentions)
+                .Include(x => x.ReplyToMessage)
+                    .ThenInclude(x => x.Reactions)
                 .Include(x => x.Reactions)
                 .Include(x => x.Attachments)
                 .Include(x => x.Mentions)
@@ -119,6 +121,11 @@ public class ChatCacheService
         if (_lastMessagesCaches.TryGetValue(channelId, out var cache))
         {
             cache.ReplaceWhere(m => m.Id == message.Id, message);
+            foreach (var cached in cache.ToListAscending())
+            {
+                if (cached.ReplyToId == message.Id)
+                    cached.ReplyTo = message;
+            }
             _lastMessageCacheSnapshots[channelId] = cache.ToListAscending();
         }
     }

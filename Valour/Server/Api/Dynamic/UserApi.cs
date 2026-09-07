@@ -966,11 +966,10 @@ public class UserApi
             return ValourResult.BadRequest("Invalid error reporting state.");
 
         var userId = await userService.GetCurrentUserIdAsync();
-        var prefs = await EnsurePreferencesAsync(userId, db);
-        prefs.ErrorReportingState = state;
-
-        await db.SaveChangesAsync();
-        return Results.Json(prefs.ToModel());
+        var prefs = await SetErrorReportingStateAsync(userId, state, db);
+        return prefs is null
+            ? ValourResult.NotFound("User preferences are no longer available.")
+            : Results.Json(prefs.ToModel());
     }
 
     [ValourRoute(HttpVerbs.Post, "api/users/me/preferences/notificationVolume/{volume}")]
@@ -1091,6 +1090,21 @@ public class UserApi
 
         await db.SaveChangesAsync();
         return Results.Json(prefs.ToModel());
+    }
+
+    internal static async Task<DbUserPreferences?> SetErrorReportingStateAsync(long userId, ErrorReportingState state, ValourDb db)
+    {
+        var defaults = await CreateDefaultPreferencesAsync(userId, db);
+        var affected = await db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO user_preferences
+                (id, error_reporting_state, notification_volume, enabled_notification_sources,
+                 marketing_email_opt_out, dm_policy, call_policy, force_gpu_acceleration)
+            SELECT id, {(int)state}, {defaults.NotificationVolume}, {defaults.EnabledNotificationSources},
+                   {defaults.MarketingEmailOptOut}, {(int)defaults.DmPolicy}, {(int)defaults.CallPolicy}, {defaults.ForceGpuAcceleration}
+            FROM users WHERE id = {userId}
+            ON CONFLICT (id) DO UPDATE SET error_reporting_state = EXCLUDED.error_reporting_state;");
+        if (affected == 0) return null;
+        return await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
     }
 
     internal static async Task<DbUserPreferences> EnsurePreferencesAsync(long userId, ValourDb db)

@@ -154,6 +154,9 @@ public class ChannelService
         // If there is no channel and we have this set to create it if missing...
         if (channel is null && create)
         {
+            var userCount = await _db.Users.CountAsync(x => x.Id == userOneId || x.Id == userTwoId);
+            if (userCount != (isSelf ? 1 : 2)) return null;
+
             var newId = IdManager.Generate();
 
             // A self-DM gets a single member row; a normal DM gets one per user
@@ -202,7 +205,18 @@ public class ChannelService
             };
             
             await _db.Channels.AddAsync(channel);
-            await _db.SaveChangesAsync();
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException e) when (e.GetBaseException() is Npgsql.PostgresException
+                { SqlState: Npgsql.PostgresErrorCodes.ForeignKeyViolation, TableName: "channel_members" })
+            {
+                // A participant can disappear between the lookup and insertion.
+                foreach (var member in members) _db.Entry(member).State = EntityState.Detached;
+                _db.Entry(channel).State = EntityState.Detached;
+                return null;
+            }
         }
         
         return channel?.ToModel();
