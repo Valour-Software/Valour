@@ -1,11 +1,11 @@
-# Start with the official .NET 11 preview SDK image
+# Start with the official .NET 11 RC 1 SDK image
 # Cache the dependencies so we don't have to restore them every time
 #
 # --platform=$BUILDPLATFORM: the build stages always run natively on the build
 # host and cross-publish for $TARGETARCH (see the publish step below). Emulating
 # the full .NET publish under QEMU is slow and unreliable, so multi-arch images
 # only emulate the final runtime stage, which runs nothing at build time.
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.3 AS dependencies
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0.100-rc.1 AS dependencies
 
 # Install Node.js (needed for the TypeScript compile during publish) from the
 # official dist tarballs. The NodeSource apt script broke when the SDK image

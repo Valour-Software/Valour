@@ -2,7 +2,7 @@
 set -eu
 
 # Match the SDK pinned for the rest of the monorepo in ../../global.json.
-DOTNET_VERSION="${VALOUR_WEB_DOTNET_VERSION:-11.0.100-preview.3.26207.106}"
+DOTNET_VERSION="${VALOUR_WEB_DOTNET_VERSION:-11.0.100-rc.1}"
 DOTNET_INSTALL_DIR="${PWD}/.dotnet-pages"
 INSTALL_SCRIPT="$(mktemp)"
 OUTPUT_DIR="dist"
