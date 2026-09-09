@@ -113,11 +113,8 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        # Pinned to the same SDK as the Dockerfile (preview.3). Floating to the
-        # latest 11.0 preview broke the build: preview.6's static-web-asset
-        # compression discovery chokes on the checked-in TypeScript outputs
-        # (duplicate key on wwwroot/ts/*.js). Bump together with the Dockerfile.
-        dotnet-version: 11.0.100-preview.3.26207.106
+        # Pinned to the same SDK as the Dockerfile. Bump together with the Dockerfile.
+        dotnet-version: 11.0.100-rc.1
 
     - name: Restore workload
       run: dotnet workload restore Valour/Valour.sln
