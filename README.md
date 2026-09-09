@@ -83,10 +83,10 @@ transfer limits and the distinction between a pending and completed handoff.
 
 ## Contribute
 
-Install the exact SDK in [global.json](global.json):
-`11.0.100-preview.3.26207.106`. SDK roll-forward is disabled. Local server work also
-requires PostgreSQL and Redis. JavaScript tests use Node.js, and browser tests
-require Playwright. Native application builds require their platform workloads.
+Install the at least the suggested SDK version in [global.json](global.json):
+`11.0.100-rc.1`. Local server work also requires PostgreSQL and Redis.
+JavaScript tests use Node.js, and browser tests require Playwright.
+Native application builds require their platform workloads.
 
 Restore dependencies from the repository root:
 

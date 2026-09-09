@@ -6,7 +6,7 @@ python3 Tools/Villages/restore-release-assets.py
 # Install the .NET 11 preview SDK pinned by global.json
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh --version 11.0.100-preview.3.26207.106 -InstallDir ./dotnet
+./dotnet-install.sh --version 11.0.100-rc.1 -InstallDir ./dotnet
 export PATH="$PWD/dotnet:$PATH"
 dotnet --version
 
