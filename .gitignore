@@ -16,7 +16,8 @@ NodeConfig.json
 # wwwroot/lib/
 # When wwwroot/lib/ is commented out, excluse .min and .map files
 
-
+*.min.*
+*.map
 _build/
 _site/
 
@@ -408,6 +409,9 @@ dotnet-install.sh
 
 # Build-generated CSS bundle
 **/wwwroot/css/bundled.min.css
+
+# Build-generated transpilations of TypeScript
+**/wwwroot/ts/*.js
 
 # Firebase credentials
 google-services.json
