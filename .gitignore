@@ -16,7 +16,8 @@ NodeConfig.json
 # wwwroot/lib/
 # When wwwroot/lib/ is commented out, excluse .min and .map files
 
-
+*.min.*
+*.map
 _build/
 _site/
 
