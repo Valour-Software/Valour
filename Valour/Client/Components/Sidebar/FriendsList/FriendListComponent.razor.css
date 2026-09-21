@@ -10,6 +10,22 @@
     margin-bottom: 8px;
 }
 
+.friend-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.friend-header .subtitle {
+    margin: 0;
+}
+
+.friend-add-button {
+    flex-shrink: 0;
+}
+
 .friend-container .list {
     overflow: auto;
     overflow-anchor: none;
