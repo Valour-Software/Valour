@@ -1,7 +1,16 @@
 ﻿@inject FriendService FriendService
 
+@inject ValourClient Client
+
 <div class="friend-container">
-    <p class="subtitle mb-2">Friends</p>
+    <div class="friend-header">
+        <p class="subtitle">Friends</p>
+        <button class="v-btn secondary small friend-add-button" type="button"
+                title="Open friend management" @onclick="OnClickAddFriend">
+            <i class="bi bi-person-plus" aria-hidden="true"></i>
+            <span>Add Friend</span>
+        </button>
+    </div>
     <div class="v-gradient-underline"></div>
 
     <div class="friend-search">
@@ -46,6 +55,18 @@
         _filterText = value;
         CalculateFriends();
         StateHasChanged();
+    }
+
+    private void OnClickAddFriend()
+    {
+        var data = new EditUserComponent.ModalParams()
+        {
+            StartCategory = "General Settings",
+            StartItem = "Friends",
+            User = Client.Me
+        };
+
+        ModalRoot.Instance?.OpenModal<EditUserComponent>(data);
     }
 
     private void OnFriendsListUpdate(FriendEventData e)
