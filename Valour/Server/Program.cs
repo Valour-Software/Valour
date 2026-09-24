@@ -620,6 +620,9 @@ public partial class Program
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<VoiceStateService>();
         services.AddScoped<StartupService>();
+        services.AddHttpClient(WebPushDeliveryClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(30))
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) });
+        services.AddSingleton<WebPushDeliveryClient>();
         services.AddScoped<PushNotificationService>();
         services.AddScoped<ITagService,TagService>();
 

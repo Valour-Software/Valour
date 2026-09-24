@@ -42,6 +42,12 @@ The direct-call worker owns call expiry and room teardown. Planet voice cleanup
 skips active direct-call rooms, whose presence does not use planet voice Redis
 keys. RealtimeKit orphan cleanup also preserves explicitly tracked rooms.
 
+RealtimeKit room teardown must both end the active session and mark the meeting
+inactive before Valour records it closed. A failed operation leaves cleanup
+pending. Concurrent requests for the same meeting share an attempt, and failures
+back off from one minute to a maximum of 30 minutes between attempts. These retry
+timers are local to each server process; open meeting records remain in the database.
+
 ## HTTP routes
 
 | Method | Path | Purpose |
@@ -67,6 +73,10 @@ checks participant credential cleanup without external calls. `DirectCallService
 and `DirectCallApiTests` cover lifecycle, privacy, authorization, busy users, missed
 calls, and participant expansion. Group-conversation tests in `ChannelServiceTests`
 cover administration and preservation of the original direct history.
+
+`ReleaseVoiceCleanupTests` checks failed operations, retry timing, recovery, and
+concurrent cleanup. `ReleaseDeliveryPersistenceTests` checks that failed cleanup
+stays open in the database until both provider operations succeed.
 
 Run database-backed tests with the
 [isolated runner](../Valour/Tests/Browser/README.md#isolated-c-regression). Provider

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 using Valour.Config.Configs;
 using Valour.Server.Database;
 using Valour.Shared.Models;
-using WebPush;
+using Lib.Net.Http.WebPush;
 
 namespace Valour.Server.Services;
 
@@ -24,27 +24,20 @@ public class PushNotificationService
     private readonly ValourDb _db;
     private readonly ILogger<PushNotificationService> _logger;
     private readonly HostedPlanetService _hostedService;
-    private readonly WebPushClient _webPushClient;
-    private readonly VapidDetails _vapidDetails;
+    private readonly WebPushDeliveryClient _webPushClient;
     
     public PushNotificationService(
         ILogger<PushNotificationService> logger, 
         ValourDb db, 
         PlanetPermissionService permissionService, 
-        HostedPlanetService hostedService)
+        HostedPlanetService hostedService,
+        WebPushDeliveryClient webPushClient)
     {
         _logger = logger;
         _db = db;
         _hostedService = hostedService;
         
-        _webPushClient = new WebPushClient();
-        
-        _vapidDetails = new VapidDetails()
-        {
-            Subject = NotificationsConfig.Current?.Subject,
-            PublicKey = NotificationsConfig.Current?.PublicKey,
-            PrivateKey = NotificationsConfig.Current?.PrivateKey
-        };
+        _webPushClient = webPushClient;
     }
     
     public async Task ClearExpiredSubscriptionsAsync()
@@ -169,15 +162,13 @@ public class PushNotificationService
         CancellationToken cancellationToken
     )
     {
-        var webSub = new PushSubscription(sub.Endpoint, sub.Key, sub.Auth);
         try
         {
-            await _webPushClient.SendNotificationAsync(webSub, payload, _vapidDetails,
-                cancellationToken: cancellationToken);
+            await _webPushClient.SendAsync(sub, payload, cancellationToken);
 
             _logger.LogDebug("Sent notification to {Endpoint}", sub.Endpoint);
         }
-        catch (WebPushException ex)
+        catch (PushServiceClientException ex)
         {
             if (ex.StatusCode == HttpStatusCode.Gone)
             {
@@ -188,6 +179,14 @@ public class PushNotificationService
             {
                 _logger.LogError(ex, "Failed to send notification to {Endpoint}", sub.Endpoint);
             }
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Web Push delivery timed out for provider {Provider}", new Uri(sub.Endpoint).Host);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Web Push transport failed for provider {Provider}", new Uri(sub.Endpoint).Host);
         }
     }
 
@@ -253,7 +252,7 @@ public class PushNotificationService
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async Task SendParallelNotificationsAsync(
+    internal async Task SendParallelNotificationsAsync(
         Valour.Database.PushNotificationSubscription[] subs, 
         string payload
     )

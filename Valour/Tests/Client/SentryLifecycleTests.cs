@@ -8,6 +8,69 @@ namespace Valour.Tests.Client;
 public class SentryLifecycleTests
 {
     [Fact]
+    public async Task LottieImportFailure_DoesNotEscapeRendering()
+    {
+        var runtime = new DeferredRuntime();
+        runtime.Import.SetException(new JSException("Failed to fetch dynamically imported module"));
+        var loader = new TestLottie(runtime);
+        await loader.RenderAsync();
+        await loader.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task LottieScriptFailure_ReleasesModuleWithoutBreakingRendering()
+    {
+        var runtime = new DeferredRuntime();
+        runtime.Module.FailLoad = true;
+        runtime.Import.SetResult(runtime.Module);
+        var loader = new TestLottie(runtime);
+        await loader.RenderAsync();
+        await loader.DisposeAsync();
+        Assert.Equal(1, runtime.Module.DisposeCalls);
+    }
+
+    [Fact]
+    public async Task LottieClosedDuringImport_DoesNotLoadScriptAndReleasesModule()
+    {
+        var runtime = new DeferredRuntime();
+        var loader = new TestLottie(runtime);
+        var render = loader.RenderAsync();
+        await loader.DisposeAsync();
+        runtime.Import.SetResult(runtime.Module);
+        await render;
+        await loader.DisposeAsync();
+        Assert.DoesNotContain("ensureLoaded", runtime.Module.Calls);
+        Assert.Equal(1, runtime.Module.DisposeCalls);
+    }
+
+    [Fact]
+    public async Task LottieClosedDuringLoad_ReleasesModuleAfterPendingCall()
+    {
+        var runtime = new DeferredRuntime();
+        runtime.Module.HoldInit = true;
+        runtime.Import.SetResult(runtime.Module);
+        var loader = new TestLottie(runtime);
+        var render = loader.RenderAsync();
+        await runtime.Module.InitStarted.Task;
+        await loader.DisposeAsync();
+        Assert.Equal(0, runtime.Module.DisposeCalls);
+        runtime.Module.InitCompleted.SetResult();
+        await render;
+        await loader.DisposeAsync();
+        Assert.Equal(1, runtime.Module.DisposeCalls);
+    }
+
+    private sealed class TestLottie : LottiePlayerLoader
+    {
+        public TestLottie(IJSRuntime runtime)
+        {
+            Inject(this, "JsRuntime", runtime);
+            Inject(this, "Logger", Microsoft.Extensions.Logging.Abstractions.NullLogger<LottiePlayerLoader>.Instance);
+        }
+        public Task RenderAsync() => OnAfterRenderAsync(true);
+    }
+
+    [Fact]
     public async Task FadeClosedDuringImport_ReleasesLateModuleWithoutAnimating()
     {
         var runtime = new DeferredRuntime();
@@ -227,6 +290,7 @@ public class SentryLifecycleTests
         public bool HoldInit;
         public bool FailDestroy;
         public bool FailReset;
+        public bool FailLoad;
         public bool CallbackAliveAtDestroy;
         public DotNetObjectReference<ColorPickerComponent>? ColorCallback;
         public TaskCompletionSource InitStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -234,6 +298,12 @@ public class SentryLifecycleTests
         public async ValueTask<T> InvokeAsync<T>(string identifier, object?[]? args)
         {
             Calls.Add(identifier);
+            if (identifier == "ensureLoaded")
+            {
+                if (FailLoad) throw new JSException("Failed to load Lottie player");
+                InitStarted.TrySetResult();
+                if (HoldInit) await InitCompleted.Task;
+            }
             if (identifier == "reset" && FailReset) throw new JSException("JS object no longer exists");
             if (identifier == "init")
             {

@@ -168,8 +168,8 @@ also restores its current map after node authentication.
 
 A connection can be restored while a particular subscription is denied or fails.
 Keep failures visible to the caller, and refresh authoritative data when a feature
-requires it. Explicit scene and forced channel refreshes bypass the node's short
-HTTP response cache so they receive the server's current state.
+requires it. Explicit scene, forced planet and forced channel refreshes bypass the node's
+short HTTP response cache so they receive the server's current state.
 
 The SDK notification service also returns snapshots of its unread list and source
 lookup. These snapshots preserve collection membership during incoming updates;

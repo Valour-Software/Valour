@@ -52,6 +52,25 @@ configuration. The instance manifest at `/.well-known/valour-instance` reports
 capabilities for clients. For LiveKit, follow [Self-hosted voice](SelfHostVoice.md).
 For community-node setup, follow the federation checklist below.
 
+### Web Push
+
+The `Notifications` settings contain the VAPID public/private key pair and a
+`Subject` contact URI, using `mailto:` or HTTPS. Keep that key pair stable because
+browser subscriptions are bound to the public key used when subscribing.
+
+Web Push delivery uses `aes128gcm` encryption and the `vapid` authorization scheme.
+Each server process caches signed tokens by provider origin until five minutes
+before their 12-hour expiry. Provider requests have a 30-second timeout; a timeout
+or connection failure for one subscription does not cancel delivery to other
+recipients. HTTP 410 removes the expired subscription. HTTP 403 keeps it and logs
+the provider failure so deployment credentials can be checked.
+
+For Apple's `BadJwtToken` response, verify the configured key pair, contact URI,
+and server clock as well as the deployed delivery code. Apple's
+[Web Push guide](https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers)
+describes its authentication requirements. Local delivery tests use simulated
+providers and do not establish that production credentials are accepted.
+
 ## Application nodes behind nginx
 
 The configuration in this directory expects Docker Compose, an external Docker

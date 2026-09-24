@@ -158,7 +158,8 @@ public class PlanetService : ServiceBase
         }
 
         node ??= _client.PrimaryNode;
-        var planetResult = await node.GetJsonAsync<Planet>($"api/planets/{id}");
+        var planetResult = await node.GetJsonAsync<Planet>($"api/planets/{id}",
+            cacheDurationMs: skipCache ? null : 100);
         if (!planetResult.Success || planetResult.Data is null)
         {
             LogError($"Failed to fetch planet {id}: {planetResult.Message}");
