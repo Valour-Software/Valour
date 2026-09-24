@@ -27,6 +27,13 @@ public class VoiceStateService
     private const int MinimumProviderParticipants = 2;
 
     /// <summary>
+    /// Redis set holding the ids of voice channels that have had participants. Joins add
+    /// to it so the cleanup worker can visit active channels without scanning the keyspace.
+    /// The worker removes ids whose channel set no longer exists.
+    /// </summary>
+    public const string ActiveChannelsKey = "voice:channels";
+
+    /// <summary>
     /// Per-user lock to serialize join/leave operations and prevent races.
     /// </summary>
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> UserLocks = new();
@@ -46,6 +53,7 @@ if oldChannelId and oldChannelId ~= ARGV[1] then
     redis.call('SREM', 'voice:channel:' .. oldChannelId, ARGV[3])
 end
 redis.call('SADD', 'voice:channel:' .. ARGV[1], ARGV[3])
+redis.call('SADD', 'voice:channels', ARGV[1])
 return oldChannelId
 ";
 

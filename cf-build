@@ -3,7 +3,7 @@ set -eu
 
 python3 Tools/Villages/restore-release-assets.py
 
-# Install the .NET 11 preview SDK pinned by global.json
+# Install the .NET 11 SDK pinned by global.json
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
 ./dotnet-install.sh --version 11.0.100-rc.1.26425.128 -InstallDir ./dotnet
@@ -118,7 +118,6 @@ for required in \
   _framework/blazor.webassembly.js \
   manifest.json \
   service-worker.js \
-  lib/localforage-1.10.0.min.js \
   _content/Valour.Client/js/main.js \
   _content/Valour.Client/css/bundled.min.css
 do
@@ -178,10 +177,6 @@ cat >> "$OUTPUT_DIR/_headers" <<'EOF'
   Cache-Control: no-cache
 
 /service-worker-assets.js
-  Cache-Control: no-cache
-
-# Imported by the service worker; revalidated so worker updates see changes.
-/lib/*
   Cache-Control: no-cache
 
 # Framework resources below have content hashes in their filenames, so they get a

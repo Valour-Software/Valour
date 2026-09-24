@@ -46,13 +46,46 @@ public class HostedPlanetService
         _logger = logger;
     }
     
+    /// <summary>
+    /// Planet loads in progress on this node. Concurrent first requests for the same planet
+    /// share one load instead of each repairing channel positions and loading every member.
+    /// </summary>
+    private static readonly ConcurrentDictionary<long, Lazy<Task<HostedPlanet>>> PendingLoads = new();
+
     public async Task<HostedPlanet> BeginHosting(long planetId)
     {
         // If we're already hosting this planet, do nothing
         var cached = _cache.HostedPlanets.Get(planetId);
         if (cached is not null)
             return cached;
-        
+
+        // The load runs on the DbContext of the request that registered it. Only that load
+        // uses the context while the registering request awaits it; other requests await
+        // the shared task and never touch that context.
+        var load = new Lazy<Task<HostedPlanet>>(() => LoadAndHostAsync(planetId));
+        var pending = PendingLoads.GetOrAdd(planetId, load);
+        if (!ReferenceEquals(pending, load))
+            return await pending.Value;
+
+        try
+        {
+            return await load.Value;
+        }
+        finally
+        {
+            // The planet is in the hosted cache before this entry is removed, so later callers
+            // find it there. Removing on failure lets the next request retry the load.
+            PendingLoads.TryRemove(new KeyValuePair<long, Lazy<Task<HostedPlanet>>>(planetId, load));
+        }
+    }
+
+    private async Task<HostedPlanet> LoadAndHostAsync(long planetId)
+    {
+        // A load that finished between the cache check and registering this one
+        var cached = _cache.HostedPlanets.Get(planetId);
+        if (cached is not null)
+            return cached;
+
         var planet = (await _db.Planets.FindAsync(planetId)).ToModel();
         if (planet == null)
             return null;

@@ -649,8 +649,8 @@ public class ChannelApi
         var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
         if (hidden.Count > 0)
         {
-            messages = messages.Where(m => !hidden.Contains(m.AuthorUserId)).ToList();
-            RemoveBlockedReplyPreviews(messages, hidden);
+            messages = RemoveBlockedReplyPreviews(
+                messages.Where(m => !hidden.Contains(m.AuthorUserId)), hidden);
         }
 
         return Results.Json(messages);
@@ -692,8 +692,8 @@ public class ChannelApi
         var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
         if (hidden.Count > 0)
         {
-            messages = messages.Where(m => !hidden.Contains(m.AuthorUserId)).ToList();
-            RemoveBlockedReplyPreviews(messages, hidden);
+            messages = RemoveBlockedReplyPreviews(
+                messages.Where(m => !hidden.Contains(m.AuthorUserId)), hidden);
         }
 
         return Results.Json(messages);
@@ -734,23 +734,29 @@ public class ChannelApi
         var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
         if (hidden.Count > 0)
         {
-            messages = messages.Where(m => !hidden.Contains(m.AuthorUserId)).ToList();
-            RemoveBlockedReplyPreviews(messages, hidden);
+            messages = RemoveBlockedReplyPreviews(
+                messages.Where(m => !hidden.Contains(m.AuthorUserId)), hidden);
         }
 
         return Results.Json(messages);
     }
 
-    private static void RemoveBlockedReplyPreviews(IEnumerable<Message> messages, HashSet<long> hiddenUserIds)
+    /// <summary>
+    /// Hides replies to blocked users' messages. The messages can be shared instances from the
+    /// chat cache, so affected messages are replaced with copies rather than changed in place.
+    /// </summary>
+    private static List<Message> RemoveBlockedReplyPreviews(IEnumerable<Message> messages, HashSet<long> hiddenUserIds)
     {
+        var result = new List<Message>();
         foreach (var message in messages)
         {
             if (message.ReplyTo is not null && hiddenUserIds.Contains(message.ReplyTo.AuthorUserId))
-            {
-                message.ReplyTo = null;
-                message.ReplyToId = null;
-            }
+                result.Add(message.WithoutReply());
+            else
+                result.Add(message);
         }
+
+        return result;
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/recentChatters")]

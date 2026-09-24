@@ -335,10 +335,10 @@ public class MessageService
         }
 
 
+        // Planet messages announce the channel state from PlanetMessageWorker when
+        // they are dequeued, so no planet-wide broadcast is sent from here.
         if (channel.PlanetId is not null)
         {
-            _coreHubService.NotifyChannelStateUpdate(channel.PlanetId.Value, channel.Id, message.TimeSent);
-
             if (channel.ChannelType == ChannelTypeEnum.PlanetChat)
             {
                 try

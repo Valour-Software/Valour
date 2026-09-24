@@ -72,7 +72,7 @@ RUN dotnet publish Valour/Server/Valour.Server.csproj -c Release -a $TARGETARCH 
 RUN mkdir -p /staging/media
 
 # Start with a smaller runtime image for the final image
-FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-preview.3-resolute-chiseled-extra AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.1-resolute-chiseled-extra AS final
 
 # Set the working directory to the app's output directory
 WORKDIR /app

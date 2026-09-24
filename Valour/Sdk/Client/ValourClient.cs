@@ -273,9 +273,15 @@ public class ValourClient
         // Setup primary node
         // await NodeService.SetupPrimaryNodeAsync(); Already done in LoginAsync
         
+        // The call request does not depend on bootstrap data, so it runs alongside
+        // it. The result is applied afterward so call events still arrive after
+        // the channels and users they refer to have loaded.
+        var currentCallsTask = DirectCallService.FetchCurrentAsync();
+
         if (await TryLoadBootstrapAsync())
         {
-            await DirectCallService.LoadCurrentAsync();
+            DirectCallService.ApplyCurrent(await currentCallsTask);
+            AuthService.ScheduleFederationPassportPrefetch();
             return TaskResult.SuccessResult;
         }
 
@@ -289,7 +295,6 @@ public class ValourClient
             KlipyService.LoadGifFavoritesAsync(),
             ChannelFavoriteService.LoadFavoritesAsync(),
             ChannelService.LoadDmChannelsAsync(),
-            DirectCallService.LoadCurrentAsync(),
             NotificationService.LoadUnreadNotificationsAsync(),
             UnreadService.FetchUnreadPlanetsAsync(),
             UnreadService.FetchUnreadDirectChannelsAsync()
@@ -299,6 +304,7 @@ public class ValourClient
         try
         {
             await Task.WhenAll(loadTasks);
+            DirectCallService.ApplyCurrent(await currentCallsTask);
         } 
         catch (Exception e)
         {
@@ -306,6 +312,7 @@ public class ValourClient
             return new TaskResult(false, "Critical error during startup: " + e.Message);
         }
 
+        AuthService.ScheduleFederationPassportPrefetch();
         return TaskResult.SuccessResult;
     }
 

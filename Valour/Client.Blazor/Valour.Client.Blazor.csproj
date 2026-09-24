@@ -12,9 +12,9 @@
     -->
   </PropertyGroup>
   <ItemGroup>
-<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.3" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.3" />
+<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-rc.1.26425.128" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="11.0.0-rc.1.26425.128" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="11.0.0-rc.1.26425.128" />
     <PackageReference Include="Sentry.AspNetCore.Blazor.WebAssembly" Version="6.1.0" />
   </ItemGroup>
 
@@ -26,6 +26,14 @@
 
   <ItemGroup>
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+    BouncyCastle is not marked trimmable, so partial trimming would ship the
+    whole library. The SDK only uses its P-256 types directly (FederationProofKey).
+    -->
+    <TrimmableAssembly Include="BouncyCastle.Cryptography" />
   </ItemGroup>
 
 </Project>

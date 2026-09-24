@@ -23,35 +23,68 @@
     private bool _initializing;
     private Task _cleanupTask;
 
+    /// <summary>
+    /// The last known pointer position. It is updated by mouse moves while
+    /// a move subscriber exists, and by every mouse release.
+    /// </summary>
     public static MousePosition Position { get; private set; }
-    
-    private static int _moveSubscribers = 0;
-    private static int _upSubscribers = 0;
-    
+
+    // The move subscription state last sent to JS
+    private bool _jsMoveActive;
+
+    /// <summary>
+    /// Subscribes to mouse moves. The JS mousemove listener only runs while
+    /// at least one subscriber exists, and moves are delivered at most once
+    /// per animation frame with the movement accumulated since the last one.
+    /// </summary>
     public static void SubscribeMouseMove(Func<MousePosition, Task> callback)
     {
         OnMouseMove += callback;
-        _moveSubscribers++;
+        _current?.SyncMoveListener();
     }
-    
+
     public static void UnsubscribeMouseMove(Func<MousePosition, Task> callback)
     {
         OnMouseMove -= callback;
-        _moveSubscribers--;
+        _current?.SyncMoveListener();
     }
-    
+
     public static void SubscribeMouseUp(Func<MouseUpEvent, Task> callback)
     {
         OnMouseUp += callback;
-        _upSubscribers++;
     }
-    
+
     public static void UnsubscribeMouseUp(Func<MouseUpEvent, Task> callback)
     {
         OnMouseUp -= callback;
-        _upSubscribers--;
     }
-    
+
+    /// <summary>
+    /// Attaches or detaches the JS move listener when the subscriber set
+    /// becomes non-empty or empty.
+    /// </summary>
+    private void SyncMoveListener()
+    {
+        var service = _jsService;
+        if (_disposed || service is null)
+            return; // Initialization sends the current state
+
+        var active = OnMouseMove is not null;
+        if (active == _jsMoveActive)
+            return;
+
+        _jsMoveActive = active;
+        _ = SetJsMoveSubscribedAsync(service, active);
+    }
+
+    private static async Task SetJsMoveSubscribedAsync(IJSObjectReference service, bool active)
+    {
+        try { await service.InvokeVoidAsync("setMoveSubscribed", active); }
+        catch (JSException) { }
+        catch (ObjectDisposedException) { }
+        catch (TaskCanceledException) { }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _disposed) return;
@@ -64,7 +97,8 @@
             if (_disposed) return;
             _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef);
             if (_disposed) return;
-            await _jsService.InvokeVoidAsync("startMoveListener");
+            _jsMoveActive = OnMouseMove is not null;
+            await _jsService.InvokeVoidAsync("setMoveSubscribed", _jsMoveActive);
             if (_disposed) return;
             await _jsService.InvokeVoidAsync("startUpListener");
         }
@@ -123,10 +157,22 @@
     }
     
     [JSInvokable("NotifyMouseUp")]
-    public async Task NotifyMouseUp(float x, float y)
+    public async Task NotifyMouseUp(float x, float y, float pageX, float pageY)
     {
+        if (_disposed) return;
+
+        // Keep Position current for click-driven placement (such as new
+        // floating windows) while no move listener is attached.
+        Position = new MousePosition()
+        {
+            ClientX = x,
+            ClientY = y,
+            PageX = pageX,
+            PageY = pageY
+        };
+
         var handlers = OnMouseUp;
-        if (_disposed || handlers is null) return;
+        if (handlers is null) return;
         var mouseUp = new MouseUpEvent()
         {
             X = x,

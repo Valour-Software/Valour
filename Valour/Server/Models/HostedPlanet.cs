@@ -371,6 +371,22 @@ public class HostedPlanet : ServerModel<long>
     /// </summary>
     public long[] GetMemberUserIds() => _userIdToMemberId.Keys.ToArray();
 
+    /// <summary>
+    /// Returns the cached core members (User is null) whose role membership includes the given
+    /// role index. Same read-only contract as <see cref="TryGetMember"/>.
+    /// </summary>
+    public List<PlanetMember> GetMembersWithRole(int roleFlagBitIndex)
+    {
+        var result = new List<PlanetMember>();
+        foreach (var member in _members.Values)
+        {
+            if (member.RoleMembership.HasRole(roleFlagBitIndex))
+                result.Add(member);
+        }
+
+        return result;
+    }
+
     // Voice Participants //
 
     private readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _voiceParticipants = new();

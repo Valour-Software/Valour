@@ -100,18 +100,25 @@ public class UnreadService : ServiceBase
         }
     }
 
+    /// <summary>
+    /// Marks a channel read locally. Events are raised only when the channel
+    /// was unread, so callers may invoke this whenever the channel is viewed.
+    /// </summary>
     public void MarkChannelRead(long? planetId, long channelId)
     {
+        var channelChanged = false;
+
         if (planetId is null)
         {
             if (_unreadDirectChannels.TryRemove(channelId, out _))
             {
+                channelChanged = true;
                 DirectChannelUnreadChanged?.Invoke(channelId);
             }
         }
         else if (_unreadPlanetChannels.TryGetValue(planetId.Value, out var cache))
         {
-            cache.TryRemove(channelId, out _);
+            channelChanged = cache.TryRemove(channelId, out _);
 
             // If that was the last unread channel, the planet itself is now read
             if (cache.IsEmpty && _unreadPlanets.TryRemove(planetId.Value, out _))
@@ -119,6 +126,9 @@ public class UnreadService : ServiceBase
                 PlanetUnreadChanged?.Invoke(planetId.Value);
             }
         }
+
+        if (!channelChanged)
+            return;
 
         Channel? channel = null;
 
@@ -138,9 +148,12 @@ public class UnreadService : ServiceBase
 
     public void MarkChannelUnread(long? planetId, long channelId)
     {
+        bool channelChanged;
+
         if (planetId is null)
         {
-            if (_unreadDirectChannels.TryAdd(channelId, 0))
+            channelChanged = _unreadDirectChannels.TryAdd(channelId, 0);
+            if (channelChanged)
             {
                 DirectChannelUnreadChanged?.Invoke(channelId);
             }
@@ -149,13 +162,16 @@ public class UnreadService : ServiceBase
         {
             var becameUnread = _unreadPlanets.TryAdd(planetId.Value, 0);
             var cache = _unreadPlanetChannels.GetOrAdd(planetId.Value, _ => new ConcurrentDictionary<long, byte>());
-            cache[channelId] = 0;
+            channelChanged = cache.TryAdd(channelId, 0);
 
             if (becameUnread)
             {
                 PlanetUnreadChanged?.Invoke(planetId.Value);
             }
         }
+
+        if (!channelChanged)
+            return;
 
         Channel? channel = null;
 

@@ -557,29 +557,45 @@ public class PlanetPermissionService
         Valour.Database.PlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
-        if (member.UserId == hostedPlanet.Planet.OwnerId)
-        {
-            // Even owners who are minors should not see NSFW channels
-            var ownerHasNsfw = hostedPlanet.Channels.List.Any(c => c.Nsfw);
-            if (ownerHasNsfw)
-            {
-                var ownerBirthDate = await _db.PrivateInfos
-                    .Where(x => x.UserId == member.UserId)
-                    .Select(x => x.BirthDate)
-                    .FirstOrDefaultAsync();
 
-                if (ownerBirthDate.HasValue && ownerBirthDate.Value.AddYears(18) > DateTime.UtcNow)
-                {
-                    var filtered = hostedPlanet.Channels.List.Where(c => !c.Nsfw).ToList();
-                    var result = new SortedServerModelList<Channel, long>();
-                    result.Set(filtered);
-                    return result.Snapshot;
-                }
-            }
+        // The owner sees every channel regardless of roles. Everyone else gets
+        // the access of their role combination.
+        var access = member.UserId == hostedPlanet.Planet.OwnerId
+            ? hostedPlanet.Channels
+            : await GetRoleComboChannelAccessAsync(member, hostedPlanet);
 
-            return hostedPlanet.Channels;
-        }
+        // Access is cached per role combination, which members of different ages
+        // share, so the age restriction is applied per user after the lookup.
+        return await RemoveNsfwForMinorAsync(member.UserId, access);
+    }
 
+    /// <summary>
+    /// Removes NSFW channels from an access list when the user is under 18. The
+    /// filtered list is built for this call and never stored in the shared cache.
+    /// </summary>
+    private async ValueTask<ModelListSnapshot<Channel, long>?> RemoveNsfwForMinorAsync(
+        long userId, ModelListSnapshot<Channel, long>? access)
+    {
+        if (access is null || !access.List.Any(c => c.Nsfw))
+            return access;
+
+        var birthDate = await _db.PrivateInfos
+            .Where(x => x.UserId == userId)
+            .Select(x => x.BirthDate)
+            .FirstOrDefaultAsync();
+
+        var isMinor = birthDate.HasValue && birthDate.Value.AddYears(18) > DateTime.UtcNow;
+        if (!isMinor)
+            return access;
+
+        var result = new SortedServerModelList<Channel, long>();
+        result.Set(access.List.Where(c => !c.Nsfw).ToList());
+        return result.Snapshot;
+    }
+
+    private async ValueTask<ModelListSnapshot<Channel, long>?> GetRoleComboChannelAccessAsync(
+        Valour.Database.PlanetMember member, HostedPlanet hostedPlanet)
+    {
         var cached = hostedPlanet.PermissionCache.GetChannelAccess(member.RoleMembership);
         if (cached is not null)
         {
@@ -647,18 +663,8 @@ public class PlanetPermissionService
 
         var allChannels = hostedPlanet.Channels;
 
-        // Check if the member is a minor — minors should not see NSFW channels
-        bool isMinor = false;
-        if (allChannels.List.Any(c => c.Nsfw))
-        {
-            var birthDate = await _db.PrivateInfos
-                .Where(x => x.UserId == member.UserId)
-                .Select(x => x.BirthDate)
-                .FirstOrDefaultAsync();
-
-            isMinor = birthDate.HasValue && birthDate.Value.AddYears(18) > DateTime.UtcNow;
-        }
-
+        // The result is cached for the role combination, so it must not depend on
+        // this member. GetChannelAccessForMemberAsync applies the age restriction.
         var roles = RoleListPool.Get();
         bool isAdmin = false;
         foreach (var roleIndex in member.RoleMembership.EnumerateRoleIndices())
@@ -679,18 +685,9 @@ public class PlanetPermissionService
 
         if (isAdmin)
         {
-            // Admins who are minors still shouldn't see NSFW channels
-            if (isMinor)
-            {
-                var filtered = allChannels.List.Where(c => !c.Nsfw).ToList();
-                var adminResult = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembership, filtered);
-                RoleListPool.Return(roles);
-                return adminResult;
-            }
-
-            var adminResult2 = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembership, allChannels.List);
+            var adminResult = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembership, allChannels.List);
             RoleListPool.Return(roles);
-            return adminResult2;
+            return adminResult;
         }
 
         // Sort roles by position ascending (lower position = higher authority = first)
@@ -699,10 +696,6 @@ public class PlanetPermissionService
         var accessIds = new HashSet<long>();
         foreach (var channel in allChannels.List)
         {
-            // Skip NSFW channels for underage users
-            if (channel.Nsfw && isMinor)
-                continue;
-
             if (channel.IsDefault)
             {
                 if (accessIds.Add(channel.Id))

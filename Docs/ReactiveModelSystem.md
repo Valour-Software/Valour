@@ -190,6 +190,14 @@ The SDK notification service also returns snapshots of its unread list and sourc
 lookup. These snapshots preserve collection membership during incoming updates;
 their notification models remain canonical mutable instances. Notification events
 run after the service releases its collection lock.
+Its unread count helpers and single-source lookup (`TryGetUnreadBySource`) read
+under the same lock without copying, because sidebar rows and messages call them
+during rendering.
+
+The SDK unread service raises a channel's `UnreadStateChanged` event and its
+planet or direct-channel unread events only when the stored unread state changes.
+Callers can mark a channel read each time it is viewed without re-rendering
+the sidebar.
 
 ## Source files
 

@@ -317,19 +317,59 @@ public class NotificationService
 
         baseNotification.Body ??= "";
 
-        var membersWithRole = await _db.PlanetMembers
-            .AsNoTracking()
-            .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.FlagBitIndex)
-            .Select(x => new { x.Id, x.UserId })
-            .ToArrayAsync();
-
         // Only notify members who can actually view the channel (#1570)
         var allowedUserIds = new HashSet<long>();
-        foreach (var memberWithRole in membersWithRole)
+
+        if (hostedPlanet.MembersLoaded)
         {
-            if (baseNotification.ChannelId is null ||
-                await _permissionService.HasChannelAccessAsync(memberWithRole.Id, baseNotification.ChannelId.Value))
-                allowedUserIds.Add(memberWithRole.UserId);
+            // Role holders come from the hosted planet's member cache. Channel access depends
+            // on the role combination, so it is resolved once per combination rather than
+            // looking each member up in the database.
+            var membersWithRole = hostedPlanet.GetMembersWithRole(role.FlagBitIndex);
+            if (baseNotification.ChannelId is null)
+            {
+                foreach (var memberWithRole in membersWithRole)
+                    allowedUserIds.Add(memberWithRole.UserId);
+            }
+            else
+            {
+                var channelId = baseNotification.ChannelId.Value;
+
+                // Access to an NSFW channel also depends on each member's age, so
+                // it is only shared between members of a combination otherwise
+                var shareByCombo = hostedPlanet.GetChannel(channelId)?.Nsfw != true;
+                var accessByCombo = new Dictionary<PlanetRoleMembership, bool>();
+                foreach (var memberWithRole in membersWithRole)
+                {
+                    // The owner's access does not come from roles, so it is never shared
+                    var share = shareByCombo && memberWithRole.UserId != hostedPlanet.Planet.OwnerId;
+                    if (!share || !accessByCombo.TryGetValue(memberWithRole.RoleMembership, out var canView))
+                    {
+                        var access = await _permissionService.GetChannelAccessAsync(memberWithRole);
+                        canView = access is not null && access.Contains(channelId);
+                        if (share)
+                            accessByCombo[memberWithRole.RoleMembership] = canView;
+                    }
+
+                    if (canView)
+                        allowedUserIds.Add(memberWithRole.UserId);
+                }
+            }
+        }
+        else
+        {
+            var membersWithRole = await _db.PlanetMembers
+                .AsNoTracking()
+                .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.FlagBitIndex)
+                .Select(x => new { x.Id, x.UserId })
+                .ToArrayAsync();
+
+            foreach (var memberWithRole in membersWithRole)
+            {
+                if (baseNotification.ChannelId is null ||
+                    await _permissionService.HasChannelAccessAsync(memberWithRole.Id, baseNotification.ChannelId.Value))
+                    allowedUserIds.Add(memberWithRole.UserId);
+            }
         }
 
         var userIds = allowedUserIds.ToArray();

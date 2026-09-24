@@ -369,9 +369,37 @@
     private Task _interopCleanupTask;
     private IJSObjectReference _fileDropZone;
 
+    protected override void OnInitialized()
+    {
+        KeyboardListener.KeyDown += OnGlobalKeyDown;
+    }
+
+    /// <summary>
+    /// Escape removes the draft's reply and its last attachment once per key
+    /// press. This handler is synchronous so it runs before asynchronous
+    /// handlers, including the one for a message in edit mode, which closes
+    /// the edit and restores the new-message draft.
+    /// </summary>
+    private void OnGlobalKeyDown(KeyboardListener.KeyboardEvent e)
+    {
+        if (_disposed || e.Key != "Escape")
+            return;
+
+        // While editing, the preview is the edited message; leave it alone.
+        if (EditingMessageComponent is not null || PreviewMessage is null)
+            return;
+
+        if (PreviewMessage.ReplyToId is not null || PreviewMessage.ReplyTo is not null)
+            _ = RemoveReply();
+
+        if (PreviewMessage.Attachments is { Count: > 0 })
+            RemoveAttachment(-1);
+    }
+
     ValueTask IAsyncDisposable.DisposeAsync()
     {
         _disposed = true;
+        KeyboardListener.KeyDown -= OnGlobalKeyDown;
         var channelId = ChatComponent?.Channel?.Id;
         if (channelId is not null)
             _retainedInputCache.Remove(channelId.Value, out _);
@@ -918,7 +946,7 @@
         if (id == -1)
                 id = attachments.Count - 1;
         
-        if (id > attachments.Count - 1)
+        if (id < 0 || id > attachments.Count - 1)
             return;
 
         attachments.RemoveAt(id);

@@ -187,7 +187,9 @@ public class Message : ISharedMessage
 
             // Indices
             e.HasIndex(x => x.PlanetId);
-            e.HasIndex(x => x.ChannelId);
+            // Channel history pages filter by channel and walk ids downward, so the
+            // composite index serves them directly and also covers channel lookups
+            e.HasIndex(x => new { x.ChannelId, x.Id });
             e.HasIndex(x => x.TimeSent);
         });
     }

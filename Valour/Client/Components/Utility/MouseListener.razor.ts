@@ -1,14 +1,29 @@
 import DotnetObject = DotNet.DotnetObject;
 
 type MouseMoveService = {
-    lastX?: number;
-    lastY?: number;
+    lastX: number | null;
+    lastY: number | null;
+
+    // Latest movement waiting to be sent to .NET on the next animation frame
+    pendingMove: MouseEvent | null;
+    pendingDeltaX: number;
+    pendingDeltaY: number;
+    frameHandle: number | null;
+
+    // Whether .NET has at least one mouse move subscriber
+    netMoveSubscribed: boolean;
+    moveAttached: boolean;
 
     moveListener: (e: MouseEvent) => void;
+    flushMove: () => void;
+    cancelPendingMove: () => void;
+    updateMoveListener: () => void;
 
+    setMoveSubscribed: (subscribed: boolean) => void;
     startMoveListener: () => void;
     stopMoveListener: () => void;
 
+    downListener: (e: MouseEvent) => void;
     upListener: (e: MouseEvent) => void;
 
     startUpListener: () => void;
@@ -22,29 +37,41 @@ type MouseMoveService = {
     stopDrag: () => number[] | null;
 };
 
+// The document mousemove listener is attached only while .NET has a move
+// subscriber or a JS-side drag is active. Moves are sent to .NET at most once
+// per animation frame with the movement accumulated since the last send.
 export const init = (dotnet: DotnetObject): MouseMoveService => {
-    const service = {
+    const service: MouseMoveService = {
         lastX: null,
         lastY: null,
+
+        pendingMove: null,
+        pendingDeltaX: 0,
+        pendingDeltaY: 0,
+        frameHandle: null,
+
+        netMoveSubscribed: false,
+        moveAttached: false,
 
         // Drag mode state
         dragElement: null as HTMLElement | null,
         dragScannerRef: null as any,
-        moveListener: async (e: MouseEvent) => {
-            document.body.classList.add('no-select');
 
+        moveListener: (e: MouseEvent) => {
             if (e.clientX === service.lastX && e.clientY === service.lastY) {
                 return;
             }
 
-            const deltaX = service.lastX ? e.clientX - service.lastX : 0;
-            const deltaY = service.lastY ? e.clientY - service.lastY : 0;
+            const deltaX = service.lastX !== null ? e.clientX - service.lastX : 0;
+            const deltaY = service.lastY !== null ? e.clientY - service.lastY : 0;
 
             service.lastX = e.clientX;
             service.lastY = e.clientY;
 
             // JS-side drag mode: move element directly, no .NET interop
             if (service.dragElement) {
+                document.body.classList.add('no-select');
+
                 let newX = parseFloat(service.dragElement.style.left) + deltaX;
                 let newY = parseFloat(service.dragElement.style.top) + deltaY;
 
@@ -68,29 +95,116 @@ export const init = (dotnet: DotnetObject): MouseMoveService => {
                 return; // Skip .NET interop
             }
 
-            await dotnet.invokeMethodAsync('NotifyMouseMove', e.clientX, e.clientY, e.pageX, e.pageY, deltaX, deltaY);
+            if (!service.netMoveSubscribed) {
+                return;
+            }
+
+            // A held button means a .NET subscriber is dragging something
+            // (a splitter or a docked tab), so suppress text selection.
+            if (e.buttons !== 0) {
+                document.body.classList.add('no-select');
+            }
+
+            service.pendingMove = e;
+            service.pendingDeltaX += deltaX;
+            service.pendingDeltaY += deltaY;
+
+            if (service.frameHandle === null) {
+                service.frameHandle = requestAnimationFrame(service.flushMove);
+            }
+        },
+
+        flushMove: () => {
+            service.frameHandle = null;
+
+            const move = service.pendingMove;
+            const deltaX = service.pendingDeltaX;
+            const deltaY = service.pendingDeltaY;
+
+            service.pendingMove = null;
+            service.pendingDeltaX = 0;
+            service.pendingDeltaY = 0;
+
+            if (!move || !service.netMoveSubscribed) {
+                return;
+            }
+
+            dotnet.invokeMethodAsync('NotifyMouseMove', move.clientX, move.clientY, move.pageX, move.pageY, deltaX, deltaY)
+                .catch((err: any) => console.error('MouseListener: NotifyMouseMove failed', err));
+        },
+
+        cancelPendingMove: () => {
+            if (service.frameHandle !== null) {
+                cancelAnimationFrame(service.frameHandle);
+                service.frameHandle = null;
+            }
+
+            service.pendingMove = null;
+            service.pendingDeltaX = 0;
+            service.pendingDeltaY = 0;
+        },
+
+        updateMoveListener: () => {
+            const needed = service.netMoveSubscribed || service.dragElement !== null;
+
+            if (needed && !service.moveAttached) {
+                document.addEventListener('mousemove', service.moveListener);
+                service.moveAttached = true;
+            } else if (!needed && service.moveAttached) {
+                document.removeEventListener('mousemove', service.moveListener);
+                service.moveAttached = false;
+                service.cancelPendingMove();
+                document.body.classList.remove('no-select');
+            }
+        },
+
+        setMoveSubscribed: (subscribed: boolean) => {
+            service.netMoveSubscribed = subscribed;
+
+            if (!subscribed) {
+                service.cancelPendingMove();
+            }
+
+            service.updateMoveListener();
         },
 
         startMoveListener: () => {
-            document.addEventListener('mousemove', service.moveListener);
+            service.setMoveSubscribed(true);
         },
 
         stopMoveListener: () => {
-            document.removeEventListener('mousemove', service.moveListener);
-            service.lastX = null;
-            service.lastY = null;
+            service.setMoveSubscribed(false);
         },
 
-        upListener: async (e: MouseEvent) => {
+        // Mouse drags start with a mousedown, so recording its position gives
+        // the first move after a subscription an accurate delta.
+        downListener: (e: MouseEvent) => {
+            service.lastX = e.clientX;
+            service.lastY = e.clientY;
+        },
+
+        upListener: (e: MouseEvent) => {
             document.body.classList.remove('no-select');
-            await dotnet.invokeMethodAsync('NotifyMouseUp', e.clientX, e.clientY);
+
+            // Deliver the final movement before the release.
+            if (service.pendingMove) {
+                if (service.frameHandle !== null) {
+                    cancelAnimationFrame(service.frameHandle);
+                }
+                service.flushMove();
+            }
+
+            dotnet.invokeMethodAsync('NotifyMouseUp', e.clientX, e.clientY, e.pageX, e.pageY)
+                .catch((err: any) => console.error('MouseListener: NotifyMouseUp failed', err));
         },
 
         startUpListener: () => {
+            document.addEventListener('mousedown', service.downListener, true);
             document.addEventListener('mouseup', service.upListener);
         },
 
         stopUpListener: () => {
+            document.removeEventListener('mousedown', service.downListener, true);
             document.removeEventListener('mouseup', service.upListener);
         },
 
@@ -99,6 +213,7 @@ export const init = (dotnet: DotnetObject): MouseMoveService => {
             if (el) {
                 service.dragElement = el;
                 service.dragScannerRef = scannerRef;
+                service.updateMoveListener();
             }
         },
 
@@ -108,6 +223,7 @@ export const init = (dotnet: DotnetObject): MouseMoveService => {
                 const y = parseFloat(service.dragElement.style.top) || 0;
                 service.dragElement = null;
                 service.dragScannerRef = null;
+                service.updateMoveListener();
                 return [x, y];
             }
             return null;

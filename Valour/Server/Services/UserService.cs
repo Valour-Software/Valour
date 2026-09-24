@@ -4,6 +4,7 @@ using Valour.Database;
 using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Server.Utilities;
+using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -1218,6 +1219,9 @@ public class UserService
                 .Distinct()
                 .ToListAsync();
 
+            // Messages still waiting to be flushed would reference the deleted user and memberships
+            PlanetMessageWorker.RemoveMessages(x => x.AuthorUserId == dbUser.Id);
+
             var authoredMessageIds = await _db.Messages
                 .IgnoreQueryFilters()
                 .Where(x => x.AuthorUserId == dbUser.Id)
@@ -1740,6 +1744,10 @@ public class UserService
 
             await tran.CommitAsync();
             InvalidateAccessFlags(dbUser.Id);
+
+            // Automod triggers and actions tied to the user's memberships were deleted
+            if (planetMemberIds.Count > 0)
+                AutomodService.InvalidateAllRulesCaches();
 
             // Evict after commit to avoid re-cache race
             foreach (var tokenId in revokedTokenIds)

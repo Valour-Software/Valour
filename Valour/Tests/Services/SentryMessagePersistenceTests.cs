@@ -48,4 +48,65 @@ public class SentryMessagePersistenceTests(LoginTestFixture fixture)
             await db.Messages.IgnoreQueryFilters().Where(x => x.Id == valid.Id || x.Id == invalid.Id).ExecuteDeleteAsync();
         }
     }
+
+    [Fact]
+    public async Task MessageWithDeletedAuthorMembership_IsDiscardedInsteadOfRetried()
+    {
+        using var scope = fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        var channelId = await GetCentralChatChannelIdAsync(db);
+
+        // The membership was hard-deleted after the message was accepted
+        var orphan = new Valour.Database.Message
+        {
+            Id = IdManager.Generate(), ChannelId = channelId, PlanetId = ISharedPlanet.ValourCentralId,
+            AuthorUserId = fixture.Client.Me.Id, AuthorMemberId = long.MinValue,
+            Content = "Author left", TimeSent = DateTime.UtcNow
+        };
+        var discarded = new HashSet<long>();
+        try
+        {
+            var saved = await PlanetMessageWorker.PersistMessagesAsync(db, [orphan], NullLogger.Instance, discarded);
+            Assert.Empty(saved);
+            Assert.Equal(orphan.Id, Assert.Single(discarded));
+            Assert.False(await db.Messages.AnyAsync(x => x.Id == orphan.Id));
+        }
+        finally
+        {
+            await db.Messages.IgnoreQueryFilters().Where(x => x.Id == orphan.Id).ExecuteDeleteAsync();
+        }
+    }
+
+    [Fact]
+    public async Task MessageReplyingToDeletedMessage_IsSavedWithoutReply()
+    {
+        using var scope = fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        var channelId = await GetCentralChatChannelIdAsync(db);
+
+        var reply = new Valour.Database.Message
+        {
+            Id = IdManager.Generate(), ChannelId = channelId, PlanetId = ISharedPlanet.ValourCentralId,
+            AuthorUserId = fixture.Client.Me.Id, ReplyToId = long.MinValue,
+            Content = "Reply to a deleted message", TimeSent = DateTime.UtcNow
+        };
+        var discarded = new HashSet<long>();
+        try
+        {
+            var saved = await PlanetMessageWorker.PersistMessagesAsync(db, [reply], NullLogger.Instance, discarded);
+            Assert.Equal(reply.Id, Assert.Single(saved));
+            Assert.Empty(discarded);
+
+            var stored = await db.Messages.AsNoTracking().FirstAsync(x => x.Id == reply.Id);
+            Assert.Null(stored.ReplyToId);
+        }
+        finally
+        {
+            await db.Messages.IgnoreQueryFilters().Where(x => x.Id == reply.Id).ExecuteDeleteAsync();
+        }
+    }
+
+    private static Task<long> GetCentralChatChannelIdAsync(ValourDb db) =>
+        db.Channels.Where(x => x.PlanetId == ISharedPlanet.ValourCentralId &&
+                x.IsDefault && x.ChannelType == ChannelTypeEnum.PlanetChat).Select(x => x.Id).FirstAsync();
 }

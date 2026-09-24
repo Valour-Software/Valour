@@ -20,6 +20,25 @@ public class DiscordImportServiceTests
     private const long Connect = 1L << 20;
     private const long Speak = 1L << 21;
 
+    [Theory]
+    [InlineData("general", "general")]
+    [InlineData("  spaced  ", "spaced")]
+    [InlineData("", "channel")]
+    [InlineData("   ", "channel")]
+    [InlineData(null, "channel")]
+    public void ToChannelName_TrimsAndFallsBack(string? input, string expected)
+    {
+        Assert.Equal(expected, DiscordImportService.ToChannelName(input, "channel"));
+    }
+
+    [Fact]
+    public void ToChannelName_CutsDiscordLengthNamesToChannelLimit()
+    {
+        // Discord allows 100 characters; Valour channel names are limited to 32
+        var name = DiscordImportService.ToChannelName(new string('a', 100), "channel");
+        Assert.Equal(32, name.Length);
+    }
+
     [Fact]
     public void MapRolePermissions_AdministratorSetsAdminFlag()
     {

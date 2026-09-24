@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Valour.Config.Configs;
 using Valour.Server.Database;
+using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -542,6 +543,8 @@ public class PlanetSnapshotService
             await _db.SaveChangesAsync();
             await tran.CommitAsync();
 
+            AutomodService.InvalidateRulesCache(snapshot.Planet.Id);
+
             return TaskResult.SuccessResult;
         }
         catch (Exception e)
@@ -793,6 +796,9 @@ public class PlanetSnapshotService
     /// </summary>
     public async Task<TaskResult> DeletePlanetDataAsync(long planetId)
     {
+        // Messages still waiting to be flushed would reference the deleted planet data
+        PlanetMessageWorker.RemoveMessages(x => x.PlanetId == planetId);
+
         await using var tran = await _db.Database.BeginTransactionAsync();
         try
         {
@@ -844,6 +850,7 @@ public class PlanetSnapshotService
             await _db.Planets.IgnoreQueryFilters().Where(x => x.Id == planetId).ExecuteDeleteAsync();
 
             await tran.CommitAsync();
+            AutomodService.InvalidateRulesCache(planetId);
             return TaskResult.SuccessResult;
         }
         catch (Exception e)

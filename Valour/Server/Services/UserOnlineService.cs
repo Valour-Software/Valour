@@ -11,6 +11,13 @@ public class UserOnlineService
     // costs one insert per user per day per node
     private static readonly ConcurrentDictionary<long, DateOnly> ActivityDayCache = new();
 
+    // Peers derive online state from TimeLastActive (online for 3 minutes, see
+    // ISharedUser.GetUserState). Clients ping every 60 seconds, so refreshing
+    // peers every other ping keeps their copy current while halving the
+    // planet-wide presence traffic. State changes are always sent immediately.
+    private static readonly ConcurrentDictionary<long, (DateTime SentAt, bool IsMobile)> PresenceBroadcastCache = new();
+    private static readonly TimeSpan PresenceRefreshInterval = TimeSpan.FromSeconds(90);
+
     private const int BatchSize = 256;
     private static readonly TimeSpan PlanetConnectionRefreshInterval = TimeSpan.FromMinutes(5);
 
@@ -99,10 +106,19 @@ public class UserOnlineService
             {
                 await _db.SaveChangesAsync(cancellationToken);
 
+                var broadcastUsers = new List<User>();
                 foreach (var user in changedUsers)
                 {
-                    await _hubService.NotifyUserChange(user.ToBroadcastModel());
+                    if (PresenceBroadcastCache.TryGetValue(user.Id, out var last) &&
+                        last.IsMobile == user.IsMobile &&
+                        now - last.SentAt < PresenceRefreshInterval)
+                        continue;
+
+                    PresenceBroadcastCache[user.Id] = (now, user.IsMobile);
+                    broadcastUsers.Add(user.ToBroadcastModel());
                 }
+
+                await _hubService.NotifyUserChanges(broadcastUsers, cancellationToken);
             }
 
             await RecordActivityDaysAsync(dueIds, cancellationToken);

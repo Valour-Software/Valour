@@ -96,10 +96,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Maui.Controls" Version="11.0.0-preview.3.26203.7" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="11.0.0-preview.3.26203.7" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="11.0.0-preview.3.26207.106" />
-        <PackageReference Include="Microsoft.Maui.Core" Version="11.0.0-preview.3.26203.7" />
+        <PackageReference Include="Microsoft.Maui.Controls" Version="11.0.0-rc.1.26451.6" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="11.0.0-rc.1.26451.6" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="11.0.0-rc.1.26425.128" />
+        <PackageReference Include="Microsoft.Maui.Core" Version="11.0.0-rc.1.26451.6" />
         <PackageReference Include="Sentry.Maui" Version="6.1.0" />
     </ItemGroup>
 
@@ -113,7 +113,7 @@
         <PackageReference Include="Plugin.Firebase.CloudMessaging" Version="3.1.1" />
         <PackageReference Include="Xamarin.GooglePlayServices.Base" Version="118.9.0" />
         <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.9.0" />
-        <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.10.0.2" />
+        <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.11.0.1" />
         <GoogleServicesJson Include="Platforms\Android\google-services.json" Condition="Exists('Platforms\Android\google-services.json')" />
 
         <!--

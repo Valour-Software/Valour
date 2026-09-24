@@ -36,12 +36,32 @@ public class NotificationService
         lock (_unreadLock) return _unreadNotifications.ToList();
     }
 
+    /// <summary>
+    /// The number of unread notifications, read without copying the list.
+    /// </summary>
+    public int UnreadCount
+    {
+        get
+        {
+            lock (_unreadLock) return _unreadNotifications.Count;
+        }
+    }
+
     public IReadOnlyDictionary<long, Notification> UnreadNotificationsLookupBySource
     {
         get
         {
             lock (_unreadLock) return new Dictionary<long, Notification>(_unreadNotificationsLookupBySource);
         }
+    }
+
+    /// <summary>
+    /// Looks up the unread notification for a source (such as a message)
+    /// without copying the source lookup.
+    /// </summary>
+    public bool TryGetUnreadBySource(long sourceId, out Notification? notification)
+    {
+        lock (_unreadLock) return _unreadNotificationsLookupBySource.TryGetValue(sourceId, out notification);
     }
 
     public NotificationService(ValourClient client) => _client = client;
@@ -88,16 +108,37 @@ public class NotificationService
     // purpose: the red badge is reserved for direct relevance (mentions,
     // replies). Activity entries live in the inbox and the unread dot only.
 
+    // These counts run per sidebar row during rendering, so they iterate
+    // under the lock instead of copying the unread list for each call.
+
     public int GetPlanetNotifications(long planetId)
     {
-        return UnreadNotifications.Count(x => x.PlanetId == planetId
-                                              && x.Source != NotificationSource.ChannelActivity);
+        lock (_unreadLock)
+        {
+            var count = 0;
+            foreach (var notification in _unreadNotifications)
+            {
+                if (notification.PlanetId == planetId &&
+                    notification.Source != NotificationSource.ChannelActivity)
+                    count++;
+            }
+            return count;
+        }
     }
 
     public int GetChannelNotifications(long channelId)
     {
-        return UnreadNotifications.Count(x => x.ChannelId == channelId
-                                              && x.Source != NotificationSource.ChannelActivity);
+        lock (_unreadLock)
+        {
+            var count = 0;
+            foreach (var notification in _unreadNotifications)
+            {
+                if (notification.ChannelId == channelId &&
+                    notification.Source != NotificationSource.ChannelActivity)
+                    count++;
+            }
+            return count;
+        }
     }
 
     public void OnNotificationReceived(Notification notification)

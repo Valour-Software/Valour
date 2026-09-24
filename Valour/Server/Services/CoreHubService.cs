@@ -22,6 +22,8 @@ public class CoreHubService
     private static readonly ConcurrentDictionary<long, long> ChannelViewUpdateTimes = new();
     private static readonly TimeSpan ChannelViewUpdateCooldown = TimeSpan.FromSeconds(2);
     private static readonly SemaphoreSlim ChannelViewUpdateSemaphore = new(4, 4);
+    private static readonly ConcurrentDictionary<long, (long[] UserIds, long SentTicks)> LastChannelWatchingBroadcast = new();
+    private static readonly TimeSpan ChannelWatchingRefreshInterval = TimeSpan.FromSeconds(30);
     
     private readonly IHubContext<CoreHub> _hub;
     private readonly ValourDb _db;
@@ -734,6 +736,39 @@ public class CoreHubService
         }
     }
 
+    /// <summary>
+    /// Sends several user updates to their recently connected planets, finding
+    /// the planets for every user with one query.
+    /// </summary>
+    public async Task NotifyUserChanges(IReadOnlyCollection<User> users, CancellationToken cancellationToken = default)
+    {
+        if (users.Count == 0)
+            return;
+
+        var usersById = new Dictionary<long, User>(users.Count);
+        foreach (var user in users)
+        {
+            _userCache.Set(user);
+            usersById[user.Id] = user;
+        }
+
+        var cutoff = DateTime.UtcNow - PlanetMemberService.OneDayConnectionWindow;
+        var userIds = usersById.Keys.ToArray();
+
+        var memberships = await _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => userIds.Contains(x.UserId) &&
+                        x.TimeLastConnected > cutoff)
+            .Select(x => new { x.UserId, x.PlanetId })
+            .ToListAsync(cancellationToken);
+
+        foreach (var membership in memberships)
+        {
+            await _nodeLifecycleService.RelayPlanetUserEventAsync(
+                membership.PlanetId, NodeLifecycleService.NodeEventType.PlanetUserUpdate, usersById[membership.UserId]);
+        }
+    }
+
     public async Task NotifyUserDelete(User user)
     {
         _userCache.Remove(user.Id);
@@ -764,24 +799,57 @@ public class CoreHubService
     
     public async Task UpdateChannelsWatching()
     {
+        var channels = new List<(string GroupId, long ChannelId, long PlanetId)>();
+
         foreach (var groupId in _connectionTracker.GetAllGroups())
         {
             if (!TryGetChannelGroupId(groupId, out var channelId))
                 continue;
-            
+
             var planetId = await GetPlanetIdForChannel(channelId);
-            
+
             if (!planetId.HasValue)
                 continue;
 
-            var activeUserIds = await _channelWatchingService.GetActiveViewingUserIdsAsync(channelId);
-                
+            channels.Add((groupId, channelId, planetId.Value));
+        }
+
+        // Issue the Redis reads together so the multiplexer pipelines them instead
+        // of paying one round trip per channel group on this node
+        var viewerSets = await Task.WhenAll(
+            channels.Select(x => _channelWatchingService.GetActiveViewingUserIdsAsync(x.ChannelId)));
+
+        var nowTicks = DateTime.UtcNow.Ticks;
+        var activeChannelIds = new HashSet<long>(channels.Count);
+
+        for (var i = 0; i < channels.Count; i++)
+        {
+            var (groupId, channelId, planetId) = channels[i];
+            activeChannelIds.Add(channelId);
+
+            var userIds = viewerSets[i].Order().ToArray();
+
+            // Send when the viewer set changes, and periodically otherwise so that
+            // connections that joined the group since the last change receive it
+            if (LastChannelWatchingBroadcast.TryGetValue(channelId, out var last) &&
+                nowTicks - last.SentTicks < ChannelWatchingRefreshInterval.Ticks &&
+                last.UserIds.AsSpan().SequenceEqual(userIds))
+                continue;
+
+            LastChannelWatchingBroadcast[channelId] = (userIds, nowTicks);
+
             _ = _hub.Clients.Group(groupId).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate
             {
                 PlanetId = planetId,
                 ChannelId = channelId,
-                UserIds = activeUserIds.OrderBy(x => x).ToList()
+                UserIds = userIds.ToList()
             });
+        }
+
+        foreach (var channelId in LastChannelWatchingBroadcast.Keys)
+        {
+            if (!activeChannelIds.Contains(channelId))
+                LastChannelWatchingBroadcast.TryRemove(channelId, out _);
         }
     }
 

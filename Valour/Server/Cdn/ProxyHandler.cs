@@ -66,11 +66,16 @@ public class ProxyHandler
         }
     }
 
+    // Each preview can take a remote fetch with a long timeout, and message
+    // sending waits for all of them, so only the first links get previews
+    private const int MaxUrlPreviewsPerMessage = 10;
+
     public async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, ValourDb db)
     {
         var urls = CdnUtils.UrlRegex.Matches(url);
 
         List<MessageAttachment> attachments = null;
+        var attempted = 0;
 
         foreach (Match match in urls)
         {
@@ -79,6 +84,9 @@ public class ProxyHandler
             // also generate a preview card here.
             if (IsBracketed(url, match))
                 continue;
+
+            if (++attempted > MaxUrlPreviewsPerMessage)
+                break;
 
             var attachment = await GetAttachmentFromUrl(match.Value, db);
             if (attachment != null)

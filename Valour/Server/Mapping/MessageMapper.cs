@@ -40,6 +40,37 @@ public static class MessageMapper
         };
     }
     
+    /// <summary>
+    /// Returns a copy of the message that is not a reply. Messages served from the chat cache
+    /// are shared by every request, so per-viewer changes must be made on a copy. The copy
+    /// shares the reaction, attachment and mention lists, which callers must not modify.
+    /// </summary>
+    public static Message WithoutReply(this Message message)
+    {
+        return new Message()
+        {
+            Id = message.Id,
+            PlanetId = message.PlanetId,
+            ReplyToId = null,
+            AuthorUserId = message.AuthorUserId,
+            AuthorMemberId = message.AuthorMemberId,
+            Content = message.Content,
+            TimeSent = message.TimeSent,
+            ChannelId = message.ChannelId,
+            Fingerprint = message.Fingerprint,
+            EditedTime = message.EditedTime,
+            ImportSource = message.ImportSource,
+            WebhookId = message.WebhookId,
+            OverrideName = message.OverrideName,
+            WebhookAvatarAssetId = message.WebhookAvatarAssetId,
+            WebhookAvatarAnimated = message.WebhookAvatarAnimated,
+            ReplyTo = null,
+            Reactions = message.Reactions,
+            Attachments = message.Attachments,
+            Mentions = message.Mentions,
+        };
+    }
+
     public static Valour.Database.Message ToDatabase(this Message message)
     {
         if (message is null)

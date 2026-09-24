@@ -41,6 +41,7 @@ public class AuthService : ServiceBase
 
     private static readonly TimeSpan FederationJwksRefreshAge = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan MaximumOfflineFederationJwksAge = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan FederationPassportPrefetchDelay = TimeSpan.FromSeconds(10);
 
     private static readonly LogOptions LogOptions = new(
         "AuthService",
@@ -614,20 +615,35 @@ public class AuthService : ServiceBase
 
         _client.Me = response.Data.Sync(_client);
 
-        // Best-effort prefetch while the hub is available. This leaves a
-        // recently logged-in client ready to redeem a recipient-bound invite
-        // if the hub goes down before it reaches the community node.
-        _ = PrefetchFederationPassportAsync();
-        
         LoggedIn?.Invoke(_client.Me);
 
         return new TaskResult(true, "Success");
     }
 
-    private async Task PrefetchFederationPassportAsync()
+    /// <summary>
+    /// Requests a federation passport in the background once startup has
+    /// finished, while the hub is available. This leaves a logged-in client
+    /// ready to redeem a recipient-bound invite if the hub goes down before it
+    /// reaches the community node. Redeeming an invite still requests a
+    /// passport on demand when none is cached.
+    /// </summary>
+    internal void ScheduleFederationPassportPrefetch()
+    {
+        _ = PrefetchFederationPassportAsync(_token);
+    }
+
+    private async Task PrefetchFederationPassportAsync(string token)
     {
         try
         {
+            // Key generation and the passport requests share the browser's
+            // single thread with rendering, so let the first screens settle.
+            await Task.Delay(FederationPassportPrefetchDelay);
+
+            // The session changed during the delay.
+            if (string.IsNullOrWhiteSpace(token) || token != _token)
+                return;
+
             var result = await GetFederationPassportAsync();
             if (!result.Success)
                 LogWarning($"Federation passport prefetch failed: {result.Message}");

@@ -28,8 +28,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="10.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="11.0.0-rc.1.26425.128" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="11.0.0-rc.1.26425.128" />
   </ItemGroup>
 
   <ItemGroup>

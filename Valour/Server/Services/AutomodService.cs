@@ -199,7 +199,7 @@ public class AutomodService
         }
 
         // Invalidate cache
-        _triggerCache.TryRemove(trigger.PlanetId, out _);
+        InvalidateRulesCache(trigger.PlanetId);
 
         _coreHub.NotifyPlanetItemChange(trigger);
         return new(true, "Success", trigger);
@@ -233,8 +233,7 @@ public class AutomodService
         }
 
         // Invalidate cache
-        _triggerCache.TryRemove(trigger.PlanetId, out _);
-        _actionCache.TryRemove(trigger.Id, out _);
+        InvalidateRulesCache(trigger.PlanetId);
 
         _coreHub.NotifyPlanetItemChange(trigger);
         foreach (var action in actions)
@@ -267,7 +266,7 @@ public class AutomodService
         }
 
         // Invalidate cache
-        _triggerCache.TryRemove(trigger.PlanetId, out _);
+        InvalidateRulesCache(trigger.PlanetId);
 
         _coreHub.NotifyPlanetItemChange(trigger);
         return new(true, "Success", trigger);
@@ -301,8 +300,7 @@ public class AutomodService
         }
 
         // Invalidate cache
-        _triggerCache.TryRemove(trigger.PlanetId, out _);
-        _actionCache.TryRemove(trigger.Id, out _);
+        InvalidateRulesCache(trigger.PlanetId);
 
         _coreHub.NotifyPlanetItemDelete(trigger);
         return new(true, "Success");
@@ -331,7 +329,7 @@ public class AutomodService
         }
 
         // Invalidate cache
-        _actionCache.TryRemove(action.TriggerId, out _);
+        InvalidateRulesCache(action.PlanetId);
 
         _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
         return new(true, "Success", action);
@@ -364,7 +362,7 @@ public class AutomodService
         }
 
         // Invalidate cache
-        _actionCache.TryRemove(action.TriggerId, out _);
+        InvalidateRulesCache(action.PlanetId);
 
         _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
         return new(true, "Success", action);
@@ -388,37 +386,109 @@ public class AutomodService
         }
 
         // Invalidate cache
-        _actionCache.TryRemove(action.TriggerId, out _);
+        InvalidateRulesCache(action.PlanetId);
 
         _coreHub.NotifyPlanetItemDelete(action.PlanetId, action);
         return new(true, "Success");
     }
 
-    private readonly ConcurrentDictionary<long, List<AutomodTrigger>> _triggerCache = new();
-    private readonly ConcurrentDictionary<Guid, List<AutomodAction>> _actionCache = new();
-
-    private async Task<List<AutomodTrigger>> GetCachedTriggersAsync(long planetId)
+    /// <summary>
+    /// A planet's automod triggers and their actions, shared by every request on this node.
+    /// Callers must treat the lists and models as read-only.
+    /// </summary>
+    private sealed class PlanetRules
     {
-        if (_triggerCache.TryGetValue(planetId, out var cached))
+        public required List<AutomodTrigger> Triggers { get; init; }
+        public required Dictionary<Guid, List<AutomodAction>> ActionsByTrigger { get; init; }
+        public required long ExpiresAt { get; init; }
+    }
+
+    /// <summary>
+    /// How long cached rules are trusted. Changes made through this service invalidate the
+    /// cache immediately on the node that made them. Planet automod routes run on the planet's
+    /// hosting node, so this expiry bounds staleness only for changes made elsewhere, such as
+    /// account deletion or planet import on another node.
+    /// </summary>
+    private static readonly TimeSpan RulesCacheLifetime = TimeSpan.FromSeconds(60);
+
+    private static readonly ConcurrentDictionary<long, PlanetRules> RulesCache = new();
+
+    // Incremented on every invalidation. A load that started before an invalidation does
+    // not store its possibly stale result.
+    private static long _rulesCacheGeneration;
+
+    /// <summary>
+    /// Drops the cached automod rules for a planet on this node.
+    /// </summary>
+    public static void InvalidateRulesCache(long planetId)
+    {
+        Interlocked.Increment(ref _rulesCacheGeneration);
+        RulesCache.TryRemove(planetId, out _);
+    }
+
+    /// <summary>
+    /// Drops all cached automod rules on this node.
+    /// </summary>
+    public static void InvalidateAllRulesCaches()
+    {
+        Interlocked.Increment(ref _rulesCacheGeneration);
+        RulesCache.Clear();
+    }
+
+    private async Task<PlanetRules> GetCachedRulesAsync(long planetId)
+    {
+        var now = Environment.TickCount64;
+        if (RulesCache.TryGetValue(planetId, out var cached) && cached.ExpiresAt > now)
             return cached;
 
-        var triggers = await _db.AutomodTriggers.Where(x => x.PlanetId == planetId)
+        var generation = Interlocked.Read(ref _rulesCacheGeneration);
+
+        var triggers = await _db.AutomodTriggers.AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel()).ToListAsync();
-        _triggerCache[planetId] = triggers;
-        return triggers;
+
+        var actionsByTrigger = new Dictionary<Guid, List<AutomodAction>>();
+        if (triggers.Count > 0)
+        {
+            // Only actions from the trigger's own planet may run for it
+            var actions = await _db.AutomodActions.AsNoTracking()
+                .Where(x => x.PlanetId == planetId)
+                .Select(x => x.ToModel()).ToListAsync();
+
+            foreach (var action in actions)
+            {
+                if (!actionsByTrigger.TryGetValue(action.TriggerId, out var list))
+                {
+                    list = new List<AutomodAction>();
+                    actionsByTrigger[action.TriggerId] = list;
+                }
+
+                list.Add(action);
+            }
+        }
+
+        var rules = new PlanetRules
+        {
+            Triggers = triggers,
+            ActionsByTrigger = actionsByTrigger,
+            ExpiresAt = Environment.TickCount64 + (long)RulesCacheLifetime.TotalMilliseconds
+        };
+
+        if (Interlocked.Read(ref _rulesCacheGeneration) == generation)
+            RulesCache[planetId] = rules;
+
+        return rules;
     }
+
+    private async Task<List<AutomodTrigger>> GetCachedTriggersAsync(long planetId) =>
+        (await GetCachedRulesAsync(planetId)).Triggers;
 
     private async Task<List<AutomodAction>> GetCachedActionsAsync(AutomodTrigger trigger)
     {
-        if (_actionCache.TryGetValue(trigger.Id, out var cached))
-            return cached;
-
-        // Only actions from the trigger's own planet may run for it
-        var actions = await _db.AutomodActions
-            .Where(x => x.TriggerId == trigger.Id && x.PlanetId == trigger.PlanetId)
-            .Select(x => x.ToModel()).ToListAsync();
-        _actionCache[trigger.Id] = actions;
-        return actions;
+        var rules = await GetCachedRulesAsync(trigger.PlanetId);
+        return rules.ActionsByTrigger.TryGetValue(trigger.Id, out var actions)
+            ? actions
+            : new List<AutomodAction>();
     }
 
     private static bool IsMessageBlockAction(AutomodActionType actionType) =>

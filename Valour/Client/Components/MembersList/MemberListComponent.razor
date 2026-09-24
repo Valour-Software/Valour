@@ -147,6 +147,15 @@
     private NameComparer _comparer;
     
     private Timer _reloadTimer;
+    private const int ReloadIntervalMs = 1000 * 30;
+
+    // Set when a periodic reload was skipped while the list was hidden.
+    private bool _reloadPending;
+
+    // The chat window re-renders for every message and passes the same
+    // Channel each time. Render only for internal changes or a new channel.
+    private bool _shouldRender;
+    private Channel _lastChannel;
 
     public CancellationToken ReloadToken { get; set; }
 
@@ -159,25 +168,48 @@
 
         PlanetService.PlanetDisconnected += OnPlanetDisconnected;
         
-        // Reload every 30s
-        _reloadTimer = new Timer(Reload, null, 0, 1000 * 30);
+        // Reload every 30s. SetPlanet performs the initial build.
+        _reloadTimer = new Timer(Reload, null, ReloadIntervalMs, ReloadIntervalMs);
 
         SetPlanet(Channel.Planet);
     }
 
     protected override void OnParametersSet()
     {
+        if (!ReferenceEquals(Channel, _lastChannel))
+        {
+            _lastChannel = Channel;
+            _shouldRender = true;
+        }
+
         if (Channel?.Planet != _planet)
             SetPlanet(Channel?.Planet);
+    }
+
+    protected override bool ShouldRender() => _shouldRender;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        _shouldRender = false;
+    }
+
+    private void Refresh()
+    {
+        _shouldRender = true;
+        StateHasChanged();
     }
 
     private void Reload(object state)
     {
         InvokeAsync(() =>
         {
-            foreach (var list in _displayedRoleMembers.Values)
+            // Online state and activity can change without member events, so
+            // the visible list is rebuilt periodically. A hidden list waits
+            // until it is shown.
+            if (!_visible)
             {
-                list.Clear();
+                _reloadPending = true;
+                return;
             }
 
             if (_planet != null)
@@ -196,7 +228,7 @@
         {
             var lastRole = _lastMemberRoles[member.Id];
             _displayedRoleMembers[lastRole].Remove(member);
-            StateHasChanged();
+            Refresh();
         });
     }
 
@@ -225,7 +257,7 @@
 
                 _lastMemberRoles[member.Id] = newRole;
 
-                StateHasChanged();
+                Refresh();
             }
         });
     }
@@ -278,7 +310,7 @@
                 }
             }
 
-            StateHasChanged();
+            Refresh();
         });
     }
     
@@ -327,7 +359,7 @@
                             _displayedRoleMembers.Remove(role.Id);
                         }
 
-                        StateHasChanged();
+                        Refresh();
                     }
                     else
                     {
@@ -366,7 +398,7 @@
                     _displayedRoleMembers.Remove(role.Id);
                     _displayedRoles.Remove(role);
 
-                    StateHasChanged();
+                    Refresh();
 
                     return;
                 }
@@ -374,22 +406,30 @@
         });
     }
 
+    /// <summary>
+    /// Rebuilds every displayed list from the planet's members. Lists are
+    /// cleared first, so a member appears in at most one list.
+    /// </summary>
     private void BuildRoleLists()
     {
+        _reloadPending = false;
+
+        foreach (var list in _displayedRoleMembers.Values)
+        {
+            list.Clear();
+        }
+
         foreach (var member in _planet.Members)
         {
             var roleId = DetermineDisplayRoleId(member);
             if (roleId != -1)
             {
                 _lastMemberRoles[member.Id] = roleId;
-
-                var roleMembers = _displayedRoleMembers[roleId];
-                if (!roleMembers.Contains(member))
-                    roleMembers.Add(member);
+                _displayedRoleMembers[roleId].Add(member);
             }
         }
 
-        StateHasChanged();
+        Refresh();
     }
 
     /// <summary>
@@ -490,13 +530,17 @@
             BuildRoleLists();
         }
 
-        StateHasChanged();
+        Refresh();
     }
     
     public void ToggleVisible()
     {
         _visible = !_visible;
-        StateHasChanged();
+
+        if (_visible && _reloadPending && _planet is not null)
+            BuildRoleLists(); // Also requests a render
+        else
+            Refresh();
     }
 
     public void Dispose()

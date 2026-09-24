@@ -304,6 +304,7 @@ else
     private string _timeText = "";
 
     public bool Edit = false;
+    private bool _escapeSubscribed;
     private bool _mentioned = false;
     private bool _isBuilt = false;
     private bool _animateIn = false;
@@ -735,8 +736,8 @@ else
                 return;
             
             // Clear notification if one exists for this message
-            var found = Client.NotificationService.UnreadNotificationsLookupBySource.TryGetValue(_message.Id, out var notification);
-            if (found && notification.TimeRead is null)
+            var found = Client.NotificationService.TryGetUnreadBySource(_message.Id, out var notification);
+            if (found && notification is not null && notification.TimeRead is null)
             {
                 await Client.NotificationService.MarkNotificationRead(notification, true);
             }
@@ -780,6 +781,14 @@ else
 
         Edit = true;
 
+        // Only a message in edit mode listens for Escape. Draft reply and
+        // attachment removal is handled once by the InputComponent.
+        if (!_escapeSubscribed)
+        {
+            KeyboardListener.KeyDown += OnKeyDown;
+            _escapeSubscribed = true;
+        }
+
         CalculateClassAndStyles();
 
         await ReRender();
@@ -793,6 +802,12 @@ else
             return;
 
         Edit = false;
+
+        if (_escapeSubscribed)
+        {
+            KeyboardListener.KeyDown -= OnKeyDown;
+            _escapeSubscribed = false;
+        }
 
         CalculateClassAndStyles();
 
@@ -868,8 +883,6 @@ else
         _isInnerReply = ParamData.IsInnerReply;
         _chat = ParamData.ChatComponent;
         _animateIn = ParamData.AnimateIn && !_isInnerReply;
-        
-        KeyboardListener.KeyDown += OnKeyDown;
         
         if (_message is null)
         {
@@ -1044,18 +1057,6 @@ else
         {
             await CloseEditMode(true);
         }
- 
-        if (_isInnerReply)
-        {
-            var input = _chat.InputComponent;
-            await input.RemoveReply(); 
-        }
-        
-        if (_ghost)
-        {
-            var input = _chat.InputComponent;
-            input.RemoveAttachment(-1);
-        }
     }
 
     public void OnUserUpdated(ModelUpdatedEvent<User> eventData)
@@ -1195,6 +1196,7 @@ else
         }
 
         KeyboardListener.KeyDown -= OnKeyDown;
+        _escapeSubscribed = false;
     }
 
     /// <summary>
