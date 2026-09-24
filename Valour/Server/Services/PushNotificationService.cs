@@ -49,23 +49,50 @@ public class PushNotificationService
         _logger.LogInformation("Cleared {Count} expired subscriptions", expiredSubs);
     }
     
-    public async Task SubscribeAsync(PushNotificationSubscription subscription)
+    /// <summary>
+    /// Stores or renews a subscription for its user. Returns false when the
+    /// subscription is invalid or its endpoint belongs to another account that
+    /// the caller cannot show it shares a device subscription with.
+    /// </summary>
+    public async Task<bool> SubscribeAsync(PushNotificationSubscription subscription)
     {
-        // Check if subscription already exists in db
-        var existingUserSub = 
-            await _db.PushNotificationSubscriptions.FirstOrDefaultAsync(x => 
-                x.Endpoint == subscription.Endpoint);
+        var validationError = PushSubscriptionPolicy.Validate(subscription);
+        if (validationError is not null)
+        {
+            _logger.LogWarning("Rejected push subscription for user {UserId}: {Reason}", subscription?.UserId, validationError);
+            return false;
+        }
+
+        var existingSubs = await _db.PushNotificationSubscriptions
+            .Where(x => x.Endpoint == subscription.Endpoint)
+            .ToListAsync();
+
+        var existingUserSub = existingSubs.FirstOrDefault(x => x.UserId == subscription.UserId);
+        var otherUserSubs = existingSubs.Where(x => x.UserId != subscription.UserId).ToList();
+
+        if (otherUserSubs.Count > 0)
+        {
+            // Only the device that holds the subscription can move it to the
+            // account now signed in there. Knowing an endpoint alone must not
+            // let one user take over another user's notifications.
+            if (!otherUserSubs.All(x => PushSubscriptionPolicy.IsSameDeviceSubscription(x, subscription)))
+            {
+                _logger.LogWarning(
+                    "Rejected push subscription for user {UserId}: endpoint is registered to another account",
+                    subscription.UserId);
+                return false;
+            }
+
+            _db.PushNotificationSubscriptions.RemoveRange(otherUserSubs);
+        }
 
         if (existingUserSub is not null)
         {
             // Update existing subscription
-            existingUserSub.UserId = subscription.UserId;
             existingUserSub.DeviceType = subscription.DeviceType;
             existingUserSub.Auth = subscription.Auth;
             existingUserSub.Key = subscription.Key;
             existingUserSub.ExpiresAt = DateTime.UtcNow.Add(SubscriptionLifetime);
-            
-            _db.PushNotificationSubscriptions.Update(existingUserSub);
         }
         else
         {
@@ -73,12 +100,31 @@ public class PushNotificationService
             newUserSub.Id = IdManager.Generate();
             // Set explicitly rather than relying on the database default (which is only 7 days)
             newUserSub.ExpiresAt = DateTime.UtcNow.Add(SubscriptionLifetime);
-            
+
             // Add new subscription
             await _db.PushNotificationSubscriptions.AddAsync(newUserSub);
         }
-        
+
         await _db.SaveChangesAsync();
+
+        // Keep the most recently renewed subscriptions and drop the rest.
+        var overflowIds = await _db.PushNotificationSubscriptions
+            .AsNoTracking()
+            .Where(x => x.UserId == subscription.UserId)
+            .OrderByDescending(x => x.ExpiresAt)
+            .ThenByDescending(x => x.Id)
+            .Skip(PushSubscriptionPolicy.MaxSubscriptionsPerUser)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        if (overflowIds.Count > 0)
+        {
+            await _db.PushNotificationSubscriptions
+                .Where(x => overflowIds.Contains(x.Id))
+                .ExecuteDeleteAsync();
+        }
+
+        return true;
     }
 
     public async Task<bool> IsSubscribedAsync(long userId, string endpoint, NotificationDeviceType deviceType)
@@ -95,10 +141,19 @@ public class PushNotificationService
                 x.ExpiresAt > DateTime.UtcNow);
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Task UnsubscribeAsync(ISharedPushNotificationSubscription subscription)
-        => UnsubscribeAsync(subscription.Endpoint);
-    
+    /// <summary>
+    /// Removes a user's own registration for an endpoint. Registrations held
+    /// by other accounts are left alone.
+    /// </summary>
+    public async Task UnsubscribeAsync(ISharedPushNotificationSubscription subscription)
+    {
+        var deleted = await _db.PushNotificationSubscriptions
+            .Where(x => x.Endpoint == subscription.Endpoint && x.UserId == subscription.UserId)
+            .ExecuteDeleteAsync();
+
+        _logger.LogInformation("Deleted {Count} subscriptions for user {UserId}", deleted, subscription.UserId);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task UnsubscribeAsync(string endpoint)
     {
@@ -258,8 +313,17 @@ public class PushNotificationService
     )
     {
         var unsubscribes = new ConcurrentBag<string>();
-        
-        await Parallel.ForEachAsync(subs, async (sub, cancellationToken) =>
+
+        // Rows stored before endpoint validation existed may point anywhere,
+        // so every endpoint is checked again before the server contacts it.
+        var deliverable = subs.Where(x => PushSubscriptionPolicy.Validate(x) is null).ToArray();
+        if (deliverable.Length != subs.Length)
+        {
+            _logger.LogWarning("Skipped {Count} push subscriptions with unsupported endpoints",
+                subs.Length - deliverable.Length);
+        }
+
+        await Parallel.ForEachAsync(deliverable, async (sub, cancellationToken) =>
         {
             await SendNotificationAsync(sub, payload, unsubscribes, cancellationToken);
         });

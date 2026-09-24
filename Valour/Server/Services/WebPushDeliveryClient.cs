@@ -14,6 +14,18 @@ public sealed class WebPushDeliveryClient : IDisposable
     private readonly Lazy<VapidAuthentication> _authentication;
     private readonly object _authenticationLock = new();
 
+    /// <summary>
+    /// Primary handler for the named Web Push client. Endpoints come from
+    /// clients, so connections are pinned to validated public addresses and
+    /// redirects are not followed.
+    /// </summary>
+    public static SocketsHttpHandler CreatePrimaryHandler()
+    {
+        var handler = Valour.Server.Cdn.SsrfSafeConnect.CreateHandler(allowPrivate: false);
+        handler.PooledConnectionLifetime = TimeSpan.FromMinutes(5);
+        return handler;
+    }
+
     public WebPushDeliveryClient(IHttpClientFactory factory)
         : this(factory.CreateClient(HttpClientName), NotificationsConfig.Current) { }
 

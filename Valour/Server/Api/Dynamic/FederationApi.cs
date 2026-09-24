@@ -93,6 +93,25 @@ public class FederationApi
         return ValourResult.Ok("Node reinstated.");
     }
 
+    /// <summary>
+    /// Staff: delete a node registration that hosts no planets, freeing its
+    /// domain for registration (for example to resolve a disputed domain).
+    /// </summary>
+    [ValourRoute(HttpVerbs.Delete, "api/federation/nodes/{domain}")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [StaffRequired]
+    public static async Task<IResult> DeleteNodeRoute(string domain, FederationHubService hubService)
+    {
+        if (!FederationHubService.HubEnabled)
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
+
+        var result = await hubService.DeleteNodeAsync(domain);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok("Node registration deleted.");
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/federation/nodes/{domain}")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> GetNodeRoute(

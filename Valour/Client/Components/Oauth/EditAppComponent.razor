@@ -7,7 +7,7 @@
 <BasicModalLayout Title="Edit OAuth App" Icon="gear-fill" MaxWidth="500px">
     <MainArea>
         <div class="app-header">
-            <img alt="App Icon" src="@Data.App.ImageUrl" onclick="document.getElementById('upload-core').click()" class="app-icon" />
+            <img alt="App Icon" src="@Data.App.ImageUrl" data-click-target="upload-core" class="app-icon" />
             <div class="app-info">
                 <h4 class="app-name">@Data.App.Name</h4>
                 <p class="app-stats">Used @Data.App.Uses time@(Data.App.Uses == 1 ? "" : "s") • ID: @Data.App.Id</p>

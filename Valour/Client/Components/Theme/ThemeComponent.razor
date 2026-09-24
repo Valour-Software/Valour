@@ -174,15 +174,9 @@
         {
             var css = CurrentTheme.CustomCss;
 
-            // Defense-in-depth: block dangerous patterns on client too
-            if (css.Contains('[') || css.Contains(']'))
-                return string.Empty;
-
-            var cssLower = css.ToLowerInvariant();
-            if (cssLower.Contains("url(") || cssLower.Contains("@import") ||
-                cssLower.Contains("@font-face") || cssLower.Contains("javascript:") ||
-                cssLower.Contains("expression(") || cssLower.Contains("behavior:") ||
-                cssLower.Contains("-moz-binding") || cssLower.Contains("</style"))
+            // Defense-in-depth: apply the server's rules on the client too, since
+            // themes saved before a rule existed may still be stored or cached.
+            if (!ThemeCustomCss.IsSafe(css))
                 return string.Empty;
 
             return css; // Return original CSS, preserving comments/formatting

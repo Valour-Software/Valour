@@ -67,6 +67,16 @@ public class ChannelFavoriteServiceTests : IClassFixture<LoginTestFixture>, IAsy
     }
 
     [Fact]
+    public async Task Create_AcceptsChannelsOnPlanetsThisNodeDoesNotHost()
+    {
+        // Planets on community nodes are not in the local database, so their
+        // favorites cannot be checked here and are bounded by the per-user cap.
+        var result = await _favorites.CreateAsync(_client.Me.Id, long.MaxValue - 2, long.MaxValue - 3);
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(long.MaxValue - 3, result.Data.PlanetId);
+    }
+
+    [Fact]
     public async Task Create_RejectsCategories()
     {
         var category = await _db.Channels.AsNoTracking()

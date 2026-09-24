@@ -113,6 +113,11 @@ public class CdnBucketService
         ValourDb db,
         MediaSafetyHashMatchResult safetyHashMatch = null)
     {
+        // The name and type are served back to browsers later, so an empty
+        // name or a malformed type is replaced before it is stored.
+        fileName = CdnServePolicy.NormalizeFileName(fileName);
+        mime = CdnServePolicy.NormalizeMimeType(mime) ?? CdnServePolicy.OpaqueContentType;
+
         // Get hash from image
         var hashBytes = SHA256.HashData(data.GetBuffer().AsSpan(0, (int)data.Length));
         var sha256Hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();

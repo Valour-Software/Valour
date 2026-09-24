@@ -10,6 +10,11 @@ namespace Valour.Server.Services;
 public class GifFavoriteService
 {
     private const string KlipyProvider = "klipy";
+
+    /// <summary>
+    /// Favorites are a personal shortlist, so each user keeps a bounded number.
+    /// </summary>
+    public const int MaxFavoritesPerUser = 500;
     private static readonly Regex ProviderIdRegex = new("^[A-Za-z0-9-]{1,160}$", RegexOptions.Compiled);
     private readonly ValourDb _db;
     private readonly ILogger<GifFavoriteService> _logger;
@@ -35,6 +40,10 @@ public class GifFavoriteService
         var validation = Validate(favorite);
         if (!validation.Success)
             return TaskResult<GifFavorite>.FromFailure(validation);
+
+        if (await _db.GifFavorites.CountAsync(x => x.UserId == favorite.UserId) >= MaxFavoritesPerUser)
+            return TaskResult<GifFavorite>.FromFailure(
+                $"You can keep up to {MaxFavoritesPerUser} favorite GIFs. Remove one to add another.");
 
         favorite.Id = IdManager.Generate();
         favorite.Provider = KlipyProvider;

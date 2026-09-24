@@ -61,6 +61,29 @@ public class PlanetRoleService
             .OrderBy(x => x.FlagBitIndex)
             .ToListAsync();
 
+        // Below, we find the first free space in the role indices. There may be a gap due to
+        // a deletion, in which case we want to use that space first.
+        
+        var indiceArr = new int[256];
+        foreach (var r in roles)
+        {
+            indiceArr[r.FlagBitIndex] = 1;
+        }
+        
+        // Walk array and look for first 0. The server owns the index; any client value is discarded.
+        role.FlagBitIndex = -1;
+        for (int i = 0; i < indiceArr.Length; i++)
+        {
+            if (indiceArr[i] == 0)
+            {
+                role.FlagBitIndex = i;
+                break;
+            }
+        }
+
+        if (role.FlagBitIndex < 0)
+            return new TaskResult<PlanetRole>(false, "This planet has reached the maximum number of roles.");
+
         // Get the default role and calculate new role position based on max existing position
         // (not count, since positions can be reordered)
         var defaultRole = roles.FirstOrDefault(x => x.IsDefault);
@@ -76,25 +99,6 @@ public class PlanetRoleService
             _db.PlanetRoles.Update(defaultRole);
         }
 
-        // Below, we find the first free space in the role indices. There may be a gap due to
-        // a deletion, in which case we want to use that space first.
-        
-        var indiceArr = new int[256];
-        foreach (var r in roles)
-        {
-            indiceArr[r.FlagBitIndex] = 1;
-        }
-        
-        // Walk array and look for first 0
-        for (int i = 0; i < indiceArr.Length; i++)
-        {
-            if (indiceArr[i] == 0)
-            {
-                role.FlagBitIndex = i;
-                break;
-            }
-        }
-        
         // Track if we need to update the default role
         var defaultRoleUpdated = defaultRole != null && defaultRole.Position == role.Position + 1;
 
@@ -140,7 +144,10 @@ public class PlanetRoleService
 
         if (updatedRole.IsDefault != oldRole.IsDefault)
             return new TaskResult<PlanetRole>(false, "Cannot change default status of role.");
-        
+
+        if (updatedRole.FlagBitIndex != oldRole.FlagBitIndex)
+            return new TaskResult<PlanetRole>(false, "Cannot change the flag bit index of a role.");
+
         if (string.IsNullOrWhiteSpace(updatedRole.Color))
             updatedRole.Color = "#ffffff";
         

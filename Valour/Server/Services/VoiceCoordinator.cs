@@ -54,22 +54,62 @@ public class VoiceCoordinator : IVoiceProvider
 
     // ================= Routing =================
 
+    public Task<TaskResult<RealtimeKitVoiceTokenResponse>> CreateParticipantTokenAsync(
+        Channel channel,
+        long userId,
+        string displayName,
+        string? sessionId,
+        TimeSpan? tokenLifetime = null) =>
+        CreateParticipantTokenAsync(channel, userId, displayName, sessionId, tokenLifetime, canPublish: true);
+
+    /// <summary>
+    /// Issues a join token, optionally without publish rights. LiveKit enforces
+    /// <paramref name="canPublish"/> in the token itself. RealtimeKit has no
+    /// equivalent here, so on that backend a server mute stays client-enforced.
+    /// </summary>
     public async Task<TaskResult<RealtimeKitVoiceTokenResponse>> CreateParticipantTokenAsync(
         Channel channel,
         long userId,
         string displayName,
         string? sessionId,
-        TimeSpan? tokenLifetime = null)
+        TimeSpan? tokenLifetime,
+        bool canPublish)
     {
         var creds = await ResolveAsync(channel.Id, channel.PlanetId);
         if (creds is null)
+        {
+            if (_instance is LiveKitService instanceLiveKit)
+                return await instanceLiveKit.CreateParticipantTokenAsync(
+                    channel, userId, displayName, sessionId, tokenLifetime, canPublish);
+
             return await _instance.CreateParticipantTokenAsync(
                 channel, userId, displayName, sessionId, tokenLifetime);
+        }
 
         var response = _liveKit.CreateParticipantTokenWithCredentials(
-            creds.Value, channel.Id, userId, displayName, sessionId, tokenLifetime);
+            creds.Value, channel.Id, userId, displayName, sessionId, tokenLifetime, canPublish);
 
         return TaskResult<RealtimeKitVoiceTokenResponse>.FromData(response);
+    }
+
+    /// <summary>
+    /// Grants or revokes publishing for a user already connected to a channel.
+    /// Returns false when the channel's backend cannot enforce it (RealtimeKit)
+    /// or the update failed.
+    /// </summary>
+    public async Task<bool> SetParticipantCanPublishAsync(long channelId, long userId, bool canPublish)
+    {
+        var creds = await ResolveAsync(channelId);
+        if (creds is not null)
+            return await _liveKit.SetUserCanPublishWithCredentialsAsync(creds.Value, channelId, userId, canPublish);
+
+        if (_instance is LiveKitService)
+        {
+            return await _liveKit.SetUserCanPublishWithCredentialsAsync(
+                LiveKitService.InstanceCredentials, channelId, userId, canPublish);
+        }
+
+        return false;
     }
 
     public async Task KickUserFromTrackedChannelAsync(long channelId, long userId)

@@ -54,6 +54,17 @@ public class MarkdownLinkRenderingTests
         Assert.DoesNotContain($"href=\"{url}\"", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("<javascript:alert(1)>")]
+    [InlineData("<JaVaScRiPt:alert(1)>")]
+    [InlineData("<vbscript:msgbox(1)>")]
+    public async Task UnsafeAutolink_RendersAsText(string markdown)
+    {
+        var html = await RenderAsync(markdown);
+
+        Assert.DoesNotContain("href", html, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static async Task<string> RenderAsync(string markdown)
     {
         var services = new ServiceCollection()

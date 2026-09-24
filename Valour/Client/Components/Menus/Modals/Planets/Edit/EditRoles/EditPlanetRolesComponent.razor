@@ -243,7 +243,7 @@
                         @ondragstart="@(() => OnRoleDrag(roleX))"
                         @ondrop="@(async () => await OnRoleDrop(roleX))"
                         draggable="true"
-                        ondragover="event.preventDefault();"
+                        @ondragover:preventDefault="true"
                         class="roles-row" @onclick="@(() => OnClickEdit(roleX))">
                         <div class="role-name-div">
                             <RolePill Role="roleX" Class="role-list-pill" />
@@ -420,6 +420,10 @@
 
     private void OnClickCreateMode()
     {
+        // Start from the planet's default role. Members can only grant permissions they
+        // hold, and every member holds the default role's permissions.
+        var defaultRole = Planet.DefaultRole;
+
         _role = new PlanetRole(Client)
         {
             Name = "New Role",
@@ -427,16 +431,16 @@
             Italics = false,
             PlanetId = Planet.Id,
 
-            Permissions = PlanetPermissions.Default,
-            ChatPermissions = ChatChannelPermissions.Default,
-            CategoryPermissions = CategoryPermissions.Default,
-            VoicePermissions = VoiceChannelPermissions.Default
+            Permissions = defaultRole.Permissions,
+            ChatPermissions = defaultRole.ChatPermissions,
+            CategoryPermissions = defaultRole.CategoryPermissions,
+            VoicePermissions = defaultRole.VoicePermissions
         };
 
-        _rolePlanetPerms = PlanetPermissions.Default;
-        _roleChatPerms = ChatChannelPermissions.Default;
-        _roleCategoryPerms = CategoryPermissions.Default;
-        _roleVoicePerms = VoiceChannelPermissions.Default;
+        _rolePlanetPerms = defaultRole.Permissions;
+        _roleChatPerms = defaultRole.ChatPermissions;
+        _roleCategoryPerms = defaultRole.CategoryPermissions;
+        _roleVoicePerms = defaultRole.VoicePermissions;
 
         _editMode = true;
 

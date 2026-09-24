@@ -242,6 +242,22 @@ public class VoiceStateCleanupWorker : BackgroundService
                 if (connectedUserIds is null)
                     continue;
 
+                // Users connected on the backend but unknown to Valour were never
+                // admitted or have since been removed (left, kicked, or lost
+                // access). A token that is still valid must not keep them in the
+                // call, so eject them from the media backend.
+                foreach (var intruderId in connectedUserIds.Except(redisUserIds))
+                {
+                    // Recheck: the user may have joined after the snapshot above.
+                    if (await db.SetContainsAsync($"voice:channel:{channelId}", intruderId))
+                        continue;
+
+                    await _voiceProvider.KickUserFromTrackedChannelAsync(channelId, intruderId);
+                    _logger.LogInformation(
+                        "Voice reconciliation removed untracked user {UserId} from channel {ChannelId}",
+                        intruderId, channelId);
+                }
+
                 // Find users in Redis but NOT connected on the backend
                 var staleUserIds = redisUserIds.Except(connectedUserIds).ToList();
                 if (staleUserIds.Count == 0)

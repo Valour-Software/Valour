@@ -116,7 +116,15 @@ channel if an active village call needs one. Rebinding a building retires its ro
 
 Temporary channel names begin with `◇ ` and are filtered out of the ordinary channel
 directory. Members use them through the village's call controls and nearby composer.
-The underlying chat and call services still enforce their normal permissions.
+The underlying chat and call services still enforce their normal permissions. The
+channels have no permission nodes of their own, so the lease table also limits who
+can use them: a voice token or a realtime channel join for a temporary room succeeds
+only for a member who currently holds its lease (`VillageRoomService.CanAccessChannelAsync`).
+A temporary channel with no live lease, left behind by a restart, cannot be joined.
+
+Removing a member from a planet removes them from its village map groups and ends
+their village presence. Map joins are limited to a short burst per connection,
+and a join for a map that does not exist is not cached.
 
 Auto-join is an opt-in setting for the session. With it off, entering another voice
 space leaves the current call and offers a join button. `GlobalCallSessionService`
@@ -181,17 +189,21 @@ Owners can list, update, or withdraw their property from sale. Members with
 economy-send authority. The planet sells unowned property into a shared account;
 without a configured currency, starter property can be claimed for free.
 
-Every purchase opens a confirmation modal showing the price. Property model
-changes refresh open scenes with a half-second debounce while preserving selection.
+Every purchase opens a confirmation modal showing the price. The purchase request
+carries that confirmed price, and the server rejects it if the listing's current
+price is different, so a seller cannot reprice between confirmation and payment.
+Property model changes refresh open scenes with a half-second debounce while
+preserving selection.
 Owners can rename and describe their property. Managers can also change or clear
 a building's linked channel. Clearing the link gives it leased area rooms.
 
 Payment and ownership transfer use separate commits. `EcoService` commits the
 payment first, then the village service transfers the deed. A transaction
 fingerprint derived from the sale prevents a retry from charging twice. Each new
-listing gets a persisted sale ID, so selling the same property to the same person
-again creates a separate payment. Listing changes and purchases share a per-asset
-lock on the planet's hosting node.
+listing, and each price change on an active listing, gets a persisted sale ID, so
+selling the same property to the same person again creates a separate payment and
+a payment made at an old price never settles a repriced listing. Listing changes
+and purchases share a per-asset lock on the planet's hosting node.
 
 ## Building and editing
 

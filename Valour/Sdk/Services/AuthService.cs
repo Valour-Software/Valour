@@ -716,11 +716,16 @@ public class AuthService : ServiceBase
         return TaskResult.SuccessResult;
     }
     
-    public async Task<TaskResult> RemoveMfaAsync(string password)
+    /// <summary>
+    /// Removes the account's authenticator. Requires the password and, once the
+    /// authenticator has been verified, a current code from it.
+    /// </summary>
+    public async Task<TaskResult> RemoveMfaAsync(string password, string mfaCode = null)
     {
         var request = new RemoveMfaRequest()
         {
-            Password = password
+            Password = password,
+            MultiFactorCode = mfaCode
         };
         
         var result = await _client.PrimaryNode.PostAsyncWithResponse<RemoveMfaResponse>(

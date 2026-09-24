@@ -804,8 +804,9 @@ public class FederationMigrationService
             }
             catch (Exception e)
             {
+                _logger.LogWarning(e, "Pull-back snapshot fetch from {Domain} threw for {PlanetId}", nodeDomain, planetId);
                 await AbortPullBackAttemptAsync(nodeBase, planetId, grant, migration);
-                return TaskResult.FromFailure($"Snapshot pull from node failed: {e.Message}");
+                return TaskResult.FromFailure("Snapshot pull from node failed. The community server could not be reached or returned an invalid snapshot.");
             }
 
             if (snapshot?.Planet is null || snapshot.Planet.Id != planetId)
@@ -828,7 +829,7 @@ public class FederationMigrationService
             // otherwise a failed purge creates two discoverable homes.
             snapshot.Planet.Public = false;
             snapshot.Planet.Discoverable = false;
-            var import = await _snapshotService.ImportAsync(snapshot);
+            var import = await _snapshotService.ImportAsync(snapshot, createMissingUsers: false);
             if (!import.Success)
             {
                 await AbortPullBackAttemptAsync(nodeBase, planetId, grant, migration);
@@ -882,7 +883,7 @@ public class FederationMigrationService
         catch (Exception e)
         {
             _logger.LogWarning(e, "Node purge after pull-back threw for {PlanetId}", planetId);
-            return TaskResult.FromFailure(e.Message);
+            return TaskResult.FromFailure("The community server could not be reached.");
         }
     }
 
@@ -931,8 +932,11 @@ public class FederationMigrationService
     /// <summary>
     /// Pull-back imports a community's data under the registered node owner's
     /// authority. The owner is known to the hub and is accountable for its
-    /// node, so roles, memberships, moderation settings, media references, and
-    /// user identity claims are preserved rather than silently downgraded.
+    /// node, so roles, moderation settings, media references, and history are
+    /// preserved. Identity stays with the hub: memberships are kept only for the
+    /// planet owner and accounts with a hub-recorded membership on this node,
+    /// and the snapshot can never create or rename a hub account (see
+    /// <see cref="PlanetSnapshotService.RestrictToHubIdentitiesAsync"/>).
     ///
     /// User-generated history is marked with immutable import provenance. This
     /// is deliberately generic so non-federation importers (for example a
@@ -963,6 +967,16 @@ public class FederationMigrationService
         // community's contents and moderation state, not for silently handing
         // the planet to another hub account during pull-back.
         snapshot.Planet.OwnerId = planetOwnerId;
+
+        // The hub writes a FederatedMembership before a node ever sees a
+        // member, so these rows are the hub's own record of who belongs.
+        var memberUserIds = (await _db.FederatedMemberships.AsNoTracking()
+                .Where(x => x.PlanetId == planetId && x.NodeDomain == nodeDomain)
+                .Select(x => x.UserId)
+                .ToListAsync())
+            .ToHashSet();
+        memberUserIds.Add(planetOwnerId);
+        await _snapshotService.RestrictToHubIdentitiesAsync(snapshot, memberUserIds);
 
         // Overwrite any node-supplied provenance. The node controls its data,
         // but the hub controls the statement that it was imported from this

@@ -17,7 +17,7 @@ using Valour.Shared.Utilities;
 
 namespace Valour.Server.Cdn.Api;
 
-public class UploadApi
+public partial class UploadApi
 {
     public struct ImageSize {
         
@@ -86,6 +86,33 @@ public class UploadApi
             return Results.BadRequest("Image has too many total pixels across its frames.");
 
         return null;
+    }
+
+    /// <summary>
+    /// Buffers an uploaded image and runs the media safety hash match on the
+    /// original bytes. Returns the buffered copy positioned at the start, or a
+    /// rejection when the match requires the upload to be blocked.
+    /// </summary>
+    private static async Task<(MemoryStream Source, IResult Rejection)> ReadAndScanImageAsync(
+        IFormFile file,
+        MediaSafetyService mediaSafetyService)
+    {
+        var source = new MemoryStream();
+        await file.CopyToAsync(source);
+
+        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(
+            source,
+            file.FileName,
+            file.ContentType);
+
+        if (safetyHashMatch.ShouldBlock)
+        {
+            await source.DisposeAsync();
+            return (null, ValourResult.Forbid("Unable to upload this image."));
+        }
+
+        source.Position = 0;
+        return (source, null);
     }
 
     public static JpegEncoder JpegEncoder = new JpegEncoder()
@@ -240,7 +267,8 @@ public class UploadApi
         ValourDb valourDb, 
         CoreHubService hubService, 
         TokenService tokenService,
-        CdnBucketService bucketService)
+        CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -254,10 +282,14 @@ public class UploadApi
 
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
-        
+
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        if (scan.Rejection is not null) return scan.Rejection;
+        using var source = scan.Source;
+
         using var image = await Image.LoadAsync(
-            new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) }, 
-            file.OpenReadStream()
+            new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) },
+            source
         );
         
         HandleExif(image);
@@ -294,6 +326,7 @@ public class UploadApi
         PlanetMemberService memberService,
         ModerationAuditService moderationAuditService,
         CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
         long planetId,
         long memberId)
     {
@@ -329,9 +362,13 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        if (scan.Rejection is not null) return scan.Rejection;
+        using var source = scan.Source;
+
         using var image = await Image.LoadAsync(
             new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) },
-            file.OpenReadStream());
+            source);
         HandleExif(image);
 
         var imageId = $"{planetId}/{targetMember.UserId}";
@@ -444,6 +481,7 @@ public class UploadApi
         ValourDb db, 
         TokenService tokenService, 
         CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
         long themeId
     )
     {
@@ -468,10 +506,14 @@ public class UploadApi
 
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
-        
+
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        if (scan.Rejection is not null) return scan.Rejection;
+        using var source = scan.Source;
+
         using var image = await Image.LoadAsync(
-            new() { TargetSize = new(ThemeBannerSizes[0].Width, ThemeBannerSizes[0].Height) }, 
-            file.OpenReadStream()
+            new() { TargetSize = new(ThemeBannerSizes[0].Width, ThemeBannerSizes[0].Height) },
+            source
         );
         
         HandleExif(image);
@@ -515,6 +557,24 @@ public class UploadApi
         return FontContentTypes.Contains(file.ContentType) || FontExtensions.Contains(extension);
     }
 
+    /// <summary>
+    /// True when the header is a WOFF2, WOFF, OpenType (CFF), TrueType, or
+    /// TrueType collection signature.
+    /// </summary>
+    internal static bool HasFontSignature(ReadOnlySpan<byte> header)
+    {
+        if (header.Length < 4)
+            return false;
+
+        var magic = header[..4];
+        return magic.SequenceEqual("wOF2"u8) ||
+               magic.SequenceEqual("wOFF"u8) ||
+               magic.SequenceEqual("OTTO"u8) ||
+               magic.SequenceEqual("true"u8) ||
+               magic.SequenceEqual("ttcf"u8) ||
+               magic.SequenceEqual((ReadOnlySpan<byte>)[0x00, 0x01, 0x00, 0x00]);
+    }
+
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(20_971_520)] // 20 MB
     private static async Task<IResult> ThemeAssetRoute(
@@ -523,6 +583,7 @@ public class UploadApi
         TokenService tokenService,
         ThemeService themeService,
         CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
         long themeId,
         [FromQuery] string name)
     {
@@ -545,8 +606,21 @@ public class UploadApi
         if (!isFont && !CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
 
-        var oversized = await RejectIfOversizedAsync(file);
-        if (oversized is not null) return oversized;
+        // Fonts are not images: identifying one as an image always fails, so
+        // only image assets go through the dimension check and safety scan.
+        // The request size limit bounds both kinds.
+        MemoryStream imageSource = null;
+        if (!isFont)
+        {
+            var oversized = await RejectIfOversizedAsync(file);
+            if (oversized is not null) return oversized;
+
+            var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+            if (scan.Rejection is not null) return scan.Rejection;
+            imageSource = scan.Source;
+        }
+
+        using var imageSourceScope = imageSource;
 
         try
         {
@@ -565,12 +639,18 @@ public class UploadApi
 
                 var fileStream = file.OpenReadStream();
                 await fileStream.CopyToAsync(ms);
+
+                // Font uploads skip the image safety scan, so the bytes must
+                // actually be a font rather than an image with a font name.
+                if (!HasFontSignature(ms.GetBuffer().AsSpan(0, (int)Math.Min(ms.Length, 4))))
+                    return ValourResult.BadRequest("Unsupported font file.");
+
                 assetType = "font";
             }
             else
             {
                 // Image file — existing processing path
-                using var image = await Image.LoadAsync(file.OpenReadStream());
+                using var image = await Image.LoadAsync(imageSource);
 
                 HandleExif(image);
 
@@ -582,8 +662,8 @@ public class UploadApi
                     if (cdnExt != "gif" && cdnExt != "webp")
                         cdnExt = "gif";
 
-                    var fileStream = file.OpenReadStream();
-                    await fileStream.CopyToAsync(ms);
+                    imageSource.Position = 0;
+                    await imageSource.CopyToAsync(ms);
                 }
                 else
                 {
@@ -645,12 +725,13 @@ public class UploadApi
         ValourDb db, 
         TokenService tokenService, 
         CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
         [FromHeader] string authorization
     )
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
-        
+
         var isPlus = await db.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
             return ValourResult.Forbid("You must be a Stargazer Plus subscriber to upload profile backgrounds!");
@@ -665,11 +746,15 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        if (scan.Rejection is not null) return scan.Rejection;
+        using var source = scan.Source;
+
         using var image = await Image.LoadAsync(
-            new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) }, 
-            file.OpenReadStream()
+            new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) },
+            source
         );
-        
+
         HandleExif(image);
 
         var result = await UploadPublicImageVariants(bucketService, image, "profiles", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
@@ -709,6 +794,7 @@ public class UploadApi
         TokenService tokenService, 
         CdnBucketService bucketService,
         PlanetMemberService memberService,
+        MediaSafetyService mediaSafetyService,
         long planetId,
         [FromHeader] string authorization
     )
@@ -733,11 +819,15 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        if (scan.Rejection is not null) return scan.Rejection;
+        using var source = scan.Source;
+
         using var image = await Image.LoadAsync(
-            new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) }, 
-            file.OpenReadStream()
+            new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) },
+            source
         );
-        
+
         HandleExif(image);
 
         var result = await UploadPublicImageVariants(bucketService, image, "planetbgs", planetId.ToString(), ProfileBackgroundSizes, 0, false, false);
@@ -776,7 +866,8 @@ public class UploadApi
         PlanetService planetService,
         PlanetMemberService memberService,
         CdnBucketService bucketService,
-        long planetId, 
+        MediaSafetyService mediaSafetyService,
+        long planetId,
         [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
@@ -798,10 +889,14 @@ public class UploadApi
 
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
-        
+
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        if (scan.Rejection is not null) return scan.Rejection;
+        using var source = scan.Source;
+
         using var image = await Image.LoadAsync(
-            new() { TargetSize = new(PlanetSizes[0].Width, PlanetSizes[0].Height) }, 
-            file.OpenReadStream()
+            new() { TargetSize = new(PlanetSizes[0].Width, PlanetSizes[0].Height) },
+            source
         );
         
         HandleExif(image);
@@ -845,6 +940,7 @@ public class UploadApi
         PlanetMemberService memberService,
         PlanetEmojiService emojiService,
         CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
         long planetId,
         [FromQuery] string name,
         [FromHeader] string authorization)
@@ -877,6 +973,10 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        if (scan.Rejection is not null) return scan.Rejection;
+        using var source = scan.Source;
+
         var createResult = await emojiService.CreateAsync(planetId, authToken.UserId, normalizedName, notify: false);
         if (!createResult.Success || createResult.Data is null)
             return ValourResult.BadRequest(createResult.Message);
@@ -887,7 +987,7 @@ public class UploadApi
         {
             using var image = await Image.LoadAsync(
                 new() { TargetSize = new(PlanetEmojiSizes[0].Width, PlanetEmojiSizes[0].Height) },
-                file.OpenReadStream()
+                source
             );
 
             HandleExif(image);
@@ -924,8 +1024,9 @@ public class UploadApi
         HttpContext ctx, 
         ValourDb db, 
         TokenService tokenService, 
-        CdnBucketService bucketService, 
-        long appId, 
+        CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
+        long appId,
         [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
@@ -948,9 +1049,13 @@ public class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        if (scan.Rejection is not null) return scan.Rejection;
+        using var source = scan.Source;
+
         using var image = await Image.LoadAsync(
-            new() { TargetSize = new(AppSizes[0].Width, AppSizes[0].Height) }, 
-            file.OpenReadStream()
+            new() { TargetSize = new(AppSizes[0].Width, AppSizes[0].Height) },
+            source
         );
         
         HandleExif(image);
@@ -1075,32 +1180,46 @@ public class UploadApi
         if (file.Length > maxBytes)
             return ValourResult.Forbid($"File exceeds your upload limit of {maxBytes / (1024 * 1024)}MB. Upgrade your subscription for larger uploads!");
 
-        if (CdnUtils.ImageSharpSupported.Contains(file.ContentType))
+        // The multipart name and type are client-controlled: an empty name
+        // (filename*=UTF-8'') or an invented type must not reach storage as-is.
+        var fileName = CdnServePolicy.NormalizeFileName(file.FileName);
+        var contentType = CdnServePolicy.NormalizeMimeType(file.ContentType) ?? CdnServePolicy.OpaqueContentType;
+
+        if (CdnUtils.ImageSharpSupported.Contains(contentType))
             return Results.BadRequest("Unsupported file type");
 
-        string ext = Path.GetExtension(file.FileName);
-        if (CdnUtils.IsExecutableUpload(file.FileName, file.ContentType))
+        var ext = Path.GetExtension(fileName);
+        if (!FileExtensionRegex().IsMatch(ext))
+            ext = string.Empty;
+
+        if (CdnUtils.IsExecutableUpload(file.FileName, file.ContentType) ||
+            CdnUtils.IsExecutableUpload(fileName, contentType))
+        {
             return Results.BadRequest("Executable files are not allowed");
+        }
 
         // Raw bytes are stored and served under a Valour host, so HTML/SVG/XML
         // would execute script on our own origin if a browser ever rendered it
         // inline. The serve path also forces a download, but reject here too so
         // the content never exists on a Valour origin in the first place.
-        if (CdnUtils.IsActiveContentUpload(file.FileName, file.ContentType))
+        if (CdnUtils.IsActiveContentUpload(file.FileName, file.ContentType) ||
+            CdnUtils.IsActiveContentUpload(fileName, contentType))
+        {
             return Results.BadRequest("HTML, SVG, and XML files are not allowed");
+        }
 
         using MemoryStream ms = new();
         await file.CopyToAsync(ms);
 
         if (CdnUtils.IsExecutableUpload(
-                file.FileName,
-                file.ContentType,
+                fileName,
+                contentType,
                 ms.GetBuffer().AsSpan(0, (int)Math.Min(ms.Length, 4))))
         {
             return Results.BadRequest("Executable files are not allowed");
         }
 
-        var bucketResult = await bucketService.Upload(ms, file.FileName, ext, authToken.UserId, file.ContentType, ContentCategory.File, db);
+        var bucketResult = await bucketService.Upload(ms, fileName, ext, authToken.UserId, contentType, ContentCategory.File, db);
 
         if (bucketResult.Success)
         {
@@ -1111,6 +1230,9 @@ public class UploadApi
             return ValourResult.Problem("There was an issue uploading your file. Try a different format or size.");
         }
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^\.[A-Za-z0-9]{1,16}$")]
+    private static partial System.Text.RegularExpressions.Regex FileExtensionRegex();
 
     private static async Task<(MemoryStream stream, string mime, string extension)?> ProcessImage(IFormFile file, int sizeX, int sizeY)
     {

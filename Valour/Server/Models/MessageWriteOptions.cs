@@ -1,7 +1,8 @@
 namespace Valour.Server.Models;
 
 /// <summary>
-/// Server-internal options for trusted message write paths (webhooks).
+/// Server-internal options for trusted message write paths (webhooks and
+/// automod responses).
 /// Never bound from client requests: the normal post path passes null,
 /// which clears all webhook identity fields.
 /// </summary>

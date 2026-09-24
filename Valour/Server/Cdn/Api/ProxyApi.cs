@@ -14,6 +14,7 @@ namespace Valour.Server.Cdn.Api
         /// The Proxy route proxies the page that corresponds with the given hash.
         /// </summary>
         private static async Task<IResult> ProxyRoute(
+            HttpContext ctx,
             CdnMemoryCache cache,
             IHttpClientFactory clientFactory,
             ILoggerFactory loggerFactory,
@@ -41,16 +42,18 @@ namespace Valour.Server.Cdn.Api
             if (string.IsNullOrWhiteSpace(fileName))
                 fileName = hash;
 
-            var mimeType = item.MimeType ?? "application/octet-stream";
+            // The name and type come from a third-party URL, so the same
+            // inline/download rules as uploads apply.
+            var headers = CdnServePolicy.Resolve(fileName, item.MimeType);
+            CdnServePolicy.Apply(ctx.Response, headers);
+
+            // Keys are namespaced per route so a proxy entry can never be
+            // served as uploaded content or the reverse.
+            var cacheKey = $"proxy:{hash}";
 
             // Try to get from cache
-            if (cache.Cache.TryGetValue(hash, out var cachedData))
-            {
-                if (cachedData is not null)
-                {
-                    return Results.File((byte[])cachedData, mimeType, fileName);
-                }
-            }
+            if (cache.Cache.TryGetValue(cacheKey, out byte[] cachedData) && cachedData is not null)
+                return Results.File(cachedData, headers.ContentType);
 
             var client = clientFactory.CreateClient("ProxyFetch");
 
@@ -66,13 +69,13 @@ namespace Valour.Server.Cdn.Api
                 return Results.StatusCode(StatusCodes.Status502BadGateway);
 
             // Cache the data
-            cache.Cache.Set(hash, data, new MemoryCacheEntryOptions
+            cache.Cache.Set(cacheKey, data, new MemoryCacheEntryOptions
             {
                 Size = data.Length,
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
             });
 
-            return Results.File(data, mimeType, fileName);
+            return Results.File(data, headers.ContentType);
         }
     }
 }

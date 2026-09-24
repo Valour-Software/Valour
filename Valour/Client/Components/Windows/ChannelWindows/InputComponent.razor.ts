@@ -488,6 +488,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
         },
 
         clickHandler: () => {
+            ctx.inputEl.focus();
             ctx.caretMoveHandler();
         },
 

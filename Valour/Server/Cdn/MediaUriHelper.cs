@@ -17,9 +17,6 @@ public class MediaUriHelper
         if (AttachmentRejectRegex.IsMatch(attachment.Location))
             return new(false, "Attachment location contains invalid characters");
 
-        if (attachment.Inline && CdnUtils.IsVirtualAttachmentType(attachment.Type))
-            return new(true, "");
-
         if (!IsAllowedLocation(attachment))
         {
             return new(false, "Attachments must be from an allowed source...");
@@ -33,7 +30,16 @@ public class MediaUriHelper
         if (!Uri.TryCreate(attachment.Location, UriKind.Absolute, out var uri))
             return false;
 
-        if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        // Clients render virtual attachment locations straight into iframes,
+        // so every attachment is held to a web scheme and a known host. The
+        // one relaxation is plain http for inline previews of provider links
+        // (the server builds those from message content and never trusts a
+        // client-supplied Inline flag); the host checks below still apply.
+        var isHttps = uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+        var isInlineHttp = attachment.Inline &&
+                           CdnUtils.IsVirtualAttachmentType(attachment.Type) &&
+                           uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase);
+        if (!isHttps && !isInlineHttp)
             return false;
 
         var host = NormalizeHost(uri.Host);

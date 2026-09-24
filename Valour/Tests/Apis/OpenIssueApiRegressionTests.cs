@@ -30,7 +30,11 @@ public class OpenIssueApiRegressionTests(LoginTestFixture fixture)
         }
         finally
         {
-            var removed = await auth.RemoveMfaAsync(fixture.PrimaryTestUserDetails.Password);
+            // Each time step is accepted once, so removal uses the next step's code,
+            // which the server still accepts within its drift tolerance.
+            var removeCode = new TwoFactorAuthenticator()
+                .GetCurrentPIN(setup.Data.Key, DateTime.UtcNow.AddSeconds(30), true);
+            var removed = await auth.RemoveMfaAsync(fixture.PrimaryTestUserDetails.Password, removeCode);
             Assert.True(removed.Success, removed.Message);
         }
 

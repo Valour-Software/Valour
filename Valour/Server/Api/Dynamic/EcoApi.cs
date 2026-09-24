@@ -148,8 +148,9 @@ public class EcoApi
             if (!authToken.HasScope(UserPermissions.EconomyViewPlanet))
                 return ValourResult.LacksPermission(UserPermissions.EconomyViewPlanet);
 
-            // Planet accounts are shared community funds, so members who can use
-            // the economy may see them; everyone else gets metadata only.
+            // Shared accounts are community funds, so members who can use the
+            // economy may see them. Another member's personal balance needs
+            // ManageEcoAccounts. Everyone else gets metadata only.
             if (!isOwner)
             {
                 var member = await memberService.GetCurrentAsync(account.PlanetId);
@@ -158,10 +159,41 @@ public class EcoApi
                 {
                     return Results.Json(WithoutBalance(account));
                 }
+
+                var canViewMemberBalances = await CanViewMemberBalancesAsync(member, memberService);
+                return Results.Json(ForViewer(account, authToken.UserId, canViewMemberBalances));
             }
         }
 
         return Results.Json(account);
+    }
+
+    /// <summary>
+    /// Whether the member may see the balances of other members' personal
+    /// accounts on their planet. Valour Credits balances stay private regardless.
+    /// </summary>
+    private static ValueTask<bool> CanViewMemberBalancesAsync(PlanetMember member, PlanetMemberService memberService) =>
+        memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts);
+
+    /// <summary>
+    /// Returns the account as a planet member with economy access may see it.
+    /// Shared accounts and the viewer's own accounts are returned whole. Another
+    /// user's personal balance is stripped unless the viewer can manage economy
+    /// accounts, and another user's Valour Credits balance is always stripped.
+    /// </summary>
+    private static EcoAccount ForViewer(EcoAccount account, long viewerUserId, bool canViewMemberBalances)
+    {
+        if (account is null ||
+            account.AccountType == AccountType.Shared ||
+            account.UserId == viewerUserId)
+        {
+            return account;
+        }
+
+        if (canViewMemberBalances && account.CurrencyId != ISharedCurrency.ValourCreditsId)
+            return account;
+
+        return WithoutBalance(account);
     }
 
     /// <summary>
@@ -211,6 +243,7 @@ public class EcoApi
         long planetId, 
         EcoService ecoService,
         PlanetMemberService memberService,
+        TokenService tokenService,
         int skip = 0,
         int take = 50)
     {
@@ -224,7 +257,16 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
-        var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId, skip, take);
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        var canViewMemberBalances = await CanViewMemberBalancesAsync(member, memberService);
+
+        // Ordering by balance would rank members by wealth even with the
+        // balances stripped, so it is reserved for callers who can see them.
+        var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId, skip, take, canViewMemberBalances);
+        accounts.Items = accounts.Items
+            .Select(x => ForViewer(x, authToken.UserId, canViewMemberBalances))
+            .ToList();
+
         return Results.Json(accounts);
     }
     
@@ -235,6 +277,7 @@ public class EcoApi
         long planetId, 
         EcoService ecoService,
         PlanetMemberService memberService,
+        TokenService tokenService,
         int skip = 0,
         int take = 50)
     {
@@ -248,7 +291,13 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
-        var accounts = await ecoService.GetPlanetUserAccountMembersAsync(planetId, skip, take);
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        var canViewMemberBalances = await CanViewMemberBalancesAsync(member, memberService);
+
+        var accounts = await ecoService.GetPlanetUserAccountMembersAsync(planetId, skip, take, canViewMemberBalances);
+        foreach (var item in accounts.Items)
+            item.Account = ForViewer(item.Account, authToken.UserId, canViewMemberBalances);
+
         return Results.Json(accounts);
     }
     
@@ -259,7 +308,8 @@ public class EcoApi
         long planetId,
         long userId,
         EcoService ecoService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        TokenService tokenService)
     {
         var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
@@ -269,7 +319,11 @@ public class EcoApi
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
         var account = await ecoService.GetUserAccountAsync(userId, planetId);
-        return Results.Json(account);
+        if (account is null || account.UserId == member.UserId)
+            return Results.Json(account);
+
+        var canViewMemberBalances = await CanViewMemberBalancesAsync(member, memberService);
+        return Results.Json(ForViewer(account, member.UserId, canViewMemberBalances));
     }
     
     // Returns all accounts of the planet the given user can send to
@@ -278,7 +332,8 @@ public class EcoApi
     public static async Task<IResult> GetPlanetAccountsCanSendAsync(
         [FromBody] EcoPlanetAccountSearchRequest request,
         EcoService ecoService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        TokenService tokenService)
     {
         if (request is null)
             return ValourResult.BadRequest("Include search request in body");
@@ -290,7 +345,13 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        var canViewMemberBalances = await CanViewMemberBalancesAsync(member, memberService);
+
         var accounts = await ecoService.GetPlanetAccountsCanSendAsync(request.PlanetId, request.AccountId, request.Filter);
+        foreach (var result in accounts)
+            result.Account = ForViewer(result.Account, authToken.UserId, canViewMemberBalances);
+
         return Results.Json(accounts);
     }
 
@@ -382,10 +443,16 @@ public class EcoApi
             return ValourResult.BadRequest("Include account in body");
 
         var token = await tokenService.GetCurrentTokenAsync();
-        
+
         if (account.UserId != token.UserId)
             return ValourResult.Forbid("You cannot create an account for another user");
-        
+
+        if (!Enum.IsDefined(account.AccountType))
+            return ValourResult.BadRequest("Invalid account type");
+
+        if (account.BalanceValue != 0)
+            return ValourResult.BadRequest("Initial balance must be zero");
+
         if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
         {
             if (!token.HasScope(UserPermissions.EconomyViewGlobal))
@@ -407,7 +474,12 @@ public class EcoApi
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
-        
+
+        // Shared accounts hold community funds, so only economy managers open them
+        if (account.AccountType == AccountType.Shared &&
+            !await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+
         var result = await ecoService.CreateEcoAccountAsync(account);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
@@ -429,14 +501,23 @@ public class EcoApi
 
         if (id != account.Id)
             return ValourResult.BadRequest("Id mismatch");
-        
+
+        // Only the name can change, and it is required
+        if (string.IsNullOrWhiteSpace(account.Name))
+            return ValourResult.BadRequest("Account name is required");
+
+        // Authorize against the stored account, not the ownership fields in the body
+        var stored = await ecoService.GetAccountAsync(id);
+        if (stored is null)
+            return ValourResult.NotFound("Account not found");
+
         var token = await tokenService.GetCurrentTokenAsync();
 
-        if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
+        if (stored.CurrencyId == ISharedCurrency.ValourCreditsId)
         {
-            if (account.UserId != token.UserId)
+            if (stored.UserId != token.UserId)
                 return ValourResult.Forbid("You cannot update an account for another user");
-            
+
             if (!token.HasScope(UserPermissions.EconomyViewGlobal))
                 return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
             if (!token.HasScope(UserPermissions.EconomySendGlobal))
@@ -450,16 +531,16 @@ public class EcoApi
                 return ValourResult.LacksPermission(UserPermissions.EconomySendPlanet);
         }
 
-        var member = await memberService.GetCurrentAsync(account.PlanetId);
+        var member = await memberService.GetCurrentAsync(stored.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
-        
-        if (account.AccountType == AccountType.User)
+
+        if (stored.AccountType == AccountType.User)
         {
-            if (account.UserId != token.UserId)
+            if (stored.UserId != token.UserId)
                 return ValourResult.Forbid("You cannot update an account for another user");
         }
         else
@@ -468,13 +549,13 @@ public class EcoApi
                     return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
         }
 
-        var result = await ecoService.UpdateEcoAccountAsync(account);
+        var result = await ecoService.UpdateEcoAccountNameAsync(stored.Id, account.Name);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
-        
+
         return Results.Json(result.Data);
     }
-    
+
     [ValourRoute(HttpVerbs.Delete, "api/eco/accounts/{id}")]
     [UserRequired]
     public static async Task<IResult> UpdateAccountAsync(
@@ -570,13 +651,24 @@ public class EcoApi
         if (transaction is null)
             return ValourResult.BadRequest("Include transaction in body");
 
+        var metadata = EcoService.ValidateTransactionMetadata(transaction);
+        if (!metadata.Success)
+            return ValourResult.BadRequest(metadata.Message);
+
         var authToken = await tokenService.GetCurrentTokenAsync();
         var account = await ecoService.GetAccountAsync(transaction.AccountFromId);
         if (account is null)
             return ValourResult.NotFound("Account not found");
 
         bool issuing = false;
-        
+
+        // The sender identity is derived from the account and the caller rather
+        // than trusted from the body, because recipients are notified in the
+        // sender's name. The service fills in the planet and recipient user
+        // from the stored accounts.
+        long userFromId;
+        long? forcedBy = null;
+
         // User account can only be used by the owner
         if (account.AccountType == AccountType.User)
         {
@@ -600,28 +692,27 @@ public class EcoApi
                     return ValourResult.LacksPermission(UserPermissions.EconomySendPlanet);
             }
 
-            if (transaction.UserFromId != authToken.UserId || account.UserId != authToken.UserId)
+            // Trying to send for someone else
+            if (account.UserId != authToken.UserId)
             {
                 var member = await memberService.GetCurrentAsync(account.PlanetId);
                 if (member is null)
                     return ValourResult.NotPlanetMember();
-                
-                // Trying to send for someone else
-                if (transaction.UserFromId != member.UserId || account.UserId != authToken.UserId)
-                {
-                    if (transaction.ForcedBy != authToken.UserId)
-                    {
-                        return ValourResult.Forbid("You must mark a transaction as forced if you are not the sender");    
-                    }
-                    
-                    if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ForceTransactions))
-                    {
-                        return ValourResult.Forbid("You do not have permission to create transactions for other users");
-                    }
 
-                    transaction.ForcedBy = authToken.UserId;
+                if (transaction.ForcedBy != authToken.UserId)
+                {
+                    return ValourResult.Forbid("You must mark a transaction as forced if you are not the sender");
                 }
+
+                if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ForceTransactions))
+                {
+                    return ValourResult.Forbid("You do not have permission to create transactions for other users");
+                }
+
+                forcedBy = authToken.UserId;
             }
+
+            userFromId = account.UserId;
         }
         // Planet accounts can be used by those with permission
         else
@@ -631,7 +722,7 @@ public class EcoApi
 
             if (!authToken.HasScope(UserPermissions.EconomySendPlanet))
                 return ValourResult.LacksPermission(UserPermissions.EconomySendPlanet);
-            
+
             var member = await memberService.GetCurrentAsync(account.PlanetId);
             if (member is null)
                 return ValourResult.NotPlanetMember();
@@ -641,8 +732,14 @@ public class EcoApi
 
             if (account.Id == transaction.AccountToId)
                 issuing = true;
+
+            // Shared accounts have no single owner, so the sender is whoever moved the funds
+            userFromId = authToken.UserId;
         }
-        
+
+        transaction.UserFromId = userFromId;
+        transaction.ForcedBy = forcedBy;
+
         var result = await ecoService.CreateTransactionAsync(transaction, issuing);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);

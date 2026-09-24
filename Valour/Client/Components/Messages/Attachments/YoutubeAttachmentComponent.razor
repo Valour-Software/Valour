@@ -1,15 +1,27 @@
 @inherits AttachmentComponent
 
-<div class="youtube-container">
-    <iframe
-        class="youtube-embed"
-        width="560"
-        height="315"
-        src="@Attachment.Location"
-        title="YouTube embed"
-        frameborder="0"
-        loading="lazy"
-        allow="clipboard-write; encrypted-media; picture-in-picture; web-share"
-        allowfullscreen>
-    </iframe>
-</div>
+@if (_src is not null)
+{
+    <div class="youtube-container">
+        <iframe
+            class="youtube-embed"
+            width="560"
+            height="315"
+            src="@_src"
+            title="YouTube embed"
+            frameborder="0"
+            loading="lazy"
+            allow="clipboard-write; encrypted-media; picture-in-picture; web-share"
+            allowfullscreen>
+        </iframe>
+    </div>
+}
+
+@code {
+    private string _src;
+
+    protected override void OnParametersSet()
+    {
+        _src = GetTrustedEmbedSource("www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "youtube-nocookie.com", "music.youtube.com");
+    }
+}

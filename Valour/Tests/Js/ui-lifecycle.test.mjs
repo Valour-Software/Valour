@@ -43,8 +43,16 @@ test('file drop works without an upload button and removes all listeners', async
     const listeners = new Map();
     const zone = { classList: { remove() {} }, addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) };
     let changed = 0;
-    const input = { dispatchEvent() { changed++; } };
+    const inputListeners = new Map();
+    const input = {
+        dispatchEvent() { changed++; },
+        addEventListener: (name, fn) => inputListeners.set(name, fn),
+        removeEventListener: name => inputListeners.delete(name)
+    };
     const drop = context.initializeFileDropZone(zone, input, undefined);
+    input.value = 'C:\\fakepath\\previous.webp';
+    inputListeners.get('click')();
+    assert.equal(input.value, '');
     const files = ['example.webp'];
     listeners.get('drop')({ preventDefault() {}, dataTransfer: { files } });
     assert.deepEqual(input.files, files);
@@ -52,6 +60,7 @@ test('file drop works without an upload button and removes all listeners', async
     assert.equal(changed, 1);
     drop.dispose();
     assert.equal(listeners.size, 0);
+    assert.equal(inputListeners.size, 0);
     context.initializeFileDropZone(null, null, null).dispose();
 });
 
@@ -65,7 +74,7 @@ test('pasted files survive the clipboard event releasing its file list', async (
     vm.runInContext(source, context);
     const listeners = new Map();
     const zone = { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener() {} };
-    const input = { dispatchEvent() {} };
+    const input = { dispatchEvent() {}, addEventListener() {}, removeEventListener() {} };
     context.initializeFileDropZone(zone, input, null);
     const file = new Blob(['pasted image'], { type: 'image/png' });
     const clipboardFiles = [file];

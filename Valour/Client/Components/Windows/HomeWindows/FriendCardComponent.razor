@@ -7,7 +7,7 @@
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
 
-<div id="flipper-friend-@Friend.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-@Friend.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-friend-@Friend.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
+<div id="flipper-friend-@Friend.Id-@WindowCtx.Id" class="flipper" data-flip-width="240" @onclick="OnClick"> 
     <div class="outer-circle" @oncontextpress="@OnContextMenu">
         <div class="text-hide-circle"></div>
         

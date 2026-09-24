@@ -114,7 +114,8 @@ public class ChannelApi
         ChannelService channelService,
         TokenService tokenService,
         PlanetMemberService memberService,
-        PlanetRoleService roleService)
+        PlanetRoleService roleService,
+        PlanetPermissionService permissionService)
     {
         var channel = request.Channel;
         
@@ -140,9 +141,10 @@ public class ChannelApi
         }
         
         // Check permission for the category we are inserting into
+        Channel parent = null;
         if (channel.ParentId is not null)
         {
-            var parent = await channelService.GetChannelAsync(planetId, channel.ParentId.Value);
+            parent = await channelService.GetChannelAsync(planetId, channel.ParentId.Value);
             if (parent is null || parent.ChannelType != ChannelTypeEnum.PlanetCategory)
             {
                 return ValourResult.BadRequest("Invalid parent id");
@@ -160,11 +162,34 @@ public class ChannelApi
             
             foreach (var node in request.Nodes)
             {
+                if (node is null)
+                    return ValourResult.BadRequest("Permission nodes cannot be null");
+
+                if (node.TargetType is not (ChannelTypeEnum.PlanetChat or ChannelTypeEnum.PlanetCategory
+                    or ChannelTypeEnum.PlanetVoice or ChannelTypeEnum.PlanetVideo))
+                    return ValourResult.BadRequest("A permission node has an invalid target type");
+
                 var role = await roleService.GetAsync(planetId, node.RoleId);
-                if (memberAuthority < role.GetAuthority())
+                if (role is null)
+                    return ValourResult.BadRequest("A permission node's role does not belong to this planet");
+
+                // Deny-only nodes (such as hiding a new private channel from the default role)
+                // cannot raise anyone's access, so they may target a role of equal authority.
+                var grantsBits = (node.Code & node.Mask) != 0;
+                if (memberAuthority < role.GetAuthority() || (grantsBits && memberAuthority == role.GetAuthority()))
                 {
-                    return ValourResult.Forbid("A permission node's role cannot have higher authority than the member creating it");
+                    return ValourResult.Forbid("A permission node's role must have lower authority than the member creating it");
                 }
+
+                // Members may only allow or deny bits they hold where the channel is being created
+                var held = parent is not null
+                    ? await permissionService.GetChannelPermissionsAsync(member, parent, node.TargetType)
+                    : await permissionService.GetRolePermissionsAsync(member, node.TargetType);
+                var grantError = PermissionGrantGuard.GetUnheldChangeError(
+                    PermissionGrantGuard.GetChangedNodeBits(0, 0, node.Code, node.Mask), held,
+                    ChannelPermissions.GetChannelPermissionSet(node.TargetType), "channel");
+                if (grantError is not null)
+                    return ValourResult.Forbid(grantError);
             }
         }
         
@@ -388,21 +413,27 @@ public class ChannelApi
         long planetId,
         long channelId,
         ChannelService channelService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        PlanetPermissionService permissionService)
     {
         var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
-        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
-            return Results.Json(Array.Empty<long>());
-
         var member = await memberService.GetCurrentAsync(channel.PlanetId!.Value);
         if (member is null)
             return ValourResult.NotPlanetMember();
-        
+
+        // Only reveal channels the member can view
+        var access = await permissionService.GetChannelAccessAsync(member);
+        if (access is null || !access.Contains(channelId))
+            return ValourResult.NotFound("Channel not found");
+
+        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+            return Results.Json(Array.Empty<long>());
+
         var children = await channelService.GetChildrenIdsAsync(channelId);
-        return Results.Json(children);
+        return Results.Json(children.Where(access.Contains).ToList());
     }
     
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/nodes")]
@@ -411,19 +442,25 @@ public class ChannelApi
         long planetId,
         long channelId,
         ChannelService channelService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        PlanetPermissionService permissionService)
     {
         var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
-        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
-            return Results.Json(Array.Empty<PermissionsNode>());
-
         var member = await memberService.GetCurrentAsync(channel.PlanetId!.Value);
         if (member is null)
             return ValourResult.NotPlanetMember();
-        
+
+        // Only reveal nodes for channels the member can view
+        var access = await permissionService.GetChannelAccessAsync(member);
+        if (access is null || !access.Contains(channelId))
+            return ValourResult.NotFound("Channel not found");
+
+        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+            return Results.Json(Array.Empty<PermissionsNode>());
+
         var nodes = await channelService.GetPermissionNodesAsync(channelId);
         return Results.Json(nodes);
     }

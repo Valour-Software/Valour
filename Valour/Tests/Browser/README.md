@@ -108,6 +108,11 @@ during storage, import and instance initialization and verifies reference cleanu
 
 ## Open issue regressions
 
+`profile-color-pickers.mjs` verifies saved swatches and editor values with the
+actual Pickr library, including reopening and user edits. Run it with
+`node Valour/Tests/Browser/profile-color-pickers.mjs`. Set `PICKR_SCRIPT` to a local
+copy of the library to avoid downloading it during the test.
+
 `open-issue-regressions.mjs` uses local browser fixtures to check pasted-file
 ownership, blob previews, multipart uploads, and tab geometry at 24 combinations
 of pane width and tab count. Chromium also sends real touch input through the

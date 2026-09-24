@@ -21,6 +21,7 @@ public static partial class PublicThreadPageHelpers
     // markdown safe to render server-side without a Blazor sanitizer.
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
+        .DisableGenericAttributes()
         .DisableHtml()
         // Thread and comment bodies are user-authored and served publicly.
         .UseSafeLinks()

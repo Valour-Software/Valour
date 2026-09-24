@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using Valour.Config.Configs;
 using Valour.Database;
 using Valour.Server.Cdn;
@@ -18,21 +19,54 @@ public class FederationHubService
 {
     private static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(15);
 
+    /// <summary>
+    /// An unverified registration reserves its domain only for this long.
+    /// After that, any account (including the original registrant) may
+    /// register the domain again and prove control of it.
+    /// </summary>
+    public static readonly TimeSpan PendingRegistrationLifetime = TimeSpan.FromHours(72);
+
+    /// <summary>
+    /// Active, suspended, and unexpired pending registrations one account may hold.
+    /// </summary>
+    public const int MaxRegistrationsPerOwner = 5;
+
+    /// <summary>
+    /// Owner and planet approvals one community server may hold.
+    /// </summary>
+    public const int MaxHostingApprovalsPerNode = 500;
+
+    /// <summary>
+    /// Nodes mint five-minute server credentials. A longer self-issued lifetime
+    /// is rejected so a node cannot create long-lived bearer credentials.
+    /// </summary>
+    private static readonly TimeSpan MaxNodeTokenLifetime = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// Upper bound for a node's /.well-known/valour-node document. The real
+    /// descriptor is well under 2 KB; the limit stops a hostile domain from
+    /// streaming an unbounded body into hub memory.
+    /// </summary>
+    private const int MaxDescriptorBytes = 64 * 1024;
+
     private readonly ValourDb _db;
     private readonly FederationKeyService _keyService;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<FederationHubService> _logger;
+    private readonly IConnectionMultiplexer _redis;
 
     public FederationHubService(
         ValourDb db,
         FederationKeyService keyService,
         IHttpClientFactory httpFactory,
-        ILogger<FederationHubService> logger)
+        ILogger<FederationHubService> logger,
+        IConnectionMultiplexer redis = null)
     {
         _db = db;
         _keyService = keyService;
         _httpFactory = httpFactory;
         _logger = logger;
+        _redis = redis;
     }
 
     public static bool HubEnabled => FederationConfig.Current?.HubEnabled == true;
@@ -49,9 +83,41 @@ public class FederationHubService
         if (domain is null)
             return TaskResult<FederatedNodeRegistrationResponse>.FromFailure("Invalid domain.");
 
+        var now = DateTime.UtcNow;
         var existing = await _db.FederatedNodes.FindAsync(domain);
-        if (existing is not null && existing.OwnerId != ownerId)
-            return TaskResult<FederatedNodeRegistrationResponse>.FromFailure("Domain is already registered by another user.");
+
+        // Suspension is a staff decision. Re-registering and re-verifying must
+        // not be a self-service way to lift it.
+        if (existing?.Status == FederatedNodeStatus.Suspended)
+            return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
+                existing.OwnerId == ownerId
+                    ? "This community server is suspended."
+                    : "Domain is already registered by another user.");
+
+        var expired = existing is not null && IsExpiredPendingRegistration(existing, now);
+        if (existing is not null && existing.OwnerId != ownerId && !expired)
+        {
+            return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
+                existing.Status == FederatedNodeStatus.PendingVerification
+                    ? "Another account has an unverified registration for this domain. Unverified registrations expire 72 hours after they are created."
+                    : "Domain is already registered by another user.");
+        }
+
+        // A new or reclaimed domain counts against the caller's registration
+        // limit. Expired unverified registrations do not.
+        if (existing is null || expired)
+        {
+            var expiryCutoff = now - PendingRegistrationLifetime;
+            var held = await _db.FederatedNodes.CountAsync(x =>
+                x.OwnerId == ownerId &&
+                x.Domain != domain &&
+                (x.Status != FederatedNodeStatus.PendingVerification || x.CreatedAt > expiryCutoff));
+            if (held >= MaxRegistrationsPerOwner)
+            {
+                return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
+                    $"An account can register at most {MaxRegistrationsPerOwner} community servers. Unverified registrations expire 72 hours after they are created.");
+            }
+        }
 
         if (existing is null)
         {
@@ -59,20 +125,60 @@ public class FederationHubService
             {
                 Domain = domain,
                 OwnerId = ownerId,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = now,
             };
             await _db.FederatedNodes.AddAsync(existing);
         }
+        else if (expired)
+        {
+            // The previous registrant never proved control within the window,
+            // or abandoned a re-verification. When another account claims the
+            // domain, nothing the previous registrant configured carries over.
+            if (existing.OwnerId != ownerId)
+            {
+                await _db.FederatedMigrationHostingApprovals
+                    .Where(x => x.NodeDomain == domain)
+                    .ExecuteDeleteAsync();
 
-        // (Re)issue a challenge; verification resets on re-register
+                existing.OwnerId = ownerId;
+                existing.VerifiedAt = null;
+                existing.NodePublicJwk = null;
+                existing.ReportedVersion = null;
+                existing.LastSeenAt = null;
+                existing.AllowsPublicMigrations = false;
+                existing.VerificationChallenge = null;
+            }
+
+            existing.CreatedAt = now;
+        }
+        else if (existing.Status == FederatedNodeStatus.Active)
+        {
+            // Re-verification of a verified node (for example after a key or
+            // policy change) opens a new pending window, so the domain is not
+            // immediately claimable by someone else.
+            existing.CreatedAt = now;
+            existing.VerifiedAt = null;
+        }
+
+        // Keep an outstanding challenge stable so the operator does not have to
+        // reconfigure the node when re-registering during a pending window.
         existing.Status = FederatedNodeStatus.PendingVerification;
-        existing.VerificationChallenge = Guid.NewGuid().ToString("N");
-        existing.VerifiedAt = null;
+        if (string.IsNullOrWhiteSpace(existing.VerificationChallenge))
+            existing.VerificationChallenge = Guid.NewGuid().ToString("N");
 
         await _db.SaveChangesAsync();
 
         return TaskResult<FederatedNodeRegistrationResponse>.FromData(ToResponse(existing));
     }
+
+    /// <summary>
+    /// A pending registration older than <see cref="PendingRegistrationLifetime"/>
+    /// no longer reserves its domain. For a node that was verified before and is
+    /// re-verifying, the window starts when re-verification was requested.
+    /// </summary>
+    private static bool IsExpiredPendingRegistration(FederatedNode node, DateTime now) =>
+        node.Status == FederatedNodeStatus.PendingVerification &&
+        node.CreatedAt <= now - PendingRegistrationLifetime;
 
     /// <summary>
     /// Fetches the node's /.well-known/valour-node document and activates the
@@ -81,9 +187,15 @@ public class FederationHubService
     public async Task<TaskResult<FederatedNodeRegistrationResponse>> VerifyNodeAsync(long ownerId, string domain)
     {
         domain = NormalizeDomain(domain);
+        if (domain is null)
+            return TaskResult<FederatedNodeRegistrationResponse>.FromFailure("Node not found.");
+
         var node = await _db.FederatedNodes.FindAsync(domain);
         if (node is null || node.OwnerId != ownerId)
             return TaskResult<FederatedNodeRegistrationResponse>.FromFailure("Node not found.");
+
+        if (node.Status == FederatedNodeStatus.Suspended)
+            return TaskResult<FederatedNodeRegistrationResponse>.FromFailure("This community server is suspended.");
 
         if (string.IsNullOrWhiteSpace(node.VerificationChallenge))
             return TaskResult<FederatedNodeRegistrationResponse>.FromFailure("No pending challenge. Re-register first.");
@@ -103,16 +215,15 @@ public class FederationHubService
         FederatedNodeWellKnown wellKnown;
         try
         {
-            var client = _httpFactory.CreateClient("federation");
-            var json = await client.GetStringAsync(url);
-            wellKnown = JsonSerializer.Deserialize<FederatedNodeWellKnown>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            wellKnown = await FetchNodeDescriptorAsync(url);
         }
         catch (Exception e)
         {
+            // Exception text can describe the hub's network view (resolver,
+            // TLS, or connection errors). Keep it in the server log only.
             _logger.LogInformation(e, "Node verification fetch failed for {Domain}", domain);
             return TaskResult<FederatedNodeRegistrationResponse>.FromFailure(
-                $"Could not fetch {url}: {e.Message}");
+                $"Could not read a valid node descriptor from {url}. Check that it is publicly reachable over HTTPS.");
         }
 
         if (wellKnown?.Challenge != node.VerificationChallenge)
@@ -161,7 +272,7 @@ public class FederationHubService
     /// </summary>
     public async Task<TaskResult> SetNodeSuspendedAsync(string domain, bool suspended)
     {
-        var node = await _db.FederatedNodes.FindAsync(NormalizeDomain(domain));
+        var node = await FindNodeForStaffAsync(domain);
         if (node is null)
             return TaskResult.FromFailure("Node not found.");
 
@@ -169,17 +280,62 @@ public class FederationHubService
         {
             node.Status = FederatedNodeStatus.Suspended;
         }
+        else if (node.VerifiedAt is not null)
+        {
+            node.Status = FederatedNodeStatus.Active;
+        }
         else
         {
-            // Reinstate to Active if it was verified, else back to pending.
-            node.Status = node.VerifiedAt is not null
-                ? FederatedNodeStatus.Active
-                : FederatedNodeStatus.PendingVerification;
+            // An unverified node returns to a fresh pending window.
+            node.Status = FederatedNodeStatus.PendingVerification;
+            node.CreatedAt = DateTime.UtcNow;
         }
 
         await _db.SaveChangesAsync();
         _logger.LogInformation("Federated node {Domain} suspended={Suspended}", domain, suspended);
         return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Staff-only: removes a node registration so its domain can be registered
+    /// again, for example to resolve a disputed or squatted domain. A node that
+    /// still hosts planets or has a migration in progress must be suspended
+    /// instead, because deleting it would orphan those records.
+    /// </summary>
+    public async Task<TaskResult> DeleteNodeAsync(string domain)
+    {
+        var node = await FindNodeForStaffAsync(domain);
+        if (node is null)
+            return TaskResult.FromFailure("Node not found.");
+
+        if (await _db.FederatedPlanetStubs.AnyAsync(x => x.NodeDomain == node.Domain))
+            return TaskResult.FromFailure("This community server still hosts planets. Suspend it instead.");
+
+        if (await _db.FederatedMigrations.AnyAsync(x =>
+                x.TargetDomain == node.Domain && x.Status == FederatedMigrationStatus.Pending))
+        {
+            return TaskResult.FromFailure("This community server has a migration in progress. Suspend it instead.");
+        }
+
+        await _db.FederatedMigrationHostingApprovals
+            .Where(x => x.NodeDomain == node.Domain)
+            .ExecuteDeleteAsync();
+
+        _db.FederatedNodes.Remove(node);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Federated node {Domain} registration deleted by staff", node.Domain);
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Staff tools also need to reach rows that predate the current domain
+    /// rules, such as a registration that includes a port.
+    /// </summary>
+    private async Task<FederatedNode> FindNodeForStaffAsync(string domain)
+    {
+        var key = NormalizeDomain(domain) ?? domain?.Trim().ToLowerInvariant().TrimEnd('/');
+        return string.IsNullOrWhiteSpace(key) ? null : await _db.FederatedNodes.FindAsync(key);
     }
 
     public async Task<FederatedNodeRegistrationResponse> GetNodeStatusAsync(long ownerId, string domain)
@@ -239,21 +395,25 @@ public class FederationHubService
         if (node is null || node.OwnerId != nodeOwnerId)
             return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure("Node not found.");
 
-        if (request.PlanetId > 0)
-        {
-            var planetOwnerId = await _db.Planets.IgnoreQueryFilters()
-                .Where(x => x.Id == request.PlanetId)
-                .Select(x => (long?)x.OwnerId)
-                .FirstOrDefaultAsync();
-            if (planetOwnerId != request.OwnerId)
-                return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure(
-                    "That official planet does not belong to the supplied owner.");
-        }
+        // Only a node whose operator has proved control of the domain can
+        // accept planets.
+        if (node.Status != FederatedNodeStatus.Active)
+            return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure(
+                "Verify this community server before approving migrations.");
 
+        // The approval is stored as requested, without checking who owns the
+        // planet. Checking would tell the node owner whether an arbitrary
+        // planet belongs to an arbitrary account. An approval that does not
+        // match the planet's real owner never authorizes a migration, because
+        // CanHostMigrationAsync compares against the owner starting it.
         var approval = await _db.FederatedMigrationHostingApprovals
             .FindAsync(domain, request.OwnerId, request.PlanetId);
         if (approval is null)
         {
+            if (await _db.FederatedMigrationHostingApprovals.CountAsync(x => x.NodeDomain == domain) >= MaxHostingApprovalsPerNode)
+                return TaskResult<FederatedMigrationHostingApprovalResponse>.FromFailure(
+                    $"A community server can hold at most {MaxHostingApprovalsPerNode} migration approvals. Revoke unused approvals first.");
+
             approval = new FederatedMigrationHostingApproval
             {
                 NodeDomain = domain,
@@ -509,6 +669,25 @@ public class FederationHubService
             return null;
         }
 
+        // The node signs its own credentials, so the hub bounds their lifetime.
+        var validTo = result.SecurityToken.ValidTo;
+        if (validTo > DateTime.UtcNow.Add(MaxNodeTokenLifetime))
+        {
+            _logger.LogInformation("Node S2S token for {Domain} exceeded the maximum lifetime", claimedDomain);
+            return null;
+        }
+
+        // Nodes mint a fresh credential for every request. A credential id that
+        // was already used is a replay of a captured request.
+        if (_redis is not null &&
+            result.Claims.TryGetValue("jti", out var jtiRaw) &&
+            jtiRaw?.ToString() is { Length: > 0 } jti &&
+            !await FederationReplayCache.TryConsumeAsync(_redis, "node-s2s", claimedDomain, jti, validTo))
+        {
+            _logger.LogWarning("Replayed node S2S token rejected for {Domain}", claimedDomain);
+            return null;
+        }
+
         return claimedDomain;
     }
 
@@ -532,10 +711,7 @@ public class FederationHubService
 
         try
         {
-            var client = _httpFactory.CreateClient("federation");
-            var json = await client.GetStringAsync(url);
-            var current = JsonSerializer.Deserialize<FederatedNodeWellKnown>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var current = await FetchNodeDescriptorAsync(url);
 
             if (current is null ||
                 current.ProtocolVersion != ValourFederation.ProtocolVersion ||
@@ -634,6 +810,42 @@ public class FederationHubService
         if (!insecure && !uri.Host.Contains('.'))
             return null;
 
+        // Production nodes are reached on the default HTTPS port. An explicit
+        // port would let a registration make the hub probe arbitrary services
+        // on a public host. Dev/LAN mode keeps ports for local test servers.
+        if (!uri.IsDefaultPort && !insecure)
+            return null;
+
         return uri.IsDefaultPort ? uri.Host : $"{uri.Host}:{uri.Port}";
+    }
+
+    /// <summary>
+    /// Reads a node descriptor with a hard size limit. The domain is chosen by
+    /// the registrant, so the response is untrusted.
+    /// </summary>
+    private async Task<FederatedNodeWellKnown> FetchNodeDescriptorAsync(string url)
+    {
+        var client = _httpFactory.CreateClient("federation");
+        using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        response.EnsureSuccessStatusCode();
+
+        if (response.Content.Headers.ContentLength > MaxDescriptorBytes)
+            throw new InvalidDataException("The node descriptor is too large.");
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        var buffer = new byte[MaxDescriptorBytes + 1];
+        var length = 0;
+        int read;
+        while (length < buffer.Length &&
+               (read = await stream.ReadAsync(buffer.AsMemory(length, buffer.Length - length))) > 0)
+        {
+            length += read;
+        }
+
+        if (length > MaxDescriptorBytes)
+            throw new InvalidDataException("The node descriptor is too large.");
+
+        return JsonSerializer.Deserialize<FederatedNodeWellKnown>(buffer.AsSpan(0, length),
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 }

@@ -97,7 +97,8 @@ public class EmbedApiLiveTests : IAsyncLifetime
         using var interactionSub = hub.On<EmbedInteractionEvent>("InteractionEvent",
             e => interactionReceived.TrySetResult(e));
 
-        await hub.InvokeAsync("JoinInteractionGroup", _planet.Id);
+        // Interactions go to the message author's user group, which the
+        // client joined when it connected. No planet-wide group is involved.
 
         var interactResponse = await client.Http.PostAsJsonAsync("api/embed/interact", new EmbedInteractionRequest
         {

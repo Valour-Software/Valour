@@ -323,12 +323,23 @@ public class Node : ServiceBase // each node acts like a service
     /// bearer only authorizes a federation membership; planet and channel
     /// groups are joined explicitly after the membership checks succeed.
     /// </summary>
-    private Task<TaskResult> ConnectToUserChannel()
+    private async Task<TaskResult> ConnectToUserChannel()
     {
         if (IsExternal)
-            return Task.FromResult(TaskResult.SuccessResult);
+            return TaskResult.SuccessResult;
 
-        return ConnectToUserSignalRChannel();
+        var result = await ConnectToUserSignalRChannel();
+
+        // The user group requires a full-control token. An OAuth app with a
+        // narrower scope is refused with 403 but can still use planet and
+        // channel realtime, so that refusal does not fail the connection.
+        if (!result.Success && result.Code == 403)
+        {
+            LogWarning(result.Message);
+            return TaskResult.SuccessResult;
+        }
+
+        return result;
     }
 
     public void UpdateToken()

@@ -72,6 +72,14 @@ planets and allocates global planet IDs. Registry synchronization carries the
 metadata needed for discovery and routing. The community node owns the local
 planet data, while the hub records its destination.
 
+Registry entries follow the same name and description limits as official
+planets. A node may hold at most 1,000 entries and reserve at most 50 new planet
+IDs per hour. The name, description, and public, discoverable, and NSFW flags
+are the node operator's statement about its planet; the hub has no copy of the
+content to check them against. Discovery and public planet lookups only include
+planets on active nodes, so staff moderate a node that misreports its planets by
+suspending it.
+
 Account deletion uses durable, node-scoped delivery through `FederationPurgeService`.
 A community node processes the deletion records addressed to it. Outages therefore
 do not require the hub and every community server to be online at the same moment
@@ -106,6 +114,18 @@ refer to hub database rows. Attachment locations remain part of the imported dat
 Imported history carries `ImportSource` identifying the community domain. That
 records who supplied the history; the hub has not independently verified each
 author claim made by the community server.
+
+Accounts stay under hub control during pull-back. The hub keeps membership rows
+only for the planet owner and accounts with a hub-recorded membership for that
+planet on that node. It never creates or renames an account from node data.
+Content whose author is not an existing hub account is attributed to the Victor
+system account, and per-account state for such an author (reactions, boosts, bans
+against it, read state, and user mentions) is dropped. Thread and comment
+counters are recomputed from the imported rows. A planet vanity name that is
+invalid or already used on the hub is cleared, and the owner can choose a new
+one afterwards. The same vanity check applies when a community node imports a
+planet from the hub, where the node does create local records for the hub
+accounts the snapshot references.
 
 ## Planet-owned storage and voice
 

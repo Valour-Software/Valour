@@ -128,7 +128,13 @@ public class PlanetStorageService
         if (config is null)
             return TaskResult.FromFailure("No storage config for this planet.");
 
-        var client = CreateClient(config);
+        // DNS can change after the config was saved, so check again. The
+        // client's handler also pins each connection to a validated address.
+        var endpointCheck = await ValidateExternalUrlAsync(config.Endpoint, "Endpoint");
+        if (!endpointCheck.Success)
+            return TaskResult.FromFailure(endpointCheck.Message);
+
+        using var client = CreateClient(config);
         var key = $"valour-probe/{Guid.NewGuid():N}";
         var payload = "valour-storage-probe";
 
@@ -144,9 +150,24 @@ public class PlanetStorageService
                 DisablePayloadSigning = config.Endpoint.StartsWith("https", StringComparison.OrdinalIgnoreCase),
             });
 
-            using var response = await client.GetObjectAsync(config.Bucket, key);
-            using var reader = new StreamReader(response.ResponseStream);
-            var readBack = await reader.ReadToEndAsync();
+            string readBack;
+            using (var response = await client.GetObjectAsync(config.Bucket, key))
+            {
+                // Read at most one byte more than the probe payload so a
+                // misbehaving endpoint cannot stream an unbounded body.
+                var buffer = new byte[payload.Length + 1];
+                var total = 0;
+                while (total < buffer.Length)
+                {
+                    var read = await response.ResponseStream.ReadAsync(buffer.AsMemory(total));
+                    if (read == 0)
+                        break;
+
+                    total += read;
+                }
+
+                readBack = System.Text.Encoding.UTF8.GetString(buffer, 0, total);
+            }
 
             await client.DeleteObjectAsync(config.Bucket, key);
 
@@ -160,9 +181,30 @@ public class PlanetStorageService
         }
         catch (Exception e)
         {
+            // Transport errors can describe hosts and ports on the path, so
+            // the details stay in the server log.
             _logger.LogInformation(e, "Storage probe failed for planet {PlanetId}", planetId);
-            return TaskResult.FromFailure($"Probe failed: {e.Message}");
+            return TaskResult.FromFailure(DescribeProbeFailure(e));
         }
+    }
+
+    private static string DescribeProbeFailure(Exception e)
+    {
+        if (e is AmazonS3Exception s3Exception)
+        {
+            switch (s3Exception.ErrorCode)
+            {
+                case "AccessDenied":
+                case "InvalidAccessKeyId":
+                case "SignatureDoesNotMatch":
+                    return "Probe failed: the storage provider rejected the credentials.";
+                case "NoSuchBucket":
+                    return "Probe failed: the bucket was not found.";
+            }
+        }
+
+        return "Probe failed: the storage endpoint could not be reached or returned an error. " +
+               "Check the endpoint, bucket, region, and credentials.";
     }
 
     /// <summary>
@@ -194,7 +236,7 @@ public class PlanetStorageService
         var extension = SanitizeExtension(Path.GetExtension(request.FileName ?? ""));
         var key = $"valour-media/{planetId}/{userId}/{request.Sha256}{extension}";
 
-        var client = CreateClient(config);
+        using var client = CreateClient(config);
 
         var presign = new GetPreSignedUrlRequest
         {
@@ -258,6 +300,11 @@ public class PlanetStorageService
         {
             ServiceURL = config.Endpoint,
             ForcePathStyle = true,
+            // The endpoint is user-supplied: connect only to validated public
+            // addresses (unless insecure storage is enabled) and never follow
+            // redirects.
+            HttpClientFactory = new SsrfSafeS3HttpClientFactory(
+                allowPrivate: Valour.Config.Configs.CdnConfig.Current?.AllowInsecurePlanetStorage == true),
         };
 
         if (!string.IsNullOrWhiteSpace(config.Region))

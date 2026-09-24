@@ -10,11 +10,10 @@ import type {
 type RenderingModule = typeof import("../../../wwwroot/ts/VillageTileRendering.js");
 
 const renderingModulePath = "../../../ts/VillageTileRendering.js";
-const importModule = new Function("path", "return import(path)") as (path: string) => Promise<RenderingModule>;
 let renderingModulePromise: Promise<RenderingModule> | null = null;
 
 function loadRenderingModule(): Promise<RenderingModule> {
-    renderingModulePromise ??= importModule(renderingModulePath);
+    renderingModulePromise ??= import(renderingModulePath) as Promise<RenderingModule>;
     return renderingModulePromise;
 }
 

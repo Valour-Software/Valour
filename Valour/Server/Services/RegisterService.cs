@@ -64,11 +64,9 @@ public class RegisterService
 
         if (age < 13)
             return new TaskResult<User>(false, "You must be 13 to use Valour. Sorry!");
-        
-        var existingInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.Email.ToLower() == request.Email);
-        if (existingInfo != null)
-            return new(false, EmailAlreadyRegisteredCode);
 
+        // Every field is validated before the email is looked up, so an
+        // invalid request cannot be used to learn whether an email is taken.
         var emailValid = UserUtils.TestEmail(request.Email);
         if (!emailValid.Success)
             return new(false, emailValid.Message);
@@ -103,19 +101,33 @@ public class RegisterService
             if (referUser is null)
                 return new(false, "Referrer not found");
 
-            var month_refers = await _db.Referrals.CountAsync(x => x.Created > DateTime.UtcNow.AddDays(-30) && x.ReferrerId == referUser.Id);
-            
-            // Calculate referral reward
-            // reward is halved every 5 referrals in the month
-            // to prevent a streamer from wrecking the economy
-            var reward = 50.0m / (1 + (month_refers / 5));
-            
+            // The reward is decided and paid once the new account verifies its
+            // email (see UserService.PayReferralRewardAsync), not at sign-up.
             refer = new Valour.Database.Referral()
             {
                 ReferrerId = referUser.Id,
                 Created = DateTime.UtcNow,
-                Reward = reward,
+                Reward = 0,
             };
+        }
+
+        var existingInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.Email.ToLower() == request.Email.ToLower());
+        if (existingInfo != null)
+        {
+            if (existingInfo.Verified || !await IsAbandonedUnverifiedAccountAsync(existingInfo.UserId))
+                return new(false, EmailAlreadyRegisteredCode);
+
+            // Replace the abandoned account so whoever registered it first
+            // cannot keep a password on an address they may not own.
+            var stale = await _userService.GetAsync(existingInfo.UserId);
+            var removed = stale is null
+                ? TaskResult.FromFailure("User not found.")
+                : await _userService.HardDelete(stale);
+            if (!removed.Success)
+            {
+                _logger.LogError("Failed to replace abandoned unverified account {UserId}: {Message}", existingInfo.UserId, removed.Message);
+                return new(false, EmailAlreadyRegisteredCode);
+            }
         }
 
         var salt = PasswordManager.GenerateSalt();
@@ -147,17 +159,14 @@ public class RegisterService
             {
                 refer.UserId = user.Id;
                 await _db.Referrals.AddAsync(refer);
-                
-                var referAccount = await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == refer.ReferrerId && x.CurrencyId == ISharedCurrency.ValourCreditsId && x.AccountType == AccountType.User);
-                referAccount.BalanceValue += refer.Reward;
-
-                _db.EcoAccounts.Update(referAccount);
             }
+
+            var verifiedAtCreation = skipEmail || !EmailConfig.IsEnabled;
 
             UserPrivateInfo userPrivateInfo = new()
             {
                 Email = request.Email,
-                Verified = skipEmail || !EmailConfig.IsEnabled,
+                Verified = verifiedAtCreation,
                 UserId = user.Id,
                 BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
                 JoinInviteCode = request.InviteCode,
@@ -202,8 +211,12 @@ public class RegisterService
             };
         
             _db.EcoAccounts.Add(globalAccount);
-            
+
             await _db.SaveChangesAsync();
+
+            // Nodes without email verification have nothing to wait for
+            if (refer != null && verifiedAtCreation)
+                await _userService.PayReferralRewardAsync(user.Id);
             
             // Helper for dev environment
             if (!skipEmail && EmailConfig.IsEnabled)
@@ -296,6 +309,28 @@ public class RegisterService
         return TaskResult<User>.FromData(user);
     }
 
+    /// <summary>
+    /// Whether an unverified account can be replaced by a new registration for
+    /// the same email. An unverified account cannot sign in, so it holds nothing
+    /// worth keeping once its confirmation link has expired. The extra checks
+    /// keep any account that was somehow used out of reach.
+    /// </summary>
+    private async Task<bool> IsAbandonedUnverifiedAccountAsync(long userId)
+    {
+        var now = DateTime.UtcNow;
+
+        if (await _db.EmailConfirmCodes.AnyAsync(x => x.UserId == userId && x.ExpiresAt > now))
+            return false;
+
+        if (await _db.AuthTokens.AnyAsync(x => x.UserId == userId))
+            return false;
+
+        if (await _db.Planets.AnyAsync(x => x.OwnerId == userId))
+            return false;
+
+        return !await _db.Users.AnyAsync(x => x.Id == userId && (x.Bot || x.ValourStaff));
+    }
+
     public async Task<TaskResult> ResendRegistrationEmail(UserPrivateInfo userPrivateInfo, HttpContext ctx, RegisterUserRequest request)
     {
         await using var tran = await _db.Database.BeginTransactionAsync();
@@ -344,8 +379,9 @@ public class RegisterService
         string code,
         CancellationToken cancellationToken = default)
     {
-        var host = request.Host.ToUriComponent();
-        string link = $"{request.Scheme}://{host}/api/users/verify/{code}";
+        // Never build this from the request's Host header: a forged Host would
+        // send the verification code to someone else's site.
+        string link = $"{PublicLinks.GetApiBaseUrl(request)}/api/users/verify/{code}";
 
         string bodyContent = $@"
                 <h1 style='color: #333;'>Account Verification</h1>

@@ -9,7 +9,7 @@
 @using Valour.Shared.Cdn
 @using Valour.Shared.Models
 
-<InputFile id="@DropUploadInputId" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" onclick="this.value='';" OnChange="@LoadFiles"></InputFile>
+<InputFile id="@DropUploadInputId" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="@LoadFiles"></InputFile>
 
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")' style="@(_loading ? "pointer-events: none; opacity: 0.8" : string.Empty)">
     @if (CanUserPost && !_loading)
@@ -90,7 +90,7 @@
     <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
             <div class="textbox-wrapper">
-                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.WindowCtx.Id').focus()" autofocus>
+                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" autofocus>
                 </div>
                 @if (!CanUserPost)
                 {
@@ -113,7 +113,7 @@
 
         @if (DeviceInfo.IsMobile && CanUserPost){
             <div class="send-wrapper" @onclick="@OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true"
-                 onmousedown="event.preventDefault()">
+                 @onmousedown:preventDefault="true">
                 <div class="input-action-btn send-btn" role="button" aria-label="Send Message">
                     <i class="bi bi-send-fill"></i>
                 </div>

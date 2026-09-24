@@ -265,7 +265,9 @@
 
     private string BuildLastSeenText()
     {
-        if (User is null || User.UserStateCode != 1)
+        // The server withholds the activity time of users who appear offline
+        // from other viewers, which leaves it at its default value
+        if (User is null || User.UserStateCode != 1 || User.TimeLastActive == default)
             return string.Empty;
 
         var elapsed = DateTime.Now - User.TimeLastActive;

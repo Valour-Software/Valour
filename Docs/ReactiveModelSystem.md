@@ -19,6 +19,18 @@ Server service saves a change
 The server chooses the recipients. User groups use `u-{userId}`, planet groups
 use `p-{planetId}`, and channel groups use `c-{channelId}`. Joining a group goes
 through `CoreHub` authorization; knowing a group or model ID does not grant access.
+Each join also requires the token scope of the matching HTTP routes: full control
+for the user group, Membership for planets, Messages for planet channels, and
+DirectMessages for direct and group channels. A token without full control can
+still use planet and channel realtime; the SDK treats the refused user-group join
+(code 403) as non-fatal.
+
+Some planet events are not sent to the whole planet group. Channel updates and
+voice participant lists go only to members who can view the channel. Reports,
+automod rules, invites, bans, and eco transactions go only to members with the
+planet permission that the HTTP routes require (and, for transactions, to the two
+users involved). Embed interactions go only to the user group of the message's
+author. These filtered sends resolve permissions after the calling request returns.
 
 `Node` registers typed handlers named `{ModelType}-Update` and
 `{ModelType}-Delete`. An update carries the model and insertion flags. Deletion

@@ -112,6 +112,30 @@ Re-register and re-verify after changing the node's public signing key or
 `AllowPublicMigrations` policy. A domain must remain publicly reachable: the
 hub checks the live descriptor before issuing user credentials to that node.
 
+Registration rules:
+
+- The domain is a bare host name served on the default HTTPS port (443). The
+  hub does not accept a domain with another port.
+- An unverified registration reserves its domain for 72 hours. While it is
+  pending, other accounts cannot register the same domain. After 72 hours any
+  account may register it and verify it. Registering again during the window
+  keeps the same challenge and does not extend it.
+- One account can hold at most five registrations. Active, suspended, and
+  unexpired pending registrations count toward this limit.
+- A suspended node cannot be re-registered or re-verified by its owner. Only
+  staff can reinstate it.
+- Staff can delete a registration that hosts no planets and has no migration
+  in progress, which frees its domain. A node that hosts planets must be
+  suspended instead.
+- The hub reads at most 64 KB of the `/.well-known/valour-node` descriptor.
+  Verification errors describe what to check but do not include the hub's
+  internal network error.
+
+Hosting approvals can only be created for an active, verified node. The hub
+stores an approval exactly as entered and does not report whether the planet
+belongs to the approved owner. An approval takes effect only when that owner
+starts a migration of a planet they actually own.
+
 ## Planet-owner migration flow
 
 Only the planet owner can start a forward migration, and only from a planet
@@ -147,6 +171,11 @@ remove those blockers before starting the handoff.
   `/.well-known/valour-node`; the hub pins and continuously rechecks that key.
 - Hub-minted credentials are signed, short-lived, and valid only for the
   destination domain. The destination exchanges them for its own local session.
+  Each credential carries a unique id (`jti`) and the node accepts it for only
+  one exchange. Node-to-hub server credentials also carry a unique id, are
+  accepted once, and may not be valid for more than ten minutes. Both
+  single-use records are kept in the deployment's shared Redis until the
+  credential expires.
 - Joining a community node requires explicit domain acceptance. Community
   servers are independently operated and should be treated accordingly.
 - The Data Protection KEK encrypts federation signing material stored in a

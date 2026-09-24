@@ -469,4 +469,75 @@ public class PlanetSnapshotServiceTests : IAsyncLifetime
         Assert.False(export.Success);
         Assert.Contains("icon, background, or emoji", export.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task Import_DropsInvalidOrTakenVanity()
+    {
+        var export = await _snapshotService.ExportAsync(_planet.Id);
+        Assert.True(export.Success, export.Message);
+        var snapshot = export.Data!;
+        var sourceVanity = snapshot.Planet.Vanity;
+        Assert.False(string.IsNullOrEmpty(sourceVanity));
+        snapshot.SourceDomain = "community.example";
+        await DeletePlanetGraphAsync(_planet.Id);
+        _db.ChangeTracker.Clear();
+
+        // Another planet on this server already uses the name.
+        var holderId = IdManager.Generate();
+        await _db.Planets.AddAsync(new Valour.Database.Planet
+        {
+            Id = holderId, OwnerId = _owner.Id, Name = "Vanity holder", Description = "", Vanity = sourceVanity,
+        });
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var import = await _snapshotService.ImportAsync(snapshot, createMissingUsers: false);
+            Assert.True(import.Success, import.Message);
+            Assert.Null(await _db.Planets.IgnoreQueryFilters()
+                .Where(x => x.Id == _planet.Id).Select(x => x.Vanity).SingleAsync());
+        }
+        finally
+        {
+            await _db.Planets.IgnoreQueryFilters().Where(x => x.Id == holderId).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
+        }
+
+        var second = await _snapshotService.ExportAsync(_planet.Id);
+        Assert.True(second.Success, second.Message);
+        second.Data!.Planet.Vanity = "Not A Valid Name!";
+        second.Data.SourceDomain = "community.example";
+        await DeletePlanetGraphAsync(_planet.Id);
+        _db.ChangeTracker.Clear();
+
+        var invalid = await _snapshotService.ImportAsync(second.Data, createMissingUsers: false);
+        Assert.True(invalid.Success, invalid.Message);
+        Assert.Null(await _db.Planets.IgnoreQueryFilters()
+            .Where(x => x.Id == _planet.Id).Select(x => x.Vanity).SingleAsync());
+    }
+
+    [Fact]
+    public async Task Import_WithoutAccountCreation_RejectsUnknownAccounts()
+    {
+        var export = await _snapshotService.ExportAsync(_planet.Id);
+        Assert.True(export.Success, export.Message);
+        var snapshot = export.Data!;
+        var unknownUserId = IdManager.Generate();
+        snapshot.Messages.Add(new PlanetSnapshotMessage
+        {
+            Id = IdManager.Generate(), PlanetId = _planet.Id, ChannelId = _chatChannel.Id,
+            AuthorUserId = unknownUserId, Content = "From an unknown account", TimeSent = DateTime.UtcNow,
+        });
+        snapshot.Users.Add(new PlanetSnapshotUser { Id = unknownUserId, Name = "Invented", Tag = "0001" });
+        snapshot.SourceDomain = "community.example";
+        await DeletePlanetGraphAsync(_planet.Id);
+        _db.ChangeTracker.Clear();
+
+        var import = await _snapshotService.ImportAsync(snapshot, createMissingUsers: false);
+
+        Assert.False(import.Success);
+        Assert.Contains("do not exist", import.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(await _db.Users.AnyAsync(x => x.Id == unknownUserId));
+        Assert.False(await _db.Planets.IgnoreQueryFilters().AnyAsync(x => x.Id == _planet.Id));
+    }
 }

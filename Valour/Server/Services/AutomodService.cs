@@ -23,6 +23,7 @@ public class AutomodService
     private readonly IServiceProvider _serviceProvider;
     private readonly PlanetPermissionService _permissionService;
     private readonly ModerationAuditService _moderationAuditService;
+    private readonly HostedPlanetService _hostedPlanetService;
 
     public AutomodService(
         ValourDb db,
@@ -30,7 +31,8 @@ public class AutomodService
         CoreHubService coreHub,
         IServiceProvider serviceProvider,
         PlanetPermissionService permissionService,
-        ModerationAuditService moderationAuditService)
+        ModerationAuditService moderationAuditService,
+        HostedPlanetService hostedPlanetService)
     {
         _db = db;
         _logger = logger;
@@ -38,6 +40,104 @@ public class AutomodService
         _serviceProvider = serviceProvider;
         _permissionService = permissionService;
         _moderationAuditService = moderationAuditService;
+        _hostedPlanetService = hostedPlanetService;
+    }
+
+    /// <summary>
+    /// Returns the planet permission a member needs to configure an action of the given type,
+    /// or null if the action type does not act on members.
+    /// </summary>
+    private static PlanetPermission? GetRequiredPermission(AutomodActionType actionType) => actionType switch
+    {
+        AutomodActionType.Kick => PlanetPermissions.Kick,
+        AutomodActionType.Ban => PlanetPermissions.Ban,
+        AutomodActionType.AddRole or AutomodActionType.RemoveRole => PlanetPermissions.ManageRoles,
+        _ => null
+    };
+
+    /// <summary>
+    /// Checks that the acting member may configure the given action. Actions run later with
+    /// the authority of the member who configured them, so the same rules apply as when a
+    /// member performs the action by hand: they must hold the matching permission, and roles
+    /// must belong to the planet, must not be admin roles, and must be below the actor's authority.
+    /// </summary>
+    public async Task<TaskResult> ValidateActionAsync(AutomodAction action, PlanetMember actor)
+    {
+        if (action is null)
+            return TaskResult.FromFailure("Include action.");
+
+        if (actor is null || actor.PlanetId != action.PlanetId)
+            return TaskResult.FromFailure("You are not a member of this planet.");
+
+        var requiredPermission = GetRequiredPermission(action.ActionType);
+        if (requiredPermission is not null &&
+            !await _permissionService.HasPlanetPermissionAsync(actor, requiredPermission))
+        {
+            return TaskResult.FromFailure($"You need the {requiredPermission.Name} permission to configure this action.");
+        }
+
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(action.PlanetId);
+
+        if (action.ActionType is AutomodActionType.AddRole or AutomodActionType.RemoveRole)
+        {
+            if (action.RoleId is null)
+                return TaskResult.FromFailure("Select a role for this action.");
+
+            var role = hostedPlanet.GetRoleById(action.RoleId.Value);
+            if (role is null || role.PlanetId != action.PlanetId)
+                return TaskResult.FromFailure("Role not found in this planet.");
+
+            if (role.IsAdmin)
+                return TaskResult.FromFailure("Automod cannot add or remove admin roles.");
+
+            if (role.GetAuthority() >= await _permissionService.GetAuthorityAsync(actor))
+                return TaskResult.FromFailure("You can only use roles with a lower authority than your own.");
+        }
+
+        if (action.ActionType == AutomodActionType.Respond && action.ResponseChannelId is not null)
+        {
+            var channel = hostedPlanet.GetChannel(action.ResponseChannelId.Value);
+            if (channel is null || channel.ChannelType != ChannelTypeEnum.PlanetChat)
+                return TaskResult.FromFailure("Response channel not found in this planet.");
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Automod items run with the authority of the members who configured them. A member may
+    /// only change or remove items configured by members who do not outrank them.
+    /// </summary>
+    public async Task<TaskResult> CanModifyAsync(PlanetMember actor, IEnumerable<long> creatorMemberIds)
+    {
+        var actorAuthority = await _permissionService.GetAuthorityAsync(actor);
+        foreach (var creatorId in creatorMemberIds.Distinct())
+        {
+            if (creatorId == actor.Id)
+                continue;
+
+            var creator = (await _db.PlanetMembers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == creatorId))?.ToModel();
+            if (creator is null || creator.PlanetId != actor.PlanetId)
+                continue;
+
+            if (await _permissionService.GetAuthorityAsync(creator) > actorAuthority)
+                return TaskResult.FromFailure("This was configured by a member with higher authority than you.");
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Returns the members who configured the trigger and each of its actions.
+    /// </summary>
+    public async Task<List<long>> GetTriggerCreatorIdsAsync(AutomodTrigger trigger)
+    {
+        var creators = await _db.AutomodActions.AsNoTracking()
+            .Where(x => x.TriggerId == trigger.Id && x.PlanetId == trigger.PlanetId)
+            .Select(x => x.MemberAddedBy)
+            .ToListAsync();
+        creators.Add(trigger.MemberAddedBy);
+        return creators;
     }
 
     public async Task<AutomodTrigger?> GetTriggerAsync(Guid id) =>
@@ -214,6 +314,10 @@ public class AutomodService
         if (!migrationGuard.Success)
             return TaskResult<AutomodAction>.FromFailure(migrationGuard.Message);
 
+        var trigger = await _db.AutomodTriggers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == action.TriggerId);
+        if (trigger is null || trigger.PlanetId != action.PlanetId)
+            return TaskResult<AutomodAction>.FromFailure("Automod trigger not found in this planet.");
+
         action.Id = Guid.NewGuid();
         try
         {
@@ -304,14 +408,16 @@ public class AutomodService
         return triggers;
     }
 
-    private async Task<List<AutomodAction>> GetCachedActionsAsync(Guid triggerId)
+    private async Task<List<AutomodAction>> GetCachedActionsAsync(AutomodTrigger trigger)
     {
-        if (_actionCache.TryGetValue(triggerId, out var cached))
+        if (_actionCache.TryGetValue(trigger.Id, out var cached))
             return cached;
 
-        var actions = await _db.AutomodActions.Where(x => x.TriggerId == triggerId)
+        // Only actions from the trigger's own planet may run for it
+        var actions = await _db.AutomodActions
+            .Where(x => x.TriggerId == trigger.Id && x.PlanetId == trigger.PlanetId)
             .Select(x => x.ToModel()).ToListAsync();
-        _actionCache[triggerId] = actions;
+        _actionCache[trigger.Id] = actions;
         return actions;
     }
 
@@ -341,6 +447,69 @@ public class AutomodService
         _ => ModerationActionType.Respond
     };
 
+    /// <summary>
+    /// Returns the member who configured a member-targeted action if they may still apply it
+    /// to the target, or null if the action must be skipped. The owner and admins are never
+    /// targeted, and the configuring member must still be in the planet, still hold the
+    /// matching permission, and still outrank the target. Role actions additionally require
+    /// a non-admin role of this planet that is below the configuring member's authority.
+    /// </summary>
+    private async Task<PlanetMember?> GetAuthorizedIssuerAsync(
+        AutomodAction action,
+        PlanetMember target,
+        PlanetMemberService memberService)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(target.PlanetId);
+        string? skipReason = null;
+        PlanetMember? issuer = null;
+
+        if (action.PlanetId != target.PlanetId)
+        {
+            skipReason = "action belongs to another planet";
+        }
+        else if (hostedPlanet.Planet.OwnerId == target.UserId || await _permissionService.IsAdminAsync(target))
+        {
+            skipReason = "target is the planet owner or an admin";
+        }
+        else
+        {
+            issuer = await memberService.GetAsync(action.MemberAddedBy);
+            var requiredPermission = GetRequiredPermission(action.ActionType);
+
+            if (issuer is null || issuer.PlanetId != target.PlanetId)
+            {
+                skipReason = "configuring member is no longer in the planet";
+            }
+            else if (requiredPermission is not null &&
+                     !await _permissionService.HasPlanetPermissionAsync(issuer, requiredPermission))
+            {
+                skipReason = "configuring member no longer has permission";
+            }
+            else
+            {
+                var issuerAuthority = await _permissionService.GetAuthorityAsync(issuer);
+                if (issuerAuthority <= await _permissionService.GetAuthorityAsync(target))
+                {
+                    skipReason = "configuring member does not outrank the target";
+                }
+                else if (action.ActionType is AutomodActionType.AddRole or AutomodActionType.RemoveRole)
+                {
+                    var role = action.RoleId is null ? null : hostedPlanet.GetRoleById(action.RoleId.Value);
+                    if (role is null || role.IsAdmin || role.GetAuthority() >= issuerAuthority)
+                        skipReason = "role is missing, an admin role, or not below the configuring member";
+                }
+            }
+        }
+
+        if (skipReason is null)
+            return issuer;
+
+        _logger.LogWarning(
+            "Automod {ActionType} action {ActionId} skipped for member {MemberId}: {Reason}",
+            action.ActionType, action.Id, target.Id, skipReason);
+        return null;
+    }
+
     private async Task RunActionsAsync(IEnumerable<AutomodAction> actions, PlanetMember member, Message? message)
     {
         await using var scope = _serviceProvider.CreateAsyncScope();
@@ -357,6 +526,9 @@ public class AutomodService
                 {
                     case AutomodActionType.Kick:
                         {
+                            if (await GetAuthorizedIssuerAsync(action, member, memberService) is null)
+                                break;
+
                             var kickResult = await memberService.DeleteAsync(member.Id);
                             if (!kickResult.Success)
                             {
@@ -383,15 +555,9 @@ public class AutomodService
                         }
                     case AutomodActionType.Ban:
                         {
-                            var issuerMember = await memberService.GetAsync(action.MemberAddedBy);
+                            var issuerMember = await GetAuthorizedIssuerAsync(action, member, memberService);
                             if (issuerMember is null)
-                            {
-                                _logger.LogWarning(
-                                    "Automod ban action {ActionId} failed: issuer member {IssuerMemberId} not found",
-                                    action.Id,
-                                    action.MemberAddedBy);
                                 break;
-                            }
 
                             var ban = new PlanetBan
                             {
@@ -427,6 +593,9 @@ public class AutomodService
                                 break;
                             }
 
+                            if (await GetAuthorizedIssuerAsync(action, member, memberService) is null)
+                                break;
+
                             var addRoleResult = await memberService.AddRoleAsync(member.PlanetId, member.Id, action.RoleId.Value);
                             if (!addRoleResult.Success)
                             {
@@ -458,6 +627,9 @@ public class AutomodService
                                 _logger.LogWarning("Automod remove role action {ActionId} skipped: RoleId missing", action.Id);
                                 break;
                             }
+
+                            if (await GetAuthorizedIssuerAsync(action, member, memberService) is null)
+                                break;
 
                             var removeRoleResult = await memberService.RemoveRoleAsync(member.PlanetId, member.Id, action.RoleId.Value);
                             if (!removeRoleResult.Success)
@@ -542,7 +714,10 @@ public class AutomodService
                             ]
                         };
 
-                        var responseResult = await messageService.PostMessageAsync(response);
+                        // Responses are posted by Victor, who has no member to check MentionAll
+                        // against, so role mentions in the configured text never notify anyone.
+                        var responseResult = await messageService.PostMessageAsync(response,
+                            new MessageWriteOptions { SuppressRoleMentions = true });
                         if (!responseResult.Success)
                         {
                             _logger.LogWarning(
@@ -636,11 +811,18 @@ public class AutomodService
         return false;
     }
 
-    public async Task<MessageScanResult> ScanMessageAsync(Message message, PlanetMember member)
+    public async Task<MessageScanResult> ScanMessageAsync(Message message, PlanetMember member, bool isEdit = false)
     {
-        if (message.PlanetId is null || member is null)
+        if (message.PlanetId is null)
             return new MessageScanResult { AllowMessage = true }; // DMs are exempt
-        
+
+        // Webhook messages are posted as Victor without a member, but carry external content
+        if (message.WebhookId is not null)
+            return await ScanWebhookMessageAsync(message);
+
+        if (member is null)
+            return new MessageScanResult { AllowMessage = true };
+
         if (message.AuthorUserId == ISharedUser.VictorUserId)
             return new MessageScanResult { AllowMessage = true }; // Don't scan messages from Victor -- this would create an infinite loop
 
@@ -655,6 +837,8 @@ public class AutomodService
         var recent = await _serviceProvider.GetRequiredService<ChatCacheService>().GetLastMessagesAsync(message.ChannelId);
         var matchedTriggers = triggers
             .Where(t => t.Type != AutomodTriggerType.Join && CheckTrigger(t, message, recent))
+            // Spam triggers count recent posts, and an edit is not a new post.
+            .Where(t => !isEdit || t.Type != AutomodTriggerType.Spam)
             .ToList();
 
         if (matchedTriggers.Count == 0)
@@ -664,7 +848,7 @@ public class AutomodService
         var actionsByTrigger = new Dictionary<Guid, List<AutomodAction>>(matchedTriggers.Count);
         foreach (var trigger in matchedTriggers)
         {
-            actionsByTrigger[trigger.Id] = await GetCachedActionsAsync(trigger.Id);
+            actionsByTrigger[trigger.Id] = await GetCachedActionsAsync(trigger);
         }
 
         var now = DateTime.UtcNow;
@@ -735,6 +919,53 @@ public class AutomodService
         };
     }
 
+    /// <summary>
+    /// Scans a webhook message. Webhooks have no member, so content triggers apply to every
+    /// webhook message, strike counts cannot accumulate (only first-strike actions apply), and
+    /// only blocking actions take effect. Member-targeted actions such as kick, ban, and role
+    /// changes are never run. Spam triggers count messages per member and do not apply here;
+    /// webhook bursts are limited by the webhook rate limit instead.
+    /// </summary>
+    private async Task<MessageScanResult> ScanWebhookMessageAsync(Message message)
+    {
+        var planetId = message.PlanetId!.Value;
+        var triggers = (await GetCachedTriggersAsync(planetId))
+            .Where(t => t.Type is AutomodTriggerType.Blacklist or AutomodTriggerType.Command)
+            .ToList();
+        if (triggers.Count == 0)
+            return new MessageScanResult { AllowMessage = true };
+
+        var blockingActions = new List<AutomodAction>();
+
+        foreach (var trigger in triggers)
+        {
+            if (!CheckTrigger(trigger, message, null))
+                continue;
+
+            var actions = await GetCachedActionsAsync(trigger);
+            blockingActions.AddRange(FilterActionsByStrikes(actions, 1, 1)
+                .Where(a => IsMessageBlockAction(a.ActionType)));
+        }
+
+        foreach (var action in blockingActions)
+        {
+            await _moderationAuditService.LogAsync(
+                planetId,
+                ModerationActionSource.Automod,
+                ToAuditActionType(action.ActionType),
+                actorUserId: ISharedUser.VictorUserId,
+                messageId: message.Id,
+                triggerId: action.TriggerId,
+                details: action.Message);
+        }
+
+        return new MessageScanResult
+        {
+            AllowMessage = blockingActions.Count == 0,
+            BlockingActions = blockingActions
+        };
+    }
+
     public async Task HandleMemberJoinAsync(PlanetMember member)
     {
         var joinTriggers = (await GetCachedTriggersAsync(member.PlanetId))
@@ -751,7 +982,7 @@ public class AutomodService
         var actionsByTrigger = new Dictionary<Guid, List<AutomodAction>>(joinTriggers.Count);
         foreach (var trigger in joinTriggers)
         {
-            actionsByTrigger[trigger.Id] = await GetCachedActionsAsync(trigger.Id);
+            actionsByTrigger[trigger.Id] = await GetCachedActionsAsync(trigger);
         }
 
         var now = DateTime.UtcNow;

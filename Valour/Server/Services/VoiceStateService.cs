@@ -10,10 +10,21 @@ public class VoiceStateService
     private readonly IConnectionMultiplexer _redis;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly CoreHubService _coreHub;
+    private readonly IVoiceProvider _voiceProvider;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly ILogger<VoiceStateService> _logger;
 
     private static readonly TimeSpan UserKeyTtl = TimeSpan.FromSeconds(120);
     private const string UserSessionKeyPrefix = "voice:user:session:";
+
+    /// <summary>
+    /// Server mutes outlive a single call so leaving and rejoining does not
+    /// clear them, but expire eventually so abandoned entries do not pile up.
+    /// </summary>
+    private static readonly TimeSpan ServerMuteTtl = TimeSpan.FromDays(1);
+    private const string ServerMuteKeyPrefix = "voice:mute:";
+
+    private const int MinimumProviderParticipants = 2;
 
     /// <summary>
     /// Per-user lock to serialize join/leave operations and prevent races.
@@ -42,11 +53,15 @@ return oldChannelId
         IConnectionMultiplexer redis,
         HostedPlanetService hostedPlanetService,
         CoreHubService coreHub,
+        IVoiceProvider voiceProvider,
+        NodeLifecycleService nodeLifecycleService,
         ILogger<VoiceStateService> logger)
     {
         _redis = redis;
         _hostedPlanetService = hostedPlanetService;
         _coreHub = coreHub;
+        _voiceProvider = voiceProvider;
+        _nodeLifecycleService = nodeLifecycleService;
         _logger = logger;
     }
 
@@ -174,6 +189,74 @@ return oldChannelId
                 result.Add(userId);
         }
         return result;
+    }
+
+    /// <summary>
+    /// Returns the voice channel a user is currently registered in, if any.
+    /// </summary>
+    public async Task<long?> GetUserVoiceChannelAsync(long userId)
+    {
+        var db = _redis.GetDatabase(RedisDbTypes.Cluster);
+        var value = await db.StringGetAsync($"voice:user:{userId}");
+        return value.HasValue && long.TryParse((string?)value, out var channelId) ? channelId : null;
+    }
+
+    public async Task SetServerMutedAsync(long channelId, long userId, bool muted)
+    {
+        var db = _redis.GetDatabase(RedisDbTypes.Cluster);
+        var key = $"{ServerMuteKeyPrefix}{channelId}:{userId}";
+        if (muted)
+            await db.StringSetAsync(key, 1, ServerMuteTtl);
+        else
+            await db.KeyDeleteAsync(key);
+    }
+
+    public async Task<bool> IsServerMutedAsync(long channelId, long userId)
+    {
+        var db = _redis.GetDatabase(RedisDbTypes.Cluster);
+        return await db.KeyExistsAsync($"{ServerMuteKeyPrefix}{channelId}:{userId}");
+    }
+
+    /// <summary>
+    /// Removes a user from a planet's voice on the server's initiative, for
+    /// example after they lose membership or access to the channel. Clears the
+    /// tracked voice state, ejects every live session from the media backend, and
+    /// tells the user's clients they were removed. When
+    /// <paramref name="onlyChannelId"/> is set, nothing happens unless the user
+    /// is in that channel. Returns true when the user was in a matching channel.
+    /// </summary>
+    public async Task<bool> ForceRemoveUserAsync(long userId, long planetId, long? onlyChannelId = null)
+    {
+        var channelId = await GetUserVoiceChannelAsync(userId);
+        if (channelId is null || (onlyChannelId is not null && channelId != onlyChannelId))
+            return false;
+
+        var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
+        if (hosted.GetChannel(channelId.Value) is null)
+            return false;
+
+        await UserLeaveVoiceChannelAsync(userId, channelId.Value, planetId);
+        await _voiceProvider.KickUserFromTrackedChannelAsync(channelId.Value, userId);
+
+        var remaining = await GetChannelParticipantsAsync(channelId.Value);
+        if (remaining.Count < MinimumProviderParticipants)
+        {
+            await _voiceProvider.CloseTrackedMeetingAsync(
+                channelId.Value,
+                "a participant lost access and fewer than two remain");
+        }
+
+        await _nodeLifecycleService.RelayUserEventAsync(
+            userId,
+            NodeLifecycleService.NodeEventType.VoiceModeration,
+            new VoiceModerationEvent
+            {
+                ChannelId = channelId.Value,
+                TargetUserId = userId,
+                Action = VoiceModerationActionType.Kick
+            });
+
+        return true;
     }
 
     private void BroadcastChannelParticipants(HostedPlanet hosted, long channelId, long planetId)

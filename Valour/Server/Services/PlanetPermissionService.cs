@@ -28,12 +28,14 @@ public class PlanetPermissionService
     private readonly CoreHubService _coreHub;
     private readonly SignalRConnectionService _connectionTracker;
     private readonly ILogger<PlanetPermissionService> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public PlanetPermissionService(ValourDb db, HostedPlanetService hostedPlanetService,
         ILogger<PlanetPermissionService> logger, CoreHubService coreHub,
-        SignalRConnectionService connectionTracker)
+        SignalRConnectionService connectionTracker, IServiceScopeFactory scopeFactory)
     {
         _db = db;
+        _scopeFactory = scopeFactory;
         _hostedPlanetService = hostedPlanetService;
         _logger = logger;
         _coreHub = coreHub;
@@ -199,6 +201,47 @@ public class PlanetPermissionService
             foreach (var inheritorId in inheritors)
                 await NotifyChannelAccessChangeAsync(hostedPlanet, inheritorId, affected);
         }
+
+        await RemoveFromCallsWithoutJoinAsync(hostedPlanet, affected);
+    }
+
+    /// <summary>
+    /// Removes members from their current call in this planet when they can no longer
+    /// join its channel. Losing View is handled by channel eviction; this covers members
+    /// who keep View but lose Join, since a connected call would otherwise continue.
+    /// </summary>
+    private async Task RemoveFromCallsWithoutJoinAsync(HostedPlanet hostedPlanet, IReadOnlyList<PlanetMember> members)
+    {
+        if (members.Count == 0)
+            return;
+
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var voiceState = scope.ServiceProvider.GetRequiredService<VoiceStateService>();
+
+            for (int i = 0; i < members.Count; i++)
+            {
+                var member = members[i];
+                var channelId = await voiceState.GetUserVoiceChannelAsync(member.UserId);
+                if (channelId is null)
+                    continue;
+
+                var channel = hostedPlanet.GetChannel(channelId.Value);
+                if (channel is null || !ISharedChannel.IsPlanetCallType(channel.ChannelType))
+                    continue;
+
+                if (await HasChannelPermissionAsync(member, channel, VoiceChannelPermissions.Join))
+                    continue;
+
+                await voiceState.ForceRemoveUserAsync(member.UserId, hostedPlanet.Id, channel.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to remove members without join permission from calls in planet {PlanetId}",
+                hostedPlanet.Id);
+        }
     }
 
     /// <summary>
@@ -250,6 +293,8 @@ public class PlanetPermissionService
 
         if (oldMember.RoleMembership == newMember.RoleMembership)
             return;
+
+        await RemoveFromCallsWithoutJoinAsync(hostedPlanet, [newMember]);
 
         // Only live planet connections can receive channel visibility updates.
         var connected = _connectionTracker.GetConnectedPlanetMembers(hostedPlanet.Id);
@@ -323,6 +368,8 @@ public class PlanetPermissionService
 
         foreach (var channel in hostedPlanet.Channels.List)
             await NotifyChannelAccessChangeAsync(hostedPlanet, channel.Id, affected);
+
+        await RemoveFromCallsWithoutJoinAsync(hostedPlanet, affected);
     }
 
     /// <summary>
@@ -339,6 +386,9 @@ public class PlanetPermissionService
         }
 
         hostedPlanet.PermissionCache.ClearAllChannelAccessRoleComboCache();
+
+        await RemoveFromCallsWithoutJoinAsync(hostedPlanet,
+            GetConnectedMembersWithRole(hostedPlanet, role.FlagBitIndex));
     }
     
     /// <summary>
@@ -491,13 +541,19 @@ public class PlanetPermissionService
     }
 
     /// <summary>
+    /// Returns the channels the given member can view, without a database member lookup.
+    /// </summary>
+    public ValueTask<ModelListSnapshot<Channel, long>?> GetChannelAccessAsync(PlanetMember member) =>
+        GetChannelAccessForMemberAsync(ToStub(member));
+
+    /// <summary>
     /// Computes channel access for an already-resolved member. The member may be a tracked
     /// database entity or a lightweight stub built from the in-memory member cache; only
     /// <see cref="Valour.Database.PlanetMember.Id"/>, <c>UserId</c>, <c>PlanetId</c> and
     /// <c>RoleMembership</c> are read. This lets hot paths (connected viewers, permission-change
     /// notifications) avoid a per-member database lookup.
     /// </summary>
-    private async ValueTask<ModelListSnapshot<Channel, long>?> GetChannelAccessForMemberAsync(
+    public async ValueTask<ModelListSnapshot<Channel, long>?> GetChannelAccessForMemberAsync(
         Valour.Database.PlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
@@ -764,6 +820,39 @@ public class PlanetPermissionService
     public async ValueTask<bool> IsAdminAsync(ISharedPlanetMember member)
     {
         return await GetPlanetPermissionsAsync(member) == Permission.FULL_CONTROL;
+    }
+
+    /// <summary>
+    /// Returns the permissions the member holds through their roles, before any channel
+    /// permission nodes apply. A null channel type returns planet permissions; otherwise the
+    /// base permissions for that channel type are returned. Owners and admins hold every bit.
+    /// </summary>
+    public async ValueTask<long> GetRolePermissionsAsync(ISharedPlanetMember member, ChannelTypeEnum? channelType = null)
+    {
+        if (channelType is null)
+            return await GetPlanetPermissionsAsync(member);
+
+        if (member is null)
+            return 0;
+
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+        if (member.UserId == hostedPlanet.Planet.OwnerId)
+            return Permission.FULL_CONTROL;
+
+        long permissions = 0;
+        foreach (var roleIndex in member.RoleMembership.EnumerateRoleIndices())
+        {
+            var role = hostedPlanet.GetRoleByIndex(roleIndex);
+            if (role is null)
+                continue;
+
+            if (role.IsAdmin)
+                return Permission.FULL_CONTROL;
+
+            permissions |= PermissionCalculator.GetRoleChannelPermissions(role, channelType.Value);
+        }
+
+        return permissions;
     }
 
     private async ValueTask<long> GetPlanetPermissionsAsync(ISharedPlanetMember member)

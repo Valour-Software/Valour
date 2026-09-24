@@ -445,7 +445,16 @@ public class PlanetService
         data.Roles = hostedPlanet.Roles.List;
         data.Emojis = hostedPlanet.Emojis.List;
         data.Rules = hostedPlanet.Rules.List;
-        data.VoiceParticipants = hostedPlanet.GetAllVoiceParticipants();
+
+        // Only report who is in the voice channels this member can see.
+        var voiceParticipants = hostedPlanet.GetAllVoiceParticipants();
+        foreach (var channelId in voiceParticipants.Keys.ToList())
+        {
+            if (channels is null || !channels.Contains(channelId))
+                voiceParticipants.Remove(channelId);
+        }
+
+        data.VoiceParticipants = voiceParticipants;
 
         return data;
     }

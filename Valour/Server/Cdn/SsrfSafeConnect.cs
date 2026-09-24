@@ -16,6 +16,10 @@ public static class SsrfSafeConnect
         var handler = new SocketsHttpHandler
         {
             AllowAutoRedirect = false,
+            // An ambient HTTP(S)_PROXY would make the handler dial the proxy
+            // instead of the target, so the callback below would validate the
+            // proxy's address while the proxy fetched any destination.
+            UseProxy = false,
             ConnectCallback = async (context, cancellationToken) =>
             {
                 var host = context.DnsEndPoint.Host;

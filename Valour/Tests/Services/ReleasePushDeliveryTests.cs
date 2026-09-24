@@ -65,7 +65,7 @@ public class ReleasePushDeliveryTests
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var delivery = Create(handler, key);
         var service = new PushNotificationService(NullLogger<PushNotificationService>.Instance, null!, null!, null!, delivery);
-        var subscriptions = Enumerable.Range(0, 32).Select(i => Subscription($"https://push.example.com/{(i == 0 ? "failure" : i.ToString())}")).ToArray();
+        var subscriptions = Enumerable.Range(0, 32).Select(i => Subscription($"https://updates.push.services.mozilla.com/{(i == 0 ? "failure" : i.ToString())}")).ToArray();
         await service.SendParallelNotificationsAsync(subscriptions, "payload");
         Assert.Equal(32, handler.Requests.Count);
         Assert.Equal(31, handler.Delivered);
@@ -90,7 +90,24 @@ public class ReleasePushDeliveryTests
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var delivery = Create(handler, key);
         var service = new PushNotificationService(NullLogger<PushNotificationService>.Instance, null!, null!, null!, delivery);
-        await service.SendParallelNotificationsAsync([Subscription("https://push.example.com/failure"), Subscription("https://push.example.com/healthy")], "payload");
+        await service.SendParallelNotificationsAsync([Subscription("https://updates.push.services.mozilla.com/failure"), Subscription("https://updates.push.services.mozilla.com/healthy")], "payload");
+        Assert.Equal(1, handler.Delivered);
+    }
+
+    [Fact]
+    public async Task StoredEndpointOutsidePushServices_IsNeverContacted()
+    {
+        var handler = new Handler();
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var delivery = Create(handler, key);
+        var service = new PushNotificationService(NullLogger<PushNotificationService>.Instance, null!, null!, null!, delivery);
+        await service.SendParallelNotificationsAsync(
+        [
+            Subscription("http://169.254.169.254/latest/meta-data"),
+            Subscription("https://internal.example.com/push"),
+            Subscription("https://fcm.googleapis.com/fcm/send/healthy")
+        ], "payload");
+        Assert.Single(handler.Requests);
         Assert.Equal(1, handler.Delivered);
     }
 
@@ -133,7 +150,7 @@ public class ReleasePushDeliveryTests
             cancellationToken.ThrowIfCancellationRequested();
             var body = await request.Content!.ReadAsByteArrayAsync(cancellationToken);
             Requests.Add((request.Headers.Authorization!.Scheme, request.Headers.Authorization.Parameter!, request.Content.Headers.ContentEncoding.Single(), body.Length));
-            if (request.RequestUri!.AbsolutePath == "/failure")
+            if (request.RequestUri!.AbsolutePath.EndsWith("/failure", StringComparison.Ordinal))
             {
                 if (Failure == Failure.Timeout) throw new TaskCanceledException("Simulated provider timeout");
                 if (Failure == Failure.Transport) throw new HttpRequestException("Simulated connection failure");

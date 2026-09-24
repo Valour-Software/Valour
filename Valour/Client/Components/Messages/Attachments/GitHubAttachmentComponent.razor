@@ -42,13 +42,13 @@
         var gistScriptSrc = GetGistScriptSrc();
         if (!string.IsNullOrWhiteSpace(gistScriptSrc))
         {
-            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, null, gistScriptSrc);
+            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, null, gistScriptSrc, "github");
             return;
         }
 
         if (!string.IsNullOrEmpty(Attachment.Data))
         {
-            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Data, null);
+            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Data, null, "github");
         }
     }
 

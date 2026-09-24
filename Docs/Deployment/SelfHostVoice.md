@@ -16,6 +16,14 @@ The Valour server signs participant tokens and uses LiveKit's room API for
 moderation and cleanup. In this bundle it reaches that API at
 `http://livekit:7880` over the Compose network.
 
+Participant tokens expire five minutes after issue. A client uses its token only
+to connect, and it requests a new one each time it joins. A server mute revokes
+the member's publish permission through the room API and makes later tokens for
+that channel listen-only until they are unmuted, so a muted member cannot publish
+audio or video. Members who leave the planet or lose access to the channel are
+removed from the room, and the cleanup worker removes anyone connected to a room
+without a matching Valour voice registration.
+
 ## Configure DNS and ports
 
 Point `voice.your-domain.example` at the machine running the stack, in addition

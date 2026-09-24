@@ -4,6 +4,7 @@ using StackExchange.Redis;
 using Valour.Config.Configs;
 using Valour.Sdk.Models.Embeds;
 using Valour.Server.Hubs;
+using Valour.Shared.Authorization;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
 using Notification = Valour.Server.Models.Notification;
@@ -25,6 +26,7 @@ public class CoreHubService
     private readonly IHubContext<CoreHub> _hub;
     private readonly ValourDb _db;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
     private readonly ChannelWatchingService _channelWatchingService;
@@ -46,6 +48,9 @@ public class CoreHubService
         _db = db;
         _hub = hub;
         _serviceProvider = serviceProvider;
+        // Filtered sends finish after the calling request, so they need a scope
+        // factory that stays valid when the request scope is disposed.
+        _scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
         _redis = redis;
         _connectionTracker = connectionTracker;
         _channelWatchingService = channelWatchingService;
@@ -280,7 +285,7 @@ public class CoreHubService
         _ = _hub.Clients.Group($"u-{userId}").SendAsync("Voice-Session-Replace", update);
 
     public void NotifyVoiceChannelParticipants(long planetId, VoiceChannelParticipantsUpdate update) =>
-        _ = _hub.Clients.Group($"p-{planetId}").SendAsync("Voice-Channel-Participants", update);
+        SendToPlanetMembers(planetId, "Voice-Channel-Participants", [update], channelId: update.ChannelId);
 
     // Village presence is scoped to a map group rather than the whole planet:
     // a member walking around an outdoor map should not wake up every client
@@ -301,16 +306,176 @@ public class CoreHubService
             .SendAsync("Village-Presence-Left", left);
 
     public void NotifyPlanetItemChange<T>(long planetId, T model, int flags = 0) =>
-        _ = _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
-    
-    public async void NotifyPlanetItemChange<T>(T model, int flags = 0) where T : ISharedPlanetModel => 
-        await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
+        SendPlanetItemEvent(planetId, model, $"{typeof(T).Name}-Update", [model, flags], isUpdate: true);
+
+    public void NotifyPlanetItemChange<T>(T model, int flags = 0) where T : ISharedPlanetModel =>
+        SendPlanetItemEvent(model.PlanetId, model, $"{typeof(T).Name}-Update", [model, flags], isUpdate: true);
 
     public void NotifyPlanetItemDelete<T>(T model) where T : ISharedPlanetModel =>
-        _ = _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{typeof(T).Name}-Delete", model);
-    
+        SendPlanetItemEvent(model.PlanetId, model, $"{typeof(T).Name}-Delete", [model], isUpdate: false);
+
     public void NotifyPlanetItemDelete<T>(long planetId, T model) =>
-        _ = _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Delete", model);
+        SendPlanetItemEvent(planetId, model, $"{typeof(T).Name}-Delete", [model], isUpdate: false);
+
+    /// <summary>
+    /// Planet models that are only readable with a planet permission over HTTP.
+    /// Their realtime events go to the members holding that permission instead
+    /// of the whole planet group.
+    /// </summary>
+    private static PlanetPermission GetRequiredPlanetPermission(object model) => model switch
+    {
+        PlanetReport => PlanetPermissions.ViewReports,
+        AutomodTrigger or AutomodAction => PlanetPermissions.Manage,
+        PlanetInvite => PlanetPermissions.Invite,
+        PlanetBan => PlanetPermissions.Ban,
+        _ => null,
+    };
+
+    private void SendPlanetItemEvent(long planetId, object model, string method, object[] args, bool isUpdate)
+    {
+        // Channel updates reveal private channels, so only members who can view
+        // the channel receive them.
+        if (isUpdate && model is Channel { PlanetId: not null } channel)
+        {
+            SendToPlanetMembers(planetId, method, args, channelId: channel.Id);
+            return;
+        }
+
+        var permission = GetRequiredPlanetPermission(model);
+        if (permission is not null)
+        {
+            SendToPlanetMembers(planetId, method, args, permission);
+            return;
+        }
+
+        _ = _hub.Clients.Group($"p-{planetId}").SendCoreAsync(method, args);
+    }
+
+    /// <summary>
+    /// Sends an event to the connections in a planet's group whose member passes
+    /// the given checks: a planet permission, view access to a channel, or both.
+    /// Planet groups live on the planet's host, so the member list and the
+    /// permission caches used here are local.
+    /// </summary>
+    private void SendToPlanetMembers(
+        long planetId,
+        string method,
+        object[] args,
+        PlanetPermission permission = null,
+        long? channelId = null,
+        IReadOnlyCollection<long> excludeUserIds = null)
+    {
+        var groupId = $"p-{planetId}";
+        var members = _connectionTracker.GetGroupMembers(groupId);
+        if (members.Length == 0)
+            return;
+
+        // Filtering is asynchronous, so sends for one planet are chained to keep
+        // their original order. Otherwise a later voice participant list could
+        // overtake an earlier one and leave clients with stale state.
+        lock (FilteredSendChainLock)
+        {
+            var previous = FilteredSendChains.GetValueOrDefault(planetId) ?? Task.CompletedTask;
+            Task next = null;
+            next = RunAfterAsync(previous, async () =>
+            {
+                await SendToPlanetMembersAsync(
+                    planetId, groupId, members, method, args, permission, channelId, excludeUserIds);
+
+                lock (FilteredSendChainLock)
+                {
+                    if (FilteredSendChains.TryGetValue(planetId, out var latest) && ReferenceEquals(latest, next))
+                        FilteredSendChains.Remove(planetId);
+                }
+            });
+            FilteredSendChains[planetId] = next;
+        }
+    }
+
+    private static readonly object FilteredSendChainLock = new();
+    private static readonly Dictionary<long, Task> FilteredSendChains = new();
+
+    private static async Task RunAfterAsync(Task previous, Func<Task> work)
+    {
+        // Leave the caller (and its lock) before doing any work.
+        await Task.Yield();
+
+        // The previous send handles its own failures, so it never faults here.
+        await previous;
+        await work();
+    }
+
+    private async Task SendToPlanetMembersAsync(
+        long planetId,
+        string groupId,
+        (long UserId, long MemberId)[] members,
+        string method,
+        object[] args,
+        PlanetPermission permission,
+        long? channelId,
+        IReadOnlyCollection<long> excludeUserIds)
+    {
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var hostedPlanetService = scope.ServiceProvider.GetRequiredService<HostedPlanetService>();
+            var permissionService = scope.ServiceProvider.GetRequiredService<PlanetPermissionService>();
+
+            var hosted = (await hostedPlanetService.TryGetAsync(planetId)).HostedPlanet;
+            if (hosted is null)
+                return;
+
+            HashSet<long> allowed;
+            if (channelId is not null)
+            {
+                var viewers = await permissionService.GetChannelViewerUserIdsAsync(hosted, [channelId.Value]);
+                allowed = viewers[0].ToHashSet();
+            }
+            else
+            {
+                allowed = new HashSet<long>(members.Length);
+                foreach (var member in members)
+                    allowed.Add(member.UserId);
+            }
+
+            if (permission is not null)
+            {
+                foreach (var (userId, memberId) in members)
+                {
+                    if (!allowed.Contains(userId))
+                        continue;
+
+                    var hasPermission = hosted.TryGetMember(memberId, out var cachedMember)
+                        ? await permissionService.HasPlanetPermissionAsync(cachedMember, permission)
+                        : await permissionService.HasPlanetPermissionAsync(memberId, permission);
+
+                    if (!hasPermission)
+                        allowed.Remove(userId);
+                }
+            }
+
+            if (excludeUserIds is not null)
+                allowed.ExceptWith(excludeUserIds);
+
+            if (allowed.Count == 0)
+                return;
+
+            var connections = new List<string>();
+            foreach (var connectionId in _connectionTracker.GetGroupConnections(groupId))
+            {
+                var token = _connectionTracker.GetToken(connectionId);
+                if (token is not null && allowed.Contains(token.UserId))
+                    connections.Add(connectionId);
+            }
+
+            if (connections.Count > 0)
+                await _hub.Clients.Clients(connections).SendCoreAsync(method, args);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send {Method} to permitted members of planet {PlanetId}", method, planetId);
+        }
+    }
 
     public void NotifyChannelChange(Channel channel, IReadOnlyList<long> recipientUserIds, int flags = 0)
     {
@@ -346,16 +511,38 @@ public class CoreHubService
         if (userIds.Count == 0)
             return;
 
-        var planetId = await _db.Channels.AsNoTracking()
+        var channel = await _db.Channels.AsNoTracking()
+            .IgnoreQueryFilters()
             .Where(x => x.Id == channelId)
-            .Select(x => x.PlanetId)
+            .Select(x => new { x.PlanetId })
             .FirstOrDefaultAsync();
-        if (planetId is null)
+        if (channel is null)
             return;
 
+        if (channel.PlanetId is null)
+        {
+            // Direct and group channels are joined through each user's primary
+            // node rather than a planet host, so the eviction follows the user.
+            foreach (var userId in userIds.Distinct())
+            {
+                await _nodeLifecycleService.RelayUserEventAsync(
+                    userId,
+                    NodeLifecycleService.NodeEventType.ChannelRealtimeEviction,
+                    new ChannelEvictionPayload(channelId, [userId]));
+            }
+
+            return;
+        }
+
         await _nodeLifecycleService.EvictUsersFromChannelRealtimeAsync(
-            planetId.Value, channelId, userIds);
+            channel.PlanetId.Value, channelId, userIds);
     }
+
+    /// <summary>
+    /// Matches the payload shape <see cref="NodeLifecycleService"/> reads for
+    /// <see cref="NodeLifecycleService.NodeEventType.ChannelRealtimeEviction"/>.
+    /// </summary>
+    private sealed record ChannelEvictionPayload(long ChannelId, long[] UserIds);
 
     /// <summary>
     /// Removes a former planet member from every realtime group that can
@@ -376,7 +563,6 @@ public class CoreHubService
     public async Task EvictUserFromPlanetRealtimeLocalAsync(long planetId, long userId)
     {
         await EvictUsersFromGroupAsync($"p-{planetId}", [userId]);
-        await EvictUsersFromGroupAsync($"i-{planetId}", [userId]);
 
         var channelIds = await _db.Channels.AsNoTracking()
             .Where(x => x.PlanetId == planetId)
@@ -385,14 +571,61 @@ public class CoreHubService
 
         foreach (var channelId in channelIds)
             await EvictUsersFromGroupAsync($"c-{channelId}", [userId]);
+
+        // Village presence uses one group per map.
+        var villagePrefix = $"v-{planetId}-";
+        foreach (var groupId in _connectionTracker.GetUserGroups(userId))
+        {
+            if (groupId.StartsWith(villagePrefix, StringComparison.Ordinal))
+                await EvictUsersFromGroupAsync(groupId, [userId]);
+        }
+
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+
+            var presence = scope.ServiceProvider.GetRequiredService<Villages.VillagePresenceService>();
+            if (await presence.LeaveAllAsync(planetId, userId))
+            {
+                await scope.ServiceProvider.GetRequiredService<Villages.VillageRoomService>()
+                    .ReleaseAllForUserAsync(userId, planetId);
+            }
+
+            await scope.ServiceProvider.GetRequiredService<VoiceStateService>()
+                .ForceRemoveUserAsync(userId, planetId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to remove user {UserId} from village or voice on planet {PlanetId}",
+                userId, planetId);
+        }
     }
 
     /// <summary>
     /// Executes a channel eviction on its hosting node. The public counterpart
     /// first routes to that node through <see cref="NodeLifecycleService"/>.
+    /// Users who lose a voice or video channel are also removed from its call.
     /// </summary>
-    public Task EvictUsersFromChannelGroupLocalAsync(long channelId, IReadOnlyList<long> userIds) =>
-        EvictUsersFromGroupAsync($"c-{channelId}", userIds);
+    public async Task EvictUsersFromChannelGroupLocalAsync(long channelId, IReadOnlyList<long> userIds)
+    {
+        await EvictUsersFromGroupAsync($"c-{channelId}", userIds);
+
+        var planetId = await GetPlanetIdForChannel(channelId);
+        if (planetId is null || userIds.Count == 0)
+            return;
+
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var voiceState = scope.ServiceProvider.GetRequiredService<VoiceStateService>();
+            foreach (var userId in userIds)
+                await voiceState.ForceRemoveUserAsync(userId, planetId.Value, channelId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to remove evicted users from voice channel {ChannelId}", channelId);
+        }
+    }
 
     private async Task EvictUsersFromGroupAsync(string groupId, IReadOnlyList<long> userIds)
     {
@@ -434,8 +667,35 @@ public class CoreHubService
     public void NotifyPlanetDelete(Planet item) =>
         _ = _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Delete", item);
     
+    /// <summary>
+    /// Delivers an embed interaction only to the author of the embed's message.
+    /// Interactions can carry form input, which no other member should see.
+    /// </summary>
     public void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>
-        _ = _hub.Clients.Group($"i-{interaction.PlanetId}").SendAsync("InteractionEvent", interaction);
+        _ = NotifyInteractionEventAsync(interaction);
+
+    private async Task NotifyInteractionEventAsync(EmbedInteractionEvent interaction)
+    {
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            var authorUserId = await db.PlanetMembers
+                .AsNoTracking()
+                .Where(x => x.Id == interaction.AuthorMemberId && x.PlanetId == interaction.PlanetId)
+                .Select(x => (long?)x.UserId)
+                .FirstOrDefaultAsync();
+
+            if (authorUserId is null)
+                return;
+
+            await _hub.Clients.Group($"u-{authorUserId.Value}").SendAsync("InteractionEvent", interaction);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to deliver embed interaction for message {MessageId}", interaction.MessageId);
+        }
+    }
 
     public void NotifyMessageDeletion(Message message) =>
         _ = _hub.Clients.Group($"c-{message.ChannelId}").SendAsync("DeleteMessage", message);
@@ -553,9 +813,18 @@ public class CoreHubService
     // Eco Events //
     ////////////////
 
+    /// <summary>
+    /// A planet transaction reaches the two users involved and the members who
+    /// can manage the planet's eco accounts, not every member of the planet.
+    /// </summary>
     public void NotifyPlanetTransactionProcessed(Transaction transaction)
     {
-        _ = _hub.Clients.Group($"p-{transaction.PlanetId}").SendAsync("Transaction-Processed", transaction);
+        SendToPlanetMembers(
+            transaction.PlanetId,
+            "Transaction-Processed",
+            [transaction],
+            PlanetPermissions.ManageEcoAccounts,
+            excludeUserIds: [transaction.UserFromId, transaction.UserToId]);
         _ = _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
         _ = _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
     }

@@ -24,7 +24,7 @@
                         <div class="tree-row @(isLast ? "last" : "")" depth="2">
                             <div class="channel-wrapper" style="margin-left: 18px" depth="2"
                                  draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded ? "true" : "false")"
-                                 ondragover="event.preventDefault();"
+                                 @ondragover:preventDefault="true"
 
                                  @onclick="@(() => OnClickChannel(channel))"
                                  @onclick:stopPropagation="true"
@@ -45,7 +45,7 @@
                                 {
                                     <div class="drop-line"
                                          @ondragenter:stopPropagation="true"
-                                         ondragenter="return false;"></div>
+                                         @ondragenter:preventDefault="true"></div>
                                 }
 
                                 <div class="channel-wrapper">
@@ -69,7 +69,7 @@
                                 {
                                     <div class="drop-line"
                                          @ondragenter:stopPropagation="true"
-                                         ondragenter="return false;"></div>
+                                         @ondragenter:preventDefault="true"></div>
                                 }
 
                                 <div class="drop top"

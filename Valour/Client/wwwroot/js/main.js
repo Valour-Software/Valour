@@ -348,20 +348,80 @@ function getImageSizeAsync(url) {
 }
 
 /* Useful functions for layout items */
-function determineFlip(elementId, safeWidth){
-    const element = document.getElementById(elementId);
-    if (!element)
+function determineFlip(element, safeWidth){
+    if (!element?.parentElement)
         return;
 
     const parentWidth = element.parentElement.offsetWidth;
     const selfPosition = element.offsetLeft;
-    
+
     if (parentWidth - selfPosition < safeWidth) {
         element.classList.add('flip');
     } else {
         element.classList.remove('flip');
     }
 }
+
+/*
+ * Document-level handlers for behavior that markup declares with data attributes.
+ * The app's Content-Security-Policy blocks inline event handler attributes
+ * (onclick=, onerror=, ...), so markup that only needs a small DOM action uses
+ * these attributes instead:
+ *
+ * - class="md-spoiler": markdown spoiler; click, Enter, or Space toggles "revealed".
+ *   Delegated so it also works in renders without Blazor event wiring.
+ * - data-flip-width="N": card that flips (see determineFlip) on hover or touch.
+ * - data-click-target="id": clicking the element clicks element "id", such as a
+ *   hidden file input.
+ * - data-fallback-src="url": image that switches to url when it fails to load.
+ */
+function eventTargetElement(event) {
+    return event.target instanceof Element ? event.target : null;
+}
+
+document.addEventListener('click', event => {
+    const target = eventTargetElement(event);
+    if (!target)
+        return;
+
+    target.closest('.md-spoiler')?.classList.toggle('revealed');
+
+    const clickSource = target.closest('[data-click-target]');
+    if (clickSource) {
+        document.getElementById(clickSource.dataset.clickTarget)?.click();
+    }
+});
+
+document.addEventListener('keydown', event => {
+    const target = eventTargetElement(event);
+    if (!target?.classList.contains('md-spoiler') || (event.key !== 'Enter' && event.key !== ' '))
+        return;
+
+    event.preventDefault();
+    target.classList.toggle('revealed');
+});
+
+function onFlipCardPointer(event) {
+    const card = eventTargetElement(event)?.closest('[data-flip-width]');
+    if (card) {
+        determineFlip(card, Number(card.dataset.flipWidth));
+    }
+}
+
+document.addEventListener('mouseover', onFlipCardPointer);
+document.addEventListener('touchstart', onFlipCardPointer, { passive: true });
+
+// Load errors do not bubble, so this listens in the capture phase.
+document.addEventListener('error', event => {
+    const image = eventTargetElement(event);
+    if (!(image instanceof HTMLImageElement) || !image.dataset.fallbackSrc)
+        return;
+
+    const fallback = new URL(image.dataset.fallbackSrc, document.baseURI).href;
+    if (image.src !== fallback) {
+        image.src = fallback;
+    }
+}, true);
 
 function positionRelativeTo(id, x, y, corner) {
     const element = document.getElementById(id);
@@ -426,13 +486,35 @@ const allowedEmbedTags = new Set([
     "strong", "em", "b", "i", "u", "time", "cite"
 ]);
 
+// No id (it could collide with app element ids) and no allow (provider
+// iframes must not be granted camera, microphone, or similar features).
 const allowedEmbedAttributes = new Set([
-    "href", "src", "alt", "title", "class", "id", "data-instgrm-captioned",
+    "href", "src", "alt", "title", "class", "data-instgrm-captioned",
     "data-instgrm-permalink", "data-instgrm-version", "datetime",
-    "width", "height", "frameborder", "allowfullscreen", "allow",
+    "width", "height", "frameborder", "allowfullscreen",
     "data-tweet-id", "data-embed-theme", "cite", "data-conversation",
     "data-lang", "data-dnt", "data-theme", "data-width", "data-height"
 ]);
+
+// Class names each provider's oEmbed markup uses and its loader script looks
+// for. Every other class is dropped so embed markup cannot borrow app styles
+// to draw overlays over the interface.
+const allowedEmbedClasses = {
+    twitter: new Set(["twitter-tweet", "twitter-video", "tw-align-left", "tw-align-center", "tw-align-right"]),
+    reddit: new Set(["reddit-embed-bq", "reddit-card"]),
+    tiktok: new Set(["tiktok-embed"]),
+    soundcloud: new Set(),
+    github: new Set()
+};
+
+function filterEmbedClasses(value, provider) {
+    const allowed = Object.hasOwn(allowedEmbedClasses, provider) ? allowedEmbedClasses[provider] : null;
+    if (!allowed) {
+        return "";
+    }
+
+    return value.split(/\s+/).filter(name => allowed.has(name)).join(" ");
+}
 
 function isTrustedEmbedScriptSource(scriptSrc) {
     try {
@@ -478,7 +560,7 @@ function isSafeEmbedUrl(urlValue, requiresTrustedIframe = false) {
     }
 }
 
-function sanitizeEmbedHtml(html) {
+function sanitizeEmbedHtml(html, provider) {
     if (typeof html !== "string" || html.length === 0) {
         return "";
     }
@@ -502,6 +584,16 @@ function sanitizeEmbedHtml(html) {
 
             if (name.startsWith("on") || !allowedEmbedAttributes.has(name)) {
                 element.removeAttribute(attribute.name);
+                continue;
+            }
+
+            if (name === "class") {
+                const classes = filterEmbedClasses(value, provider);
+                if (classes) {
+                    element.setAttribute(attribute.name, classes);
+                } else {
+                    element.removeAttribute(attribute.name);
+                }
                 continue;
             }
 
@@ -530,7 +622,7 @@ async function injectTwitter(id, data) {
         return;
     }
     
-    container.innerHTML = sanitizeEmbedHtml(data);
+    container.innerHTML = sanitizeEmbedHtml(data, "twitter");
     
     const twitterScriptSrc = "https://platform.twitter.com/widgets.js";
     if (!isTrustedEmbedScriptSource(twitterScriptSrc)) {
@@ -551,7 +643,7 @@ async function injectReddit(id, data) {
     }
 
     container.setAttribute('data-embed-theme', 'dark');
-    container.innerHTML = sanitizeEmbedHtml(data);
+    container.innerHTML = sanitizeEmbedHtml(data, "reddit");
 
     const redditScriptSrc = "https://embed.reddit.com/widgets.js";
     if (!isTrustedEmbedScriptSource(redditScriptSrc)) {
@@ -566,14 +658,15 @@ async function injectReddit(id, data) {
 }
 
 // Generic embed injection function for oEmbed-based embeds
-// Injects HTML content and optionally loads an external script
-async function injectEmbed(id, html, scriptSrc) {
+// Injects HTML content and optionally loads an external script. provider
+// selects which class names the markup may keep (see allowedEmbedClasses).
+async function injectEmbed(id, html, scriptSrc, provider) {
     const container = document.getElementById(id);
     if (!container) {
         return;
     }
 
-    container.innerHTML = sanitizeEmbedHtml(html);
+    container.innerHTML = sanitizeEmbedHtml(html, provider);
 
     // If a script source is provided, load it
     if (scriptSrc) {

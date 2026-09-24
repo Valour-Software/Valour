@@ -1,13 +1,25 @@
 @inherits AttachmentComponent
 
-<div class="vimeo-container">
-    <iframe
-        class="vimeo-embed"
-        title="Vimeo embed"
-        src="@Attachment.Location"
-        width="560"
-        height="315"
-        frameborder="0"
-        allowfullscreen>
-    </iframe>
-</div>
+@if (_src is not null)
+{
+    <div class="vimeo-container">
+        <iframe
+            class="vimeo-embed"
+            title="Vimeo embed"
+            src="@_src"
+            width="560"
+            height="315"
+            frameborder="0"
+            allowfullscreen>
+        </iframe>
+    </div>
+}
+
+@code {
+    private string _src;
+
+    protected override void OnParametersSet()
+    {
+        _src = GetTrustedEmbedSource("player.vimeo.com");
+    }
+}

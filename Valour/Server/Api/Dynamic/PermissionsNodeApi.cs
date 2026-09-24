@@ -70,51 +70,51 @@ public class PermissionsNodeApi
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PermissionsNode node,
         ChannelTypeEnum type,
-        long targetId, 
+        long targetId,
         long roleId,
         PermissionsNodeService permissionsNodeService,
         PlanetMemberService memberService,
-        PlanetService planetService,
-        PlanetRoleService roleService)
+        PlanetRoleService roleService,
+        ChannelService channelService,
+        PlanetPermissionService permissionService)
     {
-        if (node.TargetId != targetId)
-            return Results.BadRequest("TargetId mismatch");
-        if (node.RoleId != roleId)
-            return Results.BadRequest("RoleId mismatch");
-        if (node.TargetType != type)
-            return Results.BadRequest("Type mismatch");
+        if (node is null)
+            return Results.BadRequest("Include node in body.");
 
-        // Unfortunately we have to do the permissions in here
-        var planet = await planetService.GetAsync(node.PlanetId);
-        if (planet is null)
-            return ValourResult.NotFound<Planet>();
+        // The route identifies the node. Only Code and Mask are taken from the body;
+        // every identity field is replaced by the stored, authorized values below.
+        var oldNode = await permissionsNodeService.GetAsync(targetId, roleId, type);
+        if (oldNode is null)
+            return ValourResult.NotFound<PermissionsNode>();
 
-        var member = await memberService.GetCurrentAsync(planet.Id);
+        var member = await memberService.GetCurrentAsync(oldNode.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var oldNode = await permissionsNodeService.GetAsync(targetId, roleId, type);
-        if (oldNode is null)
-            return ValourResult.NotFound<PermissionsNode>();
-
-        if (oldNode.RoleId != node.RoleId)
-            return Results.BadRequest("Cannot change RoleId");
-
-        if (oldNode.TargetId != node.TargetId)
-            return Results.BadRequest("Cannot change TargetId");
-
-        if (oldNode.TargetType != node.TargetType)
-            return Results.BadRequest("Cannot change TargetType");
-
-        var role = await roleService.GetAsync(node.PlanetId, node.RoleId);
+        var role = await roleService.GetAsync(oldNode.PlanetId, oldNode.RoleId);
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
         if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
             return ValourResult.Forbid("You can only modify permissions for roles below your own.");
+
+        var target = await channelService.GetChannelAsync(oldNode.PlanetId, oldNode.TargetId);
+        if (target is null)
+            return ValourResult.NotFound<Channel>();
+
+        var grantError = await GetUnheldNodeChangeErrorAsync(
+            member, target, oldNode.TargetType, oldNode.Code, oldNode.Mask, node.Code, node.Mask, permissionService);
+        if (grantError is not null)
+            return ValourResult.Forbid(grantError);
+
+        node.Id = oldNode.Id;
+        node.PlanetId = oldNode.PlanetId;
+        node.RoleId = oldNode.RoleId;
+        node.TargetId = oldNode.TargetId;
+        node.TargetType = oldNode.TargetType;
 
         var result = await permissionsNodeService.PutAsync(node);
         if (!result.Success)
@@ -130,31 +130,34 @@ public class PermissionsNodeApi
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PermissionsNode node,
         PermissionsNodeService permissionsNodeService,
-        UserService userService,
         PlanetService planetService,
         PlanetMemberService memberService,
         PlanetRoleService roleService,
-        ChannelService channelService)
+        ChannelService channelService,
+        PlanetPermissionService permissionService)
     {
-        var userId = await userService.GetCurrentUserIdAsync();
+        if (node is null)
+            return Results.BadRequest("Include node in body.");
 
         // Unfortunately we have to do the permissions in here
         var planet = await planetService.GetAsync(node.PlanetId);
         if (planet is null)
             return ValourResult.NotFound<Planet>();
 
-        var member = await memberService.GetByUserAsync(userId, planet.Id);
+        // The role and target are resolved inside the caller's planet, so a node
+        // can never reference another planet's role or channel.
+        var member = await memberService.GetCurrentAsync(planet.Id);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var role = await roleService.GetAsync(node.PlanetId, node.RoleId);
+        var role = await roleService.GetAsync(planet.Id, node.RoleId);
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        var target = await channelService.GetChannelAsync(node.PlanetId, node.TargetId);
+        var target = await channelService.GetChannelAsync(planet.Id, node.TargetId);
         if (target is null)
             return ValourResult.NotFound<Channel>();
 
@@ -167,22 +170,54 @@ public class PermissionsNodeApi
                     return Results.BadRequest($"TargetType unknown ({node.TargetType}).");
                 }
             }
-            else 
+            else
             {
                 return Results.BadRequest("TargetType mismatch.");
             }
-        }  
+        }
 
         if (role.GetAuthority() >= await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("The target node's role has higher authority than you.");
 
-        if (await permissionsNodeService.GetAsync(node.TargetId, node.RoleId, node.TargetType) is not null)
+        var grantError = await GetUnheldNodeChangeErrorAsync(
+            member, target, node.TargetType, 0, 0, node.Code, node.Mask, permissionService);
+        if (grantError is not null)
+            return ValourResult.Forbid(grantError);
+
+        if (await permissionsNodeService.GetAsync(target.Id, role.Id, node.TargetType) is not null)
             return Results.BadRequest("A node already exists for this role and target.");
+
+        node.PlanetId = planet.Id;
+        node.RoleId = role.Id;
+        node.TargetId = target.Id;
 
         var result = await permissionsNodeService.CreateAsync(node);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
         return Results.Created($"api/permissionsnodes/{result.Data.Id}", result.Data);
+    }
+
+    /// <summary>
+    /// Members may only allow or deny channel permission bits they hold in the target channel.
+    /// Owners and admins hold every bit, so they are never restricted.
+    /// </summary>
+    private static async Task<string> GetUnheldNodeChangeErrorAsync(
+        PlanetMember member,
+        Channel target,
+        ChannelTypeEnum targetType,
+        long oldCode,
+        long oldMask,
+        long newCode,
+        long newMask,
+        PlanetPermissionService permissionService)
+    {
+        var changed = PermissionGrantGuard.GetChangedNodeBits(oldCode, oldMask, newCode, newMask);
+        if (changed == 0)
+            return null;
+
+        var held = await permissionService.GetChannelPermissionsAsync(member, target, targetType);
+        return PermissionGrantGuard.GetUnheldChangeError(
+            changed, held, ChannelPermissions.GetChannelPermissionSet(targetType), "channel");
     }
 }

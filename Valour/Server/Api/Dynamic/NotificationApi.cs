@@ -15,9 +15,18 @@ public class NotificationApi
         UserService userService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
-        
+
+        if (subscription is null)
+            return ValourResult.BadRequest("Include subscription in body.");
+
         if (subscription.UserId != userId)
             return ValourResult.Forbid("You do not have permission to subscribe on behalf of another user");
+
+        // The server later sends requests to this endpoint, so only known
+        // push services are accepted. The worker checks again before storing.
+        var validationError = PushSubscriptionPolicy.Validate(subscription);
+        if (validationError is not null)
+            return ValourResult.BadRequest(validationError);
 
         await pushWorker.QueueNotificationAction(new PushNotificationSubscribe()
         {

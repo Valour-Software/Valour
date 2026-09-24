@@ -104,6 +104,10 @@ public partial class Program
             {
                 x.Release = typeof(ISharedUser).Assembly.GetName().Version.ToString();
                 x.ServerName = NodeConfig.Instance.Name;
+                // The Authorization header is the session secret and request bodies
+                // carry passwords, so neither may reach Sentry whatever the config says.
+                x.SendDefaultPii = false;
+                x.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
             });
         }
 
@@ -166,6 +170,10 @@ public partial class Program
 
     public static void ConfigureApp(WebApplication app)
     {
+        // First, so every response (static files, SPA fallback, errors) gets the
+        // browser security headers.
+        app.UseValourSecurityHeaders();
+
         app.UseCors("AllowedOrigins");
 
         if (app.Environment.IsDevelopment())
@@ -313,30 +321,39 @@ public partial class Program
     /// CORS origins derived from the local deployment plus the configured
     /// federation hub. Community nodes must accept the hub app's browser
     /// origin for the SDK's direct HTTP and SignalR connections, but must not
-    /// reflect arbitrary origins while allowing credentials.
+    /// reflect arbitrary origins while allowing credentials. Plain-http and
+    /// localhost origins are only trusted in Development, since any local
+    /// process or network attacker could otherwise act as them.
     /// </summary>
-    private static string[] BuildCorsOrigins()
+    private static string[] BuildCorsOrigins(bool isDevelopment)
     {
         var hosting = HostingConfig.Current;
         var origins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             $"https://{hosting.AppHost}",
-            $"http://{hosting.AppHost}",
             $"https://www.{hosting.RootDomain}",
-            $"http://www.{hosting.RootDomain}",
             $"https://{hosting.RootDomain}",
-            $"http://{hosting.RootDomain}",
             $"https://{hosting.ApiHost}",
-            $"http://{hosting.ApiHost}",
             "https://0.0.0.0",
             "https://0.0.0.1",
-            "http://localhost:3000",
-            "https://localhost:3000",
-            "http://localhost:3001",
-            "https://localhost:3001",
-            "http://localhost:5000",
-            "http://localhost:5001",
         };
+
+        if (isDevelopment)
+        {
+            origins.UnionWith(new[]
+            {
+                $"http://{hosting.AppHost}",
+                $"http://www.{hosting.RootDomain}",
+                $"http://{hosting.RootDomain}",
+                $"http://{hosting.ApiHost}",
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "http://localhost:3001",
+                "https://localhost:3001",
+                "http://localhost:5000",
+                "http://localhost:5001",
+            });
+        }
 
         // The node trusts this URL as its federation hub already. Permit the
         // hub itself and the conventional app subdomain so a browser signed in
@@ -363,6 +380,7 @@ public partial class Program
 
         services.AddValourRateLimiting(builder.Configuration);
 
+        var corsOrigins = BuildCorsOrigins(builder.Environment.IsDevelopment());
         services.AddCors(options =>
         {
             options.AddPolicy("AllowedOrigins", builder =>
@@ -371,7 +389,7 @@ public partial class Program
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     .AllowCredentials()
-                    .WithOrigins(BuildCorsOrigins())
+                    .WithOrigins(corsOrigins)
                     .SetPreflightMaxAge(TimeSpan.FromHours(12));
             });
         });
@@ -613,6 +631,7 @@ public partial class Program
         services.AddScoped<NotificationService>();
         services.AddScoped<ChannelActivityService>();
         services.AddScoped<ReportService>();
+        services.AddHttpContextAccessor();
         services.AddScoped<RegisterService>();
         services.AddScoped<SubscriptionService>();
         services.AddScoped<ThemeService>();
@@ -622,8 +641,10 @@ public partial class Program
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<VoiceStateService>();
         services.AddScoped<StartupService>();
+        // Push endpoints come from browser subscriptions, so they are user-supplied
+        // URLs. The handler dials only validated public addresses without redirects.
         services.AddHttpClient(WebPushDeliveryClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(30))
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) });
+            .ConfigurePrimaryHttpMessageHandler(() => WebPushDeliveryClient.CreatePrimaryHandler());
         services.AddSingleton<WebPushDeliveryClient>();
         services.AddScoped<PushNotificationService>();
         services.AddScoped<ITagService,TagService>();

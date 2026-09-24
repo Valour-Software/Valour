@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Valour.Database.Context;
 using Valour.Server;
+using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
 using Valour.Server.Services;
@@ -254,6 +255,62 @@ public class AutomodServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ScanMessage_BlockedMessage_DoesNotSendMentionNotifications()
+    {
+        var author = await RegisterAndJoinPlanetAsync();
+        var target = await RegisterAndJoinPlanetAsync();
+        await CreateBlockTriggerAsync("mention-blocked-word");
+
+        var postResult = await _messageService.PostMessageAsync(new Message
+        {
+            PlanetId = _planet.Id,
+            ChannelId = _defaultChannel.Id,
+            AuthorUserId = author.UserId,
+            AuthorMemberId = author.Id,
+            Content = $"«@m-{target.Id}» mention-blocked-word",
+            Fingerprint = Guid.NewGuid().ToString()
+        });
+
+        Assert.False(postResult.Success);
+        Assert.False(await _db.Notifications.AnyAsync(x =>
+            x.UserId == target.UserId && x.ChannelId == _defaultChannel.Id));
+    }
+
+    [Fact]
+    public async Task EditMessage_IntoBlockedContent_IsRejected()
+    {
+        var member = await RegisterAndJoinPlanetAsync();
+        await CreateBlockTriggerAsync("edit-blocked-word");
+
+        var postResult = await _messageService.PostMessageAsync(new Message
+        {
+            PlanetId = _planet.Id,
+            ChannelId = _defaultChannel.Id,
+            AuthorUserId = member.UserId,
+            AuthorMemberId = member.Id,
+            Content = "clean original content",
+            Fingerprint = Guid.NewGuid().ToString()
+        });
+        Assert.True(postResult.Success, postResult.Message);
+        var messageId = postResult.Data!.Id;
+
+        var editResult = await _messageService.EditMessageAsync(new Message
+        {
+            Id = messageId,
+            PlanetId = _planet.Id,
+            ChannelId = _defaultChannel.Id,
+            Content = "now with edit-blocked-word"
+        });
+
+        Assert.False(editResult.Success);
+        Assert.Contains("automod", editResult.Message, StringComparison.OrdinalIgnoreCase);
+
+        var stored = await _messageService.GetMessageAsync(messageId);
+        Assert.NotNull(stored);
+        Assert.Equal("clean original content", stored!.Content);
+    }
+
+    [Fact]
     public async Task ScanMessage_BlacklistBan_BansTargetMember()
     {
         var regularMember = await RegisterAndJoinPlanetAsync();
@@ -410,6 +467,235 @@ public class AutomodServiceTests : IAsyncLifetime
         Assert.Null(dbTrigger);
         Assert.False(await _db.AutomodLogs.AnyAsync(x => x.TriggerId == trigger.Id));
         Assert.False(await _db.AutomodActions.AnyAsync(x => x.TriggerId == trigger.Id));
+    }
+
+    [Fact]
+    public async Task ScanMessage_BanActionFromCreatorWithoutAuthority_IsSkipped()
+    {
+        // A regular member has neither the Ban permission nor authority over other members
+        var creator = await RegisterAndJoinPlanetAsync();
+        var target = await RegisterAndJoinPlanetAsync();
+
+        var trigger = new AutomodTrigger
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = creator.Id,
+            Name = "Unauthorized ban",
+            Type = AutomodTriggerType.Blacklist,
+            TriggerWords = "unauthorized-ban-word"
+        };
+
+        var action = new AutomodAction
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = creator.Id,
+            ActionType = AutomodActionType.Ban,
+            Message = "Should not ban",
+            Strikes = 1
+        };
+
+        var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
+        Assert.True(createResult.Success, createResult.Message);
+
+        var postResult = await _messageService.PostMessageAsync(new Message
+        {
+            PlanetId = _planet.Id,
+            ChannelId = _defaultChannel.Id,
+            AuthorUserId = target.UserId,
+            AuthorMemberId = target.Id,
+            Content = "triggering unauthorized-ban-word",
+            Fingerprint = Guid.NewGuid().ToString()
+        });
+
+        Assert.True(postResult.Success, postResult.Message);
+        Assert.False(await _db.PlanetBans.AnyAsync(b => b.PlanetId == _planet.Id && b.TargetId == target.UserId));
+        Assert.False(await _db.PlanetMembers.IgnoreQueryFilters()
+            .Where(m => m.Id == target.Id)
+            .Select(m => m.IsDeleted)
+            .FirstAsync());
+    }
+
+    [Fact]
+    public async Task ScanMessage_AddRoleActionTargetingAdmin_IsSkipped()
+    {
+        var roleService = _scope.ServiceProvider.GetRequiredService<PlanetRoleService>();
+        var adminRole = (await roleService.CreateAsync(new PlanetRole
+        {
+            Name = "Automod admin",
+            PlanetId = _planet.Id,
+            IsAdmin = true
+        })).Data!;
+        var plainRole = (await roleService.CreateAsync(new PlanetRole
+        {
+            Name = "Automod plain",
+            PlanetId = _planet.Id
+        })).Data!;
+
+        var admin = await RegisterAndJoinPlanetAsync();
+        var addAdmin = await _memberService.AddRoleAsync(_planet.Id, admin.Id, adminRole.Id);
+        Assert.True(addAdmin.Success, addAdmin.Message);
+
+        var trigger = new AutomodTrigger
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            Name = "Role on admin",
+            Type = AutomodTriggerType.Blacklist,
+            TriggerWords = "admin-role-word",
+            RunForEveryone = true
+        };
+
+        var action = new AutomodAction
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            ActionType = AutomodActionType.AddRole,
+            RoleId = plainRole.Id,
+            Strikes = 1
+        };
+
+        var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
+        Assert.True(createResult.Success, createResult.Message);
+
+        var postResult = await _messageService.PostMessageAsync(new Message
+        {
+            PlanetId = _planet.Id,
+            ChannelId = _defaultChannel.Id,
+            AuthorUserId = admin.UserId,
+            AuthorMemberId = admin.Id,
+            Content = "admin-role-word",
+            Fingerprint = Guid.NewGuid().ToString()
+        });
+
+        Assert.True(postResult.Success, postResult.Message);
+        var adminAfter = await _memberService.GetAsync(admin.Id);
+        Assert.False(adminAfter!.RoleMembership.HasRole(plainRole.FlagBitIndex));
+    }
+
+    [Fact]
+    public async Task ValidateAction_RejectsRolesOutsideAuthority()
+    {
+        var roleService = _scope.ServiceProvider.GetRequiredService<PlanetRoleService>();
+        var adminRole = (await roleService.CreateAsync(new PlanetRole
+        {
+            Name = "Validate admin",
+            PlanetId = _planet.Id,
+            IsAdmin = true
+        })).Data!;
+        var plainRole = (await roleService.CreateAsync(new PlanetRole
+        {
+            Name = "Validate plain",
+            PlanetId = _planet.Id
+        })).Data!;
+
+        AutomodAction RoleAction(long roleId) => new()
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            ActionType = AutomodActionType.AddRole,
+            RoleId = roleId
+        };
+
+        Assert.False((await _automodService.ValidateActionAsync(RoleAction(adminRole.Id), _ownerMember)).Success);
+        Assert.False((await _automodService.ValidateActionAsync(RoleAction(IdManager.Generate()), _ownerMember)).Success);
+        Assert.True((await _automodService.ValidateActionAsync(RoleAction(plainRole.Id), _ownerMember)).Success);
+
+        // A member without ManageRoles cannot configure role actions at all
+        var regular = await RegisterAndJoinPlanetAsync();
+        Assert.False((await _automodService.ValidateActionAsync(RoleAction(plainRole.Id), regular)).Success);
+    }
+
+    [Fact]
+    public async Task CreateAction_RejectsTriggerFromAnotherPlanet()
+    {
+        var trigger = new AutomodTrigger
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            Name = "Foreign trigger",
+            Type = AutomodTriggerType.Blacklist,
+            TriggerWords = "foreign-trigger-word"
+        };
+        var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, []);
+        Assert.True(createResult.Success, createResult.Message);
+
+        var result = await _automodService.CreateActionAsync(new AutomodAction
+        {
+            PlanetId = ISharedPlanet.ValourCentralId,
+            TriggerId = trigger.Id,
+            MemberAddedBy = _ownerMember.Id,
+            ActionType = AutomodActionType.BlockMessage
+        });
+
+        Assert.False(result.Success);
+        Assert.False(await _db.AutomodActions.AnyAsync(x => x.TriggerId == trigger.Id));
+    }
+
+    [Fact]
+    public async Task ScanMessage_WebhookMessage_IsBlockedByBlacklist()
+    {
+        var trigger = new AutomodTrigger
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            Name = "Webhook block",
+            Type = AutomodTriggerType.Blacklist,
+            TriggerWords = "webhook-blocked-word"
+        };
+
+        var action = new AutomodAction
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            ActionType = AutomodActionType.BlockMessage,
+            Strikes = 1
+        };
+
+        var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
+        Assert.True(createResult.Success, createResult.Message);
+
+        var message = new Message
+        {
+            Id = IdManager.Generate(),
+            PlanetId = _planet.Id,
+            ChannelId = _defaultChannel.Id,
+            AuthorUserId = ISharedUser.VictorUserId,
+            WebhookId = IdManager.Generate(),
+            Content = "a webhook-blocked-word message",
+            TimeSent = DateTime.UtcNow
+        };
+
+        var blocked = await _automodService.ScanMessageAsync(message, null!);
+        Assert.False(blocked.AllowMessage);
+
+        message.Content = "a harmless message";
+        var allowed = await _automodService.ScanMessageAsync(message, null!);
+        Assert.True(allowed.AllowMessage);
+    }
+
+    private async Task CreateBlockTriggerAsync(string word)
+    {
+        var trigger = new AutomodTrigger
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            Name = "Blacklist block " + word,
+            Type = AutomodTriggerType.Blacklist,
+            TriggerWords = word
+        };
+
+        var action = new AutomodAction
+        {
+            PlanetId = _planet.Id,
+            MemberAddedBy = _ownerMember.Id,
+            ActionType = AutomodActionType.BlockMessage,
+            Message = string.Empty,
+            Strikes = 1,
+            UseGlobalStrikes = false
+        };
+
+        var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
+        Assert.True(createResult.Success, createResult.Message);
     }
 
     private async Task<User> RegisterNewUserAsync()

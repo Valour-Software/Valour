@@ -73,6 +73,55 @@ public class EcoServiceTests
         Assert.True(result.Success, result.Message);
     }
 
+    [Fact]
+    public void ValidateTransactionMetadata_AcceptsOrdinaryMetadata()
+    {
+        var result = EcoService.ValidateTransactionMetadata(new Transaction
+        {
+            Description = "Sent via Valour App",
+            Data = "village:plot:10",
+            Fingerprint = Guid.NewGuid().ToString(),
+        });
+
+        Assert.True(result.Success, result.Message);
+    }
+
+    [Fact]
+    public void ValidateTransactionMetadata_RejectsOversizedDescription()
+    {
+        var result = EcoService.ValidateTransactionMetadata(new Transaction
+        {
+            Description = new string('a', EcoService.MaxTransactionDescriptionLength + 1),
+        });
+
+        Assert.False(result.Success);
+        Assert.Contains("description", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ValidateTransactionMetadata_RejectsOversizedData()
+    {
+        var result = EcoService.ValidateTransactionMetadata(new Transaction
+        {
+            Data = new string('a', EcoService.MaxTransactionDataLength + 1),
+        });
+
+        Assert.False(result.Success);
+        Assert.Contains("data", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ValidateTransactionMetadata_RejectsOversizedFingerprint()
+    {
+        var result = EcoService.ValidateTransactionMetadata(new Transaction
+        {
+            Fingerprint = new string('a', EcoService.MaxTransactionFingerprintLength + 1),
+        });
+
+        Assert.False(result.Success);
+        Assert.Contains("fingerprint", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static Currency CreateValidCurrency() =>
         new()
         {

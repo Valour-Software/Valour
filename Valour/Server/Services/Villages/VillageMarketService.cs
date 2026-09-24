@@ -81,7 +81,7 @@ public class VillageMarketService
             if (price < 0)
                 return new TaskResult(false, "Price cannot be negative.");
 
-            if (forSale && (!plot.ForSale || string.IsNullOrWhiteSpace(plot.SaleId)))
+            if (NeedsNewSaleId(plot.ForSale, plot.SaleId, plot.Price, forSale, price))
                 plot.SaleId = CreateSaleId();
 
             plot.ForSale = forSale;
@@ -119,7 +119,7 @@ public class VillageMarketService
             if (price < 0)
                 return new TaskResult(false, "Price cannot be negative.");
 
-            if (forSale && (!building.ForSale || string.IsNullOrWhiteSpace(building.SaleId)))
+            if (NeedsNewSaleId(building.ForSale, building.SaleId, building.Price, forSale, price))
                 building.SaleId = CreateSaleId();
 
             building.ForSale = forSale;
@@ -135,13 +135,18 @@ public class VillageMarketService
         }
     }
 
-    public async Task<TaskResult> PurchasePlotAsync(long plotId, long planetId, long buyerMemberId, long buyerUserId)
+    public async Task<TaskResult> PurchasePlotAsync(
+        long plotId,
+        long planetId,
+        long buyerMemberId,
+        long buyerUserId,
+        decimal expectedPrice)
     {
         var gate = GetAssetLock("plot", planetId, plotId);
         await gate.WaitAsync();
         try
         {
-            return await PurchasePlotCoreAsync(plotId, planetId, buyerMemberId, buyerUserId);
+            return await PurchasePlotCoreAsync(plotId, planetId, buyerMemberId, buyerUserId, expectedPrice);
         }
         finally
         {
@@ -153,13 +158,14 @@ public class VillageMarketService
         long plotId,
         long planetId,
         long buyerMemberId,
-        long buyerUserId)
+        long buyerUserId,
+        decimal expectedPrice)
     {
         var plot = await _db.VillagePlots.FirstOrDefaultAsync(x => x.Id == plotId && x.PlanetId == planetId);
         if (plot is null)
             return new TaskResult(false, "Plot not found.");
 
-        var check = ValidateSale(plot.ForSale, plot.OwnerMemberId, buyerMemberId);
+        var check = ValidateSale(plot.ForSale, plot.OwnerMemberId, buyerMemberId, plot.Price, expectedPrice);
         if (!check.Success)
             return check;
 
@@ -183,13 +189,18 @@ public class VillageMarketService
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> PurchaseBuildingAsync(long buildingId, long planetId, long buyerMemberId, long buyerUserId)
+    public async Task<TaskResult> PurchaseBuildingAsync(
+        long buildingId,
+        long planetId,
+        long buyerMemberId,
+        long buyerUserId,
+        decimal expectedPrice)
     {
         var gate = GetAssetLock("building", planetId, buildingId);
         await gate.WaitAsync();
         try
         {
-            return await PurchaseBuildingCoreAsync(buildingId, planetId, buyerMemberId, buyerUserId);
+            return await PurchaseBuildingCoreAsync(buildingId, planetId, buyerMemberId, buyerUserId, expectedPrice);
         }
         finally
         {
@@ -201,13 +212,14 @@ public class VillageMarketService
         long buildingId,
         long planetId,
         long buyerMemberId,
-        long buyerUserId)
+        long buyerUserId,
+        decimal expectedPrice)
     {
         var building = await _db.VillageBuildings.FirstOrDefaultAsync(x => x.Id == buildingId && x.PlanetId == planetId);
         if (building is null)
             return new TaskResult(false, "Building not found.");
 
-        var check = ValidateSale(building.ForSale, building.OwnerMemberId, buyerMemberId);
+        var check = ValidateSale(building.ForSale, building.OwnerMemberId, buyerMemberId, building.Price, expectedPrice);
         if (!check.Success)
             return check;
 
@@ -231,7 +243,16 @@ public class VillageMarketService
         return TaskResult.SuccessResult;
     }
 
-    internal static TaskResult ValidateSale(bool forSale, long? ownerMemberId, long buyerMemberId)
+    /// <summary>
+    /// The buyer names the price they agreed to, so a listing repriced between
+    /// the confirmation and the purchase cannot charge them a different amount.
+    /// </summary>
+    internal static TaskResult ValidateSale(
+        bool forSale,
+        long? ownerMemberId,
+        long buyerMemberId,
+        decimal price,
+        decimal expectedPrice)
     {
         if (!forSale)
             return new TaskResult(false, "This is not for sale.");
@@ -239,8 +260,24 @@ public class VillageMarketService
         if (ownerMemberId == buyerMemberId)
             return new TaskResult(false, "You already own this.");
 
+        if (price != expectedPrice)
+            return new TaskResult(false, "The price has changed. Review the new price and try again.");
+
         return TaskResult.SuccessResult;
     }
+
+    /// <summary>
+    /// A new listing or a new price is a new sale. Keeping the old sale id across
+    /// a price change would let a payment settled at the old price count as
+    /// payment for the new one.
+    /// </summary>
+    internal static bool NeedsNewSaleId(
+        bool currentlyForSale,
+        string? currentSaleId,
+        decimal currentPrice,
+        bool forSale,
+        decimal price) =>
+        forSale && (!currentlyForSale || string.IsNullOrWhiteSpace(currentSaleId) || currentPrice != price);
 
     internal static bool CanManageListing(long? ownerMemberId, long actorMemberId, bool canManageVillage) =>
         canManageVillage || ownerMemberId == actorMemberId;

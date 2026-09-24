@@ -42,6 +42,30 @@ public static class SafeUrl
     }
 
     /// <summary>
+    /// Whether the URL is a path on the current origin, safe to use as a
+    /// post-login redirect. It must start with a single "/"; "//host" and
+    /// "/\host" are treated by browsers as links to another host, and
+    /// whitespace or control characters are rejected because browsers strip
+    /// them before parsing ("/\t/host" becomes "//host").
+    /// </summary>
+    public static bool IsLocalPath(string? url)
+    {
+        if (string.IsNullOrEmpty(url) || url[0] != '/')
+            return false;
+
+        if (url.Length > 1 && url[1] is '/' or '\\')
+            return false;
+
+        foreach (var c in url)
+        {
+            if (c <= 0x20 || c == 0x7F || c == '\\')
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Returns the URL if it passes the allowlist, otherwise an inert placeholder.
     /// </summary>
     public static string Sanitize(string? url) =>

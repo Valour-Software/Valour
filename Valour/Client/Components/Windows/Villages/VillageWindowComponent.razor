@@ -2110,7 +2110,7 @@ else
                 : "This property is free to claim.",
             building.Price > 0 ? "Confirm purchase" : "Claim it",
             "Cancel",
-            PurchaseSelectedBuildingAsync,
+            () => PurchaseBuildingAsync(building.Id, building.Price),
             () => Task.CompletedTask);
 
         ModalRoot.Instance?.OpenModal<ConfirmModalComponent>(modalData);
@@ -2129,20 +2129,21 @@ else
                 : "This parcel is free to claim.",
             plot.Price > 0 ? "Confirm purchase" : "Claim it",
             "Cancel",
-            PurchaseSelectedPlotAsync,
+            () => PurchasePlotAsync(plot.Id, plot.Price),
             () => Task.CompletedTask);
 
         ModalRoot.Instance?.OpenModal<ConfirmModalComponent>(modalData);
     }
 
-    private async Task PurchaseSelectedBuildingAsync()
+    // The confirmed price is sent with the purchase so a listing repriced while
+    // the confirmation was open is rejected instead of charging a different amount.
+    private async Task PurchaseBuildingAsync(long buildingId, decimal confirmedPrice)
     {
-        if (Data is null || _selectedBuilding is null || _purchaseInProgress)
+        if (Data is null || _purchaseInProgress)
             return;
 
-        var buildingId = _selectedBuilding.Id;
         _purchaseInProgress = true;
-        var result = await VillageService.PurchaseBuildingAsync(Data, buildingId);
+        var result = await VillageService.PurchaseBuildingAsync(Data, buildingId, confirmedPrice);
         _purchaseInProgress = false;
 
         if (!result.Success)
@@ -2157,14 +2158,13 @@ else
         await ReRender();
     }
 
-    private async Task PurchaseSelectedPlotAsync()
+    private async Task PurchasePlotAsync(long plotId, decimal confirmedPrice)
     {
-        if (Data is null || _selectedPlot is null || _purchaseInProgress)
+        if (Data is null || _purchaseInProgress)
             return;
 
-        var plotId = _selectedPlot.Id;
         _purchaseInProgress = true;
-        var result = await VillageService.PurchasePlotAsync(Data, plotId);
+        var result = await VillageService.PurchasePlotAsync(Data, plotId, confirmedPrice);
         _purchaseInProgress = false;
 
         if (!result.Success)

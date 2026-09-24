@@ -193,7 +193,8 @@
         _resendSuccess = true;
         StateHasChanged();
 
-        var request = new RegisterUserRequest() { Email = _email };
+        // The server only sends a new link to someone who knows the password
+        var request = new RegisterUserRequest() { Email = _email, Password = _password };
         var response = await Client.Http.PostAsJsonAsync("api/users/resendemail", request);
 
         if (response.IsSuccessStatusCode)
@@ -284,9 +285,12 @@
         _resultSpan = "Logging in...";
         await LocalStorage.SetStringAsync("token", AuthService.Token);
 
-        if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
+        // Only same-origin paths are followed; anything else would be an open
+        // redirect (or a javascript: URL) supplied by whoever built the link.
+        if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect) &&
+            Valour.Shared.Utilities.SafeUrl.IsLocalPath(redirect.ToString()))
         {
-            NavManager.NavigateTo(redirect, true);
+            NavManager.NavigateTo(redirect.ToString(), true);
             return;
         }
             

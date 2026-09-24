@@ -2,8 +2,8 @@
 @inject ChannelDragManager DragManager
 
 <div class="drop-targets"
-     ondragenter="event.preventDefault(); event.stopPropagation();"
-     ondragover="event.preventDefault(); event.stopPropagation();"
+     @ondragenter:preventDefault="true" @ondragenter:stopPropagation="true"
+     @ondragover:preventDefault="true" @ondragover:stopPropagation="true"
      @onclick:stopPropagation="true">
     <div class="targets">
         <div @onclick="(async () => await OnDrop(DropLocation.Center))" @ondrop="(async () => await OnDrop(DropLocation.Center))" class="center w-drop-target"><i class="bi bi-bullseye"></i></div>

@@ -124,20 +124,10 @@ public class ThemeService
         // Validate CSS on theme
         if (!string.IsNullOrWhiteSpace(theme.CustomCss))
         {
-            // Block attribute selectors (XSS vector)
-            if (theme.CustomCss.Contains('[') || theme.CustomCss.Contains(']'))
-                return TaskResult.FromFailure("Attribute selectors [...] are not allowed.");
-
-            // Block URLs (IP tracking protection)
-            var cssLower = theme.CustomCss.ToLowerInvariant();
-            if (cssLower.Contains("url(") || cssLower.Contains("@import") || cssLower.Contains("@font-face"))
-                return TaskResult.FromFailure("URLs, @import, and @font-face are not allowed. Use theme asset variables directly, e.g. background-image: var(--theme-asset-name); (do not wrap with url()).");
-
-            // Block XSS vectors
-            if (cssLower.Contains("javascript:") || cssLower.Contains("expression(") ||
-                cssLower.Contains("behavior:") || cssLower.Contains("-moz-binding") ||
-                cssLower.Contains("</style"))
-                return TaskResult.FromFailure("CSS contains disallowed content for security reasons.");
+            // Block escapes, attribute selectors, remote resource loading, and script vectors
+            var violation = ThemeCustomCss.GetViolation(theme.CustomCss);
+            if (violation is not null)
+                return TaskResult.FromFailure(violation);
 
             // Validate CSS is parseable (but don't rewrite it)
             var css = await _parser.ParseAsync(theme.CustomCss);

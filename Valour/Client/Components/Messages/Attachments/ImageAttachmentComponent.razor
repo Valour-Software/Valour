@@ -74,9 +74,9 @@
     protected override async Task OnInitializedAsync()
     {
         _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
-        if (string.IsNullOrWhiteSpace(_location))
+        if (string.IsNullOrWhiteSpace(_location) || !Valour.Shared.Utilities.SafeUrl.IsSafe(_location))
             _location = "_content/Valour.Client/media/image-not-found.webp";
-        
+
         var width = Attachment.Width;
         var height = Attachment.Height;
 

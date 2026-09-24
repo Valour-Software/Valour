@@ -51,6 +51,53 @@ public class ReleaseDeliveryPersistenceTests(LoginTestFixture fixture)
     }
 
     [Fact]
+    public async Task Subscribe_RejectsForeignEndpointTakeoverAndCapsPerUser()
+    {
+        using var scope = fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        var service = new PushNotificationService(NullLogger<PushNotificationService>.Instance, db, null!, null!, null!);
+        var userId = fixture.Client.Me.Id;
+        var prefix = $"https://updates.push.services.mozilla.com/wpush/v2/{Guid.NewGuid():N}";
+        try
+        {
+            var owned = ToServerSubscription(ReleasePushDeliveryTests.Subscription($"{prefix}/owned"), userId);
+            Assert.True(await service.SubscribeAsync(owned));
+
+            // Same endpoint, different keys, different account: not the same device.
+            var takeover = ToServerSubscription(ReleasePushDeliveryTests.Subscription($"{prefix}/owned"), userId + 1);
+            Assert.False(await service.SubscribeAsync(takeover));
+            var stored = await db.PushNotificationSubscriptions.AsNoTracking().SingleAsync(x => x.Endpoint == owned.Endpoint);
+            Assert.Equal(userId, stored.UserId);
+            Assert.Equal(owned.Key, stored.Key);
+
+            Assert.False(await service.SubscribeAsync(
+                ToServerSubscription(ReleasePushDeliveryTests.Subscription("http://169.254.169.254/latest"), userId)));
+
+            for (var i = 0; i < PushSubscriptionPolicy.MaxSubscriptionsPerUser + 2; i++)
+            {
+                Assert.True(await service.SubscribeAsync(
+                    ToServerSubscription(ReleasePushDeliveryTests.Subscription($"{prefix}/{i}"), userId)));
+            }
+
+            Assert.Equal(PushSubscriptionPolicy.MaxSubscriptionsPerUser,
+                await db.PushNotificationSubscriptions.CountAsync(x => x.UserId == userId));
+            Assert.True(await db.PushNotificationSubscriptions.AnyAsync(
+                x => x.Endpoint == $"{prefix}/{PushSubscriptionPolicy.MaxSubscriptionsPerUser + 1}"));
+        }
+        finally { await db.PushNotificationSubscriptions.Where(x => x.Endpoint.StartsWith(prefix)).ExecuteDeleteAsync(); }
+    }
+
+    private static Valour.Server.Models.PushNotificationSubscription ToServerSubscription(
+        Valour.Database.PushNotificationSubscription subscription, long userId) => new()
+    {
+        Endpoint = subscription.Endpoint,
+        Key = subscription.Key,
+        Auth = subscription.Auth,
+        DeviceType = subscription.DeviceType,
+        UserId = userId
+    };
+
+    [Fact]
     public async Task GoneEndpoint_IsDeletedAndHealthySubscriptionIsKept()
     {
         using var scope = fixture.Factory.Services.CreateScope();
@@ -59,11 +106,11 @@ public class ReleaseDeliveryPersistenceTests(LoginTestFixture fixture)
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         using var delivery = ReleasePushDeliveryTests.Create(handler, key);
         var service = new PushNotificationService(NullLogger<PushNotificationService>.Instance, db, null!, null!, delivery);
-        var host = Guid.NewGuid().ToString("N") + ".example.test";
+        var prefix = $"https://updates.push.services.mozilla.com/wpush/v2/{Guid.NewGuid():N}";
         var subscriptions = new[]
         {
-            ReleasePushDeliveryTests.Subscription($"https://{host}/failure"),
-            ReleasePushDeliveryTests.Subscription($"https://{host}/healthy")
+            ReleasePushDeliveryTests.Subscription($"{prefix}/failure"),
+            ReleasePushDeliveryTests.Subscription($"{prefix}/healthy")
         };
         foreach (var subscription in subscriptions)
         {

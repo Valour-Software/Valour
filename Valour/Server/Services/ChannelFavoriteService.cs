@@ -13,6 +13,13 @@ public class ChannelFavoriteService
     /// </summary>
     private const int MaxFavoritesPerPlanet = 100;
 
+    /// <summary>
+    /// Overall cap across every planet. Favorites for channels on community
+    /// nodes cannot be checked against this node's database, so this is what
+    /// bounds them.
+    /// </summary>
+    public const int MaxFavoritesPerUser = 500;
+
     private readonly ValourDb _db;
     private readonly ILogger<ChannelFavoriteService> _logger;
 
@@ -50,6 +57,16 @@ public class ChannelFavoriteService
 
             planetId = localChannel.PlanetId.Value;
         }
+
+        // A planet this node knows about can only hold favorites of its members.
+        // Planets hosted by community nodes are not in this database and are
+        // left to the overall cap.
+        if (await _db.Planets.AnyAsync(x => x.Id == planetId) &&
+            !await _db.PlanetMembers.AnyAsync(x => x.UserId == userId && x.PlanetId == planetId))
+            return TaskResult<ChannelFavorite>.FromFailure("You are not a member of this planet.");
+
+        if (await _db.ChannelFavorites.CountAsync(x => x.UserId == userId) >= MaxFavoritesPerUser)
+            return TaskResult<ChannelFavorite>.FromFailure("You have too many favorites.");
 
         var planetFavorites = _db.ChannelFavorites
             .Where(x => x.UserId == userId && x.PlanetId == planetId);

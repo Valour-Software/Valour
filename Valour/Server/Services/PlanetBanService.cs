@@ -122,7 +122,11 @@ public class PlanetBanService
         return new(true, "Success", ban);
     }
 
-    public async Task<TaskResult<PlanetBan>> PutAsync(PlanetBan updatedban, long? actorUserId = null)
+    /// <summary>
+    /// Updates the reason and expiry of a ban. When an actor is given, they must be the
+    /// issuer or have at least the issuer's authority, matching the rule for unbanning.
+    /// </summary>
+    public async Task<TaskResult<PlanetBan>> PutAsync(PlanetBan updatedban, PlanetMember actor = null)
     {
         var migrationGuard = await MigrationLock.GuardAsync(_db, updatedban?.PlanetId);
         if (!migrationGuard.Success)
@@ -147,9 +151,25 @@ public class PlanetBanService
         if (updatedban.TimeCreated != old.TimeCreated)
             return new(false, "You cannot change the creation time");
 
+        if (actor is not null)
+        {
+            if (actor.PlanetId != old.PlanetId)
+                return new(false, "You are not a member of this ban's planet.");
+
+            if (old.IssuerId != actor.UserId)
+            {
+                var banner = await _memberService.GetByUserAsync(old.IssuerId, old.PlanetId);
+                if (banner is not null && await _memberService.GetAuthorityAsync(banner) > await _memberService.GetAuthorityAsync(actor))
+                    return new(false, "The banner of this user has higher authority than you.");
+            }
+        }
+
+        // Only the reason and expiry are editable
+        old.Reason = updatedban.Reason;
+        old.TimeExpires = updatedban.TimeExpires;
+
         try
         {
-            _db.Entry(old).CurrentValues.SetValues(updatedban);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -158,18 +178,20 @@ public class PlanetBanService
             return new(false, e.Message);
         }
 
+        var model = old.ToModel();
+
         // Notify of changes
-        _coreHub.NotifyPlanetItemChange(updatedban);
+        _coreHub.NotifyPlanetItemChange(model);
 
         await _moderationAuditService.LogAsync(
-            updatedban.PlanetId,
+            model.PlanetId,
             ModerationActionSource.Manual,
             ModerationActionType.BanUpdated,
-            actorUserId: actorUserId ?? updatedban.IssuerId,
-            targetUserId: updatedban.TargetId,
-            details: updatedban.Reason);
+            actorUserId: actor?.UserId ?? model.IssuerId,
+            targetUserId: model.TargetId,
+            details: model.Reason);
 
-        return new(true, "Success", updatedban);
+        return new(true, "Success", model);
     }
 
     public async Task<QueryResponse<PlanetBan>> QueryPlanetBansAsync(

@@ -613,6 +613,7 @@ public class FederationServiceTests : IAsyncLifetime
                 ["name"] = "Session Test",
                 ["subscription"] = string.Empty,
                 ["protocol"] = ValourFederation.ProtocolVersion,
+                ["jti"] = Guid.NewGuid().ToString("N"),
                 ["memberships"] = Array.Empty<string>(),
             },
         });
@@ -1226,20 +1227,26 @@ public class FederationServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PullBackPreparation_PreservesNodeAuthorizedData_AndMarksImportedHistory()
+    public async Task PullBackPreparation_KeepsNodeContent_ButOnlyHubVouchedIdentities()
     {
         var planetId = IdManager.Generate();
         var channelId = IdManager.Generate();
         var maliciousRoleId = IdManager.Generate();
+        var ownerMemberId = IdManager.Generate();
+        var forgedVictorMemberId = IdManager.Generate();
         var maliciousMemberId = IdManager.Generate();
         var messageId = IdManager.Generate();
         var threadId = IdManager.Generate();
         var pageId = IdManager.Generate();
         var attackerId = IdManager.Generate();
+        var ownerId = _fixture.Client.Me.Id;
+        var victorName = await _db.Users.Where(x => x.Id == ISharedUser.VictorUserId).Select(x => x.Name).SingleAsync();
 
         // The registered community-node owner is the trust authority for its
-        // community's data. The hub keeps its own planet ownership record, but
-        // preserves the node's roles, members, moderation state, and history.
+        // community's content, but not for hub identities. The snapshot below
+        // adds a member row for an account that never joined through the hub
+        // (Victor), invents an account the hub does not have (attacker), and
+        // inflates derived counters.
         var snapshot = new PlanetSnapshot
         {
             SourceDomain = NodeDomain,
@@ -1291,13 +1298,9 @@ public class FederationServiceTests : IAsyncLifetime
             },
             Members = new List<PlanetSnapshotMember>
             {
-                new()
-                {
-                    Id = maliciousMemberId,
-                    PlanetId = planetId,
-                    UserId = attackerId,
-                    Rf0 = 1L << 17,
-                },
+                new() { Id = ownerMemberId, PlanetId = planetId, UserId = ownerId },
+                new() { Id = forgedVictorMemberId, PlanetId = planetId, UserId = ISharedUser.VictorUserId, Rf0 = 1L << 17 },
+                new() { Id = maliciousMemberId, PlanetId = planetId, UserId = attackerId, Rf0 = 1L << 17 },
             },
             Messages = new List<PlanetSnapshotMessage>
             {
@@ -1348,6 +1351,8 @@ public class FederationServiceTests : IAsyncLifetime
                     Title = "Forged thread",
                     Content = "Untrusted history",
                     TimeCreated = DateTime.UtcNow,
+                    BoostCount = 999,
+                    CommentCount = 999,
                 },
             },
             ThreadComments = new List<PlanetSnapshotThreadComment>
@@ -1361,6 +1366,16 @@ public class FederationServiceTests : IAsyncLifetime
                     AuthorMemberId = maliciousMemberId,
                     Content = "Untrusted comment",
                     TimeCreated = DateTime.UtcNow,
+                    BoostCount = 999,
+                    ReplyCount = 999,
+                },
+            },
+            ThreadBoosts = new List<PlanetSnapshotThreadBoost>
+            {
+                new()
+                {
+                    Id = IdManager.Generate(), PlanetId = planetId, ThreadId = threadId,
+                    UserId = attackerId, CreatedAt = DateTime.UtcNow,
                 },
             },
             WikiPages = new List<PlanetSnapshotWikiPage>
@@ -1411,43 +1426,59 @@ public class FederationServiceTests : IAsyncLifetime
             },
             Users = new List<PlanetSnapshotUser>
             {
+                new() { Id = ownerId, Name = "Forged Owner", Tag = "0000" },
                 new() { Id = attackerId, Name = "Attacker", Tag = "0000" },
                 new() { Id = ISharedUser.VictorUserId, Name = "Forged Victor", Tag = "9999" },
             },
         };
 
         var prepared = await _migrationService.PreparePulledBackSnapshotAsync(
-            snapshot, planetId, ISharedUser.VictorUserId, NodeDomain);
+            snapshot, planetId, ownerId, NodeDomain);
 
         Assert.True(prepared.Success, prepared.Message);
-        Assert.Equal(ISharedUser.VictorUserId, snapshot.Planet.OwnerId);
+        Assert.Equal(ownerId, snapshot.Planet.OwnerId);
         Assert.True(snapshot.Planet.Public);
         Assert.True(snapshot.Planet.Discoverable);
         Assert.True(snapshot.Planet.SelfHostedMedia);
         Assert.Single(snapshot.PermissionNodes);
-        Assert.Single(snapshot.Bans);
-        Assert.Single(snapshot.AutomodTriggers);
         Assert.Single(snapshot.Attachments);
         Assert.Null(snapshot.Attachments[0].CdnBucketItemId);
 
-        var member = Assert.Single(snapshot.Members);
-        Assert.Equal(attackerId, member.UserId);
-        Assert.Equal(1L << 17, member.Rf0);
-
+        // Roles are community content and survive; memberships are hub
+        // identity and survive only for the owner.
         var role = Assert.Single(snapshot.Roles);
-        Assert.False(role.IsDefault);
         Assert.True(role.IsAdmin);
-        Assert.Equal(17, role.FlagBitIndex);
+        var member = Assert.Single(snapshot.Members);
+        Assert.Equal(ownerId, member.UserId);
+
+        // Content by an account the hub does not have is attributed to the
+        // system account; per-account state for it is dropped.
+        var message = Assert.Single(snapshot.Messages);
+        Assert.Equal(ISharedUser.VictorUserId, message.AuthorUserId);
+        Assert.Null(message.AuthorMemberId);
+        Assert.Empty(snapshot.Reactions);
+        Assert.Empty(snapshot.ThreadBoosts);
+        Assert.Equal(ISharedUser.VictorUserId, Assert.Single(snapshot.Threads).AuthorUserId);
+        Assert.Equal(ISharedUser.VictorUserId, Assert.Single(snapshot.ThreadComments).AuthorUserId);
+        Assert.Equal(ISharedUser.VictorUserId, Assert.Single(snapshot.WikiPages).CreatedByUserId);
+        Assert.Equal(ISharedUser.VictorUserId, Assert.Single(snapshot.WikiRevisions).AuthorUserId);
+        Assert.Equal(ISharedUser.VictorUserId, Assert.Single(snapshot.Bans).IssuerId);
+
+        // Derived counters come from the imported rows, not the node.
+        Assert.Equal(0, snapshot.Threads[0].BoostCount);
+        Assert.Equal(1, snapshot.Threads[0].CommentCount);
+        Assert.Equal(0, snapshot.ThreadComments[0].BoostCount);
+        Assert.Equal(0, snapshot.ThreadComments[0].ReplyCount);
+
+        // An automod rule added by a removed member is kept under the owner.
+        Assert.Equal(ownerMemberId, Assert.Single(snapshot.AutomodTriggers).MemberAddedBy);
+
+        // Account descriptions come from the hub, never from the node.
+        Assert.DoesNotContain(snapshot.Users, x => x.Id == attackerId);
+        Assert.Equal(victorName, snapshot.Users.Single(x => x.Id == ISharedUser.VictorUserId).Name);
 
         var expectedImportSource = $"federation:{NodeDomain}";
-        Assert.All(snapshot.Messages, x =>
-        {
-            Assert.Equal(expectedImportSource, x.ImportSource);
-        });
-        Assert.All(snapshot.Reactions, x =>
-        {
-            Assert.Equal(expectedImportSource, x.ImportSource);
-        });
+        Assert.All(snapshot.Messages, x => Assert.Equal(expectedImportSource, x.ImportSource));
         Assert.All(snapshot.Threads, x => Assert.Equal(expectedImportSource, x.ImportSource));
         Assert.All(snapshot.ThreadComments, x => Assert.Equal(expectedImportSource, x.ImportSource));
         Assert.All(snapshot.WikiPages, x => Assert.Equal(expectedImportSource, x.ImportSource));
@@ -1455,12 +1486,13 @@ public class FederationServiceTests : IAsyncLifetime
 
         try
         {
-            var import = await _snapshotService.ImportAsync(snapshot);
+            var import = await _snapshotService.ImportAsync(snapshot, createMissingUsers: false);
             Assert.True(import.Success, import.Message);
 
-            Assert.Equal(ISharedUser.VictorUserId,
+            Assert.Equal(ownerId,
                 await _db.Planets.Where(x => x.Id == planetId).Select(x => x.OwnerId).SingleAsync());
-            Assert.Single(await _db.PlanetMembers.Where(x => x.PlanetId == planetId).ToListAsync());
+            var importedMember = Assert.Single(await _db.PlanetMembers.Where(x => x.PlanetId == planetId).ToListAsync());
+            Assert.Equal(ownerId, importedMember.UserId);
             Assert.Single(await _db.PlanetRoles.Where(x => x.PlanetId == planetId).ToListAsync());
             Assert.Single(await _db.PermissionsNodes.Where(x => x.PlanetId == planetId).ToListAsync());
             Assert.Single(await _db.PlanetBans.Where(x => x.PlanetId == planetId).ToListAsync());
@@ -1472,16 +1504,85 @@ public class FederationServiceTests : IAsyncLifetime
             var attachment = Assert.Single(await _db.MessageAttachments.Where(x => x.MessageId == importedMessageId).ToListAsync());
             Assert.Equal("https://cdn.community-node.example.com/history.txt", attachment.Location);
             Assert.Null(attachment.CdnBucketItemId);
-            Assert.True(await _db.Users.Where(x => x.Id == attackerId).Select(x => x.IsFederated).SingleAsync());
             Assert.Equal(expectedImportSource,
                 await _db.Messages.Where(x => x.Id == importedMessageId).Select(x => x.ImportSource).SingleAsync());
+
+            // The node could neither create an account nor rename one.
+            Assert.False(await _db.Users.AnyAsync(x => x.Id == attackerId));
+            Assert.Equal(victorName,
+                await _db.Users.Where(x => x.Id == ISharedUser.VictorUserId).Select(x => x.Name).SingleAsync());
         }
         finally
         {
             _db.ChangeTracker.Clear();
             await _snapshotService.DeletePlanetDataAsync(planetId);
-            await _db.UserProfiles.Where(x => x.Id == attackerId).ExecuteDeleteAsync();
-            await _db.Users.Where(x => x.Id == attackerId).ExecuteDeleteAsync();
+        }
+    }
+
+    [Fact]
+    public async Task PullBackPreparation_KeepsMembersWithHubRecordedMembership()
+    {
+        var planetId = IdManager.Generate();
+        var channelId = IdManager.Generate();
+        var memberId = IdManager.Generate();
+        var memberUserId = _fixture.Client.Me.Id;
+
+        await _db.FederatedMemberships.AddAsync(new Valour.Database.FederatedMembership
+        {
+            UserId = memberUserId,
+            PlanetId = planetId,
+            NodeDomain = NodeDomain,
+            JoinedAt = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var snapshot = new PlanetSnapshot
+        {
+            SourceDomain = NodeDomain,
+            Planet = new PlanetSnapshotPlanet { Id = planetId, OwnerId = ISharedUser.VictorUserId, Name = "Members" },
+            Channels = new List<PlanetSnapshotChannel>
+            {
+                new()
+                {
+                    Id = channelId, PlanetId = planetId, Name = "general",
+                    ChannelType = ChannelTypeEnum.PlanetChat, IsDefault = true, LastUpdateTime = DateTime.UtcNow,
+                },
+            },
+            Members = new List<PlanetSnapshotMember>
+            {
+                new() { Id = memberId, PlanetId = planetId, UserId = memberUserId },
+            },
+            Messages = new List<PlanetSnapshotMessage>
+            {
+                new()
+                {
+                    Id = IdManager.Generate(), PlanetId = planetId, ChannelId = channelId,
+                    AuthorUserId = memberUserId, AuthorMemberId = memberId,
+                    Content = "Real member history", TimeSent = DateTime.UtcNow,
+                },
+            },
+            Users = new List<PlanetSnapshotUser>
+            {
+                new() { Id = memberUserId, Name = "Member", Tag = "0000" },
+                new() { Id = ISharedUser.VictorUserId, Name = "Victor", Tag = "0000" },
+            },
+        };
+
+        try
+        {
+            var prepared = await _migrationService.PreparePulledBackSnapshotAsync(
+                snapshot, planetId, ISharedUser.VictorUserId, NodeDomain);
+
+            Assert.True(prepared.Success, prepared.Message);
+            Assert.Equal(memberUserId, Assert.Single(snapshot.Members).UserId);
+            var message = Assert.Single(snapshot.Messages);
+            Assert.Equal(memberUserId, message.AuthorUserId);
+            Assert.Equal(memberId, message.AuthorMemberId);
+        }
+        finally
+        {
+            await _db.FederatedMemberships.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
         }
     }
 
@@ -1508,5 +1609,343 @@ public class FederationServiceTests : IAsyncLifetime
 
         var empty = await _hubService.GetPurgedUserIdsAsync(NodeDomain, page.NextCursor);
         Assert.Empty(empty.UserIds);
+    }
+
+    [Fact]
+    public async Task NodeRegistration_UnverifiedDomainIsReservedOnlyUntilItExpires()
+    {
+        const string domain = "squat-test.example.com";
+        var claimantId = _fixture.Client.Me.Id;
+
+        try
+        {
+            var squat = await _hubService.RegisterNodeAsync(ISharedUser.VictorUserId, domain);
+            Assert.True(squat.Success, squat.Message);
+
+            // A fresh unverified registration still blocks other accounts.
+            var blocked = await _hubService.RegisterNodeAsync(claimantId, domain);
+            Assert.False(blocked.Success);
+            Assert.Contains("unverified", blocked.Message, StringComparison.OrdinalIgnoreCase);
+
+            // Re-registering during the window keeps the same challenge and
+            // does not extend the reservation.
+            var stored = await _db.FederatedNodes.FindAsync(domain);
+            var reservedAt = stored!.CreatedAt;
+            var again = await _hubService.RegisterNodeAsync(ISharedUser.VictorUserId, domain);
+            Assert.True(again.Success, again.Message);
+            Assert.Equal(squat.Data!.Challenge, again.Data!.Challenge);
+            Assert.Equal(reservedAt, (await _db.FederatedNodes.FindAsync(domain))!.CreatedAt);
+
+            // Once the window has passed, another account may claim it and
+            // receives its own challenge.
+            stored.CreatedAt = DateTime.UtcNow - FederationHubService.PendingRegistrationLifetime - TimeSpan.FromMinutes(1);
+            await _db.SaveChangesAsync();
+
+            var claimed = await _hubService.RegisterNodeAsync(claimantId, domain);
+            Assert.True(claimed.Success, claimed.Message);
+            Assert.NotEqual(squat.Data.Challenge, claimed.Data!.Challenge);
+            _db.ChangeTracker.Clear();
+            Assert.Equal(claimantId, (await _db.FederatedNodes.FindAsync(domain))!.OwnerId);
+            Assert.Null(await _hubService.GetNodeStatusAsync(ISharedUser.VictorUserId, domain));
+        }
+        finally
+        {
+            await _db.FederatedNodes.Where(x => x.Domain == domain).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
+    public async Task NodeRegistration_SuspendedNodeCannotReRegisterItself()
+    {
+        const string domain = "suspended-register.example.com";
+        try
+        {
+            var registration = await _hubService.RegisterNodeAsync(ISharedUser.VictorUserId, domain);
+            Assert.True(registration.Success, registration.Message);
+            Assert.True((await _hubService.SetNodeSuspendedAsync(domain, true)).Success);
+
+            var again = await _hubService.RegisterNodeAsync(ISharedUser.VictorUserId, domain);
+
+            Assert.False(again.Success);
+            _db.ChangeTracker.Clear();
+            Assert.Equal(Valour.Database.FederatedNodeStatus.Suspended, (await _db.FederatedNodes.FindAsync(domain))!.Status);
+        }
+        finally
+        {
+            await _db.FederatedNodes.Where(x => x.Domain == domain).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
+    public async Task NodeRegistration_IsLimitedPerAccount()
+    {
+        var ownerId = _fixture.Client.Me.Id;
+        var prefix = "cap-" + Guid.NewGuid().ToString("N")[..8];
+        try
+        {
+            Valour.Shared.TaskResult<FederatedNodeRegistrationResponse> last = default;
+            for (var i = 0; i <= FederationHubService.MaxRegistrationsPerOwner; i++)
+            {
+                last = await _hubService.RegisterNodeAsync(ownerId, $"{prefix}-{i}.example.com");
+                if (!last.Success)
+                    break;
+            }
+
+            Assert.False(last.Success);
+            Assert.Contains("at most", last.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(await _db.FederatedNodes.CountAsync(x => x.OwnerId == ownerId) <= FederationHubService.MaxRegistrationsPerOwner);
+        }
+        finally
+        {
+            await _db.FederatedNodes.Where(x => x.Domain.StartsWith(prefix)).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
+    public async Task StaffNodeDeletion_RefusesNodesThatHostPlanets()
+    {
+        const string domain = "staff-delete.example.com";
+        try
+        {
+            var registration = await _hubService.RegisterNodeAsync(ISharedUser.VictorUserId, domain);
+            Assert.True(registration.Success, registration.Message);
+            Assert.True((await _hubService.DeleteNodeAsync(domain)).Success);
+            _db.ChangeTracker.Clear();
+            Assert.Null(await _db.FederatedNodes.FindAsync(domain));
+
+            // The fixture node hosts a stub, so it must be suspended instead.
+            var token = await MintNodeTokenAsync(HostingConfig.Current.RootDomain);
+            var nodeDomain = await _hubService.AuthenticateNodeAsync(token);
+            var reserve = await _registry.ReserveAsync(nodeDomain!, new FederatedPlanetStubRequest { Name = "Hosted" });
+            Assert.True(reserve.Success, reserve.Message);
+
+            var refused = await _hubService.DeleteNodeAsync(NodeDomain);
+            Assert.False(refused.Success);
+            Assert.NotNull(await _db.FederatedNodes.FindAsync(NodeDomain));
+        }
+        finally
+        {
+            await _db.FederatedNodes.Where(x => x.Domain == domain).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
+    public async Task HostingApproval_RequiresVerifiedNode_AndDoesNotRevealPlanetOwnership()
+    {
+        const string pendingDomain = "pending-approval.example.com";
+        var otherOwnerId = _fixture.Client.Me.Id;
+        var planetId = IdManager.Generate();
+        await _db.Planets.AddAsync(new Valour.Database.Planet
+        {
+            Id = planetId,
+            OwnerId = ISharedUser.VictorUserId,
+            Name = "Approval privacy",
+            Description = "Owned by Victor, not by the approved account.",
+        });
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var registration = await _hubService.RegisterNodeAsync(ISharedUser.VictorUserId, pendingDomain);
+            Assert.True(registration.Success, registration.Message);
+
+            var pending = await _hubService.CreateMigrationHostingApprovalAsync(
+                ISharedUser.VictorUserId, pendingDomain,
+                new FederatedMigrationHostingApprovalRequest { OwnerId = otherOwnerId, PlanetId = planetId });
+            Assert.False(pending.Success);
+
+            // The planet does not belong to otherOwnerId. The response matches
+            // any other approval, and the stored approval never matches a
+            // migration started by the planet's real owner.
+            var mismatched = await _hubService.CreateMigrationHostingApprovalAsync(
+                ISharedUser.VictorUserId, NodeDomain,
+                new FederatedMigrationHostingApprovalRequest { OwnerId = otherOwnerId, PlanetId = planetId });
+            Assert.True(mismatched.Success, mismatched.Message);
+
+            var node = await _db.FederatedNodes.AsNoTracking().SingleAsync(x => x.Domain == NodeDomain);
+            node.OwnerId = otherOwnerId;
+            node.AllowsPublicMigrations = false;
+            Assert.False(await _hubService.CanHostMigrationAsync(node, ISharedUser.VictorUserId, planetId));
+        }
+        finally
+        {
+            await _db.FederatedMigrationHostingApprovals
+                .Where(x => x.NodeDomain == NodeDomain && x.PlanetId == planetId)
+                .ExecuteDeleteAsync();
+            await _db.FederatedNodes.Where(x => x.Domain == pendingDomain).ExecuteDeleteAsync();
+            await _db.Planets.IgnoreQueryFilters().Where(x => x.Id == planetId).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
+    public async Task NodeS2SToken_IsSingleUse_AndLifetimeIsBounded()
+    {
+        var nodeService = new FederationNodeService(
+            _db,
+            _scope.ServiceProvider.GetRequiredService<UserService>(),
+            _scope.ServiceProvider.GetRequiredService<PlanetMemberService>(),
+            _scope.ServiceProvider.GetRequiredService<TokenService>(),
+            new TestHttpClientFactory(new HubMetadataHandler(await _keyService.GetJwksJsonAsync())),
+            _scope.ServiceProvider.GetRequiredService<ILogger<FederationNodeService>>());
+
+        var token = await nodeService.MintS2STokenAsync(_keyService);
+        Assert.Equal(NodeDomain, await _hubService.AuthenticateNodeAsync(token));
+        Assert.Null(await _hubService.AuthenticateNodeAsync(token));
+
+        var creds = await _keyService.GetNodeSigningCredentialsAsync();
+        var longLived = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
+            Issuer = NodeDomain,
+            Audience = HostingConfig.Current.RootDomain,
+            Expires = DateTime.UtcNow.AddDays(30),
+            IssuedAt = DateTime.UtcNow,
+            SigningCredentials = creds,
+            Claims = new Dictionary<string, object>
+            {
+                ["protocol"] = ValourFederation.ProtocolVersion,
+                ["jti"] = Guid.NewGuid().ToString("N"),
+            },
+        });
+        Assert.Null(await _hubService.AuthenticateNodeAsync(longLived));
+    }
+
+    [Fact]
+    public async Task FederationExchange_AcceptsEachHubTokenOnce()
+    {
+        var hubUserId = IdManager.Generate();
+        var nodeService = new FederationNodeService(
+            _db,
+            _scope.ServiceProvider.GetRequiredService<UserService>(),
+            _scope.ServiceProvider.GetRequiredService<PlanetMemberService>(),
+            _scope.ServiceProvider.GetRequiredService<TokenService>(),
+            new TestHttpClientFactory(new HubMetadataHandler(await _keyService.GetJwksJsonAsync())),
+            _scope.ServiceProvider.GetRequiredService<ILogger<FederationNodeService>>(),
+            _scope.ServiceProvider.GetRequiredService<StackExchange.Redis.IConnectionMultiplexer>());
+        var credentials = await _keyService.GetHubSigningCredentialsAsync();
+
+        string MintHubToken(bool includeId) => new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
+            Issuer = HostingConfig.Current.RootDomain,
+            Audience = NodeDomain,
+            Expires = DateTime.UtcNow.AddMinutes(15),
+            IssuedAt = DateTime.UtcNow,
+            SigningCredentials = credentials,
+            Claims = includeId
+                ? new Dictionary<string, object>
+                {
+                    ["sub"] = hubUserId.ToString(), ["name"] = "Replay Test", ["subscription"] = string.Empty,
+                    ["protocol"] = ValourFederation.ProtocolVersion, ["jti"] = Guid.NewGuid().ToString("N"),
+                    ["memberships"] = Array.Empty<string>(),
+                }
+                : new Dictionary<string, object>
+                {
+                    ["sub"] = hubUserId.ToString(), ["name"] = "Replay Test", ["subscription"] = string.Empty,
+                    ["protocol"] = ValourFederation.ProtocolVersion, ["memberships"] = Array.Empty<string>(),
+                },
+        });
+
+        try
+        {
+            var hubToken = MintHubToken(includeId: true);
+            var first = await nodeService.ExchangeAsync(hubToken, "127.0.0.1");
+            Assert.True(first.Success, first.Message);
+
+            var replay = await nodeService.ExchangeAsync(hubToken, "127.0.0.1");
+            Assert.False(replay.Success);
+
+            var withoutId = await nodeService.ExchangeAsync(MintHubToken(includeId: false), "127.0.0.1");
+            Assert.False(withoutId.Success);
+        }
+        finally
+        {
+            await _db.AuthTokens.Where(x => x.UserId == hubUserId && x.AppId == "FEDERATION").ExecuteDeleteAsync();
+            await _db.UserProfiles.Where(x => x.Id == hubUserId).ExecuteDeleteAsync();
+            await _db.Users.Where(x => x.Id == hubUserId).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
+    public async Task NodeVerification_RejectsOversizedDescriptor_WithoutEchoingErrors()
+    {
+        const string domain = "oversized-descriptor.example.com";
+        var registration = await _hubService.RegisterNodeAsync(ISharedUser.VictorUserId, domain);
+        Assert.True(registration.Success, registration.Message);
+
+        try
+        {
+            var strictHub = new FederationHubService(
+                _db,
+                _keyService,
+                new TestHttpClientFactory(new StaticJsonHandler(new
+                {
+                    domain,
+                    challenge = registration.Data!.Challenge,
+                    protocolVersion = ValourFederation.ProtocolVersion,
+                    publicJwk = _nodeJwk,
+                    padding = new string('x', 70 * 1024),
+                })),
+                _scope.ServiceProvider.GetRequiredService<ILogger<FederationHubService>>());
+
+            var verification = await strictHub.VerifyNodeAsync(ISharedUser.VictorUserId, domain);
+
+            Assert.False(verification.Success);
+            Assert.DoesNotContain("too large", verification.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(Valour.Database.FederatedNodeStatus.PendingVerification,
+                (await _db.FederatedNodes.FindAsync(domain))!.Status);
+        }
+        finally
+        {
+            await _db.FederatedNodes.Where(x => x.Domain == domain).ExecuteDeleteAsync();
+            _db.ChangeTracker.Clear();
+        }
+    }
+
+    [Fact]
+    public void NodeDomains_UseTheDefaultHttpsPortOutsideDevelopment()
+    {
+        var previousInsecure = FederationConfig.Current.AllowInsecure;
+        try
+        {
+            FederationConfig.Current.AllowInsecure = false;
+            Assert.Null(FederationHubService.NormalizeDomain("node.example.com:8443"));
+            Assert.Equal("node.example.com", FederationHubService.NormalizeDomain("node.example.com:443"));
+            Assert.Equal("node.example.com", FederationHubService.NormalizeDomain("Node.Example.com"));
+
+            FederationConfig.Current.AllowInsecure = true;
+            Assert.Equal("localhost:5100", FederationHubService.NormalizeDomain("localhost:5100"));
+        }
+        finally
+        {
+            FederationConfig.Current.AllowInsecure = previousInsecure;
+        }
+    }
+
+    [Fact]
+    public async Task PlanetRegistry_AppliesPlanetMetadataLimits()
+    {
+        var token = await MintNodeTokenAsync(HostingConfig.Current.RootDomain);
+        var domain = await _hubService.AuthenticateNodeAsync(token);
+
+        var tooLong = await _registry.ReserveAsync(domain!, new FederatedPlanetStubRequest
+        {
+            Name = new string('n', 33),
+        });
+        Assert.False(tooLong.Success);
+
+        var reserve = await _registry.ReserveAsync(domain!, new FederatedPlanetStubRequest { Name = "Within limits" });
+        Assert.True(reserve.Success, reserve.Message);
+
+        var longDescription = await _registry.UpsertAsync(domain!, reserve.Data!.Id, new FederatedPlanetStubRequest
+        {
+            Name = "Within limits",
+            Description = new string('d', 5000),
+        });
+        Assert.False(longDescription.Success);
     }
 }

@@ -236,14 +236,20 @@ public class EcoService
     }
 
     /// <summary>
-    /// Returns the user accounts for the given planet id
+    /// Returns the user accounts for the given planet id. Accounts are ordered by
+    /// balance only when <paramref name="orderByBalance"/> is set, because the
+    /// order alone ranks members by wealth.
     /// </summary>
-    public async Task<QueryResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
+    public async Task<QueryResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50,
+        bool orderByBalance = false)
     {
-        var baseQuery = _db.EcoAccounts
+        var filtered = _db.EcoAccounts
             .AsNoTracking()
-            .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
-            .OrderByDescending(x => x.BalanceValue);
+            .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId);
+
+        var baseQuery = orderByBalance
+            ? filtered.OrderByDescending(x => x.BalanceValue).ThenByDescending(x => x.Id)
+            : filtered.OrderByDescending(x => x.Id);
             
         var total = await baseQuery.CountAsync();
         
@@ -261,21 +267,25 @@ public class EcoService
     }
 
     /// <summary>
-    /// Returns the user accounts for the given planet id
+    /// Returns the user accounts for the given planet id, with their members.
+    /// Accounts are ordered by balance only when <paramref name="orderByBalance"/>
+    /// is set, because the order alone ranks members by wealth.
     /// </summary>
     public async ValueTask<QueryResponse<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId,
-        int skip = 0, int take = 50)
+        int skip = 0, int take = 50, bool orderByBalance = false)
     {
-        var baseQuery = 
+        var filtered = 
             _db.EcoAccounts
                 .AsNoTracking()
                 .Include(x => x.PlanetMember)
                     .ThenInclude(x => x.User)
                 .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
                                                          x.PlanetMemberId != null)
-                .Where(x => !x.PlanetMember.IsDeleted)
-                .OrderByDescending(x => x.BalanceValue)
-                    .ThenByDescending(x => x.Id);
+                .Where(x => !x.PlanetMember.IsDeleted);
+
+        var baseQuery = orderByBalance
+            ? filtered.OrderByDescending(x => x.BalanceValue).ThenByDescending(x => x.Id)
+            : filtered.OrderByDescending(x => x.Id);
         
         var total = await baseQuery.CountAsync();
         
@@ -359,7 +369,7 @@ public class EcoService
         if (account.Name.Length > 20)
             return new TaskResult<EcoAccount>(false, "Max account name length is 20");
         
-        if (account.BalanceValue > 0)
+        if (account.BalanceValue != 0)
             return new TaskResult<EcoAccount>(false, "Initial balance must be zero");
 
         if (account.AccountType == AccountType.User)
@@ -391,20 +401,23 @@ public class EcoService
         return new TaskResult<EcoAccount>(true, "Account created successfully", account);
     }
 
-    public async Task<TaskResult<EcoAccount>> UpdateEcoAccountAsync(EcoAccount account)
+    /// <summary>
+    /// Renames the account with the given id. The name is the only editable
+    /// field of an account.
+    /// </summary>
+    public async Task<TaskResult<EcoAccount>> UpdateEcoAccountNameAsync(long accountId, string name)
     {
-        var old = await _db.EcoAccounts.FindAsync(account.Id);
+        if (string.IsNullOrWhiteSpace(name))
+            return new TaskResult<EcoAccount>(false, "Account name is required");
+        
+        if (name.Length > 20)
+            return new TaskResult<EcoAccount>(false, "Max account name length is 20");
+        
+        var old = await _db.EcoAccounts.FindAsync(accountId);
         if (old is null)
             return new TaskResult<EcoAccount>(false, "Account not found");
         
-        // Literally the only thing you can change is the name so we're just going to copy that across
-        // rather than validate 50 things for no reason. If you're trying to change something else and
-        // there's no error this is why.
-        
-        if (account.Name.Length > 20)
-            return new TaskResult<EcoAccount>(false, "Max account name length is 20");
-        
-        old.Name = account.Name;
+        old.Name = name;
 
         await _db.SaveChangesAsync();
         
@@ -537,6 +550,34 @@ public class EcoService
         return new TaskResult<Transaction>(true, result.Message, transaction);
     }
     
+    public const int MaxTransactionDescriptionLength = 256;
+    public const int MaxTransactionDataLength = 4096;
+    public const int MaxTransactionFingerprintLength = 128;
+
+    /// <summary>
+    /// Checks the caller-supplied text fields of a transaction.
+    /// </summary>
+    public static TaskResult ValidateTransactionMetadata(Transaction transaction)
+    {
+        if (transaction.Description?.Length > MaxTransactionDescriptionLength)
+            return TaskResult.FromFailure($"Max description length is {MaxTransactionDescriptionLength} characters");
+
+        if (transaction.Data?.Length > MaxTransactionDataLength)
+            return TaskResult.FromFailure($"Max data length is {MaxTransactionDataLength} characters");
+
+        if (transaction.Fingerprint?.Length > MaxTransactionFingerprintLength)
+            return TaskResult.FromFailure($"Max fingerprint length is {MaxTransactionFingerprintLength} characters");
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Moves funds between two accounts. The planet and recipient user are
+    /// always taken from the stored accounts, so they cannot disagree with the
+    /// accounts the money actually moves between. <see cref="Transaction.UserFromId"/>
+    /// must be set by the caller: API requests set it to the account owner, or
+    /// to the acting user for shared accounts.
+    /// </summary>
     public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction, bool issuing = false)
     {
         // Fun case for those who wish to break the system
@@ -544,8 +585,9 @@ public class EcoService
         if (transaction.Amount <= 0)
             return new TaskResult(false, "Amount must be positive");
 
-        // Global Valour Credits transaction
-        var isGlobal = (transaction.PlanetId == ISharedPlanet.ValourCentralId);
+        var metadata = ValidateTransactionMetadata(transaction);
+        if (!metadata.Success)
+            return metadata;
 
         if (!issuing && (transaction.AccountFromId == transaction.AccountToId))
             return new TaskResult(false, "Cannot send to self");
@@ -560,6 +602,12 @@ public class EcoService
 
         if (fromAcc.CurrencyId != toAcc.CurrencyId)
             return new TaskResult(false, "Currency mismatch");
+
+        transaction.PlanetId = fromAcc.PlanetId;
+        transaction.UserToId = toAcc.UserId;
+
+        // Global Valour Credits transaction
+        var isGlobal = (transaction.PlanetId == ISharedPlanet.ValourCentralId);
 
         // Get currency from sending account. Both should be the same anyways.
         var currency = await GetCurrencyAsync(fromAcc.CurrencyId);
@@ -614,7 +662,8 @@ public class EcoService
         catch(Exception e)
         {
             await trans.RollbackAsync();
-            return new TaskResult(false, "Error: " + e.Message);
+            _logger.LogError(e, "Error processing transaction {TransactionId}", transaction.Id);
+            return new TaskResult(false, "An error occurred while processing the transaction.");
         }
 
         if (isGlobal)

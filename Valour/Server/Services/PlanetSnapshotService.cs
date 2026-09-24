@@ -10,8 +10,9 @@ namespace Valour.Server.Services;
 /// Exports a planet's complete data to a portable snapshot and reconstructs it
 /// on import. Planet and user ids are hub-global and are preserved. All other
 /// ids are local to a node, so cross-domain imports generate new ids and
-/// rewrite their graph references. Referenced users are hub-global; import
-/// materializes shadow rows for any the destination lacks.
+/// rewrite their graph references. Referenced users are hub-global. A
+/// community node importing from the hub materializes shadow rows for any it
+/// lacks; the hub never creates accounts from a node-supplied snapshot.
 /// </summary>
 public class PlanetSnapshotService
 {
@@ -298,7 +299,15 @@ public class PlanetSnapshotService
     /// Fails if the planet already exists locally (migrate/replace explicitly
     /// instead).
     /// </summary>
-    public async Task<TaskResult> ImportAsync(PlanetSnapshot snapshot)
+    /// <param name="snapshot">The snapshot to import.</param>
+    /// <param name="createMissingUsers">
+    /// True on a community node receiving a planet from the hub: accounts are
+    /// hub-issued, so the node creates local shadow rows for them. False on
+    /// the hub receiving a pull-back: the hub owns accounts, so a snapshot that
+    /// names an account the hub does not have is rejected rather than allowed
+    /// to create one.
+    /// </param>
+    public async Task<TaskResult> ImportAsync(PlanetSnapshot snapshot, bool createMissingUsers = true)
     {
         if (snapshot?.Planet is null)
             return TaskResult.FromFailure("Snapshot has no planet.");
@@ -315,6 +324,16 @@ public class PlanetSnapshotService
         if (tags.Count != tagIds.Count)
             return TaskResult.FromFailure("Snapshot references tags that do not exist on this node.");
 
+        if (!createMissingUsers)
+        {
+            var userIds = snapshot.Users.Select(x => x.Id).ToList();
+            var existingUsers = await _db.Users.CountAsync(x => userIds.Contains(x.Id));
+            if (existingUsers != userIds.Count)
+                return TaskResult.FromFailure("Snapshot references accounts that do not exist on this server.");
+        }
+
+        snapshot.Planet.Vanity = await GetImportableVanityAsync(snapshot.Planet);
+
         // Planet ids and user ids are issued by the hub. The rest of a
         // snapshot's identifiers belong only to its source node. Keeping them
         // verbatim would allow a community node's local ids to collide with
@@ -325,7 +344,8 @@ public class PlanetSnapshotService
         await using var tran = await _db.Database.BeginTransactionAsync();
         try
         {
-            await EnsureShadowUsersAsync(snapshot.Users);
+            if (createMissingUsers)
+                await EnsureShadowUsersAsync(snapshot.Users);
 
             var p = snapshot.Planet;
             await _db.Planets.AddAsync(new Valour.Database.Planet
@@ -530,6 +550,23 @@ public class PlanetSnapshotService
             _logger.LogError(e, "Failed to import planet snapshot {PlanetId}", snapshot.Planet.Id);
             return TaskResult.FromFailure($"Import failed: {e.Message}");
         }
+    }
+
+    /// <summary>
+    /// Applies the same vanity rules as <see cref="PlanetService.SetVanityAsync"/>.
+    /// A vanity that is invalid or already used by another planet here is
+    /// dropped rather than failing the whole import; the owner can choose a
+    /// new one afterwards.
+    /// </summary>
+    private async Task<string> GetImportableVanityAsync(PlanetSnapshotPlanet planet)
+    {
+        var vanity = planet.Vanity?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(vanity) || !VanityUtils.ValidateVanity(vanity).Success)
+            return null;
+
+        var taken = await _db.Planets.IgnoreQueryFilters()
+            .AnyAsync(x => x.Vanity == vanity && x.Id != planet.Id);
+        return taken ? null : vanity;
     }
 
     private static bool IsCrossDomainSnapshot(PlanetSnapshot snapshot) =>
@@ -817,6 +854,178 @@ public class PlanetSnapshotService
         }
     }
 
+    /// <summary>
+    /// Limits a community-node snapshot to identities the hub itself vouches
+    /// for, before the hub imports it during a pull-back. A node controls every
+    /// row it sends, so it could otherwise add memberships for arbitrary hub
+    /// accounts or recreate deleted accounts under a name of its choosing.
+    ///
+    /// Membership rows are kept only for <paramref name="memberUserIds"/> (the
+    /// planet owner and accounts with a hub-recorded federated membership).
+    /// Content whose author is not an existing hub account is attributed to
+    /// the Victor system account, matching how the hub reassigns planets of
+    /// deleted accounts. Per-account state for unknown accounts (reactions,
+    /// boosts, bans against them, read state, user mentions) is dropped.
+    /// Thread and comment counters are recomputed from the rows that remain.
+    /// The result still passes through the normal graph validation on import.
+    /// </summary>
+    public async Task RestrictToHubIdentitiesAsync(PlanetSnapshot snapshot, IReadOnlySet<long> memberUserIds)
+    {
+        NormalizeCollections(snapshot);
+
+        var referenced = CollectReferencedUserIds(snapshot);
+        referenced.Add(ISharedUser.VictorUserId);
+        var knownUsers = (await _db.Users.AsNoTracking()
+                .Where(x => referenced.Contains(x.Id) && !x.IsFederated)
+                .Select(x => x.Id)
+                .ToListAsync())
+            .ToHashSet();
+
+        long MapAuthor(long userId) => knownUsers.Contains(userId) ? userId : ISharedUser.VictorUserId;
+        long? MapOptionalUser(long? userId) => userId.HasValue && knownUsers.Contains(userId.Value) ? userId : null;
+
+        // Members: one row per permitted, existing account.
+        snapshot.Members = snapshot.Members
+            .Where(x => memberUserIds.Contains(x.UserId) && knownUsers.Contains(x.UserId))
+            .GroupBy(x => x.UserId)
+            .Select(x => x.First())
+            .ToList();
+        // Duplicate member ids are rejected by graph validation during import.
+        var memberUsers = new Dictionary<long, long>();
+        foreach (var member in snapshot.Members)
+            memberUsers.TryAdd(member.Id, member.UserId);
+        var keptMemberUserIds = snapshot.Members.Select(x => x.UserId).ToHashSet();
+        var ownerMemberId = snapshot.Members
+            .Where(x => x.UserId == snapshot.Planet.OwnerId)
+            .Select(x => (long?)x.Id)
+            .FirstOrDefault();
+
+        // A member reference survives only if it still points at a kept member
+        // of the same (possibly reattributed) author.
+        long? MapMember(long? memberId, long userId) =>
+            memberId.HasValue && memberUsers.TryGetValue(memberId.Value, out var memberUserId) && memberUserId == userId
+                ? memberId
+                : null;
+
+        foreach (var message in snapshot.Messages)
+        {
+            message.AuthorUserId = MapAuthor(message.AuthorUserId);
+            message.AuthorMemberId = MapMember(message.AuthorMemberId, message.AuthorUserId);
+        }
+
+        snapshot.Reactions = snapshot.Reactions.Where(x => knownUsers.Contains(x.AuthorUserId)).ToList();
+        foreach (var reaction in snapshot.Reactions)
+            reaction.AuthorMemberId = MapMember(reaction.AuthorMemberId, reaction.AuthorUserId);
+
+        foreach (var thread in snapshot.Threads)
+        {
+            thread.AuthorUserId = MapAuthor(thread.AuthorUserId);
+            thread.AuthorMemberId = MapMember(thread.AuthorMemberId, thread.AuthorUserId);
+        }
+
+        foreach (var comment in snapshot.ThreadComments)
+        {
+            comment.AuthorUserId = MapAuthor(comment.AuthorUserId);
+            comment.AuthorMemberId = MapMember(comment.AuthorMemberId, comment.AuthorUserId);
+        }
+
+        snapshot.ThreadBoosts = snapshot.ThreadBoosts.Where(x => knownUsers.Contains(x.UserId)).ToList();
+        snapshot.ThreadCommentBoosts = snapshot.ThreadCommentBoosts.Where(x => knownUsers.Contains(x.UserId)).ToList();
+
+        foreach (var page in snapshot.WikiPages)
+        {
+            page.CreatedByUserId = MapAuthor(page.CreatedByUserId);
+            page.LastEditedByUserId = MapOptionalUser(page.LastEditedByUserId);
+        }
+
+        foreach (var revision in snapshot.WikiRevisions)
+            revision.AuthorUserId = MapAuthor(revision.AuthorUserId);
+
+        foreach (var emoji in snapshot.Emojis)
+            emoji.CreatorUserId = MapAuthor(emoji.CreatorUserId);
+
+        snapshot.Bans = snapshot.Bans.Where(x => knownUsers.Contains(x.TargetId)).ToList();
+        foreach (var ban in snapshot.Bans)
+            ban.IssuerId = MapAuthor(ban.IssuerId);
+
+        foreach (var invite in snapshot.Invites)
+            invite.IssuerId = MapAuthor(invite.IssuerId);
+
+        snapshot.UserChannelStates = snapshot.UserChannelStates
+            .Where(x => keptMemberUserIds.Contains(x.UserId))
+            .ToList();
+        foreach (var state in snapshot.UserChannelStates)
+            state.PlanetMemberId = MapMember(state.PlanetMemberId, state.UserId);
+
+        snapshot.Mentions = snapshot.Mentions
+            .Where(x => x.Type switch
+            {
+                MentionType.User => knownUsers.Contains(x.TargetId),
+                MentionType.PlanetMember => memberUsers.ContainsKey(x.TargetId),
+                _ => true,
+            })
+            .ToList();
+
+        foreach (var log in snapshot.ModerationAuditLogs)
+        {
+            log.ActorUserId = MapOptionalUser(log.ActorUserId);
+            log.TargetUserId = MapOptionalUser(log.TargetUserId);
+            if (log.TargetMemberId.HasValue && !memberUsers.ContainsKey(log.TargetMemberId.Value))
+                log.TargetMemberId = null;
+        }
+
+        // Automod rows require a member. Rules added by a removed member are
+        // kept under the owner's membership when there is one.
+        foreach (var trigger in snapshot.AutomodTriggers.Where(x => !memberUsers.ContainsKey(x.MemberAddedBy) && ownerMemberId.HasValue))
+            trigger.MemberAddedBy = ownerMemberId!.Value;
+        snapshot.AutomodTriggers = snapshot.AutomodTriggers.Where(x => memberUsers.ContainsKey(x.MemberAddedBy)).ToList();
+        var triggerIds = snapshot.AutomodTriggers.Select(x => x.Id).ToHashSet();
+
+        foreach (var action in snapshot.AutomodActions.Where(x => !memberUsers.ContainsKey(x.MemberAddedBy) && ownerMemberId.HasValue))
+            action.MemberAddedBy = ownerMemberId!.Value;
+        snapshot.AutomodActions = snapshot.AutomodActions
+            .Where(x => triggerIds.Contains(x.TriggerId) &&
+                        memberUsers.ContainsKey(x.MemberAddedBy) &&
+                        memberUsers.ContainsKey(x.TargetMemberId))
+            .ToList();
+        snapshot.AutomodLogs = snapshot.AutomodLogs
+            .Where(x => triggerIds.Contains(x.TriggerId) && memberUsers.ContainsKey(x.MemberId))
+            .ToList();
+
+        // Counters are derived data. Recompute them from the rows being
+        // imported instead of trusting the node's values.
+        var threadBoosts = snapshot.ThreadBoosts.GroupBy(x => x.ThreadId).ToDictionary(x => x.Key, x => x.Count());
+        var commentBoosts = snapshot.ThreadCommentBoosts.GroupBy(x => x.CommentId).ToDictionary(x => x.Key, x => x.Count());
+        var threadComments = snapshot.ThreadComments.GroupBy(x => x.ThreadId).ToDictionary(x => x.Key, x => x.Count());
+        var commentReplies = snapshot.ThreadComments
+            .Where(x => x.ParentCommentId.HasValue)
+            .GroupBy(x => x.ParentCommentId!.Value)
+            .ToDictionary(x => x.Key, x => x.Count());
+
+        foreach (var thread in snapshot.Threads)
+        {
+            thread.BoostCount = threadBoosts.GetValueOrDefault(thread.Id);
+            thread.CommentCount = threadComments.GetValueOrDefault(thread.Id);
+        }
+
+        foreach (var comment in snapshot.ThreadComments)
+        {
+            comment.BoostCount = commentBoosts.GetValueOrDefault(comment.Id);
+            comment.ReplyCount = commentReplies.GetValueOrDefault(comment.Id);
+        }
+
+        // Describe the remaining accounts with the hub's own records, never
+        // the node-supplied names.
+        var remaining = CollectReferencedUserIds(snapshot);
+        snapshot.Users = await _db.Users.AsNoTracking()
+            .Where(x => remaining.Contains(x.Id))
+            .Select(x => new PlanetSnapshotUser
+            {
+                Id = x.Id, Name = x.Name, Tag = x.Tag, SubscriptionType = x.SubscriptionType,
+            })
+            .ToListAsync();
+    }
+
     private async Task EnsureShadowUsersAsync(List<PlanetSnapshotUser> users)
     {
         if (users is null || users.Count == 0)
@@ -881,37 +1090,12 @@ public class PlanetSnapshotService
         if (planetId <= 0 || snapshot.ProtocolVersion != ValourFederation.ProtocolVersion)
             return TaskResult.FromFailure("Snapshot has an invalid planet id or federation protocol version.");
 
-        snapshot.Planet.TagIds ??= new();
+        NormalizeCollections(snapshot);
         if (snapshot.Planet.TagIds.Any(x => x <= 0) ||
             snapshot.Planet.TagIds.Distinct().Count() != snapshot.Planet.TagIds.Count)
         {
             return TaskResult.FromFailure("Snapshot contains invalid or duplicate planet tags.");
         }
-
-        snapshot.Channels ??= new();
-        snapshot.Roles ??= new();
-        snapshot.PermissionNodes ??= new();
-        snapshot.Members ??= new();
-        snapshot.Emojis ??= new();
-        snapshot.Rules ??= new();
-        snapshot.Bans ??= new();
-        snapshot.Invites ??= new();
-        snapshot.UserChannelStates ??= new();
-        snapshot.Messages ??= new();
-        snapshot.Attachments ??= new();
-        snapshot.Reactions ??= new();
-        snapshot.Mentions ??= new();
-        snapshot.Threads ??= new();
-        snapshot.ThreadComments ??= new();
-        snapshot.ThreadBoosts ??= new();
-        snapshot.ThreadCommentBoosts ??= new();
-        snapshot.WikiPages ??= new();
-        snapshot.WikiRevisions ??= new();
-        snapshot.AutomodTriggers ??= new();
-        snapshot.AutomodActions ??= new();
-        snapshot.AutomodLogs ??= new();
-        snapshot.ModerationAuditLogs ??= new();
-        snapshot.Users ??= new();
 
         bool InvalidIds<T>(IEnumerable<T> items, Func<T, long> id) =>
             items.Any(x => id(x) <= 0) || items.Select(id).Distinct().Count() != items.Count();
@@ -1073,6 +1257,20 @@ public class PlanetSnapshotService
         if (snapshot.Attachments.Any(x => !string.IsNullOrWhiteSpace(x.CdnBucketItemId)))
             return TaskResult.FromFailure("Snapshot contains storage-backed attachments that are unavailable on this node.");
 
+        var referencedUsers = CollectReferencedUserIds(snapshot);
+        var suppliedUsers = snapshot.Users.Select(x => x.Id).ToHashSet();
+        if (!referencedUsers.SetEquals(suppliedUsers))
+            return TaskResult.FromFailure("Snapshot user records do not exactly match its referenced users.");
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Every user id a snapshot row points at. Callers normalize null
+    /// collections before calling this.
+    /// </summary>
+    private static HashSet<long> CollectReferencedUserIds(PlanetSnapshot snapshot)
+    {
         var referencedUsers = new HashSet<long> { snapshot.Planet.OwnerId };
         referencedUsers.UnionWith(snapshot.Members.Select(x => x.UserId));
         referencedUsers.UnionWith(snapshot.Messages.Select(x => x.AuthorUserId));
@@ -1092,11 +1290,35 @@ public class PlanetSnapshotService
         referencedUsers.UnionWith(snapshot.Mentions.Where(x => x.Type == MentionType.User).Select(x => x.TargetId));
         referencedUsers.UnionWith(snapshot.ModerationAuditLogs.Where(x => x.ActorUserId.HasValue).Select(x => x.ActorUserId!.Value));
         referencedUsers.UnionWith(snapshot.ModerationAuditLogs.Where(x => x.TargetUserId.HasValue).Select(x => x.TargetUserId!.Value));
+        return referencedUsers;
+    }
 
-        var suppliedUsers = snapshot.Users.Select(x => x.Id).ToHashSet();
-        if (!referencedUsers.SetEquals(suppliedUsers))
-            return TaskResult.FromFailure("Snapshot user records do not exactly match its referenced users.");
-
-        return TaskResult.SuccessResult;
+    private static void NormalizeCollections(PlanetSnapshot snapshot)
+    {
+        snapshot.Planet.TagIds ??= new();
+        snapshot.Channels ??= new();
+        snapshot.Roles ??= new();
+        snapshot.PermissionNodes ??= new();
+        snapshot.Members ??= new();
+        snapshot.Emojis ??= new();
+        snapshot.Rules ??= new();
+        snapshot.Bans ??= new();
+        snapshot.Invites ??= new();
+        snapshot.UserChannelStates ??= new();
+        snapshot.Messages ??= new();
+        snapshot.Attachments ??= new();
+        snapshot.Reactions ??= new();
+        snapshot.Mentions ??= new();
+        snapshot.Threads ??= new();
+        snapshot.ThreadComments ??= new();
+        snapshot.ThreadBoosts ??= new();
+        snapshot.ThreadCommentBoosts ??= new();
+        snapshot.WikiPages ??= new();
+        snapshot.WikiRevisions ??= new();
+        snapshot.AutomodTriggers ??= new();
+        snapshot.AutomodActions ??= new();
+        snapshot.AutomodLogs ??= new();
+        snapshot.ModerationAuditLogs ??= new();
+        snapshot.Users ??= new();
     }
 }

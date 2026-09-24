@@ -197,15 +197,27 @@ public class HostedPlanet : ServerModel<long>
     
     public void UpsertRole(PlanetRole role)
     {
-        var result = _roles.Upsert(role);
-        if (result.IsDefault)
-        {
-            _defaultRole = result;
-        }
-        
         _localToGlobalRoleLock.EnterWriteLock();
         try
         {
+            // Upsert copies into the cached instance, so read the previous index first
+            var previousIndex = _roles.Get(role.Id)?.FlagBitIndex;
+
+            var result = _roles.Upsert(role);
+            if (result.IsDefault)
+            {
+                _defaultRole = result;
+            }
+
+            // Release the old slot so it can no longer resolve to this role
+            if (previousIndex is { } oldIndex && oldIndex != role.FlagBitIndex &&
+                oldIndex >= 0 && oldIndex < _localToGlobalRoleId.Length &&
+                _localToGlobalRoleId[oldIndex] == role.Id)
+            {
+                _localToGlobalRoleId[oldIndex] = 0;
+                _isLocalToGlobalRoleIdDirty = true;
+            }
+
             if (role.FlagBitIndex >= 0 && role.FlagBitIndex < _localToGlobalRoleId.Length)
             {
                 _localToGlobalRoleId[role.FlagBitIndex] = role.Id;

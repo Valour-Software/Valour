@@ -89,6 +89,11 @@ function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement)
         dispatchFilesToInput(inputFile, e.clipboardData.files);
     }
     
+    // Clear the previous selection so picking the same file again still raises change.
+    function onInputFileClick() {
+        inputFile.value = '';
+    }
+
     function onUploadButtonClick(e) {
         e.preventDefault();
         inputFile.click();
@@ -101,6 +106,7 @@ function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement)
     dropZoneElement.addEventListener("dragleave", onDragLeave);
     dropZoneElement.addEventListener("drop", onDrop);
     dropZoneElement.addEventListener('paste', onPaste);
+    inputFile.addEventListener('click', onInputFileClick);
     uploadButtonElement?.addEventListener('click', onUploadButtonClick);
     
     console.log("File drop zone initialized");
@@ -113,6 +119,7 @@ function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement)
             dropZoneElement.removeEventListener('dragleave', onDragLeave);
             dropZoneElement.removeEventListener("drop", onDrop);
             dropZoneElement.removeEventListener('paste', onPaste);
+            inputFile.removeEventListener('click', onInputFileClick);
             uploadButtonElement?.removeEventListener('click', onUploadButtonClick);
         }
     }

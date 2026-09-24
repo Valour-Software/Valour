@@ -1,4 +1,6 @@
+using Valour.Sdk.Models;
 using Valour.Server.Cdn;
+using Valour.Shared.Models;
 
 namespace Valour.Tests.Server;
 
@@ -19,6 +21,26 @@ public class MediaUriHelperTests
     {
         Assert.Equal(allowed, MediaUriHelper.MatchesConfiguredOrigin(new Uri(location), host));
     }
+    [Theory]
+    // Script and foreign hosts are rejected even when marked inline, since
+    // embed JSON can carry a client-supplied Inline flag.
+    [InlineData(MessageAttachmentType.YouTube, "javascript:alert(1)", true, false)]
+    [InlineData(MessageAttachmentType.Twitch, "javascript:alert(1)//", true, false)]
+    [InlineData(MessageAttachmentType.Spotify, "https://evil.example/embed", true, false)]
+    [InlineData(MessageAttachmentType.Bluesky, "data:text/html,x", false, false)]
+    [InlineData(MessageAttachmentType.YouTube, "https://www.youtube.com/embed/abc", false, true)]
+    [InlineData(MessageAttachmentType.Twitch, "https://player.twitch.tv/?channel=x&parent=valour.gg", false, true)]
+    // Server-built inline previews of plain http provider links still pass.
+    [InlineData(MessageAttachmentType.Twitter, "http://twitter.com/user/status/1", true, true)]
+    [InlineData(MessageAttachmentType.Twitter, "http://twitter.com/user/status/1", false, false)]
+    public void ScanMediaUri_RequiresWebSchemeAndProviderHost(
+        MessageAttachmentType type, string location, bool inline, bool allowed)
+    {
+        var attachment = new MessageAttachment(type) { Location = location, Inline = inline };
+
+        Assert.Equal(allowed, MediaUriHelper.ScanMediaUri(attachment).Success);
+    }
+
     [Fact]
     public void BucketIdentity_PreservesConfiguredPortAndRejectsOtherOrigins()
     {

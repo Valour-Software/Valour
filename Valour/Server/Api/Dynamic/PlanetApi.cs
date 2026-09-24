@@ -739,6 +739,9 @@ public class PlanetApi
         PlanetMemberService memberService,
         PlanetService planetService)
     {
+        if (!await planetService.ExistsAsync(id))
+            return ValourResult.NotFound("Planet not found.");
+
         var user = await userService.GetCurrentUserAsync();
         var planet = await planetService.GetAsync(id);
 
@@ -774,6 +777,9 @@ public class PlanetApi
         PlanetInviteService inviteService,
         string? inviteCode = null)
     {
+        if (!await planetService.ExistsAsync(id))
+            return ValourResult.NotFound("Planet not found.");
+
         var user = await userService.GetCurrentUserAsync();
         var planet = await planetService.GetAsync(id);
 

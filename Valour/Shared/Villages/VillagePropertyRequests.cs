@@ -42,6 +42,16 @@ public class VillageSaleListingRequest
     public decimal Price { get; set; }
 }
 
+/// <summary>
+/// Buys a listed plot or building. <see cref="ExpectedPrice"/> is required: the
+/// purchase fails when it is missing or differs from the listing's current
+/// price, so the buyer is only charged the price they were shown and confirmed.
+/// </summary>
+public class VillagePurchaseRequest
+{
+    public decimal? ExpectedPrice { get; set; }
+}
+
 public enum VillageBuildAction
 {
     Paint = 0,

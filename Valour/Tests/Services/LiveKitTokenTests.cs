@@ -43,6 +43,51 @@ public class LiveKitTokenTests
         Assert.True(grant.GetProperty("canSubscribe").GetBoolean());
     }
 
+    [Fact]
+    public void ParticipantToken_DefaultsToShortLifetime()
+    {
+        var service = new LiveKitService(
+            new UnusedHttpClientFactory(),
+            NullLogger<LiveKitService>.Instance);
+
+        var response = service.CreateParticipantTokenWithCredentials(
+            Credentials,
+            channelId: 42,
+            userId: 123,
+            displayName: "Caller",
+            sessionId: null);
+
+        using var payload = DecodePayload(response.AuthToken);
+        var issuedAt = payload.RootElement.GetProperty("iat").GetInt64();
+        var expiresAt = payload.RootElement.GetProperty("exp").GetInt64();
+
+        Assert.Equal((long)LiveKitService.TokenLifetime.TotalSeconds, expiresAt - issuedAt);
+        Assert.True(LiveKitService.TokenLifetime <= TimeSpan.FromMinutes(5));
+    }
+
+    [Fact]
+    public void ParticipantToken_ForServerMutedUser_CannotPublish()
+    {
+        var service = new LiveKitService(
+            new UnusedHttpClientFactory(),
+            NullLogger<LiveKitService>.Instance);
+
+        var response = service.CreateParticipantTokenWithCredentials(
+            Credentials,
+            channelId: 42,
+            userId: 123,
+            displayName: "Caller",
+            sessionId: "session",
+            canPublish: false);
+
+        using var payload = DecodePayload(response.AuthToken);
+        var grant = payload.RootElement.GetProperty("video");
+
+        Assert.False(grant.GetProperty("canPublish").GetBoolean());
+        Assert.True(grant.GetProperty("canSubscribe").GetBoolean());
+        Assert.True(grant.GetProperty("roomJoin").GetBoolean());
+    }
+
     private static JsonDocument DecodePayload(string jwt)
     {
         var encoded = jwt.Split('.')[1].Replace('-', '+').Replace('_', '/');

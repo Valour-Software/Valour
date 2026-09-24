@@ -64,8 +64,8 @@ export const init = () => {
     };
     // clientX/clientY on the relayed @ondrag event don't track the real
     // cursor for native drags, so scan() above misses channel drags -
-    // dragover always has the real hovered element. Capture phase because
-    // .drop-targets calls stopPropagation() on the bubble.
+    // dragover always has the real hovered element. Capture phase so
+    // no element handler that stops propagation can hide the event.
     const onDragOver = (e) => {
         if (disposed)
             return;

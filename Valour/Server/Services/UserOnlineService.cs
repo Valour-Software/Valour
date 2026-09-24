@@ -42,7 +42,7 @@ public class UserOnlineService
             UserTimeCache[user.Id] = user.TimeLastActive;
             
             // Notify of user activity change
-            await _hubService.NotifyUserChange(user.ToModel());
+            await _hubService.NotifyUserChange(user.ToBroadcastModel());
             await _db.SaveChangesAsync();
 
             await RecordActivityDaysAsync([userId]);
@@ -101,7 +101,7 @@ public class UserOnlineService
 
                 foreach (var user in changedUsers)
                 {
-                    await _hubService.NotifyUserChange(user.ToModel());
+                    await _hubService.NotifyUserChange(user.ToBroadcastModel());
                 }
             }
 

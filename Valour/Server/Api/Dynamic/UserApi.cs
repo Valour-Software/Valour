@@ -61,26 +61,36 @@ public class UserApi
                 return ValourResult.NotFound<User>();
         }
 
-        return Results.Json(user);
+        return Results.Json(user.ForViewer(token?.UserId));
     }
 
     [ValourRoute(HttpVerbs.Get, "api/users/byName/{name}")]
     public static async Task<IResult> GetUserByNameRouteAsync(
         string name,
-        UserService userService)
+        UserService userService,
+        TokenService tokenService)
     {
         var user = await userService.GetByNameAndTagAsync(name);
-        return user is null ? ValourResult.NotFound<User>() : Results.Json(user);
+        if (user is null)
+            return ValourResult.NotFound<User>();
+
+        var token = await tokenService.GetCurrentTokenAsync();
+        return Results.Json(user.ForViewer(token?.UserId));
     }
 
     [ValourRoute(HttpVerbs.Get, "api/users/byNameAndTag/{name}/{tag}")]
     public static async Task<IResult> GetUserByNameAndTagRouteAsync(
         string name,
         string tag,
-        UserService userService)
+        UserService userService,
+        TokenService tokenService)
     {
         var user = await userService.GetUserAsync(name, tag);
-        return user is null ? ValourResult.NotFound<User>() : Results.Json(user);
+        if (user is null)
+            return ValourResult.NotFound<User>();
+
+        var token = await tokenService.GetCurrentTokenAsync();
+        return Results.Json(user.ForViewer(token?.UserId));
     }
 
     [ValourRoute(HttpVerbs.Put, "api/users/{id}")]
@@ -162,7 +172,7 @@ public class UserApi
         {
             query = $"?redirect=/i/{userInfo.JoinInviteCode}";
         }
-        
+
         return Results.LocalRedirect("/FromVerify" + query, true, false);
     }
 
@@ -248,6 +258,9 @@ public class UserApi
         return Results.Ok(result.Message);
     }
 
+    // Called from session management with the caller's live session, like the
+    // other session routes. (An expired token cannot authenticate at all.)
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/tokens/expired/revoke")]
     public static async Task<IResult> RevokeExpiredTokensRouteAsync(
         [FromBody] RevokeExpiredTokensRequest request,
@@ -360,8 +373,13 @@ public class UserApi
             tokenRequest.Password);
 
         // Keep credential failures indistinguishable from account state failures.
+        // The lockout message is safe to show: it is keyed by the submitted email
+        // and appears the same way whether or not that account exists.
         if (!validResult.Success || validResult.Data is null)
         {
+            if (validResult.Code == UserService.AccountThrottledCode)
+                return Results.Text(validResult.Message, statusCode: StatusCodes.Status429TooManyRequests);
+
             var disabled = validResult.Code == UserService.AccountDisabledCode;
             return Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage, Disabled = disabled });
         }
@@ -397,7 +415,12 @@ public class UserApi
 
             var mfaValid = await multiAuthService.VerifyAppMultiAuth(user.Id, tokenRequest.MultiFactorCode);
             if (!mfaValid.Success)
-                return ValourResult.Forbid("Invalid code.");
+            {
+                if (mfaValid.Code == StatusCodes.Status429TooManyRequests)
+                    return Results.Text(mfaValid.Message, statusCode: StatusCodes.Status429TooManyRequests);
+
+                return ValourResult.Forbid(mfaValid.Message == "Invalid" ? "Invalid code." : mfaValid.Message);
+            }
         }
 
         var result = await userService.GetTokenAfterLoginAsync(ctx, user.Id);
@@ -490,9 +513,18 @@ public class UserApi
 
         if (userPrivateInfo is not null && !userPrivateInfo.Verified)
         {
-            var result = await registerService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
-            if (!result.Success)
-                return ValourResult.Problem(result.Message);
+            // Only the person who chose the account's password may have a new
+            // link sent. Otherwise someone could register another person's
+            // address and get that person to verify an account whose password
+            // the registrant knows. A mismatch gets the same generic reply.
+            var credential = await userService.ValidateCredentialAsync(
+                CredentialType.PASSWORD, userPrivateInfo.Email, request.Password);
+            if (credential.Success && credential.Data?.Id == userPrivateInfo.UserId)
+            {
+                var result = await registerService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
+                if (!result.Success)
+                    return ValourResult.Problem(result.Message);
+            }
         }
 
         return ValourResult.Ok(GenericRecoveryResponse);
@@ -606,6 +638,7 @@ public class UserApi
         return Results.Json(result.Data);
     }
     
+    [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/remove")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> RemoveMultiFactorRouteAsync(
@@ -630,6 +663,17 @@ public class UserApi
         var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.Password);
         if (!validResult.Success)
             return ValourResult.Forbid(validResult.Message);
+
+        // A stolen session plus the password must not be enough to strip the
+        // second factor. An authenticator that was never finished setting up
+        // can be removed without a code.
+        var mfaMethods = await multiAuthService.GetAppMultiAuthTypes(userId);
+        if (mfaMethods.Count > 0)
+        {
+            var mfa = await multiAuthService.VerifyEstablishedAppMultiAuth(userId, request.MultiFactorCode);
+            if (!mfa.Success)
+                return ValourResult.Forbid(mfa.Message);
+        }
 
         var result = await multiAuthService.RemoveAppMultiAuth(userId);
         if (!result.Success)
@@ -686,6 +730,7 @@ public class UserApi
         return Results.Json(await userService.GetReferralDataAsync(userId));
     }
     
+    [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/password")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> ChangePasswordRouteAsync(
@@ -726,6 +771,7 @@ public class UserApi
         return Results.Json(new { newToken = rotateResult.Data.Id, message = "Password changed. All other sessions have been logged out." });
     }
     
+    [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/username")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> ChangeUsernameRouteAsync(
@@ -754,6 +800,7 @@ public class UserApi
         return Results.NoContent();
     }
 
+    [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/hardDelete")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> DeleteAccountAsync(UserService userService, [FromBody] DeleteAccountModel model)

@@ -5,7 +5,8 @@
 const COMMIT_HASH = '$(SHORTHASH)';
 
 self.importScripts('./service-worker-assets.js');
-self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js');
+// Vendored copy of localForage 1.10.0 (unmodified npm dist build), served same-origin.
+self.importScripts('./lib/localforage-1.10.0.min.js');
 
 
 self.addEventListener('install', event => event.waitUntil(onInstall(event)));

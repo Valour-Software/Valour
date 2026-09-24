@@ -44,6 +44,10 @@ public static class RateLimitPolicies
     {
         var enabled = !configuration.GetValue<bool>(DisabledSetting);
 
+        // Partitioning depends on how much the resolver trusts proxy headers,
+        // so its configuration is applied alongside the policies that use it.
+        ClientAddressResolver.Configure(configuration);
+
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -67,9 +71,9 @@ public static class RateLimitPolicies
     }
 
     /// <summary>
-    /// Partitions by client address. ClientAddressResolver only trusts proxy
-    /// headers when the socket peer is a local reverse proxy, so this cannot be
-    /// escaped by spoofing X-Forwarded-For on a direct connection.
+    /// Partitions by client address (IPv6 by /64). ClientAddressResolver only
+    /// trusts proxy headers when the socket peer is a local reverse proxy, so
+    /// this cannot be escaped by spoofing X-Forwarded-For on a direct connection.
     /// </summary>
     private static void AddFixedWindow(
         RateLimiterOptions options, string policyName, int permitLimit, TimeSpan window, bool enabled)
@@ -80,7 +84,7 @@ public static class RateLimitPolicies
                 return RateLimitPartition.GetNoLimiter("disabled");
 
             return RateLimitPartition.GetFixedWindowLimiter(
-                ClientAddressResolver.GetClientAddress(context),
+                ClientAddressResolver.GetRateLimitKey(context),
                 _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = permitLimit,

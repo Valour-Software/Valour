@@ -12,13 +12,16 @@ public class TenorFavoriteApi
         TenorFavoriteService tenorFavoriteService,
         UserService userService)
     {
+        if (favorite is null)
+            return ValourResult.BadRequest("Include favorite in body.");
+
         var user = await userService.GetCurrentUserAsync();
 
         favorite.UserId = user.Id;
 
         var result = await tenorFavoriteService.CreateAsync(favorite);
         if (!result.Success)
-            return ValourResult.Problem(result.Message);
+            return ValourResult.BadRequest(result.Message);
 
         return Results.Created($"api/tenorfavorites/{result.Data.Id}", result.Data);
     }

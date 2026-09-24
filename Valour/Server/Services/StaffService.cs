@@ -186,6 +186,13 @@ public class StaffService
         _coreHub.ForceLogoutUser(userId);
     }
 
+    /// <summary>
+    /// Disables or re-enables an account. Disabling also disables every bot the
+    /// account owns and revokes the bots' tokens, so a banned user cannot keep
+    /// acting through them. Re-enabling the owner leaves those bots disabled;
+    /// staff re-enable a bot individually with this same action, and the owner
+    /// then regenerates its token.
+    /// </summary>
     public async Task<TaskResult> DisableUserAsync(long userId, bool value, long staffUserId, string reason)
     {
         var user = await _db.Users.FindAsync(userId);
@@ -194,10 +201,30 @@ public class StaffService
 
         user.Disabled = value;
 
+        var disabledBotIds = new List<long>();
+        if (value && !user.Bot)
+        {
+            var bots = await _db.Users
+                .Where(x => x.OwnerId == userId && x.Bot && !x.Disabled)
+                .ToListAsync();
+
+            foreach (var bot in bots)
+            {
+                bot.Disabled = true;
+                disabledBotIds.Add(bot.Id);
+            }
+        }
+
         await _db.SaveChangesAsync();
         UserService.InvalidateAccessFlags(userId);
 
         await InvalidateSessionsAsync(userId);
+
+        foreach (var botId in disabledBotIds)
+        {
+            UserService.InvalidateAccessFlags(botId);
+            await InvalidateSessionsAsync(botId);
+        }
 
         await LogActionAsync(staffUserId,
             value ? StaffActionType.DisableAccount : StaffActionType.EnableAccount,
