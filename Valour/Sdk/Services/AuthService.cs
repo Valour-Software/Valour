@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Text;
 using System.Text.Json;
 using Valour.Sdk.Client;
@@ -722,7 +723,25 @@ public class AuthService : ServiceBase
             Password = password
         };
         
-        return await _client.PrimaryNode.PostAsync("api/users/me/multiAuth/remove", request);
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<RemoveMfaResponse>(
+            "api/users/me/multiAuth/remove", request);
+        if (!result.Success)
+            return result.WithoutData();
+        if (string.IsNullOrWhiteSpace(result.Data?.NewToken))
+            return TaskResult.FromFailure("MFA was removed, but the server did not return a replacement session. Please log in again.");
+
+        SetToken(result.Data.NewToken);
+        _client.Http.DefaultRequestHeaders.Remove("Authorization");
+        _client.Http.DefaultRequestHeaders.Add("Authorization", Token);
+
+        foreach (var node in _client.NodeService.Nodes.Where(node => !node.IsExternal).ToArray())
+        {
+            node.UpdateToken();
+            if (node.HubConnection?.State == HubConnectionState.Connected)
+                await node.HandleReconnect();
+        }
+
+        return TaskResult.FromSuccess(result.Data.Message);
     }
 
     internal void HandleTokenInvalidated(string reason = null)

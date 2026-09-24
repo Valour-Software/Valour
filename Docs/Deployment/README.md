@@ -181,3 +181,9 @@ traffic.
 `LIVE_NODE_DOMAIN`, `LIVE_EMAIL`, `LIVE_PASSWORD`, and `LIVE_PLANET`. It needs two
 origins and defaults to HTTPS. `LIVE_FEDERATION_INSECURE=1` is for development
 only. Store test credentials privately.
+
+## Native client uploads
+
+The API CORS policy allows the HTTPS WebView origins `https://0.0.0.0` and
+`https://0.0.0.1` used by the native clients. File uploads run inside the WebView
+and require these origins in addition to the configured web application origins.

@@ -34,7 +34,11 @@ test('color picker does not initialize after its host disappears; destroy is ide
 
 test('file drop works without an upload button and removes all listeners', async () => {
     const source = await readFile(new URL('../../Client/wwwroot/js/channel.js', import.meta.url), 'utf8');
-    const context = vm.createContext({ console: { log() {} }, Event });
+    class DataTransfer {
+        files = [];
+        items = { add: file => this.files.push(file) };
+    }
+    const context = vm.createContext({ console: { log() {} }, Event, DataTransfer });
     vm.runInContext(source, context);
     const listeners = new Map();
     const zone = { classList: { remove() {} }, addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) };
@@ -43,11 +47,32 @@ test('file drop works without an upload button and removes all listeners', async
     const drop = context.initializeFileDropZone(zone, input, undefined);
     const files = ['example.webp'];
     listeners.get('drop')({ preventDefault() {}, dataTransfer: { files } });
-    assert.equal(input.files, files);
+    assert.deepEqual(input.files, files);
+    assert.notEqual(input.files, files);
     assert.equal(changed, 1);
     drop.dispose();
     assert.equal(listeners.size, 0);
     context.initializeFileDropZone(null, null, null).dispose();
+});
+
+test('pasted files survive the clipboard event releasing its file list', async () => {
+    const source = await readFile(new URL('../../Client/wwwroot/js/channel.js', import.meta.url), 'utf8');
+    class DataTransfer {
+        files = [];
+        items = { add: file => this.files.push(file) };
+    }
+    const context = vm.createContext({ console: { log() {} }, Event, DataTransfer });
+    vm.runInContext(source, context);
+    const listeners = new Map();
+    const zone = { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener() {} };
+    const input = { dispatchEvent() {} };
+    context.initializeFileDropZone(zone, input, null);
+    const file = new Blob(['pasted image'], { type: 'image/png' });
+    const clipboardFiles = [file];
+    listeners.get('paste')({ clipboardData: { files: clipboardFiles } });
+    clipboardFiles.length = 0;
+    assert.equal(input.files.length, 1);
+    assert.equal(await input.files[0].text(), 'pasted image');
 });
 
 test('closing an old dock preserves the replacement browser history listener', async () => {

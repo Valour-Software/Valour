@@ -594,7 +594,6 @@ public class UserApi
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> SetupMultiFactorRouteAsync(
-        [FromBody] CreateAppMultiAuthResponse request,
         UserService userService,
         MultiAuthService multiAuthService)
     {
@@ -642,7 +641,11 @@ public class UserApi
             return ValourResult.Problem("MFA removed but failed to rotate session: " + rotateResult.Message);
 
         // Return the new token so the client can update their auth
-        return Results.Json(new { newToken = rotateResult.Data.Id, message = "MFA removed. All other sessions have been logged out." });
+        return Results.Json(new RemoveMfaResponse
+        {
+            NewToken = rotateResult.Data.Id,
+            Message = "MFA removed. All other sessions have been logged out."
+        });
     }
     
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/verify/{code}")]

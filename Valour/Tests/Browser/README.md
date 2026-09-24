@@ -106,6 +106,24 @@ It supports Chromium and WebKit and checks console rendering errors as well as
 uncaught page errors. `SidebarLifecycleTests` additionally schedules disposal
 during storage, import and instance initialization and verifies reference cleanup.
 
+## Open issue regressions
+
+`open-issue-regressions.mjs` uses local browser fixtures to check pasted-file
+ownership, blob previews, multipart uploads, and tab geometry at 24 combinations
+of pane width and tab count. Chromium also sends real touch input through the
+long-press event adapter. The fixtures load the application's JavaScript and tab CSS.
+The C# `OpenIssueRegressionTests` check generated Blazor event handlers and tab
+styles, while `OpenIssueApiRegressionTests` exercise MFA rotation and native
+upload CORS through an isolated server.
+
+```sh
+node Valour/Tests/Browser/open-issue-regressions.mjs
+BROWSER_ENGINE=firefox node Valour/Tests/Browser/open-issue-regressions.mjs
+```
+
+These fixtures do not run the native Android or Windows host. Verify uploads and
+profile long-press on those hosts before a native release.
+
 ## Local media regression
 
 With an isolated LiveKit server running on localhost, configure the QA server's

@@ -130,7 +130,7 @@
     
     private int ZIndex => IsFloating ? (IsActive ? 101 : 100) : (IsActive ? 2 : 1);
 
-    private string TabWrapperStyle => IsFloating ? string.Empty : $"width: {GetTabWidth()}%; margin-left: min({250 * GetIndex()}px, {GetTabWidth() * GetIndex()}%)";
+    private string TabWrapperStyle => IsFloating ? string.Empty : FormattableString.Invariant($"width: calc({GetTabWidth()}% - {30f / Layout.Tabs.Count}px + {(IsLastTab ? 30 : 0)}px); margin-left: min({250 * GetIndex()}px, calc({GetTabWidth() * GetIndex()}% - {30f / Layout.Tabs.Count * GetIndex()}px))");
 
     private string TabWrapperClasses
     {

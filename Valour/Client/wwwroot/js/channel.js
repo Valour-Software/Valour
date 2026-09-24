@@ -46,8 +46,13 @@ function dispatchFilesToInput(inputFile, files) {
         return;
     }
 
+    // Clipboard and drop FileLists become inaccessible after their event returns.
+    const transfer = new DataTransfer();
+    for (const file of files) {
+        transfer.items.add(file);
+    }
     inputFile.value = '';
-    inputFile.files = files;
+    inputFile.files = transfer.files;
     const event = new Event('change', { bubbles: true });
     inputFile.dispatchEvent(event);
 }

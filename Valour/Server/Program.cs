@@ -328,6 +328,8 @@ public partial class Program
             $"http://{hosting.RootDomain}",
             $"https://{hosting.ApiHost}",
             $"http://{hosting.ApiHost}",
+            "https://0.0.0.0",
+            "https://0.0.0.1",
             "http://localhost:3000",
             "https://localhost:3000",
             "http://localhost:3001",

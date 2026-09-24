@@ -1101,6 +1101,15 @@
         await FocusInputAsync();
     }
 
+    internal async Task ClearDeletedReplyAsync(long messageId)
+    {
+        if (!ChatWindowComponent.ClearDeletedReply(PreviewMessage, messageId))
+            return;
+
+        await RemoveReply();
+        Refresh();
+    }
+
     public Task RemoveReply()
     {
         if (PreviewMessage is not null)

@@ -142,6 +142,9 @@ History and search responses include reactions on both messages and their embedd
 reply previews. The SDK synchronizes reply previews into the same scoped message
 cache as ordinary messages, so those previews must contain current reaction data.
 The server updates cached reply previews when their referenced message changes.
+Deleting a message clears persisted and staged reply references. Open chat views
+remove its quoted preview from displayed messages, queued messages, and the current
+reply draft when they receive the deletion.
 
 ## Staged planet messages
 

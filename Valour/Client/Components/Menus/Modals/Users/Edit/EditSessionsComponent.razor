@@ -2,6 +2,7 @@
 @inject ValourClient Client
 @inject IJSRuntime JsRuntime
 @inject AuthService AuthService
+@inject IAppStorage LocalStorage
 
 @using Valour.Client.Components.Menus.Modals.Users.Edit
 
@@ -417,7 +418,9 @@
 
                 if (result.Success)
                 {
+                    await LocalStorage.SetStringAsync("token", AuthService.Token);
                     _multiAuthMethods = new List<string>();
+                    await LoadTokens();
                     StateHasChanged();
                 }
 

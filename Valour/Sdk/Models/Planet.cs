@@ -957,6 +957,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public PlanetListInfo ToListInfo()
     {
         var info = PlanetListInfo.FromPlanet(this);
+        info.NodeDomain = Node?.IsExternal == true ? Node.Name : null;
         info.MemberCount = Members.Count;
         info.Tags = Tags?.ToList() ?? new List<PlanetTag>();
         info.TagIds = info.Tags.Select(x => x.Id).ToList();
