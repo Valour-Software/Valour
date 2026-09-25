@@ -9,6 +9,10 @@
     <DebugType>embedded</DebugType>
     <RazorCompileOnBuild>true</RazorCompileOnBuild>
     <RazorCompileOnPublish>true</RazorCompileOnPublish>
+    <!-- The default is bin\$(Configuration)\. dotnet ef reads this property and uses
+         it as a folder path, which on macOS and Linux creates a literal
+         "bin\Debug" folder that breaks the next build's file globs. -->
+    <OutputPath>bin/$(Configuration)/</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,6 +8,10 @@
              model (~300 AlterColumn ops) and breaking Migrate() on data with
              existing NULLs. Enabling it requires a full column audit + migration. -->
         <Nullable>disable</Nullable>
+        <!-- The default is bin\$(Configuration)\. dotnet ef reads this property and uses
+             it as a folder path, which on macOS and Linux creates a literal
+             "bin\Debug" folder that breaks the next build's file globs. -->
+        <OutputPath>bin/$(Configuration)/</OutputPath>
     </PropertyGroup>
 
     <ItemGroup>

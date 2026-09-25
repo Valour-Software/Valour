@@ -48,6 +48,12 @@
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
     <TypeScriptCompile Remove="Components\Menus\Modals\Users\Edit\EditWalletComponent.razor.ts" />
 
+    <!-- The TypeScript targets add their compiled .js and .js.map files as Content during the build.
+         Files left on disk from an earlier build would also match the default Content
+         glob, and static web assets would then see each file twice. -->
+    <Content Remove="@(TypeScriptCompile->'%(RelativeDir)%(Filename).js')" />
+    <Content Remove="@(TypeScriptCompile->'%(RelativeDir)%(Filename).js.map')" />
+
     <!-- Generated into obj by EmojiTrieCompiler and embedded in this assembly. -->
     <EmbeddedResource Include="$(IntermediateOutputPath)generated/emoji-trie.bin"
                       LogicalName="Valour.Client.Emojis.emoji-trie.bin" />
