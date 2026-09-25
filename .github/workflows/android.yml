@@ -62,6 +62,11 @@ jobs:
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
+      with:
+        # The default also installs the legacy "tools" package, which current
+        # command-line tools no longer provide. The platform the app targets
+        # is installed below.
+        packages: platform-tools
 
     - name: Install MAUI workload
       run: dotnet workload install maui-android
