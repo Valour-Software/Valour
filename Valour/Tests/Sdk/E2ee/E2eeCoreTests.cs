@@ -1305,6 +1305,77 @@ public class E2eeContentBindingTests
     }
 
     [Fact]
+    public void Payload_SkipsOptionalExtensionsItDoesNotKnow()
+    {
+        var device = DeviceKeyPair.Generate();
+        var author = UserKeyLogVerifier.Verify(AuthorId,
+            [UserKeyLogBuilder.Genesis(AuthorId, device, "Laptop", UserKeyPair.Generate(1), null, 1000)]);
+        var key = ChannelKeySecret.Generate(ChannelId, 1);
+
+        var (envelope, _) = MessageCrypto.Seal(key, 0, AuthorId, device, E2eeCrypto.RandomBytes(16), 0, 0, "hi", null,
+            [], 5000, extensions: [new PayloadExtension(7, false, [1, 2, 3]), new PayloadExtension(9, false, [])]);
+        var opened = MessageCrypto.Open(envelope, key, author, DateTimeOffset.FromUnixTimeMilliseconds(5000).UtcDateTime);
+
+        Assert.Equal("hi", opened.Payload.Content);
+        Assert.Equal([7, 9], opened.Payload.Extensions.Select(x => x.Tag));
+        Assert.Equal(new byte[] { 1, 2, 3 }, opened.Payload.Extensions[0].Value);
+    }
+
+    [Fact]
+    public void Payload_RefusesRequiredExtensionsItDoesNotKnowOnlyAfterVerifying()
+    {
+        var device = DeviceKeyPair.Generate();
+        var author = UserKeyLogVerifier.Verify(AuthorId,
+            [UserKeyLogBuilder.Genesis(AuthorId, device, "Laptop", UserKeyPair.Generate(1), null, 1000)]);
+        var key = ChannelKeySecret.Generate(ChannelId, 1);
+        var sentAt = DateTimeOffset.FromUnixTimeMilliseconds(5000).UtcDateTime;
+
+        var (envelope, _) = MessageCrypto.Seal(key, 0, AuthorId, device, E2eeCrypto.RandomBytes(16), 0, 0, "hi", null,
+            [], 5000, extensions: [new PayloadExtension(7, true, [1])]);
+        Assert.Throws<E2eeUnsupportedException>(() => MessageCrypto.Open(envelope, key, author, sentAt));
+
+        // A forged message is refused as invalid, never as needing an update.
+        var other = UserKeyLogVerifier.Verify(AuthorId,
+            [UserKeyLogBuilder.Genesis(AuthorId, DeviceKeyPair.Generate(), "Other", UserKeyPair.Generate(1), null, 1000)]);
+        Assert.Throws<E2eeVerificationException>(() => MessageCrypto.Open(envelope, key, other, sentAt));
+    }
+
+    [Fact]
+    public void Payload_ExtensionsHaveOneEncoding()
+    {
+        MessagePayload WithTags(params int[] tags) => new()
+        {
+            Content = "hi", FrankingKey = new byte[32],
+            Extensions = tags.Select(t => new PayloadExtension(t, false, [])).ToList()
+        };
+
+        Assert.Throws<E2eeFormatException>(() => WithTags(0).Encode());
+        Assert.Throws<E2eeFormatException>(() => WithTags(3, 2).Encode());
+        Assert.Throws<E2eeFormatException>(() => WithTags(2, 2).Encode());
+        Assert.Throws<E2eeFormatException>(() =>
+            WithTags(Enumerable.Range(1, MessagePayload.MaxExtensions + 1).ToArray()).Encode());
+
+        // Hand-written bytes with tags out of order are refused when read.
+        var unordered = new E2eeWriter()
+            .WriteMagic("VMP3").WriteString("hi").WriteBool(false).WriteString(string.Empty)
+            .WriteFixed(new byte[32], 32).WriteInt32(0)
+            .WriteInt32(2)
+            .WriteInt32(5).WriteBool(false).WriteBytes([])
+            .WriteInt32(4).WriteBool(false).WriteBytes([])
+            .ToArray();
+        Assert.Throws<E2eeFormatException>(() => MessagePayload.Decode(unordered));
+
+        // The format without extensions still reads.
+        var withoutExtensions = new E2eeWriter()
+            .WriteMagic("VMP2").WriteString("hi").WriteBool(false).WriteString(string.Empty)
+            .WriteFixed(new byte[32], 32).WriteInt32(0)
+            .ToArray();
+        var decoded = MessagePayload.Decode(withoutExtensions);
+        Assert.Equal("hi", decoded.Content);
+        Assert.Empty(decoded.Extensions);
+    }
+
+    [Fact]
     public void AttachmentFilter_ShowsOnlyWhatTheAuthorSent()
     {
         var sent = new List<Valour.Sdk.Models.MessageAttachment>

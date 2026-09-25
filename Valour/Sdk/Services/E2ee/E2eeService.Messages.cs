@@ -379,7 +379,7 @@ public partial class E2eeService
 
         if (!message.IsEncrypted)
         {
-            message.DecryptionState = MessageDecryptionState.NotAttempted;
+            await CheckPlainTextAsync(message);
             return;
         }
 
@@ -396,12 +396,72 @@ public partial class E2eeService
         {
             MarkInvalid(message, e.Message);
         }
+        catch (E2eeUnsupportedException)
+        {
+            message.Content = string.Empty;
+            message.Mentions = null;
+            message.DecryptionState = MessageDecryptionState.NeedsNewerVersion;
+            message.DecryptionError = "Update Valour to see this message.";
+        }
         catch (Exception e)
         {
             LogError($"Failed to decrypt message {message.Id}", e);
             message.Content = string.Empty;
             MarkWaiting(message, "This message could not be decrypted yet.", retryLater: true);
         }
+    }
+
+    /// <summary>
+    /// Checks a plain-text message the server returned. Only messages from
+    /// before encryption are plain, but the server could return any message
+    /// that way, so the text is labelled as not signed by its author and must
+    /// follow the rule for sealed messages from before encryption: it must be
+    /// older than the first key a member created in the channel. A device
+    /// that is not set up for encryption cannot check the channel's keys, so
+    /// it only shows the label; a device whose key load failed waits and tries
+    /// again.
+    /// </summary>
+    private async Task CheckPlainTextAsync(Message message)
+    {
+        message.DecryptionState = MessageDecryptionState.NotAttempted;
+        message.DecryptionError = null;
+
+        // Messages this app builds before sending are not from the server.
+        if (message.Id == 0)
+            return;
+
+        message.IsPlainTextHistory = true;
+        if (Status != E2eeStatus.Ready)
+            return;
+
+        var channel = await ResolveChannelAsync(message.ChannelId, message.PlanetId);
+        var ring = channel is null ? null : await GetKeyRingAsync(channel);
+        if (ring is null)
+        {
+            MarkWaiting(message, "Checking the channel's key history. This message is shown once it loads.",
+                retryLater: true, channel: channel);
+            return;
+        }
+
+        if (Math.Max(ring.LatestGeneration, await GetGenerationPinAsync(channel)) == 0)
+            return;
+
+        var (firstMemberRecord, unavailable) = await GetFirstMemberRecordAsync(channel);
+        if (unavailable)
+        {
+            MarkWaiting(message, "Checking the channel's key history. This message is shown once it loads.",
+                retryLater: true, channel: channel);
+            return;
+        }
+
+        if (firstMemberRecord is not null &&
+            ToUnixMs(message.TimeSent) >= firstMemberRecord.TimestampMs + LegacyAllowanceMs)
+        {
+            MarkInvalid(message, "This message was not encrypted, but it is newer than the channel's encryption.");
+            return;
+        }
+
+        ForgetPending(message);
     }
 
     /// <summary>

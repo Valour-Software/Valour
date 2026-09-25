@@ -197,8 +197,8 @@ public partial class E2eeService
         scope = default;
         scopeId = 0;
         var parts = key?.Split(':');
-        if (parts is not { Length: 2 } || !int.TryParse(parts[0], out var scopeValue) ||
-            !Enum.IsDefined(typeof(AccessLogScope), scopeValue) || !long.TryParse(parts[1], out scopeId))
+        if (parts is not { Length: 2 } || !byte.TryParse(parts[0], out var scopeValue) ||
+            !Enum.IsDefined((AccessLogScope)scopeValue) || !long.TryParse(parts[1], out scopeId))
             return false;
 
         scope = (AccessLogScope)scopeValue;

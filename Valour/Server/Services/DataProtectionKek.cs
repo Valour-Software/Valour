@@ -29,8 +29,12 @@ public sealed class DataProtectionKekProvider
         string material = null;
         if (!string.IsNullOrWhiteSpace(inline))
             material = inline.Trim();
-        else if (!string.IsNullOrWhiteSpace(file) && File.Exists(file))
+        else if (!string.IsNullOrWhiteSpace(file))
+        {
+            if (!File.Exists(file))
+                throw new InvalidOperationException($"DataProtection:KekFile is set to '{file}', but that file does not exist.");
             material = File.ReadAllText(file).Trim();
+        }
 
         if (string.IsNullOrWhiteSpace(material))
         {

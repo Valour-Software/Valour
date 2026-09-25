@@ -412,55 +412,13 @@ public partial class Program
             options.MultipartBodyLengthLimit = 262_144_000; // 250 MB (max tier upload limit)
         });
 
-        services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); }, ServiceLifetime.Scoped);
-
-        // Apply migrations if flag is set
-        //if (Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true")
-        //{
-            using var scope = services.BuildServiceProvider().CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-            // Some migrations build indexes on large tables concurrently, which
-            // can take far longer than the default 30 second command timeout.
-            db.Database.SetCommandTimeout(TimeSpan.FromMinutes(30));
-            using (HoldMigrationLock())
-                db.Database.Migrate();
-        //}
-        
-        Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
-        
-        services.AddSingleton<IConnectionMultiplexer>(
-            ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
-
-        // This probably needs to be customized further but the documentation changed
-        services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
-
-
-        services.AddControllersWithViews().AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-            //options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
-            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-
-            options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        });
-
-        services.AddRazorPages();
-        services.AddServerSideBlazor();
-
-        // CloudFlareClient throws on an empty token, but the client must always
-        // be registered (CdnBucketService depends on it). When no key is
-        // configured we pass a placeholder — cache purges are skipped when no
-        // zone is configured, so the placeholder client is never actually used.
-        services.AddSingleton<ICloudFlareClient>(provider =>
-            new CloudFlareClient(string.IsNullOrWhiteSpace(CloudflareConfig.Instance?.ApiKey)
-                ? "unconfigured"
-                : CloudflareConfig.Instance.ApiKey));
-
         // Data Protection keys live in the shared DB so every node (and
         // container restarts) can decrypt protected payloads such as planet
         // storage credentials and federation signing keys. The ring itself is
         // wrapped with an external KEK (env/file) when one is configured, so a
-        // database reader alone cannot recover any of it.
+        // database reader alone cannot recover any of it. The KEK and the
+        // settings that require it are checked before migrations run, so a
+        // misconfigured instance fails without changing the schema.
         var kekProvider = new DataProtectionKekProvider(
             builder.Configuration,
             LoggerFactory.Create(b => b.AddConsole()).CreateLogger<DataProtectionKekProvider>());
@@ -502,6 +460,50 @@ public partial class Program
                 "No DataProtection:Kek is configured. Channel keys the server holds for encrypted chat are " +
                 "protected by a key ring stored in the same database. Configure a KEK before running in production.");
         }
+
+        services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); }, ServiceLifetime.Scoped);
+
+        // Apply migrations if flag is set
+        //if (Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true")
+        //{
+            using var scope = services.BuildServiceProvider().CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            // Some migrations build indexes on large tables concurrently, which
+            // can take far longer than the default 30 second command timeout.
+            db.Database.SetCommandTimeout(TimeSpan.FromMinutes(30));
+            using (HoldMigrationLock())
+                db.Database.Migrate();
+        //}
+
+        Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
+
+        services.AddSingleton<IConnectionMultiplexer>(
+            ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
+
+        // This probably needs to be customized further but the documentation changed
+        services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
+
+
+        services.AddControllersWithViews().AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            //options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
+            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+
+            options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        });
+
+        services.AddRazorPages();
+        services.AddServerSideBlazor();
+
+        // CloudFlareClient throws on an empty token, but the client must always
+        // be registered (CdnBucketService depends on it). When no key is
+        // configured we pass a placeholder — cache purges are skipped when no
+        // zone is configured, so the placeholder client is never actually used.
+        services.AddSingleton<ICloudFlareClient>(provider =>
+            new CloudFlareClient(string.IsNullOrWhiteSpace(CloudflareConfig.Instance?.ApiKey)
+                ? "unconfigured"
+                : CloudflareConfig.Instance.ApiKey));
 
         services.AddSingleton(kekProvider);
 

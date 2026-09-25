@@ -64,13 +64,13 @@ else
                 <span class="time" title="@_timeTitle">
                     (@_timeText)
                 </span>
-                @if (_message.IsLegacySealed)
+                @if (_message.IsFromBeforeEncryption)
                 {
                     @RenderSealedLabel
                 }
             </div>
         }
-        else if (_message.IsLegacySealed)
+        else if (_message.IsFromBeforeEncryption)
         {
             <div class="sealed-label-row">
                 @RenderSealedLabel
@@ -282,7 +282,7 @@ else
     /// </summary>
     private bool AttachmentsVerified => _message.HasReadableText();
 
-    private RenderFragment RenderSealedLabel => @<span class="sealed-label" title="Written before encryption. Valour held this text and sealed it later, so it is not signed by its author.">
+    private RenderFragment RenderSealedLabel => @<span class="sealed-label" title="Written before encryption. Valour held this text, so it is not signed by its author.">
         <i class="bi bi-archive" aria-hidden="true"></i> Before encryption
     </span>;
 
@@ -298,7 +298,7 @@ else
     private string EncryptionNoticeClass => _message.DecryptionState switch
     {
         MessageDecryptionState.Invalid => "invalid",
-        MessageDecryptionState.DeviceNotVerified => "unverified",
+        MessageDecryptionState.DeviceNotVerified or MessageDecryptionState.NeedsNewerVersion => "unverified",
         _ => "waiting"
     };
 
@@ -306,6 +306,7 @@ else
     {
         MessageDecryptionState.Invalid => "bi-shield-x",
         MessageDecryptionState.DeviceNotVerified => "bi-shield-lock",
+        MessageDecryptionState.NeedsNewerVersion => "bi-arrow-up-circle",
         _ => "bi-hourglass-split"
     };
 
@@ -314,8 +315,9 @@ else
         MessageDecryptionState.Invalid => _message.DecryptionError ?? "This message failed verification and is hidden.",
         _ when ParamData?.UnreadableNotice is not null => ParamData.UnreadableNotice,
         MessageDecryptionState.DeviceNotVerified => "Encrypted message. This device can't read it until it is verified.",
+        MessageDecryptionState.NeedsNewerVersion => _message.DecryptionError ?? "Update Valour to see this message.",
         MessageDecryptionState.WaitingForKey when ParamData?.ChatComponent?.AwaitingEncryptionAdmission == true =>
-            "An admin needs to admit you to this planet's encryption before you can read this.",
+            "An admin needs to let you in to this private planet before you can read this.",
         MessageDecryptionState.WaitingForKey => _message.DecryptionError ?? "Waiting for the key from another member.",
         _ => "Encrypted message."
     };
@@ -1245,9 +1247,12 @@ else
 
             // Messages the server sealed always show their author and labels,
             // so one is never grouped under another message, and a message
-            // never appears to continue one the server wrote.
+            // never appears to continue one the server wrote. Plain text from
+            // before encryption is grouped only with other plain text, under
+            // the label of the first.
             if (_message.EncryptionVersion == MessageEncryption.ServerSealed ||
-                _lastMessage.EncryptionVersion == MessageEncryption.ServerSealed)
+                _lastMessage.EncryptionVersion == MessageEncryption.ServerSealed ||
+                _message.IsPlainTextHistory != _lastMessage.IsPlainTextHistory)
             {
                 Minimal = false;
                 return;

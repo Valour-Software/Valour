@@ -1,72 +1,122 @@
 @implements IDisposable
 @inject ValourClient Client
-@inject IJSRuntime JsRuntime
 
 <div class="settings-page">
     <div class="editor-section">
         <h3 class="editor-section-title">
-            <i class="bi bi-lock-fill"></i>
-            End-to-end encryption
+            <i class="bi bi-shield-lock-fill"></i>
+            Privacy
         </h3>
         <p class="helper-text">
-            Messages in this planet are end-to-end encrypted. Only members who hold its keys can read them, and
-            Valour stores them without the keys. Members' apps share keys with each other automatically. Choose who
-            they share keys with.
+            Messages in this planet are end-to-end encrypted. Only people who hold its keys can read them, and Valour
+            stores them without the keys. Members' apps share keys with each other automatically.
         </p>
 
-        <div class="mode-options">
-            @foreach (var option in ModeOptions)
-            {
-                var selected = _mode == option.Mode;
-                var locked = option.Mode == PlanetEncryptionMode.Open && Planet.EncryptionMode == PlanetEncryptionMode.InviteOnly;
-                <button type="button" class="mode-option @(selected ? "selected" : "")"
-                        disabled="@(!IsOwner || locked)" @onclick="@(() => _mode = option.Mode)">
-                    <i class="bi @option.Icon"></i>
-                    <span class="mode-copy">
-                        <strong>@option.Title</strong>
-                        <span>@option.Description</span>
+        @if (IsOwner && E2eeService.IsPrivacyPending(Planet))
+        {
+            <div class="pending-note">
+                <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                <span class="pending-copy">
+                    <strong>Finish making this planet private</strong>
+                    <span>
+                        Your device needs to sign who can read it. Everyone who's here now keeps access, and people
+                        who join later wait for an admin to let them in.
                     </span>
-                </button>
-            }
+                </span>
+                <VButton Variant="primary" Disabled="@(_working || !IsReady)" OnClick="FinishAsync">Finish</VButton>
+            </div>
+        }
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Public</span>
+                <label class="switch">
+                    <input type="checkbox" @bind="_public" disabled="@(!IsOwner || _working || CannotMakePrivate)" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">
+                @if (_public)
+                {
+                    <span>
+                        Anyone can join and read messages. Members' apps share keys with anyone the planet's roles
+                        let into a channel.
+                    </span>
+                }
+                else if (E2eeService.IsPrivacyPending(Planet))
+                {
+                    <span>
+                        People join with an invite link. Until the owner's device finishes making the planet
+                        private, members' apps still share keys with anyone the planet's roles let in.
+                    </span>
+                }
+                else
+                {
+                    <span>
+                        People join with an invite link. Only people an admin lets in, or who used a signed invite
+                        link, can read messages. Valour can't let itself in.
+                    </span>
+                }
+            </p>
         </div>
 
         <div class="toggle-item">
             <div class="toggle-header">
                 <span class="toggle-title">New members can read earlier messages</span>
                 <label class="switch">
-                    <input type="checkbox" @bind="_sharesHistory" disabled="@(!IsOwner)" />
+                    <input type="checkbox" @bind="_sharesHistory" disabled="@(!IsOwner || _working)" />
                     <span class="slider round"></span>
                 </label>
             </div>
             <p class="toggle-description">
-                When off, people who join start from their first visit and cannot read anything sent before.
+                When off, people who join start from their first visit and can't read anything sent before.
             </p>
         </div>
 
         @if (IsOwner)
         {
-            @if (Planet.EncryptionMode != PlanetEncryptionMode.InviteOnly && _mode == PlanetEncryptionMode.InviteOnly)
+            @if (CannotMakePrivate)
             {
                 <p class="helper-text warning-text">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    An invite-only planet cannot become open again. Members' apps keep enforcing the membership log,
-                    so the change cannot be reversed by anyone, including Valour.
+                    <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    <span>@_privateBlocker</span>
                 </p>
             }
-            @if (Client.E2eeService.Status != E2eeStatus.Ready)
+            @if (_public != Planet.Public)
+            {
+                <p class="helper-text warning-text">
+                    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                    @if (_public)
+                    {
+                        <span>
+                            Anyone who joins will be able to read new messages@(_sharesHistory ? " and earlier ones" : "").
+                        </span>
+                    }
+                    else
+                    {
+                        <span>
+                            Everyone who's here now keeps access. People who join later wait for an admin to let them
+                            in, and new messages can only be read by people who are let in. Only your devices can
+                            change who's let in until you make someone an admin, so keep your recovery code safe.
+                        </span>
+                    }
+                </p>
+            }
+            @if (!IsReady)
             {
                 <p class="helper-text warning-text">Verify this device in Settings, under Encryption, before changing this.</p>
             }
             <div class="actions">
-                <VButton Variant="primary" Disabled="@(!HasChanges || _working || Client.E2eeService.Status != E2eeStatus.Ready)"
-                         OnClick="SaveAsync">
+                <VButton Variant="primary" Disabled="@(!HasChanges || _working || !IsReady)" OnClick="SaveAsync">
                     @(_working ? "Saving..." : "Save")
                 </VButton>
             </div>
         }
         else
         {
-            <p class="helper-text">Only the planet owner can change these settings.</p>
+            <p class="helper-text">
+                Only the planet owner can change these settings, because their device signs who can read the planet.
+            </p>
         }
         <ResultLabel Result="@_result" />
     </div>
@@ -76,11 +126,12 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-person-check"></i>
-                Waiting for admission
+                Waiting to be let in
             </h3>
             <p class="helper-text">
-                These members joined but cannot read anything until an admin admits them from their own device.
-                Valour cannot admit anyone.
+                These members joined but can't read anything until an admin lets them in from their own device.
+                Valour can't let anyone in. Invite links an admin creates on a verified device, under Invites, let
+                people in right away.
             </p>
             @if (_pending is null)
             {
@@ -118,7 +169,7 @@
                             }
                             else
                             {
-                                <VButton Size="sm" Variant="primary" OnClick="@(() => AdmitAsync([person.UserId]))">Admit</VButton>
+                                <VButton Size="sm" Variant="primary" OnClick="@(() => AdmitAsync([person.UserId]))">Let in</VButton>
                             }
                         </div>
                     }
@@ -126,7 +177,7 @@
                 @if (_pending.Count(p => !p.KeysChanged && p.HasKeys) > 1)
                 {
                     <div class="actions">
-                        <VButton Variant="primary" OnClick="@(() => AdmitAsync(_pending.Where(p => !p.KeysChanged && p.HasKeys).Select(p => p.UserId).ToList()))">Admit everyone</VButton>
+                        <VButton Variant="primary" OnClick="@(() => AdmitAsync(_pending.Where(p => !p.KeysChanged && p.HasKeys).Select(p => p.UserId).ToList()))">Let everyone in</VButton>
                     </div>
                 }
             }
@@ -135,40 +186,11 @@
             {
                 <h4 class="subsection-title">No longer members</h4>
                 <p class="helper-text">
-                    These people left or were removed but are still admitted. Remove them so rejoining does not give
+                    These people left or were removed but are still let in. Remove them so rejoining does not give
                     them access again.
                 </p>
                 <div class="actions">
-                    <VButton Variant="danger" OnClick="RemoveStaleAsync">Remove @_stale.Count from admission</VButton>
-                </div>
-            }
-        </div>
-
-        <div class="editor-section">
-            <h3 class="editor-section-title">
-                <i class="bi bi-link-45deg"></i>
-                Signed invite link
-            </h3>
-            <p class="helper-text">
-                A signed invite admits whoever uses it without waiting for an admin. The key is in the part of the
-                link after the # sign, which is never sent to Valour, so share the whole link privately.
-            </p>
-            <div class="invite-row">
-                <div class="form-group">
-                    <label>Uses</label>
-                    <input class="v-input" type="number" min="0" @bind="_inviteUses" placeholder="0 = unlimited" />
-                </div>
-                <div class="form-group">
-                    <label>Expires in (days)</label>
-                    <input class="v-input" type="number" min="0" @bind="_inviteDays" placeholder="0 = never" />
-                </div>
-                <VButton Variant="primary" Disabled="@_working" OnClick="CreateInviteAsync">Create link</VButton>
-            </div>
-            @if (_inviteLink is not null)
-            {
-                <div class="invite-link">
-                    <code>@_inviteLink</code>
-                    <VButton Size="sm" Variant="secondary" Icon="clipboard" OnClick="CopyInviteAsync">Copy</VButton>
+                    <VButton Variant="danger" OnClick="RemoveStaleAsync">Remove @_stale.Count</VButton>
                 </div>
             }
         </div>
@@ -178,9 +200,12 @@
             <div class="editor-section">
                 <h3 class="editor-section-title">
                     <i class="bi bi-shield-check"></i>
-                    Admission admins
+                    Admins who let people in
                 </h3>
-                <p class="helper-text">Admins can admit and remove members and create signed invites.</p>
+                <p class="helper-text">
+                    These admins can let people in, remove them, and create signed invite links. Only members who are
+                    already let in can become admins.
+                </p>
                 <div class="people">
                     @foreach (var adminId in _admins)
                     {
@@ -192,7 +217,7 @@
                 </div>
                 <div class="invite-row">
                     <div class="form-group">
-                        <label>Add an admitted member by name</label>
+                        <label>Member's name</label>
                         <input class="v-input" @bind="_adminName" placeholder="Name" />
                     </div>
                     <VButton Variant="secondary" OnClick="AddAdminAsync">Add admin</VButton>
@@ -206,18 +231,17 @@
     [Parameter]
     public Planet Planet { get; set; }
 
-    private sealed record ModeOption(PlanetEncryptionMode Mode, string Icon, string Title, string Description);
+    // The values the planet had when this page last matched it. A change
+    // from another device replaces only the settings not edited here.
+    private bool _savedPublic;
+    private bool _savedSharesHistory;
 
-    private static readonly ModeOption[] ModeOptions =
-    [
-        new(PlanetEncryptionMode.Open, "bi-lock", "Open",
-            "Anyone the planet's permissions let view a channel can read it. Each channel's encryption details list everyone who can."),
-        new(PlanetEncryptionMode.InviteOnly, "bi-shield-lock", "Invite-only",
-            "Only people an admin admitted, or who joined with an invite link, can read messages. Valour cannot let itself in.")
-    ];
-
-    private PlanetEncryptionMode _mode;
+    private bool _public;
     private bool _sharesHistory;
+    private bool _disposed;
+
+    // The encryption mode the admission sections were loaded for.
+    private PlanetEncryptionMode? _loadedMode;
     private bool _working;
     private bool _isAccessAdmin;
     private ITaskResult _result;
@@ -228,27 +252,55 @@
     private List<long> _stale;
     private List<long> _admins = new();
     private readonly Dictionary<long, string> _names = new();
-    private int _inviteUses = 1;
-    private int _inviteDays = 7;
-    private string _inviteLink;
     private string _adminName;
+
+    // Why this owner cannot make the planet private again, or null.
+    private string _privateBlocker;
 
     private bool IsOwner => Planet.OwnerId == Client.Me.Id;
 
-    private bool HasChanges => _mode != Planet.EncryptionMode || _sharesHistory != Planet.EncryptionSharesHistory;
+    private bool IsReady => Client.E2eeService.Status == E2eeStatus.Ready;
+
+    private bool HasChanges => _public != Planet.Public || _sharesHistory != Planet.EncryptionSharesHistory;
+
+    private bool CannotMakePrivate => Planet.Public && _privateBlocker is not null;
 
     protected override async Task OnInitializedAsync()
     {
-        _mode = Planet.EncryptionMode;
-        _sharesHistory = Planet.EncryptionSharesHistory;
+        _public = _savedPublic = Planet.Public;
+        _sharesHistory = _savedSharesHistory = Planet.EncryptionSharesHistory;
         Planet.Updated += OnPlanetUpdated;
         await LoadAdmissionsAsync();
     }
 
-    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> update) => _ = InvokeAsync(StateHasChanged);
+    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> update)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed)
+                return;
+
+            if (_public == _savedPublic)
+                _public = Planet.Public;
+            if (_sharesHistory == _savedSharesHistory)
+                _sharesHistory = Planet.EncryptionSharesHistory;
+            _savedPublic = Planet.Public;
+            _savedSharesHistory = Planet.EncryptionSharesHistory;
+
+            if (Planet.EncryptionMode != _loadedMode)
+                await LoadAdmissionsAsync();
+            if (!_disposed)
+                StateHasChanged();
+        });
+    }
 
     private async Task LoadAdmissionsAsync()
     {
+        _loadedMode = Planet.EncryptionMode;
+        _isAccessAdmin = false;
+        _privateBlocker = Planet.Public && IsOwner
+            ? await Client.E2eeService.GetMakePrivateBlockerAsync(Planet)
+            : null;
         if (Planet.EncryptionMode != PlanetEncryptionMode.InviteOnly)
             return;
 
@@ -267,20 +319,47 @@
 
     private async Task SaveAsync()
     {
+        var makingPublic = _public && !Planet.Public;
+        var makingPrivate = !_public && Planet.Public;
+        await RunAsync(Client.E2eeService.SetPlanetPrivacyAsync(Planet, _public, _sharesHistory),
+            makingPublic ? "Making the planet public" : makingPrivate ? "Making the planet private" : "Saving privacy settings",
+            makingPublic ? "Planet is now public." : makingPrivate ? "Planet is now private." : "Privacy settings saved.");
+    }
+
+    private Task FinishAsync() =>
+        RunAsync(Client.E2eeService.FinishPrivatePlanetAsync(Planet), "Making the planet private",
+            "Planet is now private.");
+
+    private async Task RunAsync(Task<TaskResult> task, string title, string successMessage)
+    {
         _working = true;
         _result = null;
         StateHasChanged();
 
         _result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>
         {
-            ProgressTask = Client.E2eeService.SetPlanetEncryptionAsync(Planet, _mode, _sharesHistory),
-            Title = "Updating encryption",
-            Message = "Signing and publishing keys...",
-            SuccessMessage = "Encryption settings saved."
+            ProgressTask = task,
+            Title = title,
+            Message = "Signing and sharing keys...",
+            SuccessMessage = successMessage
         });
 
         _working = false;
+        _savedPublic = Planet.Public;
+        _savedSharesHistory = Planet.EncryptionSharesHistory;
+
+        // A failed change keeps what the person chose, so they can try again.
+        if (_result?.Success == true)
+        {
+            _public = Planet.Public;
+            _sharesHistory = Planet.EncryptionSharesHistory;
+        }
+
+        if (_disposed)
+            return;
+
         await LoadAdmissionsAsync();
+        StateHasChanged();
     }
 
     private async Task AdmitAsync(List<long> userIds)
@@ -333,47 +412,9 @@
         _adminName = null;
     }
 
-    private async Task CreateInviteAsync()
-    {
-        _working = true;
-        _result = null;
-
-        // The server's invite and the signed admission expire together.
-        DateTime? expires = _inviteDays > 0 ? DateTime.UtcNow.AddDays(_inviteDays) : null;
-        var serverInvite = await Planet.Node.PostAsyncWithResponse<PlanetInvite>("api/invites", new PlanetInvite(Client)
-        {
-            PlanetId = Planet.Id,
-            IssuerId = Client.Me.Id,
-            TimeCreated = DateTime.UtcNow,
-            TimeExpires = expires
-        });
-
-        if (!serverInvite.Success)
-        {
-            _result = serverInvite;
-            _working = false;
-            return;
-        }
-
-        var signed = await Client.E2eeService.CreatePlanetInviteAsync(Planet, expires, Math.Max(0, _inviteUses));
-        _working = false;
-        if (!signed.Success)
-        {
-            _result = signed;
-            return;
-        }
-
-        _inviteLink = $"{ClientHosts.AppBaseUrl}/i/{serverInvite.Data.Id}{signed.Data.Fragment}";
-    }
-
-    private async Task CopyInviteAsync()
-    {
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _inviteLink);
-        ToastContainer.Instance.AddToast(new ToastData("Copied", "Invite link copied. Share it privately.", ToastProgressState.Success));
-    }
-
     public void Dispose()
     {
+        _disposed = true;
         Planet.Updated -= OnPlanetUpdated;
     }
 }

@@ -115,6 +115,25 @@ The development launch profile uses `https://localhost:5001` and
 `http://localhost:5000`. The server's startup output identifies the listening URLs.
 The browser client resolves its API address through its hosting configuration.
 
+The native app uses the official API unless a Debug build names a local server.
+To test on a phone, start the server with the `Valour.Server (phones on this
+network)` launch profile, which also listens on port 5080 on every network
+interface. Port 5000 is not used for this because macOS reserves it for the
+AirPlay receiver. Then create the ignored `Valour/Client.Maui/Local.props`:
+
+```xml
+<Project>
+  <PropertyGroup>
+    <ValourApiBase>http://192.168.1.20:5080</ValourApiBase>
+  </PropertyGroup>
+</Project>
+```
+
+Use your computer's address on the network the phone shares, and rebuild the app.
+Debug builds on Android allow plain HTTP for this; Release builds always use the
+official API over HTTPS. The phone and computer must be on the same network, and
+the computer's firewall must allow incoming connections to the server.
+
 Build from the root with `dotnet build`. C# integration tests start application
 services and need a dedicated test database and Redis instance. Use the
 [isolated test runner](Valour/Tests/Browser/README.md#isolated-c-regression) rather

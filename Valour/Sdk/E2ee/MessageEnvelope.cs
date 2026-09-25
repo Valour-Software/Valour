@@ -103,6 +103,16 @@ public sealed class MessageEnvelopeHeader
 /// </summary>
 public sealed class MessagePayload
 {
+    /// <summary>The most extensions a payload carries.</summary>
+    public const int MaxExtensions = 32;
+
+    /// <summary>
+    /// Extension tags this version reads. A payload with a required extension
+    /// outside this set is opened and verified, then refused with
+    /// <see cref="E2eeUnsupportedException"/> so the app can ask for an update.
+    /// </summary>
+    public static readonly IReadOnlySet<int> SupportedExtensions = new HashSet<int>();
+
     public string Content { get; init; }
 
     /// <summary>Serialized embed JSON, or null.</summary>
@@ -118,14 +128,23 @@ public sealed class MessagePayload
     /// </summary>
     public IReadOnlyList<byte[]> AttachmentDigests { get; init; } = [];
 
+    /// <summary>
+    /// Fields added after this format, in increasing tag order. Readers skip
+    /// optional extensions they do not know, so a newer app can add data that
+    /// older apps ignore while still showing the text.
+    /// </summary>
+    public IReadOnlyList<PayloadExtension> Extensions { get; init; } = [];
+
     public byte[] Encode()
     {
         var digests = AttachmentDigests ?? [];
         if (digests.Count > AttachmentBinding.MaxAttachments)
             throw new E2eeFormatException("A message has too many attachments.");
+        var extensions = Extensions ?? [];
+        CheckExtensions(extensions);
 
         var writer = new E2eeWriter()
-            .WriteMagic("VMP2")
+            .WriteMagic("VMP3")
             .WriteString(Content ?? string.Empty)
             .WriteBool(Embed is not null)
             .WriteString(Embed ?? string.Empty)
@@ -133,13 +152,17 @@ public sealed class MessagePayload
             .WriteInt32(digests.Count);
         foreach (var digest in digests)
             writer.WriteFixed(digest, E2eeCrypto.HashSize);
+        writer.WriteInt32(extensions.Count);
+        foreach (var extension in extensions)
+            writer.WriteInt32(extension.Tag).WriteBool(extension.Required).WriteBytes(extension.Value ?? []);
         return writer.ToArray();
     }
 
     public static MessagePayload Decode(byte[] data)
     {
         var reader = new E2eeReader(data);
-        reader.ReadMagic("VMP2");
+        // VMP2 is the same format without extensions.
+        var magic = reader.ReadMagicOf("VMP3", "VMP2");
         var content = reader.ReadString();
         var hasEmbed = reader.ReadBool();
         var embed = reader.ReadString();
@@ -150,13 +173,55 @@ public sealed class MessagePayload
         var digests = new List<byte[]>(count);
         for (var i = 0; i < count; i++)
             digests.Add(reader.ReadFixed(E2eeCrypto.HashSize));
+
+        var extensions = new List<PayloadExtension>();
+        if (magic == "VMP3")
+        {
+            var extensionCount = reader.ReadInt32();
+            if (extensionCount < 0 || extensionCount > MaxExtensions)
+                throw new E2eeFormatException("A message has too many extensions.");
+            for (var i = 0; i < extensionCount; i++)
+                extensions.Add(new PayloadExtension(reader.ReadInt32(), reader.ReadBool(), reader.ReadBytes()));
+            CheckExtensions(extensions);
+        }
+
         reader.EnsureEnd();
         return new MessagePayload
         {
-            Content = content, Embed = hasEmbed ? embed : null, FrankingKey = frankingKey, AttachmentDigests = digests
+            Content = content, Embed = hasEmbed ? embed : null, FrankingKey = frankingKey, AttachmentDigests = digests,
+            Extensions = extensions
         };
     }
+
+    /// <summary>
+    /// The first required extension this version does not read, or null.
+    /// </summary>
+    public PayloadExtension FirstUnsupportedRequired() =>
+        (Extensions ?? []).FirstOrDefault(x => x.Required && !SupportedExtensions.Contains(x.Tag));
+
+    // Tags must be positive and strictly increasing, so each payload has one
+    // encoding and no tag appears twice.
+    private static void CheckExtensions(IReadOnlyList<PayloadExtension> extensions)
+    {
+        if (extensions.Count > MaxExtensions)
+            throw new E2eeFormatException("A message has too many extensions.");
+        var previous = 0;
+        foreach (var extension in extensions)
+        {
+            if (extension is null || extension.Tag <= previous)
+                throw new E2eeFormatException("Message extensions must have increasing positive tags.");
+            previous = extension.Tag;
+        }
+    }
 }
+
+/// <summary>
+/// A tagged field in a <see cref="MessagePayload"/>. An app that does not know
+/// the tag skips an optional extension. It shows a required extension's
+/// message as needing a newer version, for data such as file keys without
+/// which the message would be shown wrongly.
+/// </summary>
+public sealed record PayloadExtension(int Tag, bool Required, byte[] Value);
 
 /// <summary>
 /// Binds the files attached to an end-to-end encrypted message to its signed
@@ -436,7 +501,7 @@ public static class MessageCrypto
     public static (byte[] Envelope, MessageEnvelopeHeader Header) Seal(
         ChannelKeySecret channelKey, long planetId, long authorUserId, DeviceKeyPair device,
         byte[] messageNonce, int revision, long replyToId, string content, string embed, int[] terms, long timestampMs,
-        IReadOnlyList<byte[]> attachmentDigests = null)
+        IReadOnlyList<byte[]> attachmentDigests = null, IReadOnlyList<PayloadExtension> extensions = null)
     {
         if (messageNonce?.Length != 16)
             throw new E2eeFormatException("Message nonce must be 16 bytes.");
@@ -463,7 +528,8 @@ public static class MessageCrypto
         var headerBytes = header.Encode();
         var payload = new MessagePayload
         {
-            Content = content, Embed = embed, FrankingKey = frankingKey, AttachmentDigests = attachmentDigests ?? []
+            Content = content, Embed = embed, FrankingKey = frankingKey, AttachmentDigests = attachmentDigests ?? [],
+            Extensions = extensions ?? []
         };
         var body = E2eeCrypto.Encrypt(MessageKey(channelKey, messageNonce, revision), payload.Encode(), headerBytes);
         var signature = device.Sign(MessageEnvelope.SignedData(headerBytes, E2eeCrypto.Sha256(body)));
@@ -476,6 +542,8 @@ public static class MessageCrypto
     /// Verifies the author's signature, decrypts, and checks the franking
     /// commitment. A payload whose commitment does not match is rejected so
     /// that what a recipient sees is always what the author can be held to.
+    /// A verified payload with a required extension this version does not read
+    /// raises <see cref="E2eeUnsupportedException"/>.
     /// </summary>
     public static OpenedMessage Open(byte[] envelopeBytes, ChannelKeySecret channelKey, UserKeyState author,
         DateTime sentAt)
@@ -501,6 +569,8 @@ public static class MessageCrypto
             throw new E2eeVerificationException("Message does not match its commitment.");
         if (payload.Content.Length > MaxContentLength)
             throw new E2eeVerificationException("Message is longer than messages may be.");
+        if (payload.FirstUnsupportedRequired() is { } unsupported)
+            throw new E2eeUnsupportedException($"Message needs extension {unsupported.Tag}, which this version cannot read.");
 
         return new OpenedMessage { Header = header, Payload = payload };
     }

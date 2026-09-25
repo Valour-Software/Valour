@@ -93,7 +93,9 @@ public class Planet : ISharedPlanet
     public string Description { get; set; }
 
     /// <summary>
-    /// If the server requires express allowal to join a planet
+    /// True when anyone can join the planet and read its messages. A private
+    /// planet is joined with an invite link, and its signed membership log
+    /// decides who receives its keys. Changed only through the privacy endpoint.
     /// </summary>
     [Column("public")]
     public bool Public { get; set; }

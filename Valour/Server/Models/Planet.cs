@@ -35,7 +35,9 @@ public class Planet : ServerModel<long>, ISharedPlanet
     public string Description { get; set; }
 
     /// <summary>
-    /// If the server requires express allowal to join a planet
+    /// True when anyone can join the planet and read its messages. A private
+    /// planet is joined with an invite link, and its signed membership log
+    /// decides who receives its keys. Changed only through the privacy endpoint.
     /// </summary>
     public bool Public { get; set; }
 
@@ -83,13 +85,15 @@ public class Planet : ServerModel<long>, ISharedPlanet
 
     /// <summary>
     /// Who may receive the planet's channel keys. Every message is end-to-end
-    /// encrypted either way. Changed only through the encryption endpoint.
+    /// encrypted either way. Public planets are open; private planets are
+    /// invite-only once the owner's device signs their membership log.
+    /// Changed only through the privacy endpoint.
     /// </summary>
     public PlanetEncryptionMode EncryptionMode { get; set; }
 
     /// <summary>
     /// Whether new members can read messages sent before they joined.
-    /// Changed only through the encryption endpoint.
+    /// Changed only through the privacy endpoint.
     /// </summary>
     public bool EncryptionSharesHistory { get; set; } = true;
 

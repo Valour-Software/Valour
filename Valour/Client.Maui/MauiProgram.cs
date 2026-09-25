@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.WebView.Maui;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
 using Microsoft.Maui.Storage;
+using System.Reflection;
 using System.Text.Json;
 #if ANDROID
 using Plugin.Firebase.CloudMessaging;
@@ -77,7 +78,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<INativeUpdateService, WindowsUpdateService>();
 #endif
         // Native clients should talk directly to the API host.
-        builder.Services.AddValourClientServices("https://api.valour.gg");
+        builder.Services.AddValourClientServices(ApiBaseAddress());
 
         // Override the browser share service with the native OS share sheet
         builder.Services.AddSingleton<Valour.Client.Utility.IShareService, MauiShareService>();
@@ -92,6 +93,22 @@ public static class MauiProgram
 #endif
 
         return builder.Build();
+    }
+
+    /// <summary>
+    /// The official API, or in a Debug build the local server named by the
+    /// ValourApiBase build property (see the project file).
+    /// </summary>
+    private static string ApiBaseAddress()
+    {
+#if DEBUG
+        var local = typeof(MauiProgram).Assembly.GetCustomAttributes(typeof(AssemblyMetadataAttribute), false)
+            .Cast<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == "ValourApiBase")?.Value;
+        if (!string.IsNullOrWhiteSpace(local))
+            return local.TrimEnd('/');
+#endif
+        return "https://api.valour.gg";
     }
 
     private static bool ReadLocalErrorReportingPreference()

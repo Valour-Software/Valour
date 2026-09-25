@@ -11,9 +11,9 @@
             before you continue.
         </span>
         <div class="notice-actions">
-            <button type="button" class="v-btn small" @onclick="CompareNumbers">Compare codes</button>
+            <button type="button" class="v-btn small" @onclick="CompareNumbers">Check it's them</button>
             <button type="button" class="v-btn primary small" disabled="@_working" @onclick="ConfirmResetAsync">
-                @(_working ? "Saving..." : "It's them")
+                @(_working ? "Saving..." : "Continue")
             </button>
         </div>
     </div>
@@ -23,8 +23,7 @@ else if (_awaitingAdmission)
     <div class="e2ee-chat-notice" role="status">
         <i class="bi bi-hourglass-split" aria-hidden="true"></i>
         <span class="notice-copy">
-            This planet is invite-only. An admin needs to admit you to this planet's encryption before you can
-            read its messages.
+            This planet is private. An admin needs to let you in before you can read its messages.
         </span>
     </div>
 }
@@ -125,7 +124,7 @@ else if (_awaitingAdmission)
         if (planet is not null && me is not null && planet.EncryptionMode == PlanetEncryptionMode.InviteOnly)
         {
             var log = await Client.E2eeService.GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node);
-            if (log is not null)
+            if (log is { IsGoverning: true })
             {
                 awaiting = !log.IsMember(Client.Me.Id, me);
                 if (log.IsAdmin(Client.Me.Id, me))
@@ -160,14 +159,14 @@ else if (_awaitingAdmission)
 
             var parts = new List<string>();
             if (waiting > 0)
-                parts.Add(waiting == 1 ? "1 person is waiting to be admitted" : $"{waiting} people are waiting to be admitted");
+                parts.Add(waiting == 1 ? "1 person is waiting to be let in" : $"{waiting} people are waiting to be let in");
             if (changed > 0)
                 parts.Add(changed == 1
                     ? "1 member has a new security code, so check it's them"
                     : $"{changed} members have a new security code, so check it's them");
 
             ToastContainer.Instance?.AddToast(new ToastData($"{planet.Name}: people are waiting",
-                $"{string.Join(", and ", parts)}. Open the planet's settings, then Encryption, to review them.")
+                $"{string.Join(", and ", parts)}. Open the planet's settings, then Privacy, to review them.")
             {
                 ShouldAutoClose = false
             });

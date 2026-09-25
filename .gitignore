@@ -145,6 +145,9 @@ _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 
+# Local server address for Debug builds of the native app
+Valour/Client.Maui/Local.props
+
 # JustCode is a .NET coding addin-in
 .JustCode
 

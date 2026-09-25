@@ -1,4 +1,6 @@
 ﻿@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
 
 <div class="create-invite">
     <div class="create-invite-row">
@@ -7,8 +9,28 @@
             <input class="v-input" type="number" min="0" @bind-value="@_hoursValue" placeholder="0 = never" />
             <p class="helper-text">Set to 0 for a permanent invite</p>
         </div>
-        <button class="v-btn primary create-btn" @onclick="OnCreateInvite">Create Invite</button>
+        <button class="v-btn primary create-btn" disabled="@_working" @onclick="OnCreateInvite">
+            @(_working ? "Creating..." : "Create Invite")
+        </button>
     </div>
+    @if (_signedLink is not null)
+    {
+        <div class="signed-link">
+            <code>@_signedLink</code>
+            <button class="v-btn small" title="Copy invite link" @onclick="CopySignedLinkAsync">
+                <i class="bi bi-clipboard"></i> Copy
+            </button>
+        </div>
+        <p class="helper-text">
+            People who use this link are let in right away. The part after the # sign is the key that lets them in.
+            It is never sent to Valour; only this device keeps it, so copying the invite from the list below gives
+            this link here and a link where people wait for an admin on other devices.
+        </p>
+    }
+    else if (_plainLinkNote is not null)
+    {
+        <p class="helper-text">@_plainLinkNote</p>
+    }
     <ResultLabel Result="@_result" />
 </div>
 
@@ -17,10 +39,19 @@
     public Planet Planet { get; set; }
 
     private int _hoursValue;
+    private bool _working;
     private ITaskResult _result;
+    private string _signedLink;
+    private string _plainLinkNote;
 
     public async Task OnCreateInvite()
     {
+        _working = true;
+        _result = null;
+        _signedLink = null;
+        _plainLinkNote = null;
+        StateHasChanged();
+
         var invite = new PlanetInvite(Client)
         {
             PlanetId = Planet.Id,
@@ -32,17 +63,40 @@
         };
 
         var response = await Planet.Node.PostAsyncWithResponse<PlanetInvite>($"api/invites", invite);
-
         if (!response.Success)
         {
             _result = new TaskResult(false, response.Message);
-        }
-        else
-        {
-            _result = new TaskResult(true, "Invite created successfully!");
+            _working = false;
+            return;
         }
 
-        StateHasChanged();
+        _result = new TaskResult(true, "Invite created successfully!");
+
+        // In a private planet, an admin's verified device signs the invite
+        // into the membership log so people who use it are let in right away.
+        if (Planet.EncryptionMode == PlanetEncryptionMode.InviteOnly)
+        {
+            if (await Client.E2eeService.CanSignPlanetInvitesAsync(Planet))
+            {
+                var signed = await Client.E2eeService.SignPlanetInviteAsync(Planet, response.Data);
+                if (signed.Success)
+                    _signedLink = ShareUtils.GetInviteShareUrl(NavManager, response.Data.Id) + signed.Data.Fragment;
+                else
+                    _plainLinkNote = $"People who use this link will wait for an admin to let them in. ({signed.Message})";
+            }
+            else
+            {
+                _plainLinkNote = "People who use this link will wait for an admin to let them in.";
+            }
+        }
+
+        _working = false;
     }
 
+    private async Task CopySignedLinkAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _signedLink);
+        ToastContainer.Instance.AddToast(new ToastData("Copied", "Invite link copied. Share it privately.",
+            ToastProgressState.Success));
+    }
 }

@@ -31,7 +31,12 @@ public sealed class ChannelKeyRing
 
     public int LatestGeneration { get; set; }
     public bool RotationRequired { get; set; }
-    public DateTime FetchedAt { get; init; }
+
+    /// <summary>
+    /// When the ring was loaded. Setting it back makes the next use load the
+    /// channel's keys again, keeping the records and secrets already opened.
+    /// </summary>
+    public DateTime FetchedAt { get; internal set; }
 
     /// <summary>
     /// True when the server reported an older newest key than this device
@@ -275,8 +280,20 @@ public partial class E2eeService
                     var keyId = serverRecord.CreatorDeviceId[ChannelKeyGenerationRecord.ServerDevicePrefix.Length..];
                     var serverKey = await ResolveServerKeyAsync(channel.Node, keyId);
                     var verifiedServerRecord = ChannelKeyGenerationRecord.VerifyServer(entry, _ => serverKey);
-                    if (verifiedServerRecord.PlanetId != (channel.PlanetId ?? 0))
-                        throw new E2eeVerificationException("Channel key generation belongs to another planet.");
+                    if (verifiedServerRecord.PlanetId != (channel.PlanetId ?? 0) ||
+                        verifiedServerRecord.ChannelId != channel.Id)
+                        throw new E2eeVerificationException("Channel key generation belongs to another channel.");
+
+                    // Only the first key can be the server's, and not once
+                    // this device has seen a member make it: a server record
+                    // copying a member's public key would otherwise remove
+                    // the date that shows when encryption began.
+                    if (verifiedServerRecord.Generation != 1)
+                        throw new E2eeVerificationException("Only a channel's first key can be created by the server.");
+                    if (await HasMemberMadeFirstKeyAsync(channel))
+                        throw new E2eeVerificationException(
+                            "The server claims to have made a key that this device saw a member make.");
+
                     ring.Records[entry.Generation] = verifiedServerRecord;
                     continue;
                 }
@@ -299,10 +316,12 @@ public partial class E2eeService
                     datedValidly = false;
                 }
 
-                if (record.PlanetId != (channel.PlanetId ?? 0))
-                    throw new E2eeVerificationException("Channel key generation belongs to another planet.");
+                if (record.PlanetId != (channel.PlanetId ?? 0) || record.ChannelId != channel.Id)
+                    throw new E2eeVerificationException("Channel key generation belongs to another channel.");
 
                 ring.Records[record.Generation] = record;
+                if (record.Generation == 1)
+                    await PinMemberMadeFirstKeyAsync(channel);
                 if (datedValidly && await IsTrustedCreatorAsync(channel, ring, record, creatorState))
                     ring.Trusted[record.Generation] = 0;
                 else
@@ -314,6 +333,22 @@ public partial class E2eeService
             }
         }
     }
+
+    private string MemberMadeFirstKeyKey(Channel channel) =>
+        StoreKey($"first-key-member/{channel.PlanetId ?? 0}/{channel.Id}");
+
+    private async Task<bool> HasMemberMadeFirstKeyAsync(Channel channel) =>
+        _memberMadeFirstKeys.ContainsKey(ChannelKey(channel)) ||
+        await Store.GetAsync(MemberMadeFirstKeyKey(channel)) is { Length: > 0 };
+
+    private async Task PinMemberMadeFirstKeyAsync(Channel channel)
+    {
+        if (_memberMadeFirstKeys.TryAdd(ChannelKey(channel), 0))
+            await Store.SetAsync(MemberMadeFirstKeyKey(channel), [1]);
+    }
+
+    // Channels whose first key this device saw a member make.
+    private readonly ConcurrentDictionary<(long PlanetId, long ChannelId), byte> _memberMadeFirstKeys = new();
 
     /// <summary>
     /// Each generation that unlocks history carries the one before it, so a
@@ -393,16 +428,20 @@ public partial class E2eeService
     }
 
     /// <summary>
-    /// Applies the rules signed into the key records. A record signed under an
-    /// invite-only planet's membership log keeps the channel governed by that
-    /// log even on a device that never pinned it. In governed channels the
-    /// newest trusted record also decides whether new members may read
-    /// history, since the server's word is not trusted there.
+    /// Applies the rules signed into the key records. A record signed under a
+    /// private planet's membership log keeps the channel governed by that log
+    /// even on a device that never pinned it, unless the verified log shows
+    /// that the owner made the planet public after the record was made. In
+    /// governed channels the newest trusted record also decides whether new
+    /// members may read history, since the server's word is not trusted there.
     /// </summary>
     private async Task ApplySignedTermsAsync(Channel channel, ChannelKeyRing ring)
     {
         var governed = channel.PlanetId is null ? ChannelKeyPolicy.Group : ChannelKeyPolicy.PlanetInviteOnly;
-        if (!ring.IsGoverned && ring.Records.Values.Any(r => !r.IsServerCreated && r.Terms.Policy == governed))
+        var governedRecords = ring.IsGoverned
+            ? []
+            : ring.Records.Values.Where(r => !r.IsServerCreated && r.Terms.Policy == governed).ToList();
+        if (governedRecords.Count > 0 && await SignedTermsKeepGovernanceAsync(channel, governedRecords))
         {
             LogWarning($"Channel {channel.Id} was reported as {ring.Policy}, but its keys were made under a membership log");
             ring.Policy = governed;
@@ -426,6 +465,37 @@ public partial class E2eeService
 
         if (sharesHistory is not null)
             ring.SharesHistory = sharesHistory.Value;
+    }
+
+    /// <summary>
+    /// Whether key records made under a planet's membership log still keep
+    /// its channels governed. They do not once the verified log shows the
+    /// owner made the planet public, as long as each record names a log entry
+    /// from before that. A record naming a later entry shows that the log
+    /// continued, for example with a restart that made the planet private
+    /// again, so a copy of the log that ends at the opening was cut short.
+    /// </summary>
+    private async Task<bool> SignedTermsKeepGovernanceAsync(Channel channel,
+        List<ChannelKeyGenerationRecord> governedRecords)
+    {
+        if (channel.PlanetId is not { } planetId)
+            return true;
+
+        var log = await GetAccessLogStateAsync(AccessLogScope.Planet, planetId, channel.Node);
+        return log is not { IsOpen: true } || governedRecords.Any(r => r.Terms.AccessLogSeq >= log.OpenedSeq);
+    }
+
+    /// <summary>
+    /// Makes the next use of each loaded key ring in a planet load it again,
+    /// after the planet's privacy changed.
+    /// </summary>
+    private void MarkPlanetKeyRingsStale(long planetId)
+    {
+        foreach (var (key, ring) in _keyRings)
+        {
+            if (key.PlanetId == planetId)
+                ring.FetchedAt = DateTime.MinValue;
+        }
     }
 
     private async Task RecheckTrustAsync(Channel channel, ChannelKeyRing ring)
@@ -535,13 +605,46 @@ public partial class E2eeService
 
     internal static string DirectPeerKey(long channelId) => $"dm-peer/{channelId}";
 
-    private Task<AccessLogState> GovernedLogAsync(Channel channel, ChannelKeyPolicy policy) => policy switch
+    private Task<AccessLogState> GovernedLogAsync(Channel channel, ChannelKeyPolicy policy, bool refresh = false) =>
+        policy switch
+        {
+            ChannelKeyPolicy.Group => GetAccessLogStateAsync(AccessLogScope.GroupChannel, channel.Id, channel.Node,
+                refresh),
+            ChannelKeyPolicy.PlanetInviteOnly => GetAccessLogStateAsync(AccessLogScope.Planet,
+                channel.PlanetId!.Value, channel.Node, refresh),
+            _ => Task.FromResult<AccessLogState>(null)
+        };
+
+    /// <summary>
+    /// The membership log that decides who may receive a governed channel's
+    /// keys. It must include every entry a trusted key of the channel was made
+    /// under, so the server cannot hide a removal from this device by
+    /// withholding entries other members already saw. Null when the channel
+    /// is not governed, or when this device cannot load a log that recent.
+    /// </summary>
+    private async Task<AccessLogState> CurrentGovernedLogAsync(Channel channel, ChannelKeyRing ring)
     {
-        ChannelKeyPolicy.Group => GetAccessLogStateAsync(AccessLogScope.GroupChannel, channel.Id, channel.Node),
-        ChannelKeyPolicy.PlanetInviteOnly => GetAccessLogStateAsync(AccessLogScope.Planet, channel.PlanetId!.Value,
-            channel.Node),
-        _ => Task.FromResult<AccessLogState>(null)
-    };
+        if (!ring.IsGoverned)
+            return null;
+
+        var needed = ring.Trusted.Keys
+            .Select(generation => ring.Records.GetValueOrDefault(generation))
+            .Where(record => record is not null && record.Terms.Policy == ring.Policy)
+            .Select(record => record.Terms.AccessLogSeq)
+            .DefaultIfEmpty(-1)
+            .Max();
+
+        var log = await GovernedLogAsync(channel, ring.Policy);
+        if (log is not null && log.HeadSeq >= needed)
+            return log;
+
+        log = await GovernedLogAsync(channel, ring.Policy, refresh: true);
+        if (log is not null && log.HeadSeq >= needed)
+            return log;
+
+        LogWarning($"Channel {channel.Id}'s keys name membership log entries this device could not load");
+        return null;
+    }
 
     // The newest generation each channel reached on this device, so the
     // server cannot hand out an older key that someone removed still holds.
@@ -574,45 +677,66 @@ public partial class E2eeService
     /// The policy the server reports, unless this device already verified a
     /// signed access log for the channel's planet or group. Such a channel
     /// stays governed by that log, so the server cannot relabel it as open
-    /// and have members hand keys to accounts no admin admitted.
+    /// and have members hand keys to accounts no admin admitted. A planet's
+    /// channels become open again only when the verified log shows that the
+    /// owner made the planet public.
     /// </summary>
     private async Task<ChannelKeyPolicy> EffectivePolicyAsync(Channel channel, ChannelKeyPolicy reported)
     {
-        var (scope, scopeId, governed) = channel.PlanetId is { } planetId
-            ? (AccessLogScope.Planet, planetId, ChannelKeyPolicy.PlanetInviteOnly)
-            : (AccessLogScope.GroupChannel, channel.Id, ChannelKeyPolicy.Group);
-
-        // The planet itself and the channel's keys are reported separately;
-        // if either says invite-only, the channel is governed.
-        if (channel.PlanetId is not null && channel.Planet?.EncryptionMode == PlanetEncryptionMode.InviteOnly)
-            reported = governed;
-
-        // Loading the log verifies and pins it, so this device keeps
-        // enforcing it even if the server later reports a weaker policy.
-        if (reported == governed)
+        if (channel.PlanetId is { } planetId)
         {
-            await GetAccessLogStateAsync(scope, scopeId, channel.Node);
-            return reported;
+            // The planet itself and the channel's keys are reported
+            // separately; if either says invite-only, the channel is governed.
+            // Loading the log verifies and pins it, so this device keeps
+            // enforcing it even if the server later reports a weaker policy.
+            var reportedInviteOnly = reported == ChannelKeyPolicy.PlanetInviteOnly ||
+                                     channel.Planet?.EncryptionMode == PlanetEncryptionMode.InviteOnly;
+            var (governed, _) = await GetPlanetGovernanceAsync(planetId, channel.Node, reportedInviteOnly);
+            if (governed && !reportedInviteOnly)
+                LogWarning($"Channel {channel.Id} was reported as {reported}, but it has a verified membership log");
+            return governed ? ChannelKeyPolicy.PlanetInviteOnly : ChannelKeyPolicy.PlanetOpen;
         }
 
-        if (!await HasAccessPinAsync(scope, scopeId))
-            return reported;
+        // Outside a planet a chat is a DM or a group DM, and a planet policy
+        // never applies. A chat this device has used as a DM stays one, so
+        // the server cannot hand its keys to a membership log or a member
+        // list it controls by reporting another policy.
+        if (channel.ChannelType == ChannelTypeEnum.DirectChat || await HasDirectPeerPinAsync(channel.Id))
+        {
+            if (reported != ChannelKeyPolicy.Direct)
+                LogWarning($"Direct chat {channel.Id} was reported as {reported}");
+            return ChannelKeyPolicy.Direct;
+        }
 
-        LogWarning($"Channel {channel.Id} was reported as {reported}, but it has a verified membership log");
-        return governed;
+        if (reported == ChannelKeyPolicy.Group || channel.ChannelType == ChannelTypeEnum.GroupChat ||
+            await HasAccessPinAsync(AccessLogScope.GroupChannel, channel.Id))
+        {
+            if (reported != ChannelKeyPolicy.Group)
+                LogWarning($"Group chat {channel.Id} was reported as {reported}");
+            await GetAccessLogStateAsync(AccessLogScope.GroupChannel, channel.Id, channel.Node);
+            return ChannelKeyPolicy.Group;
+        }
+
+        if (reported != ChannelKeyPolicy.Direct)
+            LogWarning($"Chat {channel.Id} outside a planet was reported as {reported}");
+        return ChannelKeyPolicy.Direct;
     }
+
+    private async Task<bool> HasDirectPeerPinAsync(long channelId) =>
+        _directPeers.ContainsKey(channelId) ||
+        await Store.GetAsync(StoreKey(DirectPeerKey(channelId))) is { Length: 8 };
 
     /// <summary>
     /// Decides whether a user may hold this channel's keys. The rules are
     /// enforced on this device because the server is not trusted to make
     /// them: a one-to-one DM has exactly its two members, group DMs and
-    /// invite-only planets follow their signed access logs, and open planets
+    /// private planets follow their signed access logs, and public planets
     /// follow the planet's permissions as the server reports them.
     /// </summary>
-    private async Task<bool> IsAuthorizedMemberAsync(Channel channel, ChannelKeyPolicy policy, long userId,
+    private async Task<bool> IsAuthorizedMemberAsync(Channel channel, ChannelKeyRing ring, long userId,
         UserKeyState state)
     {
-        switch (policy)
+        switch (ring.Policy)
         {
             case ChannelKeyPolicy.Direct:
                 if (userId != _client.Me.Id && userId != await DirectPeerAsync(channel))
@@ -624,14 +748,9 @@ public partial class E2eeService
                        state.Epoch == (await GetAcceptedEpochAsync(userId) ?? state.Epoch);
 
             case ChannelKeyPolicy.Group:
-            {
-                var log = await GetAccessLogStateAsync(AccessLogScope.GroupChannel, channel.Id, channel.Node);
-                return log is not null && log.IsMember(userId, state);
-            }
-
             case ChannelKeyPolicy.PlanetInviteOnly:
             {
-                var log = await GetAccessLogStateAsync(AccessLogScope.Planet, channel.PlanetId!.Value, channel.Node);
+                var log = await CurrentGovernedLogAsync(channel, ring);
                 return log is not null && log.IsMember(userId, state);
             }
 
@@ -717,10 +836,51 @@ public partial class E2eeService
     }
 
     /// <summary>
+    /// Gets a channel's keys ready when it opens, so the first message does
+    /// not wait for them. A device without the current key asks members for
+    /// it now, while the person is still typing. A channel without a key is
+    /// left alone; its first key is made when someone sends.
+    /// </summary>
+    public async Task PrepareToSendAsync(Channel channel)
+    {
+        if (Status != E2eeStatus.Ready || !channel.IsEncrypted)
+            return;
+
+        try
+        {
+            var ring = await GetKeyRingAsync(channel);
+            if (ring is { LatestGeneration: > 0, Latest: null })
+                await RequestKeysAsync(channel);
+        }
+        catch (Exception e)
+        {
+            LogWarning($"Preparing keys for channel {channel.Id} failed: {e.Message}");
+        }
+    }
+
+    // Serializes key creation and rotation per channel, so messages sent in
+    // quick succession do not each try to publish the same new key.
+    private readonly ConcurrentDictionary<(long PlanetId, long ChannelId), SemaphoreSlim> _sendKeyLocks = new();
+
+    /// <summary>
     /// Returns the key to send with, creating or rotating the channel key
     /// when needed.
     /// </summary>
     public async Task<TaskResult<ChannelKeySecret>> EnsureSendKeyAsync(Channel channel)
+    {
+        var gate = _sendKeyLocks.GetOrAdd(ChannelKey(channel), _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        try
+        {
+            return await EnsureSendKeyCoreAsync(channel);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task<TaskResult<ChannelKeySecret>> EnsureSendKeyCoreAsync(Channel channel)
     {
         if (Status != E2eeStatus.Ready)
             return TaskResult<ChannelKeySecret>.FromFailure("Verify this device to send encrypted messages.");
@@ -781,6 +941,12 @@ public partial class E2eeService
                     "This channel's current key could not be verified. Try again in a moment.");
         }
 
+        // Without a recent enough membership log this device cannot tell
+        // whether someone was removed, so it does not send.
+        if (ring.IsGoverned && await CurrentGovernedLogAsync(channel, ring) is null)
+            return TaskResult<ChannelKeySecret>.FromFailure(
+                "This chat's membership list could not be loaded, so messages can't be sent yet. Try again in a moment.");
+
         if (await NeedsNewKeyAsync(channel, ring) is { } reason)
         {
             // The server knew a key it created, including its search key, so
@@ -819,7 +985,13 @@ public partial class E2eeService
 
         if (ring.IsGoverned)
         {
-            var log = await GovernedLogAsync(channel, ring.Policy);
+            // A key made before the membership log governed the channel, for
+            // example while the planet was public, may be held by people the
+            // log never admitted.
+            if (record.Terms.Policy != ring.Policy)
+                return "it was made before the membership log applied";
+
+            var log = await CurrentGovernedLogAsync(channel, ring);
             if (log is null)
                 return null;
             if (log.LastRemovalSeq > record.Terms.AccessLogSeq)
@@ -1069,7 +1241,7 @@ public partial class E2eeService
         foreach (var (userId, state) in states)
         {
             if (userId != _client.Me.Id && state.HasIdentity &&
-                await IsAuthorizedMemberAsync(channel, ring.Policy, userId, state))
+                await IsAuthorizedMemberAsync(channel, ring, userId, state))
                 boxes.Add(SealBox(secret, userId, state.UserKey));
         }
 
@@ -1110,7 +1282,7 @@ public partial class E2eeService
         foreach (var userId in candidates)
         {
             if (userId != _client.Me.Id && states.TryGetValue(userId, out var state) && state.HasIdentity &&
-                await IsAuthorizedMemberAsync(channel, ring.Policy, userId, state))
+                await IsAuthorizedMemberAsync(channel, ring, userId, state))
                 recipients.Add((userId, state.UserKey));
         }
 
@@ -1177,7 +1349,7 @@ public partial class E2eeService
         {
             if (pending.UserId == _client.Me.Id || !states.TryGetValue(pending.UserId, out var state) || !state.HasIdentity)
                 continue;
-            if (await IsAuthorizedMemberAsync(channel, ring.Policy, pending.UserId, state))
+            if (await IsAuthorizedMemberAsync(channel, ring, pending.UserId, state))
                 authorized.Add((pending, state));
         }
 

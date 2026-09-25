@@ -9,7 +9,7 @@ using Valour.Shared.Models;
 namespace Valour.Sdk.Services;
 
 /// <summary>
-/// An invite for an invite-only planet whose secret travels in the link's
+/// An invite for a private planet whose secret travels in the link's
 /// fragment, which browsers never send to the server.
 /// </summary>
 public sealed class EncryptedInvite
@@ -55,7 +55,7 @@ public sealed class EncryptedInvite
 }
 
 /// <summary>
-/// A member of an invite-only planet or encrypted group who is waiting on an
+/// A member of a private planet or encrypted group who is waiting on an
 /// admin, either to be admitted or to have their new keys confirmed.
 /// </summary>
 public sealed class PendingAdmission
@@ -162,7 +162,16 @@ public partial class E2eeService
                     Count = state.HeadSeq + 1,
                     HeadHash = Base64Url.Encode(state.HeadHash)
                 };
-                await Store.SetAsync(AccessStateKey(state.Scope, state.ScopeId), state.Encode());
+                // The stored state only saves fetching the log again, so a full
+                // store does not stop the log from being used. The pin is kept.
+                try
+                {
+                    await Store.SetAsync(AccessStateKey(state.Scope, state.ScopeId), state.Encode());
+                }
+                catch (Exception e)
+                {
+                    LogWarning($"Saving access log {state.Scope}/{state.ScopeId} on this device failed: {e.Message}");
+                }
             }
 
             await SaveAccessPinsAsync();
@@ -190,6 +199,107 @@ public partial class E2eeService
         }
     }
 
+    /// <summary>
+    /// The cutoffs that removing one of this account's devices signs into its
+    /// key log (see <see cref="AccessLogCutoff"/>), one for each membership
+    /// log the account belongs to: private planets it joined or owns, and
+    /// group chats. When this device removes itself, each log it verified is
+    /// cut off at its pin, which includes every entry it signed, and every
+    /// other log at -1, since it signs only in logs it verified. When it
+    /// removes another device, each log is loaded so the cutoff includes what
+    /// that device signed. A log that cannot be loaded is left out, and there
+    /// the removed device is checked only against the removal time.
+    /// </summary>
+    private async Task<List<AccessLogCutoff>> CollectAccessLogCutoffsAsync(bool removingThisDevice)
+    {
+        var cutoffs = new Dictionary<(AccessLogScope Scope, long ScopeId), int>();
+        await _pinLock.WaitAsync();
+        try
+        {
+            // Another tab or process may have signed and pinned newer entries.
+            _accessPins ??= await LoadAccessPinsAsync();
+            foreach (var (key, stored) in await LoadAccessPinsAsync())
+            {
+                if (!_accessPins.TryGetValue(key, out var mine) || stored.Count > mine.Count)
+                    _accessPins[key] = stored;
+            }
+
+            foreach (var (key, pin) in _accessPins)
+            {
+                if (TryParseAccessPinKey(key, out var scope, out var scopeId))
+                    cutoffs[(scope, scopeId)] = pin.Count - 1;
+            }
+        }
+        finally
+        {
+            _pinLock.Release();
+        }
+
+        var memberScopes = await GetMemberAccessLogScopesAsync();
+
+        if (removingThisDevice)
+        {
+            foreach (var scope in memberScopes)
+                cutoffs.TryAdd(scope, -1);
+        }
+        else
+        {
+            foreach (var (scope, scopeId) in cutoffs.Keys.Concat(memberScopes).ToHashSet())
+            {
+                cutoffs.Remove((scope, scopeId));
+                try
+                {
+                    var node = scope == AccessLogScope.Planet
+                        ? (await _client.PlanetService.FetchPlanetAsync(scopeId))?.Node
+                        : HubNode;
+                    var log = node is null ? null : await GetAccessLogStateAsync(scope, scopeId, node, refresh: true);
+                    if (log is not null)
+                        cutoffs[(scope, scopeId)] = log.HeadSeq;
+                }
+                catch (Exception e)
+                {
+                    LogWarning($"Access log {scope}/{scopeId} could not be loaded for a device removal: {e.Message}");
+                }
+            }
+        }
+
+        if (cutoffs.Count > AccessLogCutoff.MaxPerEntry)
+            LogWarning($"This account belongs to {cutoffs.Count} membership logs; the removal lists the first " +
+                       $"{AccessLogCutoff.MaxPerEntry}, and the rest are checked only against the removal time.");
+
+        return cutoffs
+            .Take(AccessLogCutoff.MaxPerEntry)
+            .Select(c => new AccessLogCutoff(c.Key.Scope, c.Key.ScopeId, c.Value))
+            .ToList();
+    }
+
+    /// <summary>
+    /// The membership logs this account may belong to: private planets it
+    /// joined or owns, and its group chats. The lists are read from the server
+    /// without changing the app's cached ones, which may not be loaded; the
+    /// cached lists are used when the server cannot be reached.
+    /// </summary>
+    private async Task<HashSet<(AccessLogScope Scope, long ScopeId)>> GetMemberAccessLogScopesAsync()
+    {
+        var planets = await HubNode.GetJsonAsync<List<Planet>>("api/users/me/planets", cacheDurationMs: null);
+        var channels = await HubNode.GetJsonAsync<List<Channel>>("api/channels/direct/self", cacheDurationMs: null);
+
+        IEnumerable<ISharedPlanet> planetList = planets.Success && planets.Data is not null
+            ? planets.Data
+            : _client.PlanetService.JoinedPlanets;
+        IEnumerable<ISharedChannel> channelList = channels.Success && channels.Data is not null
+            ? channels.Data
+            : _client.ChannelService.DirectChatChannels;
+
+        return planetList
+            .Where(p => p.EncryptionMode == PlanetEncryptionMode.InviteOnly || p.OwnerId == _client.Me.Id)
+            .Select(p => (AccessLogScope.Planet, p.Id))
+            .Concat(channelList
+                .Where(c => c.ChannelType == ChannelTypeEnum.GroupChat)
+                .Select(c => (AccessLogScope.GroupChannel, c.Id)))
+            .ToHashSet();
+    }
+
     private Task<Dictionary<string, AccessPin>> LoadAccessPinsAsync() =>
         LoadStoredJsonAsync<Dictionary<string, AccessPin>>(AccessPinsKey);
 
@@ -203,8 +313,9 @@ public partial class E2eeService
         $"api/e2ee/access-logs/{(int)scope}/{scopeId}";
 
     /// <summary>
-    /// Returns the verified access log for an invite-only planet or group DM,
-    /// or null when it has none.
+    /// Returns the verified access log for a private planet or group DM, or
+    /// null when it has none. A planet's log stays after the owner makes the
+    /// planet public; <see cref="AccessLogState.IsOpen"/> is then true.
     ///
     /// A device that verified the log before continues from the state it
     /// stored and applies only newer entries, so a gap or a rewritten entry
@@ -254,6 +365,16 @@ public partial class E2eeService
             }
             else
             {
+                // A checkpoint a removed device signed after its cutoff
+                // cannot start the log, so the whole log is read instead.
+                if (!AccessLogVerifier.CanStartFrom(entries, states))
+                {
+                    entries = await FetchWholeAccessLogAsync(scope, scopeId, node, entries[^1].Seq);
+                    if (entries is null)
+                        return null;
+                    states = await GetUserStatesAsync(AccessLogVerifier.RequiredUsers(entries));
+                }
+
                 state = AccessLogVerifier.Verify(scope, scopeId, entries, states);
                 if (pin is not null && !await MatchesPinAsync(scope, scopeId, node, entries, state, pin))
                 {
@@ -264,6 +385,12 @@ public partial class E2eeService
 
             await SaveAccessLogAsync(state);
             _accessLogs[(scope, scopeId)] = state;
+
+            // Channel keys loaded under the planet's earlier privacy follow
+            // the wrong policy, so they are loaded again when next used.
+            if (scope == AccessLogScope.Planet && known is not null && known.IsGoverning != state.IsGoverning)
+                MarkPlanetKeyRingsStale(scopeId);
+
             ScheduleCheckpoint(scope, scopeId, node, state);
             return state;
         }
@@ -277,8 +404,10 @@ public partial class E2eeService
     /// <summary>
     /// Checks a log verified from its latest checkpoint against this device's
     /// pin. When the pinned entry comes before the checkpoint, the whole log is
-    /// read and must contain it and lead to the same state. A log too large to
-    /// return whole is accepted from its checkpoint, as a new device would.
+    /// read, one page at a time, and must contain it and lead to the same
+    /// state. A log the server does not return up to the checkpoint is not
+    /// accepted, because a cut-short copy could hide the entries that make a
+    /// forged checkpoint visible.
     /// </summary>
     private async Task<bool> MatchesPinAsync(AccessLogScope scope, long scopeId, Node node,
         List<AccessLogEntry> entries, AccessLogState state, AccessPin pin)
@@ -286,25 +415,42 @@ public partial class E2eeService
         if (entries[0].Seq <= pin.Count - 1)
             return ExtendsPin(entries, pin);
 
-        var full = await node.GetJsonAsync<List<AccessLogEntry>>(
-            $"{AccessLogRoute(scope, scopeId)}?known=0&full=true", cacheDurationMs: null);
-        if (!full.Success || full.Data is not { Count: > 0 } all || all[0].Seq != 0)
-            return false;
-
-        if (all[^1].Seq < state.HeadSeq)
-        {
-            LogWarning($"Access log {scope}/{scopeId} is too large to check against this device's earlier copy, " +
-                       "so it is trusted from its latest checkpoint");
-            return true;
-        }
-
-        if (!ExtendsPin(all, pin))
+        var all = await FetchWholeAccessLogAsync(scope, scopeId, node, state.HeadSeq);
+        if (all is null || !ExtendsPin(all, pin))
             return false;
 
         var replayed = AccessLogVerifier.Verify(scope, scopeId, all,
             await GetUserStatesAsync(AccessLogVerifier.RequiredUsers(all)));
         return replayed.HeadSeq == state.HeadSeq &&
                replayed.HeadHash.AsSpan().SequenceEqual(state.HeadHash);
+    }
+
+    /// <summary>
+    /// Reads a log from its first entry through <paramref name="throughSeq"/>,
+    /// one page at a time. Returns null when the server does not return it in
+    /// full and in order. Entries after <paramref name="throughSeq"/>, added
+    /// since the caller read the log, are left out.
+    /// </summary>
+    private async Task<List<AccessLogEntry>> FetchWholeAccessLogAsync(AccessLogScope scope, long scopeId, Node node,
+        int throughSeq)
+    {
+        var all = new List<AccessLogEntry>();
+        while (all.Count == 0 || all[^1].Seq < throughSeq)
+        {
+            var page = await node.GetJsonAsync<List<AccessLogEntry>>(
+                $"{AccessLogRoute(scope, scopeId)}?known={all.Count}&full=true", cacheDurationMs: null);
+            if (!page.Success || page.Data is not { Count: > 0 } received ||
+                received.Where((e, i) => e.Seq != all.Count + i).Any())
+            {
+                LogWarning($"Access log {scope}/{scopeId} could not be read in full");
+                return null;
+            }
+
+            all.AddRange(received);
+        }
+
+        all.RemoveAll(e => e.Seq > throughSeq);
+        return all;
     }
 
     private static bool ExtendsPin(List<AccessLogEntry> entries, AccessPin pin)
@@ -319,7 +465,7 @@ public partial class E2eeService
     /// </summary>
     private void ScheduleCheckpoint(AccessLogScope scope, long scopeId, Node node, AccessLogState state)
     {
-        if (Status != E2eeStatus.Ready || MyKeyState is null ||
+        if (Status != E2eeStatus.Ready || MyKeyState is null || !state.IsGoverning ||
             state.HeadSeq - Math.Max(state.LastCheckpointSeq, 0) < AccessLogCheckpointInterval ||
             !state.IsAdmin(_client.Me.Id, MyKeyState) ||
             !_checkpointsInProgress.TryAdd((scope, scopeId), 0))
@@ -466,69 +612,127 @@ public partial class E2eeService
         return WithoutData(result);
     }
 
-    // Invite-only planets
+    // Private planets
 
     /// <summary>
-    /// Changes who receives a planet's keys and whether new members can read
-    /// earlier messages. Only the owner can do this. Making a planet
-    /// invite-only signs its membership log and replaces keys in the channels
-    /// this device can see, so members who were not admitted lose access to
-    /// later messages.
+    /// True when a planet is private but its owner's device has not signed
+    /// its membership log yet, so its permissions still decide who receives
+    /// keys. The owner finishes this with <see cref="FinishPrivatePlanetAsync"/>.
+    /// A planet being moved between servers is never reported as pending.
     /// </summary>
-    public async Task<TaskResult> SetPlanetEncryptionAsync(Planet planet, PlanetEncryptionMode mode, bool sharesHistory,
-        bool restartMembership = false)
+    public static bool IsPrivacyPending(Planet planet) =>
+        planet is not null && !planet.Public && planet.EncryptionMode == PlanetEncryptionMode.Open &&
+        !planet.LockedForMigration;
+
+    /// <summary>
+    /// Whether a planet's channels follow its signed membership log, and the
+    /// verified log when this device loaded it. A planet is governed when the
+    /// server reports it as invite-only or this device has seen its log,
+    /// unless the verified log shows that the owner made it public. A log
+    /// that cannot be verified keeps the planet governed, so nobody receives
+    /// keys by mistake.
+    /// </summary>
+    private async Task<(bool Governed, AccessLogState Log)> GetPlanetGovernanceAsync(long planetId, Node node,
+        bool reportedInviteOnly)
+    {
+        if (!reportedInviteOnly && !await HasAccessPinAsync(AccessLogScope.Planet, planetId))
+            return (false, null);
+
+        var log = await GetAccessLogStateAsync(AccessLogScope.Planet, planetId, node);
+
+        // Right after the owner changes the planet's privacy, the server's
+        // report and this device's copy of the log disagree until the log is
+        // loaded again.
+        if (log is not null && log.IsOpen == reportedInviteOnly)
+            log = await GetAccessLogStateAsync(AccessLogScope.Planet, planetId, node, refresh: true);
+
+        // A planet the server still reports as invite-only stays governed by
+        // a log the owner opened. That log admits nobody, so no keys are shared.
+        return (log is null || reportedInviteOnly || log.IsGoverning, log);
+    }
+
+    /// <summary>
+    /// Makes a planet public or private and sets whether new members can read
+    /// earlier messages. Only the owner can do this, from a verified device.
+    ///
+    /// Making a planet private signs its membership log, admitting the
+    /// current members who have set up encryption, and replaces keys in the
+    /// channels this device can see so later messages reach only admitted
+    /// members. Making a private planet public signs an
+    /// <see cref="AccessLogEntryType.Open"/> entry; members' apps stop
+    /// enforcing the log once they verify it, and keys are not replaced.
+    /// </summary>
+    public async Task<TaskResult> SetPlanetPrivacyAsync(Planet planet, bool isPublic, bool sharesHistory)
     {
         if (Status != E2eeStatus.Ready)
             return Fail("Verify this device first.");
         if (planet.OwnerId != _client.Me.Id)
-            return Fail("Only the planet owner can change encryption.");
+            return Fail("Only the planet owner can change whether the planet is public.");
 
-        var request = new SetPlanetEncryptionRequest { Mode = mode, SharesHistory = sharesHistory };
+        var existing = await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true);
+        if (existing is null && await HasAccessPinAsync(AccessLogScope.Planet, planet.Id))
+            return Fail("The planet's membership log could not be verified against the one this device saw before.");
+        if (!isPublic && CannotMakePrivateReason(existing) is { } reason)
+            return Fail(reason);
+
+        var wasGoverned = existing?.IsGoverning == true;
+        var historyChanged = sharesHistory != planet.EncryptionSharesHistory;
+        var request = new SetPlanetPrivacyRequest { Public = isPublic, SharesHistory = sharesHistory };
         List<AccessMember> admitAfterStart = [];
 
-        if (mode == PlanetEncryptionMode.InviteOnly)
+        if (!isPublic && !wasGoverned)
         {
-            var existing = await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true);
-            if (existing is null || restartMembership)
-            {
-                var memberIds = await FetchPlanetMemberIdsAsync(planet);
-                if (memberIds is null)
-                    return Fail("Could not load the planet's members.");
+            var memberIds = await FetchPlanetMemberIdsAsync(planet);
+            if (memberIds is null)
+                return Fail("Could not load the planet's members.");
 
-                var members = await MembersWithKeysAsync(memberIds.Where(id => id != _client.Me.Id));
+            var members = await MembersWithKeysAsync(memberIds.Where(id => id != _client.Me.Id));
 
-                // A start entry stays under the server's size limit; the rest
-                // of the members are admitted right after it.
-                admitAfterStart = members.Skip(MaxMembersPerStartEntry).ToList();
-                members = members.Take(MaxMembersPerStartEntry).ToList();
-                var start = existing ?? new AccessLogState { Scope = AccessLogScope.Planet, ScopeId = planet.Id };
-                request.Genesis = AccessLogBuilder.Create(start,
-                    existing is null ? AccessLogEntryType.Genesis : AccessLogEntryType.Restart,
-                    _client.Me.Id, Device, NowMs(),
-                    r => r.With(owner: AccessMember.For(MyKeyState), members: members));
-            }
+            // A start entry stays under the server's size limit; the rest of
+            // the members are admitted right after it.
+            admitAfterStart = members.Skip(MaxMembersPerStartEntry).ToList();
+            members = members.Take(MaxMembersPerStartEntry).ToList();
+            var start = existing ?? new AccessLogState { Scope = AccessLogScope.Planet, ScopeId = planet.Id };
+            request.Entry = AccessLogBuilder.Create(start,
+                existing is null ? AccessLogEntryType.Genesis : AccessLogEntryType.Restart,
+                _client.Me.Id, Device, NowMs(),
+                r => r.With(owner: AccessMember.For(MyKeyState), members: members));
+        }
+        else if (isPublic && wasGoverned)
+        {
+            if (!existing.IsOwner(_client.Me.Id, MyKeyState))
+                return Fail("Your current keys do not own this planet's membership log, so the change cannot be signed.");
+
+            request.Entry = AccessLogBuilder.Create(existing, AccessLogEntryType.Open, _client.Me.Id, Device, NowMs(),
+                r => r);
         }
 
-        var result = await planet.Node.PutAsyncWithResponse<Planet>($"api/planets/{planet.Id}/encryption", request);
+        var result = await planet.Node.PutAsyncWithResponse<Planet>($"api/planets/{planet.Id}/privacy", request);
         if (!result.Success)
             return Fail(result.Message);
 
-        planet.EncryptionMode = mode;
+        planet.Public = isPublic;
+        planet.EncryptionMode = isPublic ? PlanetEncryptionMode.Open : PlanetEncryptionMode.InviteOnly;
         planet.EncryptionSharesHistory = sharesHistory;
+        if (!isPublic)
+            planet.VanityInviteEnabled = false;
         _accessLogs.TryRemove((AccessLogScope.Planet, planet.Id), out _);
-        if (mode == PlanetEncryptionMode.InviteOnly &&
-            await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true) is null)
-            return Fail("The planet is invite-only, but its membership log could not be verified.");
+        var log = await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true);
+        if (!isPublic && log?.IsGoverning != true)
+            return Fail("The planet is private, but its membership log could not be verified.");
 
         foreach (var chunk in admitAfterStart.Chunk(MaxMembersPerEntry))
         {
             var admitted = await AppendAccessLogAsync(AccessLogScope.Planet, planet.Id, planet.Node,
                 AccessLogEntryType.AddMembers, r => r.With(members: chunk.ToList()));
             if (!admitted.Success)
-                return Fail("The planet is invite-only, but some members could not be admitted: " + admitted.Message);
+                return Fail("The planet is private, but some members could not be admitted: " + admitted.Message);
         }
 
-        if (mode != PlanetEncryptionMode.InviteOnly)
+        // A public planet's keys follow its permissions, which already let
+        // everyone who holds them read. A planet that just became private, or
+        // whose history setting changed, gets new keys.
+        if (isPublic || (wasGoverned && !historyChanged))
             return TaskResult.SuccessResult;
 
         // Replace keys that members who are not admitted might hold. Channels
@@ -553,8 +757,56 @@ public partial class E2eeService
 
         return failures == 0
             ? TaskResult.SuccessResult
-            : Fail($"The planet is invite-only, but {failures} channel(s) could not get new keys yet. They are replaced when a member with access sends a message.");
+            : Fail($"The planet is private, but {failures} channel(s) could not get new keys yet. They are replaced when a member with access sends a message.");
     }
+
+    /// <summary>
+    /// Shown when the owner's keys were started over after the planet was
+    /// made public. The opened log only accepts a change from the keys that
+    /// owned it, so the planet cannot become private again under that log.
+    /// </summary>
+    public const string OpenedLogOwnerKeysChangedMessage =
+        "Your encryption was started over after this planet became public. It can stay public, but it can't be " +
+        "made private again, because only the keys you had then can sign that change.";
+
+    /// <summary>
+    /// Shown to a planet owner whose planet was handed over while public by
+    /// an owner who could no longer sign for its membership log.
+    /// </summary>
+    public const string OpenedLogOwnedByEarlierKeysMessage =
+        "This planet can stay public, but it can't be made private again. Its membership log still belongs to " +
+        "an earlier owner's keys, which were started over, and only those keys can sign that change.";
+
+    /// <summary>
+    /// Why this account cannot make a public planet private again, or null
+    /// when it can. A log the owner opened only accepts a restart from the
+    /// keys it names as the owner's.
+    /// </summary>
+    public async Task<string> GetMakePrivateBlockerAsync(Planet planet)
+    {
+        if (Status != E2eeStatus.Ready || planet.OwnerId != _client.Me.Id)
+            return null;
+        return CannotMakePrivateReason(
+            await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node));
+    }
+
+    private string CannotMakePrivateReason(AccessLogState log)
+    {
+        if (log is not { IsOpen: true } || log.IsOwner(_client.Me.Id, MyKeyState))
+            return null;
+
+        return log.Owner.UserId == _client.Me.Id
+            ? OpenedLogOwnerKeysChangedMessage
+            : OpenedLogOwnedByEarlierKeysMessage;
+    }
+
+    /// <summary>
+    /// Signs the membership log of a private planet whose owner has not done
+    /// so yet (see <see cref="IsPrivacyPending"/>), admitting its current
+    /// members who have set up encryption.
+    /// </summary>
+    public Task<TaskResult> FinishPrivatePlanetAsync(Planet planet) =>
+        SetPlanetPrivacyAsync(planet, isPublic: false, planet.EncryptionSharesHistory);
 
     private async Task<List<long>> FetchPlanetMemberIdsAsync(Planet planet)
     {
@@ -564,7 +816,7 @@ public partial class E2eeService
     }
 
     /// <summary>
-    /// Members of an invite-only planet waiting to be admitted, and admitted
+    /// Members of a private planet waiting to be admitted, and admitted
     /// members whose keys changed and need confirming.
     /// </summary>
     public async Task<List<PendingAdmission>> GetPendingAdmissionsAsync(Planet planet)
@@ -616,7 +868,7 @@ public partial class E2eeService
     }
 
     /// <summary>
-    /// Admits members to an invite-only planet with their current keys.
+    /// Admits members to a private planet with their current keys.
     /// People who have not set up encryption are skipped and stay pending.
     /// </summary>
     public async Task<TaskResult> AdmitPlanetMembersAsync(Planet planet, IEnumerable<long> userIds)
@@ -627,7 +879,7 @@ public partial class E2eeService
         if (members.Count == 0)
             return ids.Count == 0
                 ? TaskResult.SuccessResult
-                : Fail("They have not set up encryption yet. Admit them after they sign in.");
+                : Fail("They haven't set up encryption yet. Let them in after they sign in and set it up.");
 
         foreach (var chunk in members.Chunk(MaxMembersPerEntry))
         {
@@ -639,11 +891,11 @@ public partial class E2eeService
 
         return skipped == 0
             ? TaskResult.SuccessResult
-            : TaskResult.FromSuccess($"Admitted {members.Count}. {skipped} have not set up encryption yet and stay waiting.");
+            : TaskResult.FromSuccess($"Let {members.Count} in. {skipped} haven't set up encryption yet and are still waiting.");
     }
 
     /// <summary>
-    /// Removes people from an invite-only planet's membership log, for example
+    /// Removes people from a private planet's membership log, for example
     /// after a kick or ban. The next message in each channel rotates its key.
     /// </summary>
     public async Task<TaskResult> RemovePlanetMembersAsync(Planet planet, IEnumerable<long> userIds)
@@ -682,7 +934,7 @@ public partial class E2eeService
     }
 
     /// <summary>
-    /// Makes an admitted member an admin of an invite-only planet's membership
+    /// Makes an admitted member an admin of a private planet's membership
     /// log, or removes them as one. Only the log's owner can do this. A member
     /// whose keys changed since they were admitted needs confirming first.
     /// </summary>
@@ -709,14 +961,17 @@ public partial class E2eeService
     }
 
     /// <summary>
-    /// Creates a signed invite for an invite-only planet. Append
-    /// <see cref="EncryptedInvite.Fragment"/> to the invite link.
+    /// Creates a signed invite for a private planet. Append
+    /// <see cref="EncryptedInvite.Fragment"/> to the invite link. Pass
+    /// <paramref name="inviteId"/> to name the invite after the planet invite
+    /// code it belongs to, so deleting that code can revoke it.
     /// </summary>
-    public async Task<TaskResult<EncryptedInvite>> CreatePlanetInviteAsync(Planet planet, DateTime? expires, int maxUses)
+    public async Task<TaskResult<EncryptedInvite>> CreatePlanetInviteAsync(Planet planet, DateTime? expires, int maxUses,
+        string inviteId = null)
     {
         var secret = E2eeCrypto.RandomBytes(16);
         var (_, publicKey) = AccessLogBuilder.InviteKey(secret);
-        var inviteId = Base64Url.Encode(E2eeCrypto.RandomBytes(9));
+        inviteId ??= Base64Url.Encode(E2eeCrypto.RandomBytes(9));
         var expiresMs = expires is null ? 0 : new DateTimeOffset(expires.Value.ToUniversalTime()).ToUnixTimeMilliseconds();
 
         var result = await AppendAccessLogAsync(AccessLogScope.Planet, planet.Id, planet.Node,
@@ -733,17 +988,101 @@ public partial class E2eeService
     {
         var result = await AppendAccessLogAsync(AccessLogScope.Planet, planet.Id, planet.Node,
             AccessLogEntryType.RevokeInvite, r => r.With(inviteId: inviteId));
+        if (result.Success)
+            await ForgetInviteSecretAsync(planet.Id, inviteId);
         return WithoutData(result);
     }
 
     /// <summary>
-    /// Uses a signed invite after joining an invite-only planet, admitting
-    /// this account without waiting for an admin.
+    /// True when this device can sign the planet's invite links so that
+    /// people who use them are let in right away: the planet is private and
+    /// this account is an admin of its membership log on a verified device.
+    /// </summary>
+    public async Task<bool> CanSignPlanetInvitesAsync(Planet planet) =>
+        planet.EncryptionMode == PlanetEncryptionMode.InviteOnly && await IsPlanetAccessAdminAsync(planet);
+
+    /// <summary>
+    /// Signs a planet invite code into a private planet's membership log, so
+    /// whoever joins with the link is let in without waiting for an admin.
+    /// The signed invite is named after the code and expires with it. Server
+    /// invite codes have no use limit, so neither does the signed invite.
+    /// Append <see cref="EncryptedInvite.Fragment"/> to the invite link; the
+    /// secret it carries is never sent to the server.
+    /// </summary>
+    public async Task<TaskResult<EncryptedInvite>> SignPlanetInviteAsync(Planet planet, PlanetInvite invite)
+    {
+        if (invite?.Id is null || invite.PlanetId != planet.Id)
+            return TaskResult<EncryptedInvite>.FromFailure("The invite does not belong to this planet.");
+        if (!await CanSignPlanetInvitesAsync(planet))
+            return TaskResult<EncryptedInvite>.FromFailure(
+                "Only an admin of this private planet, on a verified device, can sign its invite links.");
+
+        // Server times are UTC even when the JSON carries no zone.
+        DateTime? expires = invite.TimeExpires is { } time
+            ? time.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(time, DateTimeKind.Utc) : time
+            : null;
+        var signed = await CreatePlanetInviteAsync(planet, expires, maxUses: 0, inviteId: invite.Id);
+
+        // This device keeps the secret so the full link can be copied again.
+        if (signed.Success)
+            await SaveInviteSecretAsync(planet.Id, signed.Data, expires);
+        return signed;
+    }
+
+    /// <summary>
+    /// Deletes a planet invite code. When the code was signed into a private
+    /// planet's membership log, its signed invite is revoked first, so the
+    /// secret in the link cannot let anyone in through another code. Only an
+    /// admin of the log, on a verified device, can revoke it, so nobody else
+    /// deletes such a code; it stops working when it expires. A secret this
+    /// device saved for the code is forgotten.
+    /// </summary>
+    public async Task<TaskResult> DeletePlanetInviteAsync(Planet planet, PlanetInvite invite)
+    {
+        if (planet.EncryptionMode == PlanetEncryptionMode.InviteOnly)
+        {
+            var log = Status == E2eeStatus.Ready
+                ? await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true)
+                : null;
+            var signed = log is { IsGoverning: true } && log.Invites.TryGetValue(invite.Id, out var entry) &&
+                         !entry.Revoked;
+            if (signed)
+            {
+                if (!log.IsAdmin(_client.Me.Id, MyKeyState))
+                    return Fail("This link lets people in right away, so only an admin of this private planet, " +
+                                "on a verified device, can delete it.");
+
+                var revoked = await RevokePlanetInviteAsync(planet, invite.Id);
+                if (!revoked.Success)
+                    return revoked;
+            }
+            else if (log is null && Status != E2eeStatus.Ready)
+            {
+                return Fail("Verify this device first, so it can check whether this link lets people in right away.");
+            }
+        }
+
+        var deleted = await invite.DeleteAsync();
+        if (deleted.Success)
+            await ForgetInviteSecretAsync(planet.Id, invite.Id);
+        return deleted;
+    }
+
+    /// <summary>
+    /// Uses a signed invite after joining a private planet, admitting
+    /// this account without waiting for an admin. A planet that became public
+    /// since the invite was made lets everyone read, so there is nothing to
+    /// redeem.
     /// </summary>
     public async Task<TaskResult> RedeemPlanetInviteAsync(Planet planet, EncryptedInvite invite)
     {
         if (Status != E2eeStatus.Ready)
             return Fail("Verify this device first.");
+
+        var (governed, _) = await GetPlanetGovernanceAsync(planet.Id, planet.Node,
+            planet.EncryptionMode == PlanetEncryptionMode.InviteOnly);
+        if (!governed)
+            return TaskResult.SuccessResult;
 
         var (seed, _) = AccessLogBuilder.InviteKey(invite.Secret);
         var proof = E2eeCrypto.Sign(seed, AccessLogRecord.InviteProofMessage(AccessLogScope.Planet, planet.Id,
@@ -756,8 +1095,8 @@ public partial class E2eeService
     }
 
     /// <summary>
-    /// Removes this account from an invite-only planet's membership log
-    /// before leaving it.
+    /// Removes this account from a private planet's membership log before
+    /// leaving it.
     /// </summary>
     public async Task<TaskResult> LeavePlanetAccessAsync(Planet planet)
     {
@@ -774,24 +1113,28 @@ public partial class E2eeService
     }
 
     /// <summary>
-    /// True when this account can admit members to an invite-only planet.
+    /// True when this account can admit members to a private planet.
     /// </summary>
     public async Task<bool> IsPlanetAccessAdminAsync(Planet planet)
     {
         if (Status != E2eeStatus.Ready)
             return false;
         var log = await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node);
-        return log?.IsAdmin(_client.Me.Id, MyKeyState) == true;
+        return log?.IsGoverning == true && log.IsAdmin(_client.Me.Id, MyKeyState);
     }
 
     /// <summary>
-    /// Transfers a planet's ownership. An invite-only planet's membership log
-    /// names its own owner, and only the owner's device can change that, so
-    /// this device signs a <see cref="AccessLogEntryType.TransferOwnership"/>
-    /// entry naming the new owner's current keys and sends it with the
-    /// request. The server appends it in the same transaction that changes
-    /// the planet's owner, and refuses to transfer an invite-only planet
-    /// without it unless the log already names the new owner.
+    /// Transfers a planet's ownership. A planet's membership log names its
+    /// own owner, and only the owner's device can change that, so this device
+    /// signs a <see cref="AccessLogEntryType.TransferOwnership"/> entry naming
+    /// the new owner's current keys and sends it with the request. The server
+    /// appends it in the same transaction that changes the planet's owner,
+    /// and refuses to transfer a planet that has a log without it unless the
+    /// log already names the new owner. This includes a public planet whose
+    /// log the owner opened, since only the log's owner can make the planet
+    /// private again. The one exception is a public planet whose opened log
+    /// names keys this account no longer holds: it moves without an entry,
+    /// and nobody can make it private again under that log.
     /// </summary>
     public async Task<TaskResult<Planet>> TransferPlanetOwnershipAsync(Planet planet, long newOwnerUserId,
         string multiFactorCode)
@@ -802,28 +1145,38 @@ public partial class E2eeService
             MultiFactorCode = multiFactorCode
         };
 
-        var governed = planet.EncryptionMode == PlanetEncryptionMode.InviteOnly ||
-                       await HasAccessPinAsync(AccessLogScope.Planet, planet.Id);
-        if (governed)
+        // A public planet may still have a log its owner opened, so a device
+        // with keys looks the log up whatever the planet reports.
+        var log = Status == E2eeStatus.Ready
+            ? await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true)
+            : null;
+        var hasLog = log is not null || planet.EncryptionMode == PlanetEncryptionMode.InviteOnly ||
+                     await HasAccessPinAsync(AccessLogScope.Planet, planet.Id);
+        if (hasLog)
         {
             if (Status != E2eeStatus.Ready)
                 return TaskResult<Planet>.FromFailure(
-                    "This planet is invite-only. Verify this device first, so it can sign the change to the membership log.");
-
-            var log = await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true);
+                    "This planet has a membership log. Verify this device first, so it can sign the change to it.");
             if (log is null)
                 return TaskResult<Planet>.FromFailure("The planet's membership log could not be verified.");
 
-            if (log.Owner.UserId != newOwnerUserId)
+            // A public planet whose log names keys this account no longer
+            // holds moves without an entry; the server checks this itself,
+            // and the log stays with the keys it names.
+            var canSign = log.IsOwner(_client.Me.Id, MyKeyState);
+            if (log.Owner.UserId != newOwnerUserId && (canSign || !log.IsOpen))
             {
-                if (!log.IsOwner(_client.Me.Id, MyKeyState))
+                if (!canSign)
                     return TaskResult<Planet>.FromFailure(
                         "Your current keys do not own this planet's membership log, so the transfer cannot be signed.");
 
                 var newOwner = await GetUserStateAsync(newOwnerUserId, refresh: true);
-                if (newOwner?.HasIdentity != true || !log.IsMember(newOwnerUserId, newOwner))
+                if (newOwner?.HasIdentity != true)
                     return TaskResult<Planet>.FromFailure(
-                        "The new owner must be admitted to the planet's encryption, with confirmed keys, first.");
+                        "The new owner needs to sign in to Valour once, so their device sets up encryption, first.");
+                if (log.IsGoverning && !log.IsMember(newOwnerUserId, newOwner))
+                    return TaskResult<Planet>.FromFailure(
+                        "The new owner must be let in to the private planet, with confirmed keys, first.");
 
                 var entry = AccessLogBuilder.Create(log, AccessLogEntryType.TransferOwnership, _client.Me.Id, Device,
                     NowMs(), r => r.With(target: AccessMember.For(newOwner)));
@@ -834,7 +1187,7 @@ public partial class E2eeService
 
         var result = await planet.Node.PostAsyncWithResponse<Planet>(
             $"api/planets/{planet.Id}/transfer-ownership", request);
-        if (result.Success && governed)
+        if (result.Success && hasLog)
             await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true);
         return result;
     }

@@ -21,7 +21,13 @@
     protected override async Task OnInitializedAsync()
     {
         // Invite-only encrypted planets put an admission key in the fragment.
-        await InviteRedeemer.RememberAsync(InviteCode, new Uri(NavigationManager.Uri).Fragment);
+        var fragment = new Uri(NavigationManager.Uri).Fragment;
+        await InviteRedeemer.RememberAsync(InviteCode, fragment);
+
+        // The key is stored now, so it is removed from the address bar and
+        // the browser's history.
+        if (!string.IsNullOrEmpty(fragment))
+            NavigationManager.NavigateTo($"/I/{InviteCode}", replace: true);
 
         var inviteDataTask = PlanetService.FetchInviteScreenDataAsync(InviteCode);
         var joinedPlanetsTask = Client.IsLoggedIn ? PlanetService.FetchJoinedPlanetsAsync() : Task.CompletedTask;

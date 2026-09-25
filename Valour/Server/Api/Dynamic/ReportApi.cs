@@ -20,6 +20,7 @@ public class ReportApi
     
     [ValourRoute(HttpVerbs.Post, "api/reports")]
     [UserRequired(UserPermissionsEnum.FullControl)] // Only allow full access
+    [RateLimit(RateLimitPolicies.Report)]
     public static async Task<IResult> CreateReportAsync(UserService userService, ReportService reportService, [FromBody] Report report)
     {
         var user = await userService.GetCurrentUserAsync();

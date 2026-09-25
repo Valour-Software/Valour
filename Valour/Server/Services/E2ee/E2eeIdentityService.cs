@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Collections.Concurrent;
 using Valour.Sdk.E2ee;
 using Valour.Shared;
@@ -375,6 +376,80 @@ public class E2eeIdentityService
     }
 
     /// <summary>
+    /// Checks the membership log cutoffs of a device removal against the logs
+    /// this server keeps. Entries a removed device signs after its cutoff have
+    /// no effect, so a cutoff before an entry the device already signed would
+    /// undo that entry for everyone, and one past the log's end would let the
+    /// device's keys sign more entries. Logs kept by other nodes are checked
+    /// by the removing device, which loads them first. The caller holds
+    /// <see cref="LockUserKeysAsync"/>, so the device cannot sign another
+    /// entry until the removal is stored.
+    /// </summary>
+    private async Task<TaskResult> CheckAccessLogCutoffsAsync(long userId, List<AccessLogCutoff> cutoffs,
+        HashSet<string> removedDevices)
+    {
+        var scopeIds = cutoffs.Select(c => c.ScopeId).Distinct().ToList();
+        var heads = (await _db.E2eeAccessLogEntries.AsNoTracking()
+                .Where(x => scopeIds.Contains(x.ScopeId))
+                .GroupBy(x => new { x.Scope, x.ScopeId })
+                .Select(g => new { g.Key.Scope, g.Key.ScopeId, Head = g.Max(x => x.Seq) })
+                .ToListAsync())
+            .ToDictionary(x => ((AccessLogScope)x.Scope, x.ScopeId), x => x.Head);
+        var signed = await _db.E2eeAccessLogEntries.AsNoTracking()
+            .Where(x => scopeIds.Contains(x.ScopeId) && x.SignerUserId == userId)
+            .Select(x => new { x.Scope, x.ScopeId, x.Seq, x.Body })
+            .ToListAsync();
+
+        foreach (var cutoff in cutoffs)
+        {
+            if (!heads.TryGetValue((cutoff.Scope, cutoff.ScopeId), out var head))
+                continue;
+            if (cutoff.Seq > head)
+                return TaskResult.FromFailure($"{E2eeErrorCodes.RemovalCutoffStale}: A membership log changed " +
+                                              "while this device was being removed. Try again.");
+
+            foreach (var entry in signed.Where(x => (AccessLogScope)x.Scope == cutoff.Scope &&
+                                                    x.ScopeId == cutoff.ScopeId && x.Seq > cutoff.Seq))
+            {
+                string signerDeviceId;
+                try
+                {
+                    signerDeviceId = AccessLogRecord.Decode(entry.Body).SignerDeviceId;
+                }
+                catch (E2eeFormatException)
+                {
+                    continue;
+                }
+
+                if (removedDevices.Contains(signerDeviceId))
+                    return TaskResult.FromFailure($"{E2eeErrorCodes.RemovalCutoffStale}: The removed device " +
+                                                  "changed a membership log this device has not loaded yet. Try again.");
+            }
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    private const int UserKeysLockClass = 0x564B4C4B; // "VKLK"
+
+    /// <summary>
+    /// Serializes changes to a user's key log with the membership log entries
+    /// their devices sign, so a device being removed cannot sign an entry
+    /// between the removal's checks and its storage. Returns a transaction to
+    /// commit, or null when the lock joined the caller's transaction, which
+    /// then holds it until it ends.
+    /// </summary>
+    public async Task<IDbContextTransaction> LockUserKeysAsync(long userId)
+    {
+        var transaction = _db.Database.CurrentTransaction is null
+            ? await _db.Database.BeginTransactionAsync()
+            : null;
+        var key = (int)(userId ^ (userId >> 32));
+        await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({UserKeysLockClass}, {key})");
+        return transaction;
+    }
+
+    /// <summary>
     /// Verifies and appends an entry to the caller's key log, along with any
     /// user key boxes that go with it.
     /// </summary>
@@ -390,20 +465,31 @@ public class E2eeIdentityService
         if (entry.Body.Length > 16 * 1024)
             return TaskResult<UserKeyState>.FromFailure("Key log entry is too large.");
 
+        await using var keysLock = await LockUserKeysAsync(userId);
         var existing = await GetLogAsync(userId);
         if (existing.Count >= MaxKeyLogEntries)
             return TaskResult<UserKeyState>.FromFailure("This account's key history is full. Contact Valour support.");
 
         UserKeyState state;
         UserKeyLogRecord record;
+        HashSet<string> removedDevices;
         try
         {
             state = UserKeyLogVerifier.Verify(userId, existing);
+            var activeBefore = state.ActiveDevices.Keys.ToHashSet();
             record = UserKeyLogVerifier.Apply(state, entry);
+            removedDevices = activeBefore.Where(id => !state.ActiveDevices.ContainsKey(id)).ToHashSet();
         }
         catch (Exception e) when (e is E2eeVerificationException or E2eeFormatException)
         {
             return TaskResult<UserKeyState>.FromFailure(e.Message);
+        }
+
+        if (record.AccessLogCutoffs is { Count: > 0 })
+        {
+            var cutoffCheck = await CheckAccessLogCutoffsAsync(userId, record.AccessLogCutoffs, removedDevices);
+            if (!cutoffCheck.Success)
+                return TaskResult<UserKeyState>.FromFailure(cutoffCheck.Message);
         }
 
         // Devices are valid from and until the times in the log, which other
@@ -456,6 +542,8 @@ public class E2eeIdentityService
         try
         {
             await _db.SaveChangesAsync();
+            if (keysLock is not null)
+                await keysLock.CommitAsync();
         }
         catch (DbUpdateException)
         {

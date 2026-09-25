@@ -19,6 +19,10 @@ public class EncryptedInviteRedeemer
     // Invites nobody joined with are forgotten after this long.
     private static readonly TimeSpan PendingLifetime = TimeSpan.FromDays(14);
 
+    // A failed redemption is tried again on the next launch or verification,
+    // up to this many times in all, since the failure may be a lost connection.
+    private const int MaxAttempts = 3;
+
     private sealed class PendingInvite
     {
         public string InviteCode { get; set; }
@@ -32,6 +36,8 @@ public class EncryptedInviteRedeemer
         public long? UserId { get; set; }
 
         public DateTime SavedAt { get; set; }
+
+        public int Attempts { get; set; }
     }
 
     private readonly IAppStorage _storage;
@@ -130,8 +136,8 @@ public class EncryptedInviteRedeemer
     /// <summary>
     /// Redeems every remembered invite for a planet this account joined.
     /// Called again once this device is verified. An invite that cannot be
-    /// redeemed is dropped with a notice rather than retried on every launch;
-    /// an admin can still admit the person.
+    /// redeemed is tried again a few times, then dropped with a notice rather
+    /// than retried on every launch; an admin can still admit the person.
     /// </summary>
     public async Task RedeemPendingAsync()
     {
@@ -162,19 +168,26 @@ public class EncryptedInviteRedeemer
 
             foreach (var entry in pending.Where(p => p.PlanetId is not null && p.UserId == userId).ToList())
             {
-                pending.Remove(entry);
                 changed = true;
+                entry.Attempts++;
+                var lastAttempt = entry.Attempts >= MaxAttempts;
 
+                bool done;
                 try
                 {
-                    await RedeemAsync(entry);
+                    done = await RedeemAsync(entry, lastAttempt);
                 }
                 catch (Exception e)
                 {
                     Log($"Redeeming an invite key failed: {e}");
-                    Notify("Couldn't use the invite's key",
-                        "An admin of the planet needs to admit you to its encryption instead.", false);
+                    done = lastAttempt;
+                    if (done)
+                        Notify("Couldn't use the invite's key",
+                            "An admin of the planet needs to let you in instead.", false);
                 }
+
+                if (done)
+                    pending.Remove(entry);
             }
 
             if (changed)
@@ -186,31 +199,38 @@ public class EncryptedInviteRedeemer
         }
     }
 
-    private async Task RedeemAsync(PendingInvite entry)
+    /// <summary>
+    /// Tries to redeem an invite. Returns true when it is finished with,
+    /// because it worked or this was the last attempt.
+    /// </summary>
+    private async Task<bool> RedeemAsync(PendingInvite entry, bool lastAttempt)
     {
         if (!EncryptedInvite.TryParseFragment(entry.Fragment, out var invite))
-            return;
+            return true;
 
         var planet = await _client.PlanetService.FetchPlanetAsync(entry.PlanetId!.Value);
         if (planet is null)
         {
-            Notify("Couldn't use the invite's key",
-                "The planet could not be loaded. An admin of the planet needs to admit you to its encryption instead.",
-                false);
-            return;
+            if (lastAttempt)
+                Notify("Couldn't use the invite's key",
+                    "The planet could not be loaded. An admin of the planet needs to let you in instead.",
+                    false);
+            return lastAttempt;
         }
 
         var result = await _client.E2eeService.RedeemPlanetInviteAsync(planet, invite);
         if (result.Success)
         {
-            Notify($"Joined {planet.Name}'s encryption",
-                "The invite admitted you, so you can read and send encrypted messages there.", true);
+            Notify($"You're in {planet.Name}",
+                "The invite let you in, so you can read and send encrypted messages there.", true);
+            return true;
         }
-        else
-        {
+
+        Log($"Redeeming the invite for planet {planet.Id} failed: {result.Message}");
+        if (lastAttempt)
             Notify($"Couldn't use the invite for {planet.Name}",
-                $"{result.Message} An admin of the planet needs to admit you to its encryption instead.", false);
-        }
+                $"{result.Message} An admin of the planet needs to let you in instead.", false);
+        return lastAttempt;
     }
 
     private static void Notify(string title, string message, bool success) =>

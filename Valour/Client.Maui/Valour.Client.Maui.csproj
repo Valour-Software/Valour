@@ -133,6 +133,17 @@
         <ProjectReference Include="..\Client\Valour.Client.csproj" />
     </ItemGroup>
 
+    <!-- A Debug build can talk to a server on the local network instead of the
+         official API. Set ValourApiBase in the ignored Local.props file beside
+         this project, or pass it with -p:ValourApiBase=http://192.168.1.20:5080. -->
+    <Import Project="Local.props" Condition="Exists('Local.props')" />
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' and '$(ValourApiBase)' != ''">
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>ValourApiBase</_Parameter1>
+            <_Parameter2>$(ValourApiBase)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
     <Target Name="ShowAppleTargetFrameworkSkipMessage"
             BeforeTargets="Build"
             Condition="'$(TargetFramework)' == '' and '$(EnableAppleTargetFrameworks)' != 'true'">

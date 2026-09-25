@@ -304,16 +304,26 @@ public sealed class AutomodTermsUploadDto
     public List<int[]> Alternatives { get; set; } = new();
 }
 
-public sealed class SetPlanetEncryptionRequest
+/// <summary>
+/// Makes a planet public or private and sets whether new members can read
+/// earlier messages. A public planet is open: its permissions decide who
+/// receives keys. A private planet is invite-only: its signed membership log
+/// decides.
+/// </summary>
+public sealed class SetPlanetPrivacyRequest
 {
-    public Valour.Shared.Models.PlanetEncryptionMode Mode { get; set; }
+    public bool Public { get; set; }
     public bool SharesHistory { get; set; } = true;
 
     /// <summary>
-    /// Required when switching to invite-only without an existing access log,
-    /// or when restarting the log.
+    /// The membership log entry that makes the change, signed by the owner's
+    /// device. Making a planet private needs a <see cref="AccessLogEntryType.Genesis"/>
+    /// entry, or a <see cref="AccessLogEntryType.Restart"/> after it was made
+    /// public. Making a private planet public needs an
+    /// <see cref="AccessLogEntryType.Open"/> entry. Changes that keep the
+    /// planet's privacy need none.
     /// </summary>
-    public AccessLogEntry Genesis { get; set; }
+    public AccessLogEntry Entry { get; set; }
 }
 
 public enum ReportEvidenceVerification
@@ -407,6 +417,12 @@ public static class E2eeErrorCodes
     /// SDK reloads the log and retries.
     /// </summary>
     public const string AccessLogChanged = "E2EE_ACCESS_LOG_CHANGED";
+
+    /// <summary>
+    /// A device removal's membership log cutoff is past a log's end or before
+    /// an entry the removed device signed. The SDK loads the logs and retries.
+    /// </summary>
+    public const string RemovalCutoffStale = "E2EE_REMOVAL_CUTOFF_STALE";
 
     /// <summary>True when a failure message carries the given code.</summary>
     public static bool Is(string message, string code) =>

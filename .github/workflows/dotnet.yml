@@ -114,7 +114,7 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         # Pinned to the same SDK as the Dockerfile. Bump together with the Dockerfile.
-        dotnet-version: 11.0.100-rc.1
+        dotnet-version: 11.0.100-rc.1.26425.128
 
     - name: Restore workload
       run: dotnet workload restore Valour/Valour.sln

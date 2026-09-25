@@ -31,6 +31,7 @@ public class PlanetReportApi
 
     [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/reports")]
     [UserRequired(UserPermissionsEnum.Membership)]
+    [RateLimit(RateLimitPolicies.Report)]
     public static async Task<IResult> PostAsync(
         long planetId,
         [FromBody] PlanetReport report,

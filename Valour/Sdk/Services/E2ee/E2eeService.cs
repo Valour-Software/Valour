@@ -257,6 +257,8 @@ public partial class E2eeService : ServiceBase
         _lastKeyRequests.Clear();
         _scheduledServes.Clear();
         _generationPins.Clear();
+        _directPeers.Clear();
+        _memberMadeFirstKeys.Clear();
 
         _serverKeys.Clear();
         _serverKeysLoadedAt.Clear();

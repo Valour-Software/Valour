@@ -410,7 +410,7 @@ public class E2eeApi
         var userId = await userService.GetCurrentUserIdAsync();
 
         // Group DMs start their log here. Planets start theirs when the owner
-        // makes the planet invite-only.
+        // makes the planet private.
         var result = await accessLogs.AppendAsync((AccessLogScope)scope, scopeId, userId, entry,
             allowStart: (AccessLogScope)scope == AccessLogScope.GroupChannel);
         return result.Success ? Results.Ok() : ValourResult.BadRequest(result.Message);
@@ -428,16 +428,6 @@ public class E2eeApi
     }
 
     // Planets
-
-    [ValourRoute(HttpVerbs.Put, "api/planets/{planetId}/encryption")]
-    [UserRequired(UserPermissionsEnum.FullControl)]
-    public static async Task<IResult> SetPlanetEncryptionAsync(long planetId,
-        [FromBody] SetPlanetEncryptionRequest? request, UserService userService, PlanetEncryptionService encryption)
-    {
-        var userId = await userService.GetCurrentUserIdAsync();
-        var result = await encryption.SetEncryptionAsync(planetId, userId, request);
-        return result.Success ? Results.Json(result.Data) : ValourResult.BadRequest(result.Message);
-    }
 
     [ValourRoute(HttpVerbs.Get, "api/e2ee/planets/{planetId}/member-ids")]
     [UserRequired(UserPermissionsEnum.Membership)]

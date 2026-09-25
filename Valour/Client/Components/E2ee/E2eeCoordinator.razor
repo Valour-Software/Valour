@@ -1,6 +1,8 @@
 @implements IDisposable
 @inject ValourClient Client
 @inject EncryptedInviteRedeemer InviteRedeemer
+@inject IJSRuntime JsRuntime
+@inject IAppStorage AppStorage
 
 @if (_banner != BannerKind.None && !_bannerDismissed && !_modalOpen)
 {
@@ -113,18 +115,31 @@
     private readonly HashSet<long> _tamperedNotified = new();
     private readonly HashSet<string> _contactWarned = new();
 
+    // Private planets whose owner was asked this session to finish making them private.
+    private readonly HashSet<long> _privacyPrompted = new();
+
+    private bool _storageRequested;
+    private bool _onlyDeviceChecked;
+
     private string ProblemText => Client.E2eeService.Status == E2eeStatus.Error
         ? "This device couldn't load or verify your encryption keys, so it can't read or send messages. Check your connection and try again."
         : "Your encryption keys haven't loaded yet, so this device can't read or send messages. Check your connection and try again.";
 
     protected override void OnInitialized()
     {
+        // The coordinator is created for each signed-in session. The native
+        // app keeps static state across logging out and in, so the flags of
+        // the previous session are cleared here.
+        SigningOut = false;
+        ShownRecoveryCode = null;
+
         Client.E2eeService.StatusChanged += OnStatusChanged;
         Client.E2eeService.LinkSessionUpdated += OnLinkSessionUpdated;
         Client.E2eeService.ContactWarning += OnContactWarning;
         Client.E2eeService.TamperedMessageDetected += OnTamperedMessage;
         Client.E2eeService.RecoveryCodeChanged += OnRecoveryCodeChanged;
         Client.E2eeService.KeysResetElsewhereDetected += OnKeysResetElsewhere;
+        WindowService.FocusedPlanetChanged += OnFocusedPlanetChanged;
         if (ModalRoot is not null)
             ModalRoot.ModalsChanged += OnModalsChanged;
     }
@@ -190,6 +205,12 @@
                 foreach (var session in await Client.E2eeService.GetPendingLinkRequestsAsync())
                     OpenApproval(session);
                 await InviteRedeemer.RedeemPendingAsync();
+                PromptToFinishPrivacy(WindowService.FocusedPlanet);
+                if (OperatingSystem.IsBrowser())
+                {
+                    _ = KeepBrowserStorageAsync();
+                    _ = PromptIfOnlyDeviceAsync();
+                }
                 break;
 
             case E2eeStatus.Unknown:
@@ -202,6 +223,82 @@
                 // Error, and any status that means keys could not be loaded.
                 SetBanner(BannerKind.Problem);
                 break;
+        }
+    }
+
+    /// <summary>
+    /// In the browser, this device's keys live in the site's storage. Asking
+    /// the browser to keep it makes clearing it to free space unlikely.
+    /// </summary>
+    private async Task KeepBrowserStorageAsync()
+    {
+        if (_storageRequested)
+            return;
+        _storageRequested = true;
+
+        try
+        {
+            await JsRuntime.InvokeAsync<bool>("requestPersistentStorage");
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<E2eeCoordinator>($"Requesting persistent storage failed: {e.Message}", "yellow");
+        }
+    }
+
+    // How long a browser must have been an account's only device before it
+    // is told so. Someone who just set up encryption has just read about
+    // their recovery code and does not need the reminder yet.
+    private static readonly TimeSpan OnlyDeviceNoticeDelay = TimeSpan.FromDays(3);
+
+    /// <summary>
+    /// Tells someone whose only device has been this browser for a few days,
+    /// once, that clearing its data would leave only their recovery code.
+    /// </summary>
+    private async Task PromptIfOnlyDeviceAsync()
+    {
+        if (_onlyDeviceChecked || ShownRecoveryCode is not null || Client.E2eeService.PendingRecoveryCode is not null)
+            return;
+        _onlyDeviceChecked = true;
+
+        try
+        {
+            var e2ee = Client.E2eeService;
+            var sinceKey = $"e2ee-only-device-since-{Client.Me.Id}";
+            if (e2ee.MyKeyState is not { } keyState || keyState.ActiveDevices.Count > 1)
+            {
+                await AppStorage.RemoveAsync(sinceKey);
+                return;
+            }
+
+            var noticeKey = $"e2ee-only-device-notice-{Client.Me.Id}";
+            if (await AppStorage.GetStringAsync(noticeKey) is not null)
+                return;
+
+            var since = await AppStorage.GetStringAsync(sinceKey);
+            if (!DateTime.TryParse(since, null, System.Globalization.DateTimeStyles.RoundtripKind, out var onlySince))
+            {
+                await AppStorage.SetStringAsync(sinceKey, DateTime.UtcNow.ToString("O"));
+                return;
+            }
+            if (DateTime.UtcNow - onlySince < OnlyDeviceNoticeDelay)
+                return;
+
+            var needsRecoveryCode = keyState.Recovery is null || await e2ee.IsRecoveryCodeUnsavedAsync();
+            await PromptWhenQuietAsync(
+                () => e2ee.Status == E2eeStatus.Ready && e2ee.MyKeyState?.ActiveDevices.Count <= 1,
+                () =>
+                {
+                    _ = AppStorage.SetStringAsync(noticeKey, "shown");
+                    ModalRoot.OpenModal<OnlyDeviceModal>(new OnlyDeviceModal.Params
+                    {
+                        NeedsRecoveryCode = needsRecoveryCode
+                    });
+                });
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<E2eeCoordinator>($"Checking for a single device failed: {e.Message}", "red");
         }
     }
 
@@ -380,6 +477,32 @@
     private void OpenResetHere() =>
         ModalRoot.OpenModal<VerifyDeviceModal>(new VerifyDeviceModal.Params { StartWithReset = true });
 
+    private void OnFocusedPlanetChanged(Planet planet)
+    {
+        if (_disposed || SigningOut)
+            return;
+        _ = InvokeAsync(() => PromptToFinishPrivacy(planet));
+    }
+
+    /// <summary>
+    /// Asks the owner to finish making a private planet private when they
+    /// open it on a verified device, once per planet each session. Until the
+    /// owner's device signs its membership log, the planet's permissions still
+    /// decide who can read it. Other members see nothing.
+    /// </summary>
+    private void PromptToFinishPrivacy(Planet planet)
+    {
+        if (_disposed || SigningOut || planet is null || Client.Me is null || planet.OwnerId != Client.Me.Id ||
+            Client.E2eeService.Status != E2eeStatus.Ready || !E2eeService.IsPrivacyPending(planet) ||
+            !_privacyPrompted.Add(planet.Id))
+            return;
+
+        _ = PromptWhenQuietAsync(
+            () => Client.E2eeService.Status == E2eeStatus.Ready && E2eeService.IsPrivacyPending(planet) &&
+                  WindowService.FocusedPlanet?.Id == planet.Id,
+            () => ModalRoot.OpenModal<FinishPrivatePlanetModal>(new FinishPrivatePlanetModal.Params { Planet = planet }));
+    }
+
     private void OpenApproval(DeviceLinkSessionDto session)
     {
         if (!DeviceLinkApprovalModal.NeedsApproval(Client.E2eeService, session) ||
@@ -483,7 +606,7 @@
             else if (warning.KeysReset)
             {
                 ToastContainer.Instance?.AddToast(new ToastData($"{name}'s security code changed",
-                    "This usually means they got a new phone or reinstalled Valour without their recovery code. Compare codes if you want to be sure."));
+                    "This usually means they got a new phone or reinstalled Valour without their recovery code. Check it's them if you want to be sure."));
             }
         }
         catch (Exception e)
@@ -512,6 +635,7 @@
         Client.E2eeService.TamperedMessageDetected -= OnTamperedMessage;
         Client.E2eeService.RecoveryCodeChanged -= OnRecoveryCodeChanged;
         Client.E2eeService.KeysResetElsewhereDetected -= OnKeysResetElsewhere;
+        WindowService.FocusedPlanetChanged -= OnFocusedPlanetChanged;
         if (ModalRoot is not null)
             ModalRoot.ModalsChanged -= OnModalsChanged;
     }

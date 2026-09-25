@@ -20,6 +20,14 @@ public sealed class E2eeVerificationException : Exception
 }
 
 /// <summary>
+/// Raised when authentic data uses a feature from a newer version of the format.
+/// </summary>
+public sealed class E2eeUnsupportedException : Exception
+{
+    public E2eeUnsupportedException(string message) : base(message) { }
+}
+
+/// <summary>
 /// Writes the canonical binary form used for everything that is signed or
 /// used as authenticated data. Every client and the server must produce the
 /// same bytes for the same values, so integers are big-endian and variable
@@ -120,6 +128,18 @@ public sealed class E2eeReader
         var actual = Take(expected.Length);
         if (!actual.SequenceEqual(expected))
             throw new E2eeFormatException($"Unexpected record type. Expected {magic}.");
+    }
+
+    /// <summary>
+    /// Reads a magic value that is one of several versions of a record, all
+    /// the same length, and returns the one found.
+    /// </summary>
+    public string ReadMagicOf(params string[] magics)
+    {
+        var actual = Encoding.ASCII.GetString(Take(magics[0].Length));
+        return magics.Contains(actual, StringComparer.Ordinal)
+            ? actual
+            : throw new E2eeFormatException($"Unexpected record type. Expected {string.Join(" or ", magics)}.");
     }
 
     public byte ReadByte() => Take(1)[0];

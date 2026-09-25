@@ -649,7 +649,7 @@ public class FederationMigrationService
         if (planet is null)
             return;
 
-        planet.Public = receipt.SourcePublic;
+        planet.Public = receipt.SourcePublic && PlanetEncryptionService.AllowsPublic(planet.EncryptionMode);
         planet.Discoverable = receipt.SourceDiscoverable;
         planet.LockedForMigration = false;
         receipt.ConfirmedAt ??= DateTime.UtcNow;
@@ -848,7 +848,7 @@ public class FederationMigrationService
         if (official is null)
             return TaskResult.FromFailure("The imported official planet is missing; registry state was retained.");
 
-        official.Public = stub.Public;
+        official.Public = stub.Public && PlanetEncryptionService.AllowsPublic(official.EncryptionMode);
         official.Discoverable = stub.Discoverable;
         await _db.FederatedMemberships
             .Where(x => x.PlanetId == planetId && x.NodeDomain == nodeDomain)

@@ -646,6 +646,23 @@ public class E2eeLiveTests
             await node.DisposeFailedRealtimeConnectionAsync();
     }
 
+    /// <summary>
+    /// Joins a private planet with an ordinary invite code from its owner, as
+    /// someone following an invite link would.
+    /// </summary>
+    private static async Task JoinWithInviteAsync(ValourClient owner, Planet planet, ValourClient joiner)
+    {
+        var invite = await planet.Node.PostAsyncWithResponse<PlanetInvite>("api/invites", new PlanetInvite(owner)
+        {
+            PlanetId = planet.Id,
+            IssuerId = owner.Me.Id,
+            TimeCreated = DateTime.UtcNow
+        });
+        Assert.True(invite.Success, invite.Message);
+        var join = await joiner.PlanetService.JoinPlanetAsync(planet.Id, invite.Data.Id);
+        Assert.True(join.Success, join.Message);
+    }
+
     private async Task<(Planet Planet, Channel Channel)> CreatePlanetAsync(ValourClient owner, bool isPublic = true)
     {
         var create = await new Planet(owner)
@@ -670,7 +687,7 @@ public class E2eeLiveTests
         var (member, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
 
-        var enable = await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.Open, sharesHistory: true);
+        var enable = await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: true, sharesHistory: true);
         Assert.True(enable.Success, enable.Message);
 
         var first = await SendAsync(owner, channel, "welcome to the encrypted planet", planet.MyMember.Id);
@@ -706,7 +723,7 @@ public class E2eeLiveTests
         var (owner, _) = await CreateUserAsync();
         var (member, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
-        Assert.True((await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.Open, true)).Success);
+        Assert.True((await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: true, true)).Success);
 
         var trigger = await owner.AutomodService.CreateTriggerAsync(new CreateAutomodTriggerRequest
         {
@@ -753,11 +770,11 @@ public class E2eeLiveTests
         var (outsider, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
 
-        var enable = await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.InviteOnly, true);
+        var enable = await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: false, true);
         Assert.True(enable.Success, enable.Message);
         Assert.True((await SendAsync(owner, channel, "admitted eyes only", planet.MyMember.Id)).Success);
 
-        Assert.True((await outsider.PlanetService.JoinPlanetAsync(planet.Id)).Success);
+        await JoinWithInviteAsync(owner, planet, outsider);
         var outsiderPlanet = await outsider.PlanetService.FetchPlanetAsync(planet.Id, skipCache: true);
         await outsiderPlanet.EnsureReadyAsync();
         var outsiderChannel = await outsiderPlanet.FetchChannelAsync(channel.Id);
@@ -784,13 +801,13 @@ public class E2eeLiveTests
         var (owner, _) = await CreateUserAsync();
         var (guest, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
-        Assert.True((await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.InviteOnly, true)).Success);
+        Assert.True((await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: false, true)).Success);
 
         var invite = await owner.E2eeService.CreatePlanetInviteAsync(planet, DateTime.UtcNow.AddDays(1), maxUses: 1);
         Assert.True(invite.Success, invite.Message);
         Assert.True(EncryptedInvite.TryParseFragment(invite.Data.Fragment, out var parsed));
 
-        Assert.True((await guest.PlanetService.JoinPlanetAsync(planet.Id)).Success);
+        await JoinWithInviteAsync(owner, planet, guest);
         var guestPlanet = await guest.PlanetService.FetchPlanetAsync(planet.Id, skipCache: true);
         var redeem = await guest.E2eeService.RedeemPlanetInviteAsync(guestPlanet, parsed);
         Assert.True(redeem.Success, redeem.Message);
@@ -800,7 +817,7 @@ public class E2eeLiveTests
 
         // The single-use invite cannot admit anyone else.
         var (second, _) = await CreateUserAsync();
-        Assert.True((await second.PlanetService.JoinPlanetAsync(planet.Id)).Success);
+        await JoinWithInviteAsync(owner, planet, second);
         var secondPlanet = await second.PlanetService.FetchPlanetAsync(planet.Id, skipCache: true);
         Assert.False((await second.E2eeService.RedeemPlanetInviteAsync(secondPlanet, parsed)).Success);
     }
@@ -811,20 +828,25 @@ public class E2eeLiveTests
         var (owner, _) = await CreateUserAsync();
         var (outsider, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
-        Assert.True((await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.InviteOnly, true)).Success);
+        Assert.True((await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: false, true)).Success);
         Assert.True((await SendAsync(owner, channel, "members only", planet.MyMember.Id)).Success);
 
-        var reopen = await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.Open, true);
-        Assert.False(reopen.Success);
+        // Making the planet public needs the owner's signed entry.
+        var unsigned = await planet.Node.PutAsyncWithResponse<Planet>($"api/planets/{planet.Id}/privacy",
+            new SetPlanetPrivacyRequest { Public = true, SharesHistory = true });
+        Assert.False(unsigned.Success);
 
-        // A compromised server relabels the planet as open without the owner.
+        // A compromised server relabels the planet as public without the owner.
         using (var scope = _fixture.Factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
             await db.Planets.Where(x => x.Id == planet.Id)
-                .ExecuteUpdateAsync(x => x.SetProperty(p => p.EncryptionMode, PlanetEncryptionMode.Open));
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(p => p.EncryptionMode, PlanetEncryptionMode.Open)
+                    .SetProperty(p => p.Public, true));
             var hosted = await scope.ServiceProvider.GetRequiredService<HostedPlanetService>().GetRequiredAsync(planet.Id);
             hosted.Planet.EncryptionMode = PlanetEncryptionMode.Open;
+            hosted.Planet.Public = true;
         }
 
         Assert.True((await outsider.PlanetService.JoinPlanetAsync(planet.Id)).Success);
@@ -1059,7 +1081,7 @@ public class E2eeLiveTests
         var (owner, _) = await CreateUserAsync();
         var (newcomer, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
-        Assert.True((await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.Open, sharesHistory: false)).Success);
+        Assert.True((await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: true, sharesHistory: false)).Success);
         var before = await SendAsync(owner, channel, "private history", planet.MyMember.Id);
         Assert.True(before.Success, before.Message);
 
@@ -1134,7 +1156,7 @@ public class E2eeLiveTests
     {
         var (owner, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
-        Assert.True((await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.Open, sharesHistory: false)).Success);
+        Assert.True((await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: true, sharesHistory: false)).Success);
         Assert.True((await SendAsync(owner, channel, "before anyone joined", planet.MyMember.Id)).Success);
         var ownerChannel = await planet.FetchChannelAsync(channel.Id);
 
@@ -1172,7 +1194,7 @@ public class E2eeLiveTests
     {
         var (owner, _) = await CreateUserAsync();
         var (planet, _) = await CreatePlanetAsync(owner);
-        Assert.True((await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.InviteOnly, true)).Success);
+        Assert.True((await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: false, true)).Success);
 
         owner.E2eeService.AccessLogCheckpointInterval = E2eeAccessLogService.MinCheckpointInterval;
         for (var i = 0; i <= E2eeAccessLogService.MinCheckpointInterval; i++)
@@ -1200,7 +1222,7 @@ public class E2eeLiveTests
         // A member who never saw the log starts from the checkpoint and reaches
         // the same state as the owner.
         var (member, _) = await CreateUserAsync();
-        Assert.True((await member.PlanetService.JoinPlanetAsync(planet.Id)).Success);
+        await JoinWithInviteAsync(owner, planet, member);
         Assert.True((await owner.E2eeService.AdmitPlanetMembersAsync(planet, [member.Me.Id])).Success);
 
         var ownerState = await owner.E2eeService.GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true);
@@ -1217,8 +1239,8 @@ public class E2eeLiveTests
         var (owner, _) = await CreateUserAsync();
         var (outsider, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
-        Assert.True((await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.InviteOnly, true)).Success);
-        Assert.True((await outsider.PlanetService.JoinPlanetAsync(planet.Id)).Success);
+        Assert.True((await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: false, true)).Success);
+        await JoinWithInviteAsync(owner, planet, outsider);
 
         // A modified client tries to hand the key to someone the log does not admit.
         var ownerChannel = await planet.FetchChannelAsync(channel.Id);
@@ -1317,7 +1339,7 @@ public class E2eeLiveTests
         var (owner, _) = await CreateUserAsync();
         var (blocked, _) = await CreateUserAsync();
         var (planet, channel) = await CreatePlanetAsync(owner);
-        Assert.True((await owner.E2eeService.SetPlanetEncryptionAsync(planet, PlanetEncryptionMode.Open, true)).Success);
+        Assert.True((await owner.E2eeService.SetPlanetPrivacyAsync(planet, isPublic: true, true)).Success);
 
         var first = await SendAsync(owner, channel, "channel opened", planet.MyMember.Id);
         Assert.True(first.Success, first.Message);

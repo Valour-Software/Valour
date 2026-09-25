@@ -61,7 +61,9 @@ public interface ISharedPlanet : ISharedModel<long>
     string Description { get; set; }
 
     /// <summary>
-    /// If the server requires express allowal to join a planet
+    /// True when anyone can join the planet and read its messages. A private
+    /// planet is joined with an invite link, and its signed membership log
+    /// decides who receives its keys.
     /// </summary>
     bool Public { get; set; }
 

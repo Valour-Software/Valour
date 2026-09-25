@@ -135,7 +135,10 @@ before enabling automated deployment so the script can identify the live instanc
 and compares it with `current.digest`. When the digest differs, it:
 
 1. Starts the inactive color on `valour-network`, pinned to that digest.
-2. Polls its `/healthz` endpoint up to 60 times, waiting two seconds between attempts.
+2. Polls its `/healthz` endpoint every two seconds until it reports ready. The server
+   answers only after applying database migrations, and index builds on large tables
+   can take many minutes, so the script waits up to 1,350 attempts
+   (`VALOUR_HEALTH_ATTEMPTS`). It stops early if the container exits or restarts.
 3. Waits another eight seconds after readiness for service caches to warm.
 4. Rewrites the nginx upstream, validates nginx configuration, and reloads nginx.
 5. Records `active-color` and `current.digest` immediately after the switch.

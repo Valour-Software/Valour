@@ -41,6 +41,21 @@
     <SearchTagFilterComponent OnTagSelected="OnTagAdded"/>
    </div>
 
+   <div class="toggle-item privacy-choice">
+    <div class="toggle-header">
+     <span class="toggle-title">Public</span>
+     <label class="switch">
+      <input type="checkbox" @bind="_public" />
+      <span class="slider round"></span>
+     </label>
+    </div>
+    <p class="toggle-description">
+     @(_public
+      ? "Anyone can join and read messages."
+      : "People join with an invite link, and only people you let in can read messages. You can change this later.")
+    </p>
+   </div>
+
    @if (_result is not null && !_result.Success)
    {
     <p class="form-error">@_result.Message</p>
@@ -105,6 +120,7 @@
     private bool _showWelcome = false;
     private bool _importMode = false;
     private bool _working = false;
+    private bool _public = false;
 
     public class ModalParams
     {
@@ -146,6 +162,7 @@
      {
       Name = _name,
       Description = _desc,
+      Public = _public,
       Tags = _selectedTags.ToList()
      };
 
@@ -205,6 +222,8 @@
      PlanetService.AddJoinedPlanet(planet);
 
      await planet.FetchInitialDataAsync();
+     await FinishPrivacyAsync(planet);
+
      var mainChannel = planet.PrimaryChatChannel;
      if (mainChannel is null)
       return;
@@ -218,6 +237,26 @@
       await WindowService.OpenWindowAtFocused(chatContent);
     }
 
+
+    /// <summary>
+    /// A private planet is only private once the owner's device signs who can
+    /// read it. A device that is not verified yet leaves that for later, and
+    /// the app asks the owner to finish when they open the planet from a
+    /// verified device.
+    /// </summary>
+    private async Task FinishPrivacyAsync(Planet planet)
+    {
+     if (!E2eeService.IsPrivacyPending(planet) || Client.E2eeService.Status != E2eeStatus.Ready)
+      return;
+
+     var result = await Client.E2eeService.FinishPrivatePlanetAsync(planet);
+     if (!result.Success)
+     {
+      ToastContainer.Instance.AddToast(new ToastData("Planet created",
+       $"It couldn't be made private yet: {result.Message} You can finish this in the planet's settings, under Privacy.",
+       ToastProgressState.Failure));
+     }
+    }
 
     private async Task OnTagAdded(PlanetTag planetTag)
     {

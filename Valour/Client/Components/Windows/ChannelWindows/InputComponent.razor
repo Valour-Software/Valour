@@ -533,8 +533,11 @@
 
         _loading = false;
         _pendingCustomEmojiRefresh = true;
-        
+
         Refresh();
+
+        if (CanUserPost)
+            _ = Client.E2eeService.PrepareToSendAsync(ChatComponent.Channel);
     }
 
     public Message BuildNewMessage()

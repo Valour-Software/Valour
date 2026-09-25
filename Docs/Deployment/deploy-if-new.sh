@@ -47,17 +47,28 @@ echo "Next: $NEXT"
 VALOUR_IMAGE="$IMAGE" VALOUR_COLOR="$NEXT" VALOUR_WORKERID="$NEXT_WORKERID" \
   docker compose -f docker-compose.app.yml -p "valour-$NEXT" up -d --force-recreate
 
-for i in $(seq 1 60); do
+# The server answers /healthz only after it has applied database migrations.
+# Some migrations build indexes on large tables and can take many minutes, so
+# the wait is long, and it ends early only when the container stops running.
+# Giving up while a migration is still running would let the next timer run
+# recreate the container in the middle of it.
+HEALTH_ATTEMPTS="${VALOUR_HEALTH_ATTEMPTS:-1350}"
+for i in $(seq 1 "$HEALTH_ATTEMPTS"); do
   if docker run --rm --network valour-network curlimages/curl:latest \
-    -fsS "http://valour-$NEXT:5000/healthz" | grep -qx ready; then
+    -fsS "http://valour-$NEXT:5000/healthz" 2>/dev/null | grep -qx ready; then
     echo "$NEXT is healthy"
     break
   fi
 
-  if [ "$i" = "60" ]; then
-    echo "$NEXT failed health check"
+  STATE="$(docker inspect -f '{{.State.Status}} {{.RestartCount}}' "valour-node-$NEXT" 2>/dev/null || echo "missing 0")"
+  if [ "${STATE%% *}" != "running" ] || [ "${STATE##* }" != "0" ] || [ "$i" = "$HEALTH_ATTEMPTS" ]; then
+    echo "$NEXT failed health check ($STATE)"
     docker logs --tail=200 "valour-node-$NEXT" || true
     exit 1
+  fi
+
+  if [ $((i % 30)) = 0 ]; then
+    echo "Waiting for $NEXT to become ready ($i checks)"
   fi
 
   sleep 2

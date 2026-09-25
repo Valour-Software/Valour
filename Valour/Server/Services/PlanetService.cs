@@ -175,10 +175,15 @@ public class PlanetService
         return stubs.Select(x => (x.Info, (long)x.Verified)).ToList();
     }
     
-    public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId)
+    /// <summary>
+    /// Returns the listing of a public planet. With
+    /// <paramref name="includePrivate"/>, a private planet is listed too, for
+    /// someone who holds one of its invite codes.
+    /// </summary>
+    public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId, bool includePrivate = false)
     {
         var official = await _db.Planets.AsNoTracking()
-            .Where(x => x.Id == planetId && x.Public && !x.IsDeleted) // only public planets
+            .Where(x => x.Id == planetId && (x.Public || includePrivate) && !x.IsDeleted)
             .Select(PlanetListInfoSelector)
             .FirstOrDefaultAsync();
 
@@ -715,6 +720,12 @@ public class PlanetService
     }
 
     /// <summary>
+    /// The reason a general planet update cannot change whether the planet is public.
+    /// </summary>
+    public const string PublicChangeMessage =
+        "Only the planet owner can change whether the planet is public, from its privacy settings.";
+
+    /// <summary>
     /// Updates the given planet
     /// </summary>
     public async Task<TaskResult<Planet>> UpdateAsync(Planet planet)
@@ -733,8 +744,11 @@ public class PlanetService
         if (old.LockedForMigration)
             return new TaskResult<Planet>(false, MigrationLock.Message);
 
-        // Encryption settings change only through PlanetEncryptionService.
-        // Keep the stored values so the cache and broadcast below stay correct.
+        // Whether the planet is public, and its encryption settings, change
+        // only through PlanetEncryptionService. Keep the stored encryption
+        // values so the cache and broadcast below stay correct.
+        if (planet.Public != old.Public)
+            return new TaskResult<Planet>(false, PublicChangeMessage);
         planet.EncryptionMode = old.EncryptionMode;
         planet.EncryptionSharesHistory = old.EncryptionSharesHistory;
 
@@ -799,7 +813,7 @@ public class PlanetService
     }
 
     /// <summary>
-    /// Transfers a planet to another member. An invite-only planet's membership
+    /// Transfers a planet to another member. A private planet's membership
     /// log names its own owner and the server cannot sign for it, so the
     /// transfer requires a <c>TransferOwnership</c> entry signed by the current
     /// owner's device (<paramref name="accessLogEntryBody"/> and
@@ -833,15 +847,28 @@ public class PlanetService
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
 
+        // Owner checks read the hosted planet, so it must name the new owner.
+        if (_hostedPlanetService.GetCached(planet.Id) is { } hosted)
+            hosted.Planet.OwnerId = newOwnerId;
+
         var model = planet.ToModel();
         _coreHub.NotifyPlanetChange(model);
         return TaskResult<Planet>.FromData(model);
     }
     
     /// <summary>
-    /// Moves an invite-only planet's membership log to the new owner along
-    /// with the planet, so the log's owner and the planet's owner stay the
-    /// same account.
+    /// Moves a planet's membership log to the new owner along with the planet,
+    /// so the log's owner and the planet's owner stay the same account. This
+    /// applies while the planet is public too: only the log's owner can make
+    /// the planet private again, so a planet whose log names someone else
+    /// could only be made private by them.
+    ///
+    /// One case needs no entry: the planet is public, its log is open, and
+    /// the current owner's keys are not the ones the log names, for example
+    /// because they started their encryption over. Nobody can sign for the
+    /// log then, and it stays with the keys it names, so the new owner cannot
+    /// make the planet private either. The server checks this itself from the
+    /// log and the owner's key log.
     /// </summary>
     private async Task<TaskResult> TransferAccessLogOwnershipAsync(Valour.Database.Planet planet, long currentOwnerId,
         long newOwnerId, byte[] body, byte[] signature)
@@ -856,9 +883,13 @@ public class PlanetService
         if (log.Owner.UserId == newOwnerId)
             return TaskResult.SuccessResult;
 
+        if ((body is null || signature is null) && log.IsOpen &&
+            !await _accessLogs.IsOwnerWithCurrentKeysAsync(log, currentOwnerId))
+            return TaskResult.SuccessResult;
+
         if (body is null || signature is null)
             return TaskResult.FromFailure(
-                "This planet is invite-only. Transfer it from an app on your verified device, which signs the change to its membership log.");
+                "This planet has a membership log. Transfer it from an app on your verified device, which signs the change to the log.");
 
         AccessLogRecord record;
         try

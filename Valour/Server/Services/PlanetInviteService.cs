@@ -158,11 +158,13 @@ public class PlanetInviteService
             planetId = vanityPlanetId.Value;
         }
 
-        var planetInfo = await _planetService.GetPlanetInfoAsync(planetId);
+        // A private planet is joined through its invite codes, so a real
+        // code shows it. A vanity name only works for a public planet.
+        var planetInfo = await _planetService.GetPlanetInfoAsync(planetId, includePrivate: invite is not null);
 
         if (planetInfo is null)
         {
-            return new TaskResult<ISharedPlanetListInfo>(false, "Planet not found for invite code. It may not be set to Public.");
+            return new TaskResult<ISharedPlanetListInfo>(false, "Planet not found for invite code.");
         }
 
         return TaskResult<ISharedPlanetListInfo>.FromData(planetInfo);

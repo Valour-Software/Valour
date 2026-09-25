@@ -411,7 +411,8 @@ public class PlanetSnapshotService
             await _db.Planets.AddAsync(new Valour.Database.Planet
             {
                 Id = p.Id, OwnerId = p.OwnerId, Name = p.Name, Description = p.Description,
-                Public = p.Public, Discoverable = p.Discoverable, Nsfw = p.Nsfw,
+                Public = p.Public && PlanetEncryptionService.AllowsPublic(p.EncryptionMode),
+                Discoverable = p.Discoverable, Nsfw = p.Nsfw,
                 HasCustomIcon = p.HasCustomIcon, HasAnimatedIcon = p.HasAnimatedIcon,
                 HasCustomBackground = p.HasCustomBackground, SelfHostedMedia = p.SelfHostedMedia,
                 SelfHostedVoice = p.SelfHostedVoice,

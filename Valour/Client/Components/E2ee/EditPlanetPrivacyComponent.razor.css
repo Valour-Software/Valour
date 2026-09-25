@@ -1,50 +1,29 @@
-.mode-options {
+.pending-note {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    margin: var(--space-3) 0;
-}
-
-.mode-option {
-    display: flex;
-    align-items: flex-start;
+    flex-wrap: wrap;
+    align-items: center;
     gap: var(--space-3);
-    width: 100%;
+    margin: var(--space-3) 0;
     padding: var(--space-3);
-    text-align: left;
-    color: var(--font-color);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--color-primary);
     border-radius: var(--radius-md);
-    cursor: pointer;
-}
-
-.mode-option.selected {
-    border-color: var(--color-primary);
     background-color: var(--color-primary-soft);
 }
 
-.mode-option:disabled {
-    cursor: default;
-    opacity: 0.6;
-}
-
-.mode-option.selected:disabled {
-    opacity: 1;
-}
-
-.mode-option i {
+.pending-note > i {
     font-size: var(--font-size-lg);
     color: var(--color-primary);
 }
 
-.mode-copy {
+.pending-copy {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: var(--space-1);
+    min-width: 200px;
 }
 
-.mode-copy span {
+.pending-copy span {
     color: var(--font-alt-color);
     font-size: var(--font-size-sm);
 }
@@ -105,17 +84,3 @@
     gap: var(--space-3);
 }
 
-.invite-link {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin-top: var(--space-3);
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
-    background-color: var(--main-3);
-}
-
-.invite-link code {
-    flex: 1;
-    overflow-wrap: anywhere;
-}

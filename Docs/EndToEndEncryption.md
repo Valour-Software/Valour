@@ -103,7 +103,9 @@ of that epoch exists. Every other entry must be signed by a device that is
 active at that point in the log, or by the account's recovery key.
 [`UserKeyLogVerifier`](../Valour/Sdk/E2ee/UserKeyLog.cs) replays the log and
 rejects any entry that breaks these rules. A new device also signs a join proof,
-so a device key cannot be listed under someone else's account.
+so a device key cannot be listed under someone else's account. A
+`RevokeDevice` entry also records where the removed device's membership log
+entries end (see [Removed devices](#removed-devices)).
 
 The server runs the same verifier before it stores an entry. It refuses entries
 dated more than ten minutes away from its own clock in either direction, since
@@ -174,7 +176,7 @@ keys the key log never lists are discarded after 15 minutes.
 
 A user who has lost every device and their recovery code can reset, which the
 app calls **starting over**. Reset starts a new **epoch** with new keys. Earlier encrypted messages become unreadable to
-that user, and contacts see a notice that the user's keys changed. Invite-only
+that user, and contacts see a notice that the user's keys changed. Private
 planets and group chats do not trust a new epoch until someone confirms it (see
 [Membership logs](#membership-logs)).
 
@@ -442,15 +444,28 @@ still gets an answer from someone online. In a direct or group chat it reaches
 every other member. A request repeated within 30 seconds of the previous one is
 not announced again, and a device does not send the same request more often.
 
+A device asks as soon as a channel it may post in opens (`PrepareToSendAsync`),
+not when the person sends, so the key usually arrives while they are still
+typing. A channel without a key is left alone when it opens; its first key is
+made when someone sends.
+
 **If nobody shares the key within five seconds**, a member who is about to send
 starts a new generation with the reason `KeyUnavailable` (or
 `NewMemberWithoutHistory` in a channel that hides history) and seals it to the
 other members as above. They can send immediately and everyone can read it.
 Messages from before it stay unreadable to them until a member who holds the
 earlier key comes online and shares it. A planet with automod word or command
-triggers does not allow this, because the new search key would have no automod
-term hashes until a moderator's app computed them. There the member waits for
-someone to share the key, and the send fails with an explanation.
+triggers allows this only for moderators, because the new search key has no
+automod term hashes until a moderator's app computes them, and a moderator's
+app computes them right away. Other members wait for someone to share the key,
+and the send fails with an explanation. A moderator can therefore also recover a
+channel whose newest key nobody online holds.
+
+Only members who may send messages in a channel can publish a new generation.
+Everyone sends with the newest key, so a read-only viewer could otherwise
+publish one sealed only to themselves and stop everyone else from sending. In a
+governed channel, the server also refuses a generation whose terms name a
+membership log entry that does not exist yet.
 
 ### Who receives keys
 
@@ -461,10 +476,18 @@ someone to share the key, and the send fails with an explanation.
 | `PlanetOpen` | Anyone the planet's permissions let view the channel |
 | `PlanetInviteOnly` | Viewers the planet's signed membership log admits |
 
+Outside a planet, the device decides the policy itself: a direct chat is
+always `Direct`, and a chat this device has used as a direct chat stays one
+whatever the server reports. A planet policy never applies outside a planet. A
+group chat follows its membership log.
+
+A public planet is open and a private planet is invite-only once its owner's
+device has signed its membership log (see [Planet settings](#planet-settings)).
 In open planets the server's permission data decides who can receive keys, so
-membership is trusted to the server. A channel's encryption details show how
-many accounts hold its newest key and list the 100 that received it most
-recently, so members can see who can read it.
+membership is trusted to the server. A planet channel's encryption details
+explain who can read it, public or private, without listing people, since that
+follows the planet's members and permissions. The encryption details of direct
+and group chats list the members with their security codes.
 
 Group chats and invite-only planets are **governed** by a membership log. A
 device treats a planet channel as governed when the planet or the channel's key
@@ -472,6 +495,19 @@ state reports invite-only, when it has pinned the planet's membership log, or
 when any member-made key record in the channel was signed under a governed
 policy. A new device that never pinned the log therefore still follows it, and
 the server cannot relabel the planet as open.
+
+The exception is a log its owner opened when making the planet public (see
+[Making a planet public again](#making-a-planet-public-again)). A device that
+verifies the owner's `Open` entry treats the planet's channels as open, as long
+as the server also reports the planet as open and no key record in the channel
+names a log entry at or after the `Open` entry. Such a record shows that the log
+continued, for example with a restart that made the planet private again, so the
+device keeps the channel governed. A governed channel whose log was opened
+admits nobody, so no keys are shared until the log is loaded again.
+`GetPlanetGovernanceAsync` in
+[`E2eeService.Access.cs`](../Valour/Sdk/Services/E2ee/E2eeService.Access.cs)
+makes this decision. When a device sees a planet's log start or stop governing,
+it loads the keys of that planet's channels again the next time it uses them.
 
 A device pins the other person of each direct chat the first time it sees the
 chat. If the server later lists different members, the device neither shares
@@ -497,7 +533,8 @@ records whose setting does not match the planet's. In a governed channel it
 comes from the key records instead. The first trusted record sets it, and later
 records change it only when the membership log's owner created them. Other
 members carry the signed setting forward, and the owner changes it only through
-the planet's encryption settings (`RotateChannelKeyAsync` with `sharesHistory`).
+the planet's Privacy settings (`SetPlanetPrivacyAsync`, which creates new keys
+with `RotateChannelKeyAsync` and `sharesHistory`).
 The server accepts a `NewMemberWithoutHistory` key in a governed channel
 whatever the planet's current setting says, because members' devices check it
 against the signed setting.
@@ -533,6 +570,8 @@ before sending when:
 
 - the server created it, or the device does not trust it (see
   [Keys a device sends with](#keys-a-device-sends-with));
+- in a governed channel, the key was made before the membership log applied,
+  for example while the planet was public;
 - in a governed channel, the membership log removed someone after the entry the
   key's terms name, or the terms name an entry this device has not verified;
 - this user, the other person of a direct chat, or a member of a group chat
@@ -542,7 +581,11 @@ before sending when:
 
 The server therefore cannot keep members on a key it knows, or one a removed
 member holds, by withholding the flag. A governed channel gets no new key while
-its membership log cannot be verified; sending fails until it can be.
+its membership log cannot be verified; sending fails until it can be. Before a
+device shares or sends with a governed channel's keys, its copy of the log must
+reach every entry that the channel's trusted keys name. If the server does not
+return those entries, the device neither shares keys nor sends, so the server
+cannot hide a removal that another member's key already reflects.
 
 **Large open planets.** Open planets with at least `LargePlanetMembers` members
 replace keys on a schedule instead: when rotation would be required, the key
@@ -591,8 +634,9 @@ A message with `EncryptionVersion` 1 carries an **envelope**:
   commitment, and search terms hash.
 - A body encrypted with a key derived from the generation's content key, the
   message nonce, and the revision. It contains the text, the embed, a random
-  franking key, and a digest of each attached file (see
-  [Attachments and link previews](#attachments-and-link-previews)).
+  franking key, a digest of each attached file (see
+  [Attachments and link previews](#attachments-and-link-previews)), and any
+  [extensions](#payload-extensions).
 - An Ed25519 signature by the author's device over the header and a hash of the
   body.
 
@@ -619,6 +663,26 @@ Edits keep the message nonce and increase the revision by one, and they go
 through the same checks, including the rotation and stale-generation codes. An
 edit cannot change the reply target.
 
+### Payload extensions
+
+The body ends with a list of **extensions**, so later versions of Valour can add
+data to messages without breaking earlier apps. Each extension has a positive
+number (its tag), a required flag, and a value. Tags appear in increasing order,
+at most 32 of them, so a body has only one encoding. The server cannot read
+extensions, and the franking commitment does not cover them, so a report cannot
+prove an extension's value. A feature whose data must be provable in reports
+needs its own commitment.
+
+An app skips an optional extension it does not know and shows the rest of the
+message. An extension whose absence would make the message appear wrong, such as
+the keys to encrypted files, is marked required. An app that does not know a
+required extension still checks the signature and commitment first, so a forged
+message is still marked `Invalid`. A message that passes those checks is marked
+`NeedsNewerVersion` and shown as "Update Valour to see this message" instead of
+its text. `MessagePayload.SupportedExtensions` lists the tags this version reads,
+and the list is currently empty. A body in the format without extensions
+(`VMP2`) still reads, with no extensions.
+
 ### Reading messages
 
 Recipients apply their own checks and mark a message that fails one `Invalid`:
@@ -636,6 +700,9 @@ Recipients apply their own checks and mark a message that fails one `Invalid`:
   send it.
 - A message whose search terms do not match its text is hidden. The SDK raises
   `TamperedMessageDetected`, and the app offers to report it.
+- A verified message with a required extension this version does not read is
+  marked `NeedsNewerVersion` rather than `Invalid` (see
+  [Payload extensions](#payload-extensions)).
 
 When the key log or the channel's keys cannot be loaded, the message waits and
 is tried again on a timer, from 15 seconds up to 5 minutes, instead of being
@@ -762,7 +829,14 @@ and label.
 
 Messages written before encryption stay plain text in the database until an
 operator turns on `SealLegacyMessages` (see
-[Configuration and rollout](#configuration-and-rollout)). Then
+[Configuration and rollout](#configuration-and-rollout)). Apps treat plain text
+like a sealed `Legacy` message, because the server could return any message
+without encryption: it carries the same label (`Message.IsPlainTextHistory`,
+`Message.IsFromBeforeEncryption`), must be older than the first key a member
+created in its channel, and a plain copy never replaces a message the app holds
+encrypted. Plain text is grouped only with other plain text.
+
+When sealing is on,
 [`E2eeMaintenanceWorker`](../Valour/Server/Workers/E2eeMaintenanceWorker.cs)
 seals them with
 [`E2eeMaintenanceService`](../Valour/Server/Services/E2ee/E2eeMaintenanceService.cs):
@@ -946,10 +1020,12 @@ decides who receives keys. The code and the API call it the access log
 
 Entries are `Genesis`, `AddMembers`, `RemoveMembers`, `SetAdmin`,
 `CreateInvite`, `RevokeInvite`, `RedeemInvite`, `TransferOwnership`,
-`ConfirmEpoch`, `Restart`, `Checkpoint`, and `ApproveAutomodTriggers`. Each is
-signed by one of a user's devices, chains to the previous entry, and is checked
-against the signer's key log and the signer's role in the log. A
-`RedeemInvite` entry is signed by the joining user, who is not a member yet.
+`ConfirmEpoch`, `Restart`, `Checkpoint`, `ApproveAutomodTriggers`, and `Open`.
+Each is signed by one of a user's devices, chains to the previous entry, and is
+checked against the signer's key log and the signer's role in the log. A
+`RedeemInvite` entry is signed by the joining user, who is not a member yet. An
+`Open` entry ends the log's authority over a planet that became public (see
+[Planet settings](#planet-settings)).
 
 The server stores and relays the log but cannot sign entries. Joining a planet
 through the server does not admit anyone to the log, so the server cannot give
@@ -995,7 +1071,23 @@ they have keys.
 - **Invites.** An admin can create a signed invite with an expiry and use limit.
   Its secret is carried in the invite link's fragment (`#e2ee=...`), which
   browsers do not send to the server. Someone who joins with the link redeems it
-  and is admitted without waiting for an admin.
+  and is admitted without waiting for an admin. When an admin creates an
+  ordinary invite for a private planet on a verified device, the app signs one
+  for it (`E2eeService.SignPlanetInviteAsync`): the signed invite is named after
+  the invite code, expires with it, and has no use limit, since invite codes
+  have none. The creating device keeps the secret in its key store, keyed by
+  planet and invite code, so copying the code from the invite list on that
+  device gives the full link again (`E2eeService.GetSavedInviteFragmentAsync`).
+  Other devices and other admins copy the plain link. Device linking does not
+  pass these secrets to a new device, which keeps them on the device that made
+  the invite. The device forgets a secret when the code is deleted, its signed
+  invite is revoked, or it expires, and forgets all of them when its keys are
+  removed or started over. Invites created by anyone else, or on a device that
+  is not verified, are plain: people who use them wait for an admin, and the
+  app says so. Deleting a signed code (`E2eeService.DeletePlanetInviteAsync`) revokes its
+  signed invite first, so the secret cannot admit anyone who joins with another
+  code. Only an admin of the log on a verified device can do that, so the app
+  refuses to delete such a code for anyone else.
 - **Reset members.** A member who resets their keys is not trusted with the new
   epoch until another member appends `ConfirmEpoch`: an admin in a planet, or
   any other member in a group chat. Nobody can confirm their own keys. The app
@@ -1011,19 +1103,27 @@ they have keys.
   refuses to transfer an invite-only planet without it unless the log already
   names the new owner. It also refuses `TransferOwnership` entries for planets
   sent any other way, so the planet's owner and the log's owner stay the same
-  account.
+  account. This includes a public planet whose log the owner opened, since only
+  the log's owner can make the planet private again. While the log is open the
+  entry names the new owner's current keys without requiring them to be a
+  member, because an opened log has no members. The one exception is described
+  in [Making a planet public again](#making-a-planet-public-again).
 
 ### Pins and history
 
 Devices pin the newest membership log entry they verify. A later copy must
 extend it, so the server cannot hide the log, roll it back to undo a removal, or
-replace it. Pins are also why an invite-only planet cannot become open again:
-members' devices keep enforcing the log regardless of what the server reports.
+replace it. Pins are also why the server cannot make a private planet public:
+members' devices keep enforcing the log regardless of what the server reports,
+until they verify an `Open` entry the log's owner signed.
 
-Only the log's current owner can sign a `Restart`, so the server cannot name an
-account it controls as a planet's owner and start the log over. The verified
-state records the latest entry that removed members or restarted the log;
-channel keys made before it are replaced before anyone sends (see
+Only the log's current owner, with the keys the log names, can sign a `Restart`,
+so the server cannot name an account it controls as a planet's owner and start
+the log over. After an `Open` entry, the owner's `Restart` and
+`TransferOwnership` are the only entries the log accepts (see
+[Making a planet public again](#making-a-planet-public-again)). The
+verified state records the latest entry that removed members or restarted the
+log; channel keys made before it are replaced before anyone sends (see
 [Rotation](#rotation)).
 
 Entry times never go backwards: an entry cannot be dated before the entry it
@@ -1032,13 +1132,71 @@ its clock. An invite's expiry is checked against the time of the entry that
 redeems it, so once any entry is dated after the expiry, the invite cannot be
 redeemed.
 
+### Removed devices
+
+Membership logs name members by account and key epoch, not by device, so on
+its own a log cannot tell a removed device's signature from one by the same
+person's other devices. Each signature is checked against the device's time on
+the account, but the signer chooses an entry's time. Without more, a copy of a
+removed device's keys, together with a server willing to append its entries,
+could still let people in by dating an entry before the removal.
+
+The removal therefore records a **cutoff** for each membership log the account
+belongs to: the newest entry the removed device may have signed there
+(`AccessLogCutoff` in [`UserKeyLog.cs`](../Valour/Sdk/E2ee/UserKeyLog.cs)). The
+`RevokeDevice` entry carries the cutoffs and is signed by one of the account's
+remaining devices. It is the only key log entry written with the newer `VKL2`
+magic, so other entries stay readable by apps from before cutoffs existed. The
+account's key log is pinned by everyone who checks it, so the server cannot
+take a removal back from a device that has seen it.
+
+- **Removing this device**, including when logging out, loads no logs. Each
+  log this device verified is cut off at its pin, which includes every entry it
+  signed, merged with pins other tabs saved. Every other private planet and
+  group chat the account belongs to, read from the account's planet and chat
+  lists, is cut off at -1, because a device signs only in logs it verified. If the server finds an entry the
+  device signed past its cutoff (`E2EE_REMOVAL_CUTOFF_STALE`), for example one
+  whose pin was never saved, the device loads the logs and tries once more.
+- **Removing another device** loads every membership log the account belongs
+  to (private planets it joined or owns, and group chats) and uses each one's
+  verified end. A log that cannot be loaded is left out. A removal lists at
+  most 1,000 logs.
+- **Checking entries.** An entry a removed device signed after its cutoff stays
+  in the log's chain, so the log keeps working, but it has no effect: nobody it
+  names is let in or removed. A checkpoint signed that way cannot start a log;
+  readers who receive one read the whole log instead
+  (`AccessLogVerifier.CanStartFrom`). Logs a removal does not list, and removals
+  recorded before cutoffs existed, are checked only against the removal time.
+- **Starting over.** A `Reset` entry carries no cutoffs. Only the new device
+  signs it, so the server could forge one, and cutoffs on it would let the
+  server undo entries members already accepted. Devices of the earlier keys
+  are checked against the reset's time, and in each log their authority ends
+  once the log confirms the account's new keys (`ConfirmEpoch`).
+- **The server.** It holds a per-account lock while it stores a key log entry
+  and while it stores a membership log entry signed by that account, so a
+  device being removed cannot sign an entry between the removal's checks and
+  its storage. It takes new membership log entries only from devices that are
+  active at that moment. For the logs it keeps, it refuses a removal whose
+  cutoff is past a log's end or before an entry the removed device signed. A
+  community node's logs are checked by the removing device, which loads them
+  first.
+
+Cutoffs apply to entries a device checks after it has seen the removal. A
+server can still withhold a key log update from someone indefinitely, as it
+can for any removal, and that person's device then accepts such an entry. A
+device that applied one before it saw the removal keeps its state. If that
+device belongs to an admin who then signs a checkpoint, devices that replay the
+log find the checkpoint does not match their state and refuse the log.
+
 **Stored state.** A device stores the state it verified (members, admins,
-invites, and the newest entry) next to its pin. Later it asks
+invites, whether the owner opened the log, and the newest entry) next to its
+pin. Later it asks
 `api/e2ee/access-logs/{scope}/{id}?known=` only for entries after the ones it
 has and applies them to the stored state, so it does not download and check the
 whole log again. A device that has a pin but lost its stored state, such as a
 new device that received pins while linking, asks with `&full=true` for the
-whole log and checks it against the pin.
+whole log, page by page, and checks it against the pin. A log the server does
+not return in full is refused.
 
 **Checkpoints.** An admin's device appends a `Checkpoint` entry once 256 entries
 have passed since the last one. A checkpoint holds the full state at that point:
@@ -1064,17 +1222,90 @@ migrated to another node refuse new entries until the move finishes.
 
 ## Planet settings
 
-The owner chooses who receives keys in the planet's Encryption settings:
+A planet's **Public** setting, on the Privacy page of its settings, decides who
+can join it and who receives its keys:
 
-| Mode | Behavior |
-| --- | --- |
-| Open | Keys go to anyone the planet's permissions let view a channel. New planets start here. |
-| Invite-only | Keys go only to members admitted by the membership log. |
+| Setting | Encryption mode | Who can join | Who receives keys |
+| --- | --- | --- | --- |
+| Public | Open | Anyone | Anyone the planet's permissions let view a channel |
+| Private | Invite-only | People with an invite link | Members the membership log admits |
 
-An open planet can become invite-only, which signs the membership log and
-replaces keys in the channels the owner's device can see. It cannot become open
-again. The owner also chooses whether new members can read earlier messages (see
-[History](#history)).
+The invite page shows a private planet to someone who holds one of its invite
+codes. A vanity invite link only works for a public planet, so making a planet
+private turns it off. The owner also chooses whether new members can read
+earlier messages (see [History](#history)).
+
+Only the planet's owner changes whether it is public, because each change
+carries a membership log entry the owner's device signs.
+`E2eeService.SetPlanetPrivacyAsync` signs it and sends it to
+`PUT api/planets/{id}/privacy`, which refuses anyone but the owner. A general
+planet update (`PUT api/planets/{id}`) cannot change `Public`, for the owner
+either. [`PlanetEncryptionService`](../Valour/Server/Services/E2ee/PlanetEncryptionService.cs)
+appends the entry in the same transaction that changes the planet and never
+stores a planet that is both public and invite-only. Imported snapshots, and
+migrations that restore a moved planet's visibility, keep an invite-only planet
+private. The app shows other admins that only the owner can change the setting,
+and asks the owner to verify their device first when it is not ready.
+
+### Making a planet private
+
+The owner's device signs a `Genesis` entry, or a `Restart` when the planet was
+private before, admitting every current member who has set up encryption.
+Members who have not set up encryption wait to be admitted. The device then
+replaces keys in the channels it can see, so later messages reach only admitted
+members. Changing whether new members can read history in a private planet also
+replaces keys, carrying the new setting in the key records.
+
+### Making a planet public again
+
+The owner's device signs an `Open` entry. Only the log's owner can sign it, with
+the keys the log admitted as the owner's, so neither the server nor an account
+it controls can make one, including after a key reset nobody confirmed. The
+entry clears the members, admins, and invites but keeps the owner; the log then
+admits nobody and accepts only the owner's `Restart` or `TransferOwnership`. Members' devices treat the planet as open once
+they verify the entry (see [Who receives keys](#who-receives-keys)). Keys are
+not replaced, since everyone who holds them could already read those messages.
+Anyone who joins afterwards can read new messages, and earlier ones too if new
+members can read history.
+
+Only the log's owner can make the planet private again, with a `Restart` signed
+by the keys the log names. An account the server names as the planet's owner
+therefore cannot restart the log and admit itself to later messages. When
+ownership moves while the planet is public, the owner's device signs a
+`TransferOwnership` entry handing the log to the new owner's current keys, and
+the server refuses the transfer without it.
+
+An owner who starts their encryption over while the planet is public no longer
+holds the keys the log names, and an opened log has no admins left to confirm
+new ones. The planet can stay public, but it can no longer be made private again
+under that log. Nobody can sign a `TransferOwnership` entry either, so the
+planet moves to a new owner without one in this case only: the server checks
+that the log is open and that the current owner's keys, as their key log shows
+them, are not the ones the log names. The log keeps naming the earlier keys, so
+the new owner cannot make the planet private either. The Privacy settings
+explain this to the owner, and to a later owner, instead of offering the change
+(`E2eeService.GetMakePrivateBlockerAsync`).
+
+A device that saw the log opened but not a later restart relies on the server to
+return the restart, as a device that never saw the log relies on it for the
+first entry. Key records made after the restart name its entry, so once the
+device loads one of them it stops treating the planet as open, even if the
+server withholds the restart.
+
+### Private planets the owner has not signed yet
+
+A planet whose Public setting is off but whose membership log the owner's device
+has not signed is still open. Planets created as private start this way, and so
+does every planet that was private before encryption, because the server cannot
+sign for the owner. `E2eeService.IsPrivacyPending` reports this state.
+
+The app signs the log right after the owner creates a private planet on a
+verified device. Otherwise, when the owner opens such a planet on a verified
+device, the app asks them once per session to finish making it private, and the
+Privacy settings show the same prompt. Finishing
+(`E2eeService.FinishPrivatePlanetAsync`) is the same as making the planet
+private: every current member who has set up encryption is admitted, so nobody
+loses access. Other members see no prompt.
 
 ## Community nodes
 
@@ -1120,7 +1351,8 @@ boxes, the planet's membership log, automod term hashes, and the source server's
 public attestation keys. A server-created key that no member holds yet travels
 in the authenticated migration and is protected again by the destination. Key
 requests and proofs of edited or deleted messages are deleted at the source and
-do not move. Chat caches for the moved channels are cleared on both sides.
+do not move. Chat caches for the moved channels are cleared on both sides. An
+invite-only planet arrives private even when its snapshot says it is public.
 
 ## Configuration and rollout
 
@@ -1165,6 +1397,7 @@ Migrations run in this order:
 
 | Migration | What it does |
 | --- | --- |
+| `AddMessageChannelIdIdIndex` | Replaces the index of messages by channel with one on channel and ID, which history pages read in order. The old index is dropped only once the new one is valid |
 | `EndToEndEncryption` | Adds the encryption tables and the encryption columns on `planets` and `channels` |
 | `MessageEncryptionColumns` | Adds the encryption columns on `messages`: the encryption version, envelope, key generation, and search terms |
 | `MessageSearchTermsIndex` | Builds the GIN index on search terms that encrypted search and automod use |
@@ -1173,11 +1406,12 @@ Migrations run in this order:
 | `UnindexedSealedMessagesIndex` | Builds the partial index of server-sealed messages without search terms, which `api/e2ee/channels/{id}/unindexed` reads |
 | `AutomodTermsPlanetIndex` | Adds the index of encrypted automod terms by planet |
 | `DeviceLinkApproval` | Adds the columns device linking uses to relay the approving device's proof and pins |
+| `PrivatePlanetsAreNotPublic` | Makes every planet that is both public and invite-only private and turns off its vanity invite, since only the owner's signed entry makes such a planet public. It deletes the invite codes of planets that are not public and not yet invite-only, because those planets had invites turned off |
 
 Adding a column needs a brief exclusive lock on its table. The lock request
 waits behind any long-running query, and every later query on the table waits
-behind the lock request. The first two migrations therefore set a lock timeout
-of five seconds, so other queries wait at most that long. If the lock is not
+behind the lock request. `EndToEndEncryption`, `MessageEncryptionColumns`, and
+`PrivatePlanetsAreNotPublic` therefore set a lock timeout of five seconds, so other queries wait at most that long. If the lock is not
 granted in time, the server fails to start without having changed anything, and
 the migration runs again on the next start. `MessageEncryptionColumns` runs in a
 transaction of its own, so its lock on `messages` is never held together with
@@ -1191,7 +1425,13 @@ migration again removes it and builds it again, and a valid index is kept. A
 concurrent build waits for every transaction that was open when it started, so a
 long-running query or an idle open transaction delays it. The server allows
 migrations up to 30 minutes per command, so the first start after upgrading a
-large database can take a while.
+large database can take a while. The server answers health checks only after
+migrating, so a deployment must wait for it. The supplied
+[deployment script](Deployment/README.md#bluegreen-deployment) waits up to
+1,350 checks, two seconds apart, and stops early only if the container exits.
+On a large `messages` table, the indexes can also be built ahead of the upgrade
+by running each migration's `CREATE INDEX CONCURRENTLY IF NOT EXISTS` statement
+with `psql`; the migrations then keep the valid indexes they find.
 
 Only one server applies migrations at a time. Before migrating, a server takes a
 PostgreSQL advisory lock, asking for it every two seconds and logging that it is
@@ -1260,7 +1500,7 @@ encryption routes per account:
 Fetching this account's own user key box, creating a link session, and joining
 one use the login policy (`auth`, 10 per minute per address), since they are
 steps of signing in a device. Viewing, approving, and denying link sessions and
-changing a planet's encryption settings have no rate limit of their own.
+changing whether a planet is public have no rate limit of their own.
 
 The limiter runs before authentication. It counts a request under its account
 once it has looked up the account behind the token, which it does in the
@@ -1287,7 +1527,12 @@ logs, are bounded in size and can always be rebuilt from the database.
 
 ## API routes
 
-All routes are in [`E2eeApi.cs`](../Valour/Server/Api/Dynamic/E2eeApi.cs).
+Most routes are in [`E2eeApi.cs`](../Valour/Server/Api/Dynamic/E2eeApi.cs). The
+privacy and ownership routes are in
+[`PlanetApi.cs`](../Valour/Server/Api/Dynamic/PlanetApi.cs), live embed updates
+are in [`EmbedAPI.cs`](../Valour/Server/Api/EmbedAPI.cs), and the key log route
+for community nodes is in
+[`FederationApi.cs`](../Valour/Server/Api/Dynamic/FederationApi.cs).
 Routes under `api/e2ee/channels/{id}` take a `planetId` query parameter for
 planet channels, which the server uses to find the channel in its planet.
 
@@ -1313,7 +1558,10 @@ planet channels, which the server uses to find the channel in its planet.
 | `POST api/e2ee/channels/{id}/search` | Encrypted search |
 | `GET api/e2ee/channels/{id}/unindexed?count=` and `POST .../terms` | Index server-sealed messages |
 | `GET api/e2ee/access-logs/{scope}/{id}?known=&full=` and `POST` | Read or append to a membership log |
-| `PUT api/planets/{planetId}/encryption` | Change a planet's encryption mode and history setting |
+| `PUT api/planets/{id}/privacy` | Make a planet public or private, with the owner's signed membership log entry, and set its history setting |
+| `POST api/planets/{id}/transfer-ownership` | Hand a planet to a new owner, with the owner's signed membership log entry when the planet has a log |
+| `POST api/embed/update` | Send an encrypted live embed update |
+| `POST api/federation/e2ee/key-logs` | Community nodes fetch users' key logs from the hub, authenticated as a node |
 | `GET api/e2ee/planets/{planetId}/member-ids` | Planet members, for admitting them to the log |
 | `GET api/e2ee/planets/{planetId}/automod/work` and `POST .../automod/terms` | Compute and upload automod term hashes |
 
@@ -1328,6 +1576,15 @@ login:
 | MAUI apps | `SecureE2eeKeyStore` in the platform's secure storage |
 | Bots and other .NET programs | `FileE2eeKeyStore` in `.valour-e2ee` in the working directory |
 | Tests | `MemoryE2eeKeyStore` |
+
+In the browser, the keys are lost if the site's data is cleared, for example by
+the person or by a browser that clears storage for sites it has not seen
+recently. Once a device is verified, the web app asks the browser to keep the
+site's storage (`navigator.storage.persist()`), so it is not cleared to free
+space. When that browser has been the account's only device for three days, the
+app also tells the person once that clearing its data would leave only their
+recovery code, and suggests saving the code or signing in to a native app as
+well.
 
 On Linux and macOS, `FileE2eeKeyStore` makes its directory readable only by its
 owner (mode 0700) and each key file too (mode 0600). On every platform it writes
@@ -1383,7 +1640,9 @@ after a device becomes verified.
 **Other operations.** `SearchAsync` searches a channel, `IndexSealedHistoryAsync`
 indexes its server-sealed messages (see
 [Indexing server-sealed messages](#indexing-server-sealed-messages)), and
-`RequestKeysAsync` asks online members for a channel's keys. `StatusChanged`,
+`RequestKeysAsync` asks online members for a channel's keys, and
+`PrepareToSendAsync` loads a channel's keys when it opens and asks for the
+current one if this device does not hold it. `StatusChanged`,
 `ChannelKeysChanged`, `RecoveryCodeChanged`, `ContactWarning`,
 `KeysResetElsewhereDetected`, `LinkSessionUpdated`, `LinkFailed`, and
 `TamperedMessageDetected` report changes an app may show.
@@ -1402,6 +1661,23 @@ repeated for 10 seconds, then 20, then 30.
   membership logs, pin merging, search folding, the separate key for sealed
   messages' terms, attachment and link preview binding, the rules for sealed
   history, and markdown escaping without a server.
+  [`PlanetPrivacyLogTests`](../Valour/Tests/Sdk/E2ee/PlanetPrivacyLogTests.cs)
+  cover the `Open` entry and the owner's restart and ownership transfer that
+  can follow it.
+  [`DeviceRemovalCutoffTests`](../Valour/Tests/Sdk/E2ee/DeviceRemovalCutoffTests.cs)
+  cover removed devices' cutoffs: backdated entries after a cutoff, removals
+  without a cutoff for a log, starting over without undoing earlier entries,
+  checkpoints that cannot start a log, and the key log formats.
+- [`PlanetPrivacyLiveTests`](../Valour/Tests/Apis/PlanetPrivacyLiveTests.cs)
+  make planets private, public, and private again under a new owner, finish
+  planets that are private but not signed yet, check that only the owner's
+  signed entry changes a planet's privacy or hands its log to a new owner
+  (except after the owner started over while it was public), and check that
+  admins' invite links admit people right away, copy again only on the device
+  that made them, are revoked and forgotten when deleted, and that plain links
+  wait for an admin. They also check that a linked device receives a private
+  planet's log pin, and that removing a device records the log's end and stops
+  the server from taking entries signed with its keys.
 - [`E2eeLiveTests`](../Valour/Tests/Apis/E2eeLiveTests.cs) run several SDK
   clients against the real server and check stored data, including device
   linking in both directions, sealing history, moving a planet between nodes,

@@ -37,6 +37,19 @@ public sealed class UserKeyLogEntry
     public byte[] Hash() => E2eeCrypto.Sha256(Body, Signature);
 }
 
+/// <summary>
+/// The newest entry of a membership log that a removed device may have
+/// signed. Entries it signs in that log after this sequence number have no
+/// effect, whatever time they claim, so a copy of its keys cannot let anyone
+/// in after the device is removed. A sequence number of -1 means the device
+/// signed nothing in the log.
+/// </summary>
+public readonly record struct AccessLogCutoff(AccessLogScope Scope, long ScopeId, int Seq)
+{
+    /// <summary>The most cutoffs one key log entry carries.</summary>
+    public const int MaxPerEntry = 1000;
+}
+
 public sealed class DeviceDescriptor
 {
     public DevicePublicKeys Keys { get; init; }
@@ -63,12 +76,24 @@ public sealed class UserKeyLogRecord
     public byte[] PreviousUserKeyWrapped { get; init; }
     public DevicePublicKeys Recovery { get; init; }
 
+    /// <summary>
+    /// On a <see cref="UserKeyLogEntryType.RevokeDevice"/> entry, the removed
+    /// device's cutoff in each membership log the account belongs to. Null for
+    /// other entries and for removals written before cutoffs existed; those
+    /// devices fall back to the time they were removed. A
+    /// <see cref="UserKeyLogEntryType.Reset"/> carries none, because only the
+    /// new device signs it, so the server could forge one to undo entries.
+    /// </summary>
+    public List<AccessLogCutoff> AccessLogCutoffs { get; init; }
+
     public DateTime Timestamp => DateTimeOffset.FromUnixTimeMilliseconds(TimestampMs).UtcDateTime;
 
     public byte[] Encode()
     {
+        // Only removals changed format, so other entries stay readable by
+        // apps from before cutoffs existed.
         var writer = new E2eeWriter()
-            .WriteMagic("VKL1")
+            .WriteMagic(Type == UserKeyLogEntryType.RevokeDevice ? "VKL2" : "VKL1")
             .WriteInt64(UserId)
             .WriteInt32(Seq)
             .WriteInt32(Epoch)
@@ -92,6 +117,7 @@ public sealed class UserKeyLogRecord
                 writer.WriteString(TargetDeviceId);
                 WriteUserKey(writer, NewUserKey);
                 writer.WriteBytes(PreviousUserKeyWrapped);
+                WriteCutoffs(writer, AccessLogCutoffs);
                 break;
             case UserKeyLogEntryType.RotateUserKey:
                 WriteUserKey(writer, NewUserKey);
@@ -110,7 +136,7 @@ public sealed class UserKeyLogRecord
     public static UserKeyLogRecord Decode(byte[] body)
     {
         var reader = new E2eeReader(body);
-        reader.ReadMagic("VKL1");
+        var hasCutoffs = reader.ReadMagicOf("VKL1", "VKL2") == "VKL2";
         var userId = reader.ReadInt64();
         var seq = reader.ReadInt32();
         var epoch = reader.ReadInt32();
@@ -124,6 +150,7 @@ public sealed class UserKeyLogRecord
         UserPublicKey newUserKey = null;
         byte[] previousWrapped = null;
         DevicePublicKeys recovery = null;
+        List<AccessLogCutoff> cutoffs = null;
 
         switch (type)
         {
@@ -140,6 +167,8 @@ public sealed class UserKeyLogRecord
                 targetDeviceId = reader.ReadString();
                 newUserKey = ReadUserKey(reader);
                 previousWrapped = reader.ReadBytes();
+                if (hasCutoffs)
+                    cutoffs = ReadCutoffs(reader);
                 break;
             case UserKeyLogEntryType.RotateUserKey:
                 newUserKey = ReadUserKey(reader);
@@ -167,8 +196,43 @@ public sealed class UserKeyLogRecord
             TargetDeviceId = targetDeviceId,
             NewUserKey = newUserKey,
             PreviousUserKeyWrapped = previousWrapped,
-            Recovery = recovery
+            Recovery = recovery,
+            AccessLogCutoffs = cutoffs
         };
+    }
+
+    private static void WriteCutoffs(E2eeWriter writer, List<AccessLogCutoff> cutoffs)
+    {
+        cutoffs ??= [];
+        writer.WriteInt32(cutoffs.Count);
+        foreach (var cutoff in cutoffs)
+        {
+            writer.WriteByte((byte)cutoff.Scope)
+                .WriteInt64(cutoff.ScopeId)
+                .WriteInt32(cutoff.Seq);
+        }
+    }
+
+    private static List<AccessLogCutoff> ReadCutoffs(E2eeReader reader)
+    {
+        var count = reader.ReadInt32();
+        if (count is < 0 or > AccessLogCutoff.MaxPerEntry)
+            throw new E2eeFormatException("Too many membership log cutoffs.");
+
+        var cutoffs = new List<AccessLogCutoff>(count);
+        for (var i = 0; i < count; i++)
+        {
+            var scope = (AccessLogScope)reader.ReadByte();
+            var scopeId = reader.ReadInt64();
+            var seq = reader.ReadInt32();
+            if (!Enum.IsDefined(scope) || seq < -1)
+                throw new E2eeFormatException("Invalid membership log cutoff.");
+            cutoffs.Add(new AccessLogCutoff(scope, scopeId, seq));
+        }
+
+        if (cutoffs.DistinctBy(c => (c.Scope, c.ScopeId)).Count() != cutoffs.Count)
+            throw new E2eeFormatException("A membership log is listed twice.");
+        return cutoffs;
     }
 
     private static void WriteDevice(E2eeWriter writer, DeviceDescriptor device)
@@ -227,6 +291,12 @@ public sealed class UserDeviceInfo
     public string AddedBy { get; init; }
     public int Epoch { get; init; }
     public DateTime? RevokedAt { get; set; }
+
+    /// <summary>
+    /// For a device removed with cutoffs, the newest entry it may have signed
+    /// in each listed membership log. See <see cref="AccessLogCutoff"/>.
+    /// </summary>
+    public Dictionary<(AccessLogScope Scope, long ScopeId), int> AccessLogCutoffs { get; set; }
 
     public string DeviceId => Keys.DeviceId;
 }
@@ -315,6 +385,18 @@ public sealed class UserKeyState
             return null;
         return device.Keys;
     }
+
+    /// <summary>
+    /// False when a removed device signed a membership log entry after its
+    /// cutoff for that log. Such an entry stays in the log's chain but has no
+    /// effect. Devices removed without cutoffs, and logs their removal did not
+    /// list, are checked only against the removal time.
+    /// </summary>
+    public bool CountsAccessLogSignature(string deviceId, AccessLogScope scope, long scopeId, int seq) =>
+        deviceId is null || !EverDevices.TryGetValue(deviceId, out var device) ||
+        device.AccessLogCutoffs is null ||
+        !device.AccessLogCutoffs.TryGetValue((scope, scopeId), out var cutoff) ||
+        seq <= cutoff;
 
     /// <summary>
     /// A stable fingerprint of the user's current identity, shown to people
@@ -483,9 +565,13 @@ public static class UserKeyLogVerifier
             throw new E2eeVerificationException("Revocation must carry the previous user key.");
 
         device.RevokedAt = record.Timestamp;
+        device.AccessLogCutoffs = CutoffsOf(record);
         state.ActiveDevices.Remove(record.TargetDeviceId);
         SetUserKey(state, record);
     }
+
+    private static Dictionary<(AccessLogScope Scope, long ScopeId), int> CutoffsOf(UserKeyLogRecord record) =>
+        record.AccessLogCutoffs?.ToDictionary(c => (c.Scope, c.ScopeId), c => c.Seq);
 
     private static void ApplyRotate(UserKeyState state, UserKeyLogRecord record, UserKeyLogEntry entry)
     {
@@ -595,7 +681,8 @@ public static class UserKeyLogBuilder
     }
 
     public static UserKeyLogEntry RevokeDevice(UserKeyState state, string signerId, Func<byte[], byte[]> sign,
-        string targetDeviceId, UserKeyPair newUserKey, UserKeyPair currentUserKey, long timestampMs)
+        string targetDeviceId, UserKeyPair newUserKey, UserKeyPair currentUserKey, long timestampMs,
+        List<AccessLogCutoff> cutoffs = null)
     {
         var record = new UserKeyLogRecord
         {
@@ -608,7 +695,8 @@ public static class UserKeyLogBuilder
             SignerId = signerId,
             TargetDeviceId = targetDeviceId,
             NewUserKey = newUserKey.PublicKey,
-            PreviousUserKeyWrapped = newUserKey.WrapPrevious(state.UserId, currentUserKey)
+            PreviousUserKeyWrapped = newUserKey.WrapPrevious(state.UserId, currentUserKey),
+            AccessLogCutoffs = cutoffs ?? []
         };
         return SignRecord(record, sign);
     }

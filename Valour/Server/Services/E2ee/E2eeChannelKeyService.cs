@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using Npgsql;
 using NpgsqlTypes;
@@ -88,6 +89,7 @@ public class E2eeChannelKeyService
     private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly E2eeServerKeyService _serverKeys;
     private readonly E2eeAutomodService _automod;
+    private readonly ILogger<E2eeChannelKeyService> _logger;
 
     public E2eeChannelKeyService(
         ValourDb db,
@@ -99,7 +101,8 @@ public class E2eeChannelKeyService
         CoreHubService coreHub,
         NodeLifecycleService nodeLifecycleService,
         E2eeServerKeyService serverKeys,
-        E2eeAutomodService automod)
+        E2eeAutomodService automod,
+        ILogger<E2eeChannelKeyService> logger)
     {
         _db = db;
         _identity = identity;
@@ -111,6 +114,7 @@ public class E2eeChannelKeyService
         _nodeLifecycleService = nodeLifecycleService;
         _serverKeys = serverKeys;
         _automod = automod;
+        _logger = logger;
     }
 
     public static bool SupportsEncryption(ISharedChannel channel) =>
@@ -262,6 +266,25 @@ public class E2eeChannelKeyService
 
         var hosted = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
         return await _permissionService.CanUserViewChannelAsync(hosted, userId, channel.Id);
+    }
+
+    private async Task<bool> CanPostAsync(Channel channel, long userId)
+    {
+        if (!await CanViewAsync(channel, userId))
+            return false;
+        if (channel.PlanetId is null)
+            return true;
+
+        var hosted = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
+        return hosted.TryGetMemberByUser(userId, out var member) &&
+               await _permissionService.HasChannelPermissionAsync(member, channel, ChatChannelPermissions.PostMessages);
+    }
+
+    private async Task<bool> IsModeratorAsync(long planetId, long userId)
+    {
+        var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hosted.TryGetMemberByUser(userId, out var member) &&
+               await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.Manage);
     }
 
     /// <summary>
@@ -422,8 +445,11 @@ public class E2eeChannelKeyService
                 return TaskResult<ChannelKeyStateDto>.FromFailure(MigrationLock.Message);
         }
 
-        if (!await CanViewAsync(channel, userId))
-            return TaskResult<ChannelKeyStateDto>.FromFailure("You cannot view this channel.");
+        // Everyone sends with the newest key, so only members who can post
+        // may publish one. A read-only viewer could otherwise publish a key
+        // sealed only to themselves and stop everyone else from sending.
+        if (!await CanPostAsync(channel, userId))
+            return TaskResult<ChannelKeyStateDto>.FromFailure("You cannot send messages in this channel.");
 
         var creatorState = await _identity.GetStateAsync(userId);
         if (creatorState is null)
@@ -471,14 +497,23 @@ public class E2eeChannelKeyService
         if (!creatorAdmitted.Success)
             return TaskResult<ChannelKeyStateDto>.FromFailure(creatorAdmitted.Message);
 
+        // Devices share keys only with a membership log that reaches the
+        // entry a key names, so a key naming an entry that does not exist
+        // would stop every device from sharing the channel's keys.
+        if (IsGoverned(policy) &&
+            record.Terms.AccessLogSeq > ((await GetGoverningAccessLogAsync(channel, policy))?.HeadSeq ?? -1))
+            return TaskResult<ChannelKeyStateDto>.FromFailure(
+                "The key names a membership log entry that does not exist. Refresh and try again.");
+
         if (latest > 0)
         {
             var previous = await GetGenerationAsync(channel.Id, latest);
             if (record.IndexGeneration != previous.IndexGeneration && record.IndexGeneration != record.Generation)
                 return TaskResult<ChannelKeyStateDto>.FromFailure("Invalid index generation.");
             // Record times never go backwards. A previous record dated further
-            // ahead than any device may date one is not held against the next.
-            var previousTime = ChannelKeyGenerationRecord.Decode(previous.Body).TimestampMs;
+            // ahead than any device may date one, or one that cannot be read,
+            // is not held against the next.
+            var previousTime = TryDecodeRecord(previous.Body)?.TimestampMs ?? 0;
             if (record.TimestampMs < previousTime && previousTime <= latestAllowedTime)
                 return TaskResult<ChannelKeyStateDto>.FromFailure(
                     "This key is dated before the channel's current key. Check this device's clock and try again.");
@@ -502,9 +537,7 @@ public class E2eeChannelKeyService
             {
                 // A new search key has no automod term hashes until a
                 // moderator's app computes them, so only moderators replace one.
-                var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
-                if (!hosted.TryGetMemberByUser(userId, out var member) ||
-                    !await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.Manage))
+                if (!await IsModeratorAsync(planetId, userId))
                     return TaskResult<ChannelKeyStateDto>.FromFailure("Only moderators can replace this channel's search key.");
             }
         }
@@ -605,10 +638,14 @@ public class E2eeChannelKeyService
 
         // A member without the current key starts a new search key, which has
         // no automod term hashes until a moderator's app computes them. Word
-        // filters would not apply to their messages in the meantime.
+        // filters would not apply to their messages in the meantime, so only
+        // moderators may do this where the planet has word or command
+        // triggers; their apps compute the hashes right away. This also lets a
+        // moderator recover a channel whose newest key nobody else holds.
         if (channel.PlanetId is { } planetId && await _db.AutomodTriggers.AnyAsync(t =>
                 t.PlanetId == planetId &&
-                (t.Type == AutomodTriggerType.Blacklist || t.Type == AutomodTriggerType.Command)))
+                (t.Type == AutomodTriggerType.Blacklist || t.Type == AutomodTriggerType.Command)) &&
+            !await IsModeratorAsync(planetId, userId))
             return TaskResult.FromFailure(AutomodKeyMessage);
 
         return TaskResult.SuccessResult;
@@ -630,13 +667,35 @@ public class E2eeChannelKeyService
         var links = cached is null ? new Dictionary<int, ChannelKeyChain.Link>() : new(cached);
         foreach (var item in bodies)
         {
-            var record = ChannelKeyGenerationRecord.Decode(item.Body);
-            links[item.Generation] = new ChannelKeyChain.Link(record.UnlocksPrevious, record.Reason);
+            // A record that cannot be read is treated as a break in the chain,
+            // so members are asked for that generation directly and no box is
+            // pruned on the assumption that it unlocks an earlier one.
+            var record = TryDecodeRecord(item.Body);
+            links[item.Generation] = record is null
+                ? new ChannelKeyChain.Link(false, ChannelKeyRotationReason.Initial)
+                : new ChannelKeyChain.Link(record.UnlocksPrevious, record.Reason);
         }
 
         E2eeCacheLimit.Trim(LinkCache, MaxCachedChannels);
         LinkCache[channelId] = links;
         return links;
+    }
+
+    /// <summary>
+    /// Reads a stored key record, or returns null when it is not in a format
+    /// this server reads. Records are checked when they are published, so this
+    /// only happens with data written by an earlier, incompatible build.
+    /// </summary>
+    private static ChannelKeyGenerationRecord TryDecodeRecord(byte[] body)
+    {
+        try
+        {
+            return ChannelKeyGenerationRecord.Decode(body);
+        }
+        catch (E2eeFormatException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -947,7 +1006,21 @@ public class E2eeChannelKeyService
         if (state?.UserKey is null || !(await GetAdmittedFilterAsync(channel))(userId, state))
             return;
 
-        var secret = new ChannelKeySecret(channel.Id, 1, _serverKeys.UnprotectHeldSecret(held));
+        // A key ring that no longer matches, for example after a database
+        // restore without the same KEK, only stops the held key from being
+        // delivered; loading the channel's other keys still works.
+        byte[] heldSecret;
+        try
+        {
+            heldSecret = _serverKeys.UnprotectHeldSecret(held);
+        }
+        catch (CryptographicException e)
+        {
+            _logger.LogError(e, "The held key of channel {ChannelId} could not be unprotected", channel.Id);
+            return;
+        }
+
+        var secret = new ChannelKeySecret(channel.Id, 1, heldSecret);
 
         // A box the user can no longer open, from before a key reset, is replaced.
         await _db.E2eeChannelKeyBoxes

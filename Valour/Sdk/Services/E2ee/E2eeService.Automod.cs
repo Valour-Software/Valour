@@ -40,18 +40,16 @@ public partial class E2eeService
             if (work.Data is null || work.Data.Count == 0)
                 return TaskResult.SuccessResult;
 
-            // In an invite-only planet the server's list of triggers is not
+            // In a private planet the server's list of triggers is not
             // trusted: hashing any text it names with a channel's search key
             // would let it test which words appear in messages. Only text an
             // admin approved in the membership log is hashed there.
-            AccessLogState log = null;
-            if (planet.EncryptionMode == PlanetEncryptionMode.InviteOnly ||
-                await HasAccessPinAsync(AccessLogScope.Planet, planet.Id))
-            {
-                log = await GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node);
-                if (log is null)
-                    return Fail("The planet's membership log could not be verified.");
-            }
+            var (governed, log) = await GetPlanetGovernanceAsync(planet.Id, planet.Node,
+                planet.EncryptionMode == PlanetEncryptionMode.InviteOnly);
+            if (governed && log is null)
+                return Fail("The planet's membership log could not be verified.");
+            if (!governed)
+                log = null;
 
             var uploads = new List<AutomodTermsUploadDto>();
             foreach (var item in work.Data)
@@ -95,16 +93,17 @@ public partial class E2eeService
     }
 
     /// <summary>
-    /// Approves automod triggers in an invite-only planet's membership log so
+    /// Approves automod triggers in a private planet's membership log so
     /// moderators' apps compute hashes for them. Only admins in the log can
     /// approve; call this when a person saves a trigger, never for triggers
     /// the server lists, since approving is what stops the server from using
-    /// automod to learn message words. Does nothing in open planets.
+    /// automod to learn message words. Does nothing in public planets.
     /// </summary>
     public async Task<TaskResult> ApproveAutomodTriggersAsync(Planet planet, IEnumerable<AutomodTrigger> triggers)
     {
-        if (planet.EncryptionMode != PlanetEncryptionMode.InviteOnly &&
-            !await HasAccessPinAsync(AccessLogScope.Planet, planet.Id))
+        var (governed, _) = await GetPlanetGovernanceAsync(planet.Id, planet.Node,
+            planet.EncryptionMode == PlanetEncryptionMode.InviteOnly);
+        if (!governed)
             return TaskResult.SuccessResult;
 
         var approvals = triggers

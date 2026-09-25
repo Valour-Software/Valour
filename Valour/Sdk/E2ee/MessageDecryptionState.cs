@@ -27,5 +27,11 @@ public enum MessageDecryptionState
     /// The message failed verification: a bad signature, a mismatched
     /// commitment, or search terms that do not match the text. It is not shown.
     /// </summary>
-    Invalid = 4
+    Invalid = 4,
+
+    /// <summary>
+    /// The message verified, but it uses a feature from a newer version of
+    /// Valour that this version cannot show correctly. It is not shown.
+    /// </summary>
+    NeedsNewerVersion = 5
 }

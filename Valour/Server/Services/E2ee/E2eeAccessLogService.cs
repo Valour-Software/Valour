@@ -8,9 +8,9 @@ using Valour.Shared.Models;
 namespace Valour.Server.Services;
 
 /// <summary>
-/// Stores and verifies access logs: the signed membership records of
-/// invite-only planets and group DMs. Clients share channel keys only with
-/// users these logs admit, which is what stops the server from adding anyone.
+/// Stores and verifies access logs: the signed membership records of private
+/// planets and group DMs. Clients share channel keys only with users these
+/// logs admit, which is what stops the server from adding anyone.
 /// </summary>
 public class E2eeAccessLogService
 {
@@ -106,6 +106,14 @@ public class E2eeAccessLogService
         return entries;
     }
 
+    /// <summary>
+    /// True when the user's current keys, as their verified key log shows
+    /// them, are the ones a log names as its owner, so their device can sign
+    /// entries only the owner may sign.
+    /// </summary>
+    public async Task<bool> IsOwnerWithCurrentKeysAsync(AccessLogState log, long userId) =>
+        log.IsOwner(userId, await _identity.GetStateAsync(userId));
+
     public async Task<bool> ExistsAsync(AccessLogScope scope, long scopeId) =>
         await _db.E2eeAccessLogEntries.AnyAsync(x => x.Scope == (int)scope && x.ScopeId == scopeId);
 
@@ -144,6 +152,15 @@ public class E2eeAccessLogService
             {
                 var entries = await GetEntriesAsync(scope, scopeId, full: false);
                 var states = await _identity.GetStatesAsync(AccessLogVerifier.RequiredUsers(entries));
+
+                // A checkpoint a removed device signed after its cutoff cannot
+                // start the log, so the whole log is read instead.
+                if (!AccessLogVerifier.CanStartFrom(entries, states))
+                {
+                    entries = await GetEntriesAsync(scope, scopeId, full: true);
+                    states = await _identity.GetStatesAsync(AccessLogVerifier.RequiredUsers(entries));
+                }
+
                 state = AccessLogVerifier.Verify(scope, scopeId, entries, states);
             }
 
@@ -159,11 +176,13 @@ public class E2eeAccessLogService
     }
 
     /// <summary>
-    /// Verifies and appends an entry. Genesis and restart entries for planets
-    /// are appended through <see cref="PlanetEncryptionService"/>, which also
-    /// changes the planet's mode, and a planet's ownership transfer entry
-    /// through <see cref="PlanetService.TransferOwnershipAsync"/>, which also
-    /// changes the planet's owner.
+    /// Verifies and appends an entry. A planet's genesis, restart, and open
+    /// entries are appended through <see cref="PlanetEncryptionService"/>,
+    /// which also makes the planet private or public, and its ownership
+    /// transfer entry through <see cref="PlanetService.TransferOwnershipAsync"/>,
+    /// which also changes the planet's owner. Pass
+    /// <paramref name="allowStart"/> from those paths and for group DMs,
+    /// which start their logs directly.
     /// </summary>
     public async Task<TaskResult<AccessLogState>> AppendAsync(AccessLogScope scope, long scopeId, long userId,
         AccessLogEntry entry, bool allowStart = false, bool allowOwnershipTransfer = false)
@@ -204,8 +223,10 @@ public class E2eeAccessLogService
             return TaskResult<AccessLogState>.FromFailure("The entry is dated in the future. Check this device's clock.");
         if (record.TimestampMs < now.AddMinutes(-10).ToUnixTimeMilliseconds())
             return TaskResult<AccessLogState>.FromFailure("The entry is dated in the past. Check this device's clock.");
-        if (!allowStart && record.Type is AccessLogEntryType.Genesis or AccessLogEntryType.Restart)
-            return TaskResult<AccessLogState>.FromFailure("Change the planet's encryption settings to start its membership log.");
+        if (!allowStart && record.Type is AccessLogEntryType.Genesis or AccessLogEntryType.Restart
+                or AccessLogEntryType.Open)
+            return TaskResult<AccessLogState>.FromFailure(
+                "Change whether the planet is public in its privacy settings to start or end its membership log.");
 
         // A planet's log owner changes only together with the planet's owner.
         if (!allowOwnershipTransfer && scope == AccessLogScope.Planet &&
@@ -224,10 +245,20 @@ public class E2eeAccessLogService
             current.HeadSeq - Math.Max(current.LastCheckpointSeq, 0) < MinCheckpointInterval)
             return TaskResult<AccessLogState>.FromFailure("The membership log had a checkpoint recently.");
 
+        // Held until the entry is stored, so the signer's device cannot be
+        // removed between the check below and the insert.
+        await using var keysLock = await _identity.LockUserKeysAsync(record.SignerUserId);
+
         AccessLogState state;
         try
         {
             var states = await _identity.GetStatesAsync([record.SignerUserId]);
+
+            // Other devices accept an entry dated before its signer's removal,
+            // so the server takes new entries only from devices active now.
+            if (states.GetValueOrDefault(record.SignerUserId)?.GetActiveSigner(record.SignerDeviceId) is null)
+                return TaskResult<AccessLogState>.FromFailure("This device was removed from your account.");
+
             state = current is null
                 ? new AccessLogState { Scope = scope, ScopeId = scopeId }
                 : AccessLogState.Decode(current.Encode());
@@ -253,6 +284,8 @@ public class E2eeAccessLogService
         try
         {
             await _db.SaveChangesAsync();
+            if (keysLock is not null)
+                await keysLock.CommitAsync();
         }
         catch (DbUpdateException)
         {
@@ -277,11 +310,15 @@ public class E2eeAccessLogService
             if (planet.LockedForMigration)
                 return TaskResult.FromFailure(MigrationLock.Message);
 
+            // Starting the log makes the planet private, and an open entry
+            // makes it public; only the planet's owner does either. A public
+            // planet's log still moves to a new owner with the planet.
             var isStart = record.Type is AccessLogEntryType.Genesis or AccessLogEntryType.Restart;
-            if (!isStart && planet.EncryptionMode != PlanetEncryptionMode.InviteOnly)
-                return TaskResult.FromFailure("This planet is not invite-only.");
-            if (isStart && planet.OwnerId != userId)
-                return TaskResult.FromFailure("Only the planet owner can start the membership log.");
+            if (!isStart && record.Type != AccessLogEntryType.TransferOwnership &&
+                planet.EncryptionMode != PlanetEncryptionMode.InviteOnly)
+                return TaskResult.FromFailure("This planet is not private.");
+            if ((isStart || record.Type == AccessLogEntryType.Open) && planet.OwnerId != userId)
+                return TaskResult.FromFailure("Only the planet owner can change whether the planet is private.");
 
             var isMember = await _db.PlanetMembers.AnyAsync(x => x.PlanetId == scopeId && x.UserId == userId && !x.IsDeleted);
             if (!isMember)

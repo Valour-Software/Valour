@@ -143,6 +143,16 @@ window.getBrowserOrigin = function() {
     return window.location.origin;
 };
 
+// Asks the browser to keep this site's storage, which holds the login and this
+// device's encryption keys, instead of clearing it when space runs low.
+window.requestPersistentStorage = async function() {
+    if (!navigator.storage || !navigator.storage.persist)
+        return false;
+    if (await navigator.storage.persisted())
+        return true;
+    return await navigator.storage.persist();
+};
+
 window.getValourApiOrigin = function() {
     const config = window["valourRuntimeConfig"];
     if (!config || typeof config.apiOrigin !== "string")

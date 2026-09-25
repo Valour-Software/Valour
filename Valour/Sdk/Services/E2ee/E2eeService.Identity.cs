@@ -749,6 +749,7 @@ public partial class E2eeService
         }
 
         await Store.RemoveAsync(StoreKey(DeviceKey));
+        await ForgetInviteSecretsAsync();
     }
 
     /// <summary>
@@ -1628,9 +1629,11 @@ public partial class E2eeService
             }
 
             // Keys of earlier generations stay in storage, so messages this
-            // device could read before stay readable to it.
+            // device could read before stay readable to it. Invite secrets
+            // belonged to the keys that were replaced.
             _keyRings.Clear();
             _userKeys.Clear();
+            await ForgetInviteSecretsAsync();
             await AdoptNewKeysAsync(device, userKey, newRecovery: recovery, recoveryToStore: recovery);
             return (TaskResult<string>.FromData(recovery.ToCode()), false);
         }
@@ -1654,6 +1657,19 @@ public partial class E2eeService
         if (Status != E2eeStatus.Ready || Device is null)
             return Fail("Set up this device first.");
 
+        // The removal records where the device's membership log entries end.
+        // If the server finds an entry the device signed past its cutoff,
+        // for example one whose pin was never saved, the logs are loaded and
+        // the removal is tried once more.
+        var removingThisDevice = deviceId == Device.DeviceId;
+        var result = await RevokeDeviceCoreAsync(deviceId, await CollectAccessLogCutoffsAsync(removingThisDevice));
+        if (removingThisDevice && E2eeErrorCodes.Is(result.Message, E2eeErrorCodes.RemovalCutoffStale))
+            result = await RevokeDeviceCoreAsync(deviceId, await CollectAccessLogCutoffsAsync(removingThisDevice: false));
+        return result;
+    }
+
+    private async Task<TaskResult> RevokeDeviceCoreAsync(string deviceId, List<AccessLogCutoff> cutoffs)
+    {
         await _identityLock.WaitAsync();
         try
         {
@@ -1667,7 +1683,8 @@ public partial class E2eeService
 
             var current = await GetUserKeyAsync(state.UserKey.Generation);
             var next = UserKeyPair.Generate(state.UserKey.Generation + 1);
-            var entry = UserKeyLogBuilder.RevokeDevice(state, Device.DeviceId, Device.Sign, deviceId, next, current, NowMs());
+            var entry = UserKeyLogBuilder.RevokeDevice(state, Device.DeviceId, Device.Sign, deviceId, next, current,
+                NowMs(), cutoffs);
 
             var boxes = state.ActiveDevices.Values
                 .Where(d => d.DeviceId != deviceId)
@@ -1680,7 +1697,7 @@ public partial class E2eeService
             if (!result.Success)
                 return Fail(result.Message);
 
-            if (deviceId == Device.DeviceId)
+            if (deviceId == Device?.DeviceId)
             {
                 await ForgetLocalKeysAsync();
                 SetStatus(E2eeStatus.NeedsVerification);

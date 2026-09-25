@@ -54,6 +54,13 @@ public static class RateLimitPolicies
     public const string E2eeRead = "e2ee-read";
 
     /// <summary>
+    /// Filing reports. A report can carry several megabytes of message
+    /// evidence, and people file very few, so the limit is low. Limited per
+    /// account, like <see cref="E2ee"/>.
+    /// </summary>
+    public const string Report = "report";
+
+    /// <summary>
     /// Set to true to make every policy a no-op. Only for the test host, which
     /// drives hundreds of registrations and logins from a single address.
     /// The policies are still registered either way, because
@@ -90,6 +97,7 @@ public static class RateLimitPolicies
             AddFixedWindow(options, Register, permitLimit: 3, window: TimeSpan.FromMinutes(10), enabled);
             AddPerAccountWindow(options, E2ee, permitLimit: 300, window: TimeSpan.FromMinutes(1), enabled);
             AddPerAccountWindow(options, E2eeRead, permitLimit: 1200, window: TimeSpan.FromMinutes(1), enabled);
+            AddPerAccountWindow(options, Report, permitLimit: 10, window: TimeSpan.FromMinutes(10), enabled);
         });
     }
 

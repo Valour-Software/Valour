@@ -344,11 +344,19 @@
         // Removing this device from end-to-end encryption needs the session,
         // so it happens before the token is revoked.
         E2eeCoordinator.SigningOut = true;
-        await Client.E2eeService.SignOutDeviceAsync();
+        try
+        {
+            await Client.E2eeService.SignOutDeviceAsync();
 
-        // Revokes the token server-side and clears SDK auth state (best-effort)
-        var result = await Client.AuthService.LogoutAsync();
-        Console.WriteLine($"Logout result: {result.Message}");
+            // Revokes the token server-side and clears SDK auth state (best-effort)
+            var result = await Client.AuthService.LogoutAsync();
+            Console.WriteLine($"Logout result: {result.Message}");
+        }
+        catch
+        {
+            E2eeCoordinator.SigningOut = false;
+            throw;
+        }
 
         // Always clear the locally stored token so the next launch can't
         // auto-login with a revoked token and end up in a broken state

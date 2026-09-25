@@ -3,18 +3,38 @@
 
 <BasicModalLayout Title="Encryption" Icon="lock-fill" MaxWidth="480px" Role="dialog">
     <MainArea>
-        <p>
-            Messages here are end-to-end encrypted. Only the people who hold this channel's key can read them.
-            Valour stores them encrypted and cannot read them.
-        </p>
+        @if (Data.Channel.PlanetId is not null && E2eeService.IsPrivacyPending(Data.Channel.Planet))
+        {
+            <p>
+                Messages here are encrypted. This planet is not fully private yet: until its owner's device finishes
+                making it private, anyone its permissions allow to view this channel can read them.
+            </p>
+        }
+        else if (Data.Channel.PlanetId is not null && !_isPrivatePlanet)
+        {
+            <p>
+                Messages here are encrypted. This planet is public, so anyone its permissions allow to view this
+                channel can read them.
+            </p>
+        }
+        else if (_isPrivatePlanet)
+        {
+            <p>
+                Messages here are end-to-end encrypted. This planet is private, so only members an admin let in, or
+                who joined with an admin's invite link, can read them, in the channels they're allowed to view.
+                Valour stores them encrypted and cannot read them.
+            </p>
+        }
+        else
+        {
+            <p>
+                Messages here are end-to-end encrypted. Only the people who hold this channel's key can read them.
+                Valour stores them encrypted and cannot read them.
+            </p>
+        }
         @if (!Data.Channel.IsEncrypted)
         {
             <p class="helper-text">This channel's first key is created when someone sends the first message.</p>
-        }
-
-        @if (_policyText is not null)
-        {
-            <p class="helper-text">@_policyText</p>
         }
 
         @if (_people is null)
@@ -152,9 +172,12 @@
     private List<Person> _people;
     private int _moreCount;
     private string _peopleTitle;
-    private string _policyText;
     private bool _working;
     private bool _isGroup;
+
+    // Planet channels list nobody: who reads them follows the planet's
+    // members and permissions, which the planet's settings already show.
+    private bool _isPrivatePlanet;
     private ITaskResult _result;
 
     // Group chats: whether this account may confirm members' new keys, and
@@ -166,27 +189,16 @@
     protected override async Task OnInitializedAsync()
     {
         var channel = Data.Channel;
-        List<long> userIds;
-        var holderCount = 0;
-        if (channel.PlanetId is null)
+        if (channel.PlanetId is not null)
         {
-            _peopleTitle = "Security codes";
-            userIds = channel.Members?.Select(m => m.UserId).ToList() ?? [];
-        }
-        else
-        {
-            _policyText = channel.Planet?.EncryptionMode == PlanetEncryptionMode.InviteOnly
-                ? "This planet is invite-only: only members a planet admin added can read it."
-                : "Anyone the planet's permissions allow to view this channel can read it. Everyone who can is listed below.";
-            _peopleTitle = "People who can read this channel";
-
-            var recipients = await channel.Node.GetJsonAsync<ChannelKeyRecipientsDto>(
-                $"api/e2ee/channels/{channel.Id}/recipients?planetId={channel.PlanetId}", cacheDurationMs: null);
-            userIds = recipients.Success ? recipients.Data.Holders : [];
-            holderCount = recipients.Success ? recipients.Data.HolderCount : 0;
+            _isPrivatePlanet = channel.Planet?.EncryptionMode == PlanetEncryptionMode.InviteOnly;
+            _people = [];
+            return;
         }
 
-        _moreCount = Math.Max(0, Math.Max(holderCount, userIds.Count) - MaxPeopleShown);
+        _peopleTitle = "Security codes";
+        var userIds = channel.Members?.Select(m => m.UserId).ToList() ?? [];
+        _moreCount = Math.Max(0, userIds.Count - MaxPeopleShown);
         var shown = userIds.Take(MaxPeopleShown).ToList();
         var states = await Client.E2eeService.GetUserStatesAsync(shown);
         var people = new List<Person>();

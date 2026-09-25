@@ -186,6 +186,22 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public bool IsLegacySealed => SealedKind == ServerSealedKind.Legacy;
 
     /// <summary>
+    /// True for a plain-text message from before its channel was encrypted
+    /// that the server has not sealed yet. The server supplies its text, so
+    /// it is not signed by its author, and apps label it like a sealed
+    /// message from before encryption.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsPlainTextHistory { get; internal set; }
+
+    /// <summary>
+    /// True for a message whose text the server kept from before its channel
+    /// was encrypted, sealed or not. Apps label these messages.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsFromBeforeEncryption => IsLegacySealed || IsPlainTextHistory;
+
+    /// <summary>
     /// The embeds of an encrypted message exactly as its author signed them or
     /// the server attested them. The embeds shown may differ, because unsafe
     /// ones are hidden and live updates change them; reports reveal these.
@@ -490,7 +506,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     {
         // An encrypted message this device cannot read yet has no text, but
         // it is still a message; apps show why it cannot be read.
-        if (IsEncrypted)
+        if (IsEncrypted || DecryptionState != MessageDecryptionState.NotAttempted)
             return false;
 
         // early returns are faster than checking all conditions
@@ -557,6 +573,13 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
 
     public override Message AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
+        // Only text from before encryption is plain, so a plain copy of a
+        // message the cache holds encrypted comes from the server and never
+        // replaces it.
+        if (!IsEncrypted && Id != 0 && Client.Cache.Messages.TryGet(Id, CacheScope, out var encrypted) &&
+            encrypted.IsEncrypted)
+            return encrypted;
+
         if (IsEncrypted && Client.Cache.Messages.TryGet(Id, CacheScope, out var cached))
         {
             // Realtime events can arrive out of order. A copy of an earlier
@@ -591,6 +614,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         SignedContent = source.SignedContent;
         SealedSalt = source.SealedSalt;
         SealedKind = source.SealedKind;
+        IsPlainTextHistory = source.IsPlainTextHistory;
         SignedEmbeds = source.SignedEmbeds;
         AttachmentsWithheld = source.AttachmentsWithheld;
         Mentions = source.Mentions;

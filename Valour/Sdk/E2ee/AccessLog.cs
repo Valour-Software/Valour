@@ -5,7 +5,7 @@ namespace Valour.Sdk.E2ee;
 /// </summary>
 public enum AccessLogScope : byte
 {
-    /// <summary>An invite-only planet. Admins admit members; members share keys only with admitted users.</summary>
+    /// <summary>A private planet. Admins admit members; members share keys only with admitted users.</summary>
     Planet = 1,
 
     /// <summary>A group DM. Members add and remove each other.</summary>
@@ -33,8 +33,9 @@ public enum AccessLogEntryType : byte
     ConfirmEpoch = 8,
 
     /// <summary>
-    /// Starts the log over. Only the owner can do this; clients warn members
-    /// because it replaces every earlier admission.
+    /// Starts the log over. Only the owner can do this, with the keys the log
+    /// names for them, because it replaces every earlier admission. After an
+    /// <see cref="Open"/> entry it makes the planet private again.
     /// </summary>
     Restart = 9,
 
@@ -51,7 +52,17 @@ public enum AccessLogEntryType : byte
     /// approved trigger text, so the server cannot use automod to learn which
     /// words appear in messages.
     /// </summary>
-    ApproveAutomodTriggers = 11
+    ApproveAutomodTriggers = 11,
+
+    /// <summary>
+    /// Ends the log's authority over a planet that became public, signed by
+    /// the log's owner. Members' apps stop enforcing the log only after they
+    /// verify this entry, so the server cannot make a private planet public
+    /// on its own. Only the owner's <see cref="Restart"/> or
+    /// <see cref="TransferOwnership"/> can follow it, so only the owner can
+    /// make the planet private again.
+    /// </summary>
+    Open = 12
 }
 
 /// <summary>
@@ -347,6 +358,8 @@ public sealed class AccessLogRecord
             case AccessLogEntryType.ApproveAutomodTriggers:
                 AccessLogSnapshot.WriteApprovals(writer, AutomodApprovals);
                 break;
+            case AccessLogEntryType.Open:
+                break;
             default:
                 throw new E2eeFormatException("Unknown access log entry type.");
         }
@@ -418,6 +431,8 @@ public sealed class AccessLogRecord
                 break;
             case AccessLogEntryType.ApproveAutomodTriggers:
                 approvals = AccessLogSnapshot.ReadApprovals(reader);
+                break;
+            case AccessLogEntryType.Open:
                 break;
             default:
                 throw new E2eeFormatException("Unknown access log entry type.");
@@ -537,7 +552,25 @@ public sealed class AccessLogState
     /// <summary>The sequence number of the latest checkpoint, or -1 when there is none.</summary>
     public int LastCheckpointSeq { get; internal set; } = -1;
 
+    /// <summary>
+    /// The sequence number of the <see cref="AccessLogEntryType.Open"/> entry
+    /// that made the planet public, or -1 while the log governs it. A
+    /// <see cref="AccessLogEntryType.Restart"/> sets it back to -1.
+    /// </summary>
+    public int OpenedSeq { get; internal set; } = -1;
+
     public bool IsStarted => HeadSeq >= 0;
+
+    /// <summary>
+    /// True when the owner made the planet public with a signed
+    /// <see cref="AccessLogEntryType.Open"/> entry. The log then admits
+    /// nobody, and the planet's channels follow its permissions. It still
+    /// names its owner, who alone can make the planet private again.
+    /// </summary>
+    public bool IsOpen => OpenedSeq >= 0;
+
+    /// <summary>True when the log has started and decides who receives keys.</summary>
+    public bool IsGoverning => IsStarted && !IsOpen;
 
     /// <summary>
     /// Encodes the verified state so a device can store it and later fetch
@@ -546,21 +579,32 @@ public sealed class AccessLogState
     public byte[] Encode()
     {
         var writer = new E2eeWriter()
-            .WriteMagic("VAT3")
+            .WriteMagic(StateMagic)
             .WriteByte((byte)Scope)
             .WriteInt64(ScopeId)
             .WriteInt32(HeadSeq)
             .WriteFixed(HeadHash, E2eeCrypto.HashSize)
             .WriteInt64(HeadTimestampMs)
-            .WriteInt32(LastCheckpointSeq);
+            .WriteInt32(LastCheckpointSeq)
+            .WriteInt32(OpenedSeq);
         AccessLogSnapshot.FromState(this).Write(writer);
         return writer.ToArray();
     }
 
+    private const string StateMagic = "VAT4";
+
+    // States devices stored before the log could make a planet public.
+    private const string GoverningStateMagic = "VAT3";
+
+    /// <summary>
+    /// Decodes a stored state. States stored before planets could be made
+    /// public again have no <see cref="OpenedSeq"/> and are read as governing.
+    /// </summary>
     public static AccessLogState Decode(byte[] data)
     {
         var reader = new E2eeReader(data);
-        reader.ReadMagic("VAT3");
+        var withOpenedSeq = data is { Length: >= 4 } && data.AsSpan(0, 4).SequenceEqual("VAT4"u8);
+        reader.ReadMagic(withOpenedSeq ? StateMagic : GoverningStateMagic);
         var state = new AccessLogState
         {
             Scope = (AccessLogScope)reader.ReadByte(),
@@ -568,8 +612,11 @@ public sealed class AccessLogState
             HeadSeq = reader.ReadInt32(),
             HeadHash = reader.ReadFixed(E2eeCrypto.HashSize),
             HeadTimestampMs = reader.ReadInt64(),
-            LastCheckpointSeq = reader.ReadInt32()
+            LastCheckpointSeq = reader.ReadInt32(),
+            OpenedSeq = withOpenedSeq ? reader.ReadInt32() : -1
         };
+        if (state.OpenedSeq < -1 || state.OpenedSeq > state.HeadSeq)
+            throw new E2eeFormatException("Invalid stored access log state.");
         AccessLogSnapshot.Read(reader).ApplyTo(state);
         reader.EnsureEnd();
         return state;
@@ -673,6 +720,8 @@ public static class AccessLogVerifier
             throw new E2eeVerificationException("Access log entry belongs to another scope.");
 
         var signer = VerifySignature(record, entry, userStates);
+        if (!CountsSignature(record, userStates))
+            throw new E2eeVerificationException("The checkpoint was signed by a device after it was removed.");
         record.Snapshot.ApplyTo(state);
         if (!state.HasAdmin(signer))
             throw new E2eeVerificationException("Only the owner or an admin can sign a checkpoint.");
@@ -701,6 +750,25 @@ public static class AccessLogVerifier
         return new AccessMember(record.SignerUserId, epoch, keyId);
     }
 
+    /// <summary>
+    /// False when a partial log starts at a checkpoint that a removed device
+    /// signed after its cutoff. Such a checkpoint cannot start the log, so the
+    /// caller reads the whole log instead.
+    /// </summary>
+    public static bool CanStartFrom(List<AccessLogEntry> entries, IReadOnlyDictionary<long, UserKeyState> userStates)
+    {
+        if (entries.Count == 0 || entries[0].Seq == 0)
+            return true;
+
+        var record = AccessLogRecord.Decode(entries[0].Body);
+        return !userStates.TryGetValue(record.SignerUserId, out var signer) || signer is null ||
+               signer.CountsAccessLogSignature(record.SignerDeviceId, record.Scope, record.ScopeId, record.Seq);
+    }
+
+    private static bool CountsSignature(AccessLogRecord record, IReadOnlyDictionary<long, UserKeyState> userStates) =>
+        userStates[record.SignerUserId].CountsAccessLogSignature(record.SignerDeviceId, record.Scope, record.ScopeId,
+            record.Seq);
+
     public static AccessLogRecord Apply(AccessLogState state, AccessLogEntry entry,
         IReadOnlyDictionary<long, UserKeyState> userStates)
     {
@@ -724,8 +792,26 @@ public static class AccessLogVerifier
         var signerMember = VerifySignature(record, entry, userStates);
         var signer = record.SignerUserId;
 
+        // An entry a removed device signed after the point its account
+        // recorded for this log stays in the chain but has no effect, so a
+        // copy of the device's keys cannot let anyone in by dating an entry
+        // before the removal.
+        if (!CountsSignature(record, userStates))
+        {
+            state.HeadSeq = record.Seq;
+            state.HeadHash = entry.Hash();
+            state.HeadTimestampMs = record.TimestampMs;
+            return record;
+        }
+
         if (!state.IsStarted && record.Type != AccessLogEntryType.Genesis)
             throw new E2eeVerificationException("Access log must start with a genesis entry.");
+
+        // A log the owner opened admits nobody. It changes no further until
+        // its owner makes the planet private again or hands the log to a new
+        // owner along with the planet.
+        if (state.IsOpen && record.Type is not (AccessLogEntryType.Restart or AccessLogEntryType.TransferOwnership))
+            throw new E2eeVerificationException("The planet is public, so only its owner can change its membership log.");
 
         switch (record.Type)
         {
@@ -738,9 +824,10 @@ public static class AccessLogVerifier
                 if (!record.Owner.SameKeys(signerMember))
                     throw new E2eeVerificationException("The log owner must sign its first entry.");
 
-                // Only the current owner may start over. Otherwise the server
-                // could name an account it controls as the planet's owner and
-                // have it restart the log with any members it likes.
+                // Only the current owner may start over, including after the
+                // planet was made public. Otherwise the server could name an
+                // account it controls as the planet's owner and have it
+                // restart the log, admitting itself to later messages.
                 if (record.Type == AccessLogEntryType.Restart && !state.HasOwner(signerMember))
                     throw new E2eeVerificationException("Only the log's owner can restart it.");
                 state.Owner = record.Owner;
@@ -750,11 +837,22 @@ public static class AccessLogVerifier
                 foreach (var member in record.Members)
                     state.Members[member.UserId] = member;
                 state.Members[record.Owner.UserId] = record.Owner;
+                state.OpenedSeq = -1;
                 if (record.Type == AccessLogEntryType.Restart)
                 {
                     state.LastRestartAt = record.Timestamp;
                     state.LastRemovalSeq = record.Seq;
                 }
+                break;
+
+            case AccessLogEntryType.Open:
+                RequirePlanet(state);
+                if (!state.HasOwner(signerMember))
+                    throw new E2eeVerificationException("Only the log's owner can make the planet public.");
+                state.Members.Clear();
+                state.Admins.Clear();
+                state.Invites.Clear();
+                state.OpenedSeq = record.Seq;
                 break;
 
             case AccessLogEntryType.AddMembers:
@@ -838,7 +936,10 @@ public static class AccessLogVerifier
             case AccessLogEntryType.TransferOwnership:
                 if (!state.HasOwner(signerMember))
                     throw new E2eeVerificationException("Only the owner can transfer ownership.");
-                if (!state.HasMember(record.Target))
+
+                // An opened log has no members; the entry names the new
+                // owner's keys, which devices check against their key log.
+                if (!state.IsOpen && !state.HasMember(record.Target))
                     throw new E2eeVerificationException("The new owner must be a member with the keys they were admitted with.");
                 state.Owner = record.Target;
                 state.Admins.Remove(record.Target.UserId);
