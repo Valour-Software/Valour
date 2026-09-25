@@ -1,0 +1,29 @@
+.e2ee-chat-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    margin: var(--space-2) var(--space-3) 0;
+    padding: var(--space-2) var(--space-3);
+    color: var(--font-color);
+    font-size: var(--font-size-sm);
+    background-color: var(--color-warning-soft);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-md);
+}
+
+.e2ee-chat-notice > i {
+    color: var(--color-warning);
+    font-size: var(--font-size-lg);
+}
+
+.notice-copy {
+    flex: 1 1 16rem;
+    min-width: 0;
+}
+
+.notice-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-left: auto;
+}

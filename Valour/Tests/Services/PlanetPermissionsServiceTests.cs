@@ -714,4 +714,82 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
             }
         }
     }
+
+    [Fact]
+    public async Task NsfwChannelAccess_IsFilteredPerUserWithinSharedRoleCombo()
+    {
+        var owner = await _userService.GetAsync(_client.Me.Id);
+        Assert.NotNull(owner);
+
+        Planet? planet = null;
+        try
+        {
+            var createPlanetResult = await _planetService.CreateAsync(new Planet()
+            {
+                Name = $"nsfw-age-{Guid.NewGuid():N}".Substring(0, 24),
+                Description = "Age-restricted channel access regression test",
+                OwnerId = owner.Id,
+                Public = false,
+                Discoverable = false,
+                Nsfw = false
+            }, owner);
+            Assert.True(createPlanetResult.Success, createPlanetResult.Message);
+            planet = createPlanetResult.Data!;
+
+            var nsfwResult = await _channelService.CreateAsync(new Channel
+            {
+                PlanetId = planet.Id,
+                Name = "Adults Only",
+                Description = "Adults Only",
+                ChannelType = ChannelTypeEnum.PlanetChat,
+                Nsfw = true
+            });
+            Assert.True(nsfwResult.Success, nsfwResult.Message);
+            var nsfwChannelId = nsfwResult.Data!.Id;
+
+            var adult = await RegisterAndJoinAsync(planet.Id);
+            var minor = await RegisterAndJoinAsync(planet.Id);
+
+            var minorInfo = await _db.PrivateInfos.FirstAsync(x => x.UserId == minor.UserId);
+            minorInfo.BirthDate = DateTime.UtcNow.AddYears(-15);
+            await _db.SaveChangesAsync();
+
+            // Both members hold only the default role, so they share one cached
+            // role-combination entry. Whichever is computed first must not decide
+            // what the other sees.
+            Assert.Equal(adult.RoleMembership, minor.RoleMembership);
+
+            var adultAccess = await _permissionService.GetChannelAccessAsync(adult);
+            Assert.NotNull(adultAccess);
+            Assert.True(adultAccess.Contains(nsfwChannelId));
+
+            var minorAccess = await _permissionService.GetChannelAccessAsync(minor);
+            Assert.NotNull(minorAccess);
+            Assert.False(minorAccess.Contains(nsfwChannelId),
+                "A minor must not receive NSFW channels from access cached for an adult.");
+
+            var adultAccessAfter = await _permissionService.GetChannelAccessAsync(adult);
+            Assert.NotNull(adultAccessAfter);
+            Assert.True(adultAccessAfter.Contains(nsfwChannelId),
+                "Filtering for a minor must not remove NSFW channels from the shared cache.");
+        }
+        finally
+        {
+            if (planet is not null)
+                await _planetService.DeleteAsync(planet.Id);
+        }
+    }
+
+    private async Task<PlanetMember> RegisterAndJoinAsync(long planetId)
+    {
+        var details = await _fixture.RegisterUser();
+        var userId = await _db.Users.AsNoTracking()
+            .Where(x => x.Name == details.Username)
+            .Select(x => x.Id)
+            .FirstAsync();
+
+        var joinResult = await _planetMemberService.AddMemberAsync(planetId, userId);
+        Assert.True(joinResult.Success, joinResult.Message);
+        return joinResult.Data!;
+    }
 }

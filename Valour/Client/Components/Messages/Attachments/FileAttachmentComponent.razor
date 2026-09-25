@@ -44,6 +44,11 @@ else
         }
 
         _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
+
+        // The location becomes a clickable href, so script schemes never render.
+        if (!Valour.Shared.Utilities.SafeUrl.IsSafe(_location))
+            _location = null;
+
         _missing = Attachment.Missing || string.IsNullOrWhiteSpace(_location);
 
         if (_missing)

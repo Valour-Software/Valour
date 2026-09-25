@@ -1,0 +1,128 @@
+@inherits Modal<LogoutEncryptionWarningModal.Params>
+@inject ValourClient Client
+
+<BasicModalLayout Title="Before you log out" Icon="exclamation-triangle-fill" MaxWidth="480px" Role="alertdialog">
+    <MainArea>
+        @if (_code is null)
+        {
+            <div class="danger-note">
+                <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                <span>
+                    @if (Data.OnlyDevice)
+                    {
+                        <strong>This is the only device with your encryption keys.</strong>
+                        @(" Logging out removes it from your account. ")
+                        @(Data.NeedsRecoveryCode
+                            ? "You haven't saved a recovery code, so no one, including you, will be able to read your earlier encrypted messages again."
+                            : "To read your encrypted messages after you log back in, you will need your recovery code.")
+                    }
+                    else
+                    {
+                        <strong>You haven't saved a recovery code.</strong>
+                        @(" If you lose your other devices, your encrypted messages can't be recovered.")
+                    }
+                </span>
+            </div>
+            @if (Data.NeedsRecoveryCode)
+            {
+                <p>Save a recovery code now so you can get back into your encrypted messages.</p>
+            }
+        }
+        else
+        {
+            <p><strong>Save your recovery code.</strong> You will need it to read your encrypted messages after you log back in.</p>
+            <RecoveryCodeView Code="@_code" @bind-Saved="_saved" />
+        }
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" disabled="@_working" @onclick="@Close">Cancel</button>
+            @if (_code is null)
+            {
+                <button class="v-btn danger" disabled="@_working" @onclick="LogOutAsync">
+                    @(Data.NeedsRecoveryCode ? "Log out anyway" : "Log out")
+                </button>
+                <button class="v-btn primary" disabled="@_working" @onclick="ShowRecoveryCodeAsync">
+                    @(_working ? "Creating..." : RecoveryButtonText)
+                </button>
+            }
+            else
+            {
+                <button class="v-btn primary" disabled="@(!_saved || _working)" @onclick="SavedAndLogOutAsync">Log out</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    /// <summary>
+    /// Warns before logging out when doing so could lose access to encrypted
+    /// messages: this is the account's only device, or no recovery code has
+    /// been saved. The person can save a recovery code first.
+    /// </summary>
+    public class Params
+    {
+        /// <summary>True when no other device holds the account's keys.</summary>
+        public bool OnlyDevice { get; set; }
+
+        /// <summary>True when the account has no recovery code the person saved.</summary>
+        public bool NeedsRecoveryCode { get; set; }
+
+        /// <summary>Logs out. Called after this modal closes.</summary>
+        public Func<Task> LogOutAsync { get; set; }
+    }
+
+    private string _code;
+    private bool _saved;
+    private bool _working;
+    private ITaskResult _result;
+
+    private string RecoveryButtonText => Client.E2eeService.PendingRecoveryCode is not null
+        ? "Show my recovery code"
+        : Data.NeedsRecoveryCode ? "Create a recovery code" : "Create a new recovery code";
+
+    private async Task ShowRecoveryCodeAsync()
+    {
+        _result = null;
+
+        // A code created earlier in this session and not saved yet is shown
+        // again rather than replaced.
+        if (Client.E2eeService.PendingRecoveryCode is { } pending)
+        {
+            _code = pending;
+            E2eeCoordinator.ShownRecoveryCode = pending;
+            return;
+        }
+
+        _working = true;
+        StateHasChanged();
+        var result = await Client.E2eeService.CreateNewRecoveryCodeAsync();
+        _working = false;
+
+        if (result.Success)
+        {
+            _code = result.Data;
+            E2eeCoordinator.ShownRecoveryCode = _code;
+        }
+        else
+        {
+            _result = result;
+        }
+    }
+
+    private async Task SavedAndLogOutAsync()
+    {
+        _working = true;
+        await Client.E2eeService.MarkRecoveryCodeSavedAsync();
+        await LogOutAsync();
+    }
+
+    private async Task LogOutAsync()
+    {
+        _working = true;
+        Close();
+        if (Data.LogOutAsync is not null)
+            await Data.LogOutAsync();
+    }
+}

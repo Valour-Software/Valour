@@ -52,12 +52,13 @@ services:
       - Node__Location=https://${VALOUR_DOMAIN:?set VALOUR_DOMAIN in .env}
       # Optional community-node federation. Configure these with
       # ./scripts/valour-node-setup; this self-hosted bundle is not an official
-      # hub replica. The wizard generates and stores the KEK only in .env.
+      # hub replica.
       - Federation__HubUrl=${FEDERATION__HUBURL:-}
       - Federation__NodeDomain=${FEDERATION__NODEDOMAIN:-}
       - Federation__NodeChallenge=${FEDERATION__NODECHALLENGE:-}
       - Federation__AllowPublicMigrations=${FEDERATION__ALLOWPUBLICMIGRATIONS:-false}
-      - DataProtection__Kek=${DATAPROTECTION__KEK:-}
+      # Protects the encryption keys the server stores. Required; see .env.example.
+      - DataProtection__Kek=${DATAPROTECTION__KEK:?set DATAPROTECTION__KEK in .env (openssl rand -base64 32)}
       # Single-domain mode: app, api, cdn, threads, and docs all served from
       # VALOUR_DOMAIN (empty subdomains collapse to the root domain).
       - Hosting__InstanceName=${VALOUR_INSTANCE_NAME:-Valour}

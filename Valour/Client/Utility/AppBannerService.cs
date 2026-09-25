@@ -14,11 +14,23 @@ public sealed class AppBannerService
 
     public event Action Changed;
     public bool UpdateAvailable { get; private set; }
+
+    /// <summary>
+    /// The server requires a newer client. Unlike an available update, this
+    /// cannot be dismissed, because sending messages may fail until it is done.
+    /// </summary>
+    public bool UpdateRequired { get; private set; }
     public PlatformBanner PlatformBanner { get; private set; }
 
     public void ShowUpdateAvailable()
     {
         UpdateAvailable = true;
+        Changed?.Invoke();
+    }
+
+    public void ShowUpdateRequired()
+    {
+        UpdateRequired = true;
         Changed?.Invoke();
     }
 

@@ -1,0 +1,119 @@
+@inherits Modal<EncryptionSetupModal.Params>
+@inject ValourClient Client
+
+<BasicModalLayout Title="Your messages are encrypted" Icon="shield-lock-fill" MaxWidth="460px" Role="dialog">
+    <MainArea>
+        <p>
+            Every message on Valour is end-to-end encrypted. Only the people in a conversation can read it, and
+            Valour stores it without the keys.
+        </p>
+        <p class="e2ee-point">
+            <i class="bi bi-phone"></i> Your keys stay on your devices. Adding a device takes a quick scan from one you already use.
+        </p>
+        @if (_recoveryCode is not null)
+        {
+            <RecoveryCodeView Code="@_recoveryCode" @bind-Saved="_saved" />
+        }
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (_recoveryCode is not null)
+            {
+                <button class="v-btn" @onclick="@SaveLater">Save later</button>
+                <button class="v-btn primary" disabled="@(!_saved)" @onclick="@OnSavedAsync">Done</button>
+            }
+            else
+            {
+                <button class="v-btn" @onclick="@Close">Close</button>
+                <button class="v-btn primary" disabled="@_working" @onclick="@OnSetUpAsync">
+                    @(_working ? "Setting up..." : "Try again")
+                </button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    /// <summary>
+    /// Shows the recovery code created when this account's encryption was set
+    /// up at login. If that setup failed, the person can retry from here.
+    /// </summary>
+    public class Params
+    {
+    }
+
+    private string _recoveryCode;
+    private bool _saved;
+    private bool _working;
+    private ITaskResult _result;
+
+    protected override void OnInitialized()
+    {
+        _recoveryCode = Client.E2eeService.PendingRecoveryCode;
+        if (_recoveryCode is not null)
+            E2eeCoordinator.ShownRecoveryCode = _recoveryCode;
+        if (_recoveryCode is null && Client.E2eeService.Status == E2eeStatus.NotSetUp)
+            _result = TaskResult.FromFailure("Encryption could not be set up for your account. You cannot send messages until it is.");
+    }
+
+    private async Task OnSetUpAsync()
+    {
+        _working = true;
+        _result = null;
+        StateHasChanged();
+
+        var result = await Client.E2eeService.SetUpAsync();
+        if (result.Success)
+        {
+            _working = false;
+            _recoveryCode = result.Data;
+            E2eeCoordinator.ShownRecoveryCode = _recoveryCode;
+            return;
+        }
+
+        // Setup fails if another device set up this account at the same
+        // moment. Loading the account's keys again finds that device, and this
+        // one then needs to be verified instead.
+        try
+        {
+            await Client.E2eeService.InitializeAsync();
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<EncryptionSetupModal>($"Reloading encryption keys failed: {e.Message}", "red");
+        }
+
+        _working = false;
+        switch (Client.E2eeService.Status)
+        {
+            case E2eeStatus.NeedsVerification:
+                Close();
+                ModalRoot.OpenModal<VerifyDeviceModal>(new VerifyDeviceModal.Params());
+                return;
+            case E2eeStatus.Ready when Client.E2eeService.PendingRecoveryCode is not null:
+                _recoveryCode = Client.E2eeService.PendingRecoveryCode;
+                E2eeCoordinator.ShownRecoveryCode = _recoveryCode;
+                return;
+            case E2eeStatus.Ready:
+                Close();
+                return;
+            default:
+                _result = result;
+                return;
+        }
+    }
+
+    private async Task OnSavedAsync()
+    {
+        await Client.E2eeService.MarkRecoveryCodeSavedAsync();
+        Close();
+    }
+
+    private void SaveLater()
+    {
+        ToastContainer.Instance.AddToast(new ToastData("Recovery code not saved",
+            "Create and save a recovery code any time in Settings, under Encryption."));
+        Close();
+    }
+}

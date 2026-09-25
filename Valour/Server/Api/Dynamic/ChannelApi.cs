@@ -114,7 +114,8 @@ public class ChannelApi
         ChannelService channelService,
         TokenService tokenService,
         PlanetMemberService memberService,
-        PlanetRoleService roleService)
+        PlanetRoleService roleService,
+        PlanetPermissionService permissionService)
     {
         var channel = request.Channel;
         
@@ -140,9 +141,10 @@ public class ChannelApi
         }
         
         // Check permission for the category we are inserting into
+        Channel parent = null;
         if (channel.ParentId is not null)
         {
-            var parent = await channelService.GetChannelAsync(planetId, channel.ParentId.Value);
+            parent = await channelService.GetChannelAsync(planetId, channel.ParentId.Value);
             if (parent is null || parent.ChannelType != ChannelTypeEnum.PlanetCategory)
             {
                 return ValourResult.BadRequest("Invalid parent id");
@@ -160,11 +162,34 @@ public class ChannelApi
             
             foreach (var node in request.Nodes)
             {
+                if (node is null)
+                    return ValourResult.BadRequest("Permission nodes cannot be null");
+
+                if (node.TargetType is not (ChannelTypeEnum.PlanetChat or ChannelTypeEnum.PlanetCategory
+                    or ChannelTypeEnum.PlanetVoice or ChannelTypeEnum.PlanetVideo))
+                    return ValourResult.BadRequest("A permission node has an invalid target type");
+
                 var role = await roleService.GetAsync(planetId, node.RoleId);
-                if (memberAuthority < role.GetAuthority())
+                if (role is null)
+                    return ValourResult.BadRequest("A permission node's role does not belong to this planet");
+
+                // Deny-only nodes (such as hiding a new private channel from the default role)
+                // cannot raise anyone's access, so they may target a role of equal authority.
+                var grantsBits = (node.Code & node.Mask) != 0;
+                if (memberAuthority < role.GetAuthority() || (grantsBits && memberAuthority == role.GetAuthority()))
                 {
-                    return ValourResult.Forbid("A permission node's role cannot have higher authority than the member creating it");
+                    return ValourResult.Forbid("A permission node's role must have lower authority than the member creating it");
                 }
+
+                // Members may only allow or deny bits they hold where the channel is being created
+                var held = parent is not null
+                    ? await permissionService.GetChannelPermissionsAsync(member, parent, node.TargetType)
+                    : await permissionService.GetRolePermissionsAsync(member, node.TargetType);
+                var grantError = PermissionGrantGuard.GetUnheldChangeError(
+                    PermissionGrantGuard.GetChangedNodeBits(0, 0, node.Code, node.Mask), held,
+                    ChannelPermissions.GetChannelPermissionSet(node.TargetType), "channel");
+                if (grantError is not null)
+                    return ValourResult.Forbid(grantError);
             }
         }
         
@@ -388,21 +413,27 @@ public class ChannelApi
         long planetId,
         long channelId,
         ChannelService channelService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        PlanetPermissionService permissionService)
     {
         var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
-        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
-            return Results.Json(Array.Empty<long>());
-
         var member = await memberService.GetCurrentAsync(channel.PlanetId!.Value);
         if (member is null)
             return ValourResult.NotPlanetMember();
-        
+
+        // Only reveal channels the member can view
+        var access = await permissionService.GetChannelAccessAsync(member);
+        if (access is null || !access.Contains(channelId))
+            return ValourResult.NotFound("Channel not found");
+
+        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+            return Results.Json(Array.Empty<long>());
+
         var children = await channelService.GetChildrenIdsAsync(channelId);
-        return Results.Json(children);
+        return Results.Json(children.Where(access.Contains).ToList());
     }
     
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/nodes")]
@@ -411,19 +442,25 @@ public class ChannelApi
         long planetId,
         long channelId,
         ChannelService channelService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        PlanetPermissionService permissionService)
     {
         var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
-        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
-            return Results.Json(Array.Empty<PermissionsNode>());
-
         var member = await memberService.GetCurrentAsync(channel.PlanetId!.Value);
         if (member is null)
             return ValourResult.NotPlanetMember();
-        
+
+        // Only reveal nodes for channels the member can view
+        var access = await permissionService.GetChannelAccessAsync(member);
+        if (access is null || !access.Contains(channelId))
+            return ValourResult.NotFound("Channel not found");
+
+        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+            return Results.Json(Array.Empty<PermissionsNode>());
+
         var nodes = await channelService.GetPermissionNodesAsync(channelId);
         return Results.Json(nodes);
     }
@@ -612,8 +649,8 @@ public class ChannelApi
         var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
         if (hidden.Count > 0)
         {
-            messages = messages.Where(m => !hidden.Contains(m.AuthorUserId)).ToList();
-            RemoveBlockedReplyPreviews(messages, hidden);
+            messages = RemoveBlockedReplyPreviews(
+                messages.Where(m => !hidden.Contains(m.AuthorUserId)), hidden);
         }
 
         return Results.Json(messages);
@@ -655,65 +692,29 @@ public class ChannelApi
         var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
         if (hidden.Count > 0)
         {
-            messages = messages.Where(m => !hidden.Contains(m.AuthorUserId)).ToList();
-            RemoveBlockedReplyPreviews(messages, hidden);
+            messages = RemoveBlockedReplyPreviews(
+                messages.Where(m => !hidden.Contains(m.AuthorUserId)), hidden);
         }
 
         return Results.Json(messages);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/{channelId}/messages/search")]
-    [ValourRoute(HttpVerbs.Post, "api/channels/direct/{channelId}/messages/search")]
-    [UserRequired(UserPermissionsEnum.Messages)]
-    public static async Task<IResult> SearchMessagesAsync(
-        [FromBody] MessageSearchRequest request,
-        long channelId,
-        long? planetId,
-        MessageService messageService,
-        ChannelService channelService,
-        TokenService tokenService,
-        UserBlockService userBlockService)
+    /// <summary>
+    /// Hides replies to blocked users' messages. The messages can be shared instances from the
+    /// chat cache, so affected messages are replaced with copies rather than changed in place.
+    /// </summary>
+    internal static List<Message> RemoveBlockedReplyPreviews(IEnumerable<Message> messages, HashSet<long> hiddenUserIds)
     {
-        if (request.Count > 20)
-            return Results.BadRequest("Maximum count is 20.");
-
-        var token = await tokenService.GetCurrentTokenAsync();
-
-        if (planetId is null && !token.HasScope(UserPermissions.DirectMessages))
-        {
-            return ValourResult.Forbid("Token lacks permission to view messages in this channel");
-        }
-
-        var channel = await channelService.GetChannelAsync(planetId, channelId);
-        if (channel is null)
-            return ValourResult.NotFound("Channel not found");
-
-        if (!await channelService.HasAccessAsync(channel, token.UserId))
-            return ValourResult.Forbid("You are not a member of this channel");
-
-        var messages = await messageService.SearchChannelMessagesAsync(planetId, channelId, request.SearchText, request.Count);
-
-        // Filter out messages from blocked users
-        var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
-        if (hidden.Count > 0)
-        {
-            messages = messages.Where(m => !hidden.Contains(m.AuthorUserId)).ToList();
-            RemoveBlockedReplyPreviews(messages, hidden);
-        }
-
-        return Results.Json(messages);
-    }
-
-    private static void RemoveBlockedReplyPreviews(IEnumerable<Message> messages, HashSet<long> hiddenUserIds)
-    {
+        var result = new List<Message>();
         foreach (var message in messages)
         {
             if (message.ReplyTo is not null && hiddenUserIds.Contains(message.ReplyTo.AuthorUserId))
-            {
-                message.ReplyTo = null;
-                message.ReplyToId = null;
-            }
+                result.Add(message.WithoutReply());
+            else
+                result.Add(message);
         }
+
+        return result;
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/recentChatters")]

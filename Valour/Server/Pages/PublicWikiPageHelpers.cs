@@ -39,6 +39,7 @@ public static class PublicWikiPageHelpers
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub)
         .UseAdvancedExtensions()
+        .DisableGenericAttributes()
         .DisableHtml()
         // Wiki pages are user-authored and served to anonymous visitors, so
         // link schemes must be allowlisted (DisableHtml only stops raw tags).

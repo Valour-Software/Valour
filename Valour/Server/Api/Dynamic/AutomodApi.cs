@@ -35,8 +35,15 @@ public class AutomodApi
         {
             foreach (var act in request.Actions)
             {
+                if (act is null)
+                    return ValourResult.BadRequest("Actions cannot be null.");
+
                 act.PlanetId = planetId;
                 act.MemberAddedBy = member.Id;
+
+                var validation = await automodService.ValidateActionAsync(act, member);
+                if (!validation.Success)
+                    return ValourResult.Forbid(validation.Message);
             }
         }
 
@@ -92,9 +99,17 @@ public class AutomodApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
+        var trigger = await automodService.GetTriggerAsync(triggerId);
+        if (trigger is null || trigger.PlanetId != planetId)
+            return ValourResult.NotFound("Trigger not found.");
+
         action.TriggerId = triggerId;
         action.PlanetId = planetId;
         action.MemberAddedBy = member.Id;
+
+        var validation = await automodService.ValidateActionAsync(action, member);
+        if (!validation.Success)
+            return ValourResult.Forbid(validation.Message);
 
         var result = await automodService.CreateActionAsync(action);
         if (!result.Success)
@@ -128,6 +143,16 @@ public class AutomodApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
+        var existing = await automodService.GetTriggerAsync(triggerId);
+        if (existing is null || existing.PlanetId != planetId)
+            return ValourResult.NotFound("Trigger not found.");
+
+        // Trigger settings decide who the trigger's actions reach
+        var modifyResult = await automodService.CanModifyAsync(
+            member, await automodService.GetTriggerCreatorIdsAsync(existing));
+        if (!modifyResult.Success)
+            return ValourResult.Forbid(modifyResult.Message);
+
         var result = await automodService.UpdateTriggerAsync(trigger);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
@@ -156,6 +181,11 @@ public class AutomodApi
 
         if (trigger.PlanetId != planetId)
             return ValourResult.BadRequest("Trigger does not belong to this planet.");
+
+        var modifyResult = await automodService.CanModifyAsync(
+            member, await automodService.GetTriggerCreatorIdsAsync(trigger));
+        if (!modifyResult.Success)
+            return ValourResult.Forbid(modifyResult.Message);
 
         var result = await automodService.DeleteTriggerAsync(trigger);
         if (!result.Success)
@@ -193,6 +223,22 @@ public class AutomodApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
+        var trigger = await automodService.GetTriggerAsync(triggerId);
+        if (trigger is null || trigger.PlanetId != planetId)
+            return ValourResult.NotFound("Trigger not found.");
+
+        var existing = await automodService.GetActionAsync(actionId);
+        if (existing is null || existing.TriggerId != triggerId || existing.PlanetId != planetId)
+            return ValourResult.NotFound("Action not found.");
+
+        var modifyResult = await automodService.CanModifyAsync(member, [existing.MemberAddedBy]);
+        if (!modifyResult.Success)
+            return ValourResult.Forbid(modifyResult.Message);
+
+        var validation = await automodService.ValidateActionAsync(action, member);
+        if (!validation.Success)
+            return ValourResult.Forbid(validation.Message);
+
         var result = await automodService.UpdateActionAsync(action);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
@@ -222,6 +268,10 @@ public class AutomodApi
 
         if (action.TriggerId != triggerId || action.PlanetId != planetId)
             return ValourResult.BadRequest("Action does not belong to this trigger.");
+
+        var modifyResult = await automodService.CanModifyAsync(member, [action.MemberAddedBy]);
+        if (!modifyResult.Success)
+            return ValourResult.Forbid(modifyResult.Message);
 
         var result = await automodService.DeleteActionAsync(action);
         if (!result.Success)

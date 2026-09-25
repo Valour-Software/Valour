@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Text;
 using System.Text.Json;
 using Valour.Sdk.Client;
@@ -40,6 +41,7 @@ public class AuthService : ServiceBase
 
     private static readonly TimeSpan FederationJwksRefreshAge = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan MaximumOfflineFederationJwksAge = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan FederationPassportPrefetchDelay = TimeSpan.FromSeconds(10);
 
     private static readonly LogOptions LogOptions = new(
         "AuthService",
@@ -613,20 +615,35 @@ public class AuthService : ServiceBase
 
         _client.Me = response.Data.Sync(_client);
 
-        // Best-effort prefetch while the hub is available. This leaves a
-        // recently logged-in client ready to redeem a recipient-bound invite
-        // if the hub goes down before it reaches the community node.
-        _ = PrefetchFederationPassportAsync();
-        
         LoggedIn?.Invoke(_client.Me);
 
         return new TaskResult(true, "Success");
     }
 
-    private async Task PrefetchFederationPassportAsync()
+    /// <summary>
+    /// Requests a federation passport in the background once startup has
+    /// finished, while the hub is available. This leaves a logged-in client
+    /// ready to redeem a recipient-bound invite if the hub goes down before it
+    /// reaches the community node. Redeeming an invite still requests a
+    /// passport on demand when none is cached.
+    /// </summary>
+    internal void ScheduleFederationPassportPrefetch()
+    {
+        _ = PrefetchFederationPassportAsync(_token);
+    }
+
+    private async Task PrefetchFederationPassportAsync(string token)
     {
         try
         {
+            // Key generation and the passport requests share the browser's
+            // single thread with rendering, so let the first screens settle.
+            await Task.Delay(FederationPassportPrefetchDelay);
+
+            // The session changed during the delay.
+            if (string.IsNullOrWhiteSpace(token) || token != _token)
+                return;
+
             var result = await GetFederationPassportAsync();
             if (!result.Success)
                 LogWarning($"Federation passport prefetch failed: {result.Message}");
@@ -715,14 +732,37 @@ public class AuthService : ServiceBase
         return TaskResult.SuccessResult;
     }
     
-    public async Task<TaskResult> RemoveMfaAsync(string password)
+    /// <summary>
+    /// Removes the account's authenticator. Requires the password and, once the
+    /// authenticator has been verified, a current code from it.
+    /// </summary>
+    public async Task<TaskResult> RemoveMfaAsync(string password, string mfaCode = null)
     {
         var request = new RemoveMfaRequest()
         {
-            Password = password
+            Password = password,
+            MultiFactorCode = mfaCode
         };
         
-        return await _client.PrimaryNode.PostAsync("api/users/me/multiAuth/remove", request);
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<RemoveMfaResponse>(
+            "api/users/me/multiAuth/remove", request);
+        if (!result.Success)
+            return result.WithoutData();
+        if (string.IsNullOrWhiteSpace(result.Data?.NewToken))
+            return TaskResult.FromFailure("MFA was removed, but the server did not return a replacement session. Please log in again.");
+
+        SetToken(result.Data.NewToken);
+        _client.Http.DefaultRequestHeaders.Remove("Authorization");
+        _client.Http.DefaultRequestHeaders.Add("Authorization", Token);
+
+        foreach (var node in _client.NodeService.Nodes.Where(node => !node.IsExternal).ToArray())
+        {
+            node.UpdateToken();
+            if (node.HubConnection?.State == HubConnectionState.Connected)
+                await node.HandleReconnect();
+        }
+
+        return TaskResult.FromSuccess(result.Data.Message);
     }
 
     internal void HandleTokenInvalidated(string reason = null)
@@ -795,6 +835,10 @@ public class AuthService : ServiceBase
         }
 
         SetToken(null);
+
+        // The signed-out account's keys and caches must not carry over to
+        // whoever signs in next. Keys stored on the device are kept.
+        _client.E2eeService.Reset();
 
         try
         {

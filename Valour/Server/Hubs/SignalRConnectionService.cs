@@ -55,68 +55,116 @@ public class SignalRConnectionService : IDisposable
     private class GroupInfo
     {
         public string GroupId { get; }
-        public HashSet<string> Connections { get; } = new();
-        public HashSet<long> UserIds { get; } = new();
+
+        // Maps each connection in the group to the user it was tracked for (null when the
+        // connection had no identity when it joined).
+        private readonly Dictionary<string, long?> _connectionUsers = new();
+
+        // Number of this group's connections tracked for each user. A user is present in the
+        // group while their count is above zero, so leaving is O(1) instead of rescanning
+        // every remaining connection.
+        private readonly Dictionary<long, int> _userConnectionCounts = new();
 
         // For planet groups, maps a present user to their PlanetMember id so callers
         // can resolve membership without a database round-trip. Only populated when a
         // memberId is supplied (i.e. planet groups).
         private readonly Dictionary<long, long> _userMemberIds = new();
-        
+
         // For thread safety
         private readonly object _lock = new();
-        
+
         public GroupInfo(string groupId)
         {
             GroupId = groupId;
         }
-        
+
         public void AddConnection(string connectionId, long? userId = null, long? memberId = null)
         {
             lock (_lock)
             {
-                Connections.Add(connectionId);
-                if (userId.HasValue)
+                if (_connectionUsers.TryGetValue(connectionId, out var previousUserId))
                 {
-                    UserIds.Add(userId.Value);
-                    if (memberId.HasValue)
-                        _userMemberIds[userId.Value] = memberId.Value;
+                    // Rejoining with the same connection: only move the user count if the
+                    // connection is now tracked for a different user.
+                    if (previousUserId != userId)
+                    {
+                        if (previousUserId.HasValue)
+                            DecrementUser(previousUserId.Value);
+                        if (userId.HasValue)
+                            _userConnectionCounts[userId.Value] = _userConnectionCounts.GetValueOrDefault(userId.Value) + 1;
+                    }
                 }
+                else if (userId.HasValue)
+                {
+                    _userConnectionCounts[userId.Value] = _userConnectionCounts.GetValueOrDefault(userId.Value) + 1;
+                }
+
+                _connectionUsers[connectionId] = userId;
+
+                if (userId.HasValue && memberId.HasValue)
+                    _userMemberIds[userId.Value] = memberId.Value;
             }
         }
-        
-        public void RemoveConnection(string connectionId, long? userId = null)
+
+        public void RemoveConnection(string connectionId)
         {
             lock (_lock)
             {
-                Connections.Remove(connectionId);
-                
-                // Only remove userId if this was the last connection for this user in this group
-                if (userId.HasValue && !Connections.Any(c => 
-                    ConnectionIdentities.TryGetValue(c, out var token) && 
-                    token?.UserId == userId.Value))
+                // Only remove the user once this was their last connection in this group
+                if (_connectionUsers.Remove(connectionId, out var userId) && userId.HasValue)
+                    DecrementUser(userId.Value);
+            }
+        }
+
+        // Caller must hold _lock
+        private void DecrementUser(long userId)
+        {
+            if (!_userConnectionCounts.TryGetValue(userId, out var count))
+                return;
+
+            if (count <= 1)
+            {
+                _userConnectionCounts.Remove(userId);
+                _userMemberIds.Remove(userId);
+            }
+            else
+            {
+                _userConnectionCounts[userId] = count - 1;
+            }
+        }
+
+        public bool ContainsUser(long userId)
+        {
+            lock (_lock)
+            {
+                return _userConnectionCounts.ContainsKey(userId);
+            }
+        }
+
+        public bool HasConnections
+        {
+            get
+            {
+                lock (_lock)
                 {
-                    UserIds.Remove(userId.Value);
-                    _userMemberIds.Remove(userId.Value);
+                    return _connectionUsers.Count > 0;
                 }
             }
         }
-        
-        public bool HasConnections => Connections.Count > 0;
         
         public string[] GetConnectionsCopy()
         {
             lock (_lock)
             {
-                return Connections.ToArray();
+                return _connectionUsers.Keys.ToArray();
             }
         }
-        
+
         public long[] GetUserIdsCopy()
         {
             lock (_lock)
             {
-                return UserIds.ToArray();
+                return _userConnectionCounts.Keys.ToArray();
             }
         }
 
@@ -268,7 +316,7 @@ public class SignalRConnectionService : IDisposable
         // Remove from group info if it exists
         if (GroupRegistry.TryGetValue(groupId, out var groupInfo))
         {
-            groupInfo.RemoveConnection(connectionId, userId);
+            groupInfo.RemoveConnection(connectionId);
             
             // Remove empty groups
             if (!groupInfo.HasConnections)
@@ -298,7 +346,7 @@ public class SignalRConnectionService : IDisposable
             {
                 // Check if this is the last connection for this user in this group
                 bool isLastConnection = !GroupRegistry.TryGetValue(groupId, out var group) ||
-                                      !group.GetUserIdsCopy().Contains(userId.Value);
+                                      !group.ContainsUser(userId.Value);
                 
                 if (isLastConnection)
                 {

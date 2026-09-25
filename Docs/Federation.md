@@ -112,6 +112,30 @@ Re-register and re-verify after changing the node's public signing key or
 `AllowPublicMigrations` policy. A domain must remain publicly reachable: the
 hub checks the live descriptor before issuing user credentials to that node.
 
+Registration rules:
+
+- The domain is a bare host name served on the default HTTPS port (443). The
+  hub does not accept a domain with another port.
+- An unverified registration reserves its domain for 72 hours. While it is
+  pending, other accounts cannot register the same domain. After 72 hours any
+  account may register it and verify it. Registering again during the window
+  keeps the same challenge and does not extend it.
+- One account can hold at most five registrations. Active, suspended, and
+  unexpired pending registrations count toward this limit.
+- A suspended node cannot be re-registered or re-verified by its owner. Only
+  staff can reinstate it.
+- Staff can delete a registration that hosts no planets and has no migration
+  in progress, which frees its domain. A node that hosts planets must be
+  suspended instead.
+- The hub reads at most 64 KB of the `/.well-known/valour-node` descriptor.
+  Verification errors describe what to check but do not include the hub's
+  internal network error.
+
+Hosting approvals can only be created for an active, verified node. The hub
+stores an approval exactly as entered and does not report whether the planet
+belongs to the approved owner. An approval takes effect only when that owner
+starts a migration of a planet they actually own.
+
 ## Planet-owner migration flow
 
 Only the planet owner can start a forward migration, and only from a planet
@@ -137,9 +161,11 @@ There is no direct community-node-to-community-node migration. To change
 community hosts, first complete a verified pull-back to the hub, then begin a
 new forward migration.
 
-The export format has transfer limits. An export rejects planets with encrypted node-local storage or voice
-credentials, thread attachments, or custom planet/emoji assets. Resolve or
-remove those blockers before starting the handoff.
+The export format has transfer limits. An export rejects planets with encrypted
+node-local storage or voice credentials, thread attachments, or custom
+planet/emoji assets. Resolve or remove those blockers before starting the
+handoff. End-to-end encrypted messages move with the planet, and members keep
+reading them with the keys they already hold.
 
 ## Security and trust model
 
@@ -147,14 +173,54 @@ remove those blockers before starting the handoff.
   `/.well-known/valour-node`; the hub pins and continuously rechecks that key.
 - Hub-minted credentials are signed, short-lived, and valid only for the
   destination domain. The destination exchanges them for its own local session.
+  Each credential carries a unique id (`jti`) and the node accepts it for only
+  one exchange. Node-to-hub server credentials also carry a unique id, are
+  accepted once, and may not be valid for more than ten minutes. Both
+  single-use records are kept in the deployment's shared Redis until the
+  credential expires.
 - Joining a community node requires explicit domain acceptance. Community
   servers are independently operated and should be treated accordingly.
-- The Data Protection KEK encrypts federation signing material stored in a
-  database. Keep it out of source control and never reuse a development key in
+- The Data Protection KEK encrypts federation signing material and the
+  encryption keys the server stores in its database. Every production server
+  needs one. Keep it out of source control and never reuse a development key in
   a shared or production deployment.
 - Federation protocol versions must match exactly. Upgrade all official hub
   replicas and participating community nodes together; re-verify nodes and
   reissue open grants after a protocol upgrade.
+
+## Upgrading for end-to-end encryption
+
+Every chat message is [end-to-end encrypted](EndToEndEncryption.md). A server
+built before encryption accepts only plain-text messages, which current clients
+never send. Upgrade in this order:
+
+1. **Official hub replicas.** Community nodes check message signatures against
+   users' key logs, which they copy from the hub's
+   `api/federation/e2ee/key-logs` endpoint. A node upgraded before its hub has
+   no key logs to check against, so it refuses encrypted messages.
+2. **Community nodes.** On startup an upgraded node applies the encryption
+   migrations. The hub and nodes must speak the same federation protocol
+   version, which is 6, and they refuse each other's credentials when the
+   versions differ. The hub logs that the node must be updated and does not
+   issue sign-in tokens for it, so signing in to a node that has not been
+   upgraded fails with "Community node verification has expired or changed."
+   Upgrade nodes soon after the hub. Sealing the plain-text history of the
+   planets a node hosts is a separate step the operator turns on later (see
+   [Configuration and rollout](EndToEndEncryption.md#configuration-and-rollout)).
+3. **Clients and bots.** Current apps and the .NET SDK 0.9.0 or later encrypt
+   messages. Earlier apps, earlier SDK versions, and raw HTTP bots are refused
+   by upgraded servers with an `E2EE_REQUIRED` error.
+
+Each server reports the client protocol it speaks as `ClientProtocol` in its
+instance manifest at `/.well-known/valour-instance`. Encryption is protocol 1.
+When a client connects to a community node it reads that manifest. If the node
+reports an earlier protocol, or has no manifest, members can still read its
+existing messages, but sending in its planets fails with "This community node
+must be updated before you can send messages here." A client that found a node
+outdated reads its manifest again the next time it tries to send, once at least
+five minutes have passed, so an upgrade takes effect without restarting the app.
+If the manifest cannot be read because of a network error, the client sends
+anyway and the node's own response decides.
 
 ## Local development
 

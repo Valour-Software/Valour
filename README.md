@@ -41,8 +41,12 @@ ports 80 and 443. From the repository root:
 cp .env.example .env
 ```
 
-Edit `.env` to set the domain, database password, and bootstrap administrator
-credentials, then start the services:
+Edit `.env` to set the domain, database password, bootstrap administrator
+credentials, and `DATAPROTECTION__KEK`, a secret key that protects the encryption
+keys the server stores (generate it with `openssl rand -base64 32` and keep a
+copy apart from database backups; see
+[Data Protection KEK](Docs/Deployment/README.md#data-protection-kek)). Compose
+refuses to start without it. Then start the services:
 
 ```sh
 docker compose up -d
@@ -83,10 +87,10 @@ transfer limits and the distinction between a pending and completed handoff.
 
 ## Contribute
 
-Install the exact SDK in [global.json](global.json):
-`11.0.100-preview.3.26207.106`. SDK roll-forward is disabled. Local server work also
-requires PostgreSQL and Redis. JavaScript tests use Node.js, and browser tests
-require Playwright. Native application builds require their platform workloads.
+Install the at least the suggested SDK version in [global.json](global.json):
+`11.0.100-rc.1`. Local server work also requires PostgreSQL and Redis.
+JavaScript tests use Node.js, and browser tests require Playwright.
+Native application builds require their platform workloads.
 
 Restore dependencies from the repository root:
 
@@ -110,6 +114,25 @@ dotnet run --project Valour/Server/Valour.Server.csproj
 The development launch profile uses `https://localhost:5001` and
 `http://localhost:5000`. The server's startup output identifies the listening URLs.
 The browser client resolves its API address through its hosting configuration.
+
+The native app uses the official API unless a Debug build names a local server.
+To test on a phone, start the server with the `Valour.Server (phones on this
+network)` launch profile, which also listens on port 5080 on every network
+interface. Port 5000 is not used for this because macOS reserves it for the
+AirPlay receiver. Then create the ignored `Valour/Client.Maui/Local.props`:
+
+```xml
+<Project>
+  <PropertyGroup>
+    <ValourApiBase>http://192.168.1.20:5080</ValourApiBase>
+  </PropertyGroup>
+</Project>
+```
+
+Use your computer's address on the network the phone shares, and rebuild the app.
+Debug builds on Android allow plain HTTP for this; Release builds always use the
+official API over HTTPS. The phone and computer must be on the same network, and
+the computer's firewall must allow incoming connections to the server.
 
 Build from the root with `dotnet build`. C# integration tests start application
 services and need a dedicated test database and Redis instance. Use the

@@ -370,7 +370,7 @@ export function init(dotnet, inputEl) {
                         if (e.code === "ArrowUp") {
                             await ctx.dotnet.invokeMethodAsync('OnUpArrowNonMention');
                         }
-                        await this.caretMoveHandler();
+                        await ctx.caretMoveHandler();
                     }
                     break;
                 case "ArrowLeft":
@@ -423,6 +423,7 @@ export function init(dotnet, inputEl) {
             await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
         },
         clickHandler: () => {
+            ctx.inputEl.focus();
             ctx.caretMoveHandler();
         },
         hookEvents: () => {

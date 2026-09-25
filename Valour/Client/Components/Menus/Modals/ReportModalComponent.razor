@@ -71,6 +71,28 @@
                             <label>What happened?</label>
                             <textarea class="form-control" @bind="_details" rows="6" maxlength="@ISharedPlanetReport.MaxReasonLength" placeholder="Add context for the moderators reviewing this report."></textarea>
                         </div>
+                        @if (Data.Message is not null)
+                        {
+                            <div class="report-evidence" role="note">
+                                <i class="bi @(CanIncludeMessage ? "bi-eye" : "bi-eye-slash")" aria-hidden="true"></i>
+                                <span>
+                                    @if (CanIncludeMessage)
+                                    {
+                                        <strong>This message's text is included</strong>
+                                        <span>
+                                            @(Data.Message.IsEncrypted
+                                                ? $"The message is end-to-end encrypted, so the report shares it with {ReviewerName}. Only this message is revealed, and Valour checks that its author really sent it."
+                                                : "A copy stays with the report even if the message is deleted.")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <strong>This message's text can't be included</strong>
+                                        <span>This device can't read the message, so @ReviewerName will only see your description.</span>
+                                    }
+                                </span>
+                            </div>
+                        }
                     </section>
                     break;
                 case 3:
@@ -114,7 +136,23 @@
         public Report Report;
         public Planet Planet;
         public long? ReportedMemberId;
+
+        /// <summary>The reported message, when reporting a message.</summary>
+        public Message Message;
     }
+
+    // A message can be included when this device can read it. Messages hidden
+    // for tampering keep their text so they can be reported.
+    private bool CanIncludeMessage =>
+        Data.Message is not null &&
+        (!Data.Message.IsEncrypted ||
+         Data.Message.DecryptionState is MessageDecryptionState.Decrypted or MessageDecryptionState.Invalid) &&
+        (!string.IsNullOrEmpty(Data.Message.Content) || Data.Message.EmbedAttachment is not null);
+
+    private string ReviewerName => _scope == ReportScope.Planet ? "the planet's moderators" : "Valour staff";
+
+    private List<MessageEvidenceDto> BuildEvidence() =>
+        CanIncludeMessage ? [E2eeService.BuildEvidence(Data.Message)] : null;
 
     private enum ReportScope
     {
@@ -291,7 +329,8 @@
                 ThreadCommentId = Data.Report.ThreadCommentId,
                 ReportedUserId = Data.Report.ReportedUserId,
                 ReportedMemberId = Data.ReportedMemberId,
-                LongReason = Data.Report.LongReason
+                LongReason = Data.Report.LongReason,
+                Evidence = BuildEvidence()
             };
 
             var planetResult = await SafetyService.PostPlanetReportAsync(report, _planet);
@@ -299,6 +338,7 @@
         }
         else
         {
+            Data.Report.Evidence = BuildEvidence();
             result = await SafetyService.PostReportAsync(Data.Report);
         }
 

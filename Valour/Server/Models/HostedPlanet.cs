@@ -197,15 +197,27 @@ public class HostedPlanet : ServerModel<long>
     
     public void UpsertRole(PlanetRole role)
     {
-        var result = _roles.Upsert(role);
-        if (result.IsDefault)
-        {
-            _defaultRole = result;
-        }
-        
         _localToGlobalRoleLock.EnterWriteLock();
         try
         {
+            // Upsert copies into the cached instance, so read the previous index first
+            var previousIndex = _roles.Get(role.Id)?.FlagBitIndex;
+
+            var result = _roles.Upsert(role);
+            if (result.IsDefault)
+            {
+                _defaultRole = result;
+            }
+
+            // Release the old slot so it can no longer resolve to this role
+            if (previousIndex is { } oldIndex && oldIndex != role.FlagBitIndex &&
+                oldIndex >= 0 && oldIndex < _localToGlobalRoleId.Length &&
+                _localToGlobalRoleId[oldIndex] == role.Id)
+            {
+                _localToGlobalRoleId[oldIndex] = 0;
+                _isLocalToGlobalRoleIdDirty = true;
+            }
+
             if (role.FlagBitIndex >= 0 && role.FlagBitIndex < _localToGlobalRoleId.Length)
             {
                 _localToGlobalRoleId[role.FlagBitIndex] = role.Id;
@@ -303,6 +315,15 @@ public class HostedPlanet : ServerModel<long>
 
     public int MemberCount => _members.Count;
 
+    private long _membershipVersion;
+
+    /// <summary>
+    /// Increases whenever someone joins or leaves, so caches of results that
+    /// depend on who the members are can tell they are out of date even when
+    /// the member count is unchanged.
+    /// </summary>
+    public long MembershipVersion => Interlocked.Read(ref _membershipVersion);
+
     public void SetMembers(IEnumerable<PlanetMember> members)
     {
         _members.Clear();
@@ -310,6 +331,7 @@ public class HostedPlanet : ServerModel<long>
         foreach (var member in members)
             StoreCore(member);
         _membersLoaded = true;
+        Interlocked.Increment(ref _membershipVersion);
     }
 
     /// <summary>
@@ -343,14 +365,20 @@ public class HostedPlanet : ServerModel<long>
     private void StoreCore(PlanetMember member)
     {
         var core = member.CopyWithUser(null);
+        var joined = !_members.ContainsKey(core.Id);
         _members[core.Id] = core;
         _userIdToMemberId[member.UserId] = member.Id;
+        if (joined)
+            Interlocked.Increment(ref _membershipVersion);
     }
 
     public void RemoveMember(long memberId)
     {
         if (_members.TryRemove(memberId, out var removed))
+        {
             _userIdToMemberId.TryRemove(removed.UserId, out _);
+            Interlocked.Increment(ref _membershipVersion);
+        }
     }
 
     /// <summary>
@@ -358,6 +386,28 @@ public class HostedPlanet : ServerModel<long>
     /// users alive in the node-global user cache.
     /// </summary>
     public long[] GetMemberUserIds() => _userIdToMemberId.Keys.ToArray();
+
+    /// <summary>
+    /// Returns the cached core members (User is null) whose role membership includes the given
+    /// role index. Same read-only contract as <see cref="TryGetMember"/>.
+    /// </summary>
+    public List<PlanetMember> GetMembersWithRole(int roleFlagBitIndex)
+    {
+        var result = new List<PlanetMember>();
+        foreach (var member in _members.Values)
+        {
+            if (member.RoleMembership.HasRole(roleFlagBitIndex))
+                result.Add(member);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns a snapshot of every cached core member (User is null). Same read-only contract as
+    /// <see cref="TryGetMember"/>.
+    /// </summary>
+    public List<PlanetMember> GetAllMembers() => _members.Values.ToList();
 
     // Voice Participants //
 

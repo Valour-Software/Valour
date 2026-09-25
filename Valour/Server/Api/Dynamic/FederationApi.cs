@@ -1,3 +1,4 @@
+using Valour.Sdk.E2ee;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Config.Configs;
 using Valour.Shared.Authorization;
@@ -91,6 +92,25 @@ public class FederationApi
             return ValourResult.BadRequest(result.Message);
 
         return ValourResult.Ok("Node reinstated.");
+    }
+
+    /// <summary>
+    /// Staff: delete a node registration that hosts no planets, freeing its
+    /// domain for registration (for example to resolve a disputed domain).
+    /// </summary>
+    [ValourRoute(HttpVerbs.Delete, "api/federation/nodes/{domain}")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [StaffRequired]
+    public static async Task<IResult> DeleteNodeRoute(string domain, FederationHubService hubService)
+    {
+        if (!FederationHubService.HubEnabled)
+            return ValourResult.NotFound("Community-server features are only available on the official server.");
+
+        var result = await hubService.DeleteNodeAsync(domain);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok("Node registration deleted.");
     }
 
     [ValourRoute(HttpVerbs.Get, "api/federation/nodes/{domain}")]
@@ -664,6 +684,27 @@ public class FederationApi
 
         var page = await hubService.GetPurgedUserIdsAsync(domain, Math.Max(0, after));
         return Results.Json(page);
+    }
+
+    /// <summary>
+    /// Returns account key logs to a community node, which needs them to check
+    /// message signatures and membership logs in the planets it hosts. Key logs
+    /// hold only public keys and device names, and every entry is signed, so a
+    /// node verifies them rather than trusting the hub.
+    /// </summary>
+    [ValourRoute(HttpVerbs.Post, "api/federation/e2ee/key-logs")]
+    public static async Task<IResult> GetKeyLogsForNodeAsync(HttpContext ctx, [FromBody] UserKeyLogsRequest request,
+        FederationHubService hubService, E2eeIdentityService identity)
+    {
+        var domain = await AuthNodeAsync(ctx, hubService);
+        if (domain is null)
+            return ValourResult.Forbid("Invalid or missing node credentials.");
+        if (request?.KnownCounts is null)
+            return ValourResult.BadRequest("Include the users to fetch.");
+        if (request.KnownCounts.Count > 500)
+            return ValourResult.BadRequest("Request at most 500 users at a time.");
+
+        return Results.Json(await identity.GetLogsAsync(request.KnownCounts));
     }
 
     private static async Task<string> AuthNodeAsync(HttpContext ctx, FederationHubService hubService)

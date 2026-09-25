@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Net;
 using SixLabors.ImageSharp;
 using Microsoft.Extensions.Logging;
 
@@ -55,19 +56,26 @@ public class ImageSizeFetcher
                 int rangeStart = bytesFetched;
                 int rangeEnd = Math.Min(bytesFetched + currentChunkSize - 1, maxBytes - 1);
 
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(rangeStart, rangeEnd);
 
                 using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                     return null;
 
-                var bytes = await response.Content.ReadAsByteArrayAsync();
-                if (bytes.Length == 0)
+                // An origin that ignores Range answers 200 with the whole file
+                // from byte zero. Read only the leading bytes that fit in the
+                // buffer, identify once, and stop instead of requesting more.
+                var ignoredRange = response.StatusCode != HttpStatusCode.PartialContent;
+                var writeOffset = ignoredRange ? 0 : bytesFetched;
+                var readLimit = ignoredRange ? maxBytes : rangeEnd - rangeStart + 1;
+
+                await using var body = await response.Content.ReadAsStreamAsync();
+                var read = await ReadAtMostAsync(body, buffer.AsMemory(writeOffset, readLimit));
+                if (read == 0)
                     break;
 
-                bytes.AsSpan().CopyTo(buffer.AsSpan(bytesFetched));
-                bytesFetched += bytes.Length;
+                bytesFetched = writeOffset + read;
 
                 using var ms = new MemoryStream(buffer, 0, bytesFetched, writable: false, publiclyVisible: true);
                 try
@@ -81,11 +89,18 @@ public class ImageSizeFetcher
                     // Ignore and try with more bytes
                 }
 
-                if (bytes.Length < currentChunkSize)
+                if (ignoredRange || read < currentChunkSize)
                     break;
 
                 chunkIndex++;
             }
+        }
+        catch (Exception ex)
+        {
+            // A broken or hostile origin only means the size is unknown; it
+            // must not fail the message that linked to it.
+            logger?.LogDebug(ex, "Failed to read image dimensions from {Url}", url);
+            return null;
         }
         finally
         {
@@ -96,5 +111,20 @@ public class ImageSizeFetcher
 
         // Gave up after maxBytes
         return null;
+    }
+
+    private static async Task<int> ReadAtMostAsync(Stream stream, Memory<byte> destination)
+    {
+        var total = 0;
+        while (total < destination.Length)
+        {
+            var read = await stream.ReadAsync(destination[total..]);
+            if (read == 0)
+                break;
+
+            total += read;
+        }
+
+        return total;
     }
 }

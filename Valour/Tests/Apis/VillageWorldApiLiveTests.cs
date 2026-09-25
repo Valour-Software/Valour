@@ -108,6 +108,40 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task EnableVillage_PersistsAcrossFreshReads()
+    {
+        try
+        {
+            foreach (var enabled in new[] { false, true, false, true })
+            {
+                _planet.EnableVillage = enabled;
+                var update = await _planet.UpdateAsync();
+                Assert.True(update.Success, update.Message);
+                Assert.Equal(enabled, update.Data.EnableVillage);
+
+                using var scope = _fixture.Factory.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+                Assert.Equal(enabled, await db.Planets.AsNoTracking()
+                    .Where(x => x.Id == _planet.Id).Select(x => x.EnableVillage).SingleAsync());
+
+                var fresh = await _fixture.Client.Http.GetFromJsonAsync<Valour.Sdk.Models.Planet>(
+                    $"api/planets/{_planet.Id}");
+                Assert.NotNull(fresh);
+                Assert.Equal(enabled, fresh.EnableVillage);
+
+                var refreshed = await _fixture.Client.PlanetService.FetchPlanetAsync(_planet.Id, skipCache: true);
+                Assert.Equal(enabled, refreshed.EnableVillage);
+            }
+        }
+        finally
+        {
+            _planet.EnableVillage = true;
+            var restored = await _planet.UpdateAsync();
+            Assert.True(restored.Success, restored.Message);
+        }
+    }
+
+    [Fact]
     public async Task FirstOpen_SeedsAWalkableWorld()
     {
         var scene = await LoadSceneAsync();

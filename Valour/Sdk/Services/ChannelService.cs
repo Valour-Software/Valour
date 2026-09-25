@@ -198,11 +198,21 @@ public class ChannelService : ServiceBase
 
     public async Task<TaskResult<Channel>> AddGroupDmMembersAsync(long channelId, IEnumerable<long> userIds)
     {
+        var ids = userIds.Distinct().ToList();
         var result = await _client.PrimaryNode.PostAsyncWithResponse<Channel>(
             $"api/channels/group/{channelId}/members",
-            new AddGroupDmMembersRequest { UserIds = userIds.Distinct().ToList() });
+            new AddGroupDmMembersRequest { UserIds = ids });
         if (result.Success && result.Data is not null)
+        {
             RegisterDirectChannel(result.Data);
+            _cache.Channels.TryGet(channelId, out var channel);
+
+            // An encrypted group admits new members through its signed
+            // membership log; without that entry no one shares keys with them.
+            var admitted = await _client.E2eeService.AdmitGroupMembersAsync(channel, ids);
+            if (!admitted.Success)
+                LogWarning("Added members could not be admitted to the encrypted group: " + admitted.Message);
+        }
         return result;
     }
 
@@ -216,8 +226,19 @@ public class ChannelService : ServiceBase
         return result;
     }
 
-    public Task<TaskResult> RemoveGroupDmMemberAsync(long channelId, long userId) =>
-        _client.PrimaryNode.DeleteAsync($"api/channels/group/{channelId}/members/{userId}");
+    public async Task<TaskResult> RemoveGroupDmMemberAsync(long channelId, long userId)
+    {
+        // Record the removal in the encrypted group's membership log first:
+        // someone leaving can no longer sign once they are out of the group.
+        if (_client.Cache.Channels.TryGet(channelId, out var channel))
+        {
+            var removed = await _client.E2eeService.RemoveGroupMemberAsync(channel, userId);
+            if (!removed.Success)
+                return removed;
+        }
+
+        return await _client.PrimaryNode.DeleteAsync($"api/channels/group/{channelId}/members/{userId}");
+    }
     
     public async Task<List<PlanetMember>> FetchRecentChattersAsync(Channel channel)
     {

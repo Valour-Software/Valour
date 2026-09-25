@@ -1,0 +1,57 @@
+/* Below the modal layer (9000), which also hides the banner while open. */
+.e2ee-banner {
+    position: fixed;
+    z-index: 8500;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: min(640px, calc(100vw - 1.5rem));
+    padding: var(--space-3) var(--space-4);
+    color: var(--font-color);
+    background-color: var(--main-2);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 38px rgba(0, 0, 0, 0.32);
+    transform: translateX(-50%);
+}
+
+.e2ee-banner > i {
+    font-size: var(--font-size-xl);
+    color: var(--color-warning);
+}
+
+.banner-copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.banner-copy span {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+.banner-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.dismiss {
+    padding: var(--space-1);
+    color: var(--font-alt-color);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* On phones the chat input sits at the bottom, so the banner goes below the top bar. */
+@media (max-width: 768px) {
+    .e2ee-banner {
+        top: calc(env(safe-area-inset-top) + 3.5rem);
+        bottom: auto;
+    }
+}

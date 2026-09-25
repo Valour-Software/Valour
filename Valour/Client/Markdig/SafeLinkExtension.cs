@@ -1,4 +1,5 @@
 using Markdig;
+using Markdig.Extensions.GenericAttributes;
 using Markdig.Renderers;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
@@ -42,6 +43,17 @@ public class SafeLinkExtension : IMarkdownExtension
             if (dynamicUrl is not null)
                 link.GetDynamicUrl = () => SafeUrl.Sanitize(dynamicUrl());
         }
+
+        // CommonMark autolinks (<scheme:...>) are a separate node type that
+        // every renderer turns into a live href, so <javascript:...> must be
+        // checked too. Unsafe ones become the literal text the author typed.
+        // Collected first because replacing nodes mid-walk breaks enumeration.
+        var unsafeAutolinks = document.Descendants<AutolinkInline>()
+            .Where(x => !SafeUrl.IsSafe(x.IsEmail ? "mailto:" + x.Url : x.Url))
+            .ToList();
+
+        foreach (var autolink in unsafeAutolinks)
+            autolink.ReplaceBy(new LiteralInline($"<{autolink.Url}>"));
     }
 }
 
@@ -54,6 +66,18 @@ public static class SafeLinkExtensionHelper
     public static MarkdownPipelineBuilder UseSafeLinks(this MarkdownPipelineBuilder pipeline)
     {
         pipeline.Extensions.AddIfNotAlready<SafeLinkExtension>();
+        return pipeline;
+    }
+
+    /// <summary>
+    /// Removes the generic attributes syntax (<c>{onclick=...}</c>) that
+    /// UseAdvancedExtensions enables. It lets authors attach arbitrary
+    /// attributes, including event handlers, to rendered elements, so user
+    /// markdown must never be parsed with it. Call after UseAdvancedExtensions.
+    /// </summary>
+    public static MarkdownPipelineBuilder DisableGenericAttributes(this MarkdownPipelineBuilder pipeline)
+    {
+        pipeline.Extensions.RemoveAll(e => e is GenericAttributesExtension);
         return pipeline;
     }
 }

@@ -1,0 +1,21 @@
+@if (Channel is not null && Channel.IsChatChannel)
+{
+    <TooltipTrigger Position="left">
+        <ChildContent>
+            <button type="button" class="encryption-btn on" @onclick="Open" aria-label="@Label">
+                <i class="bi bi-lock-fill"></i>
+            </button>
+        </ChildContent>
+        <TooltipContent><span>@Label</span></TooltipContent>
+    </TooltipTrigger>
+}
+
+@code {
+    [Parameter]
+    public Channel Channel { get; set; }
+
+    private const string Label = "End-to-end encrypted";
+
+    private void Open() =>
+        ModalRoot.Instance?.OpenModal<ChannelEncryptionModal>(new ChannelEncryptionModal.Params { Channel = Channel });
+}

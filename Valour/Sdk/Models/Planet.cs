@@ -213,9 +213,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public string Description { get; set; }
 
     /// <summary>
-    /// If the server requires express allowal to join a planet
+    /// True when anyone can join the planet and read its messages. A private
+    /// planet is joined with an invite link, and its signed membership log
+    /// decides who receives its keys (see <see cref="EncryptionMode"/>).
     /// </summary>
     public bool Public { get; set; }
+
+    /// <summary>
+    /// True while the planet is being moved between servers. It accepts no
+    /// changes until the move finishes.
+    /// </summary>
+    public bool LockedForMigration { get; set; }
 
     /// <summary>
     /// If this and public are true, a planet will appear on the discovery tab
@@ -253,6 +261,18 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// True if the threads feed is enabled for this planet
     /// </summary>
     public bool EnableThreads { get; set; }
+
+    /// <summary>
+    /// Who may receive the planet's channel keys. Every message is end-to-end
+    /// encrypted either way. Public planets are open, and private planets are
+    /// invite-only once the owner's device has signed their membership log.
+    /// </summary>
+    public PlanetEncryptionMode EncryptionMode { get; set; }
+
+    /// <summary>
+    /// Whether new members can read messages sent before they joined
+    /// </summary>
+    public bool EncryptionSharesHistory { get; set; } = true;
 
     /// <summary>
     /// True if this planet's threads can be browsed publicly without an account
@@ -957,6 +977,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public PlanetListInfo ToListInfo()
     {
         var info = PlanetListInfo.FromPlanet(this);
+        info.NodeDomain = Node?.IsExternal == true ? Node.Name : null;
         info.MemberCount = Members.Count;
         info.Tags = Tags?.ToList() ?? new List<PlanetTag>();
         info.TagIds = info.Tags.Select(x => x.Id).ToList();

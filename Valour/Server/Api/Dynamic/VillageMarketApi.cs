@@ -13,7 +13,8 @@ namespace Valour.Server.Api.Dynamic;
 /// Owners may list their own property; ManageVillage additionally permits
 /// listing community or someone else's property. Buying only requires
 /// membership and economy-send authority - the economy itself gates whether
-/// someone can afford it.
+/// someone can afford it. Purchases carry the price the buyer confirmed and
+/// fail if the listing has been repriced since.
 /// </summary>
 public class VillageMarketApi
 {
@@ -71,17 +72,22 @@ public class VillageMarketApi
     public static async Task<IResult> PurchasePlotAsync(
         long planetId,
         long plotId,
+        [FromBody] VillagePurchaseRequest? request,
         PlanetMemberService memberService,
         PlanetService planetService,
         VillageMarketService marketService)
     {
+        if (request?.ExpectedPrice is not decimal expectedPrice)
+            return ValourResult.BadRequest("Include the expected price in the body.");
+
         var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
         if (!await IsEnabledAsync(planetId, planetService))
             return ValourResult.Forbid(DisabledMessage);
 
-        var result = await marketService.PurchasePlotAsync(plotId, planetId, member.Id, member.UserId);
+        var result = await marketService.PurchasePlotAsync(
+            plotId, planetId, member.Id, member.UserId, expectedPrice);
         return result.Success ? Results.Ok() : ValourResult.BadRequest(result.Message);
     }
 
@@ -90,17 +96,22 @@ public class VillageMarketApi
     public static async Task<IResult> PurchaseBuildingAsync(
         long planetId,
         long buildingId,
+        [FromBody] VillagePurchaseRequest? request,
         PlanetMemberService memberService,
         PlanetService planetService,
         VillageMarketService marketService)
     {
+        if (request?.ExpectedPrice is not decimal expectedPrice)
+            return ValourResult.BadRequest("Include the expected price in the body.");
+
         var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
         if (!await IsEnabledAsync(planetId, planetService))
             return ValourResult.Forbid(DisabledMessage);
 
-        var result = await marketService.PurchaseBuildingAsync(buildingId, planetId, member.Id, member.UserId);
+        var result = await marketService.PurchaseBuildingAsync(
+            buildingId, planetId, member.Id, member.UserId, expectedPrice);
         return result.Success ? Results.Ok() : ValourResult.BadRequest(result.Message);
     }
 }

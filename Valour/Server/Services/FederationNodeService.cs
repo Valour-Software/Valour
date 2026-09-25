@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using Valour.Config.Configs;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -41,6 +42,7 @@ public class FederationNodeService
     private readonly TokenService _tokenService;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<FederationNodeService> _logger;
+    private readonly IConnectionMultiplexer _redis;
 
     public FederationNodeService(
         ValourDb db,
@@ -48,7 +50,8 @@ public class FederationNodeService
         PlanetMemberService memberService,
         TokenService tokenService,
         IHttpClientFactory httpFactory,
-        ILogger<FederationNodeService> logger)
+        ILogger<FederationNodeService> logger,
+        IConnectionMultiplexer redis = null)
     {
         _db = db;
         _userService = userService;
@@ -56,6 +59,7 @@ public class FederationNodeService
         _tokenService = tokenService;
         _httpFactory = httpFactory;
         _logger = logger;
+        _redis = redis;
     }
 
     public static bool NodeEnabled => FederationConfig.Current?.NodeEnabled == true;
@@ -86,6 +90,9 @@ public class FederationNodeService
             Claims = new Dictionary<string, object>
             {
                 ["protocol"] = ValourFederation.ProtocolVersion,
+                // Each request gets its own credential. The hub records this id
+                // and rejects a second use of the same credential.
+                ["jti"] = Guid.NewGuid().ToString("N"),
             },
             Expires = DateTime.UtcNow.Add(S2STokenLifetime),
             IssuedAt = DateTime.UtcNow,
@@ -240,10 +247,24 @@ public class FederationNodeService
         }
 
         if (!HasCurrentProtocol(result.Claims))
-            return TaskResult<AuthToken>.FromFailure("Unsupported federation protocol.");
+            return TaskResult<AuthToken>.FromFailure(
+                $"The hub uses a different federation protocol than this node (v{ValourFederation.ProtocolVersion}). Update the node and the hub to the same Valour release.");
 
         if (!result.Claims.TryGetValue("sub", out var subRaw) || !long.TryParse(subRaw?.ToString(), out var hubUserId))
             return TaskResult<AuthToken>.FromFailure("Token missing subject.");
+
+        // Clients mint a new hub credential for every exchange. Accept each
+        // credential once, so a copied credential cannot open further sessions.
+        if (!result.Claims.TryGetValue("jti", out var jtiRaw) || string.IsNullOrWhiteSpace(jtiRaw?.ToString()))
+            return TaskResult<AuthToken>.FromFailure("Token missing id.");
+
+        if (_redis is not null &&
+            !await FederationReplayCache.TryConsumeAsync(
+                _redis, "hub-exchange", expectedIssuer, jtiRaw.ToString(), result.SecurityToken.ValidTo))
+        {
+            _logger.LogWarning("Replayed federation token rejected for user {UserId}", hubUserId);
+            return TaskResult<AuthToken>.FromFailure("This federation token has already been used.");
+        }
 
         result.Claims.TryGetValue("name", out var nameRaw);
         result.Claims.TryGetValue("subscription", out var subscriptionRaw);

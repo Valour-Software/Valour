@@ -19,8 +19,6 @@ namespace Valour.Server.Services;
 /// </summary>
 public class ChannelActivityService
 {
-    internal const int MessagePreviewLength = 180;
-
     private readonly ValourDb _db;
     private readonly IConnectionMultiplexer _redis;
     private readonly ChannelActivityWorker _worker;
@@ -284,12 +282,9 @@ public class ChannelActivityService
             return;
         }
 
-        var readableContent = await _notificationService.ReplaceMentionTagsAsync(activityMessage.Content);
-        var attachmentCount = string.IsNullOrWhiteSpace(readableContent)
-            ? await _db.MessageAttachments.AsNoTracking()
-                .CountAsync(x => x.MessageId == activityMessage.Id)
-            : 0;
-        var preview = BuildMessagePreview(readableContent, attachmentCount);
+        // The server cannot read the message, so the preview is the
+        // placeholder every message notification uses.
+        var preview = NotificationService.EncryptedMessageBody;
         var senderName = GetSenderName(activityMessage);
         var senderAvatar = GetSenderAvatar(activityMessage);
 
@@ -395,26 +390,6 @@ public class ChannelActivityService
             return title;
 
         return $"{title} (+{otherAuthorCount} {(otherAuthorCount == 1 ? "other" : "others")})";
-    }
-
-    internal static string BuildMessagePreview(string? content, int attachmentCount)
-    {
-        var normalized = string.Join(' ',
-            (content ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-
-        if (normalized.Length == 0)
-        {
-            return attachmentCount == 1
-                ? "Sent an attachment"
-                : attachmentCount > 1
-                    ? $"Sent {attachmentCount} attachments"
-                    : "Sent a message";
-        }
-
-        if (normalized.Length <= MessagePreviewLength)
-            return normalized;
-
-        return normalized[..(MessagePreviewLength - 1)].TrimEnd() + "…";
     }
 
     private static string GetSenderName(Valour.Database.Message message)

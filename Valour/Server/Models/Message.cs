@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Valour.Database;
 using Valour.Shared.Models;
 
@@ -87,6 +88,52 @@ public class Message : ServerModel<long>, ISharedMessage
     public long? WebhookAvatarAssetId { get; set; }
 
     public bool WebhookAvatarAnimated { get; set; }
+
+    /// <summary>
+    /// How the text is stored. See <see cref="Valour.Sdk.E2ee.MessageEncryption"/>.
+    /// </summary>
+    public int EncryptionVersion { get; set; }
+
+    /// <summary>
+    /// The encrypted message when <see cref="EncryptionVersion"/> is nonzero.
+    /// </summary>
+    public byte[] Envelope { get; set; }
+
+    /// <summary>
+    /// The channel key generation used for the envelope.
+    /// </summary>
+    public int KeyGeneration { get; set; }
+
+    /// <summary>
+    /// Keyed search terms uploaded by the sender. Accepted on requests and
+    /// never returned to clients.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int[] SearchTerms { get; set; }
+
+    /// <summary>
+    /// Validated search terms to store with the message. Kept separate from
+    /// <see cref="SearchTerms"/> so they are persisted but never serialized
+    /// to clients or relayed between nodes.
+    /// </summary>
+    [JsonIgnore]
+    public int[] IndexedTerms { get; set; }
+
+    /// <summary>
+    /// For end-to-end encrypted messages, URLs the sender wants previews for.
+    /// The server cannot read the text, so the sender lists them. Accepted on
+    /// requests and never returned to clients.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string> PreviewUrls { get; set; }
+
+    /// <summary>
+    /// For end-to-end encrypted messages, the IDs of the custom planet emojis
+    /// in the text, so the server can check them. Accepted on requests and
+    /// never returned to clients.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<long> CustomEmojiIds { get; set; }
 
     /// <summary>
     /// Used to identify a message returned from the server

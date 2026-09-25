@@ -22,4 +22,11 @@ public class PlanetReport : ServerModel<long>, ISharedPlanetReport
     public long? ResolvedById { get; set; }
     public DateTime? ResolvedAt { get; set; }
     public string ModeratorNotes { get; set; }
+
+    /// <summary>
+    /// Messages the reporter chose to reveal. Request-only; moderators read
+    /// the verified evidence through its own route.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Valour.Sdk.E2ee.MessageEvidenceDto> Evidence { get; set; }
 }

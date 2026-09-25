@@ -58,6 +58,9 @@
     private async Task OnClickDownload()
     {
         var url = await Data.Attachment.GetSignedUrl(Data.Message.Client, Data.Message.Node);
+        if (!SafeUrl.IsSafe(url))
+            return;
+
         await JsRuntime.InvokeVoidAsync("open", url, "_blank");
     }
 }

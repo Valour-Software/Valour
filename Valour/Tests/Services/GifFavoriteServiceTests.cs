@@ -74,5 +74,34 @@ public class GifFavoriteServiceTests : IClassFixture<LoginTestFixture>, IDisposa
         Assert.False(await _db.TenorFavorites.AnyAsync(x => x.Id == create.Data.Id));
     }
 
+    [Fact]
+    public async Task CreateTenorFavorite_RejectsDuplicatesAndInvalidIds()
+    {
+        var tenorId = $"test-{Guid.NewGuid():N}";
+        var create = await _tenorFavorites.CreateAsync(new TenorFavorite
+        {
+            UserId = _fixture.Client.Me.Id,
+            TenorId = tenorId
+        });
+        Assert.True(create.Success, create.Message);
+
+        var duplicate = await _tenorFavorites.CreateAsync(new TenorFavorite
+        {
+            UserId = _fixture.Client.Me.Id,
+            TenorId = tenorId
+        });
+        Assert.False(duplicate.Success);
+
+        var invalid = await _tenorFavorites.CreateAsync(new TenorFavorite
+        {
+            UserId = _fixture.Client.Me.Id,
+            TenorId = new string('1', 65)
+        });
+        Assert.False(invalid.Success);
+
+        var loaded = await _tenorFavorites.GetAsync(create.Data.Id);
+        Assert.True((await _tenorFavorites.DeleteAsync(loaded)).Success);
+    }
+
     public void Dispose() => _scope.Dispose();
 }

@@ -1,15 +1,20 @@
-# Villages browser regression
+# Browser regression
 
-These tests run real browsers against a local QA server. Chromium is the default;
-the mobile and responsive suites also support WebKit. Use a
-dedicated planet with the default village seed, named `Village Release QA` (or
-set `VILLAGE_QA_PLANET`). The owner account must manage that village. The guest
-account must already belong to the planet and must not own its Town Hall or
-have ManageVillage permission. The scripts reject non-local server URLs.
+These tests run real browsers against a local QA server: Villages, the sidebar,
+end-to-end encryption, and local media. This guide also covers the isolated C#
+regression runner. Chromium is the default browser; the Villages mobile and
+responsive suites also support WebKit. The scripts reject non-local server URLs.
 
 Install Playwright in your test environment and either install its Chromium
 browser or provide `BROWSER_EXECUTABLE`. If Playwright is installed outside this
 repository, point `PLAYWRIGHT_MODULE` to its `index.mjs`.
+
+## Villages
+
+Use a dedicated planet with the default village seed, named `Village Release QA`
+(or set `VILLAGE_QA_PLANET`). The owner account must manage that village. The
+guest account must already belong to the planet and must not own its Town Hall
+or have ManageVillage permission.
 
 ```sh
 export VILLAGE_QA_URL=http://localhost:5100
@@ -105,6 +110,61 @@ Village close/reopen cycles must leave no disposed-reference or rendering errors
 It supports Chromium and WebKit and checks console rendering errors as well as
 uncaught page errors. `SidebarLifecycleTests` additionally schedules disposal
 during storage, import and instance initialization and verifies reference cleanup.
+
+## Open issue regressions
+
+`profile-color-pickers.mjs` verifies saved swatches and editor values with the
+actual Pickr library, including reopening and user edits. Run it with
+`node Valour/Tests/Browser/profile-color-pickers.mjs`. Set `PICKR_SCRIPT` to a local
+copy of the library to avoid downloading it during the test.
+
+`open-issue-regressions.mjs` uses local browser fixtures to check pasted-file
+ownership, blob previews, multipart uploads, and tab geometry at 24 combinations
+of pane width and tab count. Chromium also sends real touch input through the
+long-press event adapter. The fixtures load the application's JavaScript and tab CSS.
+The C# `OpenIssueRegressionTests` check generated Blazor event handlers and tab
+styles, while `OpenIssueApiRegressionTests` exercise MFA rotation and native
+upload CORS through an isolated server.
+
+```sh
+node Valour/Tests/Browser/open-issue-regressions.mjs
+BROWSER_ENGINE=firefox node Valour/Tests/Browser/open-issue-regressions.mjs
+```
+
+These fixtures do not run the native Android or Windows host. Verify uploads and
+profile long-press on those hosts before a native release.
+
+## End-to-end encryption
+
+`e2ee-device-linking.mjs` drives the real encryption UI with two local accounts
+and a second login session that stands in for another device. Both accounts must
+be verified and must not have signed in to the app before, because the test starts
+from the recovery code shown at the first login. The script refuses accounts that
+already have keys. It adds the accounts as friends and opens a direct chat through
+the API.
+
+```sh
+export E2EE_QA_URL=http://localhost:5100
+export E2EE_QA_EMAIL=alice@local.test
+export E2EE_QA_PASSWORD='your local test password'
+export E2EE_QA_GUEST_EMAIL=bob@local.test
+export E2EE_QA_GUEST_PASSWORD='your local guest password'
+node Valour/Tests/Browser/e2ee-device-linking.mjs
+```
+
+The test checks that the first login sets up encryption and shows the recovery
+code, and that the code can be saved later. It sends a direct message, which
+creates the chat's first key, and checks that the recipient can read it. It then
+signs in on the second session and links it the way a device without a camera
+does: the first session opens Settings, then Encryption, then Link a device, and
+the second session types the 16-character code shown under the QR code. The
+first session approves, and the test checks that the new device can read the
+earlier message. Finally it checks that the server's message API does not return
+the text. Screenshots are written to `TestResults/e2ee-browser`, or
+`E2EE_QA_OUTPUT` if supplied. Scanning QR codes needs a camera and is not
+covered. A scanned code carries the same secret as the typed code, and both
+directions share the approval and the approval proof check, which the SDK tests
+in `E2eeLiveTests` cover.
 
 ## Local media regression
 

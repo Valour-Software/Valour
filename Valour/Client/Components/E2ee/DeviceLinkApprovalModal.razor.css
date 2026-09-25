@@ -1,0 +1,45 @@
+.device-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    margin-bottom: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+}
+
+.device-card i {
+    font-size: var(--font-size-xl);
+    color: var(--color-primary);
+}
+
+.device-copy {
+    display: flex;
+    flex-direction: column;
+}
+
+.device-copy span {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+.approve-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.done {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--color-success-soft);
+}
+
+.done i {
+    color: var(--color-success);
+    font-size: var(--font-size-lg);
+}

@@ -102,8 +102,94 @@ public class Node : ServiceBase // each node acts like a service
     /// <summary>Base URL for this node's requests (trailing slash): the external community origin, or the client's own.</summary>
     public string NodeBaseAddress => _externalBaseUrl ?? Client.BaseAddress;
 
+    // Distinguishes this node instance in the shared GET request cache.
+    private readonly string _requestCacheScope = Guid.NewGuid().ToString("N") + "|";
+
     /// <summary>Auth token for this node: the node-local exchanged token, or the client's primary token.</summary>
     private string NodeAuthToken => _externalToken ?? Client.AuthService.Token;
+
+    // ===== Client protocol of community nodes =====
+
+    /// <summary>
+    /// The error shown when a community node's server predates encrypted messages.
+    /// </summary>
+    public const string CommunityNodeOutdatedMessage =
+        "This community node must be updated before you can send messages here.";
+
+    private static readonly TimeSpan OutdatedNodeRecheckInterval = TimeSpan.FromMinutes(5);
+
+    private Task _clientProtocolLoad;
+    private DateTime _clientProtocolReadAt;
+
+    /// <summary>
+    /// The client protocol a community node's server reports in its instance
+    /// manifest (see <see cref="InstanceManifest.ClientProtocol"/>). Null until
+    /// it has been read, and for nodes of the client's own instance, which
+    /// share its build.
+    /// </summary>
+    public int? ClientProtocol { get; private set; }
+
+    /// <summary>
+    /// Checks that this node's server accepts end-to-end encrypted messages.
+    /// Community nodes are upgraded by their operators, so one may still run
+    /// a server that only accepts plain text, which current clients never
+    /// send. When the node's protocol cannot be read, sending is allowed and
+    /// the server's own answer decides.
+    /// </summary>
+    public async Task<TaskResult> CheckAcceptsEncryptedMessagesAsync()
+    {
+        if (!IsExternal)
+        {
+            // An instance's own nodes run the build its manifest describes.
+            var manifest = Client.InstanceManifest;
+            return manifest is null || manifest.ClientProtocol >= InstanceManifest.EncryptedMessagesProtocol
+                ? TaskResult.SuccessResult
+                : TaskResult.FromFailure("This Valour server must be updated before you can send messages.");
+        }
+
+        // A failed read is retried, and an outdated node is read again now
+        // and then so an upgrade during the session is noticed.
+        var load = _clientProtocolLoad;
+        var reload = load is null ||
+                     (load.IsCompleted && ClientProtocol is null) ||
+                     (ClientProtocol < InstanceManifest.EncryptedMessagesProtocol &&
+                      DateTime.UtcNow - _clientProtocolReadAt > OutdatedNodeRecheckInterval);
+        if (reload)
+            _clientProtocolLoad = load = LoadClientProtocolAsync();
+
+        await load;
+
+        return ClientProtocol < InstanceManifest.EncryptedMessagesProtocol
+            ? TaskResult.FromFailure(CommunityNodeOutdatedMessage)
+            : TaskResult.SuccessResult;
+    }
+
+    private async Task LoadClientProtocolAsync()
+    {
+        try
+        {
+            using var response = await HttpClient.GetAsync(".well-known/valour-instance");
+
+            // Servers from before the instance manifest predate encryption too.
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                ClientProtocol = 0;
+            }
+            else if (response.IsSuccessStatusCode)
+            {
+                var manifest = await response.Content.ReadFromJsonAsync<InstanceManifest>(DefaultJsonOptions);
+                if (manifest is not null)
+                    ClientProtocol = manifest.ClientProtocol;
+            }
+
+            _clientProtocolReadAt = DateTime.UtcNow;
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException
+                                      or NotSupportedException)
+        {
+            LogWarning("Could not read the community node's instance manifest: " + e.Message);
+        }
+    }
 
     /// <summary>
     /// Initializes this node as an external community node: HTTP + SignalR go
@@ -130,6 +216,10 @@ public class Node : ServiceBase // each node acts like a service
         HttpClient.BaseAddress = new Uri(_externalBaseUrl);
         // No X-Server-Select for external nodes — that's internal cluster routing.
         HttpClient.DefaultRequestHeaders.Add("Authorization", nodeLocalToken);
+
+        // Read early so apps can tell members an outdated node cannot take
+        // messages before they try to send one.
+        _clientProtocolLoad = LoadClientProtocolAsync();
 
         var setup = await SetupRealtimeConnection();
         if (!setup.Success)
@@ -290,7 +380,7 @@ public class Node : ServiceBase // each node acts like a service
     /// Closes a partially initialized or superseded realtime connection without
     /// triggering the automatic reconnect path.
     /// </summary>
-    private async Task DisposeFailedRealtimeConnectionAsync()
+    internal async Task DisposeFailedRealtimeConnectionAsync()
     {
         if (HubConnection is null)
         {
@@ -323,12 +413,23 @@ public class Node : ServiceBase // each node acts like a service
     /// bearer only authorizes a federation membership; planet and channel
     /// groups are joined explicitly after the membership checks succeed.
     /// </summary>
-    private Task<TaskResult> ConnectToUserChannel()
+    private async Task<TaskResult> ConnectToUserChannel()
     {
         if (IsExternal)
-            return Task.FromResult(TaskResult.SuccessResult);
+            return TaskResult.SuccessResult;
 
-        return ConnectToUserSignalRChannel();
+        var result = await ConnectToUserSignalRChannel();
+
+        // The user group requires a full-control token. An OAuth app with a
+        // narrower scope is refused with 403 but can still use planet and
+        // channel realtime, so that refusal does not fail the connection.
+        if (!result.Success && result.Code == 403)
+        {
+            LogWarning(result.Message);
+            return TaskResult.SuccessResult;
+        }
+
+        return result;
     }
 
     public void UpdateToken()
@@ -1243,8 +1344,10 @@ public class Node : ServiceBase // each node acts like a service
         // The cache is static per response type. A bare relative route lets a
         // response from one community origin satisfy a request to the hub (or
         // another community) for the short cache window. Scope it to the
-        // actual origin instead.
-        var cacheKey = NodeBaseAddress + uri;
+        // actual origin instead. It is also scoped to this node instance: a
+        // process running several accounts would otherwise hand one account
+        // another account's response, including the models it already synced.
+        var cacheKey = _requestCacheScope + NodeBaseAddress + uri;
 
         // 1) Check if we already have a Lazy<Task<TaskResult<T>>> in the dictionary.
         if (cache.TryGetValue(cacheKey, out var existingLazy))

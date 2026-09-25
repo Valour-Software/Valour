@@ -61,7 +61,9 @@ public interface ISharedPlanet : ISharedModel<long>
     string Description { get; set; }
 
     /// <summary>
-    /// If the server requires express allowal to join a planet
+    /// True when anyone can join the planet and read its messages. A private
+    /// planet is joined with an invite link, and its signed membership log
+    /// decides who receives its keys.
     /// </summary>
     bool Public { get; set; }
 
@@ -101,6 +103,17 @@ public interface ISharedPlanet : ISharedModel<long>
     /// True if the threads feed is enabled for this planet
     /// </summary>
     bool EnableThreads { get; set; }
+
+    /// <summary>
+    /// Who may receive the planet's channel keys. Every message is end-to-end
+    /// encrypted either way.
+    /// </summary>
+    PlanetEncryptionMode EncryptionMode { get; set; }
+
+    /// <summary>
+    /// Whether new members of an encrypted planet can read earlier messages
+    /// </summary>
+    bool EncryptionSharesHistory { get; set; }
 
     /// <summary>
     /// True if this planet's threads can be browsed publicly without an account

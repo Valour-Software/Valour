@@ -21,14 +21,26 @@ public sealed class DirectCallService : ServiceBase
         client.NodeService.NodeAdded += HookHubEvents;
     }
 
-    public async Task LoadCurrentAsync()
+    public async Task LoadCurrentAsync() =>
+        ApplyCurrent(await FetchCurrentAsync());
+
+    /// <summary>
+    /// Requests the user's current calls without applying them, so startup can
+    /// overlap the request with other loading and apply the result afterward.
+    /// </summary>
+    internal async Task<List<DirectCall>?> FetchCurrentAsync()
     {
         var result = await _client.PrimaryNode.GetJsonAsync<List<DirectCall>>("api/direct-calls/current");
-        if (!result.Success || result.Data is null)
+        return result.Success ? result.Data : null;
+    }
+
+    internal void ApplyCurrent(List<DirectCall>? calls)
+    {
+        if (calls is null)
             return;
 
         _currentCalls.Clear();
-        foreach (var call in result.Data)
+        foreach (var call in calls)
             Apply(call);
     }
 

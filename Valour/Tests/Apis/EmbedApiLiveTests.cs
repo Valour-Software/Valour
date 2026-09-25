@@ -97,7 +97,8 @@ public class EmbedApiLiveTests : IAsyncLifetime
         using var interactionSub = hub.On<EmbedInteractionEvent>("InteractionEvent",
             e => interactionReceived.TrySetResult(e));
 
-        await hub.InvokeAsync("JoinInteractionGroup", _planet.Id);
+        // Interactions go to the message author's user group, which the
+        // client joined when it connected. No planet-wide group is involved.
 
         var interactResponse = await client.Http.PostAsJsonAsync("api/embed/interact", new EmbedInteractionRequest
         {
@@ -128,17 +129,16 @@ public class EmbedApiLiveTests : IAsyncLifetime
         Assert.Equal(myMember.Id, interaction.MemberId);
         Assert.Equal(message.AuthorMemberId, interaction.AuthorMemberId);
 
-        // ---- 3. Live updates require the bot flag ----
+        // ---- 3. Live updates require the bot flag and encryption ----
 
         var update = new EmbedUpdate
         {
-            TargetMessageId = message.Id,
             Revision = 2,
             NewEmbedContent = EmbedParser.Serialize(BuildTestEmbed(revision: 2)),
         };
 
-        var nonBotResponse = await client.Http.PostAsJsonAsync("api/embed/update", update);
-        Assert.False(nonBotResponse.IsSuccessStatusCode);
+        var nonBotResult = await message.SendEmbedUpdateAsync(update);
+        Assert.False(nonBotResult.Success);
 
         await SetBotFlagAsync(true);
         try
@@ -155,8 +155,16 @@ public class EmbedApiLiveTests : IAsyncLifetime
             client.MessageService.EmbedUpdated += OnUpdate;
             try
             {
-                var updateResponse = await client.Http.PostAsJsonAsync("api/embed/update", update);
-                Assert.True(updateResponse.IsSuccessStatusCode, await updateResponse.Content.ReadAsStringAsync());
+                // The server relays only ciphertext, so a plain update is refused.
+                var plainResponse = await client.Http.PostAsJsonAsync("api/embed/update", new EmbedUpdate
+                {
+                    TargetMessageId = message.Id,
+                    Revision = 2
+                });
+                Assert.False(plainResponse.IsSuccessStatusCode);
+
+                var updateResult = await message.SendEmbedUpdateAsync(update);
+                Assert.True(updateResult.Success, updateResult.Message);
 
                 var received = await updateReceived.Task.WaitAsync(TimeSpan.FromSeconds(10));
                 Assert.Equal(message.Id, received.TargetMessageId);
@@ -193,13 +201,12 @@ public class EmbedApiLiveTests : IAsyncLifetime
 
                 var targetedUpdate = new EmbedUpdate
                 {
-                    TargetMessageId = message.Id,
                     Revision = 3,
                     ChangedItemsContent = System.Text.Json.JsonSerializer.Serialize(changedItems),
                 };
 
-                var targetedResponse = await client.Http.PostAsJsonAsync("api/embed/update", targetedUpdate);
-                Assert.True(targetedResponse.IsSuccessStatusCode, await targetedResponse.Content.ReadAsStringAsync());
+                var targetedResult = await message.SendEmbedUpdateAsync(targetedUpdate);
+                Assert.True(targetedResult.Success, targetedResult.Message);
 
                 var received = await targetedReceived.Task.WaitAsync(TimeSpan.FromSeconds(10));
                 var items = EmbedParser.TryParseItems(received.ChangedItemsContent);
@@ -218,19 +225,18 @@ public class EmbedApiLiveTests : IAsyncLifetime
                 client.MessageService.EmbedUpdated -= OnTargeted;
             }
 
-            // ---- 6. Unsafe CSS in an update is rejected ----
+            // ---- 6. Unsafe CSS in an update is rejected before it is sent ----
 
             var evilItems = new List<EmbedItem>
             {
                 new EmbedTextItem("evil") { Id = "status-text", Style = "background-image: url(https://evil.example);" },
             };
 
-            var evilResponse = await client.Http.PostAsJsonAsync("api/embed/update", new EmbedUpdate
+            var evilResult = await message.SendEmbedUpdateAsync(new EmbedUpdate
             {
-                TargetMessageId = message.Id,
                 ChangedItemsContent = System.Text.Json.JsonSerializer.Serialize(evilItems),
             });
-            Assert.False(evilResponse.IsSuccessStatusCode);
+            Assert.False(evilResult.Success);
         }
         finally
         {
@@ -276,5 +282,58 @@ public class EmbedApiLiveTests : IAsyncLifetime
 
         var result = await _fixture.Client.MessageService.SendMessage(message);
         Assert.False(result.Success);
+    }
+
+    [Fact]
+    public async Task Interaction_OnSealedMessage_IsRelayedOnlyForBots()
+    {
+        await _planet.EnsureReadyAsync();
+        var member = await _planet.FetchMemberByUserAsync(_fixture.Client.Me.Id);
+
+        // A message the server sealed, like history from before encryption.
+        long messageId;
+        using (var scope = _fixture.Factory.Services.CreateScope())
+        {
+            var embedAttachment = new Valour.Sdk.Models.MessageAttachment(MessageAttachmentType.Embed);
+            embedAttachment.SetEmbedPayload(EmbedParser.Serialize(BuildTestEmbed()));
+            var posted = await scope.ServiceProvider.GetRequiredService<Valour.Server.Services.MessageService>()
+                .PostMessageAsync(new Valour.Server.Models.Message
+                {
+                    ChannelId = _channel.Id,
+                    PlanetId = _planet.Id,
+                    AuthorUserId = _fixture.Client.Me.Id,
+                    AuthorMemberId = member.Id,
+                    Content = "sealed with an embed",
+                    Fingerprint = Guid.NewGuid().ToString(),
+                    Attachments = [embedAttachment],
+                }, new Valour.Server.Models.MessageWriteOptions { SealKind = Valour.Sdk.E2ee.ServerSealedKind.Legacy });
+            Assert.True(posted.Success, posted.Message);
+            Assert.Equal(Valour.Sdk.E2ee.MessageEncryption.ServerSealed, posted.Data.EncryptionVersion);
+            messageId = posted.Data.Id;
+        }
+
+        var sealedMessage = await _fixture.Client.MessageService.FetchMessageAsync(messageId, _planet, skipCache: true);
+        Assert.NotNull(sealedMessage?.EmbedAttachment?.Embed);
+
+        var request = new EmbedInteractionRequest
+        {
+            MessageId = messageId,
+            EventType = EmbedInteractionEventType.ItemClicked,
+            ElementId = "submit-btn",
+        };
+
+        var fromMember = await _fixture.Client.Http.PostAsJsonAsync("api/embed/interact", request);
+        Assert.False(fromMember.IsSuccessStatusCode);
+
+        await SetBotFlagAsync(true);
+        try
+        {
+            var fromBot = await _fixture.Client.Http.PostAsJsonAsync("api/embed/interact", request);
+            Assert.True(fromBot.IsSuccessStatusCode, await fromBot.Content.ReadAsStringAsync());
+        }
+        finally
+        {
+            await SetBotFlagAsync(false);
+        }
     }
 }

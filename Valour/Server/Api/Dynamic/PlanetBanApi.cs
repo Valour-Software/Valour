@@ -81,20 +81,22 @@ public class PlanetBanApi
         if (ban is null)
             return Results.BadRequest("Include updated ban in body.");
 
+        // The route identifies the ban; the stored row decides which planet is checked
+        var old = await banService.GetAsync(id);
+        if (old is null)
+            return ValourResult.NotFound<PlanetBan>();
+
         // Get member
-        var member = await memberService.GetCurrentAsync(ban.PlanetId);
+        var member = await memberService.GetCurrentAsync(old.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
             return ValourResult.LacksPermission(PlanetPermissions.Ban);
 
-        var old = await banService.GetAsync(id);
+        ban.Id = old.Id;
 
-        if (old is null)
-            return ValourResult.NotFound<PlanetBan>();
-
-        var result = await banService.PutAsync(ban, member.UserId);
+        var result = await banService.PutAsync(ban, member);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

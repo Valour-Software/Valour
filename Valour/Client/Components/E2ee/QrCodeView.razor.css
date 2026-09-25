@@ -1,0 +1,16 @@
+.qr-code {
+    display: block;
+    width: 100%;
+    max-width: 240px;
+    aspect-ratio: 1;
+    margin: 0 auto;
+    border-radius: var(--radius-md);
+}
+
+.qr-background {
+    fill: white;
+}
+
+.qr-modules {
+    fill: black;
+}

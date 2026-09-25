@@ -166,7 +166,18 @@
                     return;
                 }
 
-                await JsRuntime.InvokeVoidAsync("open", res.Data, "_blank", "noopener,noreferrer");
+                // The redirect belongs to a third-party app, so only open web
+                // URLs; a javascript: URL here would run in Valour's origin.
+                if (!Uri.TryCreate(res.Data, UriKind.Absolute, out var redirectUri) ||
+                    (redirectUri.Scheme != Uri.UriSchemeHttps && redirectUri.Scheme != Uri.UriSchemeHttp))
+                {
+                    isError = true;
+                    errorString = "The app's redirect URL is not a web address.";
+                    StateHasChanged();
+                    return;
+                }
+
+                await JsRuntime.InvokeVoidAsync("open", redirectUri.AbsoluteUri, "_blank", "noopener,noreferrer");
 
                 finishedAuth = true;
 

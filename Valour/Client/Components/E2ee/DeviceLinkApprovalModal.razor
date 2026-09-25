@@ -1,0 +1,179 @@
+@inherits Modal<DeviceLinkApprovalModal.Params>
+@implements IDisposable
+@inject ValourClient Client
+
+<BasicModalLayout Title="New device sign-in" Icon="phone-fill" MaxWidth="460px" Role="dialog">
+    <MainArea>
+        @switch (_step)
+        {
+            case Step.Ask:
+                <div class="device-card">
+                    <i class="bi bi-laptop"></i>
+                    <span class="device-copy">
+                        <strong>@(Data.Session.Device?.Name ?? "A new device")</strong>
+                        <span>Wants to read your encrypted messages. Requested @Data.Session.CreatedAt.ToLocalTime().ToString("t").</span>
+                    </span>
+                </div>
+                <p>
+                    Only approve this if you are signing in on that device right now. Confirm it by scanning the
+                    code on its screen.
+                </p>
+                <div class="approve-options">
+                    <button class="v-btn primary" @onclick="@(() => GoTo(Step.Scan))"><i class="bi bi-camera"></i> Scan its code</button>
+                    <button class="v-btn secondary" @onclick="ShowCodeInsteadAsync"><i class="bi bi-keyboard"></i> Show a code to type instead</button>
+                </div>
+                <p class="helper-text">
+                    No camera here? Show a code instead, then choose <strong>Enter a code from another device</strong>
+                    on the new device and type it.
+                </p>
+                break;
+
+            case Step.Scan:
+                <QrScanner OnScanned="OnScannedAsync" Fallback="Go back and show a code to type instead." />
+                break;
+
+            case Step.Done:
+                <div class="done">
+                    <i class="bi bi-shield-check"></i>
+                    <span>@(Data.Session.Device?.Name ?? "The new device") can now read your encrypted messages.</span>
+                </div>
+                break;
+        }
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @switch (_step)
+            {
+                case Step.Ask:
+                    <button class="v-btn danger" @onclick="DenyAsync">This isn't me</button>
+                    <button class="v-btn" @onclick="@Close">Decide later</button>
+                    break;
+                case Step.Scan:
+                    <button class="v-btn" @onclick="@(() => GoTo(Step.Ask))">Back</button>
+                    break;
+                case Step.Done:
+                    <button class="v-btn primary" @onclick="@Close">Done</button>
+                    break;
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+        public DeviceLinkSessionDto Session { get; set; }
+    }
+
+    // Sessions with an approval prompt open, so each is shown once at a time.
+    private static readonly HashSet<string> OpenSessions = new();
+
+    /// <summary>
+    /// Reserves the prompt for a session before opening it. Returns false
+    /// when a prompt for it is already open. The reservation ends when the
+    /// prompt closes, so a dismissed request can be opened again.
+    /// </summary>
+    public static bool TryReserve(string sessionId) => OpenSessions.Add(sessionId);
+
+    /// <summary>
+    /// True when a session is a new device's request that this device can
+    /// approve: it waits for approval, shows its own code, and was not
+    /// started by this device.
+    /// </summary>
+    public static bool NeedsApproval(E2eeService e2ee, DeviceLinkSessionDto session) =>
+        session is not null &&
+        session.Status == DeviceLinkStatus.WaitingForApproval &&
+        session.Mode == DeviceLinkMode.NewDeviceShowsCode &&
+        !e2ee.IsLinkingSession(session.Id) &&
+        !e2ee.IsShowingLinkCode(session.Id);
+
+    private enum Step { Ask, Scan, Done }
+
+    private Step _step = Step.Ask;
+    private ITaskResult _result;
+
+    protected override void OnInitialized()
+    {
+        // Prompts opened without a reservation still count as open.
+        OpenSessions.Add(Data.Session.Id);
+        Client.E2eeService.LinkSessionUpdated += OnSessionUpdated;
+    }
+
+    private void OnSessionUpdated(DeviceLinkSessionDto session)
+    {
+        if (session.Id != Data.Session.Id || _step == Step.Done)
+            return;
+
+        // Another device answered, or the request expired.
+        if (session.Status is DeviceLinkStatus.Approved or DeviceLinkStatus.Denied or DeviceLinkStatus.Expired)
+            _ = InvokeAsync(Close);
+    }
+
+    private void GoTo(Step step)
+    {
+        _result = null;
+        _step = step;
+        StateHasChanged();
+    }
+
+    private async Task OnScannedAsync(string text)
+    {
+        var match = await Client.E2eeService.MatchScannedLinkCodeAsync(text);
+        if (!match.Success)
+        {
+            _step = Step.Ask;
+            _result = match;
+            StateHasChanged();
+            return;
+        }
+
+        if (match.Data.Id != Data.Session.Id)
+        {
+            _result = TaskResult.FromFailure("That code belongs to a different sign-in request.");
+            _step = Step.Ask;
+            StateHasChanged();
+            return;
+        }
+
+        await ApproveAsync();
+    }
+
+    private async Task ApproveAsync()
+    {
+        _result = null;
+        StateHasChanged();
+        var result = await Client.E2eeService.ApproveLinkAsync(Data.Session);
+        if (result.Success)
+            GoTo(Step.Done);
+        else
+        {
+            _result = result;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DenyAsync()
+    {
+        await Client.E2eeService.DenyLinkAsync(Data.Session.Id);
+        Close();
+    }
+
+    /// <summary>
+    /// Ends this request, which returns the new device to its choices, and
+    /// shows a code on this device that the new device can type.
+    /// </summary>
+    private async Task ShowCodeInsteadAsync()
+    {
+        await Client.E2eeService.DenyLinkAsync(Data.Session.Id);
+        var modalRoot = ModalRoot;
+        Close();
+        modalRoot.OpenModal<LinkDeviceModal>(new LinkDeviceModal.Params());
+    }
+
+    public void Dispose()
+    {
+        Client.E2eeService.LinkSessionUpdated -= OnSessionUpdated;
+        OpenSessions.Remove(Data.Session.Id);
+    }
+}

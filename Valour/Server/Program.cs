@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Npgsql;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
@@ -104,6 +105,10 @@ public partial class Program
             {
                 x.Release = typeof(ISharedUser).Assembly.GetName().Version.ToString();
                 x.ServerName = NodeConfig.Instance.Name;
+                // The Authorization header is the session secret and request bodies
+                // carry passwords, so neither may reach Sentry whatever the config says.
+                x.SendDefaultPii = false;
+                x.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
             });
         }
 
@@ -166,6 +171,10 @@ public partial class Program
 
     public static void ConfigureApp(WebApplication app)
     {
+        // First, so every response (static files, SPA fallback, errors) gets the
+        // browser security headers.
+        app.UseValourSecurityHeaders();
+
         app.UseCors("AllowedOrigins");
 
         if (app.Environment.IsDevelopment())
@@ -313,28 +322,39 @@ public partial class Program
     /// CORS origins derived from the local deployment plus the configured
     /// federation hub. Community nodes must accept the hub app's browser
     /// origin for the SDK's direct HTTP and SignalR connections, but must not
-    /// reflect arbitrary origins while allowing credentials.
+    /// reflect arbitrary origins while allowing credentials. Plain-http and
+    /// localhost origins are only trusted in Development, since any local
+    /// process or network attacker could otherwise act as them.
     /// </summary>
-    private static string[] BuildCorsOrigins()
+    private static string[] BuildCorsOrigins(bool isDevelopment)
     {
         var hosting = HostingConfig.Current;
         var origins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             $"https://{hosting.AppHost}",
-            $"http://{hosting.AppHost}",
             $"https://www.{hosting.RootDomain}",
-            $"http://www.{hosting.RootDomain}",
             $"https://{hosting.RootDomain}",
-            $"http://{hosting.RootDomain}",
             $"https://{hosting.ApiHost}",
-            $"http://{hosting.ApiHost}",
-            "http://localhost:3000",
-            "https://localhost:3000",
-            "http://localhost:3001",
-            "https://localhost:3001",
-            "http://localhost:5000",
-            "http://localhost:5001",
+            "https://0.0.0.0",
+            "https://0.0.0.1",
         };
+
+        if (isDevelopment)
+        {
+            origins.UnionWith(new[]
+            {
+                $"http://{hosting.AppHost}",
+                $"http://www.{hosting.RootDomain}",
+                $"http://{hosting.RootDomain}",
+                $"http://{hosting.ApiHost}",
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "http://localhost:3001",
+                "https://localhost:3001",
+                "http://localhost:5000",
+                "http://localhost:5001",
+            });
+        }
 
         // The node trusts this URL as its federation hub already. Permit the
         // hub itself and the conventional app subdomain so a browser signed in
@@ -361,6 +381,7 @@ public partial class Program
 
         services.AddValourRateLimiting(builder.Configuration);
 
+        var corsOrigins = BuildCorsOrigins(builder.Environment.IsDevelopment());
         services.AddCors(options =>
         {
             options.AddPolicy("AllowedOrigins", builder =>
@@ -369,7 +390,7 @@ public partial class Program
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     .AllowCredentials()
-                    .WithOrigins(BuildCorsOrigins())
+                    .WithOrigins(corsOrigins)
                     .SetPreflightMaxAge(TimeSpan.FromHours(12));
             });
         });
@@ -391,6 +412,55 @@ public partial class Program
             options.MultipartBodyLengthLimit = 262_144_000; // 250 MB (max tier upload limit)
         });
 
+        // Data Protection keys live in the shared DB so every node (and
+        // container restarts) can decrypt protected payloads such as planet
+        // storage credentials and federation signing keys. The ring itself is
+        // wrapped with an external KEK (env/file) when one is configured, so a
+        // database reader alone cannot recover any of it. The KEK and the
+        // settings that require it are checked before migrations run, so a
+        // misconfigured instance fails without changing the schema.
+        var kekProvider = new DataProtectionKekProvider(
+            builder.Configuration,
+            LoggerFactory.Create(b => b.AddConsole()).CreateLogger<DataProtectionKekProvider>());
+
+        // Federation signing keys are protected by the Data Protection ring.
+        // Running a hub or community node without an out-of-band KEK would put
+        // both the wrapped private key and the unwrapped ring in the same
+        // database, making the protection illusory. Fail before serving any
+        // federation endpoint rather than treating this as a deployment warning.
+        if ((FederationConfig.Current?.HubEnabled == true || FederationConfig.Current?.NodeEnabled == true)
+            && !kekProvider.Available)
+        {
+            throw new InvalidOperationException(
+                "Federation requires DataProtection:Kek (or DataProtection:KekFile). " +
+                "Use a stable base64-encoded 32-byte key stored outside the database.");
+        }
+
+        // The server keeps channel keys it creates (for webhook, system, and
+        // welcome messages, and for sealed history) under Data Protection
+        // until enough members hold them. Without a KEK the key ring sits in
+        // the same database, so a copy of the database would open them.
+        if (!kekProvider.Available)
+        {
+            if (builder.Environment.IsProduction())
+            {
+                throw new InvalidOperationException(
+                    "End-to-end encryption requires DataProtection:Kek (or DataProtection:KekFile) in production. " +
+                    "Use a stable base64-encoded 32-byte key stored outside the database, the same on every instance.");
+            }
+
+            if (E2eeConfig.Current.SealLegacyMessages)
+            {
+                throw new InvalidOperationException(
+                    "E2ee:SealLegacyMessages requires DataProtection:Kek (or DataProtection:KekFile). " +
+                    "Use a stable base64-encoded 32-byte key stored outside the database, or turn sealing off.");
+            }
+
+            LoggerFactory.Create(b => b.AddConsole()).CreateLogger<Program>().LogWarning(
+                "No DataProtection:Kek is configured. Channel keys the server holds for encrypted chat are " +
+                "protected by a key ring stored in the same database. Configure a KEK before running in production.");
+        }
+
         services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); }, ServiceLifetime.Scoped);
 
         // Apply migrations if flag is set
@@ -398,11 +468,15 @@ public partial class Program
         //{
             using var scope = services.BuildServiceProvider().CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-            db.Database.Migrate();
+            // Some migrations build indexes on large tables concurrently, which
+            // can take far longer than the default 30 second command timeout.
+            db.Database.SetCommandTimeout(TimeSpan.FromMinutes(30));
+            using (HoldMigrationLock())
+                db.Database.Migrate();
         //}
-        
+
         Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
-        
+
         services.AddSingleton<IConnectionMultiplexer>(
             ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
 
@@ -430,28 +504,6 @@ public partial class Program
             new CloudFlareClient(string.IsNullOrWhiteSpace(CloudflareConfig.Instance?.ApiKey)
                 ? "unconfigured"
                 : CloudflareConfig.Instance.ApiKey));
-
-        // Data Protection keys live in the shared DB so every node (and
-        // container restarts) can decrypt protected payloads such as planet
-        // storage credentials and federation signing keys. The ring itself is
-        // wrapped with an external KEK (env/file) when one is configured, so a
-        // database reader alone cannot recover any of it.
-        var kekProvider = new DataProtectionKekProvider(
-            builder.Configuration,
-            LoggerFactory.Create(b => b.AddConsole()).CreateLogger<DataProtectionKekProvider>());
-
-        // Federation signing keys are protected by the Data Protection ring.
-        // Running a hub or community node without an out-of-band KEK would put
-        // both the wrapped private key and the unwrapped ring in the same
-        // database, making the protection illusory. Fail before serving any
-        // federation endpoint rather than treating this as a deployment warning.
-        if ((FederationConfig.Current?.HubEnabled == true || FederationConfig.Current?.NodeEnabled == true)
-            && !kekProvider.Available)
-        {
-            throw new InvalidOperationException(
-                "Federation requires DataProtection:Kek (or DataProtection:KekFile). " +
-                "Use a stable base64-encoded 32-byte key stored outside the database.");
-        }
 
         services.AddSingleton(kekProvider);
 
@@ -553,6 +605,15 @@ public partial class Program
         services.AddScoped<ChannelService>();
         services.AddScoped<DirectCallService>();
         services.AddScoped<MessageService>();
+        services.AddScoped<E2eeRealtimeService>();
+        services.AddScoped<E2eeIdentityService>();
+        services.AddScoped<E2eeServerKeyService>();
+        services.AddScoped<E2eeAccessLogService>();
+        services.AddScoped<E2eeChannelKeyService>();
+        services.AddScoped<E2eeMessageService>();
+        services.AddScoped<E2eeAutomodService>();
+        services.AddScoped<PlanetEncryptionService>();
+        services.AddScoped<E2eeMaintenanceService>();
         services.AddScoped<PlanetStorageService>();
         services.AddScoped<PlanetVoiceService>();
         services.AddScoped<FederationKeyService>();
@@ -611,6 +672,7 @@ public partial class Program
         services.AddScoped<NotificationService>();
         services.AddScoped<ChannelActivityService>();
         services.AddScoped<ReportService>();
+        services.AddHttpContextAccessor();
         services.AddScoped<RegisterService>();
         services.AddScoped<SubscriptionService>();
         services.AddScoped<ThemeService>();
@@ -620,6 +682,11 @@ public partial class Program
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<VoiceStateService>();
         services.AddScoped<StartupService>();
+        // Push endpoints come from browser subscriptions, so they are user-supplied
+        // URLs. The handler dials only validated public addresses without redirects.
+        services.AddHttpClient(WebPushDeliveryClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(30))
+            .ConfigurePrimaryHttpMessageHandler(() => WebPushDeliveryClient.CreatePrimaryHandler());
+        services.AddSingleton<WebPushDeliveryClient>();
         services.AddScoped<PushNotificationService>();
         services.AddScoped<ITagService,TagService>();
 
@@ -653,6 +720,7 @@ public partial class Program
         services.AddHostedService<DirectCallCleanupWorker>();
         services.AddHostedService<HostedPlanetCleanupWorker>();
         services.AddHostedService<NotificationCleanupWorker>();
+        services.AddHostedService<E2eeMaintenanceWorker>();
         services.AddHostedService<CalendarReminderWorker>();
         services.AddHostedService<MigrationWorker>();
         services.AddEndpointsApiExplorer();
@@ -671,5 +739,37 @@ public partial class Program
             });
             c.OperationFilter<FileUploadOperation>();
         });
+    }
+
+    /// <summary>Advisory lock key held by the server applying database migrations.</summary>
+    private const long MigrationLockKey = 0x56_41_4C_4F_55_52_4D_47; // "VALOURMG"
+
+    /// <summary>
+    /// Takes a PostgreSQL advisory lock so only one server applies migrations
+    /// at a time. Some migrations build indexes concurrently outside a
+    /// transaction, where a second server would otherwise treat the first
+    /// one's unfinished index as a broken one and drop it. The lock is asked
+    /// for every two seconds rather than waited on: a session blocked inside
+    /// a query would itself hold up the concurrent index build it waits for.
+    /// Disposing the returned connection releases the lock.
+    /// </summary>
+    private static NpgsqlConnection HoldMigrationLock()
+    {
+        var builder = new NpgsqlConnectionStringBuilder(ValourDb.ConnectionString) { Pooling = false };
+        var connection = new NpgsqlConnection(builder.ConnectionString);
+        connection.Open();
+
+        using var tryLock = new NpgsqlCommand("SELECT pg_try_advisory_lock(@key)", connection);
+        tryLock.Parameters.AddWithValue("key", MigrationLockKey);
+        var waiting = false;
+        while (tryLock.ExecuteScalar() is not true)
+        {
+            if (!waiting)
+                Console.WriteLine("Waiting for another server to finish applying database migrations");
+            waiting = true;
+            Thread.Sleep(TimeSpan.FromSeconds(2));
+        }
+
+        return connection;
     }
 }

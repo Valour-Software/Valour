@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Start a published Village QA server only after validating and copying local configuration."""
 import argparse
+import base64
+import secrets
 import ipaddress
 import json
 import os
@@ -39,8 +41,20 @@ def local_environment(config, output, port):
         'Redis__ConnectionString': config['Redis']['ConnectionString'],
         'Sentry__Dsn': '', 'SENTRY_DSN': '',
         'Cdn__StorageMode': 'filesystem', 'Cdn__FileSystemPath': str(output / 'qa-media'),
+        # Production requires a Data Protection KEK. A local one is kept with
+        # the QA output so restarts can still read the keys it protects.
+        'DataProtection__KekFile': str(local_kek(output)),
     })
     return env
+
+
+def local_kek(output):
+    path = output / 'qa-kek'
+    if not path.exists():
+        output.mkdir(parents=True, exist_ok=True)
+        path.write_text(base64.b64encode(secrets.token_bytes(32)).decode())
+        path.chmod(0o600)
+    return path
 
 
 def main():

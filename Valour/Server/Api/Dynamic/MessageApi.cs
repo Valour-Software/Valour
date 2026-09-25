@@ -26,112 +26,21 @@ public class MessageApi
         UserBlockService userBlockService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
-        var userId = token.UserId;
 
         if (message is null)
             return ValourResult.BadRequest("Include message in body");
 
-        message.AuthorUserId = userId;
+        message.AuthorUserId = token.UserId;
 
         var channel = await channelService.GetChannelAsync(message.PlanetId, message.ChannelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
-        if (!await channelService.HasAccessAsync(channel, userId))
-            return ValourResult.Forbid("You are not a member of this channel");
+        var denied = await ValidateMessageWriteAsync(message, null, channel, token,
+            channelService, memberService, roleService, planetEmojiService, userBlockService);
+        if (denied is not null)
+            return denied;
 
-        if (channel.ChannelType is ChannelTypeEnum.DirectChat or ChannelTypeEnum.GroupChat)
-        {
-            if (!token.HasScope(UserPermissions.DirectMessages))
-            {
-                return ValourResult.Forbid("Token lacks permission for direct messages");
-            }
-
-            // Check for blocks between DM participants
-            var members = await channelService.GetDirectChannelMembersAsync(channel.Id);
-            foreach (var otherUser in members?.Where(x => x.Id != userId) ?? [])
-            {
-                if (await userBlockService.IsBlockedEitherWayAsync(userId, otherUser.Id))
-                    return ValourResult.Forbid("Cannot send messages to this user.");
-            }
-        }
-        
-        // For planet channels, planet roles and membership are used
-        // to determine if the user can post messages and content
-        if (channel.PlanetId is not null)
-        {
-            var planetId = channel.PlanetId.Value;
-            var member = await memberService.GetCurrentAsync(planetId);
-            if (member is null)
-                return ValourResult.Forbid("You are not a member of the planet this channel belongs to");
-
-            message.AuthorMemberId = member.Id;
-            
-            // NOTE: We don't have to check View permission because lacking view will
-            // cause every other permission check to fail
-            
-            // Check for message posting permissions
-            if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.PostMessages))
-                return ValourResult.Forbid("You lack permission to post messages in this channel");
-            
-            // If the message has file/media attachments...
-            if (message.Attachments?.Any(x => x.Type != MessageAttachmentType.Embed) == true)
-            {
-                if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.AttachContent))
-                    return ValourResult.Forbid("You lack permission to attach content to messages in this channel");
-            }
-
-            // If the message has embed data...
-            if (message.Attachments?.Any(x => x.Type == MessageAttachmentType.Embed) == true)
-            {
-                if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.Embed))
-                    return ValourResult.Forbid("You lack permission to attach embeds to messages in this channel");
-            }
-            
-            // Check role mention permissions against parsed content, not client-supplied rows.
-            var mentions = MentionParser.Parse(message.Content ?? string.Empty);
-            if (mentions is not null)
-            {
-                foreach (var mention in mentions)
-                {
-                    if (mention.Type == MentionType.Role)
-                    {
-                        var role = await roleService.GetAsync(planetId, mention.TargetId);
-                        if (role is null)
-                            return ValourResult.BadRequest("Invalid role mention");
-
-                        if (role.AnyoneCanMention)
-                            continue;
-
-                        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.MentionAll))
-                            return ValourResult.Forbid($"You lack permission to mention the role {role.Name}");
-                    }
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(message.Content))
-            {
-                var customEmojiIds = PlanetEmojiText.ExtractCustomEmojiIds(message.Content);
-                if (customEmojiIds.Count > 0)
-                {
-                    if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseCustomEmojis))
-                        return ValourResult.LacksPermission(PlanetPermissions.UseCustomEmojis);
-
-                    if (!await planetEmojiService.AreAllIdsValidForPlanetAsync(planetId, customEmojiIds))
-                        return ValourResult.BadRequest("Message contains invalid custom emoji.");
-                }
-            }
-        }
-        else
-        {
-            if (!string.IsNullOrWhiteSpace(message.Content))
-            {
-                var customEmojiIds = PlanetEmojiText.ExtractCustomEmojiIds(message.Content);
-                if (customEmojiIds.Count > 0)
-                    return ValourResult.BadRequest("Custom planet emojis can only be used in planet channels.");
-            }
-        }
-        
         var result = await messageService.PostMessageAsync(message);
         if (!result.Success)
         {
@@ -141,13 +50,20 @@ public class MessageApi
         return Results.Json(result.Data);
     }
     
+    private const int MaxCustomEmojiIds = 100;
+
     [ValourRoute(HttpVerbs.Put, "api/messages/{id}")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> EditMessageRouteAsync(
         [FromBody] Message? message,
         long id,
         MessageService messageService,
-        TokenService tokenService)
+        ChannelService channelService,
+        PlanetMemberService memberService,
+        TokenService tokenService,
+        PlanetRoleService roleService,
+        PlanetEmojiService planetEmojiService,
+        UserBlockService userBlockService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
         
@@ -172,6 +88,17 @@ public class MessageApi
 
         if (existing.PlanetId is null && !token.HasScope(UserPermissions.DirectMessages))
             return ValourResult.Forbid("Token lacks permission to edit messages in direct chat channels");
+
+        // The author must still be allowed to write here, and anything the
+        // edit adds needs the same permissions it would need in a new post.
+        var channel = await channelService.GetChannelAsync(existing.PlanetId, existing.ChannelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+
+        var denied = await ValidateMessageWriteAsync(message, existing, channel, token,
+            channelService, memberService, roleService, planetEmojiService, userBlockService);
+        if (denied is not null)
+            return denied;
 
         var result = await messageService.EditMessageAsync(message);
         if (!result.Success)
@@ -458,4 +385,138 @@ public class MessageApi
 
         return ValourResult.Ok();
     }
+
+    /// <summary>
+    /// Checks that the token's user may write this message to the channel:
+    /// channel access, direct message scope and blocks, planet posting
+    /// permissions, and permissions for attachments, role mentions, and custom
+    /// emoji. The server cannot read the text, so the sender lists its
+    /// mentions and custom emoji as metadata; embeds travel inside the
+    /// encrypted envelope, where the sender's app checks the embed permission.
+    /// When editing, <paramref name="previous"/> is the stored message and only
+    /// attachments and role mentions the edit adds need those permissions.
+    /// Returns an error result, or null when allowed.
+    /// </summary>
+    private static async Task<IResult?> ValidateMessageWriteAsync(
+        Message message,
+        Message? previous,
+        Channel channel,
+        AuthToken token,
+        ChannelService channelService,
+        PlanetMemberService memberService,
+        PlanetRoleService roleService,
+        PlanetEmojiService planetEmojiService,
+        UserBlockService userBlockService)
+    {
+        var userId = token.UserId;
+
+        if (!await channelService.HasAccessAsync(channel, userId))
+            return ValourResult.Forbid("You are not a member of this channel");
+
+        if (channel.ChannelType is ChannelTypeEnum.DirectChat or ChannelTypeEnum.GroupChat)
+        {
+            if (!token.HasScope(UserPermissions.DirectMessages))
+            {
+                return ValourResult.Forbid("Token lacks permission for direct messages");
+            }
+
+            // Check for blocks between DM participants
+            var members = await channelService.GetDirectChannelMembersAsync(channel.Id);
+            foreach (var otherUser in members?.Where(x => x.Id != userId) ?? [])
+            {
+                if (await userBlockService.IsBlockedEitherWayAsync(userId, otherUser.Id))
+                    return ValourResult.Forbid("Cannot send messages to this user.");
+            }
+        }
+
+        var customEmojiIds = (message.CustomEmojiIds ?? [])
+            .Where(x => x > 0).Distinct().Take(MaxCustomEmojiIds + 1).ToHashSet();
+        if (customEmojiIds.Count > MaxCustomEmojiIds)
+            return ValourResult.BadRequest("Message contains too many custom emojis.");
+
+        // For planet channels, planet roles and membership are used
+        // to determine if the user can post messages and content
+        if (channel.PlanetId is not null)
+        {
+            var planetId = channel.PlanetId.Value;
+            var member = await memberService.GetCurrentAsync(planetId);
+            if (member is null)
+                return ValourResult.Forbid("You are not a member of the planet this channel belongs to");
+
+            message.AuthorMemberId = member.Id;
+
+            // NOTE: We don't have to check View permission because lacking view will
+            // cause every other permission check to fail
+
+            // Check for message posting permissions
+            if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.PostMessages))
+                return ValourResult.Forbid("You lack permission to post messages in this channel");
+
+            // Inline previews are regenerated from content on edit, and stored
+            // attachments the edit keeps unchanged were checked when posted.
+            var addedAttachments = message.Attachments?
+                .Where(x => x is not null)
+                .Where(x => previous is null ||
+                            (!x.Inline && previous.Attachments?.Any(p => IsSameAttachment(p, x)) != true))
+                .ToList();
+
+            // If the message has file/media attachments...
+            if (addedAttachments?.Any(x => x.Type != MessageAttachmentType.Embed) == true)
+            {
+                if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.AttachContent))
+                    return ValourResult.Forbid("You lack permission to attach content to messages in this channel");
+            }
+
+            // Check role mention permissions against the mentions the sender
+            // lists; recipients ignore listed mentions the text does not contain.
+            var mentions = E2eeMessageService.SanitizeMentions(message.Mentions);
+            if (mentions is not null)
+            {
+                var previousRoleIds = previous?.Mentions?
+                    .Where(x => x.Type == MentionType.Role)
+                    .Select(x => x.TargetId)
+                    .ToHashSet();
+
+                foreach (var mention in mentions)
+                {
+                    if (mention.Type == MentionType.Role)
+                    {
+                        if (previousRoleIds?.Contains(mention.TargetId) == true)
+                            continue;
+
+                        var role = await roleService.GetAsync(planetId, mention.TargetId);
+                        if (role is null)
+                            return ValourResult.BadRequest("Invalid role mention");
+
+                        if (role.AnyoneCanMention)
+                            continue;
+
+                        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.MentionAll))
+                            return ValourResult.Forbid($"You lack permission to mention the role {role.Name}");
+                    }
+                }
+            }
+
+            if (customEmojiIds.Count > 0)
+            {
+                if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseCustomEmojis))
+                    return ValourResult.LacksPermission(PlanetPermissions.UseCustomEmojis);
+
+                if (!await planetEmojiService.AreAllIdsValidForPlanetAsync(planetId, customEmojiIds))
+                    return ValourResult.BadRequest("Message contains invalid custom emoji.");
+            }
+        }
+        else if (customEmojiIds.Count > 0)
+        {
+            return ValourResult.BadRequest("Custom planet emojis can only be used in planet channels.");
+        }
+
+        return null;
+    }
+
+    private static bool IsSameAttachment(Valour.Sdk.Models.MessageAttachment stored, Valour.Sdk.Models.MessageAttachment submitted) =>
+        stored.Id == submitted.Id &&
+        stored.Type == submitted.Type &&
+        stored.Location == submitted.Location &&
+        stored.Data == submitted.Data;
 }

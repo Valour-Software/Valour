@@ -11,8 +11,15 @@ checkout, add a project reference to `Valour/Sdk/Valour.Sdk.csproj`.
 
 `Client/` contains the entry point, `Services/` contains feature APIs, `Models/`
 contains client models, `ModelLogic/` contains stores and query helpers, and
-`Nodes/` manages HTTP and real-time connections. External community-node models
+`Nodes/` manages HTTP and real-time connections. `E2ee/` contains the end-to-end
+encryption formats used by `E2eeService`. External community-node models
 are scoped by origin so locally reused IDs do not collide.
+
+Every chat message on Valour is end-to-end encrypted. The SDK encrypts and
+decrypts messages on the device, starting with version 0.9.0. The server refuses
+messages from earlier SDK versions and from programs that call the HTTP API
+without the SDK, answering with an error that begins with `E2EE_REQUIRED:`. Such
+programs should use this SDK or post through a planet webhook.
 
 See the repository's [bot guide](https://github.com/Valour-Software/Valour/blob/main/Valour/Docs/BOT_GUIDE.md)
 for an example and [reactive model guide](https://github.com/Valour-Software/Valour/blob/main/Docs/ReactiveModelSystem.md)

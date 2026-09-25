@@ -1,0 +1,44 @@
+@inject IJSRuntime JsRuntime
+
+<div class="recovery-code">
+    <div class="code-groups" role="group" aria-label="Recovery code">
+        @foreach (var group in (Code ?? string.Empty).Split('-'))
+        {
+            <span class="code-group">@group</span>
+        }
+    </div>
+    <button class="v-btn secondary copy-button" @onclick="CopyAsync">
+        <i class="bi @(_copied ? "bi-check2" : "bi-clipboard")"></i>
+        @(_copied ? "Copied" : "Copy code")
+    </button>
+</div>
+<p class="helper-text">
+    Store this code somewhere safe, such as a password manager. It is the only way back into your
+    encrypted messages if you lose every device. Valour cannot see it or recover it for you.
+</p>
+<label class="saved-check">
+    <input type="checkbox" checked="@Saved" @onchange="OnSavedChanged" />
+    I saved my recovery code somewhere safe
+</label>
+
+@code {
+    [Parameter]
+    public string Code { get; set; }
+
+    /// <summary>Whether the person confirmed saving the code. Bind with <c>@bind-Saved</c>.</summary>
+    [Parameter]
+    public bool Saved { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> SavedChanged { get; set; }
+
+    private bool _copied;
+
+    private Task OnSavedChanged(ChangeEventArgs e) => SavedChanged.InvokeAsync(e.Value is true);
+
+    private async Task CopyAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Code);
+        _copied = true;
+    }
+}

@@ -2,7 +2,7 @@
 
 @if (Attachment.OpenGraph != null)
 {
-    <a href="@Attachment.Location" target="_blank" rel="noopener noreferrer" class="site-preview">
+    <a href="@Valour.Shared.Utilities.SafeUrl.Sanitize(Attachment.Location)" target="_blank" rel="noopener noreferrer" class="site-preview">
         @if (!string.IsNullOrEmpty(Attachment.OpenGraph.Image))
         {
             <div class="site-preview-image">
@@ -27,7 +27,7 @@
 }
 else
 {
-    <a href="@Attachment.Location" target="_blank" rel="noopener noreferrer" class="site-preview site-preview-minimal">
+    <a href="@Valour.Shared.Utilities.SafeUrl.Sanitize(Attachment.Location)" target="_blank" rel="noopener noreferrer" class="site-preview site-preview-minimal">
         <i class="bi bi-link-45deg"></i>
         <span>@GetHostName()</span>
     </a>

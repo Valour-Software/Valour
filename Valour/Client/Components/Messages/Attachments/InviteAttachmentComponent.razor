@@ -1,5 +1,7 @@
 @inherits AttachmentComponent
 @inject PlanetService PlanetService
+@inject EncryptedInviteRedeemer InviteRedeemer
+@using System.Text.RegularExpressions
 
 @if (_loading)
 {
@@ -64,11 +66,35 @@
     {
         if (_loading)
             return;
-        
-        await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<PlanetMember>>(
+
+        // Invites to invite-only encrypted planets carry an admission key in
+        // the link's fragment. The card itself is stored without it, so the
+        // key comes from the decrypted message text.
+        var fragment = FindEncryptedInviteFragment();
+        if (fragment is not null)
+            await InviteRedeemer.RememberAsync(_code, fragment);
+
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<PlanetMember>>(
             $"Joining {_data.Name}",
             "...",
             PlanetService.JoinPlanetAsync(_data.PlanetId, _code),
             "Joined successfully!"));
+
+        if (fragment is null)
+            return;
+
+        // Someone who was already a member can still use the key.
+        if (result.Success || PlanetService.JoinedPlanets.Any(p => p.Id == _data.PlanetId))
+            await InviteRedeemer.OnJoinedAsync(_code, _data.PlanetId);
+    }
+
+    private string FindEncryptedInviteFragment()
+    {
+        if (Message is null || !Message.HasReadableText() || string.IsNullOrEmpty(Message.Content))
+            return null;
+
+        var match = Regex.Match(Message.Content,
+            $@"/[iI]/{Regex.Escape(_code)}(#e2ee=[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)");
+        return match.Success ? match.Groups[1].Value : null;
     }
 }

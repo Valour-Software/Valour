@@ -12,6 +12,17 @@ namespace Valour.Server.Services;
 /// </summary>
 public class FederationPlanetRegistryService
 {
+    /// <summary>
+    /// Registry entries one community node may hold. Each entry is a hub row
+    /// and a discovery candidate, so a node cannot grow them without bound.
+    /// </summary>
+    public const int MaxStubsPerNode = 1000;
+
+    /// <summary>
+    /// New planet ids one community node may reserve per hour.
+    /// </summary>
+    public const int MaxReservationsPerHour = 50;
+
     private readonly ValourDb _db;
 
     public FederationPlanetRegistryService(ValourDb db)
@@ -34,6 +45,19 @@ public class FederationPlanetRegistryService
         var node = await _db.FederatedNodes.AsNoTracking().FirstOrDefaultAsync(x => x.Domain == nodeDomain);
         if (node is null || node.Status != Valour.Database.FederatedNodeStatus.Active)
             return TaskResult<FederatedPlanetStubResponse>.FromFailure("Only active community nodes can reserve planets.");
+
+        var metadata = ValidateMetadata(request);
+        if (!metadata.Success)
+            return TaskResult<FederatedPlanetStubResponse>.FromFailure(metadata.Message);
+
+        if (await _db.FederatedPlanetStubs.CountAsync(x => x.NodeDomain == nodeDomain) >= MaxStubsPerNode)
+            return TaskResult<FederatedPlanetStubResponse>.FromFailure(
+                $"A community node can register at most {MaxStubsPerNode} planets.");
+
+        var recentCutoff = DateTime.UtcNow.AddHours(-1);
+        if (await _db.FederatedPlanetStubs.CountAsync(x => x.NodeDomain == nodeDomain && x.CreatedAt > recentCutoff) >= MaxReservationsPerHour)
+            return TaskResult<FederatedPlanetStubResponse>.FromFailure(
+                "This community node is reserving planets too quickly. Try again later.");
 
         // A node is not allowed to nominate an arbitrary hub user as the owner
         // of a brand-new planet. The accountable owner is the account that
@@ -116,6 +140,15 @@ public class FederationPlanetRegistryService
         if (stub.NodeDomain != nodeDomain)
             return TaskResult<FederatedPlanetStubResponse>.FromFailure("This planet is hosted by a different node.");
 
+        var metadata = ValidateMetadata(request);
+        if (!metadata.Success)
+            return TaskResult<FederatedPlanetStubResponse>.FromFailure(metadata.Message);
+
+        // Name, description, and the Public/Discoverable/Nsfw flags are the
+        // node operator's statement about its planet. The hub has no copy of
+        // the content to check them against. Staff moderate a misreporting
+        // node by suspending it, which removes all of its planets from
+        // discovery and public lookups.
         stub.Name = request.Name;
         stub.Description = request.Description;
         // OwnerId is immutable after reservation. Allowing a node to rewrite it
@@ -162,6 +195,19 @@ public class FederationPlanetRegistryService
         await _db.SaveChangesAsync();
 
         return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Registry metadata is shown in hub discovery, so it follows the same
+    /// limits as an official planet.
+    /// </summary>
+    private static TaskResult ValidateMetadata(FederatedPlanetStubRequest request)
+    {
+        var name = PlanetService.ValidateName(request.Name);
+        if (!name.Success)
+            return name;
+
+        return PlanetService.ValidateDescription(request.Description);
     }
 
     private static FederatedPlanetStubResponse ToResponse(Valour.Database.FederatedPlanetStub stub) => new()

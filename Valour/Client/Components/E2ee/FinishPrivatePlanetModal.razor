@@ -1,0 +1,58 @@
+@inherits Modal<FinishPrivatePlanetModal.Params>
+@inject ValourClient Client
+
+<BasicModalLayout Title="Finish making this planet private" Icon="shield-lock-fill" MaxWidth="480px">
+    <MainArea>
+        <p>
+            <strong>@Data.Planet.Name</strong> is set to private, but your device hasn't signed who can read it yet.
+            Until it does, it works like a public planet: anyone the planet's permissions let into a channel can read it.
+        </p>
+        <p>
+            Everyone who's here now keeps access. People who join later wait for an admin to let them in, or join
+            with a signed invite link.
+        </p>
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" disabled="@_working" @onclick="@Close">Not now</button>
+            <button class="v-btn primary" disabled="@_working" @onclick="FinishAsync">
+                @(_working ? "Finishing..." : "Finish")
+            </button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    /// <summary>
+    /// Asks the owner of a private planet whose membership log is not signed
+    /// yet to sign it from this device (see <see cref="E2eeService.IsPrivacyPending"/>).
+    /// </summary>
+    public class Params
+    {
+        public Planet Planet { get; set; }
+    }
+
+    private bool _working;
+    private ITaskResult _result;
+
+    private async Task FinishAsync()
+    {
+        _working = true;
+        _result = null;
+        StateHasChanged();
+
+        var result = await Client.E2eeService.FinishPrivatePlanetAsync(Data.Planet);
+        _working = false;
+        if (!result.Success)
+        {
+            _result = result;
+            StateHasChanged();
+            return;
+        }
+
+        ToastContainer.Instance.AddToast(new ToastData("Planet is now private",
+            $"Only people who are let in can read {Data.Planet.Name}.", ToastProgressState.Success));
+        Close();
+    }
+}

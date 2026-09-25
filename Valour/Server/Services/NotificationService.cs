@@ -1,6 +1,5 @@
 ﻿#nullable enable annotations
 
-using System.Text.RegularExpressions;
 using Valour.Server.Database;
 using Valour.Server.Workers;
 using Valour.Shared;
@@ -11,6 +10,14 @@ namespace Valour.Server.Services;
 
 public class NotificationService
 {
+    /// <summary>
+    /// The body of every notification about a message. The server cannot read
+    /// message text, so notifications carry this placeholder along with the
+    /// message ID in <see cref="Models.Notification.SourceId"/>. Apps that can
+    /// decrypt the message show its text in place of this body.
+    /// </summary>
+    public const string EncryptedMessageBody = "Encrypted message";
+
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly NodeLifecycleService _nodeLifecycleService;
@@ -317,19 +324,59 @@ public class NotificationService
 
         baseNotification.Body ??= "";
 
-        var membersWithRole = await _db.PlanetMembers
-            .AsNoTracking()
-            .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.FlagBitIndex)
-            .Select(x => new { x.Id, x.UserId })
-            .ToArrayAsync();
-
         // Only notify members who can actually view the channel (#1570)
         var allowedUserIds = new HashSet<long>();
-        foreach (var memberWithRole in membersWithRole)
+
+        if (hostedPlanet.MembersLoaded)
         {
-            if (baseNotification.ChannelId is null ||
-                await _permissionService.HasChannelAccessAsync(memberWithRole.Id, baseNotification.ChannelId.Value))
-                allowedUserIds.Add(memberWithRole.UserId);
+            // Role holders come from the hosted planet's member cache. Channel access depends
+            // on the role combination, so it is resolved once per combination rather than
+            // looking each member up in the database.
+            var membersWithRole = hostedPlanet.GetMembersWithRole(role.FlagBitIndex);
+            if (baseNotification.ChannelId is null)
+            {
+                foreach (var memberWithRole in membersWithRole)
+                    allowedUserIds.Add(memberWithRole.UserId);
+            }
+            else
+            {
+                var channelId = baseNotification.ChannelId.Value;
+
+                // Access to an NSFW channel also depends on each member's age, so
+                // it is only shared between members of a combination otherwise
+                var shareByCombo = hostedPlanet.GetChannel(channelId)?.Nsfw != true;
+                var accessByCombo = new Dictionary<PlanetRoleMembership, bool>();
+                foreach (var memberWithRole in membersWithRole)
+                {
+                    // The owner's access does not come from roles, so it is never shared
+                    var share = shareByCombo && memberWithRole.UserId != hostedPlanet.Planet.OwnerId;
+                    if (!share || !accessByCombo.TryGetValue(memberWithRole.RoleMembership, out var canView))
+                    {
+                        var access = await _permissionService.GetChannelAccessAsync(memberWithRole);
+                        canView = access is not null && access.Contains(channelId);
+                        if (share)
+                            accessByCombo[memberWithRole.RoleMembership] = canView;
+                    }
+
+                    if (canView)
+                        allowedUserIds.Add(memberWithRole.UserId);
+                }
+            }
+        }
+        else
+        {
+            var membersWithRole = await _db.PlanetMembers
+                .AsNoTracking()
+                .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.FlagBitIndex)
+                .Select(x => new { x.Id, x.UserId })
+                .ToArrayAsync();
+
+            foreach (var memberWithRole in membersWithRole)
+            {
+                if (baseNotification.ChannelId is null ||
+                    await _permissionService.HasChannelAccessAsync(memberWithRole.Id, baseNotification.ChannelId.Value))
+                    allowedUserIds.Add(memberWithRole.UserId);
+            }
         }
 
         var userIds = allowedUserIds.ToArray();
@@ -448,7 +495,7 @@ public class NotificationService
         Models.Notification notification = new()
         {
             Title = replySenderName + " in " + channel.Name + (planet is null ? "" : $" ({planet.Name})"),
-            Body = await ReplaceMentionTagsAsync(message.Content),
+            Body = EncryptedMessageBody,
             ImageUrl = member is null ? user.GetAvatar() : member.GetAvatar(),
             ClickUrl = planet is null ? 
                 $"/directchannels/{channel.Id}/{message.Id}" : 
@@ -536,14 +583,12 @@ public class NotificationService
             .Select(x => x.UserId)
             .ToListAsync();
 
-        var dmBody = await ReplaceMentionTagsAsync(message.Content);
-
         foreach (var recipientId in recipientIds)
         {
             Models.Notification notification = new()
             {
                 Title = user.Name + " DMed you.",
-                Body = dmBody,
+                Body = EncryptedMessageBody,
                 ImageUrl = user.GetAvatar(),
                 ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
                 ChannelId = channel.Id,
@@ -577,72 +622,6 @@ public class NotificationService
         }
     }
     
-    private static readonly Regex MentionTagRegex = new(@"«@([umrc])-(\d+)»", RegexOptions.Compiled);
-
-    /// <summary>
-    /// Replaces all mention tags («@m-123», «@u-123», «@r-123», «@c-123») in message
-    /// content with readable names so notifications don't show raw tags or bare '@'.
-    /// </summary>
-    internal async Task<string> ReplaceMentionTagsAsync(string? content)
-    {
-        if (string.IsNullOrEmpty(content) || !content.Contains('«'))
-            return content ?? string.Empty;
-
-        foreach (var match in MentionTagRegex.Matches(content).DistinctBy(x => x.Value))
-        {
-            var type = match.Groups[1].Value[0];
-            if (!long.TryParse(match.Groups[2].Value, out var targetId))
-                continue;
-
-            string? name = null;
-            try
-            {
-                switch (type)
-                {
-                    case 'u':
-                        name = await _db.Users.AsNoTracking()
-                            .Where(x => x.Id == targetId)
-                            .Select(x => x.Name)
-                            .FirstOrDefaultAsync();
-                        break;
-                    case 'm':
-                        var memberNames = await _db.PlanetMembers.AsNoTracking()
-                            .Where(x => x.Id == targetId)
-                            .Select(x => new { x.Nickname, UserName = x.User.Name })
-                            .FirstOrDefaultAsync();
-                        name = string.IsNullOrWhiteSpace(memberNames?.Nickname)
-                            ? memberNames?.UserName
-                            : memberNames.Nickname;
-                        break;
-                    case 'r':
-                        name = await _db.PlanetRoles.AsNoTracking()
-                            .Where(x => x.Id == targetId)
-                            .Select(x => x.Name)
-                            .FirstOrDefaultAsync();
-                        break;
-                    case 'c':
-                        name = await _db.Channels.AsNoTracking()
-                            .Where(x => x.Id == targetId)
-                            .Select(x => x.Name)
-                            .FirstOrDefaultAsync();
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to resolve mention tag {Tag} for notification", match.Value);
-            }
-
-            if (string.IsNullOrWhiteSpace(name))
-                name = type switch { 'r' => "role", 'c' => "channel", _ => "user" };
-
-            var prefix = type == 'c' ? "#" : "@";
-            content = content.Replace(match.Value, prefix + name);
-        }
-
-        return content;
-    }
-
     private async Task HandleUserMentionAsync(
         Mention mention,
         ISharedMessage message,
@@ -659,12 +638,10 @@ public class NotificationService
         if (mentionTargetUser is null)
             return;
 
-        var content = await ReplaceMentionTagsAsync(message.Content);
-
         Models.Notification notification = new()
         {
             Title = user.Name + " mentioned you in DMs",
-            Body = content,
+            Body = EncryptedMessageBody,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
             ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
             ChannelId = channel.Id,
@@ -701,12 +678,9 @@ public class NotificationService
         if (!await _permissionService.HasChannelAccessAsync(targetMember.Id, channel.Id))
             return;
 
-        var content = await ReplaceMentionTagsAsync(message.Content);
-
         // System-originated messages (for example Automod responses authored
-        // by Victor) intentionally have no PlanetMember. They may still
-        // mention a member, so do not let notification formatting abort the
-        // message post before it reaches the queue.
+        // by Victor) intentionally have no PlanetMember, so the title falls
+        // back to the user's name.
         var senderName = string.IsNullOrWhiteSpace(member?.Nickname) ? user.Name : member.Nickname;
         var title = user.Id == ISharedUser.VictorUserId
             ? "Victor in " + planet.Name
@@ -716,7 +690,7 @@ public class NotificationService
         {
             Id = Guid.NewGuid(),
             Title = title,
-            Body = content,
+            Body = EncryptedMessageBody,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
             UserId = targetMember.UserId,
             PlanetId = planet.Id,
@@ -747,7 +721,6 @@ public class NotificationService
         if (targetRole is null)
             return;
 
-        var content = await ReplaceMentionTagsAsync(message.Content);
         var mentionSource = GetRoleMentionSource(targetRole);
 
         var roleSenderName = string.IsNullOrWhiteSpace(member?.Nickname) ? user.Name : member.Nickname;
@@ -755,7 +728,7 @@ public class NotificationService
         {
             Id = Guid.NewGuid(),
             Title = roleSenderName + " in " + planet.Name,
-            Body = content,
+            Body = EncryptedMessageBody,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
             PlanetId = planet.Id,
             ChannelId = channel.Id,

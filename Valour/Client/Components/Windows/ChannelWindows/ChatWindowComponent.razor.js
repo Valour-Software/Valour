@@ -8,7 +8,6 @@ export function init(dotnet, messageWrapperEl) {
         stickToBottom: true,
         scrollUpTimer: Date.now(),
         scrollDownTimer: Date.now(),
-        scrollTimer: Date.now(),
         lastReportedBottomState: true,
         suppressPagingUntil: 0,
         resizeObserver: null,
@@ -91,10 +90,6 @@ export function init(dotnet, messageWrapperEl) {
                 if (!pagingSuppressed && distFromBottom < 2000 && channel.scrollDownTimer < (Date.now() - 500)) {
                     channel.scrollDownTimer = Date.now();
                     await channel.dotnet.invokeMethodAsync('OnScrollBottomInvoke');
-                }
-                // Normal scroll event
-                if (channel.scrollTimer < (Date.now() - 500)) {
-                    await channel.dotnet.invokeMethodAsync('OnDebouncedScroll');
                 }
             }
             channel.checkBottomSticky();

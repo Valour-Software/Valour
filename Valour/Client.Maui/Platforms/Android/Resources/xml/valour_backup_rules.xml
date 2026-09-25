@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Secure storage is encrypted with a Keystore key that is never backed up,
+     so a restored copy could not be read. It holds the encryption keys of this
+     device, which are set up again by linking or with the recovery code. -->
+<full-backup-content>
+    <include domain="sharedpref" path="."/>
+    <exclude domain="sharedpref" path="gg.valour.app.microsoft.maui.essentials.preferences.xml"/>
+</full-backup-content>

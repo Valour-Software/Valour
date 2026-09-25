@@ -19,6 +19,18 @@ Server service saves a change
 The server chooses the recipients. User groups use `u-{userId}`, planet groups
 use `p-{planetId}`, and channel groups use `c-{channelId}`. Joining a group goes
 through `CoreHub` authorization; knowing a group or model ID does not grant access.
+Each join also requires the token scope of the matching HTTP routes: full control
+for the user group, Membership for planets, Messages for planet channels, and
+DirectMessages for direct and group channels. A token without full control can
+still use planet and channel realtime; the SDK treats the refused user-group join
+(code 403) as non-fatal.
+
+Some planet events are not sent to the whole planet group. Channel updates and
+voice participant lists go only to members who can view the channel. Reports,
+automod rules, invites, bans, and eco transactions go only to members with the
+planet permission that the HTTP routes require (and, for transactions, to the two
+users involved). Embed interactions go only to the user group of the message's
+author. These filtered sends resolve permissions after the calling request returns.
 
 `Node` registers typed handlers named `{ModelType}-Update` and
 `{ModelType}-Delete`. An update carries the model and insertion flags. Deletion
@@ -142,6 +154,9 @@ History and search responses include reactions on both messages and their embedd
 reply previews. The SDK synchronizes reply previews into the same scoped message
 cache as ordinary messages, so those previews must contain current reaction data.
 The server updates cached reply previews when their referenced message changes.
+Deleting a message clears persisted and staged reply references. Open chat views
+remove its quoted preview from displayed messages, queued messages, and the current
+reply draft when they receive the deletion.
 
 ## Staged planet messages
 
@@ -168,13 +183,21 @@ also restores its current map after node authentication.
 
 A connection can be restored while a particular subscription is denied or fails.
 Keep failures visible to the caller, and refresh authoritative data when a feature
-requires it. Explicit scene and forced channel refreshes bypass the node's short
-HTTP response cache so they receive the server's current state.
+requires it. Explicit scene, forced planet and forced channel refreshes bypass the node's
+short HTTP response cache so they receive the server's current state.
 
 The SDK notification service also returns snapshots of its unread list and source
 lookup. These snapshots preserve collection membership during incoming updates;
 their notification models remain canonical mutable instances. Notification events
 run after the service releases its collection lock.
+Its unread count helpers and single-source lookup (`TryGetUnreadBySource`) read
+under the same lock without copying, because sidebar rows and messages call them
+during rendering.
+
+The SDK unread service raises a channel's `UnreadStateChanged` event and its
+planet or direct-channel unread events only when the stored unread state changes.
+Callers can mark a channel read each time it is viewed without re-rendering
+the sidebar.
 
 ## Source files
 

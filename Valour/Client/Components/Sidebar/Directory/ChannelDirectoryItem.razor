@@ -47,7 +47,7 @@
             <div
                 class="drop-line"
                 @ondragenter:stopPropagation="true"
-                ondragenter="return false;">
+                @ondragenter:preventDefault="true">
             </div>
         }
         <div
@@ -106,7 +106,7 @@
             <div
                 class="drop-line"
                 @ondragenter:stopPropagation="true"
-                ondragenter="return false;">
+                @ondragenter:preventDefault="true">
             </div>
         }
 
@@ -148,7 +148,7 @@
         {
             if (_children is not null && _children.Count > 0)
             {
-                <div class="sub-list @(_isOpen ? "open" : "")" ondragover="event.preventDefault();" depth="@(Depth + 1)">
+                <div class="sub-list @(_isOpen ? "open" : "")" @ondragover:preventDefault="true" depth="@(Depth + 1)">
                     <div class="sub-list-inner">
                         @for (int i = 0; i < _children.Count; i++)
                         {
@@ -215,6 +215,10 @@
     
     private List<Channel> _children = new();
     private bool _isOpen;
+
+    // The channel whose events this item subscribed to, so Dispose removes
+    // the handlers from the same instance.
+    private Channel _subscribedChannel;
     private int _notificationCount;
     private List<long> _voiceParticipants = new();
     
@@ -228,7 +232,9 @@
         
         PlanetComponent.ChannelsNeedRefresh += BuildSelf;
         Planet.Channels.Changed += OnChannelsChanged;
-        Channel.Updated += OnChannelsChanged;
+
+        _subscribedChannel = Channel;
+        Channel.Updated += OnChannelUpdated;
         Channel.Deleted += OnChannelDeleted;
         Channel.UnreadStateChanged += OnUnreadChanged;
         
@@ -266,11 +272,88 @@
         Refresh();
     }
     
-    private void OnChannelsChanged(IModelEvent<Channel> eventData)
+    private void OnChannelUpdated(ModelUpdatedEvent<Channel> eventData)
     {
         BuildSelf();
-        BuildChildren();
-        Refresh();
+    }
+
+    private void OnChannelsChanged(IModelEvent<Channel> eventData)
+    {
+        if (!IsRelevantChannelChange(eventData))
+            return;
+
+        BuildSelf();
+    }
+
+    /// <summary>
+    /// Returns whether a planet channel store change can affect this item.
+    /// Every item observes the whole store, so rebuilding for unrelated
+    /// channels would rescan all channels once per item.
+    /// </summary>
+    private bool IsRelevantChannelChange(IModelEvent<Channel> eventData)
+    {
+        Channel changed;
+        long? oldParentId = null;
+        long? oldAssociatedChatId = null;
+
+        switch (eventData)
+        {
+            case ModelUpdatedEvent<Channel> update:
+                changed = update.Model;
+
+                // Updates to this item's own instance also raise Channel.Updated,
+                // which OnChannelUpdated already handles.
+                if (ReferenceEquals(changed, Channel))
+                    return false;
+
+                if (update.Changes is not null)
+                {
+                    update.Changes.On(x => x.ParentId, out oldParentId, out _);
+                    update.Changes.On(x => x.AssociatedChatChannelId, out oldAssociatedChatId, out _);
+                }
+                break;
+            case ModelAddedEvent<Channel> added:
+                changed = added.Model;
+                break;
+            case ModelRemovedEvent<Channel> removed:
+                changed = removed.Model;
+                break;
+            default:
+                // Set, clear, and reorder events do not identify a channel.
+                return true;
+        }
+
+        if (changed is null)
+            return true;
+
+        if (changed.Id == Channel.Id)
+            return true;
+
+        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            // A channel moving into this category, moving out of it, or
+            // changing while inside it (order, visibility, or removal).
+            if (changed.ParentId == Channel.Id || oldParentId == Channel.Id)
+                return true;
+
+            foreach (var child in _children)
+            {
+                if (child.Id == changed.Id)
+                    return true;
+            }
+        }
+
+        if (ISharedChannel.IsPlanetCallType(Channel.ChannelType))
+        {
+            // A call channel's unread and notification state includes its
+            // associated chat channel, which may be linked from either side.
+            if (changed.AssociatedChatChannelId == Channel.Id ||
+                oldAssociatedChatId == Channel.Id ||
+                Channel.AssociatedChatChannelId == changed.Id)
+                return true;
+        }
+
+        return false;
     }
     
     private void OnChannelDeleted()
@@ -724,6 +807,14 @@
         
         PlanetComponent.ChannelsNeedRefresh -= BuildSelf;
         Planet.Channels.Changed -= OnChannelsChanged;
+
+        if (_subscribedChannel is not null)
+        {
+            _subscribedChannel.Updated -= OnChannelUpdated;
+            _subscribedChannel.Deleted -= OnChannelDeleted;
+            _subscribedChannel.UnreadStateChanged -= OnUnreadChanged;
+            _subscribedChannel = null;
+        }
         
         NotificationService.NotificationReceived -= OnNotification;
         ChannelStateService.ChannelStateUpdated -= OnChannelStateUpdate;

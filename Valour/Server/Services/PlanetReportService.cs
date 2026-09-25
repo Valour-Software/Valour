@@ -14,6 +14,7 @@ public class PlanetReportService
     private readonly PlanetBanService _banService;
     private readonly ModerationAuditService _moderationAuditService;
     private readonly ILogger<PlanetReportService> _logger;
+    private readonly E2eeMessageService _e2eeMessages;
 
     public PlanetReportService(
         ValourDb db,
@@ -21,8 +22,10 @@ public class PlanetReportService
         PlanetMemberService memberService,
         PlanetBanService banService,
         ModerationAuditService moderationAuditService,
-        ILogger<PlanetReportService> logger)
+        ILogger<PlanetReportService> logger,
+        E2eeMessageService e2eeMessages)
     {
+        _e2eeMessages = e2eeMessages;
         _db = db;
         _coreHub = coreHub;
         _memberService = memberService;
@@ -53,6 +56,15 @@ public class PlanetReportService
         if (rule is null)
             return TaskResult<PlanetReport>.FromFailure("Rule not found.");
 
+        var evidence = await _e2eeMessages.VerifyEvidenceAsync(report.Evidence, report.ReportingUserId);
+        if (!evidence.Success)
+            return TaskResult<PlanetReport>.FromFailure(evidence.Message);
+
+        var evidenceChannels = evidence.Data.Select(x => x.ChannelId).Distinct().ToList();
+        if (evidenceChannels.Count > 0 &&
+            await _db.Channels.CountAsync(x => evidenceChannels.Contains(x.Id) && x.PlanetId == report.PlanetId) != evidenceChannels.Count)
+            return TaskResult<PlanetReport>.FromFailure("Reported messages must belong to this planet.");
+
         report.Id = IdManager.Generate();
         report.TimeCreated = DateTime.UtcNow;
         report.Reviewed = false;
@@ -65,6 +77,17 @@ public class PlanetReportService
 
         if (report.MessageId.HasValue)
             await PopulateFromMessageAsync(report);
+
+        // A deleted message can still name its author through its proof.
+        if (report.MessageId.HasValue && !report.ReportedUserId.HasValue)
+        {
+            var proven = evidence.Data.FirstOrDefault(x => x.MessageId == report.MessageId.Value);
+            if (proven is not null)
+            {
+                report.ChannelId ??= proven.ChannelId;
+                report.ReportedUserId = proven.AuthorUserId;
+            }
+        }
 
         if (!report.ReportedMemberId.HasValue && report.ReportedUserId.HasValue)
         {
@@ -79,6 +102,7 @@ public class PlanetReportService
         {
             await _db.PlanetReports.AddAsync(report.ToDatabase());
             await _db.SaveChangesAsync();
+            await _e2eeMessages.SaveEvidenceAsync(evidence.Data, null, report.Id);
         }
         catch (Exception e)
         {

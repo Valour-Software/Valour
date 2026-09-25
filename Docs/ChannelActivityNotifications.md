@@ -16,7 +16,7 @@ A Redis key limits evaluation to once per channel every 60 seconds. The message
 path updates Redis and queues the evaluation; `ChannelActivityWorker` handles
 membership lookup, preferences, permissions, and delivery. A separate active key
 tracks whether the conversation follows a 30-minute quiet period for logging.
-Both starting and continuing conversations use a message preview in their alert.
+Starting and continuing conversations produce the same kind of alert.
 
 ## Choosing recipients
 
@@ -26,9 +26,9 @@ while space remains. Favorites qualify without recent view history. A member
 with neither a recent view nor a favorite does not qualify.
 
 The service excludes authors in the queued conversation snapshot and the author
-of the message chosen for the preview. It also requires planet membership and
-channel access. Members watching the channel, or whose read state advanced within
-the activity window, are excluded because they have already seen the conversation.
+of the message the alert names. It also requires planet membership and channel
+access. Members watching the channel, or whose read state advanced within the
+activity window, are excluded because they have already seen the conversation.
 
 Interest changes the cooldown for each user and channel:
 
@@ -71,13 +71,15 @@ activity notification read without clearing either frequency limit.
 ## Notification content and delivery
 
 The worker looks up recent message IDs from Redis together with the triggering
-message ID and selects the newest matching database message. Webhook identity
-overrides take precedence over planet nicknames and avatars, followed by the
-user's identity. Mention tags become readable names.
+message ID and selects the newest matching database message. Its sender names
+the alert: webhook identity overrides take precedence over planet nicknames and
+avatars, followed by the user's identity.
 
-A title can read `Alex in Valour Central (+3 others)`. The body normalizes
-whitespace and limits the preview to 180 characters. An attachment-only message
-uses an attachment count. The click URL opens the selected message.
+A title can read `Alex in Valour Central (+3 others)`. Messages are end-to-end
+encrypted and the server cannot read them, so the body is always "Encrypted
+message", the same placeholder other message notifications use (see
+[End-to-end encryption](EndToEndEncryption.md#what-is-protected)). The click URL
+opens the selected message.
 
 `NotificationService.SendChannelActivityNotificationsAsync` maintains one unread
 activity inbox entry per channel and recipient. Further alerts update that entry

@@ -8,12 +8,18 @@ public class UnreadService
 {
     private readonly ValourDb _db;
     private readonly ChannelActivityService _channelActivityService;
+    private readonly PlanetPermissionService _permissionService;
     private readonly ILogger<UnreadService> _logger;
 
-    public UnreadService(ValourDb db, ChannelActivityService channelActivityService, ILogger<UnreadService> logger)
+    public UnreadService(
+        ValourDb db,
+        ChannelActivityService channelActivityService,
+        PlanetPermissionService permissionService,
+        ILogger<UnreadService> logger)
     {
         _db = db;
         _channelActivityService = channelActivityService;
+        _permissionService = permissionService;
         _logger = logger;
     }
 
@@ -30,18 +36,36 @@ public class UnreadService
         // Channel state is not an authorization boundary: a user normally has
         // no state row for a channel they cannot access. Always scope the
         // candidate channels to the user's actual membership first.
-        channels = planetId is null
-            ? channels.Where(c => c.Members.Any(m => m.UserId == userId))
-            : channels.Where(c => _db.PlanetMembers.Any(m =>
-                m.PlanetId == planetId.Value && m.UserId == userId));
+        Valour.Database.PlanetMember member = null;
+        if (planetId is null)
+        {
+            channels = channels.Where(c => c.Members.Any(m => m.UserId == userId));
+        }
+        else
+        {
+            member = await _db.PlanetMembers.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.PlanetId == planetId.Value && m.UserId == userId);
+            if (member is null)
+                return [];
+        }
 
-        return await channels
+        var unread = await channels
             .Where(c => !_db.UserChannelStates
                 .Where(s => s.UserId == userId && s.PlanetId == planetId)
                 .Any(s => s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)
             )
             .Select(c => c.Id)
             .ToArrayAsync();
+
+        if (member is null || unread.Length == 0)
+            return unread;
+
+        // Planet membership alone does not grant access to private channels
+        var access = await _permissionService.GetChannelAccessForMemberAsync(member);
+        if (access is null)
+            return [];
+
+        return unread.Where(access.Contains).ToArray();
     }
     
     public async Task<long[]> GetUnreadPlanets(long userId)

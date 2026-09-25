@@ -11,6 +11,13 @@ public class StatWorker : IHostedService, IDisposable
     private static int _messageCount;
     private int _isRunning;
 
+    // The totals come from full-table counts, which are expensive on large
+    // tables. Each minute row reuses the last totals, and the counts are only
+    // repeated at this interval.
+    private static readonly TimeSpan TotalsRefreshInterval = TimeSpan.FromMinutes(15);
+    private StatObject _totals;
+    private DateTime _totalsTime;
+
     public StatWorker(ILogger<StatWorker> logger,
                         IServiceScopeFactory scopeFactory)
     {
@@ -38,31 +45,49 @@ public class StatWorker : IHostedService, IDisposable
         if (Interlocked.Exchange(ref _isRunning, 1) == 1)
             return;
 
+        // Timer callbacks are async void, so an unhandled exception here would
+        // terminate the process
         try
         {
-        using var scope = _scopeFactory.CreateScope();
-            
-        ValourDb context = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            if (System.Diagnostics.Debugger.IsAttached)
+                return;
 
-        if (!System.Diagnostics.Debugger.IsAttached)
-        {
-            StatObject stats = new();
-            stats.TimeCreated = DateTime.UtcNow;
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ValourDb>();
 
-            stats.UserCount = await context.Users.CountAsync();
-            stats.PlanetCount = await context.Planets.CountAsync();
-            stats.PlanetMemberCount = await context.PlanetMembers.CountAsync();
-            stats.ChannelCount = await context.Channels.CountAsync(x => x.ChannelType == ChannelTypeEnum.PlanetChat);
-            stats.CategoryCount = await context.Channels.CountAsync(x => x.ChannelType == ChannelTypeEnum.PlanetCategory);
-            stats.MessageDayCount = await context.Messages.CountAsync();
-            stats.MessagesSent = Interlocked.Exchange(ref _messageCount, 0);
-            
+            var now = DateTime.UtcNow;
+            if (_totals is null || now - _totalsTime >= TotalsRefreshInterval)
+            {
+                _totals = new StatObject
+                {
+                    UserCount = await context.Users.CountAsync(),
+                    PlanetCount = await context.Planets.CountAsync(),
+                    PlanetMemberCount = await context.PlanetMembers.CountAsync(),
+                    ChannelCount = await context.Channels.CountAsync(x => x.ChannelType == ChannelTypeEnum.PlanetChat),
+                    CategoryCount = await context.Channels.CountAsync(x => x.ChannelType == ChannelTypeEnum.PlanetCategory),
+                    MessageDayCount = await context.Messages.CountAsync(),
+                };
+                _totalsTime = now;
+            }
+
+            var stats = new StatObject
+            {
+                TimeCreated = now,
+                UserCount = _totals.UserCount,
+                PlanetCount = _totals.PlanetCount,
+                PlanetMemberCount = _totals.PlanetMemberCount,
+                ChannelCount = _totals.ChannelCount,
+                CategoryCount = _totals.CategoryCount,
+                MessageDayCount = _totals.MessageDayCount,
+                MessagesSent = Interlocked.Exchange(ref _messageCount, 0),
+            };
+
             await context.Stats.AddAsync(stats);
             await context.SaveChangesAsync();
-            _logger.LogInformation($"Saved Stats Successfully");
         }
-            
-        _logger.LogInformation("Stat Worker running at: {Time}", DateTimeOffset.Now.ToString());
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Stat Worker failed to save stats");
         }
         finally
         {

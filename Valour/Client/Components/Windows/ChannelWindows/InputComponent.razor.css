@@ -207,6 +207,33 @@
     display: none;
 }
 
+.e2ee-send-notice {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    padding: var(--space-2) var(--space-3);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    background-color: var(--color-warning-soft);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-md);
+}
+
+.e2ee-send-notice > i {
+    color: var(--color-warning);
+}
+
+.e2ee-send-notice > span {
+    flex: 1;
+    min-width: 0;
+}
+
+.encryption-blocked {
+    display: none;
+}
+
 /* Pop-up upload menu */
 .upload-menu-backdrop {
     position: fixed;
@@ -346,5 +373,39 @@
 @media (max-width: 720px) {
     .textbox-wrapper {
         max-height: 10em;
+    }
+}
+
+/* Sits over the empty textbox while a send is in progress; the holder clips overflow. */
+.e2ee-send-status {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    right: 6rem;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    background-color: var(--main-2);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    pointer-events: none;
+}
+
+.send-status-spinner {
+    width: 0.85rem;
+    height: 0.85rem;
+    border: 2px solid var(--slight-tint);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: e2ee-send-spin 0.7s linear infinite;
+}
+
+@keyframes e2ee-send-spin {
+    to {
+        transform: rotate(360deg);
     }
 }

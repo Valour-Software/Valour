@@ -18,6 +18,7 @@ public class ChannelService
     private readonly CoreHubService _coreHub;
     private readonly PlanetPermissionService _planetPermissionService;
     private readonly HostedPlanetService _hostedPlanetService;
+    private readonly Villages.VillageRoomService _villageRoomService;
 
     public ChannelService(
         ValourDb db,
@@ -25,7 +26,8 @@ public class ChannelService
         CoreHubService coreHubService,
         ILogger<ChannelService> logger,
         PlanetPermissionService planetPermissionService, 
-        HostedPlanetService hostedPlanetService)
+        HostedPlanetService hostedPlanetService,
+        Villages.VillageRoomService villageRoomService)
     {
         _db = db;
         _memberService = memberService;
@@ -33,6 +35,7 @@ public class ChannelService
         _coreHub = coreHubService;
         _planetPermissionService = planetPermissionService;
         _hostedPlanetService = hostedPlanetService;
+        _villageRoomService = villageRoomService;
     }
 
     private static bool IsPlanetCallChannelType(ChannelTypeEnum type) =>
@@ -523,6 +526,10 @@ public class ChannelService
 
         channel.LastUpdateTime = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+
+        // A connection that already joined the channel group would otherwise
+        // keep receiving the group's live messages.
+        await _coreHub.EvictUsersFromChannelGroupAsync(channelId, [userId]);
         return TaskResult.SuccessResult;
     }
 
@@ -821,6 +828,11 @@ public class ChannelService
             return TaskResult<Channel>.FromFailure("Use move channel endpoint to change position.");
         }
         
+        // The encryption generation is server-managed and advances only when a
+        // new channel key is published, by a member or by the server when it
+        // creates a channel's first key.
+        updated.EncryptionGeneration = old.EncryptionGeneration;
+
         // Basic validation
         var baseValid = await ValidateChannel(updated);
         if (!baseValid.Success)
@@ -916,17 +928,19 @@ public class ChannelService
             return new TaskResult(false, e.Message);
         }
 
-        // Update cache and broadcast
+        // Update cache and broadcast to the members who can see each channel
         if (oldDefault is not null)
         {
             oldDefault.IsDefault = false;
             hostedPlanet.UpsertChannel(oldDefault);
-            _coreHub.NotifyPlanetItemChange(planetId, oldDefault);
+            var oldViewers = await _planetPermissionService.GetChannelViewerUserIdsAsync(hostedPlanet, [oldDefault.Id]);
+            _coreHub.NotifyChannelChange(oldDefault, oldViewers[0]);
         }
 
         newDefault.IsDefault = true;
         hostedPlanet.UpsertChannel(newDefault);
-        _coreHub.NotifyPlanetItemChange(planetId, newDefault);
+        var newViewers = await _planetPermissionService.GetChannelViewerUserIdsAsync(hostedPlanet, [newDefault.Id]);
+        _coreHub.NotifyChannelChange(newDefault, newViewers[0]);
 
         return TaskResult.SuccessResult;
     }
@@ -972,7 +986,9 @@ public class ChannelService
             if (member is null)
                 return false;
             
-            return await _planetPermissionService.HasChannelAccessAsync(member.Id, channel.Id);
+            // Village room channels are only open to the room's current occupants
+            return await _planetPermissionService.HasChannelAccessAsync(member.Id, channel.Id) &&
+                   await _villageRoomService.CanAccessChannelAsync(channel, userId);
         }
         
         return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
@@ -1742,11 +1758,17 @@ public class ChannelService
             if (_hostedPlanetService.IsHosted(dbCallChannel.PlanetId.Value))
             {
                 var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(dbCallChannel.PlanetId.Value);
-                hostedPlanet.UpsertChannel(dbCallChannel.ToModel());
+                var callChannel = dbCallChannel.ToModel();
+                hostedPlanet.UpsertChannel(callChannel);
                 hostedPlanet.UpsertChannel(associatedChatChannel);
 
-                _coreHub.NotifyPlanetItemChange(dbCallChannel.PlanetId.Value, dbCallChannel.ToModel());
-                _coreHub.NotifyPlanetItemChange(dbCallChannel.PlanetId.Value, associatedChatChannel);
+                // The new chat channel and its copied permission nodes change
+                // access, so recompute it before choosing recipients.
+                await _planetPermissionService.HandleChannelTopologyChange(dbCallChannel.PlanetId.Value);
+                var viewers = await _planetPermissionService.GetChannelViewerUserIdsAsync(
+                    hostedPlanet, [callChannel.Id, associatedChatChannel.Id]);
+                _coreHub.NotifyChannelChange(callChannel, viewers[0]);
+                _coreHub.NotifyChannelChange(associatedChatChannel, viewers[1]);
             }
 
             return TaskResult.SuccessResult;

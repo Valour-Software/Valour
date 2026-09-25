@@ -436,7 +436,7 @@
         }
         else
         {
-            res = await _trigger.UpdateAsync();
+            res = await Client.AutomodService.UpdateTriggerAsync(_trigger);
         }
         _result = res;
         if (res.Success)

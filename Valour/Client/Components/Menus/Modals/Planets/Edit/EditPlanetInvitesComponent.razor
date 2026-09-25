@@ -11,26 +11,22 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Invites Enabled</span>
-                <label class="switch">
-                    <input type="checkbox" @oninput="OnCheckPublic" checked="@publicValue" />
-                    <span class="slider round"></span>
-                </label>
+                <span class="toggle-title">@(Planet.Public ? "Public" : "Private")</span>
             </div>
             <p class="toggle-description">
-                @if (publicValue)
+                @if (Planet.Public)
                 {
-                    <span>Users can join this planet via invite links.</span>
+                    <span>Anyone can join this planet, with or without an invite link.</span>
                 }
                 else
                 {
-                    <span class="danger-note">Invites are disabled. All existing invite links will stop working until this is re-enabled.</span>
+                    <span>People join this planet with an invite link.</span>
                 }
+                <span>The owner changes this under Privacy.</span>
             </p>
-            <ResultLabel Result="@publicResult" />
         </div>
 
-        @if (publicValue)
+        @if (Planet.Public)
         {
             <div class="toggle-item">
                 <div class="toggle-header">
@@ -62,23 +58,26 @@
             </div>
         }
 
-        <div class="toggle-item">
-            <div class="toggle-header">
-                <span class="toggle-title">Discoverable</span>
-                <label class="switch">
-                    <input type="checkbox" @oninput="OnCheckDiscoverable" checked="@discoverableValue" />
-                    <span class="slider round"></span>
-                </label>
+        @if (Planet.Public)
+        {
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Discoverable</span>
+                    <label class="switch">
+                        <input type="checkbox" @oninput="OnCheckDiscoverable" checked="@discoverableValue" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <p class="toggle-description">Allow this planet to appear in discovery</p>
+                <ResultLabel Result="@discoverableResult" />
+                @if (discoverableValue)
+                {
+                    <button class="v-btn small mt-2" title="Copy discoverable link" @onclick="CopyDiscoverableLink">
+                        <i class="bi bi-clipboard"></i> Copy Discoverable Link
+                    </button>
+                }
             </div>
-            <p class="toggle-description">Allow this planet to appear in discovery</p>
-            <ResultLabel Result="@discoverableResult" />
-            @if (discoverableValue)
-            {
-                <button class="v-btn small mt-2" title="Copy discoverable link" @onclick="CopyDiscoverableLink">
-                    <i class="bi bi-clipboard"></i> Copy Discoverable Link
-                </button>
-            }
-        </div>
+        }
 
         <div class="toggle-item">
             <div class="toggle-header">
@@ -169,10 +168,6 @@
     [Parameter]
     public Planet Planet { get; set; }
 
-    public bool publicValue;
-
-    private ITaskResult publicResult;
-
     public bool vanityInviteValue;
 
     private ITaskResult vanityInviteResult;
@@ -187,7 +182,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        publicValue = Planet.Public;
         vanityInviteValue = Planet.VanityInviteEnabled;
         discoverableValue = Planet.Discoverable;
         nsfwValue = Planet.Nsfw;
@@ -205,22 +199,7 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private bool HasVanityInvite => vanityInviteValue && !string.IsNullOrWhiteSpace(Planet.Vanity);
-
-    public async Task OnCheckPublic()
-    {
-        publicValue = !publicValue;
-
-        Planet.Public = publicValue;
-        publicResult = await Planet.UpdateAsync();
-
-        if (!publicResult.Success)
-        {
-            publicValue = !Planet.Public;
-        }
-
-        StateHasChanged();
-    }
+    private bool HasVanityInvite => vanityInviteValue && Planet.Public && !string.IsNullOrWhiteSpace(Planet.Vanity);
 
     public async Task OnCheckVanityInvite()
     {
@@ -275,9 +254,20 @@
 
     private async Task CopyInviteLink(PlanetInvite invite)
     {
-        var link = ShareUtils.GetInviteShareUrl(NavManager, invite.Id);
+        // The device that signed a private planet's invite keeps its key, so
+        // it copies the link that lets people in right away.
+        var fragment = Planet.EncryptionMode == PlanetEncryptionMode.InviteOnly
+            ? await Client.E2eeService.GetSavedInviteFragmentAsync(Planet, invite.Id)
+            : null;
+        var link = ShareUtils.GetInviteShareUrl(NavManager, invite.Id) + fragment;
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", link);
-        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Invite link copied to clipboard", ToastProgressState.Success));
+
+        var message = fragment is not null
+            ? "Invite link copied. People who use it are let in right away, so share it privately."
+            : Planet.EncryptionMode == PlanetEncryptionMode.InviteOnly
+                ? "Invite link copied. People who use it will wait for an admin to let them in."
+                : "Invite link copied to clipboard";
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", message, ToastProgressState.Success));
     }
 
     private string GetVanityInviteLink() => ShareUtils.GetInviteShareUrl(NavManager, Planet.Vanity);
@@ -311,7 +301,9 @@
 
     private async Task DeleteInvite(PlanetInvite invite)
     {
-        var result = await invite.DeleteAsync();
+        // In a private planet this also revokes the part of the link that
+        // lets people in right away.
+        var result = await Client.E2eeService.DeletePlanetInviteAsync(Planet, invite);
         if (result.Success)
         {
             ToastContainer.Instance.AddToast(new ToastData("Deleted", "Invite link has been deleted", ToastProgressState.Success));

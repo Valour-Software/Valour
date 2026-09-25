@@ -22,14 +22,40 @@ public class AudioPermissionChromeClient : WebChromeClient
         var hitTestResult = view.GetHitTestResult();
         var url = hitTestResult?.Extra;
 
-        if (!string.IsNullOrEmpty(url))
+        // Only hand ordinary web and mail links to the system. Other schemes
+        // (intent:, file:, content:, custom app schemes) could launch arbitrary
+        // activities on behalf of page content.
+        var uri = string.IsNullOrEmpty(url) ? null : Android.Net.Uri.Parse(url);
+        if (uri is not null && IsExternalSchemeAllowed(uri.Scheme))
         {
-            var intent = new Intent(Intent.ActionView, Android.Net.Uri.Parse(url));
+            var intent = new Intent(Intent.ActionView, uri);
             intent.AddFlags(ActivityFlags.NewTask);
             view.Context?.StartActivity(intent);
         }
 
         return false;
+    }
+
+    private static bool IsExternalSchemeAllowed(string? scheme)
+    {
+        return string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(scheme, "mailto", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// True when the permission request comes from the Blazor app itself.
+    /// BlazorWebView serves the app from https://0.0.0.1 (or https://0.0.0.0
+    /// when the legacy address switch is set); embedded third-party frames
+    /// have their own origins and must never inherit microphone access.
+    /// </summary>
+    private static bool IsAppOrigin(Android.Net.Uri? origin)
+    {
+        if (origin is null || !string.Equals(origin.Scheme, "https", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return string.Equals(origin.Host, "0.0.0.1", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(origin.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase);
     }
 
     public const int FileChooserRequestCode = 1001;
@@ -41,6 +67,12 @@ public class AudioPermissionChromeClient : WebChromeClient
         if (request?.GetResources() is null)
         {
             base.OnPermissionRequest(request);
+            return;
+        }
+
+        if (!IsAppOrigin(request.Origin))
+        {
+            request.Deny();
             return;
         }
 
@@ -126,18 +158,50 @@ public class AudioPermissionChromeClient : WebChromeClient
     {
         try
         {
-            var status = await Permissions.CheckStatusAsync<Permissions.Microphone>();
-            if (status != PermissionStatus.Granted)
-                status = await Permissions.RequestAsync<Permissions.Microphone>();
+            // Grant only capture resources the app uses, and only once the
+            // matching Android runtime permission is held. Other resources
+            // (protected media ids, MIDI sysex) are never granted.
+            var requested = request.GetResources() ?? Array.Empty<string>();
+            var granted = new List<string>();
 
-            if (status == PermissionStatus.Granted)
-                request.Grant(request.GetResources());
+            if (requested.Contains(PermissionRequest.ResourceAudioCapture) &&
+                await EnsurePermissionAsync<Permissions.Microphone>())
+            {
+                granted.Add(PermissionRequest.ResourceAudioCapture);
+            }
+
+            if (requested.Contains(PermissionRequest.ResourceVideoCapture) &&
+                await EnsurePermissionAsync<Permissions.Camera>())
+            {
+                granted.Add(PermissionRequest.ResourceVideoCapture);
+            }
+
+            if (granted.Count > 0)
+                request.Grant(granted.ToArray());
             else
                 request.Deny();
         }
         catch
         {
             request.Deny();
+        }
+    }
+
+    private static async Task<bool> EnsurePermissionAsync<TPermission>()
+        where TPermission : Permissions.BasePermission, new()
+    {
+        try
+        {
+            var status = await Permissions.CheckStatusAsync<TPermission>();
+            if (status != PermissionStatus.Granted)
+                status = await Permissions.RequestAsync<TPermission>();
+
+            return status == PermissionStatus.Granted;
+        }
+        catch (PermissionException)
+        {
+            // Thrown when the permission is not declared in the manifest.
+            return false;
         }
     }
 }

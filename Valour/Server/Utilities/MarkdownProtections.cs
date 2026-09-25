@@ -1,18 +1,13 @@
+using Valour.Shared.Utilities;
+
 namespace Valour.Server.Utilities;
 
 /// <summary>
-/// Markdown-bypass protections shared by every user-authored markdown surface
-/// (chat messages, threads, docs).
+/// Markdown-bypass protections for thread posts, comments, and wiki pages.
+/// They apply the same rules as chat messages (see <see cref="MessageMarkdownSafety"/>).
 /// </summary>
 public static class MarkdownProtections
 {
-    public static string Sanitize(string content)
-    {
-        if (string.IsNullOrEmpty(content))
-            return content ?? string.Empty;
-
-        content = content.Replace("[](", "[]\\(");
-        content = content.Replace("]()", "]\\()");
-        return content;
-    }
+    public static string Sanitize(string content) =>
+        MessageMarkdownSafety.Escape(content) ?? string.Empty;
 }

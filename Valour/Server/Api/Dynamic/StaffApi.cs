@@ -69,6 +69,21 @@ public class StaffApi
 
     [StaffRequired]
     [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Get, "api/staff/reports/{reportId}/evidence")]
+    public static async Task<IResult> GetReportEvidenceAsync(
+        StaffService staffService,
+        E2eeMessageService e2eeMessages,
+        string reportId)
+    {
+        var report = await staffService.GetReportAsync(reportId);
+        if (report is null)
+            return ValourResult.NotFound("Report not found");
+
+        return Results.Json(await e2eeMessages.GetEvidenceAsync(reportId, null));
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/staff/reports/resolve")]
     public static async Task<IResult> ResolveReportAsync(
         UserService userService,

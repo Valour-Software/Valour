@@ -23,6 +23,7 @@ public static class ChannelMapper
             IsDefault = channel.IsDefault,
             Nsfw = channel.Nsfw,
             AssociatedChatChannelId = channel.AssociatedChatChannelId,
+            EncryptionGeneration = channel.EncryptionGeneration,
 
             Members = channel.Members?.Select(x => x.ToModel()).ToList()
         };
@@ -47,6 +48,7 @@ public static class ChannelMapper
             IsDefault = channel.IsDefault,
             Nsfw = channel.Nsfw,
             AssociatedChatChannelId = channel.AssociatedChatChannelId,
+            EncryptionGeneration = channel.EncryptionGeneration,
             Version = ISharedChannel.CurrentVersion,
             
             Members = channel.Members?.Select(x => x.ToDatabase()).ToList()

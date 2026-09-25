@@ -159,4 +159,10 @@ public interface ISharedChannel : ISharedModel<long>, ISortable
     /// For call channels, the associated chat channel id used for integrated chat.
     /// </summary>
     long? AssociatedChatChannelId { get; set; }
+
+    /// <summary>
+    /// The newest end-to-end encryption key generation, or zero until the
+    /// channel's first key is created. Server-managed.
+    /// </summary>
+    int EncryptionGeneration { get; set; }
 }

@@ -16,7 +16,10 @@ NodeConfig.json
 # wwwroot/lib/
 # When wwwroot/lib/ is commented out, excluse .min and .map files
 
-
+*.min.*
+*.map
+# Vendored libraries the app loads at run time are committed.
+!Valour/Client/wwwroot/js/vendor/*.min.js
 _build/
 _site/
 
@@ -141,6 +144,9 @@ $tf/
 _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
+
+# Local server address for Debug builds of the native app
+Valour/Client.Maui/Local.props
 
 # JustCode is a .NET coding addin-in
 .JustCode
@@ -408,6 +414,9 @@ dotnet-install.sh
 
 # Build-generated CSS bundle
 **/wwwroot/css/bundled.min.css
+
+# Build-generated transpilations of TypeScript
+**/wwwroot/ts/*.js
 
 # Firebase credentials
 google-services.json

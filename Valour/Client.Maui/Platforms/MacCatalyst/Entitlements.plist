@@ -9,6 +9,9 @@
         <!-- When App Sandbox is enabled, this value is required to open outgoing network connections. -->
         <key>com.apple.security.network.client</key>
         <true/>
+        <!-- The camera scans device-link codes for end-to-end encryption. -->
+        <key>com.apple.security.device.camera</key>
+        <true/>
     </dict>
 </plist>
 

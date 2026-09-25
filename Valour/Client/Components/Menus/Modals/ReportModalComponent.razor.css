@@ -181,3 +181,30 @@
         min-height: 7rem;
     }
 }
+
+.report-evidence {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+}
+
+.report-evidence > i {
+    color: var(--font-alt-color);
+    margin-top: 2px;
+}
+
+.report-evidence > span {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.report-evidence > span > span {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}

@@ -67,30 +67,6 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             .FirstAsync();
 
     [Theory]
-    [InlineData("  First line\nsecond   line  ", 0, "First line second line")]
-    [InlineData("", 1, "Sent an attachment")]
-    [InlineData("", 3, "Sent 3 attachments")]
-    [InlineData("", 0, "Sent a message")]
-    public void BuildMessagePreview_NormalizesAndHandlesEmptyContent(
-        string content,
-        int attachmentCount,
-        string expected)
-    {
-        Assert.Equal(expected, ChannelActivityService.BuildMessagePreview(content, attachmentCount));
-    }
-
-    [Fact]
-    public void BuildMessagePreview_TruncatesLongMessages()
-    {
-        var preview = ChannelActivityService.BuildMessagePreview(
-            new string('a', ChannelActivityService.MessagePreviewLength + 20),
-            0);
-
-        Assert.Equal(ChannelActivityService.MessagePreviewLength, preview.Length);
-        Assert.EndsWith("…", preview);
-    }
-
-    [Theory]
     [InlineData(0, "Alex in Valour Central")]
     [InlineData(1, "Alex in Valour Central (+1 other)")]
     [InlineData(4, "Alex in Valour Central (+4 others)")]
@@ -102,8 +78,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
 
     private async Task<ChannelActivityEvaluation> MakeEvaluationAsync(
         Channel channel,
-        bool conversationStart = true,
-        string content = "The latest activity message")
+        bool conversationStart = true)
     {
         var messageId = IdManager.Generate();
         var authorMemberId = await _db.PlanetMembers.AsNoTracking()
@@ -118,7 +93,7 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             ChannelId = channel.Id,
             AuthorUserId = _client.Me.Id,
             AuthorMemberId = authorMemberId,
-            Content = content,
+            Content = string.Empty,
             TimeSent = DateTime.UtcNow,
         });
         await _db.SaveChangesAsync();
@@ -160,7 +135,8 @@ public class ChannelActivityServiceTests : IAsyncLifetime
             .Select(x => x.Name)
             .FirstAsync();
         Assert.Equal($"{_client.Me.Name} in {planetName} (+1 other)", notification.Title);
-        Assert.Equal("The latest activity message", notification.Body);
+        // Messages are encrypted, so notifications never carry their text.
+        Assert.Equal(NotificationService.EncryptedMessageBody, notification.Body);
         Assert.Equal(eval.TriggerMessageId, notification.SourceId);
     }
 

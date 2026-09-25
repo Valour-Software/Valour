@@ -1,6 +1,7 @@
 #nullable enable annotations
 
 using Microsoft.AspNetCore.Mvc;
+using Valour.Sdk.E2ee;
 using Valour.Server.Database;
 using Valour.Server.Requests;
 using Valour.Shared.Authorization;
@@ -179,6 +180,11 @@ public class PlanetApi
         if (old.OwnerId != planet.OwnerId)
             return ValourResult.BadRequest("Use the ownership transfer flow to change a planet owner.");
 
+        // Whether a planet is public also decides who can read it, which only
+        // the owner's device can sign for.
+        if (old.Public != planet.Public)
+            return ValourResult.BadRequest(PlanetService.PublicChangeMessage);
+
         // Push visibility before making the local update. In particular, a
         // public-to-private change stops the hub from issuing new grants first.
         FederatedPlanetStubRequest previousStub = null;
@@ -210,6 +216,56 @@ public class PlanetApi
         }
         
         return Results.Json(planet);
+    }
+
+    /// <summary>
+    /// Makes a planet public or private and sets whether new members can read
+    /// earlier messages. Only the owner can do this, because changing privacy
+    /// needs a membership log entry the owner's device signs.
+    /// </summary>
+    [ValourRoute(HttpVerbs.Put, "api/planets/{id}/privacy")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> SetPrivacyRouteAsync(
+        long id,
+        [FromBody] SetPlanetPrivacyRequest? request,
+        UserService userService,
+        PlanetService planetService,
+        PlanetEncryptionService encryptionService,
+        FederationNodeClient federationNodeClient)
+    {
+        if (request is null)
+            return ValourResult.BadRequest("Include the privacy settings.");
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var planet = await planetService.GetAsync(id);
+        if (planet is null)
+            return ValourResult.NotFound("Planet not found.");
+        if (planet.OwnerId != userId)
+            return ValourResult.Forbid("Only the planet owner can change whether the planet is public.");
+
+        // As with other visibility changes, the hub hears first, so a planet
+        // that becomes private stops receiving new members through it first.
+        FederatedPlanetStubRequest previousStub = null;
+        if (FederationNodeService.NodeEnabled && planet.Public != request.Public)
+        {
+            var memberCount = await planetService.GetMemberCountAsync(id);
+            previousStub = ToFederatedStubRequest(planet, memberCount);
+            var nextStub = ToFederatedStubRequest(planet, memberCount);
+            nextStub.Public = request.Public;
+            var sync = await federationNodeClient.UpsertPlanetAsync(id, nextStub);
+            if (!sync.Success)
+                return ValourResult.Problem(sync.Message ?? "Could not update this community planet at the hub.");
+        }
+
+        var result = await encryptionService.SetPrivacyAsync(id, userId, request);
+        if (!result.Success)
+        {
+            if (previousStub is not null)
+                await federationNodeClient.UpsertPlanetAsync(id, previousStub);
+            return ValourResult.BadRequest(result.Message);
+        }
+
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Post, "api/planets/{id}/transfer-ownership")]
@@ -252,7 +308,8 @@ public class PlanetApi
                 return ValourResult.Problem(sync.Message ?? "Could not update this community planet at the hub.");
         }
 
-        var result = await planetService.TransferOwnershipAsync(id, userId, request.NewOwnerUserId);
+        var result = await planetService.TransferOwnershipAsync(id, userId, request.NewOwnerUserId,
+            request.AccessLogEntryBody, request.AccessLogEntrySignature);
         if (!result.Success)
         {
             if (previousStub is not null)
@@ -739,6 +796,9 @@ public class PlanetApi
         PlanetMemberService memberService,
         PlanetService planetService)
     {
+        if (!await planetService.ExistsAsync(id))
+            return ValourResult.NotFound("Planet not found.");
+
         var user = await userService.GetCurrentUserAsync();
         var planet = await planetService.GetAsync(id);
 
@@ -774,6 +834,9 @@ public class PlanetApi
         PlanetInviteService inviteService,
         string? inviteCode = null)
     {
+        if (!await planetService.ExistsAsync(id))
+            return ValourResult.NotFound("Planet not found.");
+
         var user = await userService.GetCurrentUserAsync();
         var planet = await planetService.GetAsync(id);
 

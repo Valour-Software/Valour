@@ -35,7 +35,7 @@
                 {
                     <button type="button" class="settings-row settings-row-button" @onclick="() => OnEditApp(app)" aria-label="Edit @app.Name">
                         <div class="settings-row-icon">
-                            <img src="@app.ImageUrl" alt="@app.Name" onerror="this.src='_content/Valour.Client/media/logo/logo-512.png'" />
+                            <img src="@app.ImageUrl" alt="@app.Name" data-fallback-src="_content/Valour.Client/media/logo/logo-512.png" />
                         </div>
                         <div class="settings-row-copy">
                             <h4 class="settings-row-title">@app.Name</h4>

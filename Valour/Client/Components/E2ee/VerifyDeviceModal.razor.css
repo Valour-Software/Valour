@@ -1,0 +1,102 @@
+.verify-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-3) 0;
+}
+
+.verify-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-3);
+    text-align: left;
+    color: var(--font-color);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.verify-option:hover {
+    border-color: var(--color-primary-border);
+    background-color: var(--main-4);
+}
+
+.verify-option i {
+    font-size: var(--font-size-lg);
+    color: var(--color-primary);
+}
+
+.option-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.option-copy span {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+.link-button {
+    padding: 0;
+    color: var(--font-alt-color);
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.reset-here {
+    margin-bottom: var(--space-3);
+}
+
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) 0;
+    color: var(--font-alt-color);
+}
+
+.recovery-input,
+.code-input {
+    width: 100%;
+    font-family: var(--font-family-mono);
+    text-transform: uppercase;
+}
+
+.danger-note {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    margin-bottom: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--color-danger-soft);
+}
+
+.danger-note i {
+    color: var(--color-danger);
+}
+
+.done {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--color-success-soft);
+}
+
+.done i {
+    color: var(--color-success);
+    font-size: var(--font-size-lg);
+}
+
+.field-label {
+    display: block;
+    margin-bottom: var(--space-2);
+}

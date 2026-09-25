@@ -83,4 +83,11 @@ public class Report : ISharedReport
     /// Internal staff notes about the report
     /// </summary>
     public string StaffNotes { get; set; }
+
+    /// <summary>
+    /// Messages the reporter chose to reveal. Request-only; staff read the
+    /// verified evidence through its own route.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Valour.Sdk.E2ee.MessageEvidenceDto> Evidence { get; set; }
 }

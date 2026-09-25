@@ -197,6 +197,19 @@ public class DiscordImportService
         }
     }
 
+    // Matches ChannelService.ValidateName and the channels.name column
+    private const int MaxChannelNameLength = 32;
+
+    /// <summary>
+    /// Discord allows channel names up to 100 characters. Names are cut to the
+    /// channel name limit, and blank names use the fallback.
+    /// </summary>
+    internal static string ToChannelName(string name, string fallback)
+    {
+        name = string.IsNullOrWhiteSpace(name) ? fallback : name.Trim();
+        return name.Length > MaxChannelNameLength ? name[..MaxChannelNameLength] : name;
+    }
+
     /// <summary>
     /// Converts a Discord color integer to a hex string.
     /// </summary>
@@ -224,8 +237,10 @@ public class DiscordImportService
 
         // Determine planet name
         var guildName = guild.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : "Imported Planet";
-        var planetName = !string.IsNullOrWhiteSpace(nameOverride) ? nameOverride : guildName;
-        if (planetName != null && planetName.Length > 32)
+        var planetName = !string.IsNullOrWhiteSpace(nameOverride) ? nameOverride.Trim() : guildName?.Trim();
+        if (string.IsNullOrWhiteSpace(planetName))
+            planetName = "Imported Planet";
+        if (planetName.Length > 32)
             planetName = planetName[..32];
 
         await using var tran = await _db.Database.BeginTransactionAsync();
@@ -338,7 +353,7 @@ public class DiscordImportService
                 {
                     Planet = planet,
                     Id = IdManager.Generate(),
-                    Name = catName ?? "Category",
+                    Name = ToChannelName(catName, "Category"),
                     Description = string.Empty,
                     ParentId = null,
                     RawPosition = position.RawPosition,
@@ -440,7 +455,7 @@ public class DiscordImportService
                     Planet = planet,
                     Parent = parentChannel,
                     Id = IdManager.Generate(),
-                    Name = chName ?? "channel",
+                    Name = ToChannelName(chName, "channel"),
                     Description = string.Empty,
                     RawPosition = childPosition.RawPosition,
                     ChannelType = valourType,

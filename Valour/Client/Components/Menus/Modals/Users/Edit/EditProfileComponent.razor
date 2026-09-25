@@ -25,7 +25,7 @@
         </h3>
 
         <div class="avatar-container">
-            <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="@OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
+            <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="@OnPfpError" data-click-target="avatar-upload" />
             <div class="avatar-info">
                 <label for="avatar-upload" class="v-btn secondary">
                     <i class="bi bi-upload"></i>

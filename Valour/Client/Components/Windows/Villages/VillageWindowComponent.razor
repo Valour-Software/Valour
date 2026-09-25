@@ -739,10 +739,10 @@ else
                            @oninput="OnChatDraftChanged"
                            @onkeydown="OnChatKeyDown"
                            maxlength="120"
-                           disabled="@_sendingChat"
-                           placeholder="Say something nearby…" />
+                           disabled="@(_sendingChat || !CanEncrypt)"
+                           placeholder="@(CanEncrypt ? "Say something nearby…" : "Verify this device to chat")" />
                     <button class="composer-send"
-                            disabled="@(_sendingChat || string.IsNullOrWhiteSpace(_chatDraft))"
+                            disabled="@(_sendingChat || !CanEncrypt || string.IsNullOrWhiteSpace(_chatDraft))"
                             @onclick="SendVillageMessageAsync"
                             title="Send message">
                         <i aria-hidden="true" class="bi bi-send-fill"></i>
@@ -1066,6 +1066,7 @@ else
         VillageService.MapRejoined += OnVillageMapRejoined;
         VillageService.MapRejoinFailed += OnVillageMapRejoinFailed;
         MessageService.MessageReceived += OnMessageReceived;
+        Client.E2eeService.StatusChanged += OnEncryptionStatusChanged;
         Data.VillageBuildings.Changed += OnVillageBuildingChanged;
         Data.VillagePlots.Changed += OnVillagePlotChanged;
         Data.VillageObjects.Changed += OnVillageObjectChanged;
@@ -1083,6 +1084,10 @@ else
         VillageService.MapRejoined -= OnVillageMapRejoined;
         VillageService.MapRejoinFailed -= OnVillageMapRejoinFailed;
         MessageService.MessageReceived -= OnMessageReceived;
+        Client.E2eeService.StatusChanged -= OnEncryptionStatusChanged;
+        foreach (var waiting in _awaitingDecryption.Values)
+            waiting.DecryptionChanged -= OnBubbleMessageDecrypted;
+        _awaitingDecryption.Clear();
         if (Data is not null)
         {
             Data.VillageBuildings.Changed -= OnVillageBuildingChanged;
@@ -1429,6 +1434,15 @@ else
         if (_disposed || _runtime is null || message is null)
             return;
 
+        // An encrypted message whose key has not arrived gets its bubble
+        // once it decrypts. Text that failed verification is never shown.
+        if (!message.HasReadableText())
+        {
+            if (message.DecryptionState == MessageDecryptionState.WaitingForKey && IsMessageAudibleHere(message))
+                WatchForDecryption(message);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(message.Content))
             return;
 
@@ -1450,6 +1464,34 @@ else
             catch (JSDisconnectedException) { }
             catch (JSException) { }
         });
+    }
+
+    // Chat bubbles are only worth showing shortly after a message is sent.
+    private static readonly TimeSpan LateBubbleLimit = TimeSpan.FromMinutes(1);
+
+    // Received messages waiting for their key, by message ID.
+    private readonly Dictionary<long, Message> _awaitingDecryption = new();
+
+    private bool CanEncrypt => Client.E2eeService.Status == E2eeStatus.Ready;
+
+    private void OnEncryptionStatusChanged(E2eeStatus status) => _ = InvokeAsync(ReRender);
+
+    private void WatchForDecryption(Message message)
+    {
+        if (_disposed || _awaitingDecryption.Count >= 100 || !_awaitingDecryption.TryAdd(message.Id, message))
+            return;
+        message.DecryptionChanged += OnBubbleMessageDecrypted;
+    }
+
+    private void OnBubbleMessageDecrypted(Message message)
+    {
+        message.DecryptionChanged -= OnBubbleMessageDecrypted;
+        _awaitingDecryption.Remove(message.Id);
+
+        if (_disposed || !message.HasReadableText() || DateTime.UtcNow - message.TimeSent > LateBubbleLimit)
+            return;
+
+        _ = InvokeAsync(() => OnMessageReceived(message));
     }
 
     private bool IsMessageAudibleHere(Message message)
@@ -2110,7 +2152,7 @@ else
                 : "This property is free to claim.",
             building.Price > 0 ? "Confirm purchase" : "Claim it",
             "Cancel",
-            PurchaseSelectedBuildingAsync,
+            () => PurchaseBuildingAsync(building.Id, building.Price),
             () => Task.CompletedTask);
 
         ModalRoot.Instance?.OpenModal<ConfirmModalComponent>(modalData);
@@ -2129,20 +2171,21 @@ else
                 : "This parcel is free to claim.",
             plot.Price > 0 ? "Confirm purchase" : "Claim it",
             "Cancel",
-            PurchaseSelectedPlotAsync,
+            () => PurchasePlotAsync(plot.Id, plot.Price),
             () => Task.CompletedTask);
 
         ModalRoot.Instance?.OpenModal<ConfirmModalComponent>(modalData);
     }
 
-    private async Task PurchaseSelectedBuildingAsync()
+    // The confirmed price is sent with the purchase so a listing repriced while
+    // the confirmation was open is rejected instead of charging a different amount.
+    private async Task PurchaseBuildingAsync(long buildingId, decimal confirmedPrice)
     {
-        if (Data is null || _selectedBuilding is null || _purchaseInProgress)
+        if (Data is null || _purchaseInProgress)
             return;
 
-        var buildingId = _selectedBuilding.Id;
         _purchaseInProgress = true;
-        var result = await VillageService.PurchaseBuildingAsync(Data, buildingId);
+        var result = await VillageService.PurchaseBuildingAsync(Data, buildingId, confirmedPrice);
         _purchaseInProgress = false;
 
         if (!result.Success)
@@ -2157,14 +2200,13 @@ else
         await ReRender();
     }
 
-    private async Task PurchaseSelectedPlotAsync()
+    private async Task PurchasePlotAsync(long plotId, decimal confirmedPrice)
     {
-        if (Data is null || _selectedPlot is null || _purchaseInProgress)
+        if (Data is null || _purchaseInProgress)
             return;
 
-        var plotId = _selectedPlot.Id;
         _purchaseInProgress = true;
-        var result = await VillageService.PurchasePlotAsync(Data, plotId);
+        var result = await VillageService.PurchasePlotAsync(Data, plotId, confirmedPrice);
         _purchaseInProgress = false;
 
         if (!result.Success)

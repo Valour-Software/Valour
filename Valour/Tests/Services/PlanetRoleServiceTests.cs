@@ -351,5 +351,62 @@ namespace Valour.Tests.Services
             var nodes = await _roleService.GetNodesAsync(createdRole.Id);
             Assert.Empty(nodes);
         }
+
+        [Fact]
+        public async Task CreateRole_IgnoresClientFlagBitIndex()
+        {
+            var hosted = await _hostedService.GetRequiredAsync(_valourCentralId);
+            var existingIndices = hosted.Roles.List.Select(x => x.FlagBitIndex).ToHashSet();
+            var takenIndex = hosted.GetDefaultRole().FlagBitIndex;
+
+            var result = await _roleService.CreateAsync(new PlanetRole
+            {
+                Name = "Index Spoof Role",
+                PlanetId = _valourCentralId,
+                FlagBitIndex = takenIndex
+            });
+            Assert.True(result.Success, result.Message);
+            _createdRoles.Add(result.Data);
+
+            Assert.DoesNotContain(result.Data.FlagBitIndex, existingIndices);
+            Assert.Equal(hosted.GetDefaultRole().Id, hosted.GetRoleIdByIndex(takenIndex));
+        }
+
+        [Fact]
+        public async Task UpdateRole_RejectsFlagBitIndexChange()
+        {
+            var createResult = await _roleService.CreateAsync(new PlanetRole
+            {
+                Name = "Index Update Role",
+                PlanetId = _valourCentralId
+            });
+            Assert.True(createResult.Success, createResult.Message);
+            var role = createResult.Data;
+            _createdRoles.Add(role);
+
+            var hosted = await _hostedService.GetRequiredAsync(_valourCentralId);
+            var originalIndex = role.FlagBitIndex;
+
+            var updateResult = await _roleService.UpdateAsync(new PlanetRole
+            {
+                Id = role.Id,
+                PlanetId = role.PlanetId,
+                Name = role.Name,
+                Color = role.Color,
+                Position = role.Position,
+                IsDefault = role.IsDefault,
+                Permissions = role.Permissions,
+                ChatPermissions = role.ChatPermissions,
+                CategoryPermissions = role.CategoryPermissions,
+                VoicePermissions = role.VoicePermissions,
+                FlagBitIndex = hosted.GetDefaultRole().FlagBitIndex
+            });
+
+            Assert.False(updateResult.Success);
+            Assert.Equal(originalIndex, hosted.GetRoleById(role.Id).FlagBitIndex);
+            Assert.Equal(role.Id, hosted.GetRoleIdByIndex(originalIndex));
+            Assert.Equal(originalIndex,
+                (await _db.PlanetRoles.AsNoTracking().FirstAsync(x => x.Id == role.Id)).FlagBitIndex);
+        }
     }
 }

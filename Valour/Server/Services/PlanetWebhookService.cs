@@ -1,8 +1,10 @@
+using Valour.Sdk.E2ee;
 using System.Security.Cryptography;
 using System.Text;
 using Valour.Sdk.Models.Embeds;
 using Valour.Server.Database;
 using Valour.Shared;
+using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using SdkMessageAttachment = Valour.Sdk.Models.MessageAttachment;
 using WebhookExecuteRequest = Valour.Sdk.Models.WebhookExecuteRequest;
@@ -18,17 +20,20 @@ public class PlanetWebhookService
     private readonly ILogger<PlanetWebhookService> _logger;
     private readonly CoreHubService _coreHub;
     private readonly MessageService _messageService;
+    private readonly PlanetPermissionService _permissionService;
 
     public PlanetWebhookService(
         ValourDb db,
         ILogger<PlanetWebhookService> logger,
         CoreHubService coreHub,
-        MessageService messageService)
+        MessageService messageService,
+        PlanetPermissionService permissionService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
         _messageService = messageService;
+        _permissionService = permissionService;
     }
 
     public async Task<PlanetWebhook> GetAsync(long id) =>
@@ -73,7 +78,7 @@ public class PlanetWebhookService
         if (!profileResult.Success)
             return new(false, profileResult.Message);
 
-        var channelResult = await ValidateChannelAsync(creator.PlanetId, webhook.ChannelId);
+        var channelResult = await ValidateChannelAsync(creator, webhook.ChannelId);
         if (!channelResult.Success)
             return new(false, channelResult.Message);
 
@@ -106,11 +111,14 @@ public class PlanetWebhookService
         return new(true, "Success", webhook);
     }
 
-    public async Task<TaskResult<PlanetWebhook>> UpdateAsync(PlanetWebhook updated)
+    public async Task<TaskResult<PlanetWebhook>> UpdateAsync(PlanetWebhook updated, PlanetMember actor)
     {
         var old = await _db.PlanetWebhooks.FindAsync(updated.Id);
         if (old is null)
             return new(false, "Webhook not found.");
+
+        if (actor is null || actor.PlanetId != old.PlanetId)
+            return new(false, "You are not a member of this webhook's planet.");
 
         var migrationGuard = await MigrationLock.GuardAsync(_db, old.PlanetId);
         if (!migrationGuard.Success)
@@ -122,7 +130,7 @@ public class PlanetWebhookService
 
         if (updated.ChannelId != old.ChannelId)
         {
-            var channelResult = await ValidateChannelAsync(old.PlanetId, updated.ChannelId);
+            var channelResult = await ValidateChannelAsync(actor, updated.ChannelId);
             if (!channelResult.Success)
                 return new(false, channelResult.Message);
         }
@@ -263,7 +271,8 @@ public class PlanetWebhookService
     /// <summary>
     /// Posts a message to the webhook's channel. The webhook must already be
     /// authenticated; no channel permissions are re-checked here because the
-    /// channel binding was authorized by a ManageWebhooks holder.
+    /// channel binding was authorized by a ManageWebhooks holder who could
+    /// view and post in the channel. Automod still scans the message.
     /// </summary>
     public async Task<TaskResult<Message>> ExecuteAsync(PlanetWebhook webhook, WebhookExecuteRequest request)
     {
@@ -310,18 +319,27 @@ public class PlanetWebhookService
             WebhookAvatarAssetId = webhook.AvatarAssetId,
             WebhookAvatarAnimated = webhook.AvatarAnimated,
             SuppressRoleMentions = true,
+            SealKind = ServerSealedKind.Webhook,
         };
 
         return await _messageService.PostMessageAsync(message, writeOptions);
     }
 
     /// <summary>
-    /// Edits a message previously sent by this webhook.
+    /// Edits a message previously sent by this webhook. The server seals
+    /// webhook messages to the channel key and cannot read them afterward, so
+    /// an edit cannot keep text or embeds it omits. Both
+    /// <see cref="WebhookMessageEditRequest.Content"/> and
+    /// <see cref="WebhookMessageEditRequest.Embeds"/> are therefore required and
+    /// replace the message's text and embeds. Media attachments are kept.
     /// </summary>
     public async Task<TaskResult<Message>> EditMessageAsync(PlanetWebhook webhook, long messageId, WebhookMessageEditRequest request)
     {
         if (request is null)
             return new(false, "Include a request body.");
+
+        if (request.Content is null || request.Embeds is null)
+            return new(false, WebhookMessageEditRequest.BothFieldsRequiredMessage);
 
         var ownership = await GetOwnedMessageAsync(webhook, messageId);
         if (!ownership.Success)
@@ -329,26 +347,29 @@ public class PlanetWebhookService
 
         var old = ownership.Data;
 
-        List<SdkMessageAttachment> attachments;
-        if (request.Embeds is not null)
+        var attachments = BuildAttachments(request.Embeds, null, out var attachmentError) ?? new();
+        if (attachmentError is not null)
+            return new(false, attachmentError);
+
+        // Uploaded media stays; embeds are replaced and link previews are
+        // regenerated from the new text.
+        if (old.Attachments is not null)
         {
-            attachments = BuildAttachments(request.Embeds, null, out var attachmentError);
-            if (attachmentError is not null)
-                return new(false, attachmentError);
-        }
-        else
-        {
-            attachments = old.Attachments?.Where(x => !x.Inline).ToList();
+            attachments.AddRange(old.Attachments.Where(x =>
+                x is not null && !x.Inline && x.Type != MessageAttachmentType.Embed));
         }
 
         var updated = new Message
         {
             Id = messageId,
-            Content = request.Content ?? old.Content,
+            Content = request.Content,
             Attachments = attachments,
         };
 
-        return await _messageService.EditMessageAsync(updated);
+        return await _messageService.EditMessageAsync(updated, new MessageWriteOptions
+        {
+            SealKind = ServerSealedKind.Webhook
+        });
     }
 
     /// <summary>
@@ -440,15 +461,25 @@ public class PlanetWebhookService
         return TaskResult.SuccessResult;
     }
 
-    private async Task<TaskResult> ValidateChannelAsync(long planetId, long channelId)
+    /// <summary>
+    /// A webhook posts with the authority of the member who binds it to a channel,
+    /// so that member must be able to view and post in the channel themselves.
+    /// </summary>
+    private async Task<TaskResult> ValidateChannelAsync(PlanetMember actor, long channelId)
     {
-        var channel = await _db.Channels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == channelId);
+        var channel = (await _db.Channels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == channelId)).ToModel();
 
-        if (channel is null || channel.PlanetId != planetId)
+        if (channel is null || channel.PlanetId != actor.PlanetId)
             return TaskResult.FromFailure("Channel not found in this planet.");
 
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
             return TaskResult.FromFailure("Webhooks can only target chat channels.");
+
+        if (!await _permissionService.HasChannelPermissionAsync(actor, channel, ChatChannelPermissions.View))
+            return TaskResult.FromFailure("Channel not found in this planet.");
+
+        if (!await _permissionService.HasChannelPermissionAsync(actor, channel, ChatChannelPermissions.PostMessages))
+            return TaskResult.FromFailure("You must be able to post messages in the channel to bind a webhook to it.");
 
         return TaskResult.SuccessResult;
     }

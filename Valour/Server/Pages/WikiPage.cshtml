@@ -162,10 +162,20 @@
             }
         </div>
 
-        <script async src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"
-                onload="document.querySelectorAll('.pd-content pre code').forEach(function(el){hljs.highlightElement(el);})"></script>
+        <script async id="hljs-script" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"
+                integrity="sha512-MinqHeqca99q5bWxFNQEQpplMBFiUNrEwuuDj2rCSh1DgeeTXUgvgYIHZ1puBS9IKBkdfLMSk/ZWVDasa3Y/2A=="
+                crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="/_content/Valour.Client/js/wiki.js"></script>
-        <script>if (window.wikiEnhanceCodeBlocks) wikiEnhanceCodeBlocks(null);</script>
+        <script nonce="@SecurityHeaders.GetNonce(HttpContext)">
+            (function () {
+                function highlight() {
+                    document.querySelectorAll('.pd-content pre code').forEach(function (el) { hljs.highlightElement(el); });
+                }
+                if (window.hljs) highlight();
+                else document.getElementById('hljs-script').addEventListener('load', highlight);
+                if (window.wikiEnhanceCodeBlocks) wikiEnhanceCodeBlocks(null);
+            })();
+        </script>
     }
 </div>
 </body>

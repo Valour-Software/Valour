@@ -3,10 +3,10 @@ set -eu
 
 python3 Tools/Villages/restore-release-assets.py
 
-# Install the .NET 11 preview SDK pinned by global.json
+# Install the .NET 11 SDK pinned by global.json
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh --version 11.0.100-preview.3.26207.106 -InstallDir ./dotnet
+./dotnet-install.sh --version 11.0.100-rc.1.26425.128 -InstallDir ./dotnet
 export PATH="$PWD/dotnet:$PATH"
 dotnet --version
 
@@ -130,8 +130,40 @@ done
 # SPA fallback for client-side routing (prevents refresh/deep-link 404s on Pages).
 printf '/* /index.html 200\n' > "$OUTPUT_DIR/_redirects"
 
+# Content-Security-Policy for the app. This mirrors SecurityHeaders.BuildAppPolicy
+# in Valour/Server/Utilities/SecurityHeaders.cs (used when the server hosts the
+# app); keep the two in sync. Scripts may not use inline event handler attributes,
+# javascript: URLs, or eval; index.html's inline scripts are allowed by hash only.
+# Hashes are computed from the output file so edits to those scripts need no manual
+# update. Browsers hash script text after normalizing CRLF to LF, as Python's text
+# mode does.
+INLINE_SCRIPT_HASHES="$(python3 - "$OUTPUT_DIR/index.html" <<'PY'
+import base64, hashlib, re, sys
+html = open(sys.argv[1], encoding="utf-8-sig", newline=None).read()
+hashes = []
+for attrs, body in re.findall(r"<script([^>]*)>(.*?)</script>", html, re.S | re.I):
+    if "src=" in attrs.lower():
+        continue
+    digest = hashlib.sha256(body.encode("utf-8")).digest()
+    hashes.append("'sha256-%s'" % base64.b64encode(digest).decode())
+print(" ".join(hashes))
+PY
+)"
+THIRD_PARTY_SCRIPT_SOURCES="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/ https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/ https://cdn.jsdelivr.net/npm/@simonwep/pickr/ https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/ https://unpkg.com/@lottiefiles/lottie-player@2.0.12/ https://s3.tradingview.com https://platform.twitter.com https://cdn.syndication.twimg.com https://embed.reddit.com https://www.tiktok.com https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.ttwstatic.com https://gist.github.com"
+EMBED_FRAME_SOURCES="https://www.youtube.com https://youtube.com https://music.youtube.com https://player.vimeo.com https://vimeo.com https://player.twitch.tv https://clips.twitch.tv https://www.tiktok.com https://platform.twitter.com https://syndication.twitter.com https://twitter.com https://www.instagram.com https://embed.bsky.app https://open.spotify.com https://w.soundcloud.com https://embed.reddit.com https://s.tradingview.com https://www.tradingview-widget.com"
+APP_CSP="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' ${INLINE_SCRIPT_HASHES} ${THIRD_PARTY_SCRIPT_SOURCES}; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://github.githubassets.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src ${EMBED_FRAME_SOURCES}; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+
+cat > "$OUTPUT_DIR/_headers" <<EOF
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Content-Security-Policy: ${APP_CSP}
+
+EOF
+
 # Prevent stale host page/runtime config when switching deploy env vars.
-cat > "$OUTPUT_DIR/_headers" <<'EOF'
+cat >> "$OUTPUT_DIR/_headers" <<'EOF'
 /index.html
   Cache-Control: no-store
 

@@ -1,4 +1,5 @@
 ﻿@inject ValourClient Client
+@implements IHandleEvent
 
 <div class="header-row">
     <div class="h-left">
@@ -17,6 +18,7 @@
         }
     </div>
     <div class="h-right">
+        <EncryptionIndicator Channel="@Channel" />
         @if (Channel?.PlanetId is null && Channel?.ChannelType is ChannelTypeEnum.DirectChat or ChannelTypeEnum.GroupChat)
         {
             <TooltipTrigger Position="left">
@@ -73,6 +75,62 @@
     [Parameter]
     public ChatWindowComponent ChatComponent { get; set; }
 
+    // The chat window re-renders for every message and passes the same
+    // parameters each time. The header renders for its own UI events and
+    // state changes, or when it receives a different channel or window.
+    private bool _shouldRender;
+    private Channel _lastChannel;
+    private ChatWindowComponent _lastChatComponent;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(Channel, _lastChannel) ||
+            !ReferenceEquals(ChatComponent, _lastChatComponent))
+        {
+            _lastChannel = Channel;
+            _lastChatComponent = ChatComponent;
+            _shouldRender = true;
+        }
+    }
+
+    protected override bool ShouldRender() => _shouldRender;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        _shouldRender = false;
+    }
+
+    private void RequestRender()
+    {
+        _shouldRender = true;
+        StateHasChanged();
+    }
+
+    // Matches ComponentBase event handling, but lets the renders that
+    // follow a UI event pass ShouldRender.
+    async Task IHandleEvent.HandleEventAsync(EventCallbackWorkItem callback, object arg)
+    {
+        var task = callback.InvokeAsync(arg);
+        var shouldAwaitTask = task.Status != TaskStatus.RanToCompletion &&
+                              task.Status != TaskStatus.Canceled;
+
+        RequestRender();
+
+        if (!shouldAwaitTask)
+            return;
+
+        try
+        {
+            await task;
+        }
+        catch when (task.IsCanceled)
+        {
+            return;
+        }
+
+        RequestRender();
+    }
+
     private async Task StartCall(DirectCallKind kind)
     {
         if (Channel is null || _startingCall)
@@ -91,7 +149,7 @@
     private void OnClickSearch()
     {
         _searchVisible = !_searchVisible;
-        StateHasChanged();
+        RequestRender();
     }
     
     private string _search = "";
@@ -113,7 +171,7 @@
         if (string.IsNullOrWhiteSpace(_search))
         {
             _searchResults.Clear();
-            StateHasChanged();
+            RequestRender();
             
             return;
         }
@@ -131,7 +189,7 @@
 
             _searchResults = await Channel.SearchMessagesAsync(_search, 20);
             
-            StateHasChanged();
+            RequestRender();
             await Task.Delay(100); // Require at least 200ms between searches
             _searchLoading = false;
         } while (_searchQueued);
@@ -184,7 +242,7 @@
         _storedSearch = _search;
         _search = "";
         _searchResults.Clear();
-        StateHasChanged();
+        RequestRender();
     }
     
     private async Task OnClickSearchBar()

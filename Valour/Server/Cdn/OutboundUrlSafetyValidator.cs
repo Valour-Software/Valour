@@ -142,6 +142,37 @@ public static class OutboundUrlSafetyValidator
         if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0D && bytes[3] == 0xB8)
             return true;
 
+        // Transition prefixes carry an IPv4 destination inside the IPv6
+        // address, so a gateway on the path may deliver to that IPv4 host.
+        // Where the embedded address is at a fixed position it must itself be
+        // public; the prefixes without a reliable position are blocked.
+
+        // ::a.b.c.d (deprecated IPv4-compatible; :: and ::1 are handled above)
+        if (bytes.AsSpan(0, 12).IndexOfAnyExcept((byte)0) < 0)
+            return true;
+
+        // 64:ff9b::/96 (well-known NAT64 prefix, IPv4 in the last 32 bits)
+        if (bytes[0] == 0x00 && bytes[1] == 0x64 && bytes[2] == 0xFF && bytes[3] == 0x9B &&
+            bytes.AsSpan(4, 8).IndexOfAnyExcept((byte)0) < 0)
+        {
+            return IsPrivateOrReservedIpv4(bytes[12..16]);
+        }
+
+        // 64:ff9b:1::/48 (local-use NAT64, operator-defined layout)
+        if (bytes[0] == 0x00 && bytes[1] == 0x64 && bytes[2] == 0xFF && bytes[3] == 0x9B &&
+            bytes[4] == 0x00 && bytes[5] == 0x01)
+        {
+            return true;
+        }
+
+        // 2002::/16 (6to4, IPv4 in bits 16-47)
+        if (bytes[0] == 0x20 && bytes[1] == 0x02)
+            return IsPrivateOrReservedIpv4(bytes[2..6]);
+
+        // 2001::/32 (Teredo, server and obfuscated client IPv4 embedded)
+        if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x00 && bytes[3] == 0x00)
+            return true;
+
         return false;
     }
 }

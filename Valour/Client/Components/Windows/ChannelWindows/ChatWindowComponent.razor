@@ -66,6 +66,10 @@
         </div>
     }
 
+    @if (!_loading && string.IsNullOrWhiteSpace(_setupError) && Channel is not null)
+    {
+        <ChatEncryptionNotice Channel="@Channel" AdmissionChanged="@OnEncryptionAdmissionChanged" />
+    }
     <InputComponent @ref="@InputComponent" ChatComponent="@this" />
 </div>
 
@@ -140,6 +144,25 @@
     
     // Child references
     public InputComponent InputComponent;
+
+    /// <summary>
+    /// True when this person has not been admitted to an invite-only planet's
+    /// encryption yet, so its messages explain that an admin must admit them.
+    /// </summary>
+    public bool AwaitingEncryptionAdmission { get; private set; }
+
+    private async Task OnEncryptionAdmissionChanged(bool awaiting)
+    {
+        if (AwaitingEncryptionAdmission == awaiting)
+            return;
+
+        AwaitingEncryptionAdmission = awaiting;
+        foreach (var message in RenderedMessages.ToList())
+        {
+            if (message.ParamData.Message.IsEncrypted)
+                await message.ReRender();
+        }
+    }
     public MemberListComponent MemberListComponent;
     
     // Used for locking channel connection while window is open
@@ -858,6 +881,20 @@
             return TaskResult.FromFailure(result);
 
         await AddMessages(result.Data, true, true);
+
+        // Opening an encrypted channel is a good moment to share its key with
+        // members who asked while this device was offline, and to index
+        // history the server sealed, in the background.
+        if (Channel.IsEncrypted && Client.E2eeService.Status == E2eeStatus.Ready)
+        {
+            var channel = Channel;
+            _ = Task.Run(async () =>
+            {
+                await Client.E2eeService.ServeChannelAsync(channel);
+                await Client.E2eeService.IndexSealedHistoryAsync(channel);
+            });
+        }
+
         return TaskResult.SuccessResult;
     }
 
@@ -1177,6 +1214,16 @@
     
     // Events
     
+    internal static bool ClearDeletedReply(Message message, long deletedId)
+    {
+        if (message is null || (message.ReplyToId != deletedId && message.ReplyTo?.Id != deletedId))
+            return false;
+
+        message.ReplyTo = null;
+        message.ReplyToId = null;
+        return true;
+    }
+
     public async Task OnDeleteMessage(Message? message)
     {
         if (_disposed || message is null)
@@ -1184,6 +1231,24 @@
 
         await InvokeAsync(async () =>
         {
+            // Capture rendered replies before clearing the shared message objects.
+            var replies = RenderedMessages.Where(x =>
+                x.ParamData.Message.ReplyToId == message.Id ||
+                x.ParamData.Message.ReplyTo?.Id == message.Id).ToList();
+
+            if (InputComponent is not null)
+                await InputComponent.ClearDeletedReplyAsync(message.Id);
+
+            foreach (var reply in DisplayedMessages.Concat(QueuedMessages))
+                ClearDeletedReply(reply, message.Id);
+
+            foreach (var reply in replies)
+            {
+                ClearDeletedReply(reply.ParamData.Message, message.Id);
+                reply.RefreshMessage();
+                await reply.ReRender();
+            }
+
             DisplayedMessages.RemoveAll(x => x.Id == message.Id);
             QueuedMessages.RemoveAll(x => x.Id == message.Id);
 
@@ -1382,11 +1447,6 @@
         {
             _loadingForward = false;
         }
-    }
-
-    [JSInvokable("OnDebouncedScroll")]
-    public void OnDebouncedScroll()
-    {
     }
 
     [JSInvokable("OnBottomStickinessChanged")]

@@ -101,7 +101,7 @@ public class PlanetWebhookApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageWebhooks))
             return ValourResult.LacksPermission(PlanetPermissions.ManageWebhooks);
 
-        var result = await webhookService.UpdateAsync(webhook);
+        var result = await webhookService.UpdateAsync(webhook, member);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

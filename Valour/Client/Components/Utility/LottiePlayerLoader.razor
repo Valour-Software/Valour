@@ -1,23 +1,62 @@
 @implements IAsyncDisposable
+@using Microsoft.Extensions.Logging
 @inject IJSRuntime JsRuntime
+@inject ILogger<LottiePlayerLoader> Logger
 
 @code {
     private IJSObjectReference _module;
+    private bool _disposed;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (!firstRender || _disposed)
             return;
 
-        _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
-            "import",
-            "./_content/Valour.Client/Components/Utility/LottiePlayerLoader.razor.js?version=$(SHORTHASH)");
-        await _module.InvokeVoidAsync("ensureLoaded");
+        IJSObjectReference module = null;
+        try
+        {
+            module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./_content/Valour.Client/Components/Utility/LottiePlayerLoader.razor.js?version=$(SHORTHASH)");
+            if (_disposed)
+                return;
+            await module.InvokeVoidAsync("ensureLoaded");
+            if (!_disposed)
+            {
+                _module = module;
+                module = null;
+            }
+        }
+        catch (JSException ex)
+        {
+            Logger.LogWarning(ex, "Optional Lottie animations could not be loaded");
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogDebug("Lottie initialization was cancelled");
+        }
+        catch (ObjectDisposedException) when (_disposed) { }
+        finally
+        {
+            if (module is not null)
+                await ReleaseModuleAsync(module);
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_module is not null)
-            await _module.DisposeAsync();
+        _disposed = true;
+        var module = _module;
+        _module = null;
+        if (module is not null)
+            await ReleaseModuleAsync(module);
+    }
+
+    private static async ValueTask ReleaseModuleAsync(IJSObjectReference module)
+    {
+        try { await module.DisposeAsync(); }
+        catch (JSException) { }
+        catch (ObjectDisposedException) { }
+        catch (OperationCanceledException) { }
     }
 }

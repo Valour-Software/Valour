@@ -4,7 +4,16 @@ namespace Valour.Server.Services;
 
 public class TokenService
 {
-    private static readonly ConcurrentDictionary<string, AuthToken> QuickCache = new();
+    private readonly record struct CachedToken(AuthToken Token, DateTime TimeCached);
+
+    private static readonly ConcurrentDictionary<string, CachedToken> QuickCache = new();
+
+    /// <summary>
+    /// How long a cached token is trusted before the database is checked again.
+    /// Revocation evicts the token on the node that handled it; this TTL bounds
+    /// how long other nodes keep accepting it.
+    /// </summary>
+    private static readonly TimeSpan QuickCacheTtl = TimeSpan.FromSeconds(60);
     
     private readonly ValourDb _db;
     private readonly IHttpContextAccessor _contextAccessor;
@@ -26,8 +35,8 @@ public class TokenService
     }
 
     /// <summary>
-    /// Periodically evicts expired tokens from the cache. Without this, tokens that
-    /// expire and are never presented again would stay resident for the process lifetime.
+    /// Periodically evicts expired and stale tokens from the cache. Without this, tokens
+    /// that are never presented again would stay resident for the process lifetime.
     /// </summary>
     public static void StartCacheSweepTask()
     {
@@ -41,7 +50,8 @@ public class TokenService
 
                     var now = DateTime.UtcNow;
                     var expired = QuickCache
-                        .Where(kvp => kvp.Value.TimeExpires < now)
+                        .Where(kvp => kvp.Value.Token.TimeExpires < now ||
+                                      now - kvp.Value.TimeCached >= QuickCacheTtl)
                         .Select(kvp => kvp.Key)
                         .ToList();
 
@@ -69,21 +79,27 @@ public class TokenService
         if (string.IsNullOrWhiteSpace(key))
             return null;
 
-        // Try to get a cached auth token
-        QuickCache.TryGetValue(key, out var token);
-        
+        // Try to get a cached auth token that is still fresh
+        AuthToken token = null;
+        if (QuickCache.TryGetValue(key, out var cached) &&
+            DateTime.UtcNow - cached.TimeCached < QuickCacheTtl)
+        {
+            token = cached.Token;
+        }
+
         if (token is null)
         {
-            // If the auth token is null, try to get it from the database
-            var dbToken = await _db.AuthTokens.FindAsync(key);
+            // Not cached or stale: the database is the source of truth, so a
+            // token revoked on another node stops working here as well
+            var dbToken = await _db.AuthTokens.AsNoTracking().FirstOrDefaultAsync(x => x.Id == key);
             if (dbToken is null)
+            {
+                QuickCache.Remove(key, out _);
                 return null;
-                
+            }
+
             token = dbToken.ToModel();
-            
-            // If there was a token, add it to the cache
-            if (token is not null)
-                QuickCache[key] = token;
+            QuickCache[key] = new CachedToken(token, DateTime.UtcNow);
         }
 
         // Check if token is expired

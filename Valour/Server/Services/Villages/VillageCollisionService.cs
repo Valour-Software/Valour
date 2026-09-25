@@ -194,13 +194,23 @@ public sealed class VillageCollisionService
     public void InvalidateMap(long planetId, long mapId) =>
         _maps.TryRemove((planetId, mapId), out _);
 
+    internal bool IsMapCached(long planetId, long mapId) =>
+        _maps.ContainsKey((planetId, mapId));
+
     private async Task<VillageCollisionMap?> AwaitAndDiscardFailedLoadAsync(
         (long PlanetId, long MapId) key,
         Lazy<Task<VillageCollisionMap?>> lazy)
     {
         try
         {
-            return await lazy.Value;
+            var map = await lazy.Value;
+
+            // Only real maps stay cached. Keeping misses would let arbitrary
+            // (planet, map) ids grow the cache without bound.
+            if (map is null)
+                _maps.TryRemove(new KeyValuePair<(long PlanetId, long MapId), Lazy<Task<VillageCollisionMap?>>>(key, lazy));
+
+            return map;
         }
         catch
         {

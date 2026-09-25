@@ -30,6 +30,10 @@ public class RealtimeKitService : IVoiceProvider
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RealtimeKitService> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly TimeProvider _timeProvider;
+    private readonly ConcurrentDictionary<string, CleanupAttempt> _cleanupAttempts = new();
+    private readonly ConcurrentDictionary<string, Lazy<Task<TaskResult>>> _pendingCleanups = new();
+    private sealed record CleanupAttempt(int Failures, DateTimeOffset RetryAfter, TaskResult Result);
 
     private readonly ConcurrentDictionary<long, string> _meetingIdsByChannel = new();
     private readonly ConcurrentDictionary<long, SemaphoreSlim> _channelLocks = new();
@@ -43,11 +47,13 @@ public class RealtimeKitService : IVoiceProvider
     public RealtimeKitService(
         IHttpClientFactory httpClientFactory,
         ILogger<RealtimeKitService> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        TimeProvider? timeProvider = null)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _serviceProvider = serviceProvider;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     private static bool IsConfigured =>
@@ -670,11 +676,6 @@ public class RealtimeKitService : IVoiceProvider
             if (closeResult.Success)
             {
                 _meetingIdsByChannel.TryRemove(channelId, out _);
-                await MarkMeetingClosedAsync(meetingId);
-            }
-            else
-            {
-                await RecordMeetingCleanupFailureAsync(meetingId, closeResult.Message);
             }
         }
         finally
@@ -687,55 +688,67 @@ public class RealtimeKitService : IVoiceProvider
     {
         if (!IsConfigured)
             return TaskResult.FromFailure("RealtimeKit is not configured.");
-
         if (string.IsNullOrWhiteSpace(meetingId))
             return TaskResult.FromFailure("Meeting id is required.");
 
+        var now = _timeProvider.GetUtcNow();
+        if (_cleanupAttempts.TryGetValue(meetingId, out var attempt) && now < attempt.RetryAfter)
+            return attempt.Result;
+
+        var pending = _pendingCleanups.GetOrAdd(meetingId, _ => new Lazy<Task<TaskResult>>(
+            () => CloseMeetingCoreAsync(meetingId, reason, channelId), LazyThreadSafetyMode.ExecutionAndPublication));
+        try
+        {
+            return await pending.Value;
+        }
+        finally
+        {
+            _pendingCleanups.TryRemove(new KeyValuePair<string, Lazy<Task<TaskResult>>>(meetingId, pending));
+        }
+    }
+
+    private async Task<TaskResult> CloseMeetingCoreAsync(string meetingId, string reason, long? channelId)
+    {
+        // A previous attempt can finish between the caller's cache check and GetOrAdd.
+        if (_cleanupAttempts.TryGetValue(meetingId, out var recent) && _timeProvider.GetUtcNow() < recent.RetryAfter)
+            return recent.Result;
+
         var kickResult = await KickAllParticipantsFromMeetingAsync(meetingId);
         var inactiveResult = await SetMeetingInactiveAsync(meetingId);
-
-        if (!inactiveResult.Success)
+        TaskResult result;
+        int failures;
+        TimeSpan retryDelay;
+        if (!kickResult.Success || !inactiveResult.Success)
         {
-            await RecordMeetingCleanupFailureAsync(meetingId, inactiveResult.Message);
-            _logger.LogWarning(
-                "Cloudflare cleanup failed to mark RTK meeting {MeetingId} inactive in channel {ChannelId}. Inactive: {InactiveMessage}. Kick: {KickMessage}. Reason: {Reason}",
-                meetingId,
-                channelId,
-                inactiveResult.Message,
-                kickResult.Message,
-                reason);
-
-            return TaskResult.FromFailure("Cloudflare cleanup was incomplete.");
+            result = TaskResult.FromFailure($"Cloudflare cleanup was incomplete. Kick: {kickResult.Message}. Inactive: {inactiveResult.Message}");
+            failures = _cleanupAttempts.TryGetValue(meetingId, out var previous) ? Math.Min(previous.Failures + 1, 6) : 1;
+            retryDelay = TimeSpan.FromMinutes(Math.Min(30, Math.Pow(2, failures - 1)));
+            await RecordMeetingCleanupFailureAsync(meetingId, result.Message);
+            _logger.LogWarning("RTK meeting {MeetingId} cleanup remains pending; retry after {RetryDelay}. Channel: {ChannelId}. Reason: {Reason}",
+                meetingId, retryDelay, channelId, reason);
+        }
+        else
+        {
+            result = TaskResult.SuccessResult;
+            failures = 0;
+            // Reporting can continue listing a closed session briefly. Avoid kicking it again immediately.
+            retryDelay = TimeSpan.FromMinutes(5);
+            await MarkMeetingClosedAsync(meetingId);
+            _logger.LogInformation("Closed RTK meeting {MeetingId} for channel {ChannelId}. Reason: {Reason}", meetingId, channelId, reason);
         }
 
-        await MarkMeetingClosedAsync(meetingId);
-
-        if (!kickResult.Success)
-        {
-            _logger.LogInformation(
-                "Marked RTK meeting {MeetingId} inactive, but kick-all did not complete. Channel: {ChannelId}. Kick: {KickMessage}. Reason: {Reason}",
-                meetingId,
-                channelId,
-                kickResult.Message,
-                reason);
-        }
-
-        _logger.LogInformation(
-            "Closed RTK meeting {MeetingId} for channel {ChannelId}. Reason: {Reason}",
-            meetingId,
-            channelId,
-            reason);
-
-        return TaskResult.SuccessResult;
+        var now = _timeProvider.GetUtcNow();
+        _cleanupAttempts[meetingId] = new CleanupAttempt(failures, now + retryDelay, result);
+        foreach (var entry in _cleanupAttempts)
+            if (entry.Value.RetryAfter < now - TimeSpan.FromHours(1))
+                _cleanupAttempts.TryRemove(entry);
+        return result;
     }
 
     private async Task<TaskResult> KickAllParticipantsFromMeetingAsync(string meetingId)
     {
         var endpoint = BuildEndpoint($"meetings/{meetingId}/active-session/kick-all");
-        var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
-        {
-            Content = JsonContent.Create(new { })
-        };
+        var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);

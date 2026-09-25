@@ -125,6 +125,10 @@ public class BotService : ServiceBase
         // Now that we have our user, we can set up our primary node
         await _client.NodeService.SetupPrimaryNodeAsync();
 
+        // Messages are end-to-end encrypted, so the bot needs its keys before
+        // it can read or send anything. The first login creates them.
+        await _client.E2eeService.InitializeAsync();
+
         Console.WriteLine($"Initialized bot {_client.Me.Name} ({_client.Me.Id})");
 
         await JoinAllChannelsAsync();

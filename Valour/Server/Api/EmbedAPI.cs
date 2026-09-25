@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Sdk.Models.Embeds;
 using Valour.Sdk.Models.Embeds.Items;
+using Valour.Sdk.E2ee;
 using Valour.Server.Cdn;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
@@ -18,16 +19,17 @@ public class EmbedAPI : BaseAPI
 
     /// <summary>
     /// Relays a live embed update from a bot to clients. Sent to a single
-    /// user when TargetUserId is set, otherwise to the whole channel.
+    /// user when TargetUserId is set, otherwise to the whole channel. The
+    /// update is encrypted with the channel key; recipients' apps decrypt it
+    /// and check the embed the way the server checks embeds it can read.
     /// </summary>
     private static async Task<IResult> Update([FromBody] EmbedUpdate update, ValourDb db, CoreHubService hubService, UserService userService, PlanetMemberService memberService)
     {
         if (update is null)
             return Results.BadRequest("Invalid update payload.");
 
-        var contentResult = ValidateUpdateContent(update);
-        if (contentResult is not null)
-            return contentResult;
+        if (update.Encrypted is null || update.Encrypted.Length > EmbedUpdateCrypto.MaxEncryptedLength)
+            return Results.BadRequest("Embed updates must be encrypted with the channel key.");
 
         var botUser = await userService.GetCurrentUserAsync();
         if (botUser is null)
@@ -37,7 +39,6 @@ public class EmbedAPI : BaseAPI
             return Results.BadRequest("Only bots can send embed updates.");
 
         var message = await db.Messages
-            .Include(x => x.Attachments)
             .FirstOrDefaultAsync(x => x.Id == update.TargetMessageId)
             ?? PlanetMessageWorker.GetStagedMessage(update.TargetMessageId)?.ToDatabase();
 
@@ -50,9 +51,6 @@ public class EmbedAPI : BaseAPI
         if (message.AuthorUserId != botUser.Id)
             return Results.BadRequest("Only the bot that sent the message can update its embed.");
 
-        if (!HasEmbedAttachment(message))
-            return Results.BadRequest("Target message does not contain an embed.");
-
         var botMember = await memberService.GetByUserAsync(botUser.Id, message.PlanetId.Value);
         if (botMember is null)
             return Results.NotFound("Bot's planet member not found.");
@@ -61,9 +59,12 @@ public class EmbedAPI : BaseAPI
         if (!await memberService.HasPermissionAsync(botMember, channel, ChatChannelPermissions.View))
             return Results.Forbid();
 
-        // The channel is routing information derived from the message,
-        // never trusted from the request
+        if (update.KeyGeneration < 1 || update.KeyGeneration > channel.EncryptionGeneration)
+            return Results.BadRequest("The update uses an unknown channel key.");
+
+        // Routing comes from the message, never from the request
         update.TargetChannelId = message.ChannelId;
+        update.PlanetId = message.PlanetId;
 
         if (update.TargetUserId is not null)
             hubService.NotifyPersonalEmbedUpdateEvent(update);
@@ -71,69 +72,6 @@ public class EmbedAPI : BaseAPI
             hubService.NotifyChannelEmbedUpdateEvent(update);
 
         return Results.Ok("Sent embed update.");
-    }
-
-    /// <summary>
-    /// Validates the embed (or changed-items) payload of an update.
-    /// Returns an error result, or null when valid.
-    /// </summary>
-    private static IResult ValidateUpdateContent(EmbedUpdate update)
-    {
-        if (update.NewEmbedContent is not null)
-        {
-            if (update.NewEmbedContent.Length > EmbedParser.MaxPayloadLength)
-                return Results.BadRequest($"Embed data must be under {EmbedParser.MaxPayloadLength} chars.");
-
-            var embed = EmbedParser.TryParse(update.NewEmbedContent);
-            if (embed is null)
-                return Results.BadRequest("Embed data is invalid.");
-
-            var valid = EmbedParser.Validate(embed);
-            if (!valid.Success)
-                return Results.BadRequest(valid.Message);
-
-            var mediaResult = ScanMediaItems(embed.EnumerateItems());
-            if (mediaResult is not null)
-                return mediaResult;
-        }
-        else if (update.ChangedItemsContent is not null)
-        {
-            if (update.ChangedItemsContent.Length > EmbedParser.MaxPayloadLength)
-                return Results.BadRequest($"Changed items data must be under {EmbedParser.MaxPayloadLength} chars.");
-
-            var items = EmbedParser.TryParseItems(update.ChangedItemsContent);
-            if (items is null)
-                return Results.BadRequest("Changed items data is invalid.");
-
-            var valid = EmbedParser.ValidateItems(items);
-            if (!valid.Success)
-                return Results.BadRequest(valid.Message);
-
-            var mediaResult = ScanMediaItems(items.Concat(items.SelectMany(x => x.EnumerateDescendants())));
-            if (mediaResult is not null)
-                return mediaResult;
-        }
-        else
-        {
-            return Results.BadRequest("Update must include NewEmbedContent or ChangedItemsContent.");
-        }
-
-        return null;
-    }
-
-    private static IResult ScanMediaItems(IEnumerable<EmbedItem> items)
-    {
-        foreach (var media in items.OfType<EmbedMediaItem>())
-        {
-            if (media.Attachment is null)
-                return Results.BadRequest("Embed media item is missing its attachment.");
-
-            var result = MediaUriHelper.ScanMediaUri(media.Attachment);
-            if (!result.Success)
-                return Results.BadRequest(result.Message);
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -161,8 +99,22 @@ public class EmbedAPI : BaseAPI
         if (message.PlanetId is null || message.AuthorMemberId is null)
             return Results.BadRequest("Embed interactions are only supported for planet messages.");
 
-        if (!HasEmbedAttachment(message))
-            return Results.BadRequest("Target message does not contain an embed.");
+        // An encrypted message's embed is inside its envelope, which the
+        // server cannot read, so the interaction is relayed to the author. A
+        // server-sealed message from a member is history sealed after it was
+        // sent; its embed can only be interactive when a bot wrote it.
+        if (!HasEmbedAttachment(message) && message.EncryptionVersion != MessageEncryption.EndToEnd)
+        {
+            if (message.EncryptionVersion == MessageEncryption.None)
+                return Results.BadRequest("Target message does not contain an embed.");
+
+            var authorIsBot = await db.Users.AsNoTracking()
+                .Where(x => x.Id == message.AuthorUserId)
+                .Select(x => x.Bot)
+                .FirstOrDefaultAsync();
+            if (!authorIsBot)
+                return Results.BadRequest("Only messages sent by bots accept embed interactions.");
+        }
 
         var member = await memberService.GetByUserAsync(user.Id, message.PlanetId.Value);
         if (member is null)

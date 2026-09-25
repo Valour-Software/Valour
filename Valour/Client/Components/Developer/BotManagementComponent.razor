@@ -40,7 +40,7 @@
             {
                 <button type="button" class="settings-row settings-row-button" @onclick="() => OnEditBot(bot)" aria-label="Edit @bot.Name">
                     <div class="settings-row-icon">
-                        <img src="@GetBotAvatar(bot)" alt="@bot.Name" onerror="this.src='_content/Valour.Client/media/user-icons/icon-0.webp'" />
+                        <img src="@GetBotAvatar(bot)" alt="@bot.Name" data-fallback-src="_content/Valour.Client/media/user-icons/icon-0.webp" />
                     </div>
                     <div class="settings-row-copy">
                         <h4 class="settings-row-title">@bot.Name</h4>

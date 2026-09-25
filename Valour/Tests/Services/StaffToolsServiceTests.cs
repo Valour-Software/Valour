@@ -233,4 +233,46 @@ public class StaffToolsServiceTests : IAsyncLifetime
         Assert.True(await _db.StaffAuditLogs.AnyAsync(x =>
             x.TargetUserId == target.Id && x.ActionType == StaffActionType.EnableAccount));
     }
+
+    [Fact]
+    public async Task DisableUser_DisablesOwnedBotsAndRevokesTheirTokens()
+    {
+        var target = await RegisterTargetAsync();
+        var botService = _scope.ServiceProvider.GetRequiredService<BotService>();
+
+        var bot = await botService.CreateBotAsync(target.Id, $"bot-{Guid.NewGuid().ToString()[..8]}");
+        Assert.True(bot.Success, bot.Message);
+        var botId = bot.Data.Bot.Id;
+        Assert.True(await _db.AuthTokens.AnyAsync(x => x.UserId == botId));
+
+        var disable = await _staff.DisableUserAsync(target.Id, true, _staffUserId, "ban");
+        Assert.True(disable.Success, disable.Message);
+
+        var dbBot = await _db.Users.AsNoTracking().FirstAsync(x => x.Id == botId);
+        Assert.True(dbBot.Disabled);
+        Assert.False(await _db.AuthTokens.AnyAsync(x => x.UserId == botId));
+
+        // Re-enabling the owner leaves the bot disabled until staff re-enable it
+        var enable = await _staff.DisableUserAsync(target.Id, false, _staffUserId, "appeal accepted");
+        Assert.True(enable.Success, enable.Message);
+        Assert.True((await _db.Users.AsNoTracking().FirstAsync(x => x.Id == botId)).Disabled);
+    }
+
+    [Fact]
+    public async Task DeleteUser_DeletesOwnedBots()
+    {
+        var target = await RegisterTargetAsync();
+        var botService = _scope.ServiceProvider.GetRequiredService<BotService>();
+
+        var bot = await botService.CreateBotAsync(target.Id, $"bot-{Guid.NewGuid().ToString()[..8]}");
+        Assert.True(bot.Success, bot.Message);
+        var botId = bot.Data.Bot.Id;
+
+        var result = await _staff.DeleteUserAsync(target.Id, _staffUserId, "cleanup");
+        Assert.True(result.Success, result.Message);
+
+        Assert.False(await _db.Users.IgnoreQueryFilters().AnyAsync(x => x.Id == target.Id));
+        Assert.False(await _db.Users.IgnoreQueryFilters().AnyAsync(x => x.Id == botId));
+        Assert.False(await _db.AuthTokens.IgnoreQueryFilters().AnyAsync(x => x.UserId == botId));
+    }
 }

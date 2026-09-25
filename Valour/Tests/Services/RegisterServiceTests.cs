@@ -126,6 +126,138 @@ public class RegisterServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task RegisterUser_ReplacesAbandonedUnverifiedAccount()
+    {
+        var ctx = new DefaultHttpContext();
+        var first = BuildValidRequest();
+
+        var r1 = await _registerService.RegisterUserAsync(first, ctx, skipEmail: true);
+        Assert.True(r1.Success, r1.Message);
+        var staleId = r1.Data.Id;
+
+        // Simulate an account whose confirmation link was never used and expired
+        var info = await _db.PrivateInfos.FirstAsync(x => x.UserId == staleId);
+        info.Verified = false;
+        await _db.SaveChangesAsync();
+
+        var second = BuildValidRequest();
+        second.Email = first.Email;
+
+        var r2 = await _registerService.RegisterUserAsync(second, ctx, skipEmail: true);
+        Assert.True(r2.Success, r2.Message);
+        _createdUsers.Add(r2.Data);
+
+        Assert.False(await _db.Users.IgnoreQueryFilters().AnyAsync(x => x.Id == staleId));
+        var credential = await _db.Credentials.FirstAsync(x => x.Identifier == first.Email);
+        Assert.Equal(r2.Data.Id, credential.UserId);
+    }
+
+    [Fact]
+    public async Task RegisterUser_KeepsUnverifiedAccountWithLiveConfirmationCode()
+    {
+        var ctx = new DefaultHttpContext();
+        var first = BuildValidRequest();
+
+        var r1 = await _registerService.RegisterUserAsync(first, ctx, skipEmail: true);
+        Assert.True(r1.Success, r1.Message);
+        _createdUsers.Add(r1.Data);
+
+        var info = await _db.PrivateInfos.FirstAsync(x => x.UserId == r1.Data.Id);
+        info.Verified = false;
+        _db.EmailConfirmCodes.Add(new Valour.Database.EmailConfirmCode
+        {
+            Code = Guid.NewGuid().ToString(),
+            UserId = r1.Data.Id,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10)
+        });
+        await _db.SaveChangesAsync();
+
+        var second = BuildValidRequest();
+        second.Email = first.Email;
+
+        var r2 = await _registerService.RegisterUserAsync(second, ctx, skipEmail: true);
+        Assert.False(r2.Success);
+        Assert.Equal(RegisterService.EmailAlreadyRegisteredCode, r2.Message);
+        Assert.True(await _db.Users.AnyAsync(x => x.Id == r1.Data.Id));
+    }
+
+    [Fact]
+    public async Task RegisterUser_ValidatesFieldsBeforeCheckingEmail()
+    {
+        var ctx = new DefaultHttpContext();
+        var first = BuildValidRequest();
+
+        var r1 = await _registerService.RegisterUserAsync(first, ctx, skipEmail: true);
+        Assert.True(r1.Success, r1.Message);
+        _createdUsers.Add(r1.Data);
+
+        // A bad password gets the same answer whether or not the email is taken
+        var taken = BuildValidRequest();
+        taken.Email = first.Email;
+        taken.Password = "short";
+        var fresh = BuildValidRequest();
+        fresh.Password = "short";
+
+        var takenResult = await _registerService.RegisterUserAsync(taken, ctx, skipEmail: true);
+        var freshResult = await _registerService.RegisterUserAsync(fresh, ctx, skipEmail: true);
+        Assert.False(takenResult.Success);
+        Assert.Equal(freshResult.Message, takenResult.Message);
+    }
+
+    [Fact]
+    public async Task VerifyEmail_PaysReferralRewardOnce()
+    {
+        var ctx = new DefaultHttpContext();
+
+        var referrerRequest = BuildValidRequest();
+        var referrer = await _registerService.RegisterUserAsync(referrerRequest, ctx, skipEmail: true);
+        Assert.True(referrer.Success, referrer.Message);
+        _createdUsers.Add(referrer.Data);
+
+        var referred = await _registerService.RegisterUserAsync(BuildValidRequest(), ctx, skipEmail: true);
+        Assert.True(referred.Success, referred.Message);
+        _createdUsers.Add(referred.Data);
+
+        // An unverified account referred by the referrer, waiting on its email
+        var info = await _db.PrivateInfos.FirstAsync(x => x.UserId == referred.Data.Id);
+        info.Verified = false;
+        _db.Referrals.Add(new Valour.Database.Referral
+        {
+            UserId = referred.Data.Id,
+            ReferrerId = referrer.Data.Id,
+            Created = DateTime.UtcNow,
+            Reward = 0
+        });
+        var code = Guid.NewGuid().ToString();
+        _db.EmailConfirmCodes.Add(new Valour.Database.EmailConfirmCode
+        {
+            Code = code,
+            UserId = referred.Data.Id,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10)
+        });
+        await _db.SaveChangesAsync();
+
+        var verify = await _userService.VerifyAsync(code);
+        Assert.True(verify.Success, verify.Message);
+
+        var referral = await _db.Referrals.AsNoTracking().FirstAsync(x => x.UserId == referred.Data.Id);
+        Assert.Equal(50m, referral.Reward);
+
+        var account = await _db.EcoAccounts.AsNoTracking().FirstAsync(x =>
+            x.UserId == referrer.Data.Id &&
+            x.CurrencyId == Valour.Shared.Models.Economy.ISharedCurrency.ValourCreditsId &&
+            x.AccountType == Valour.Shared.Models.Economy.AccountType.User);
+        Assert.Equal(50m, account.BalanceValue);
+
+        // Paying again is a no-op
+        await _userService.PayReferralRewardAsync(referred.Data.Id);
+        account = await _db.EcoAccounts.AsNoTracking().FirstAsync(x => x.Id == account.Id);
+        Assert.Equal(50m, account.BalanceValue);
+    }
+
+    [Fact]
     public async Task RegisterUser_InvalidUsernameFails()
     {
         var request = BuildValidRequest();

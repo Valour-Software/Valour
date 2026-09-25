@@ -26,19 +26,33 @@ namespace Valour.Server.API
         {
             app.MapGet("api/node/name", () => NodeConfig.Instance.Name);
             
+            // Lists every planet this node hosts, including private ones, so it
+            // is a staff diagnostic rather than a public endpoint.
             app.MapGet("api/node/handshake", (NodeLifecycleService service, HostedPlanetService hostedService) => new NodeHandshakeResponse()
             {
                 Version = service.Version,
                 PlanetIds = hostedService.GetHostedIds()
-            });
-            
-            app.MapGet("api/node/planet/{id}", async (PlanetService planetService, NodeLifecycleService service, long id) =>
+            }).AddEndpointFilter(new UserAccessFilter([], staffRequired: true));
+
+            // Clients use this to route planet requests to the hosting node.
+            // It requires a signed-in user and answers only for public planets
+            // or planets the caller belongs to, so it cannot be used to probe
+            // for private planets or to make the cluster assign hosts for them.
+            app.MapGet("api/node/planet/{id}", async (
+                ValourDb db,
+                TokenService tokenService,
+                NodeLifecycleService service,
+                long id) =>
             {
-                if (!await planetService.ExistsAsync(id))
+                var token = await tokenService.GetCurrentTokenAsync();
+                var visible = await db.Planets.AsNoTracking()
+                    .AnyAsync(x => x.Id == id &&
+                                   (x.Public || db.PlanetMembers.Any(m => m.PlanetId == id && m.UserId == token.UserId)));
+                if (!visible)
                     return ValourResult.NotFound("Planet does not exist");
-                
+
                 return ValourResult.Ok(await service.GetActiveNodeForPlanetAsync(id));
-            });
+            }).AddEndpointFilter(new UserAccessFilter([], staffRequired: false));
 
             app.MapGet("api/nodestats", (ValourDb db) => {
                 return db.NodeStats.FirstOrDefaultAsync(x => x.Name == NodeConfig.Instance.Name);

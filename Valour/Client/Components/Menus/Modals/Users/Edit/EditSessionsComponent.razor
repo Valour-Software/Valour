@@ -2,6 +2,7 @@
 @inject ValourClient Client
 @inject IJSRuntime JsRuntime
 @inject AuthService AuthService
+@inject IAppStorage LocalStorage
 
 @using Valour.Client.Components.Menus.Modals.Users.Edit
 
@@ -405,19 +406,22 @@
         ModalRoot.OpenModal<PasswordConfirmModal>(new PasswordConfirmModal.Params()
         {
             Title = "Remove MFA?",
-            Description = "Enter your password to disable Multi-Factor Authentication",
-            OnConfirmAsync = async (password) =>
+            Description = "Enter your password and a code from your authenticator app to disable Multi-Factor Authentication",
+            RequireMfaCode = true,
+            OnConfirmWithMfaAsync = async (password, code) =>
             {
                 var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>()
                 {
-                    ProgressTask = AuthService.RemoveMfaAsync(password),
+                    ProgressTask = AuthService.RemoveMfaAsync(password, code),
                     Title = "Removing MFA",
                     Message = "Verifying password...",
                 });
 
                 if (result.Success)
                 {
+                    await LocalStorage.SetStringAsync("token", AuthService.Token);
                     _multiAuthMethods = new List<string>();
+                    await LoadTokens();
                     StateHasChanged();
                 }
 

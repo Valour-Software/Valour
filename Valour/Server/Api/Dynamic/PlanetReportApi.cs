@@ -31,6 +31,7 @@ public class PlanetReportApi
 
     [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/reports")]
     [UserRequired(UserPermissionsEnum.Membership)]
+    [RateLimit(RateLimitPolicies.Report)]
     public static async Task<IResult> PostAsync(
         long planetId,
         [FromBody] PlanetReport report,
@@ -78,6 +79,29 @@ public class PlanetReportApi
 
         var reports = await reportService.QueryPlanetReportsAsync(planetId, queryRequest);
         return Results.Json(reports);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/reports/{reportId}/evidence")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetEvidenceAsync(
+        long planetId,
+        long reportId,
+        PlanetMemberService memberService,
+        PlanetReportService reportService,
+        E2eeMessageService e2eeMessages)
+    {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ViewReports))
+            return ValourResult.LacksPermission(PlanetPermissions.ViewReports);
+
+        var report = await reportService.GetAsync(planetId, reportId);
+        if (report is null)
+            return ValourResult.NotFound("Report not found.");
+
+        return Results.Json(await e2eeMessages.GetEvidenceAsync(null, reportId));
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/reports/{reportId}/message")]

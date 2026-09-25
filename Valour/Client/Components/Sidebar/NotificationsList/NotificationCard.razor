@@ -9,7 +9,7 @@
         </div>
     </div>
     <div class="body">
-        <RichText Content="@Notification.Body" PlanetId="@Notification.PlanetId" />
+        <RichText Content="@(_body ?? Notification.Body)" PlanetId="@Notification.PlanetId" />
     </div>
     <div class="button-holder">
         <button @onclick="@OnClickView" title="View"><i class="bi bi-arrow-right-short"></i> View</button>
@@ -22,6 +22,29 @@
     public Notification Notification { get; set; }
 
     private string _imageUrl;
+
+    // Message notifications carry only a placeholder, because the server
+    // cannot read encrypted text, so the card shows the decrypted message.
+    private string _body;
+    private const int MaxBodyLength = 300;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var message = await NotificationService.FetchNotificationMessageAsync(Notification);
+            if (!string.IsNullOrWhiteSpace(message?.Content))
+            {
+                _body = message.Content.Length > MaxBodyLength
+                    ? message.Content[..MaxBodyLength] + "..."
+                    : message.Content;
+            }
+        }
+        catch (Exception)
+        {
+            // The placeholder stays when the message cannot be loaded.
+        }
+    }
 
     protected override void OnInitialized()
     {

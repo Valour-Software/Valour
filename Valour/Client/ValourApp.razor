@@ -6,6 +6,7 @@
 @inject SoundManager SoundManager
 @inject IServiceProvider Services
 @inject AppBannerService Banners
+@inject Valour.Sdk.E2ee.IE2eeKeyStore E2eeKeyStore
 
 <BrowserUtils OnReady="@ReadyAsync" />
 
@@ -129,6 +130,22 @@ else
 
         _isWebHost = hostMode != "hybrid" && !isFallbackNativeLoopbackOrigin;
 
+        // End-to-end encryption keys live in this host's secure storage. A new
+        // account gets keys at its first login and is shown its recovery code.
+        // Linking or restoring a device, which can replace keys, always goes
+        // through the person. This must be configured before any login.
+        Client.E2eeService.KeyStore = E2eeKeyStore;
+        Client.E2eeService.AutoRecover = false;
+        Client.E2eeService.StoreRecoveryCode = false;
+        try
+        {
+            Client.E2eeService.DeviceName = await JsRuntime.InvokeAsync<string>("getValourDeviceName", !_isWebHost);
+        }
+        catch
+        {
+            Client.E2eeService.DeviceName = _isWebHost ? "Web browser" : "Valour app";
+        }
+
         if (_isWebHost)
         {
             if (!UseProd)
@@ -249,6 +266,8 @@ else
         {
             Logger.Log("App", $"Connected to instance '{manifest.Name}' v{manifest.Version}", "magenta");
             await Banners.SetPlatformBannerAsync(manifest.PlatformBanner);
+            if (Client.UpdateRequired)
+                Banners.ShowUpdateRequired();
         }
     }
 
@@ -364,11 +383,28 @@ else
                 }
             );
 
-            ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+            // First login can also open encryption prompts. Wait until no
+            // other modal is open so this never stacks on top of one.
+            var modalRoot = ModalRoot.Instance;
+            if (modalRoot is null)
+                return;
+            _ = OpenWhenNoModalsAsync(modalRoot, () => modalRoot.OpenModal<ConfirmModalComponent>(modalData));
         }
         catch
         {
             // Don't block login on preference fetch failure
+        }
+    }
+
+    private async Task OpenWhenNoModalsAsync(ModalRoot modalRoot, Action open)
+    {
+        try
+        {
+            await modalRoot.OpenWhenNoModalsAsync(open);
+        }
+        catch (Exception e)
+        {
+            Log("App", $"Could not open a prompt: {e.Message}", "red");
         }
     }
 

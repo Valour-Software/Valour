@@ -14,6 +14,15 @@ owner authority check. Ordinary role editing and deletion require Manage Roles
 and authority greater than the target role. Administrator status has additional
 checks when creating, changing, or deleting administrator roles.
 
+Members who are not the owner or an administrator can only grant or revoke
+permissions they hold themselves. When a role is created or updated, every bit that
+changes in its planet, chat, category, or voice permission fields must be one the
+member holds through their own roles, or the request is rejected with the names of
+the missing permissions. The same rule applies to permission nodes: a member may only
+allow or deny channel permissions they hold in the node's channel, and permission
+nodes sent with a new channel are checked against the parent category, or against
+the member's role permissions when there is no parent.
+
 Channel permissions are evaluated through the permission service using roles,
 permission nodes, and the channel hierarchy. Role order is not a general rule that
 copies every permission from one role to the next. Use
@@ -39,7 +48,9 @@ stores role membership in `RoleMembership.Rf0` through `Rf3`, mapped to the
 Index division by 64 chooses the field, and the remainder
 chooses its bit. The system therefore has 256 role slots per planet.
 
-Role creation selects the first unused bit index. Deletion clears that bit from
+Role creation selects the first unused bit index. The server owns this value: any
+index sent by a client is replaced on creation, and updates that change it are
+rejected. Deletion clears that bit from
 members before it becomes available for another role. A reused bit must not grant
 the replacement role to members of the deleted role.
 

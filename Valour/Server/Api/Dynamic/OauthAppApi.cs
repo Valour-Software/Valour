@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Valour.Config.Configs;
@@ -27,6 +28,14 @@ public class OauthAppApi
     /// Cache for OAuth authorization codes with expiration tracking
     /// </summary>
     public static ConcurrentDictionary<string, CachedOAuthCode> OauthCodeCache = new();
+
+    /// <summary>
+    /// Every scope bit an app can be granted. Full control is deliberately not
+    /// grantable: it would let an app manage sessions, credentials, and other apps.
+    /// </summary>
+    private static readonly long GrantableScopeMask = UserPermissions.Permissions
+        .Where(x => x.Value != Permission.FULL_CONTROL)
+        .Aggregate(0L, (mask, permission) => mask | permission.Value);
 
     /// <summary>
     /// Starts the background cleanup task for expired OAuth codes.
@@ -153,7 +162,7 @@ public class OauthAppApi
 
         var result = await oauthAppService.UpdateAsync(app);
         if (!result.Success)
-            return ValourResult.Problem(result.Message);
+            return ValourResult.BadRequest(result.Message);
 
         return Results.Json(result.Data);
     }
@@ -182,21 +191,34 @@ public class OauthAppApi
 
     #region OAuth Protocol (external-facing)
 
+    // Granting scopes to an app is an account-level action, so it needs a
+    // first-party (full control) session. Otherwise an app holding a narrow
+    // token could authorize itself again with a wider scope.
     [ValourRoute(HttpVerbs.Post, "api/oauth/authorize")]
-    [UserRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> AuthorizeAsync(
         HttpContext context,
         ValourDb db,
         [FromBody] AuthorizeModel model,
         UserService userService)
     {
+        if (model is null)
+            return ValourResult.BadRequest("Include request in body.");
+
         var userId = await userService.GetCurrentUserIdAsync();
         if (model.UserId != userId)
             return ValourResult.InvalidToken();
 
+        if (model.Scope < 0 || (model.Scope & ~GrantableScopeMask) != 0)
+            return ValourResult.BadRequest("The requested scope contains permissions that cannot be granted.");
+
         var client = await db.OauthApps.FindAsync(model.ClientId);
         if (client is null)
             return ValourResult.NotFound($"App with id {model.ClientId} not found");
+
+        // Apps saved before redirect URLs were validated may hold an unsafe one
+        if (!OauthAppService.ValidateRedirectUrl(client.RedirectUrl).Success)
+            return ValourResult.BadRequest("This app does not have a valid redirect URL. Its owner must update it before it can be authorized.");
 
         if (client.RedirectUrl != model.RedirectUri)
             return ValourResult.Problem("Client redirect url does not match given url");
@@ -212,7 +234,16 @@ public class OauthAppApi
 
         context.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
-        return ValourResult.Json($"{model.RedirectUri}?code={model.Code}&state={model.State}&node={NodeConfig.Instance.Name}");
+        // Encode every value so a crafted state cannot add or override parameters
+        var query = new Dictionary<string, string>
+        {
+            ["code"] = model.Code,
+            ["state"] = model.State ?? string.Empty,
+        };
+        if (!string.IsNullOrEmpty(NodeConfig.Instance?.Name))
+            query["node"] = NodeConfig.Instance.Name;
+
+        return ValourResult.Json(QueryHelpers.AddQueryString(model.RedirectUri, query));
     }
 
     [RateLimit(RateLimitPolicies.Auth)]
@@ -232,6 +263,9 @@ public class OauthAppApi
         {
             return ValourResult.BadRequest("Missing required OAuth token parameters.");
         }
+
+        if (request.GrantType != "authorization_code")
+            return ValourResult.Problem("Available grant types: authorization_code");
 
         OauthCodeCache.TryGetValue(request.Code, out var cached);
         if (cached is null)
@@ -256,33 +290,29 @@ public class OauthAppApi
         if (app is null || !SecretComparer.Equals(app.Secret, request.ClientSecret))
             return ValourResult.Forbid("Parameters are invalid.");
 
-        // Remove the code from cache - codes are single-use per RFC 6749
-        OauthCodeCache.TryRemove(request.Code, out _);
+        // Codes are single-use per RFC 6749. Only the request that actually
+        // removes the code may use it, so concurrent exchanges of one code
+        // cannot both mint a token. Failed checks above leave the code in
+        // place: burning it would let anyone who saw the code, but lacks the
+        // client secret, cancel the legitimate exchange.
+        if (!OauthCodeCache.TryRemove(request.Code, out _))
+            return ValourResult.Forbid("Invalid or expired authorization code.");
 
-        switch (request.GrantType)
+        AuthToken newToken = new AuthToken()
         {
-            case "authorization_code":
-            {
-                AuthToken newToken = new AuthToken()
-                {
-                    Id = "val-" + Guid.NewGuid().ToString(),
-                    AppId = request.ClientId.ToString(),
-                    Scope = model.Scope,
-                    TimeCreated = DateTime.UtcNow,
-                    TimeExpires = DateTime.UtcNow.AddDays(7),
-                    UserId = model.UserId,
-                    IssuedAddress = "Oauth Internal"
-                };
+            Id = "val-" + Guid.NewGuid().ToString(),
+            AppId = request.ClientId.ToString(),
+            Scope = model.Scope,
+            TimeCreated = DateTime.UtcNow,
+            TimeExpires = DateTime.UtcNow.AddDays(7),
+            UserId = model.UserId,
+            IssuedAddress = "Oauth Internal"
+        };
 
-                await db.AuthTokens.AddAsync(newToken.ToDatabase());
-                await db.SaveChangesAsync();
+        await db.AuthTokens.AddAsync(newToken.ToDatabase());
+        await db.SaveChangesAsync();
 
-                return Results.Json(newToken);
-            }
-
-            default:
-                return ValourResult.Problem("Available grant types: authorization_code");
-        }
+        return Results.Json(newToken);
     }
 
     #endregion

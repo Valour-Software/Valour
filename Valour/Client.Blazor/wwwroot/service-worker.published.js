@@ -5,8 +5,6 @@
 const COMMIT_HASH = '$(SHORTHASH)';
 
 self.importScripts('./service-worker-assets.js');
-self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js');
-
 
 self.addEventListener('install', event => event.waitUntil(onInstall(event)));
 self.addEventListener('activate', event => event.waitUntil(onActivate(event)));
@@ -25,54 +23,50 @@ self.addEventListener('fetch', event => {
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}-${COMMIT_HASH}`;
-const offlineAssetsInclude = [/\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff2$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /\.vtex\.bin$/];
-// index.html is excluded because Cloudflare Pages serves it through a pretty-URL redirect
-// whose cached body can come from a different deployment, failing the SRI integrity check
-// and breaking the entire service worker install (which kills push notifications).
-const offlineAssetsExclude = [/^service-worker\.js$/, /^bundled\.min\.css$/, /index\.html$/];
-
-// Function to check if the stored hash matches the current hash
-async function hasHashChanged() {
-    try {
-        const storedHash = await localforage.getItem('commit-hash');
-        return storedHash !== COMMIT_HASH;
-    } catch (e) {
-        console.error('Error checking hash:', e);
-        // If there's an error, assume hash has changed to force update
-        return true;
-    }
-}
-
-// Function to store the current hash
-async function storeCurrentHash() {
-    try {
-        await localforage.setItem('commit-hash', COMMIT_HASH);
-        console.info('Stored new commit hash:', COMMIT_HASH);
-    } catch (e) {
-        console.error('Error storing hash:', e);
-    }
-}
+// The precache holds what the app needs to start: the .NET runtime and assemblies,
+// the stylesheet bundle, fonts, startup and component scripts, and the logo and
+// favicons. Other assets (images, sounds, feature-specific scripts and data) are
+// fetched from the network when first used and kept by the browser's HTTP cache.
+//
+// index.html is never precached because Cloudflare Pages serves it through a
+// pretty-URL redirect whose cached body can come from a different deployment. That
+// fails the integrity check and breaks the whole install, which kills push
+// notifications.
+const offlineAssetsInclude = [
+    /^_framework\/[^/]+\.(?:wasm|js)$/,
+    // The runtime loads one ICU data shard, chosen from the browser language. EFIGS
+    // covers English, French, Italian, German and Spanish. Other shards load from
+    // the network.
+    /^_framework\/icudt_EFIGS\.(?:[^/]+\.)?dat$/,
+    // index.html loads only the combined stylesheet bundle. The *.scp.css bundle
+    // is loaded only by the MAUI host.
+    /^_content\/Valour\.Client\/css\/bundled\.min\.css$/,
+    /^_content\/Valour\.Client\/css\/fonts\/[^/]+\.woff2$/,
+    /^_content\/Valour\.Client\/.+\.js$/,
+    /^_content\/Valour\.Client\/media\/logo\/[^/]+\.webp$/,
+    /^_content\/Valour\.Client\/media\/favicon\/favicon-[^/]+\.png$/,
+    /^manifest\.json$/,
+];
+// Large scripts used only by calls, the demo engine, villages, and the staff
+// dashboard, plus the largest logo.
+const offlineAssetsExclude = [
+    /\/js\/(?:livekit-client\.umd|livekit\.interop|realtimekit)\.js$/,
+    /\/Components\/Calls\//,
+    /\/demo\//,
+    /\/Villages\//,
+    /\/ts\/Village[^/]*\.js$/,
+    /\/Staff\//,
+    /\/logo-square-1k\.webp$/,
+];
 
 async function onInstall(event) {
     console.info('Service worker: Install with commit hash:', COMMIT_HASH);
 
-    // Activate the new service worker as soon as the old one is retired
+    // Activate the new service worker as soon as it has installed
     await self.skipWaiting();
 
-    // Check if the hash has changed
-    const hashChanged = await hasHashChanged();
-
-    if (hashChanged) {
-        console.info('Commit hash changed. Clearing all caches...');
-        // Clear all existing caches
-        const cacheKeys = await caches.keys();
-        await Promise.all(
-            cacheKeys.filter(key => key.startsWith(cacheNamePrefix)).map(key => caches.delete(key))
-        );
-    }
-
-    // Store the current hash for future comparisons
-    await storeCurrentHash();
+    // Caches from earlier deployments stay in place until onActivate removes them,
+    // because the previous worker may still be serving the open page from them.
 
     // Fetch and cache all matching items from the assets manifest
     const assetsRequests = self.assetsManifest.assets

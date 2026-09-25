@@ -77,7 +77,8 @@ public class VillageMarketServiceTests
     [Fact]
     public void ValidateSale_RejectsWhatIsNotListed()
     {
-        var result = VillageMarketService.ValidateSale(forSale: false, ownerMemberId: 7, buyerMemberId: 5);
+        var result = VillageMarketService.ValidateSale(
+            forSale: false, ownerMemberId: 7, buyerMemberId: 5, price: 10, expectedPrice: 10);
 
         Assert.False(result.Success);
         Assert.Contains("not for sale", result.Message, StringComparison.OrdinalIgnoreCase);
@@ -86,7 +87,8 @@ public class VillageMarketServiceTests
     [Fact]
     public void ValidateSale_RejectsBuyingYourOwnProperty()
     {
-        var result = VillageMarketService.ValidateSale(forSale: true, ownerMemberId: 5, buyerMemberId: 5);
+        var result = VillageMarketService.ValidateSale(
+            forSale: true, ownerMemberId: 5, buyerMemberId: 5, price: 10, expectedPrice: 10);
 
         Assert.False(result.Success);
         Assert.Contains("already own", result.Message, StringComparison.OrdinalIgnoreCase);
@@ -95,7 +97,8 @@ public class VillageMarketServiceTests
     [Fact]
     public void ValidateSale_AllowsBuyingUnclaimedLand()
     {
-        var result = VillageMarketService.ValidateSale(forSale: true, ownerMemberId: null, buyerMemberId: 5);
+        var result = VillageMarketService.ValidateSale(
+            forSale: true, ownerMemberId: null, buyerMemberId: 5, price: 0, expectedPrice: 0);
 
         Assert.True(result.Success);
     }
@@ -103,9 +106,61 @@ public class VillageMarketServiceTests
     [Fact]
     public void ValidateSale_AllowsBuyingFromAnotherMember()
     {
-        var result = VillageMarketService.ValidateSale(forSale: true, ownerMemberId: 7, buyerMemberId: 5);
+        var result = VillageMarketService.ValidateSale(
+            forSale: true, ownerMemberId: 7, buyerMemberId: 5, price: 10, expectedPrice: 10);
 
         Assert.True(result.Success);
+    }
+
+    [Theory]
+    [InlineData(10, 1000)]
+    [InlineData(1000, 10)]
+    [InlineData(0, 10)]
+    public void ValidateSale_RejectsAPriceOtherThanTheOneConfirmed(decimal expectedPrice, decimal price)
+    {
+        // A seller repricing between the buyer's confirmation and the purchase
+        // must not be able to charge an amount the buyer never agreed to.
+        var result = VillageMarketService.ValidateSale(
+            forSale: true, ownerMemberId: 7, buyerMemberId: 5, price: price, expectedPrice: expectedPrice);
+
+        Assert.False(result.Success);
+        Assert.Contains("price has changed", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ValidateSale_TreatsEqualPricesWithDifferentScaleAsTheSame()
+    {
+        var result = VillageMarketService.ValidateSale(
+            forSale: true, ownerMemberId: 7, buyerMemberId: 5, price: 10.00m, expectedPrice: 10m);
+
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void SaleId_IsReplacedWhenAListedPriceChanges()
+    {
+        // A payment settled under the old sale id must not count toward the
+        // repriced listing on a retry.
+        Assert.True(VillageMarketService.NeedsNewSaleId(
+            currentlyForSale: true, currentSaleId: "sale-a", currentPrice: 10, forSale: true, price: 1000));
+    }
+
+    [Fact]
+    public void SaleId_IsKeptWhenAListingIsSavedUnchanged()
+    {
+        Assert.False(VillageMarketService.NeedsNewSaleId(
+            currentlyForSale: true, currentSaleId: "sale-a", currentPrice: 10, forSale: true, price: 10));
+    }
+
+    [Fact]
+    public void SaleId_IsCreatedForANewListing()
+    {
+        Assert.True(VillageMarketService.NeedsNewSaleId(
+            currentlyForSale: false, currentSaleId: "sale-a", currentPrice: 10, forSale: true, price: 10));
+        Assert.True(VillageMarketService.NeedsNewSaleId(
+            currentlyForSale: true, currentSaleId: null, currentPrice: 10, forSale: true, price: 10));
+        Assert.False(VillageMarketService.NeedsNewSaleId(
+            currentlyForSale: true, currentSaleId: "sale-a", currentPrice: 10, forSale: false, price: 20));
     }
 
     [Fact]

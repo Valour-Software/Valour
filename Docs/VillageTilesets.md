@@ -156,7 +156,8 @@ tileset manifest at build time for collision and catalog metadata.
 length and checksum. The renderer, builder previews and staff editor share a
 document-scoped blob URL. Decoding preserves the original PNG bytes and requires
 no network key service or Web Crypto. The binary adds twenty bytes to the PNG.
-The service worker includes it in the app's static asset cache. Ordinary PNG,
+The service worker does not precache it; the browser loads it when a village
+opens and keeps it in the HTTP cache. Ordinary PNG,
 WebP and local image imports keep their existing loading path, and the staff
 editor can export its edited library as a normal PNG and manifest.
 

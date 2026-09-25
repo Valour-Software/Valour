@@ -65,6 +65,11 @@ jobs:
     - name: Install MAUI workload
       run: dotnet workload install maui-android
 
+    # The runner image does not always include the Android platform that the
+    # .NET Android SDK targets, so install whatever the project requires.
+    - name: Install Android SDK platform
+      run: dotnet build Valour/Client.Maui/Valour.Client.Maui.csproj -t:InstallAndroidDependencies -f net11.0-android -p:AndroidSdkDirectory="$ANDROID_SDK_ROOT" -p:AcceptAndroidSDKLicenses=True
+
     - name: Materialize Android signing keystore
       id: signing-keystore
       env:

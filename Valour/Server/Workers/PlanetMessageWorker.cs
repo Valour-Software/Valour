@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using EntityFramework.Exceptions.Common;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Workers
@@ -72,6 +73,17 @@ namespace Valour.Server.Workers
             {
                 BlockSet.TryRemove(message.Id, out _);
             }
+        }
+
+        /// <summary>
+        /// Removes every staged or queued message that matches the predicate. Used when the
+        /// rows those messages reference are hard-deleted, so the flush does not try to save
+        /// messages whose planet, channel or author no longer exists.
+        /// </summary>
+        public static void RemoveMessages(Func<Message, bool> predicate)
+        {
+            foreach (var message in StagedMessages.Values.Concat(QueuedMessages.Values).Where(predicate).ToList())
+                RemoveFromQueue(message);
         }
 
         public static Message GetStagedMessage(long messageId)
@@ -216,13 +228,24 @@ namespace Valour.Server.Workers
             if (messages.Count == 0)
                 return;
 
-            var savedIds = await PersistMessagesAsync(db, messages, _logger);
+            var discardedIds = new HashSet<long>();
+            var savedIds = await PersistMessagesAsync(db, messages, _logger, discardedIds);
+
+            // Saved and discarded messages both leave staging
+            var finishedIds = new HashSet<long>(savedIds);
+            finishedIds.UnionWith(discardedIds);
+
+            var finishedChannelIds = new HashSet<long>();
             foreach (var staged in stagedSnapshot)
             {
-                if (!savedIds.Contains(staged.Id)) continue;
+                if (!finishedIds.Contains(staged.Id)) continue;
                 StagedMessages.TryRemove(staged.Id, out _);
-                RemoveStagedMessageFromChannel(staged);
+                finishedChannelIds.Add(staged.ChannelId);
             }
+
+            // Rebuild each affected channel queue once rather than once per message
+            foreach (var channelId in finishedChannelIds)
+                RemoveStagedMessagesFromChannel(channelId, finishedIds);
             _logger.LogInformation("Saved {SavedCount} of {MessageCount} staged messages.", savedIds.Count, messages.Count);
             }
             catch (Exception ex)
@@ -235,8 +258,14 @@ namespace Valour.Server.Workers
             }
         }
 
+        /// <summary>
+        /// Saves the messages and returns the ids that were saved. A message that references
+        /// a planet, channel, author or member that no longer exists can never be saved, so
+        /// it is added to <paramref name="discardedIds"/> instead of being retried forever.
+        /// </summary>
         internal static async Task<HashSet<long>> PersistMessagesAsync(
-            ValourDb db, IReadOnlyList<Valour.Database.Message> messages, ILogger logger)
+            ValourDb db, IReadOnlyList<Valour.Database.Message> messages, ILogger logger,
+            ISet<long> discardedIds = null)
         {
             var savedIds = new HashSet<long>();
             try
@@ -251,20 +280,43 @@ namespace Valour.Server.Workers
                 logger.LogWarning(ex, "Batch message save failed. Retrying messages individually.");
             }
 
-            foreach (var message in messages)
+            // Ids increase with send time, so a message is retried before any reply to it
+            foreach (var message in messages.OrderBy(x => x.Id))
             {
-                // A failed SaveChanges leaves every batch entity tracked as Added.
-                // Each fallback must contain only the message being retried.
-                db.ChangeTracker.Clear();
                 try
                 {
-                    // A previous commit can succeed even when its acknowledgement is lost.
-                    if (!await db.Messages.IgnoreQueryFilters().AnyAsync(x => x.Id == message.Id))
-                    {
-                        await db.Messages.AddAsync(message);
-                        await db.SaveChangesAsync();
-                    }
+                    await SaveSingleMessageAsync(db, message);
                     savedIds.Add(message.Id);
+                }
+                catch (ReferenceConstraintException ex)
+                {
+                    db.ChangeTracker.Clear();
+                    var missing = await FindMissingReferenceAsync(db, message);
+
+                    if (missing == MissingReplyTarget)
+                    {
+                        // The message it replies to was deleted; keep the message without the reply
+                        message.ReplyToId = null;
+                        try
+                        {
+                            await SaveSingleMessageAsync(db, message);
+                            savedIds.Add(message.Id);
+                        }
+                        catch (Exception retryEx)
+                        {
+                            logger.LogError(retryEx, "Failed to save message {MessageId}. Keeping it staged for retry.", message.Id);
+                        }
+                    }
+                    else if (missing is not null)
+                    {
+                        logger.LogWarning(ex, "Discarding staged message {MessageId} because its {Reference} no longer exists.",
+                            message.Id, missing);
+                        discardedIds?.Add(message.Id);
+                    }
+                    else
+                    {
+                        logger.LogError(ex, "Failed to save message {MessageId}. Keeping it staged for retry.", message.Id);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -273,6 +325,49 @@ namespace Valour.Server.Workers
             }
             db.ChangeTracker.Clear();
             return savedIds;
+        }
+
+        private static async Task SaveSingleMessageAsync(ValourDb db, Valour.Database.Message message)
+        {
+            // A failed SaveChanges leaves every batch entity tracked as Added.
+            // Each fallback must contain only the message being retried.
+            db.ChangeTracker.Clear();
+
+            // A previous commit can succeed even when its acknowledgement is lost.
+            if (await db.Messages.IgnoreQueryFilters().AnyAsync(x => x.Id == message.Id))
+                return;
+
+            await db.Messages.AddAsync(message);
+            await db.SaveChangesAsync();
+        }
+
+        private const string MissingReplyTarget = "reply target";
+
+        /// <summary>
+        /// Names the referenced row that no longer exists, or returns null when every
+        /// reference is present and the failure may be transient.
+        /// </summary>
+        private static async Task<string> FindMissingReferenceAsync(ValourDb db, Valour.Database.Message message)
+        {
+            if (message.PlanetId is not null &&
+                !await db.Planets.IgnoreQueryFilters().AnyAsync(x => x.Id == message.PlanetId))
+                return "planet";
+
+            if (!await db.Channels.IgnoreQueryFilters().AnyAsync(x => x.Id == message.ChannelId))
+                return "channel";
+
+            if (!await db.Users.IgnoreQueryFilters().AnyAsync(x => x.Id == message.AuthorUserId))
+                return "author";
+
+            if (message.AuthorMemberId is not null &&
+                !await db.PlanetMembers.IgnoreQueryFilters().AnyAsync(x => x.Id == message.AuthorMemberId))
+                return "author membership";
+
+            if (message.ReplyToId is not null &&
+                !await db.Messages.IgnoreQueryFilters().AnyAsync(x => x.Id == message.ReplyToId))
+                return MissingReplyTarget;
+
+            return null;
         }
 
         /// <summary>
@@ -338,11 +433,14 @@ namespace Valour.Server.Workers
             => RemoveStagedMessageFromChannel(message.ChannelId, message.Id);
 
         private static void RemoveStagedMessageFromChannel(long channelId, long messageId)
+            => RemoveStagedMessagesFromChannel(channelId, new HashSet<long> { messageId });
+
+        private static void RemoveStagedMessagesFromChannel(long channelId, IReadOnlySet<long> messageIds)
         {
             if (!StagedChannelMessages.TryGetValue(channelId, out var stagedQueue))
                 return;
 
-            var remaining = stagedQueue.Where(m => m.Id != messageId).ToArray();
+            var remaining = stagedQueue.Where(m => !messageIds.Contains(m.Id)).ToArray();
             if (remaining.Length == 0)
             {
                 StagedChannelMessages.TryRemove(channelId, out _);

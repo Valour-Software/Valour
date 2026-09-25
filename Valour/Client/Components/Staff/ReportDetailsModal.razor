@@ -119,6 +119,14 @@
                 </div>
             }
 
+            @if (_evidence.Count > 0)
+            {
+                <div class="report-section">
+                    <h4>Revealed by the reporter</h4>
+                    <ReportEvidenceView Evidence="@_evidence" PlanetId="@Data.Report.PlanetId" />
+                </div>
+            }
+
             @if (Data.Report.Resolution != ReportResolution.None)
             {
                 <div class="report-section resolved-section">
@@ -418,6 +426,7 @@
 
     // Message display
     private Message _reportedMessage;
+    private List<ReportEvidenceDto> _evidence = new();
     private MessageComponent.Params _messageParams;
     private bool _isLoadingMessage = false;
 
@@ -480,11 +489,15 @@
         try
         {
             _reportedMessage = await StaffService.GetMessageAsync(Data.Report.MessageId.Value);
+            _evidence = await StaffService.GetReportEvidenceAsync(Data.Report.Id);
             if (_reportedMessage is not null)
             {
                 _messageParams = new MessageComponent.Params
                 {
-                    Message = _reportedMessage
+                    Message = _reportedMessage,
+                    UnreadableNotice = _evidence.Count > 0
+                        ? "End-to-end encrypted. Staff can't read this message; review the text the reporter revealed below."
+                        : "End-to-end encrypted. Staff can't read this message, and the reporter did not reveal its text."
                 };
             }
         }

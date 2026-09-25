@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<GlobalCallSessionService>();
         services.AddScoped<RealtimeKitDeviceService>();
         services.AddScoped<UploadService>();
+        services.AddSingleton<EncryptedInviteRedeemer>();
 
         // new services
         services.AddSingleton(client);
@@ -58,6 +59,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(client.SubscriptionService);
         services.AddSingleton(client.NotificationService);
         services.AddSingleton(client.EcoService);
+        services.AddSingleton(client.E2eeService);
         services.AddSingleton(client.StaffService);
         services.AddSingleton(client.PermissionService);
         services.AddSingleton(client.OauthService);

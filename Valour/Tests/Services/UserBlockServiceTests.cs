@@ -57,6 +57,7 @@ public class UserBlockServiceTests : IAsyncLifetime
 
         // Simulate a hard refresh with a brand new client instance
         var refreshedClient = new ValourClient("https://localhost:5001/", httpProvider: new TestHttpProvider(_factory));
+        refreshedClient.E2eeService.KeyStore = new Valour.Sdk.E2ee.MemoryE2eeKeyStore();
         var refreshedHttp = _factory.CreateClient();
         refreshedHttp.BaseAddress = new Uri(refreshedClient.BaseAddress);
         refreshedClient.SetHttpClient(refreshedHttp);

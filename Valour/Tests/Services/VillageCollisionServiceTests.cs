@@ -29,6 +29,17 @@ public class VillageCollisionServiceTests
         };
 
     [Fact]
+    public async Task MissingMap_IsNotCached()
+    {
+        var service = Resolve();
+        var planetId = long.MaxValue - 7;
+        var mapId = long.MaxValue - 11;
+
+        Assert.Null(await service.GetMapAsync(planetId, mapId));
+        Assert.False(service.IsMapCached(planetId, mapId));
+    }
+
+    [Fact]
     public void EveryCatalogBuilding_HasAReachableAuthoredDoor()
     {
         var service = Resolve();

@@ -1,4 +1,5 @@
-﻿using Valour.Client.Components.Windows.CallWindows;
+﻿using Valour.Client.Components.Windows.PlanetInfo;
+using Valour.Client.Components.Windows.CallWindows;
 using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Client.Components.Windows.Villages;
 using Valour.Client.Device;
@@ -308,6 +309,16 @@ public static class WindowService
 
     private static bool RepresentsSameContent(WindowContent existing, WindowContent requested)
     {
+        if (existing is PlanetInfoWindowComponent.Content existingInfo &&
+            requested is PlanetInfoWindowComponent.Content requestedInfo)
+        {
+            return existingInfo.Data is not null &&
+                   requestedInfo.Data is not null &&
+                   existingInfo.Data.PlanetId == requestedInfo.Data.PlanetId &&
+                   string.Equals(existingInfo.Data.NodeDomain, requestedInfo.Data.NodeDomain,
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
         if (existing is ChatWindowComponent.Content existingChat &&
             requested is ChatWindowComponent.Content requestedChat)
         {

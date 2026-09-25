@@ -11,6 +11,7 @@ using Valour.Server.Hubs;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
 using Valour.Server.Services;
+using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Tests.Services;
@@ -233,14 +234,15 @@ public class PlanetMemberServiceTests : IAsyncLifetime
         {
             await _connectionTracker.TrackGroupMembershipAsync($"p-{_planet.Id}", context, create.Data!.Id);
             await _connectionTracker.TrackGroupMembershipAsync($"c-{channelId}", context);
-            await _connectionTracker.TrackGroupMembershipAsync($"i-{_planet.Id}", context);
+            var villageGroupId = $"v-{_planet.Id}-{long.MaxValue}";
+            await _connectionTracker.TrackGroupMembershipAsync(villageGroupId, context);
 
             var deletion = await _memberService.DeleteAsync(create.Data.Id);
             Assert.True(deletion.Success, deletion.Message);
 
             Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"p-{_planet.Id}"));
             Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"c-{channelId}"));
-            Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"i-{_planet.Id}"));
+            Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections(villageGroupId));
         }
         finally
         {
@@ -283,6 +285,63 @@ public class PlanetMemberServiceTests : IAsyncLifetime
         }
         finally
         {
+            _connectionTracker.RemoveConnectionIdentity(context.ConnectionId);
+            _tokenService.RemoveFromQuickCache(token.Id);
+            _db.AuthTokens.Remove(token);
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task LimitedScopeToken_OnlyJoinsGroupsItsScopeAllows()
+    {
+        var token = new Valour.Database.AuthToken
+        {
+            Id = "scoped-" + Guid.NewGuid().ToString("N"),
+            AppId = "scope-test-app",
+            UserId = _client.Me.Id,
+            Scope = Permission.CreateCode(UserPermissions.View, UserPermissions.Membership),
+            TimeCreated = DateTime.UtcNow,
+            TimeExpires = DateTime.UtcNow.AddMinutes(5),
+            IssuedAddress = "test",
+        };
+        await _db.AuthTokens.AddAsync(token);
+        await _db.SaveChangesAsync();
+
+        var channelId = await _db.Channels
+            .Where(channel => channel.PlanetId == _planet.Id && channel.ChannelType == ChannelTypeEnum.PlanetChat)
+            .Select(channel => channel.Id)
+            .FirstAsync();
+
+        var context = new TestHubCallerContext("scoped-token-" + Guid.NewGuid());
+        var hub = ActivatorUtilities.CreateInstance<CoreHub>(_scope.ServiceProvider);
+        hub.Context = context;
+        hub.Groups = _scope.ServiceProvider.GetRequiredService<IHubContext<CoreHub>>().Groups;
+
+        try
+        {
+            var authorization = await hub.Authorize(token.Id);
+            Assert.True(authorization.Success, authorization.Message);
+
+            // Notifications and direct messages need a full-control token.
+            var user = await hub.JoinUser(isPrimary: false);
+            Assert.False(user.Success);
+            Assert.Equal(403, user.Code);
+            Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"u-{token.UserId}"));
+
+            // Live planet messages need the Messages scope.
+            var channel = await hub.JoinChannel(channelId);
+            Assert.False(channel.Success);
+            Assert.Equal(403, channel.Code);
+            Assert.DoesNotContain(context.ConnectionId, _connectionTracker.GetGroupConnections($"c-{channelId}"));
+
+            // Membership is enough for planet-level updates.
+            var planet = await hub.JoinPlanet(_planet.Id);
+            Assert.True(planet.Success, planet.Message);
+        }
+        finally
+        {
+            await _connectionTracker.RemoveAllMembershipsAsync(context);
             _connectionTracker.RemoveConnectionIdentity(context.ConnectionId);
             _tokenService.RemoveFromQuickCache(token.Id);
             _db.AuthTokens.Remove(token);

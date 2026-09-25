@@ -36,6 +36,7 @@
     private RenderFragment RolesContent => @<EditPlanetRolesComponent Planet="@Data.Planet" />;
     private RenderFragment EmojisContent => @<EditPlanetEmojisComponent Planet="@Data.Planet" />;
     private RenderFragment ModerationContent => @<EditPlanetModerationComponent Planet="@Data.Planet" />;
+    private RenderFragment PrivacyContent => @<EditPlanetPrivacyComponent Planet="@Data.Planet" />;
     private RenderFragment AuditLogContent => @<EditPlanetAuditLogComponent Planet="@Data.Planet" />;
     private RenderFragment EconomyContent => @<EditPlanetEconomyComponent Planet="@Data.Planet" />;
     private RenderFragment StorageContent => @<EditPlanetStorageComponent Planet="@Data.Planet" />;
@@ -161,6 +162,13 @@
                         Icon = "shield-lock-fill",
                         Description = "Automated moderation settings",
                         Content = ModerationContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Privacy",
+                        Icon = "shield-lock-fill",
+                        Description = "Who can join and read messages",
+                        Content = PrivacyContent
                     },
                     new MainMenu.MenuItem()
                     {

@@ -149,7 +149,7 @@
         <div class="appearance-split">
             <div class="options">
                 <div>
-                    <button class="v-btn primary" onclick="document.getElementById('icon-upload').click()">Upload Icon</button>
+                    <button class="v-btn primary" data-click-target="icon-upload">Upload Icon</button>
                     <p class="helper-text">Upload a Planet Icon (max 8MB, square)</p>
                     <ResultLabel Result="@_iconResult"/>
                     <InputFile @ref="_iconFileInput"
@@ -160,7 +160,7 @@
                 </div>
                 
                 <div>
-                    <button class="v-btn primary" onclick="document.getElementById('bg-upload').click()">Upload Background</button>
+                    <button class="v-btn primary" data-click-target="bg-upload">Upload Background</button>
                     <p class="helper-text">Upload a Planet Background (max 10MB, 300x400px)</p>
                     <ResultLabel Result="@_bgResult"/>
                     <InputFile @ref="_bgFileInput"

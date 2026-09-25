@@ -1,16 +1,19 @@
 @inherits AttachmentComponent
 
-<div class="instagram-container">
-    <iframe
-        class="instagram-embed"
-        src="@Attachment.Location"
-        width="@(Attachment.Width > 0 ? Attachment.Width : 400)"
-        height="@(Attachment.Height > 0 ? Attachment.Height : 480)"
-        frameborder="0"
-        scrolling="no"
-        allowtransparency="true">
-    </iframe>
-</div>
+@if (_src is not null)
+{
+    <div class="instagram-container">
+        <iframe
+            class="instagram-embed"
+            src="@_src"
+            width="@(Attachment.Width > 0 ? Attachment.Width : 400)"
+            height="@(Attachment.Height > 0 ? Attachment.Height : 480)"
+            frameborder="0"
+            scrolling="no"
+            allowtransparency="true">
+        </iframe>
+    </div>
+}
 
 <style>
     .instagram-container {
@@ -24,3 +27,12 @@
         border-radius: var(--radius-md);
     }
 </style>
+
+@code {
+    private string _src;
+
+    protected override void OnParametersSet()
+    {
+        _src = GetTrustedEmbedSource("www.instagram.com", "instagram.com");
+    }
+}

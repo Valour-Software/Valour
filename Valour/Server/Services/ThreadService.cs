@@ -1,3 +1,4 @@
+using Valour.Sdk.Cdn;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
 using Valour.Server.Cdn.Storage;

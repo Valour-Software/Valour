@@ -89,6 +89,13 @@ public class Channel : ISharedChannel
     /// </summary>
     public long? AssociatedChatChannelId { get; set; }
 
+    /// <summary>
+    /// The newest end-to-end encryption key generation, or zero until the
+    /// channel's first key is created. The server refuses plain-text messages
+    /// in every chat channel.
+    /// </summary>
+    public int EncryptionGeneration { get; set; }
+
     // Used for migrations
     public int Version { get; set; }
 
@@ -148,6 +155,9 @@ public class Channel : ISharedChannel
 
             e.Property(x => x.Version)
                 .HasColumnName("version");
+
+            e.Property(x => x.EncryptionGeneration)
+                .HasColumnName("encryption_generation");
             
             // Relationships
             e.HasOne(x => x.Planet)

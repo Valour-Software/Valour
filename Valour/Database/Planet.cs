@@ -93,7 +93,9 @@ public class Planet : ISharedPlanet
     public string Description { get; set; }
 
     /// <summary>
-    /// If the server requires express allowal to join a planet
+    /// True when anyone can join the planet and read its messages. A private
+    /// planet is joined with an invite link, and its signed membership log
+    /// decides who receives its keys. Changed only through the privacy endpoint.
     /// </summary>
     [Column("public")]
     public bool Public { get; set; }
@@ -208,6 +210,20 @@ public class Planet : ISharedPlanet
     /// Mapped fluently in SetupDbModel.
     /// </summary>
     public ChannelActivityCadence ActivityNotificationCadence { get; set; } = ChannelActivityCadence.Standard;
+
+    /// <summary>
+    /// Who may receive the planet's channel keys. Every message is end-to-end
+    /// encrypted either way. See <see cref="PlanetEncryptionMode"/>.
+    /// </summary>
+    [Column("encryption_mode")]
+    public PlanetEncryptionMode EncryptionMode { get; set; }
+
+    /// <summary>
+    /// Whether members who join an encrypted planet can read messages sent
+    /// before they joined.
+    /// </summary>
+    [Column("encryption_shares_history")]
+    public bool EncryptionSharesHistory { get; set; } = true;
 
     // Only to fulfill contract
     [NotMapped]

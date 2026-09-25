@@ -36,7 +36,7 @@ public class PlanetRoleApi
         [FromBody] PlanetRole role,
         PlanetRoleService roleService,
         PlanetMemberService memberService,
-        PlanetService planetService)
+        PlanetPermissionService permissionService)
     {
         if (role is null)
             return ValourResult.BadRequest("Include role in body.");
@@ -61,6 +61,10 @@ public class PlanetRoleApi
         if (role.IsAdmin && !await memberService.IsAdminAsync(member.Id))
             return ValourResult.Forbid("Only an admin can create admin roles");
 
+        var grantError = await GetUnheldPermissionErrorAsync(member, null, role, permissionService);
+        if (grantError is not null)
+            return ValourResult.Forbid(grantError);
+
         var result = await roleService.CreateAsync(role);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
@@ -75,7 +79,8 @@ public class PlanetRoleApi
         long planetId,
         long roleId,
         PlanetMemberService memberService,
-        PlanetRoleService roleService)
+        PlanetRoleService roleService,
+        PlanetPermissionService permissionService)
     {
         if (role is null)
             return ValourResult.BadRequest("Include role in body.");
@@ -106,6 +111,13 @@ public class PlanetRoleApi
         
         if ((oldRole.IsAdmin != role.IsAdmin) && !await memberService.IsAdminAsync(member.Id))
             return ValourResult.Forbid("Only an admin can change admin state of roles");
+
+        if (oldRole.FlagBitIndex != role.FlagBitIndex)
+            return ValourResult.BadRequest("You cannot change the role's flag bit index.");
+
+        var grantError = await GetUnheldPermissionErrorAsync(member, oldRole, role, permissionService);
+        if (grantError is not null)
+            return ValourResult.Forbid(grantError);
 
         var result = await roleService.UpdateAsync(role);
         if (!result.Success)
@@ -172,5 +184,43 @@ public class PlanetRoleApi
 
         return Results.Json(nodes);
 
+    }
+
+    /// <summary>
+    /// Members may only grant or revoke role permission bits they hold themselves.
+    /// Owners and admins hold every bit, so they are never restricted.
+    /// </summary>
+    private static async Task<string> GetUnheldPermissionErrorAsync(
+        PlanetMember member,
+        PlanetRole oldRole,
+        PlanetRole newRole,
+        PlanetPermissionService permissionService)
+    {
+        // View is implicitly granted to every member
+        var heldPlanet = await permissionService.GetRolePermissionsAsync(member) | PlanetPermissions.View.Value;
+        var error = PermissionGrantGuard.GetUnheldChangeError(
+            (oldRole?.Permissions ?? 0) ^ newRole.Permissions, heldPlanet,
+            PlanetPermissions.Permissions, "planet");
+        if (error is not null)
+            return error;
+
+        error = PermissionGrantGuard.GetUnheldChangeError(
+            (oldRole?.ChatPermissions ?? 0) ^ newRole.ChatPermissions,
+            await permissionService.GetRolePermissionsAsync(member, ChannelTypeEnum.PlanetChat),
+            ChatChannelPermissions.Permissions, "chat channel");
+        if (error is not null)
+            return error;
+
+        error = PermissionGrantGuard.GetUnheldChangeError(
+            (oldRole?.CategoryPermissions ?? 0) ^ newRole.CategoryPermissions,
+            await permissionService.GetRolePermissionsAsync(member, ChannelTypeEnum.PlanetCategory),
+            CategoryPermissions.Permissions, "category");
+        if (error is not null)
+            return error;
+
+        return PermissionGrantGuard.GetUnheldChangeError(
+            (oldRole?.VoicePermissions ?? 0) ^ newRole.VoicePermissions,
+            await permissionService.GetRolePermissionsAsync(member, ChannelTypeEnum.PlanetVoice),
+            VoiceChannelPermissions.Permissions, "voice channel");
     }
 }

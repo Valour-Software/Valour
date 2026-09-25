@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Valour.Server.Cdn.Storage;
@@ -7,6 +8,19 @@ namespace Valour.Server.Cdn.Api;
 
 public class ContentApi : Controller
 {
+    /// <summary>
+    /// Objects up to this size are kept in memory after the first request.
+    /// Larger objects are streamed from storage on every request so a single
+    /// anonymous download never buffers the whole file.
+    /// </summary>
+    internal const int MaxCachedObjectBytes = 4 * 1024 * 1024;
+
+    /// <summary>
+    /// One storage read per object while its cache entry is being filled, so a
+    /// burst of requests for the same uncached object does not multiply reads.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, Task<byte[]>> CacheFillsInFlight = new(StringComparer.Ordinal);
+
     public static void AddRoutes(WebApplication app)
     {
         app.MapGet("/content/{category}/{userId}/{hash}", GetRoute);
@@ -70,7 +84,7 @@ public class ContentApi : Controller
         return url;
     }
 
-    private static async Task<IResult> GetRoute(CdnMemoryCache cache, ValourDb db, CdnStorageProvider storage,
+    private static async Task<IResult> GetRoute(HttpContext ctx, CdnMemoryCache cache, ValourDb db, CdnStorageProvider storage,
          ContentCategory category, string hash, ulong userId)
     {
         if (string.IsNullOrWhiteSpace(hash))
@@ -88,40 +102,92 @@ public class ContentApi : Controller
         if (IsUnavailable(bucketItemRecord))
             return Results.NotFound();
 
-        byte[] data;
+        // Stored names and types are uploader-controlled; only non-scriptable
+        // media is ever served inline on a Valour origin.
+        var headers = CdnServePolicy.Resolve(bucketItemRecord.FileName, bucketItemRecord.MimeType);
+        CdnServePolicy.Apply(ctx.Response, headers);
 
-        if (!cache.Cache.TryGetValue(hash, out data))
+        if (bucketItemRecord.SizeBytes <= MaxCachedObjectBytes)
         {
-            var download = await storage.Private.GetAsync(hash);
-            if (download is null)
-                return Results.NotFound();
+            var data = await GetCachedObjectAsync(cache, storage, hash, bucketItemRecord.SizeBytes);
+            if (data is not null)
+                return Results.File(data, headers.ContentType, enableRangeProcessing: true);
+        }
 
-            await using (download)
+        var download = await storage.Private.GetAsync(hash);
+        if (download is null)
+            return Results.NotFound();
+
+        // Results.Stream disposes the stream; the download also owns the
+        // backend response the stream came from.
+        ctx.Response.RegisterForDisposeAsync(download);
+        return Results.Stream(download.Stream, headers.ContentType, enableRangeProcessing: true);
+    }
+
+    /// <summary>
+    /// Returns a small object from the memory cache, filling it from storage at
+    /// most once at a time. Returns null when the object is missing or larger
+    /// than its recorded size, so the caller streams it instead.
+    /// </summary>
+    private static async Task<byte[]> GetCachedObjectAsync(CdnMemoryCache cache, CdnStorageProvider storage, string hash, int expectedBytes)
+    {
+        var cacheKey = $"content:{hash}";
+
+        if (cache.Cache.TryGetValue(cacheKey, out byte[] cached))
+            return cached;
+
+        var fill = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inFlight = CacheFillsInFlight.GetOrAdd(cacheKey, fill.Task);
+        if (inFlight != fill.Task)
+            return await inFlight;
+
+        byte[] data = null;
+        try
+        {
+            data = await ReadSmallObjectAsync(storage, hash, expectedBytes);
+            if (data is not null)
             {
-                MemoryStream ms = new MemoryStream();
-                await download.Stream.CopyToAsync(ms);
-                data = ms.ToArray();
+                cache.Cache.Set(cacheKey, data,
+                    new MemoryCacheEntryOptions()
+                    {
+                        Size = data.Length,
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+                    });
+            }
+        }
+        finally
+        {
+            fill.SetResult(data);
+            CacheFillsInFlight.TryRemove(new KeyValuePair<string, Task<byte[]>>(cacheKey, fill.Task));
+        }
+
+        return data;
+    }
+
+    private static async Task<byte[]> ReadSmallObjectAsync(CdnStorageProvider storage, string hash, int expectedBytes)
+    {
+        var download = await storage.Private.GetAsync(hash);
+        if (download is null)
+            return null;
+
+        await using (download)
+        {
+            // One byte past the recorded size is enough to detect an object
+            // that is larger than its record, which is then streamed instead.
+            var limit = Math.Clamp(expectedBytes, 0, MaxCachedObjectBytes);
+            var buffer = new byte[limit + 1];
+            var total = 0;
+            while (total < buffer.Length)
+            {
+                var read = await download.Stream.ReadAsync(buffer.AsMemory(total));
+                if (read == 0)
+                    break;
+
+                total += read;
             }
 
-            cache.Cache.Set(hash, data,
-                new MemoryCacheEntryOptions()
-                {
-                    Size = data.Length,
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
-                }
-             );
+            return total > limit ? null : buffer[..total];
         }
-
-        // Same reasoning as the signed-URL path: never hand a browser active
-        // content it would render inline on a Valour origin.
-        if (CdnUtils.IsActiveContentUpload(bucketItemRecord.FileName, bucketItemRecord.MimeType))
-        {
-            return Results.File(data, "application/octet-stream",
-                string.IsNullOrWhiteSpace(bucketItemRecord.FileName) ? "download" : bucketItemRecord.FileName,
-                enableRangeProcessing: true);
-        }
-
-        return Results.File(data, bucketItemRecord.MimeType, bucketItemRecord.FileName, enableRangeProcessing: true);
     }
 
     private static bool IsUnavailable(Valour.Database.CdnBucketItem item)

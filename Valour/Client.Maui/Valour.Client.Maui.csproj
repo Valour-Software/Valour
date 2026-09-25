@@ -50,8 +50,8 @@
         <ApplicationId>gg.valour.app</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.8.0</ApplicationDisplayVersion>
-        <ApplicationVersion>91</ApplicationVersion>
+        <ApplicationDisplayVersion>0.9.0</ApplicationDisplayVersion>
+        <ApplicationVersion>92</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
@@ -96,10 +96,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Maui.Controls" Version="11.0.0-preview.3.26203.7" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="11.0.0-preview.3.26203.7" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="11.0.0-preview.3.26207.106" />
-        <PackageReference Include="Microsoft.Maui.Core" Version="11.0.0-preview.3.26203.7" />
+        <PackageReference Include="Microsoft.Maui.Controls" Version="11.0.0-rc.1.26451.6" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="11.0.0-rc.1.26451.6" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="11.0.0-rc.1.26425.128" />
+        <PackageReference Include="Microsoft.Maui.Core" Version="11.0.0-rc.1.26451.6" />
         <PackageReference Include="Sentry.Maui" Version="6.1.0" />
     </ItemGroup>
 
@@ -113,7 +113,7 @@
         <PackageReference Include="Plugin.Firebase.CloudMessaging" Version="3.1.1" />
         <PackageReference Include="Xamarin.GooglePlayServices.Base" Version="118.9.0" />
         <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.9.0" />
-        <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.10.0.2" />
+        <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.11.0.1" />
         <GoogleServicesJson Include="Platforms\Android\google-services.json" Condition="Exists('Platforms\Android\google-services.json')" />
 
         <!--
@@ -131,6 +131,17 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Client\Valour.Client.csproj" />
+    </ItemGroup>
+
+    <!-- A Debug build can talk to a server on the local network instead of the
+         official API. Set ValourApiBase in the ignored Local.props file beside
+         this project, or pass it with -p:ValourApiBase=http://192.168.1.20:5080. -->
+    <Import Project="Local.props" Condition="Exists('Local.props')" />
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' and '$(ValourApiBase)' != ''">
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>ValourApiBase</_Parameter1>
+            <_Parameter2>$(ValourApiBase)</_Parameter2>
+        </AssemblyAttribute>
     </ItemGroup>
 
     <Target Name="ShowAppleTargetFrameworkSkipMessage"

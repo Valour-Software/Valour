@@ -66,6 +66,8 @@ public class PlanetStorageApi
         return ValourResult.Ok("Storage config removed.");
     }
 
+    // Each probe makes several outbound requests to a user-chosen endpoint.
+    [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/storage/probe")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> ProbeRoute(

@@ -6,11 +6,17 @@ namespace Valour.Server.Api.Dynamic;
 
 public class TagApi
 {
+    /// <summary>
+    /// Returns tags with curated tags first, at most <see cref="TagService.MaxTagListSize"/> per request.
+    /// </summary>
     [ValourRoute(HttpVerbs.Get, "api/tags")]
     [UserRequired(UserPermissionsEnum.View)]
-    public static async Task<IResult> GetAllTags (ITagService tagService)
+    public static async Task<IResult> GetAllTags (
+        ITagService tagService,
+        int skip = 0,
+        int take = TagService.MaxTagListSize)
     {
-        var tagList = await tagService.GetAllTagsList();
+        var tagList = await tagService.GetAllTagsList(skip, take);
         return tagList.Count>=1 ? Results.Ok(tagList) : Results.NotFound();
     }
     
@@ -18,12 +24,14 @@ public class TagApi
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> CreateAsync (
         ITagService tagService,
+        UserService userService,
         [FromBody] PlanetTag planetTag)
     {
         if(planetTag == null)
             return ValourResult.BadRequest("The tag cannot be null.");
-        
-        var response = await tagService.CreateAsync(planetTag);
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var response = await tagService.CreateAsync(planetTag, userId);
 
         if (!response.Success)
         {

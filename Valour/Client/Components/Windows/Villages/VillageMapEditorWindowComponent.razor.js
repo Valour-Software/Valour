@@ -1,8 +1,7 @@
 const renderingModulePath = "../../../ts/VillageTileRendering.js";
-const importModule = new Function("path", "return import(path)");
 let renderingModulePromise = null;
 function loadRenderingModule() {
-    renderingModulePromise ??= importModule(renderingModulePath);
+    renderingModulePromise ??= import(renderingModulePath);
     return renderingModulePromise;
 }
 export async function init(canvasId, dotNetRef, config) {

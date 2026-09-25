@@ -1,7 +1,44 @@
+using Valour.Shared.Models;
+
 namespace Valour.Server.Mapping;
 
 public static class UserMapper
 {
+    /// <summary>
+    /// Returns the user as the given viewer may see it. A user who chose to
+    /// appear offline keeps their activity time and device type private from
+    /// everyone else, and anonymous callers never see them.
+    /// </summary>
+    public static User ForViewer(this User user, long? viewerId)
+    {
+        if (user is null || viewerId == user.Id)
+            return user;
+
+        if (viewerId is null || user.UserStateCode == UserState.Offline.Value)
+            RedactPresence(user);
+
+        return user;
+    }
+
+    /// <summary>
+    /// Maps a user for a realtime broadcast, which reaches users other than the
+    /// subject. Presence is hidden for users who chose to appear offline.
+    /// </summary>
+    public static User ToBroadcastModel(this Valour.Database.User user)
+    {
+        var model = user.ToModel();
+        if (model is not null && model.UserStateCode == UserState.Offline.Value)
+            RedactPresence(model);
+
+        return model;
+    }
+
+    private static void RedactPresence(User user)
+    {
+        user.TimeLastActive = default;
+        user.IsMobile = false;
+    }
+
     public static User ToModel(this Valour.Database.User user)
     {
         if (user is null)

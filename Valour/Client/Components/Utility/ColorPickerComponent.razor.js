@@ -62,6 +62,14 @@ export async function init(id, ref, startColor, button = false) {
     });
     
     pickers[id] = pickr;
+
+    // Pickr can initialize its internal color to black before applying `default`.
+    // Apply the saved value after initialization so the swatch and editor agree.
+    pickr.on('init', () => {
+        if (pickers[id] === pickr && startColor) {
+            pickr.setColor(startColor);
+        }
+    });
     
     pickr.on('changestop', (source, instance) => {
         ref.invokeMethodAsync('ColorChange', instance.getColor().toHEXA().toString());

@@ -3,7 +3,17 @@
 @inject IJSRuntime Js
 
 <div class="banner-stack" role="region" aria-label="Platform notices">
-    @if (Banners.UpdateAvailable)
+    @if (Banners.UpdateRequired)
+    {
+        <section class="app-banner update" role="alert">
+            <div class="banner-icon"><i class="bi bi-arrow-up-circle-fill"></i></div>
+            <div class="banner-copy"><strong>Valour needs an update</strong><span>This version can no longer send messages. Refresh, or update the app from your app store.</span></div>
+            <div class="banner-actions">
+                <button class="banner-action refresh-action" @onclick="RefreshAsync"><i class="bi bi-arrow-clockwise"></i><span>Refresh</span></button>
+            </div>
+        </section>
+    }
+    else if (Banners.UpdateAvailable)
     {
         <section class="app-banner update" role="status">
             <div class="banner-icon"><i class="bi bi-stars"></i></div>

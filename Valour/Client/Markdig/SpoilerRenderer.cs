@@ -16,11 +16,9 @@ public class SpoilerRenderer : BlazorObjectRenderer<SpoilerInline>
         renderer.AddAttribute("class", "md-spoiler", 1);
         renderer.AddAttribute("role", "button", 2);
         renderer.AddAttribute("tabindex", "0", 3);
-        // Plain inline onclick instead of a Blazor event handler.
-        // The reveal is purely visual, and this way it still works
-        // in ghost/preview renders that never wire up Blazor's event dispatch.
-        renderer.AddAttribute("onclick", "this.classList.toggle('revealed')", 4);
-        renderer.AddAttribute("onkeydown", "if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();this.classList.toggle('revealed');}", 5);
+        // No Blazor event handler: main.js reveals .md-spoiler elements through a
+        // document-level listener. The reveal is purely visual, and this way it still
+        // works in ghost/preview renders that never wire up Blazor's event dispatch.
 
         foreach (var child in obj)
         {

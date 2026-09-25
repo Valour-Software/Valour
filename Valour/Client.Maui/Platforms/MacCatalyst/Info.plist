@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Valour uses the camera to scan the code that links a new device to your encrypted messages.</string>
     <!-- The Mac App Store requires you specify if the app uses encryption. -->
     <!-- Please consult https://developer.apple.com/documentation/bundleresources/information_property_list/itsappusesnonexemptencryption -->
     <!-- <key>ITSAppUsesNonExemptEncryption</key> -->

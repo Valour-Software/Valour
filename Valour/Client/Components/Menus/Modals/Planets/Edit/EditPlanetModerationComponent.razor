@@ -19,6 +19,14 @@
             TableMinWidth="850"
             SearchPlaceholder="Search name..." />
 
+        <p class="helper-text">
+            <i class="bi bi-lock-fill"></i>
+            Messages are end-to-end encrypted. Word triggers match whole words, the start of a word, or the end of a
+            word, and a phrase matches when all of its words are present. Moderators' apps prepare triggers for each
+            channel privately, so a new or edited trigger starts working once a moderator with access to each channel
+            has been online.
+        </p>
+
         <div class="actions">
             <button class="v-btn primary" @onclick="OpenCreateModal">Add Trigger</button>
         </div>
@@ -42,6 +50,9 @@
     {
         Planet ??= WindowService.FocusedPlanet;
         _engine = Client.AutomodService.GetTriggerQueryEngine(Planet);
+
+        // Moderators' apps compute trigger hashes for each channel.
+        _ = Client.E2eeService.SyncAutomodTermsIfModeratorAsync(Planet.Id);
 
         _columns = new()
         {

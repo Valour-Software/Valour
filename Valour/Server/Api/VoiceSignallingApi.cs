@@ -8,33 +8,50 @@ public class VoiceSignallingApi
 {
     private const int MinimumRealtimeKitParticipants = 2;
 
+    /// <summary>
+    /// Matches the direct call token lifetime. The client presents the token
+    /// once when connecting and requests a new one for every rejoin.
+    /// </summary>
+    private static readonly TimeSpan ParticipantTokenLifetime = TimeSpan.FromMinutes(5);
+
     public static void AddRoutes(WebApplication app)
     {
         // Provider-neutral routes (canonical). The handlers act through IVoiceProvider,
         // so a single path serves whichever backend the instance runs.
-        app.MapPost("api/voice/token/{channelId:long}", GetVoiceToken).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/channels/{channelId:long}/leave", LeaveVoiceChannel).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/heartbeat", VoiceHeartbeat).AddEndpointFilter<NotHostedExceptionFilter>();
+        MapVoiceRoute(app, "api/voice/token/{channelId:long}", GetVoiceToken);
+        MapVoiceRoute(app, "api/voice/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant);
+        MapVoiceRoute(app, "api/voice/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant);
+        MapVoiceRoute(app, "api/voice/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant);
+        MapVoiceRoute(app, "api/voice/channels/{channelId:long}/leave", LeaveVoiceChannel);
+        MapVoiceRoute(app, "api/voice/heartbeat", VoiceHeartbeat);
 
         // Legacy provider-named aliases, retained so already-loaded clients keep working.
-        app.MapPost("api/voice/realtimekit/token/{channelId:long}", GetVoiceToken).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/realtimekit/channels/{channelId:long}/leave", LeaveVoiceChannel).AddEndpointFilter<NotHostedExceptionFilter>();
-        app.MapPost("api/voice/realtimekit/heartbeat", VoiceHeartbeat).AddEndpointFilter<NotHostedExceptionFilter>();
+        MapVoiceRoute(app, "api/voice/realtimekit/token/{channelId:long}", GetVoiceToken);
+        MapVoiceRoute(app, "api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/mute", MuteParticipant);
+        MapVoiceRoute(app, "api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/unmute", UnmuteParticipant);
+        MapVoiceRoute(app, "api/voice/realtimekit/channels/{channelId:long}/participants/{targetUserId:long}/kick", KickParticipant);
+        MapVoiceRoute(app, "api/voice/realtimekit/channels/{channelId:long}/leave", LeaveVoiceChannel);
+        MapVoiceRoute(app, "api/voice/realtimekit/heartbeat", VoiceHeartbeat);
     }
+
+    /// <summary>
+    /// Voice is realtime planet communication, so every route requires the
+    /// Messages scope, like planet message routes. The access filter also
+    /// rejects disabled accounts.
+    /// </summary>
+    private static void MapVoiceRoute(WebApplication app, string pattern, Delegate handler) =>
+        app.MapPost(pattern, handler)
+            .AddEndpointFilter(new UserAccessFilter([UserPermissions.Messages], staffRequired: false))
+            .AddEndpointFilter<NotHostedExceptionFilter>();
 
     public static async Task<IResult> GetVoiceToken(
         ValourDb db,
         TokenService tokenService,
         PlanetMemberService memberService,
         CoreHubService coreHubService,
-        IVoiceProvider voiceProvider,
+        VoiceCoordinator voiceProvider,
         VoiceStateService voiceStateService,
+        Valour.Server.Services.Villages.VillageRoomService villageRoomService,
         long channelId,
         string? sessionId)
     {
@@ -65,6 +82,11 @@ public class VoiceSignallingApi
         var hasJoinPermission = await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.Join);
         if (!hasJoinPermission)
             return ValourResult.LacksPermission(VoiceChannelPermissions.Join);
+
+        // Temporary village rooms have no permission nodes; the room lease
+        // decides who is inside.
+        if (!await villageRoomService.CanAccessChannelAsync(channel, authToken.UserId))
+            return ValourResult.Forbid("You are not inside this village room.");
 
         var dbUser = await db.Users.FindAsync(authToken.UserId);
         if (dbUser is null)
@@ -123,8 +145,12 @@ public class VoiceSignallingApi
             });
         }
 
+        // A server mute persists across rejoins by issuing a listen-only token.
+        var canPublish = !await voiceStateService.IsServerMutedAsync(channelId, authToken.UserId);
+
         TaskResult<RealtimeKitVoiceTokenResponse> tokenResult =
-            await voiceProvider.CreateParticipantTokenAsync(channel, authToken.UserId, displayName, sessionId);
+            await voiceProvider.CreateParticipantTokenAsync(
+                channel, authToken.UserId, displayName, sessionId, ParticipantTokenLifetime, canPublish);
 
         if (!tokenResult.Success || tokenResult.Data is null)
         {
@@ -148,6 +174,8 @@ public class VoiceSignallingApi
         TokenService tokenService,
         PlanetMemberService memberService,
         NodeLifecycleService nodeLifecycleService,
+        VoiceStateService voiceStateService,
+        VoiceCoordinator voiceProvider,
         long channelId,
         long targetUserId)
     {
@@ -161,6 +189,11 @@ public class VoiceSignallingApi
 
         if (validation.Error is not null)
             return validation.Error;
+
+        // Record the mute so rejoining issues a listen-only token, then revoke
+        // publishing on the live sessions. The client event only updates the UI.
+        await voiceStateService.SetServerMutedAsync(channelId, targetUserId, muted: true);
+        await voiceProvider.SetParticipantCanPublishAsync(channelId, targetUserId, canPublish: false);
 
         await nodeLifecycleService.RelayUserEventAsync(
             validation.TargetMember!.UserId,
@@ -181,6 +214,8 @@ public class VoiceSignallingApi
         TokenService tokenService,
         PlanetMemberService memberService,
         NodeLifecycleService nodeLifecycleService,
+        VoiceStateService voiceStateService,
+        VoiceCoordinator voiceProvider,
         long channelId,
         long targetUserId)
     {
@@ -194,6 +229,11 @@ public class VoiceSignallingApi
 
         if (validation.Error is not null)
             return validation.Error;
+
+        // Restore publishing before telling the client, which turns its
+        // microphone back on in response.
+        await voiceStateService.SetServerMutedAsync(channelId, targetUserId, muted: false);
+        await voiceProvider.SetParticipantCanPublishAsync(channelId, targetUserId, canPublish: true);
 
         await nodeLifecycleService.RelayUserEventAsync(
             validation.TargetMember!.UserId,

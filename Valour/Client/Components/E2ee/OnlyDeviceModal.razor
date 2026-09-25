@@ -1,0 +1,42 @@
+@inherits Modal<OnlyDeviceModal.Params>
+@inject ValourClient Client
+
+<BasicModalLayout Title="Keep a way back in" Icon="shield-lock-fill" MaxWidth="460px" Role="dialog">
+    <MainArea>
+        <p>
+            <strong>This browser is the only place your encryption keys are stored.</strong>
+            If its site data is cleared, you'll need your recovery code to read your messages again.
+        </p>
+        <p class="helper-text">
+            @(Data.NeedsRecoveryCode
+                ? "You haven't saved a recovery code yet. Create one in your encryption settings and keep it somewhere safe."
+                : "Keep your recovery code somewhere safe.")
+            Linking the Valour app on your phone or computer to this account also keeps a copy of your keys there.
+        </p>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="@Close">Got it</button>
+            <button class="v-btn primary" @onclick="OpenSettings">Encryption settings</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+        public bool NeedsRecoveryCode { get; init; }
+    }
+
+    private void OpenSettings()
+    {
+        var root = ModalRoot;
+        Close();
+        root.OpenModal<EditUserComponent>(new EditUserComponent.ModalParams
+        {
+            User = Client.Me,
+            StartCategory = "General Settings",
+            StartItem = "Encryption"
+        });
+    }
+}

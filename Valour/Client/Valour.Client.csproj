@@ -13,17 +13,19 @@
 
   <ItemGroup>
     <PackageReference Include="ExCSS" Version="4.3.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.3" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-rc.1.26425.128" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="11.0.0-rc.1.26425.128" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="11.0.0-rc.1.26425.128" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0-rc.1.26425.128" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="11.0.0-rc.1.26425.128" />
     <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.9.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.2.1" />
+    <!-- Device-link QR codes are drawn on the device so the server cannot alter them. -->
+    <PackageReference Include="QRCoder" Version="1.4.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -45,6 +47,12 @@
 
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
     <TypeScriptCompile Remove="Components\Menus\Modals\Users\Edit\EditWalletComponent.razor.ts" />
+
+    <!-- The TypeScript targets add their compiled .js and .js.map files as Content during the build.
+         Files left on disk from an earlier build would also match the default Content
+         glob, and static web assets would then see each file twice. -->
+    <Content Remove="@(TypeScriptCompile->'%(RelativeDir)%(Filename).js')" />
+    <Content Remove="@(TypeScriptCompile->'%(RelativeDir)%(Filename).js.map')" />
 
     <!-- Generated into obj by EmojiTrieCompiler and embedded in this assembly. -->
     <EmbeddedResource Include="$(IntermediateOutputPath)generated/emoji-trie.bin"

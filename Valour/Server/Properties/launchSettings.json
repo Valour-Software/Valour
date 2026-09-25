@@ -10,6 +10,15 @@
       "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
       "applicationUrl": "https://localhost:5001;http://localhost:5000"
     },
+    "Valour.Server (phones on this network)": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "launchBrowser": false,
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:5001;http://localhost:5000;http://0.0.0.0:5080"
+    },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,

@@ -17,9 +17,9 @@ public static class OEmbedSanitizer
 
     private static readonly HashSet<string> AllowedAttributes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "href", "src", "alt", "title", "class", "id", "data-instgrm-captioned",
+        "href", "src", "alt", "title", "class", "data-instgrm-captioned",
         "data-instgrm-permalink", "data-instgrm-version", "datetime",
-        "width", "height", "frameborder", "allowfullscreen", "allow",
+        "width", "height", "frameborder", "allowfullscreen",
         "data-tweet-id", "data-embed-theme", "cite", "data-conversation",
         "data-lang", "data-dnt", "data-theme", "data-width", "data-height"
     };

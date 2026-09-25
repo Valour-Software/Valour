@@ -68,11 +68,23 @@ public class VillageService : ServiceBase
         _client.PrimaryNode.GetJsonAsync<VillagePocScene>(
             $"api/planets/{planetId}/village/poc", cacheDurationMs: null);
 
-    public Task<TaskResult> PurchasePlotAsync(Planet planet, long plotId) =>
-        planet.Node.PostAsync($"api/planets/{planet.Id}/village/plots/{plotId}/purchase", null);
+    /// <summary>
+    /// Buys a listed plot. <paramref name="expectedPrice"/> is the price shown to
+    /// the user; the server rejects the purchase if the listing now costs more or less.
+    /// </summary>
+    public Task<TaskResult> PurchasePlotAsync(Planet planet, long plotId, decimal expectedPrice) =>
+        planet.Node.PostAsync(
+            $"api/planets/{planet.Id}/village/plots/{plotId}/purchase",
+            new VillagePurchaseRequest { ExpectedPrice = expectedPrice });
 
-    public Task<TaskResult> PurchaseBuildingAsync(Planet planet, long buildingId) =>
-        planet.Node.PostAsync($"api/planets/{planet.Id}/village/buildings/{buildingId}/purchase", null);
+    /// <summary>
+    /// Buys a listed building. <paramref name="expectedPrice"/> is the price shown to
+    /// the user; the server rejects the purchase if the listing now costs more or less.
+    /// </summary>
+    public Task<TaskResult> PurchaseBuildingAsync(Planet planet, long buildingId, decimal expectedPrice) =>
+        planet.Node.PostAsync(
+            $"api/planets/{planet.Id}/village/buildings/{buildingId}/purchase",
+            new VillagePurchaseRequest { ExpectedPrice = expectedPrice });
 
     public Task<TaskResult<VillageEphemeralRoom>> AcquireBuildingRoomAsync(Planet planet, long buildingId) =>
         planet.Node.PostAsyncWithResponse<VillageEphemeralRoom>(

@@ -13,7 +13,7 @@
     id="list-@Planet.Id"
     @oncontextpress="@OnContextPress">
     <div class="header-wrapper" style="cursor:pointer" id="list-inner-@Planet.Id">
-        <div @onclick='@OnClick' class="header" ondragover="event.preventDefault();">
+        <div @onclick='@OnClick' class="header" @ondragover:preventDefault="true">
             <div class="left">
                 <PlanetIcon Planet="@Planet" Size="24" Unread="@_hasUnread"/>
                 <p class="planet-name">

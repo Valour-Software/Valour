@@ -429,7 +429,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
                         if (e.code === "ArrowUp") {
                             await ctx.dotnet.invokeMethodAsync('OnUpArrowNonMention');
                         }
-                        await this.caretMoveHandler();
+                        await ctx.caretMoveHandler();
                     }
                     break;
                 case "ArrowLeft":
@@ -488,6 +488,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
         },
 
         clickHandler: () => {
+            ctx.inputEl.focus();
             ctx.caretMoveHandler();
         },
 

@@ -191,11 +191,58 @@ public sealed class VillageRoomService
         _ = DeleteIfStillEmptyAfterGraceAsync(key, generation);
     }
 
-    public async Task ReleaseAllForUserAsync(long userId)
+    public async Task ReleaseAllForUserAsync(long userId, long? planetId = null)
     {
         foreach (var key in _rooms.Keys)
-            await ReleaseCoreAsync(key, userId);
+        {
+            if (planetId is null || key.PlanetId == planetId.Value)
+                await ReleaseCoreAsync(key, userId);
+        }
     }
+
+    /// <summary>
+    /// Temporary room channels have no permission nodes, so the lease table
+    /// decides who may use them: only members who acquired the room (and have
+    /// not released it) can join its call or chat. Other channels are not
+    /// affected and always return true.
+    /// </summary>
+    public async Task<bool> CanAccessChannelAsync(ISharedChannel channel, long userId)
+    {
+        if (channel?.PlanetId is null || !ISharedChannel.IsVillageEphemeral(channel))
+            return true;
+
+        foreach (var (key, state) in _rooms)
+        {
+            if (key.PlanetId != channel.PlanetId.Value ||
+                (state.Room.ChannelId != channel.Id && state.Room.ChatChannelId != channel.Id))
+            {
+                continue;
+            }
+
+            if (!_roomLocks.TryGetValue(key, out var gate))
+                return false;
+
+            await gate.WaitAsync();
+            try
+            {
+                return _rooms.TryGetValue(key, out var current) &&
+                       ReferenceEquals(current, state) &&
+                       current.Occupants.Contains(userId);
+            }
+            finally
+            {
+                gate.Release();
+            }
+        }
+
+        // A room channel without a live lease was orphaned by a restart. It is
+        // deleted before the next room is created and must not be usable until then.
+        return !IsRoomChannel(channel);
+    }
+
+    private static bool IsRoomChannel(ISharedChannel channel) =>
+        channel.Description?.StartsWith(DescriptionPrefix, StringComparison.Ordinal) == true ||
+        channel.Description == $"Integrated chat for {channel.Name}";
 
     /// <summary>
     /// Immediately retires a building's temporary room when its channel

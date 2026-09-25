@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Secure storage is encrypted with a Keystore key that never leaves this
+     device, so it is left out of cloud backups and device transfers. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="."/>
+        <exclude domain="sharedpref" path="gg.valour.app.microsoft.maui.essentials.preferences.xml"/>
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="."/>
+        <exclude domain="sharedpref" path="gg.valour.app.microsoft.maui.essentials.preferences.xml"/>
+    </device-transfer>
+</data-extraction-rules>

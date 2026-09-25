@@ -4,11 +4,14 @@ using Valour.Database;
 using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Server.Utilities;
+using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using Valour.Shared.Queries;
 using Microsoft.EntityFrameworkCore.Storage;
+using StackExchange.Redis;
+using Valour.Shared.Models.Economy;
 using AuthToken = Valour.Server.Models.AuthToken;
 using EmailConfirmCode = Valour.Server.Models.EmailConfirmCode;
 using GifFavorite = Valour.Server.Models.GifFavorite;
@@ -31,14 +34,39 @@ public class UserService
     /// </summary>
     public const int AccountDisabledCode = 1001;
 
+    /// <summary>
+    /// Set on <see cref="TaskResult{T}.Code"/> by <see cref="ValidateCredentialAsync"/> when the
+    /// account has had too many failed password attempts and checks are paused.
+    /// </summary>
+    public const int AccountThrottledCode = 1002;
+
     private const int EmailTimeoutSeconds = 20;
     private static readonly TimeSpan PasswordRecoveryCodeLifetime = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// Referral rewards halve every this many rewarded referrals in 30 days.
+    /// </summary>
+    private const int ReferralRewardHalvingInterval = 5;
+
+    /// <summary>
+    /// Referrals past this many rewarded referrals in 30 days are recorded
+    /// without a reward, which bounds what a farmed batch of accounts can earn.
+    /// </summary>
+    private const int MaxRewardedReferralsPerMonth = 25;
+
+    /// <summary>
+    /// Salt for the decoy hash computed when no credential matches, so an unknown
+    /// account costs the same PBKDF2 work as a wrong password.
+    /// </summary>
+    private static readonly byte[] DecoySalt = PasswordManager.GenerateSalt();
 
     private readonly ValourDb _db;
     private readonly TokenService _tokenService;
     private readonly ILogger<UserService> _logger;
     private readonly CoreHubService _coreHub;
     private readonly NodeLifecycleService _nodeLifecycleService;
+    private readonly IConnectionMultiplexer _redis;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
 
     /// <summary>
@@ -51,13 +79,17 @@ public class UserService
         TokenService tokenService,
         ILogger<UserService> logger,
         CoreHubService coreHub,
-        NodeLifecycleService nodeLifecycleService)
+        NodeLifecycleService nodeLifecycleService,
+        IConnectionMultiplexer redis,
+        IHttpContextAccessor httpContextAccessor)
     {
         _db = db;
+        _httpContextAccessor = httpContextAccessor;
         _tokenService = tokenService;
         _logger = logger;
         _coreHub = coreHub;
         _nodeLifecycleService = nodeLifecycleService;
+        _redis = redis;
     }
 
     public Task<int> GetUserCountAsync()
@@ -355,8 +387,9 @@ public class UserService
             await _db.PasswordRecoveries.AddAsync(recovery.ToDatabase());
             await _db.SaveChangesAsync();
 
-            var host = ctx.Request.Host.ToUriComponent();
-            string link = $"{ctx.Request.Scheme}://{host}/RecoverPassword/{recoveryCode}";
+            // Never build this from the request's Host header: an attacker could
+            // request a reset for a victim with a forged Host and receive the code.
+            string link = $"{PublicLinks.GetAppBaseUrl(ctx.Request)}/RecoverPassword/{recoveryCode}";
 
             string bodyContent = $@"
             <h1 style='color: #333;'>Password Reset</h1>
@@ -394,8 +427,16 @@ public class UserService
         return new(true, "Success");
     }
 
+    /// <summary>
+    /// Sets a new password from a recovery code. A reset usually means the old
+    /// password was lost or stolen, so every existing session is revoked.
+    /// Following the emailed link also proves control of the address, so an
+    /// unverified email becomes verified.
+    /// </summary>
     public async Task<TaskResult> RecoveryUserAsync(PasswordRecoveryRequest request, PasswordRecovery recovery, Valour.Database.Credential cred)
     {
+        List<string> revokedTokenIds;
+
         using var tran = await _db.Database.BeginTransactionAsync();
 
         try
@@ -411,6 +452,17 @@ public class UserService
 
             _db.Credentials.Update(cred);
             await _db.SaveChangesAsync();
+
+            revokedTokenIds = await _db.AuthTokens
+                .Where(x => x.UserId == cred.UserId)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            await _db.AuthTokens.IgnoreQueryFilters()
+                .Where(x => x.UserId == cred.UserId)
+                .ExecuteDeleteAsync();
+
+            await MarkEmailVerifiedAsync(cred.UserId);
         }
         catch (Exception e)
         {
@@ -419,6 +471,18 @@ public class UserService
         }
 
         await tran.CommitAsync();
+
+        // Evict after commit to avoid re-cache race
+        foreach (var tokenId in revokedTokenIds)
+        {
+            _tokenService.RemoveFromQuickCache(tokenId);
+            _coreHub.ForceLogoutToken(tokenId);
+        }
+
+        // The owner just proved control of the email, so earlier guesses by
+        // someone else should not keep them locked out.
+        if (!string.IsNullOrWhiteSpace(cred.Identifier))
+            await AuthAttemptThrottle.ResetAsync(_redis, AuthAttemptThrottle.PasswordKey(cred.Identifier), _logger);
 
         return new(true, "Success");
     }
@@ -552,7 +616,7 @@ public class UserService
             return new(false, e.Message);
         }
 
-        await _coreHub.NotifyUserChange(old.ToModel());
+        await _coreHub.NotifyUserChange(old.ToBroadcastModel());
 
         return new(true, "Success", old.ToModel());
     }
@@ -566,12 +630,11 @@ public class UserService
         
         try
         {
-            var email = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
-            email.Verified = true;
-            
             _db.EmailConfirmCodes.Remove(confirmCode);
             await _db.SaveChangesAsync();
-            
+
+            await MarkEmailVerifiedAsync(confirmCode.UserId);
+
             await tran.CommitAsync();
         }
         catch (Exception e)
@@ -582,6 +645,59 @@ public class UserService
         }
         
         return new(true, "Success");
+    }
+
+    /// <summary>
+    /// Marks the user's email as verified. A pending referral reward is paid only
+    /// when this call is the one that flips the flag, so it is paid exactly once
+    /// even if two verifications race. Runs inside the caller's transaction.
+    /// </summary>
+    private async Task MarkEmailVerifiedAsync(long userId)
+    {
+        var changed = await _db.PrivateInfos
+            .Where(x => x.UserId == userId && !x.Verified)
+            .ExecuteUpdateAsync(x => x.SetProperty(p => p.Verified, true));
+
+        if (changed > 0)
+            await PayReferralRewardAsync(userId);
+    }
+
+    /// <summary>
+    /// Pays the referrer of the given user, if any. Rewards are only paid once the
+    /// referred account has a verified email, so throwaway addresses cannot farm
+    /// credits. The reward halves every few rewarded referrals in a 30 day window
+    /// and stops at a monthly cap. Runs inside the caller's transaction.
+    /// </summary>
+    public async Task PayReferralRewardAsync(long userId)
+    {
+        var refer = await _db.Referrals.FirstOrDefaultAsync(x => x.UserId == userId);
+        if (refer is null || refer.Reward > 0)
+            return;
+
+        var cutoff = DateTime.UtcNow.AddDays(-30);
+        var rewardedThisMonth = await _db.Referrals.CountAsync(r =>
+            r.ReferrerId == refer.ReferrerId &&
+            r.UserId != userId &&
+            r.Created > cutoff &&
+            _db.PrivateInfos.Any(p => p.UserId == r.UserId && p.Verified));
+
+        if (rewardedThisMonth >= MaxRewardedReferralsPerMonth)
+            return;
+
+        // Reward is halved every few referrals in the month to prevent a
+        // streamer from wrecking the economy
+        var reward = 50.0m / (1 + (rewardedThisMonth / ReferralRewardHalvingInterval));
+
+        var referAccount = await _db.EcoAccounts.FirstOrDefaultAsync(x =>
+            x.UserId == refer.ReferrerId &&
+            x.CurrencyId == ISharedCurrency.ValourCreditsId &&
+            x.AccountType == AccountType.User);
+        if (referAccount is null)
+            return;
+
+        referAccount.BalanceValue += reward;
+        refer.Reward = reward;
+        await _db.SaveChangesAsync();
     }
 
     public async Task<TaskResult> Logout()
@@ -762,10 +878,14 @@ public class UserService
             _db.AuthTokens.RemoveRange(tokens);
             await _db.SaveChangesAsync();
 
-            // Evict after commit to avoid re-cache race
+            // Evict after commit to avoid re-cache race. Live connections of the
+            // other sessions are closed too; the caller's own session is left
+            // alone because it receives the replacement token in the response.
             foreach (var token in tokens)
             {
                 _tokenService.RemoveFromQuickCache(token.Id);
+                if (token.Id != currentTokenId)
+                    _coreHub.ForceLogoutToken(token.Id);
             }
 
             _logger.LogInformation("Session token rotated for user {UserId}. Revoked {Count} old tokens.", userId, tokens.Count);
@@ -840,15 +960,43 @@ public class UserService
     public Task<int> GetJoinedPlanetCount(long userId) => 
         _db.PlanetMembers.CountAsync(x => x.UserId == userId);
 
+    private async Task RecordPasswordFailureAsync(string throttleKey, string clientThrottleKey)
+    {
+        await AuthAttemptThrottle.RecordFailureAsync(_redis, throttleKey, _logger);
+        if (clientThrottleKey is not null)
+            await AuthAttemptThrottle.RecordFailureAsync(_redis, clientThrottleKey, _logger);
+    }
+
     public async Task<TaskResult<User>> ValidateCredentialAsync(string credential_type, string identifier, string secret)
     {
+        if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(secret))
+            return new TaskResult<User>(false, "The credentials were incorrect.", null);
+
+        // Failures are counted per submitted identifier, so this is the same for
+        // real and unknown accounts and cannot be used to enumerate them. A low
+        // limit applies per client address and a high one across all addresses.
+        var throttleKey = AuthAttemptThrottle.PasswordKey(identifier);
+        var httpContext = _httpContextAccessor.HttpContext;
+        var clientThrottleKey = httpContext is null
+            ? null
+            : AuthAttemptThrottle.PasswordKey(identifier, ClientAddressResolver.GetRateLimitKey(httpContext));
+
+        if (await AuthAttemptThrottle.IsLockedAsync(_redis, throttleKey, AuthAttemptThrottle.AccountPasswordFailureLimit, _logger) ||
+            (clientThrottleKey is not null &&
+             await AuthAttemptThrottle.IsLockedAsync(_redis, clientThrottleKey, AuthAttemptThrottle.ClientPasswordFailureLimit, _logger)))
+            return new TaskResult<User>(false, AuthAttemptThrottle.LockedMessage, null, code: AccountThrottledCode);
+
         // Find the credential that matches the identifier and type
         Valour.Database.Credential credential = await _db.Credentials.FirstOrDefaultAsync(
             x => string.Equals(credential_type.ToUpper(), x.CredentialType.ToUpper()) &&
                     string.Equals(identifier.ToUpper(), x.Identifier.ToUpper()));
 
-        if (credential == null || string.IsNullOrWhiteSpace(secret))
+        if (credential == null)
         {
+            // Spend the same hashing work as a real check so the response time
+            // does not reveal whether an account exists for this identifier.
+            PasswordManager.GetHashForPassword(secret, DecoySalt);
+            await RecordPasswordFailureAsync(throttleKey, clientThrottleKey);
             return new TaskResult<User>(false, "The credentials were incorrect.", null);
         }
 
@@ -863,8 +1011,13 @@ public class UserService
 
         if (!PasswordManager.HashesMatch(hash, credential.Secret))
         {
+            await RecordPasswordFailureAsync(throttleKey, clientThrottleKey);
             return new TaskResult<User>(false, "The credentials were incorrect.", null);
         }
+
+        await AuthAttemptThrottle.ResetAsync(_redis, throttleKey, _logger);
+        if (clientThrottleKey is not null)
+            await AuthAttemptThrottle.ResetAsync(_redis, clientThrottleKey, _logger);
 
         // The password is correct and we have the plaintext here, so this is the
         // only moment we can raise the work factor without a reset.
@@ -1017,16 +1170,40 @@ public class UserService
     }
 
     /// <summary>
-    /// Nuke it.
+    /// Nuke it. Bots owned by the user are deleted first, because a bot must
+    /// not keep acting (with its long-lived token) after its owner is gone.
     /// </summary>
     public async Task<TaskResult> HardDelete(User user)
     {
+        if (!user.Bot)
+        {
+            var botIds = await _db.Users.IgnoreQueryFilters()
+                .Where(x => x.OwnerId == user.Id && x.Bot)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            // Each bot is deleted in its own transaction. If one fails, stop
+            // before deleting the owner so no bot is left without one.
+            foreach (var botId in botIds)
+            {
+                var bot = await GetAsync(botId);
+                if (bot is null)
+                    continue;
+
+                var botResult = await HardDelete(bot);
+                if (!botResult.Success)
+                    return TaskResult.FromFailure($"Could not delete bot {bot.Name}: {botResult.Message}");
+            }
+        }
+
         await using var tran = await _db.Database.BeginTransactionAsync();
-        
+
         var dbUser = await _db.Users.FindAsync(user.Id);
         if (dbUser is null)
             return TaskResult.FromFailure("User not found.");
-        
+
+        List<string> revokedTokenIds = [];
+
         try
         {
             var directChannelIds = await _db.Channels
@@ -1041,6 +1218,9 @@ public class UserService
                 .Select(x => x.CallId)
                 .Distinct()
                 .ToListAsync();
+
+            // Messages still waiting to be flushed would reference the deleted user and memberships
+            PlanetMessageWorker.RemoveMessages(x => x.AuthorUserId == dbUser.Id);
 
             var authoredMessageIds = await _db.Messages
                 .IgnoreQueryFilters()
@@ -1078,6 +1258,11 @@ public class UserService
                     .Select(x => x.Id)
                     .ToListAsync();
             }
+
+            revokedTokenIds = await _db.AuthTokens.IgnoreQueryFilters()
+                .Where(x => x.UserId == dbUser.Id)
+                .Select(x => x.Id)
+                .ToListAsync();
 
             await _db.AuthTokens.IgnoreQueryFilters()
                 .Where(x => x.UserId == dbUser.Id)
@@ -1319,9 +1504,23 @@ public class UserService
             }
             await _db.SaveChangesAsync();
             
+            // End-to-end encryption. The account's key log is kept: it holds
+            // only public keys, and other people's signed membership logs and
+            // messages refer to it. Everything that could open anything goes.
+            await _db.E2eeUserKeyBoxes.Where(x => x.UserId == dbUser.Id).ExecuteDeleteAsync();
+            await _db.E2eeDeviceLinkSessions.Where(x => x.UserId == dbUser.Id).ExecuteDeleteAsync();
+            await _db.E2eeKeyRequests.Where(x => x.UserId == dbUser.Id).ExecuteDeleteAsync();
+            await _db.E2eeChannelKeyBoxes.Where(x => x.UserId == dbUser.Id).ExecuteDeleteAsync();
+            await _db.MessageProofs.Where(x => x.AuthorUserId == dbUser.Id).ExecuteDeleteAsync();
+
             // Direct Message Channels
             if (directChannelIds.Count > 0)
             {
+                await _db.E2eeChannelKeyBoxes.Where(x => directChannelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+                await _db.E2eeChannelKeyGenerations.Where(x => directChannelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+                await _db.E2eeKeyRequests.Where(x => directChannelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+                await _db.MessageProofs.Where(x => directChannelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+
                 await _db.Messages.IgnoreQueryFilters()
                     .Where(x => directChannelIds.Contains(x.ChannelId))
                     .ExecuteDeleteAsync();
@@ -1559,6 +1758,18 @@ public class UserService
 
             await tran.CommitAsync();
             InvalidateAccessFlags(dbUser.Id);
+
+            // Automod triggers and actions tied to the user's memberships were deleted
+            if (planetMemberIds.Count > 0)
+                AutomodService.InvalidateAllRulesCaches();
+
+            // Evict after commit to avoid re-cache race
+            foreach (var tokenId in revokedTokenIds)
+            {
+                _tokenService.RemoveFromQuickCache(tokenId);
+                _coreHub.ForceLogoutToken(tokenId);
+            }
+
             _logger.LogInformation("Hard deleted user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
 
             return TaskResult.SuccessResult;

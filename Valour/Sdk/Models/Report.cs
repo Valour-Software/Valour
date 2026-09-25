@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared;
@@ -103,6 +104,14 @@ public class Report : ClientModel<Report, string>, ISharedReport
         ReportResolution.Banned => "Banned",
         _ => "Unknown"
     };
+
+    /// <summary>
+    /// Messages the reporter reveals with the report. For encrypted messages
+    /// this is the only way their text reaches staff; the server checks it
+    /// against the author's signed commitment. Request-only.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Valour.Sdk.E2ee.MessageEvidenceDto> Evidence { get; set; }
 
     public override Report AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

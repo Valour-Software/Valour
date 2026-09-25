@@ -19,7 +19,9 @@
         if (ValourRouteParser.TryParse(Url, out var route) &&
             route.Type == ValourRouteType.Invite)
         {
-            NavManager.NavigateTo($"/I/{route.InviteCode}");
+            // Keep the fragment: invites to invite-only encrypted planets carry
+            // their admission key there, and it never reaches the server.
+            NavManager.NavigateTo($"/I/{route.InviteCode}{EncryptedInviteRedeemer.FragmentOf(Url)}");
             return;
         }
 

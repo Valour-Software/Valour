@@ -46,7 +46,8 @@
     </ContextMenuItem>
 }
 
-@if (Data.Message.AuthorUserId == Client.Me.Id)
+@* Only text this device read and verified can be edited or copied. *@
+@if (Data.Message.AuthorUserId == Client.Me.Id && Data.Message.HasReadableText())
 {
     <ContextMenuItem OnClickAsync="@OnClickEdit">
         <Label>Edit</Label>
@@ -69,7 +70,10 @@
     <Label>Copy</Label>
     <Icon><i class="bi bi-caret-right-fill"></i></Icon>
     <Content>
-        <ContextMenuItem OnClickAsync="@OnClickCopyText">Text</ContextMenuItem>
+        @if (Data.Message.HasReadableText())
+        {
+            <ContextMenuItem OnClickAsync="@OnClickCopyText">Text</ContextMenuItem>
+        }
         <ContextMenuItem OnClickAsync="@OnClickCopyLink">Link</ContextMenuItem>
         <ContextMenuItem OnClickAsync="@OnClickCopyId">Message Id</ContextMenuItem>
     </Content>
@@ -225,7 +229,9 @@
             Ghost = false
         };
 
-        var data = new ConfirmModalComponent.ModalParams("Delete message?", message.Content, "Delete", "Cancel",
+        // The preview below explains an unreadable message; its text is never shown.
+        var description = message.HasReadableText() ? message.Content : "This message will be deleted.";
+        var data = new ConfirmModalComponent.ModalParams("Delete message?", description, "Delete", "Cancel",
             async () =>
             {
                 await message.DeleteAsync();
@@ -255,7 +261,8 @@
                 PlanetId = Data.MessageComponent.ParamData.Message.PlanetId,
                 ReportedUserId = Data.Message.AuthorUserId
             },
-            ReportedMemberId = _authorMember?.Id
+            ReportedMemberId = _authorMember?.Id,
+            Message = Data.Message
         };
         
         ModalRoot.OpenModal<ReportModalComponent>(data);
@@ -268,6 +275,8 @@
     }
 
 	    private async Task OnClickCopyText(){
+        if (!Data.Message.HasReadableText())
+            return;
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Content);
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Message text copied to clipboard", ToastProgressState.Success));
     }

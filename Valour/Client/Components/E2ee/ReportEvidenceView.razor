@@ -1,0 +1,73 @@
+@inject ValourClient Client
+
+@if (Evidence is { Count: > 0 })
+{
+    <div class="evidence-list">
+        @foreach (var item in Evidence)
+        {
+            <div class="evidence-item">
+                <div class="evidence-header">
+                    <span class="evidence-author">@(_names.GetValueOrDefault(item.AuthorUserId) ?? "Unknown user")</span>
+                    <span class="evidence-time">@item.TimeSent.ToLocalTime().ToString("g")</span>
+                    <span class="evidence-badge @BadgeClass(item.Verification)" title="@BadgeDescription(item.Verification)">
+                        <i class="bi @BadgeIcon(item.Verification)"></i>
+                        @BadgeLabel(item.Verification)
+                    </span>
+                </div>
+                @* Evidence holds the text exactly as signed, so escape unsafe markdown
+                   as for any other message before rendering it. *@
+                <RichText Content="@MessageMarkdownSafety.Escape(item.Content)" PlanetId="@PlanetId" />
+                @if (item.Revision > 0)
+                {
+                    <span class="evidence-note">Edited version @item.Revision as the reporter saw it</span>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Messages the reporter revealed.</summary>
+    [Parameter]
+    public List<ReportEvidenceDto> Evidence { get; set; }
+
+    [Parameter]
+    public long? PlanetId { get; set; }
+
+    private readonly Dictionary<long, string> _names = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Evidence is null)
+            return;
+
+        foreach (var authorId in Evidence.Select(e => e.AuthorUserId).Distinct())
+        {
+            if (_names.ContainsKey(authorId))
+                continue;
+            _names[authorId] = (await Client.UserService.FetchUserAsync(authorId))?.Name;
+        }
+    }
+
+    private static string BadgeClass(ReportEvidenceVerification verification) =>
+        verification == ReportEvidenceVerification.Unverified ? "unverified" : "verified";
+
+    private static string BadgeIcon(ReportEvidenceVerification verification) =>
+        verification == ReportEvidenceVerification.Unverified ? "bi-question-circle" : "bi-patch-check-fill";
+
+    private static string BadgeLabel(ReportEvidenceVerification verification) => verification switch
+    {
+        ReportEvidenceVerification.AuthorSigned => "Proven sent by author",
+        ReportEvidenceVerification.ServerAttested => "Proven by server record",
+        _ => "Not verified"
+    };
+
+    private static string BadgeDescription(ReportEvidenceVerification verification) => verification switch
+    {
+        ReportEvidenceVerification.AuthorSigned =>
+            "The text matches the commitment the author's device signed when sending, so the author sent exactly this.",
+        ReportEvidenceVerification.ServerAttested =>
+            "The text matches what the server recorded before it sealed the message.",
+        _ => "The server could not confirm this text. The reporter may have changed it."
+    };
+}

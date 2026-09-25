@@ -48,14 +48,14 @@
 
     protected override void OnInitialized()
     {
-        _totalNotifications = NotificationService.GetUnreadInternal().Count;
+        _totalNotifications = NotificationService.UnreadCount;
         NotificationService.NotificationReceived += OnNotificationChanged;
         NotificationService.NotificationsCleared += OnNotificationsCleared;
     }
 
     private Task OnNotificationChanged(Notification notification)
     {
-        _totalNotifications = NotificationService.GetUnreadInternal().Count;
+        _totalNotifications = NotificationService.UnreadCount;
         InvokeAsync(StateHasChanged);
         return Task.CompletedTask;
     }

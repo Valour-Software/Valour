@@ -117,6 +117,18 @@ public class StaffService : ServiceBase
         return await _client.PrimaryNode.PostAsync("api/staff/email/send", request);
     }
 
+    /// <summary>
+    /// Messages the reporter revealed, with whether the server could prove
+    /// the author sent them. Encrypted messages are readable to staff only
+    /// through this evidence.
+    /// </summary>
+    public async Task<List<Valour.Sdk.E2ee.ReportEvidenceDto>> GetReportEvidenceAsync(string reportId)
+    {
+        var result = await _client.PrimaryNode.GetJsonAsync<List<Valour.Sdk.E2ee.ReportEvidenceDto>>(
+            $"api/staff/reports/{reportId}/evidence", cacheDurationMs: null);
+        return result.Success ? result.Data ?? [] : [];
+    }
+
     public async Task<Message> GetMessageAsync(long messageId)
     {
         var result = await _client.PrimaryNode.GetJsonAsync<Message>($"api/staff/messages/{messageId}");

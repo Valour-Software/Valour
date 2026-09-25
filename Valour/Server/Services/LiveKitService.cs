@@ -66,7 +66,12 @@ public readonly record struct LiveKitCredentials(
 public class LiveKitService : IVoiceProvider
 {
     private const string RoomPrefix = "valour-";
-    private static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(6);
+    /// <summary>
+    /// A join token is only presented when connecting. After that the SFU
+    /// refreshes the session itself, so a short lifetime limits how long a
+    /// leaked or revoked token can still be used to join.
+    /// </summary>
+    public static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan AdminTokenLifetime = TimeSpan.FromMinutes(5);
 
     private readonly IHttpClientFactory _httpClientFactory;
@@ -117,7 +122,16 @@ public class LiveKitService : IVoiceProvider
         long userId,
         string displayName,
         string? sessionId,
-        TimeSpan? tokenLifetime = null)
+        TimeSpan? tokenLifetime = null) =>
+        CreateParticipantTokenAsync(channel, userId, displayName, sessionId, tokenLifetime, canPublish: true);
+
+    public Task<TaskResult<RealtimeKitVoiceTokenResponse>> CreateParticipantTokenAsync(
+        Channel channel,
+        long userId,
+        string displayName,
+        string? sessionId,
+        TimeSpan? tokenLifetime,
+        bool canPublish)
     {
         if (!IsConfigured)
         {
@@ -126,7 +140,7 @@ public class LiveKitService : IVoiceProvider
         }
 
         var response = CreateParticipantTokenWithCredentials(
-            InstanceCredentials, channel.Id, userId, displayName, sessionId, tokenLifetime);
+            InstanceCredentials, channel.Id, userId, displayName, sessionId, tokenLifetime, canPublish);
 
         _roomsByChannel[channel.Id] = response.MeetingId;
 
@@ -193,7 +207,9 @@ public class LiveKitService : IVoiceProvider
 
     /// <summary>
     /// Mints a join token + response for any LiveKit deployment. Pure signing —
-    /// no network call, so it cannot fail against a live SFU.
+    /// no network call, so it cannot fail against a live SFU. A token issued
+    /// with <paramref name="canPublish"/> false joins as a listener, which is how
+    /// a server mute survives rejoining.
     /// </summary>
     public RealtimeKitVoiceTokenResponse CreateParticipantTokenWithCredentials(
         LiveKitCredentials creds,
@@ -201,7 +217,8 @@ public class LiveKitService : IVoiceProvider
         long userId,
         string displayName,
         string? sessionId,
-        TimeSpan? tokenLifetime = null)
+        TimeSpan? tokenLifetime = null,
+        bool canPublish = true)
     {
         var roomName = RoomName(channelId);
         var identity = BuildIdentity(userId, sessionId);
@@ -211,7 +228,7 @@ public class LiveKitService : IVoiceProvider
         {
             ["roomJoin"] = true,
             ["room"] = roomName,
-            ["canPublish"] = true,
+            ["canPublish"] = canPublish,
             ["canSubscribe"] = true,
             ["canPublishData"] = true,
         };
@@ -242,6 +259,44 @@ public class LiveKitService : IVoiceProvider
             if (ExtractUserId(identity) == userId)
                 await RemoveParticipantAsync(creds, room, identity);
         }
+    }
+
+    /// <summary>
+    /// Grants or revokes publishing for every live session of a user in a
+    /// channel's room. Revoking makes the SFU unpublish the user's tracks, so a
+    /// server mute cannot be undone by a modified client. Returns false when the
+    /// room could not be queried or an update failed.
+    /// </summary>
+    public async Task<bool> SetUserCanPublishWithCredentialsAsync(
+        LiveKitCredentials creds, long channelId, long userId, bool canPublish)
+    {
+        var room = RoomName(channelId);
+        var identities = await GetParticipantIdentitiesAsync(creds, room);
+        if (identities is null)
+            return false;
+
+        var success = true;
+        foreach (var identity in identities)
+        {
+            if (ExtractUserId(identity) != userId)
+                continue;
+
+            // UpdateParticipant replaces the whole permission set, so the
+            // subscribe and data grants from the join token are restated.
+            success &= await TwirpCommandAsync(creds, "UpdateParticipant", new
+            {
+                room,
+                identity,
+                permission = new
+                {
+                    canSubscribe = true,
+                    canPublish,
+                    canPublishData = true,
+                },
+            }, "update participant permissions", notFoundIsOk: true);
+        }
+
+        return success;
     }
 
     public async Task KickUserSessionWithCredentialsAsync(

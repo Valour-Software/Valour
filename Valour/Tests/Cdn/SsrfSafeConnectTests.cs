@@ -59,4 +59,37 @@ public class SsrfSafeConnectTests
         Assert.True(OutboundUrlSafetyValidator.IsPublicAddress(IPAddress.Parse("1.1.1.1")));
         Assert.True(OutboundUrlSafetyValidator.IsPublicAddress(IPAddress.Parse("8.8.8.8")));
     }
+
+    [Theory]
+    [InlineData("64:ff9b::7f00:1")] // NAT64 of 127.0.0.1
+    [InlineData("64:ff9b::a9fe:a9fe")] // NAT64 of 169.254.169.254
+    [InlineData("64:ff9b:1::808:808")] // local-use NAT64
+    [InlineData("2002:a00:1::")] // 6to4 of 10.0.0.1
+    [InlineData("2002:7f00:1::1")] // 6to4 of 127.0.0.1
+    [InlineData("2001:0:4136:e378:8000:63bf:3fff:fdd2")] // Teredo
+    [InlineData("::7f00:1")] // IPv4-compatible 127.0.0.1
+    [InlineData("::808:808")] // IPv4-compatible (deprecated form)
+    [InlineData("::ffff:10.0.0.1")] // IPv4-mapped
+    public void IsPublicAddress_BlocksEmbeddedPrivateIpv4(string address)
+    {
+        Assert.False(OutboundUrlSafetyValidator.IsPublicAddress(IPAddress.Parse(address)));
+    }
+
+    [Theory]
+    [InlineData("64:ff9b::808:808")] // NAT64 of 8.8.8.8
+    [InlineData("2002:808:808::1")] // 6to4 of 8.8.8.8
+    [InlineData("2606:4700:4700::1111")]
+    public void IsPublicAddress_AllowsEmbeddedPublicIpv4(string address)
+    {
+        Assert.True(OutboundUrlSafetyValidator.IsPublicAddress(IPAddress.Parse(address)));
+    }
+
+    [Fact]
+    public void Handler_IgnoresAmbientProxy()
+    {
+        using var handler = SsrfSafeConnect.CreateHandler(allowPrivate: false);
+
+        Assert.False(handler.UseProxy);
+        Assert.False(handler.AllowAutoRedirect);
+    }
 }

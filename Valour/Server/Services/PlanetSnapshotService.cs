@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Valour.Config.Configs;
 using Valour.Server.Database;
+using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -8,19 +9,27 @@ namespace Valour.Server.Services;
 
 /// <summary>
 /// Exports a planet's complete data to a portable snapshot and reconstructs it
-/// on import. Planet and user ids are hub-global and are preserved. All other
-/// ids are local to a node, so cross-domain imports generate new ids and
-/// rewrite their graph references. Referenced users are hub-global; import
-/// materializes shadow rows for any the destination lacks.
+/// on import. Planet and user ids are hub-global and are preserved. Channel ids
+/// are preserved too, because encrypted messages and channel keys are signed
+/// over the planet and channel they belong to; an import fails if one is taken.
+/// All other ids are local to a node, so cross-domain imports generate new ids
+/// and rewrite their graph references. Referenced users are hub-global. A
+/// community node importing from the hub materializes shadow rows for any it
+/// lacks; the hub never creates accounts from a node-supplied snapshot.
 /// </summary>
 public class PlanetSnapshotService
 {
     private readonly ValourDb _db;
+    private readonly E2eeServerKeyService _serverKeys;
+    private readonly ChatCacheService _chatCache;
     private readonly ILogger<PlanetSnapshotService> _logger;
 
-    public PlanetSnapshotService(ValourDb db, ILogger<PlanetSnapshotService> logger)
+    public PlanetSnapshotService(ValourDb db, E2eeServerKeyService serverKeys, ChatCacheService chatCache,
+        ILogger<PlanetSnapshotService> logger)
     {
         _db = db;
+        _serverKeys = serverKeys;
+        _chatCache = chatCache;
         _logger = logger;
     }
 
@@ -73,6 +82,16 @@ public class PlanetSnapshotService
         var automodLogs = await _db.AutomodLogs.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
         var moderationAuditLogs = await _db.ModerationAuditLogs.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
 
+        var channelIds = channels.Select(x => x.Id).ToList();
+        var keyGenerations = await _db.E2eeChannelKeyGenerations.AsNoTracking()
+            .Where(x => channelIds.Contains(x.ChannelId)).ToListAsync();
+        var keyBoxes = await _db.E2eeChannelKeyBoxes.AsNoTracking()
+            .Where(x => channelIds.Contains(x.ChannelId)).ToListAsync();
+        var accessLog = await _db.E2eeAccessLogEntries.AsNoTracking()
+            .Where(x => x.Scope == (int)Valour.Sdk.E2ee.AccessLogScope.Planet && x.ScopeId == planetId)
+            .OrderBy(x => x.Seq).ToListAsync();
+        var automodTerms = await _db.E2eeAutomodTerms.AsNoTracking().Where(x => x.PlanetId == planetId).ToListAsync();
+
         // A snapshot carries database metadata, not CDN/planet-storage bytes.
         // Importing a foreign CdnBucketItemId would either violate the target's
         // FK or leave a dangling object reference. Thread attachments are not
@@ -122,6 +141,8 @@ public class PlanetSnapshotService
                 Vanity = planet.Vanity,
                 Version = planet.Version,
                 TagIds = tagIds,
+                EncryptionMode = planet.EncryptionMode,
+                EncryptionSharesHistory = planet.EncryptionSharesHistory,
             },
             Channels = channels.Select(c => new PlanetSnapshotChannel
             {
@@ -129,6 +150,7 @@ public class PlanetSnapshotService
                 LastUpdateTime = c.LastUpdateTime, PlanetId = c.PlanetId, ParentId = c.ParentId,
                 RawPosition = c.RawPosition, InheritsPerms = c.InheritsPerms, IsDefault = c.IsDefault,
                 Nsfw = c.Nsfw, AssociatedChatChannelId = c.AssociatedChatChannelId, Version = c.Version,
+                EncryptionGeneration = c.EncryptionGeneration,
             }).ToList(),
             Roles = roles.Select(r => new PlanetSnapshotRole
             {
@@ -179,6 +201,8 @@ public class PlanetSnapshotService
                 Id = m.Id, PlanetId = m.PlanetId, ReplyToId = m.ReplyToId, AuthorUserId = m.AuthorUserId,
                 AuthorMemberId = m.AuthorMemberId, Content = m.Content, TimeSent = m.TimeSent,
                 ChannelId = m.ChannelId, EditedTime = m.EditedTime, ImportSource = m.ImportSource,
+                EncryptionVersion = m.EncryptionVersion, Envelope = m.Envelope, KeyGeneration = m.KeyGeneration,
+                SearchTerms = m.SearchTerms,
             }).ToList(),
             Attachments = attachments.Select(a => new PlanetSnapshotAttachment
             {
@@ -186,7 +210,7 @@ public class PlanetSnapshotService
                 CdnBucketItemId = a.CdnBucketItemId, Location = a.Location, MimeType = a.MimeType,
                 FileName = a.FileName, Width = a.Width, Height = a.Height, Inline = a.Inline,
                 Missing = a.Missing, Data = a.Data, OpenGraphData = a.OpenGraphData,
-                PlanetHosted = a.PlanetHosted, ReportedSha256 = a.ReportedSha256,
+                PlanetHosted = a.PlanetHosted, ReportedSha256 = a.ReportedSha256, IsSpoiler = a.IsSpoiler,
             }).ToList(),
             Reactions = reactions.Select(r => new PlanetSnapshotReaction
             {
@@ -257,6 +281,28 @@ public class PlanetSnapshotService
                 TargetMemberId = l.TargetMemberId, MessageId = l.MessageId, TriggerId = l.TriggerId,
                 Source = l.Source, ActionType = l.ActionType, Details = l.Details, TimeCreated = l.TimeCreated,
             }).ToList(),
+            ChannelKeyGenerations = keyGenerations.Select(g => new PlanetSnapshotChannelKeyGeneration
+            {
+                ChannelId = g.ChannelId, Generation = g.Generation, Body = g.Body, Signature = g.Signature,
+                CreatorUserId = g.CreatorUserId, SealPublicKey = g.SealPublicKey, IndexGeneration = g.IndexGeneration,
+                CreatedAt = g.CreatedAt, HasMessages = g.HasMessages,
+                HeldSecret = g.HeldSecretProtected is null ? null : _serverKeys.UnprotectHeldSecret(g.HeldSecretProtected),
+            }).ToList(),
+            ChannelKeyBoxes = keyBoxes.Select(b => new PlanetSnapshotChannelKeyBox
+            {
+                ChannelId = b.ChannelId, Generation = b.Generation, UserId = b.UserId,
+                UserKeyGeneration = b.UserKeyGeneration, Box = b.Box, SharedByUserId = b.SharedByUserId,
+                CreatedAt = b.CreatedAt,
+            }).ToList(),
+            AccessLogEntries = accessLog.Select(e => new PlanetSnapshotAccessLogEntry
+            {
+                Seq = e.Seq, Body = e.Body, Signature = e.Signature, SignerUserId = e.SignerUserId, CreatedAt = e.CreatedAt,
+            }).ToList(),
+            AutomodTerms = automodTerms.Select(t => new PlanetSnapshotAutomodTerm
+            {
+                TriggerId = t.TriggerId, ChannelId = t.ChannelId, IndexGeneration = t.IndexGeneration, Terms = t.Terms,
+            }).ToList(),
+            ServerPublicKeys = new Dictionary<string, byte[]>(await _serverKeys.GetPublicKeysAsync()),
         };
 
         // Every user reference must travel with a shadow record. Keeping this
@@ -279,6 +325,7 @@ public class PlanetSnapshotService
             .Concat(mentions.Where(m => m.Type == MentionType.User).Select(m => m.TargetId))
             .Concat(moderationAuditLogs.Where(l => l.ActorUserId.HasValue).Select(l => l.ActorUserId!.Value))
             .Concat(moderationAuditLogs.Where(l => l.TargetUserId.HasValue).Select(l => l.TargetUserId!.Value))
+            .Concat(EncryptionUserIds(snapshot))
             .Append(planet.OwnerId)
             .Distinct()
             .ToList();
@@ -298,7 +345,15 @@ public class PlanetSnapshotService
     /// Fails if the planet already exists locally (migrate/replace explicitly
     /// instead).
     /// </summary>
-    public async Task<TaskResult> ImportAsync(PlanetSnapshot snapshot)
+    /// <param name="snapshot">The snapshot to import.</param>
+    /// <param name="createMissingUsers">
+    /// True on a community node receiving a planet from the hub: accounts are
+    /// hub-issued, so the node creates local shadow rows for them. False on
+    /// the hub receiving a pull-back: the hub owns accounts, so a snapshot that
+    /// names an account the hub does not have is rejected rather than allowed
+    /// to create one.
+    /// </param>
+    public async Task<TaskResult> ImportAsync(PlanetSnapshot snapshot, bool createMissingUsers = true)
     {
         if (snapshot?.Planet is null)
             return TaskResult.FromFailure("Snapshot has no planet.");
@@ -315,30 +370,56 @@ public class PlanetSnapshotService
         if (tags.Count != tagIds.Count)
             return TaskResult.FromFailure("Snapshot references tags that do not exist on this node.");
 
+        if (!createMissingUsers)
+        {
+            var userIds = snapshot.Users.Select(x => x.Id).ToList();
+            var existingUsers = await _db.Users.CountAsync(x => userIds.Contains(x.Id));
+            if (existingUsers != userIds.Count)
+                return TaskResult.FromFailure("Snapshot references accounts that do not exist on this server.");
+        }
+
+        snapshot.Planet.Vanity = await GetImportableVanityAsync(snapshot.Planet);
+
         // Planet ids and user ids are issued by the hub. The rest of a
         // snapshot's identifiers belong only to its source node. Keeping them
         // verbatim would allow a community node's local ids to collide with
         // rows which already exist at the destination.
+        // Channel ids are kept so encrypted messages and channel keys stay
+        // valid; they must not collide with a channel that already exists here.
+        var snapshotChannelIds = snapshot.Channels.Select(x => x.Id).ToList();
+        if (await _db.Channels.IgnoreQueryFilters().AnyAsync(x => snapshotChannelIds.Contains(x.Id)))
+            return TaskResult.FromFailure("A channel id in this planet is already in use here.");
+
+        // Automod trigger ids are kept too: an invite-only planet's membership
+        // log approves triggers by id, and those approvals must keep working.
+        // They are random GUIDs, so a collision means a malformed snapshot.
+        var snapshotTriggerIds = (snapshot.AutomodTriggers ?? new()).Select(x => x.Id).ToList();
+        if (snapshotTriggerIds.Count > 0 &&
+            await _db.AutomodTriggers.IgnoreQueryFilters().AnyAsync(x => snapshotTriggerIds.Contains(x.Id)))
+            return TaskResult.FromFailure("An automod trigger id in this planet is already in use here.");
+
         if (IsCrossDomainSnapshot(snapshot))
             await RemapLocalObjectIdsAsync(snapshot);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
         try
         {
-            await EnsureShadowUsersAsync(snapshot.Users);
+            if (createMissingUsers)
+                await EnsureShadowUsersAsync(snapshot.Users);
 
             var p = snapshot.Planet;
             await _db.Planets.AddAsync(new Valour.Database.Planet
             {
                 Id = p.Id, OwnerId = p.OwnerId, Name = p.Name, Description = p.Description,
-                Public = p.Public, Discoverable = p.Discoverable, Nsfw = p.Nsfw,
+                Public = p.Public && PlanetEncryptionService.AllowsPublic(p.EncryptionMode),
+                Discoverable = p.Discoverable, Nsfw = p.Nsfw,
                 HasCustomIcon = p.HasCustomIcon, HasAnimatedIcon = p.HasAnimatedIcon,
                 HasCustomBackground = p.HasCustomBackground, SelfHostedMedia = p.SelfHostedMedia,
                 SelfHostedVoice = p.SelfHostedVoice,
                 EnableThreads = p.EnableThreads, PublicThreads = p.PublicThreads,
                 PinnedThreadId = p.PinnedThreadId, EnableWiki = p.EnableWiki, EnableVillage = p.EnableVillage, PublicWiki = p.PublicWiki,
                 Vanity = p.Vanity, Version = p.Version, IsDeleted = false,
-                Tags = tags,
+                Tags = tags, EncryptionMode = p.EncryptionMode, EncryptionSharesHistory = p.EncryptionSharesHistory,
             });
 
             await _db.PlanetRoles.AddRangeAsync(snapshot.Roles.Select(r => new Valour.Database.PlanetRole
@@ -357,6 +438,7 @@ public class PlanetSnapshotService
                 PlanetId = c.PlanetId, ParentId = c.ParentId, RawPosition = c.RawPosition,
                 InheritsPerms = c.InheritsPerms, IsDefault = c.IsDefault, Nsfw = c.Nsfw,
                 AssociatedChatChannelId = c.AssociatedChatChannelId, Version = c.Version, IsDeleted = false,
+                EncryptionGeneration = c.EncryptionGeneration,
             }));
 
             await _db.PermissionsNodes.AddRangeAsync(snapshot.PermissionNodes.Select(n => new Valour.Database.PermissionsNode
@@ -411,7 +493,8 @@ public class PlanetSnapshotService
                 AuthorMemberId = m.AuthorMemberId, Content = m.Content,
                 TimeSent = DateTime.SpecifyKind(m.TimeSent, DateTimeKind.Utc), ChannelId = m.ChannelId,
                 EditedTime = m.EditedTime.HasValue ? DateTime.SpecifyKind(m.EditedTime.Value, DateTimeKind.Utc) : null,
-                ImportSource = m.ImportSource,
+                ImportSource = m.ImportSource, EncryptionVersion = m.EncryptionVersion, Envelope = m.Envelope,
+                KeyGeneration = m.KeyGeneration, SearchTerms = m.SearchTerms,
             }));
 
             await _db.MessageAttachments.AddRangeAsync(snapshot.Attachments.Select(a => new Valour.Database.MessageAttachment
@@ -420,7 +503,7 @@ public class PlanetSnapshotService
                 CdnBucketItemId = a.CdnBucketItemId, Location = a.Location, MimeType = a.MimeType,
                 FileName = a.FileName, Width = a.Width, Height = a.Height, Inline = a.Inline,
                 Missing = a.Missing, Data = a.Data, OpenGraphData = a.OpenGraphData,
-                PlanetHosted = a.PlanetHosted, ReportedSha256 = a.ReportedSha256,
+                PlanetHosted = a.PlanetHosted, ReportedSha256 = a.ReportedSha256, IsSpoiler = a.IsSpoiler,
             }));
 
             await _db.MessageReactions.AddRangeAsync(snapshot.Reactions.Select(r => new Valour.Database.MessageReaction
@@ -519,8 +602,46 @@ public class PlanetSnapshotService
                 TimeCreated = DateTime.SpecifyKind(l.TimeCreated, DateTimeKind.Utc),
             }));
 
+            await _db.E2eeChannelKeyGenerations.AddRangeAsync(snapshot.ChannelKeyGenerations.Select(g => new Valour.Database.E2eeChannelKeyGeneration
+            {
+                ChannelId = g.ChannelId, Generation = g.Generation, Body = g.Body, Signature = g.Signature,
+                CreatorUserId = g.CreatorUserId, SealPublicKey = g.SealPublicKey, IndexGeneration = g.IndexGeneration,
+                CreatedAt = DateTime.SpecifyKind(g.CreatedAt, DateTimeKind.Utc), HasMessages = g.HasMessages,
+                HeldSecretProtected = g.HeldSecret is null ? null : _serverKeys.ProtectHeldSecret(g.HeldSecret),
+            }));
+
+            await _db.E2eeChannelKeyBoxes.AddRangeAsync(snapshot.ChannelKeyBoxes.Select(b => new Valour.Database.E2eeChannelKeyBox
+            {
+                ChannelId = b.ChannelId, Generation = b.Generation, UserId = b.UserId,
+                UserKeyGeneration = b.UserKeyGeneration, Box = b.Box, SharedByUserId = b.SharedByUserId,
+                CreatedAt = DateTime.SpecifyKind(b.CreatedAt, DateTimeKind.Utc),
+            }));
+
+            await _db.E2eeAccessLogEntries.AddRangeAsync(snapshot.AccessLogEntries.Select(e => new Valour.Database.E2eeAccessLogEntry
+            {
+                Scope = (int)Valour.Sdk.E2ee.AccessLogScope.Planet, ScopeId = snapshot.Planet.Id, Seq = e.Seq,
+                Body = e.Body, Signature = e.Signature, SignerUserId = e.SignerUserId,
+                IsCheckpoint = Valour.Sdk.E2ee.AccessLogRecord.Decode(e.Body).Type ==
+                               Valour.Sdk.E2ee.AccessLogEntryType.Checkpoint,
+                CreatedAt = DateTime.SpecifyKind(e.CreatedAt, DateTimeKind.Utc),
+            }));
+
+            await _db.E2eeAutomodTerms.AddRangeAsync(snapshot.AutomodTerms.Select(t => new Valour.Database.E2eeAutomodTerm
+            {
+                TriggerId = t.TriggerId, PlanetId = snapshot.Planet.Id, ChannelId = t.ChannelId,
+                IndexGeneration = t.IndexGeneration, Terms = t.Terms,
+            }));
+
             await _db.SaveChangesAsync();
+            await _serverKeys.ImportPublicKeysAsync(snapshot.ServerPublicKeys);
             await tran.CommitAsync();
+
+            AutomodService.InvalidateRulesCache(snapshot.Planet.Id);
+            foreach (var channel in snapshot.Channels)
+            {
+                _chatCache.ForgetChannel(channel.Id);
+                E2eeChannelKeyService.ForgetChannel(channel.Id);
+            }
 
             return TaskResult.SuccessResult;
         }
@@ -530,6 +651,23 @@ public class PlanetSnapshotService
             _logger.LogError(e, "Failed to import planet snapshot {PlanetId}", snapshot.Planet.Id);
             return TaskResult.FromFailure($"Import failed: {e.Message}");
         }
+    }
+
+    /// <summary>
+    /// Applies the same vanity rules as <see cref="PlanetService.SetVanityAsync"/>.
+    /// A vanity that is invalid or already used by another planet here is
+    /// dropped rather than failing the whole import; the owner can choose a
+    /// new one afterwards.
+    /// </summary>
+    private async Task<string> GetImportableVanityAsync(PlanetSnapshotPlanet planet)
+    {
+        var vanity = planet.Vanity?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(vanity) || !VanityUtils.ValidateVanity(vanity).Success)
+            return null;
+
+        var taken = await _db.Planets.IgnoreQueryFilters()
+            .AnyAsync(x => x.Vanity == vanity && x.Id != planet.Id);
+        return taken ? null : vanity;
     }
 
     private static bool IsCrossDomainSnapshot(PlanetSnapshot snapshot) =>
@@ -544,7 +682,8 @@ public class PlanetSnapshotService
     /// </summary>
     private async Task RemapLocalObjectIdsAsync(PlanetSnapshot snapshot)
     {
-        var channels = CreateLocalIdMap(snapshot.Channels, x => x.Id);
+        // Encrypted messages and channel keys are signed over their channel id.
+        var channels = snapshot.Channels.ToDictionary(x => x.Id, x => x.Id);
         var roles = CreateLocalIdMap(snapshot.Roles, x => x.Id);
         var permissionNodes = CreateLocalIdMap(snapshot.PermissionNodes, x => x.Id);
         var members = CreateLocalIdMap(snapshot.Members, x => x.Id);
@@ -562,7 +701,8 @@ public class PlanetSnapshotService
         var wikiPages = CreateLocalIdMap(snapshot.WikiPages, x => x.Id);
         var wikiRevisions = CreateLocalIdMap(snapshot.WikiRevisions, x => x.Id);
         var auditLogs = CreateLocalIdMap(snapshot.ModerationAuditLogs, x => x.Id);
-        var triggers = CreateLocalGuidMap(snapshot.AutomodTriggers, x => x.Id);
+        // Kept so membership log approvals of automod triggers stay valid.
+        var triggers = snapshot.AutomodTriggers.ToDictionary(x => x.Id, x => x.Id);
         var actions = CreateLocalGuidMap(snapshot.AutomodActions, x => x.Id);
         var automodLogs = CreateLocalGuidMap(snapshot.AutomodLogs, x => x.Id);
 
@@ -717,7 +857,22 @@ public class PlanetSnapshotService
             auditLog.MessageId = MapOptional(messages, auditLog.MessageId);
             auditLog.TriggerId = MapOptional(triggers, auditLog.TriggerId);
         }
+
+        foreach (var term in snapshot.AutomodTerms)
+            term.TriggerId = Map(triggers, term.TriggerId);
     }
+
+    /// <summary>
+    /// Users referenced by encryption records: members holding channel keys,
+    /// members who shared them, key creators, and membership log signers.
+    /// The server's own marker id is not a user.
+    /// </summary>
+    private static IEnumerable<long> EncryptionUserIds(PlanetSnapshot snapshot) =>
+        snapshot.ChannelKeyBoxes.Select(x => x.UserId)
+            .Concat(snapshot.ChannelKeyBoxes.Select(x => x.SharedByUserId))
+            .Concat(snapshot.ChannelKeyGenerations.Select(x => x.CreatorUserId))
+            .Concat(snapshot.AccessLogEntries.Select(x => x.SignerUserId))
+            .Where(x => x != Valour.Sdk.E2ee.ChannelKeyGenerationRecord.ServerCreatorId);
 
     private static Dictionary<long, long> CreateLocalIdMap<T>(IEnumerable<T> source, Func<T, long> getId) =>
         source.ToDictionary(getId, _ => IdManager.Generate());
@@ -756,6 +911,9 @@ public class PlanetSnapshotService
     /// </summary>
     public async Task<TaskResult> DeletePlanetDataAsync(long planetId)
     {
+        // Messages still waiting to be flushed would reference the deleted planet data
+        PlanetMessageWorker.RemoveMessages(x => x.PlanetId == planetId);
+
         await using var tran = await _db.Database.BeginTransactionAsync();
         try
         {
@@ -792,6 +950,18 @@ public class PlanetSnapshotService
             await _db.AutomodTriggers.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
             await _db.ModerationAuditLogs.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
 
+            // End-to-end encryption records for the planet's channels.
+            var channelIds = await _db.Channels.IgnoreQueryFilters()
+                .Where(x => x.PlanetId == planetId).Select(x => x.Id).ToListAsync();
+            await _db.E2eeChannelKeyBoxes.Where(x => channelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+            await _db.E2eeChannelKeyGenerations.Where(x => channelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+            await _db.E2eeKeyRequests.Where(x => channelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+            await _db.E2eeAutomodTerms.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.MessageProofs.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
+            await _db.E2eeAccessLogEntries
+                .Where(x => x.Scope == (int)Valour.Sdk.E2ee.AccessLogScope.Planet && x.ScopeId == planetId)
+                .ExecuteDeleteAsync();
+
             // Voice meetings are provider-local, transient sessions. They must
             // not survive a handoff with a stale planet/channel reference.
             await _db.RealtimeKitMeetings.Where(x => x.PlanetId == planetId).ExecuteDeleteAsync();
@@ -807,6 +977,13 @@ public class PlanetSnapshotService
             await _db.Planets.IgnoreQueryFilters().Where(x => x.Id == planetId).ExecuteDeleteAsync();
 
             await tran.CommitAsync();
+            AutomodService.InvalidateRulesCache(planetId);
+
+            foreach (var channelId in channelIds)
+            {
+                _chatCache.ForgetChannel(channelId);
+                E2eeChannelKeyService.ForgetChannel(channelId);
+            }
             return TaskResult.SuccessResult;
         }
         catch (Exception e)
@@ -815,6 +992,178 @@ public class PlanetSnapshotService
             _logger.LogError(e, "Failed to delete planet data {PlanetId}", planetId);
             return TaskResult.FromFailure($"Delete failed: {e.Message}");
         }
+    }
+
+    /// <summary>
+    /// Limits a community-node snapshot to identities the hub itself vouches
+    /// for, before the hub imports it during a pull-back. A node controls every
+    /// row it sends, so it could otherwise add memberships for arbitrary hub
+    /// accounts or recreate deleted accounts under a name of its choosing.
+    ///
+    /// Membership rows are kept only for <paramref name="memberUserIds"/> (the
+    /// planet owner and accounts with a hub-recorded federated membership).
+    /// Content whose author is not an existing hub account is attributed to
+    /// the Victor system account, matching how the hub reassigns planets of
+    /// deleted accounts. Per-account state for unknown accounts (reactions,
+    /// boosts, bans against them, read state, user mentions) is dropped.
+    /// Thread and comment counters are recomputed from the rows that remain.
+    /// The result still passes through the normal graph validation on import.
+    /// </summary>
+    public async Task RestrictToHubIdentitiesAsync(PlanetSnapshot snapshot, IReadOnlySet<long> memberUserIds)
+    {
+        NormalizeCollections(snapshot);
+
+        var referenced = CollectReferencedUserIds(snapshot);
+        referenced.Add(ISharedUser.VictorUserId);
+        var knownUsers = (await _db.Users.AsNoTracking()
+                .Where(x => referenced.Contains(x.Id) && !x.IsFederated)
+                .Select(x => x.Id)
+                .ToListAsync())
+            .ToHashSet();
+
+        long MapAuthor(long userId) => knownUsers.Contains(userId) ? userId : ISharedUser.VictorUserId;
+        long? MapOptionalUser(long? userId) => userId.HasValue && knownUsers.Contains(userId.Value) ? userId : null;
+
+        // Members: one row per permitted, existing account.
+        snapshot.Members = snapshot.Members
+            .Where(x => memberUserIds.Contains(x.UserId) && knownUsers.Contains(x.UserId))
+            .GroupBy(x => x.UserId)
+            .Select(x => x.First())
+            .ToList();
+        // Duplicate member ids are rejected by graph validation during import.
+        var memberUsers = new Dictionary<long, long>();
+        foreach (var member in snapshot.Members)
+            memberUsers.TryAdd(member.Id, member.UserId);
+        var keptMemberUserIds = snapshot.Members.Select(x => x.UserId).ToHashSet();
+        var ownerMemberId = snapshot.Members
+            .Where(x => x.UserId == snapshot.Planet.OwnerId)
+            .Select(x => (long?)x.Id)
+            .FirstOrDefault();
+
+        // A member reference survives only if it still points at a kept member
+        // of the same (possibly reattributed) author.
+        long? MapMember(long? memberId, long userId) =>
+            memberId.HasValue && memberUsers.TryGetValue(memberId.Value, out var memberUserId) && memberUserId == userId
+                ? memberId
+                : null;
+
+        foreach (var message in snapshot.Messages)
+        {
+            message.AuthorUserId = MapAuthor(message.AuthorUserId);
+            message.AuthorMemberId = MapMember(message.AuthorMemberId, message.AuthorUserId);
+        }
+
+        snapshot.Reactions = snapshot.Reactions.Where(x => knownUsers.Contains(x.AuthorUserId)).ToList();
+        foreach (var reaction in snapshot.Reactions)
+            reaction.AuthorMemberId = MapMember(reaction.AuthorMemberId, reaction.AuthorUserId);
+
+        foreach (var thread in snapshot.Threads)
+        {
+            thread.AuthorUserId = MapAuthor(thread.AuthorUserId);
+            thread.AuthorMemberId = MapMember(thread.AuthorMemberId, thread.AuthorUserId);
+        }
+
+        foreach (var comment in snapshot.ThreadComments)
+        {
+            comment.AuthorUserId = MapAuthor(comment.AuthorUserId);
+            comment.AuthorMemberId = MapMember(comment.AuthorMemberId, comment.AuthorUserId);
+        }
+
+        snapshot.ThreadBoosts = snapshot.ThreadBoosts.Where(x => knownUsers.Contains(x.UserId)).ToList();
+        snapshot.ThreadCommentBoosts = snapshot.ThreadCommentBoosts.Where(x => knownUsers.Contains(x.UserId)).ToList();
+
+        foreach (var page in snapshot.WikiPages)
+        {
+            page.CreatedByUserId = MapAuthor(page.CreatedByUserId);
+            page.LastEditedByUserId = MapOptionalUser(page.LastEditedByUserId);
+        }
+
+        foreach (var revision in snapshot.WikiRevisions)
+            revision.AuthorUserId = MapAuthor(revision.AuthorUserId);
+
+        foreach (var emoji in snapshot.Emojis)
+            emoji.CreatorUserId = MapAuthor(emoji.CreatorUserId);
+
+        snapshot.Bans = snapshot.Bans.Where(x => knownUsers.Contains(x.TargetId)).ToList();
+        foreach (var ban in snapshot.Bans)
+            ban.IssuerId = MapAuthor(ban.IssuerId);
+
+        foreach (var invite in snapshot.Invites)
+            invite.IssuerId = MapAuthor(invite.IssuerId);
+
+        snapshot.UserChannelStates = snapshot.UserChannelStates
+            .Where(x => keptMemberUserIds.Contains(x.UserId))
+            .ToList();
+        foreach (var state in snapshot.UserChannelStates)
+            state.PlanetMemberId = MapMember(state.PlanetMemberId, state.UserId);
+
+        snapshot.Mentions = snapshot.Mentions
+            .Where(x => x.Type switch
+            {
+                MentionType.User => knownUsers.Contains(x.TargetId),
+                MentionType.PlanetMember => memberUsers.ContainsKey(x.TargetId),
+                _ => true,
+            })
+            .ToList();
+
+        foreach (var log in snapshot.ModerationAuditLogs)
+        {
+            log.ActorUserId = MapOptionalUser(log.ActorUserId);
+            log.TargetUserId = MapOptionalUser(log.TargetUserId);
+            if (log.TargetMemberId.HasValue && !memberUsers.ContainsKey(log.TargetMemberId.Value))
+                log.TargetMemberId = null;
+        }
+
+        // Automod rows require a member. Rules added by a removed member are
+        // kept under the owner's membership when there is one.
+        foreach (var trigger in snapshot.AutomodTriggers.Where(x => !memberUsers.ContainsKey(x.MemberAddedBy) && ownerMemberId.HasValue))
+            trigger.MemberAddedBy = ownerMemberId!.Value;
+        snapshot.AutomodTriggers = snapshot.AutomodTriggers.Where(x => memberUsers.ContainsKey(x.MemberAddedBy)).ToList();
+        var triggerIds = snapshot.AutomodTriggers.Select(x => x.Id).ToHashSet();
+
+        foreach (var action in snapshot.AutomodActions.Where(x => !memberUsers.ContainsKey(x.MemberAddedBy) && ownerMemberId.HasValue))
+            action.MemberAddedBy = ownerMemberId!.Value;
+        snapshot.AutomodActions = snapshot.AutomodActions
+            .Where(x => triggerIds.Contains(x.TriggerId) &&
+                        memberUsers.ContainsKey(x.MemberAddedBy) &&
+                        memberUsers.ContainsKey(x.TargetMemberId))
+            .ToList();
+        snapshot.AutomodLogs = snapshot.AutomodLogs
+            .Where(x => triggerIds.Contains(x.TriggerId) && memberUsers.ContainsKey(x.MemberId))
+            .ToList();
+
+        // Counters are derived data. Recompute them from the rows being
+        // imported instead of trusting the node's values.
+        var threadBoosts = snapshot.ThreadBoosts.GroupBy(x => x.ThreadId).ToDictionary(x => x.Key, x => x.Count());
+        var commentBoosts = snapshot.ThreadCommentBoosts.GroupBy(x => x.CommentId).ToDictionary(x => x.Key, x => x.Count());
+        var threadComments = snapshot.ThreadComments.GroupBy(x => x.ThreadId).ToDictionary(x => x.Key, x => x.Count());
+        var commentReplies = snapshot.ThreadComments
+            .Where(x => x.ParentCommentId.HasValue)
+            .GroupBy(x => x.ParentCommentId!.Value)
+            .ToDictionary(x => x.Key, x => x.Count());
+
+        foreach (var thread in snapshot.Threads)
+        {
+            thread.BoostCount = threadBoosts.GetValueOrDefault(thread.Id);
+            thread.CommentCount = threadComments.GetValueOrDefault(thread.Id);
+        }
+
+        foreach (var comment in snapshot.ThreadComments)
+        {
+            comment.BoostCount = commentBoosts.GetValueOrDefault(comment.Id);
+            comment.ReplyCount = commentReplies.GetValueOrDefault(comment.Id);
+        }
+
+        // Describe the remaining accounts with the hub's own records, never
+        // the node-supplied names.
+        var remaining = CollectReferencedUserIds(snapshot);
+        snapshot.Users = await _db.Users.AsNoTracking()
+            .Where(x => remaining.Contains(x.Id))
+            .Select(x => new PlanetSnapshotUser
+            {
+                Id = x.Id, Name = x.Name, Tag = x.Tag, SubscriptionType = x.SubscriptionType,
+            })
+            .ToListAsync();
     }
 
     private async Task EnsureShadowUsersAsync(List<PlanetSnapshotUser> users)
@@ -869,6 +1218,97 @@ public class PlanetSnapshotService
     }
 
     /// <summary>
+    /// Checks that encryption records belong to the snapshot's channels and
+    /// agree with each other. Their signatures are checked by members' apps,
+    /// which do not trust the server that relays them.
+    /// </summary>
+    private static TaskResult ValidateEncryptionRecords(PlanetSnapshot snapshot, HashSet<long> channelIds,
+        HashSet<Guid> triggerIds)
+    {
+        var generations = snapshot.ChannelKeyGenerations;
+        if (generations.Any(x => !channelIds.Contains(x.ChannelId) || x.Generation < 1 || x.Body is null ||
+                                 x.Signature is null || x.SealPublicKey is null ||
+                                 x.IndexGeneration < 1 || x.IndexGeneration > x.Generation ||
+                                 (x.HeldSecret is not null && x.HeldSecret.Length != Valour.Sdk.E2ee.E2eeCrypto.KeySize) ||
+                                 !DecodesAsGeneration(x, snapshot.Planet.Id)) ||
+            generations.GroupBy(x => (x.ChannelId, x.Generation)).Any(x => x.Count() > 1))
+            return TaskResult.FromFailure("Snapshot contains invalid channel keys.");
+
+        var latest = generations.GroupBy(x => x.ChannelId).ToDictionary(x => x.Key, x => x.Max(g => g.Generation));
+        if (snapshot.Channels.Any(c => c.EncryptionGeneration != latest.GetValueOrDefault(c.Id)) ||
+            latest.Any(x => generations.Count(g => g.ChannelId == x.Key) != x.Value))
+            return TaskResult.FromFailure("Snapshot channel keys do not match their channels.");
+
+        var generationKeys = generations.Select(x => (x.ChannelId, x.Generation)).ToHashSet();
+        if (snapshot.ChannelKeyBoxes.Any(x => !generationKeys.Contains((x.ChannelId, x.Generation)) ||
+                                              x.UserId <= 0 || x.Box is null) ||
+            snapshot.ChannelKeyBoxes.GroupBy(x => (x.ChannelId, x.Generation, x.UserId)).Any(x => x.Count() > 1))
+            return TaskResult.FromFailure("Snapshot contains invalid channel key boxes.");
+
+        if (snapshot.Messages.Any(x => x.EncryptionVersion is not (Valour.Sdk.E2ee.MessageEncryption.None or
+                                           Valour.Sdk.E2ee.MessageEncryption.EndToEnd or
+                                           Valour.Sdk.E2ee.MessageEncryption.ServerSealed) ||
+                                       (x.EncryptionVersion != Valour.Sdk.E2ee.MessageEncryption.None && (x.Envelope is null ||
+                                        !generationKeys.Contains((x.ChannelId, x.KeyGeneration))))))
+            return TaskResult.FromFailure("Snapshot contains encrypted messages without their channel keys.");
+
+        var log = snapshot.AccessLogEntries;
+        if (log.Any(x => x.Body is null || x.Signature is null || x.SignerUserId <= 0 || !DecodesAsAccessLogEntry(x.Body)) ||
+            !log.Select(x => x.Seq).OrderBy(x => x).SequenceEqual(Enumerable.Range(0, log.Count)))
+            return TaskResult.FromFailure("Snapshot contains an invalid membership log.");
+
+        if (snapshot.AutomodTerms.Any(x => !channelIds.Contains(x.ChannelId) || !triggerIds.Contains(x.TriggerId) ||
+                                           x.Terms is null || x.IndexGeneration < 1))
+            return TaskResult.FromFailure("Snapshot contains invalid automod terms.");
+
+        if (snapshot.ServerPublicKeys.Any(x => string.IsNullOrEmpty(x.Key) || x.Key.Length > 64 ||
+                                               x.Value?.Length != Valour.Sdk.E2ee.E2eeCrypto.KeySize))
+            return TaskResult.FromFailure("Snapshot contains invalid server keys.");
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// True when a key generation's signed body decodes and agrees with the
+    /// columns stored beside it. Members check the signature; this keeps a
+    /// malformed record from being stored at all.
+    /// </summary>
+    private static bool DecodesAsGeneration(PlanetSnapshotChannelKeyGeneration generation, long planetId)
+    {
+        if (generation.Body is null || generation.Body.Length > 4096)
+            return false;
+
+        try
+        {
+            var record = Valour.Sdk.E2ee.ChannelKeyGenerationRecord.Decode(generation.Body);
+            return record.ChannelId == generation.ChannelId &&
+                   record.PlanetId == planetId &&
+                   record.Generation == generation.Generation &&
+                   record.CreatorUserId == generation.CreatorUserId &&
+                   record.IndexGeneration == generation.IndexGeneration &&
+                   record.SealPublicKey is not null && generation.SealPublicKey is not null &&
+                   record.SealPublicKey.AsSpan().SequenceEqual(generation.SealPublicKey);
+        }
+        catch (Valour.Sdk.E2ee.E2eeFormatException)
+        {
+            return false;
+        }
+    }
+
+    private static bool DecodesAsAccessLogEntry(byte[] body)
+    {
+        try
+        {
+            Valour.Sdk.E2ee.AccessLogRecord.Decode(body);
+            return true;
+        }
+        catch (Valour.Sdk.E2ee.E2eeFormatException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Treat every imported snapshot as untrusted structured input. Even a
     /// hub-originated snapshot crosses a network boundary, and pull-back data is
     /// authored by a community node. Reject cross-planet rows, dangling foreign
@@ -881,37 +1321,12 @@ public class PlanetSnapshotService
         if (planetId <= 0 || snapshot.ProtocolVersion != ValourFederation.ProtocolVersion)
             return TaskResult.FromFailure("Snapshot has an invalid planet id or federation protocol version.");
 
-        snapshot.Planet.TagIds ??= new();
+        NormalizeCollections(snapshot);
         if (snapshot.Planet.TagIds.Any(x => x <= 0) ||
             snapshot.Planet.TagIds.Distinct().Count() != snapshot.Planet.TagIds.Count)
         {
             return TaskResult.FromFailure("Snapshot contains invalid or duplicate planet tags.");
         }
-
-        snapshot.Channels ??= new();
-        snapshot.Roles ??= new();
-        snapshot.PermissionNodes ??= new();
-        snapshot.Members ??= new();
-        snapshot.Emojis ??= new();
-        snapshot.Rules ??= new();
-        snapshot.Bans ??= new();
-        snapshot.Invites ??= new();
-        snapshot.UserChannelStates ??= new();
-        snapshot.Messages ??= new();
-        snapshot.Attachments ??= new();
-        snapshot.Reactions ??= new();
-        snapshot.Mentions ??= new();
-        snapshot.Threads ??= new();
-        snapshot.ThreadComments ??= new();
-        snapshot.ThreadBoosts ??= new();
-        snapshot.ThreadCommentBoosts ??= new();
-        snapshot.WikiPages ??= new();
-        snapshot.WikiRevisions ??= new();
-        snapshot.AutomodTriggers ??= new();
-        snapshot.AutomodActions ??= new();
-        snapshot.AutomodLogs ??= new();
-        snapshot.ModerationAuditLogs ??= new();
-        snapshot.Users ??= new();
 
         bool InvalidIds<T>(IEnumerable<T> items, Func<T, long> id) =>
             items.Any(x => id(x) <= 0) || items.Select(id).Distinct().Count() != items.Count();
@@ -1059,6 +1474,10 @@ public class PlanetSnapshotService
             return TaskResult.FromFailure("Snapshot contains dangling or cross-graph references.");
         }
 
+        var encryptionResult = ValidateEncryptionRecords(snapshot, channelIds, triggerIds);
+        if (!encryptionResult.Success)
+            return encryptionResult;
+
         // Category, wiki, and comment trees are traversed recursively in the
         // clients. A cyclic parent chain is valid to a database FK but can hang
         // a renderer or make moderation views unusable, so reject it at the
@@ -1073,6 +1492,20 @@ public class PlanetSnapshotService
         if (snapshot.Attachments.Any(x => !string.IsNullOrWhiteSpace(x.CdnBucketItemId)))
             return TaskResult.FromFailure("Snapshot contains storage-backed attachments that are unavailable on this node.");
 
+        var referencedUsers = CollectReferencedUserIds(snapshot);
+        var suppliedUsers = snapshot.Users.Select(x => x.Id).ToHashSet();
+        if (!referencedUsers.SetEquals(suppliedUsers))
+            return TaskResult.FromFailure("Snapshot user records do not exactly match its referenced users.");
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Every user id a snapshot row points at. Callers normalize null
+    /// collections before calling this.
+    /// </summary>
+    private static HashSet<long> CollectReferencedUserIds(PlanetSnapshot snapshot)
+    {
         var referencedUsers = new HashSet<long> { snapshot.Planet.OwnerId };
         referencedUsers.UnionWith(snapshot.Members.Select(x => x.UserId));
         referencedUsers.UnionWith(snapshot.Messages.Select(x => x.AuthorUserId));
@@ -1092,11 +1525,41 @@ public class PlanetSnapshotService
         referencedUsers.UnionWith(snapshot.Mentions.Where(x => x.Type == MentionType.User).Select(x => x.TargetId));
         referencedUsers.UnionWith(snapshot.ModerationAuditLogs.Where(x => x.ActorUserId.HasValue).Select(x => x.ActorUserId!.Value));
         referencedUsers.UnionWith(snapshot.ModerationAuditLogs.Where(x => x.TargetUserId.HasValue).Select(x => x.TargetUserId!.Value));
+        referencedUsers.UnionWith(EncryptionUserIds(snapshot));
+        return referencedUsers;
+    }
 
-        var suppliedUsers = snapshot.Users.Select(x => x.Id).ToHashSet();
-        if (!referencedUsers.SetEquals(suppliedUsers))
-            return TaskResult.FromFailure("Snapshot user records do not exactly match its referenced users.");
-
-        return TaskResult.SuccessResult;
+    private static void NormalizeCollections(PlanetSnapshot snapshot)
+    {
+        snapshot.Planet.TagIds ??= new();
+        snapshot.Channels ??= new();
+        snapshot.Roles ??= new();
+        snapshot.PermissionNodes ??= new();
+        snapshot.Members ??= new();
+        snapshot.Emojis ??= new();
+        snapshot.Rules ??= new();
+        snapshot.Bans ??= new();
+        snapshot.Invites ??= new();
+        snapshot.UserChannelStates ??= new();
+        snapshot.Messages ??= new();
+        snapshot.Attachments ??= new();
+        snapshot.Reactions ??= new();
+        snapshot.Mentions ??= new();
+        snapshot.Threads ??= new();
+        snapshot.ThreadComments ??= new();
+        snapshot.ThreadBoosts ??= new();
+        snapshot.ThreadCommentBoosts ??= new();
+        snapshot.WikiPages ??= new();
+        snapshot.WikiRevisions ??= new();
+        snapshot.AutomodTriggers ??= new();
+        snapshot.AutomodActions ??= new();
+        snapshot.AutomodLogs ??= new();
+        snapshot.ModerationAuditLogs ??= new();
+        snapshot.Users ??= new();
+        snapshot.ChannelKeyGenerations ??= new();
+        snapshot.ChannelKeyBoxes ??= new();
+        snapshot.AccessLogEntries ??= new();
+        snapshot.AutomodTerms ??= new();
+        snapshot.ServerPublicKeys ??= new();
     }
 }

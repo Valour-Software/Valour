@@ -53,18 +53,27 @@ public class PermissionsNodeService
             if (!persistedMigrationGuard.Success)
                 return new(false, persistedMigrationGuard.Message);
 
+            // A node's identity is fixed; only its permission values can change
             if (newNode.PlanetId != oldNode.PlanetId)
                 return new(false, "You cannot change the PlanetId.");
 
-            if (oldNode.RoleId == newNode.RoleId &&
-                oldNode.TargetId == newNode.TargetId &&
-                oldNode.Code == newNode.Code &&
+            if (newNode.RoleId != oldNode.RoleId)
+                return new(false, "You cannot change the RoleId.");
+
+            if (newNode.TargetId != oldNode.TargetId)
+                return new(false, "You cannot change the TargetId.");
+
+            if (newNode.TargetType != oldNode.TargetType)
+                return new(false, "You cannot change the TargetType.");
+
+            if (oldNode.Code == newNode.Code &&
                 oldNode.Mask == newNode.Mask)
             {
                 return new(true, "Success", newNode); // no-op save, nothing changed
             }
 
-            _db.Entry(oldNode).CurrentValues.SetValues(newNode);
+            oldNode.Code = newNode.Code;
+            oldNode.Mask = newNode.Mask;
             await _db.SaveChangesAsync();
 
             await trans.CommitAsync();
