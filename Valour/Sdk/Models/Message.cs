@@ -362,8 +362,14 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
 
         if (AuthorMemberId is null)
             return null;
-        
-        _authorMemberCached = await Planet.FetchMemberAsync(AuthorMemberId.Value, skipCache);
+
+        // A message can be shown outside its planet, such as in a staff
+        // report review. Without the planet, callers fall back to the user.
+        var planet = GetPlanet(throwIfNull: false);
+        if (planet is null)
+            return null;
+
+        _authorMemberCached = await planet.FetchMemberAsync(AuthorMemberId.Value, skipCache);
         if (_authorMemberCached is not null) // Also set user :)
             _authorUserCached = _authorMemberCached.User;
         
@@ -374,6 +380,9 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     {
         if (Mentions is null || Mentions.Count == 0)
             return false;
+
+        // Member and role mentions can only match a planet this client has loaded.
+        var planet = PlanetId is null ? null : GetPlanet(throwIfNull: false);
 
         foreach (var mention in Mentions)
         {
@@ -390,20 +399,20 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
                 }
                 case MentionType.PlanetMember:
                 {
-                    if (PlanetId is null)
+                    if (planet is null)
                         continue;
                     
-                    if (mention.TargetId == Planet.MyMember?.Id)
+                    if (mention.TargetId == planet.MyMember?.Id)
                         return true;
                     
                     break;
                 }
                 case MentionType.Role:
                 {
-                    if (PlanetId is null || Planet.MyMember is null)
+                    if (planet?.MyMember is null)
                         continue;
                     
-                    if (Planet.MyMember.Roles.Any(x => x.Id == mention.TargetId))
+                    if (planet.MyMember.Roles.Any(x => x.Id == mention.TargetId))
                         return true;
 
                     break;

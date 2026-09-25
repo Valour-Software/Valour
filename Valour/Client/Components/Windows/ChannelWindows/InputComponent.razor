@@ -496,10 +496,12 @@
             {
                 try { await reference.InvokeVoidAsync(cleanup); }
                 catch (JSException) { }
+                catch (JSDisconnectedException) { }
                 catch (ObjectDisposedException) { }
             }
             try { await reference.DisposeAsync(); }
             catch (JSException) { }
+            catch (JSDisconnectedException) { }
             catch (ObjectDisposedException) { }
         }
         _fileDropZone = null;

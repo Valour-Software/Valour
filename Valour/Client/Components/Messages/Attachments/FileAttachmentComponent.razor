@@ -46,7 +46,8 @@ else
         _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
 
         // The location becomes a clickable href, so script schemes never render.
-        if (!Valour.Shared.Utilities.SafeUrl.IsSafe(_location))
+        // Upload previews use a blob: URL this device created, which is allowed.
+        if (!Attachment.IsLocalPreview && !Valour.Shared.Utilities.SafeUrl.IsSafe(_location))
             _location = null;
 
         _missing = Attachment.Missing || string.IsNullOrWhiteSpace(_location);

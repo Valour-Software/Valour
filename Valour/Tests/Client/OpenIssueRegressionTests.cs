@@ -10,6 +10,7 @@ using Valour.Client.Components.Windows.PlanetInfo;
 using Valour.Client.Utility;
 using Valour.Sdk.Client;
 using Valour.Sdk.Models;
+using Valour.Shared.Models;
 
 namespace Valour.Tests.Client;
 
@@ -70,6 +71,25 @@ public class OpenIssueRegressionTests
         Assert.Null(response.ReplyToId);
         Assert.Equal("keep response", response.Content);
         Assert.False(ChatWindowComponent.ClearDeletedReply(response, source.Id));
+    }
+
+    [Fact]
+    public async Task MessageFromUnloadedPlanet_FallsBackWithoutThrowing()
+    {
+        // Staff review reported messages from planets they have not loaded.
+        var client = new ValourClient("https://valour.test/");
+        var message = new Message("reported", 47195723456315392, 5, 1, 2, client)
+        {
+            Id = 42,
+            Mentions =
+            [
+                new Mention { Type = MentionType.PlanetMember, TargetId = 5 },
+                new Mention { Type = MentionType.Role, TargetId = 6 }
+            ]
+        };
+
+        Assert.Null(await message.FetchAuthorMemberAsync());
+        Assert.False(message.CheckIfMentioned());
     }
 
 #pragma warning disable BL0006

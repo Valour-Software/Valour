@@ -30,6 +30,7 @@ public class ResizeObserver : IAsyncDisposable
         }
         catch (ObjectDisposedException) { }
         catch (JSException) { }
+        catch (JSDisconnectedException) { }
         finally
         {
             _initializing = false;
@@ -57,15 +58,18 @@ public class ResizeObserver : IAsyncDisposable
         {
             try { await service.InvokeVoidAsync("dispose"); }
             catch (JSException) { }
+            catch (JSDisconnectedException) { }
             catch (ObjectDisposedException) { }
             try { await service.DisposeAsync(); }
             catch (JSException) { }
+            catch (JSDisconnectedException) { }
             catch (ObjectDisposedException) { }
         }
         if (module is not null)
         {
             try { await module.DisposeAsync(); }
             catch (JSException) { }
+            catch (JSDisconnectedException) { }
             catch (ObjectDisposedException) { }
         }
         _dotnetRef?.Dispose();
