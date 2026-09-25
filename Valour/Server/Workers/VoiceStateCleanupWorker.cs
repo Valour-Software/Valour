@@ -25,11 +25,13 @@ public class VoiceStateCleanupWorker : BackgroundService
 
     /// <summary>
     /// Removes a channel id from the active channel index only if its channel set is gone.
-    /// KEYS[1] = voice:channel:{channelId}, KEYS[2] = active channel index, ARGV[1] = channelId.
+    /// KEYS[1] = voice:channel:{channelId}, ARGV[1] = channelId. The index is named in the
+    /// script rather than passed as a key, like the join script does, because the two keys
+    /// hash to different cluster slots and the client refuses a multi-slot key list.
     /// </summary>
     private const string PruneIndexLuaScript = @"
 if redis.call('EXISTS', KEYS[1]) == 0 then
-    return redis.call('SREM', KEYS[2], ARGV[1])
+    return redis.call('SREM', 'voice:channels', ARGV[1])
 end
 return 0
 ";
@@ -149,8 +151,7 @@ return removed
             if (members.Length == 0)
             {
                 // Redis deletes empty sets; drop the index entry unless a join recreated it.
-                await db.ScriptEvaluateAsync(PruneIndexLuaScript,
-                    new[] { channelKey, (RedisKey)VoiceStateService.ActiveChannelsKey },
+                await db.ScriptEvaluateAsync(PruneIndexLuaScript, new[] { channelKey },
                     new RedisValue[] { channelId });
                 continue;
             }
@@ -170,12 +171,11 @@ return removed
             if (userIds.Count == 0)
                 continue;
 
-            // One MGET for every participant's current channel
             var userKeys = new RedisKey[userIds.Count];
             for (int i = 0; i < userIds.Count; i++)
                 userKeys[i] = $"voice:user:{userIds[i]}";
 
-            var userChannels = await db.StringGetAsync(userKeys);
+            var userChannels = await GetUserChannelsAsync(db, userKeys);
 
             var candidateUserIds = new List<long>();
             for (int i = 0; i < userIds.Count; i++)
@@ -546,6 +546,14 @@ return removed
     }
 
     /// <summary>
+    /// Reads each participant's current channel. The keys hash to different cluster slots,
+    /// where the client refuses a multi-key read, so each is read on its own; the requests
+    /// are pipelined, so this still costs one round trip.
+    /// </summary>
+    private static async Task<RedisValue[]> GetUserChannelsAsync(IDatabase db, RedisKey[] userKeys) =>
+        await Task.WhenAll(userKeys.Select(key => db.StringGetAsync(key)));
+
+    /// <summary>
     /// Returns the number of live participants for each requested channel: set members whose
     /// voice:user key still points at the channel. Returns null when Redis cannot be read;
     /// the caller must skip cleanup rather than treat every meeting as empty and close live calls.
@@ -574,8 +582,7 @@ return removed
                 var count = 0;
                 if (userKeys.Count > 0)
                 {
-                    // One MGET for every participant's current channel
-                    var userChannels = await db.StringGetAsync(userKeys.ToArray());
+                    var userChannels = await GetUserChannelsAsync(db, userKeys.ToArray());
                     foreach (var userChannel in userChannels)
                     {
                         if (userChannel.HasValue &&
