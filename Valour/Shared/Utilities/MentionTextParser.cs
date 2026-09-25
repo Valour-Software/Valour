@@ -1,11 +1,13 @@
 using Valour.Shared.Models;
 
-namespace Valour.Server.Utilities;
+namespace Valour.Shared.Utilities;
 
 /// <summary>
-/// The server mention parser has a simple task: Return a list of all the mentions present in a string.
+/// Returns the mentions present in message text. The server uses it for plain
+/// text messages; clients use it to list the mentions of end-to-end encrypted
+/// messages, whose text the server cannot read.
 /// </summary>
-public static class MentionParser
+public static class MentionTextParser
 {
     public static List<Mention> Parse(string text)
     {

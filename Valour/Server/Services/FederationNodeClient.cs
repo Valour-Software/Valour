@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Valour.Config.Configs;
+using Valour.Sdk.E2ee;
 using Valour.Server.Api.Dynamic;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -49,6 +50,13 @@ public class FederationNodeClient
     /// </summary>
     public Task<TaskResult<FederatedPlanetStubResponse>> UpsertPlanetAsync(long id, FederatedPlanetStubRequest request) =>
         SendAsync<FederatedPlanetStubResponse>(HttpMethod.Put, $"api/federation/planets/{id}", request);
+
+    /// <summary>
+    /// Fetches account key logs from the hub, starting after the entries this
+    /// node already holds for each user.
+    /// </summary>
+    public Task<TaskResult<Dictionary<long, List<UserKeyLogEntry>>>> GetKeyLogsAsync(UserKeyLogsRequest request) =>
+        SendAsync<Dictionary<long, List<UserKeyLogEntry>>>(HttpMethod.Post, "api/federation/e2ee/key-logs", request);
 
     public async Task<TaskResult> DeletePlanetAsync(long id)
     {

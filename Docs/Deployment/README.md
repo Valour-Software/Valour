@@ -8,7 +8,8 @@ Choose the configuration that matches the infrastructure you operate.
 ## Self-hosted instance
 
 From the repository root, copy `.env.example` to `.env` and set `VALOUR_DOMAIN`,
-`POSTGRES_PASSWORD`, `VALOUR_ADMIN_EMAIL`, and `VALOUR_ADMIN_PASSWORD`. Point the
+`POSTGRES_PASSWORD`, `VALOUR_ADMIN_EMAIL`, `VALOUR_ADMIN_PASSWORD`, and
+`DATAPROTECTION__KEK` (see [Data Protection KEK](#data-protection-kek)). Point the
 domain to the host, allow inbound ports 80 and 443, then run:
 
 ```sh
@@ -24,6 +25,31 @@ Caddy obtains and renews HTTPS certificates, proxies WebSockets, and permits
 request bodies up to 250 MB. All configured application hosts collapse to the
 single `VALOUR_DOMAIN`. The server applies database migrations during startup.
 Back up persistent data and private configuration before deploying a changed build.
+
+## Data Protection KEK
+
+Every server that runs in the `Production` environment needs a Data Protection
+key encryption key (KEK), whether or not it takes part in federation. The server
+stores keys in its database that must not be readable from a database copy
+alone: its attestation signing key for server-sealed messages, channel keys it
+holds until enough members receive them, and federation signing keys. The KEK
+wraps the Data Protection key ring that protects them.
+
+Provide a secret base64-encoded 32-byte `DataProtection:Kek`, or a read-only
+`DataProtection:KekFile`, and use the same value on every instance that shares a
+database. Generate one with `openssl rand -base64 32`. Keep it stable across
+restarts and outside the repository and database. Back it up, but store the
+backup apart from database backups, so that a copy of one does not include the
+other. Changing or losing the KEK makes the stored keys unreadable. A `Production`
+server refuses to start without one, and `docker compose up` refuses to start
+the bundle while `DATAPROTECTION__KEK` is empty. Outside `Production` the server
+starts with a warning unless it has a federation role or seals plain-text
+history, which also require a KEK.
+
+Upgrading an existing instance to end-to-end encryption, including the database
+migrations it runs and the optional step of sealing history written before
+encryption, is described in
+[Configuration and rollout](../EndToEndEncryption.md#configuration-and-rollout).
 
 ## Configuration and storage
 
@@ -84,8 +110,10 @@ HTTPS -> nginx -> valour-blue:5000 or valour-green:5000
 ```
 
 The application mounts `dotnet/appsettings.json` and
-`dotnet/firebase-credentials.json` read-only. The Compose file supplies the runtime
-environment, listening URL, Firebase credential path, and IdGen worker ID.
+`dotnet/firebase-credentials.json` read-only. The settings file must include the
+[Data Protection KEK](#data-protection-kek), the same for both colors. The Compose
+file supplies the runtime environment, listening URL, Firebase credential path,
+and IdGen worker ID.
 nginx loads `nginx/upstream.conf` to select the active application and uses
 `nginx/ssl/valour.crt` and `valour.key` for TLS. Adjust hostnames in `nginx.conf`
 to match the deployment.
@@ -134,10 +162,9 @@ Federation roles are explicit configuration:
 | Community node | `Federation:HubUrl` and `Federation:NodeDomain`; private database and key material; hub role disabled |
 | Standalone | Neither federation role enabled |
 
-For an enabled role, provide a secret base64-encoded 32-byte `DataProtection:Kek`
-or a read-only `DataProtection:KekFile`. Keep it stable across restarts and outside
-the repository and database. Public deployments require HTTPS and must leave
-`Federation:AllowInsecure` disabled.
+An enabled role requires the [Data Protection KEK](#data-protection-kek) in every
+environment, not only in `Production`. Public deployments require HTTPS and must
+leave `Federation:AllowInsecure` disabled.
 
 Hub replicas do not set community-node `HubUrl` or `NodeDomain`. Community nodes
 allocate worker IDs within their own database deployment. Their domain and signing
@@ -157,9 +184,10 @@ Run this from the repository root:
 ```
 
 The wizard creates or updates `.env`, retains a timestamped private backup,
-generates a KEK when needed, and sets file permissions to `0600`. It asks whether
-the node accepts the registrant's planets and explicit hosting approvals, or any
-eligible owner through public migration hosting.
+keeps an existing `DATAPROTECTION__KEK` or generates one, and sets file
+permissions to `0600`. It asks whether the node accepts the registrant's planets
+and explicit hosting approvals, or any eligible owner through public migration
+hosting.
 
 Registration takes place in the hub while signed in as the operator:
 

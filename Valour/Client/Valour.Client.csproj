@@ -24,6 +24,8 @@
     </PackageReference>
 
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.2.1" />
+    <!-- Device-link QR codes are drawn on the device so the server cannot alter them. -->
+    <PackageReference Include="QRCoder" Version="1.4.3" />
   </ItemGroup>
 
   <ItemGroup>

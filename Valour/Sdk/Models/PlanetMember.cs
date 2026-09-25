@@ -140,6 +140,35 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     protected override void OnDeleted()
     {
     }
+
+    /// <summary>
+    /// Removes this member from the planet: leaving when it is the current
+    /// user, a kick otherwise. Invite-only planets also record the removal in
+    /// their signed membership log.
+    /// </summary>
+    public override async Task<TaskResult> DeleteAsync()
+    {
+        var planet = Planet;
+        var isSelf = UserId == Client.Me?.Id;
+
+        // Leaving must be signed while still a member.
+        if (isSelf && planet is not null)
+        {
+            var left = await Client.E2eeService.LeavePlanetAccessAsync(planet);
+            if (!left.Success)
+                return left;
+        }
+
+        var result = await base.DeleteAsync();
+        if (result.Success && !isSelf && planet is not null)
+        {
+            var removed = await Client.E2eeService.RemovePlanetMembersAsync(planet, [UserId]);
+            if (!removed.Success)
+                Client.Logger.Log("E2EE", "Could not remove the member from the planet's membership log: " + removed.Message, "yellow");
+        }
+
+        return result;
+    }
     
     public Task<TaskResult> AddRoleAsync(long roleId) =>
         Planet.AddMemberRoleAsync(Id, roleId);

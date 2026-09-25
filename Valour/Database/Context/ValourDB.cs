@@ -318,6 +318,22 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
     public DbSet<FederatedInviteGrant> FederatedInviteGrants { get; set; }
     public DbSet<FederatedInviteRedemption> FederatedInviteRedemptions { get; set; }
 
+    //////////////////////////////
+    // End-to-end encryption    //
+    //////////////////////////////
+
+    public DbSet<E2eeKeyLogEntry> E2eeKeyLogEntries { get; set; }
+    public DbSet<E2eeUserKeyBox> E2eeUserKeyBoxes { get; set; }
+    public DbSet<E2eeDeviceLinkSession> E2eeDeviceLinkSessions { get; set; }
+    public DbSet<E2eeChannelKeyGeneration> E2eeChannelKeyGenerations { get; set; }
+    public DbSet<E2eeChannelKeyBox> E2eeChannelKeyBoxes { get; set; }
+    public DbSet<E2eeKeyRequest> E2eeKeyRequests { get; set; }
+    public DbSet<E2eeAccessLogEntry> E2eeAccessLogEntries { get; set; }
+    public DbSet<E2eeServerKey> E2eeServerKeys { get; set; }
+    public DbSet<E2eeAutomodTerm> E2eeAutomodTerms { get; set; }
+    public DbSet<MessageProof> MessageProofs { get; set; }
+    public DbSet<ReportEvidence> ReportEvidenceEntries { get; set; }
+
     /// <summary>
     /// ASP.NET Data Protection key ring, persisted in the shared database so
     /// every node (and container restarts) can decrypt protected payloads
@@ -430,6 +446,17 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         PlanetVoiceConfig.SetupDbModel(modelBuilder);
         Planet.SetupDbModel(modelBuilder);
         FederationKey.SetupDbModel(modelBuilder);
+        E2eeKeyLogEntry.SetupDbModel(modelBuilder);
+        E2eeUserKeyBox.SetupDbModel(modelBuilder);
+        E2eeDeviceLinkSession.SetupDbModel(modelBuilder);
+        E2eeChannelKeyGeneration.SetupDbModel(modelBuilder);
+        E2eeChannelKeyBox.SetupDbModel(modelBuilder);
+        E2eeKeyRequest.SetupDbModel(modelBuilder);
+        E2eeAccessLogEntry.SetupDbModel(modelBuilder);
+        E2eeServerKey.SetupDbModel(modelBuilder);
+        E2eeAutomodTerm.SetupDbModel(modelBuilder);
+        MessageProof.SetupDbModel(modelBuilder);
+        ReportEvidence.SetupDbModel(modelBuilder);
         FederatedNode.SetupDbModel(modelBuilder);
         FederatedMigrationHostingApproval.SetupDbModel(modelBuilder);
         FederatedPlanetStub.SetupDbModel(modelBuilder);

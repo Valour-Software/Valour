@@ -1,9 +1,11 @@
 #nullable enable annotations
 
 using System.Text.Json;
+using Valour.Sdk.E2ee;
 using Valour.Sdk.Models.Embeds;
 using Valour.Sdk.Models.Embeds.Items;
 using Valour.Server.Database;
+using Valour.Sdk.Cdn;
 using Valour.Server.Cdn;
 using Valour.Server.Utilities;
 using Valour.Server.Workers;
@@ -26,6 +28,7 @@ public class MessageService
     private readonly ProxyHandler _proxyHandler;
     private readonly PlanetStorageService _planetStorageService;
     private readonly ChannelActivityService _channelActivityService;
+    private readonly E2eeMessageService _e2eeMessages;
 
     public MessageService(
         ILogger<MessageService> logger,
@@ -39,7 +42,8 @@ public class MessageService
         AutomodService automodService,
         ProxyHandler proxyHandler,
         PlanetStorageService planetStorageService,
-        ChannelActivityService channelActivityService)
+        ChannelActivityService channelActivityService,
+        E2eeMessageService e2eeMessages)
     {
         _logger = logger;
         _db = db;
@@ -53,6 +57,7 @@ public class MessageService
         _proxyHandler = proxyHandler;
         _planetStorageService = planetStorageService;
         _channelActivityService = channelActivityService;
+        _e2eeMessages = e2eeMessages;
     }
     
     /// <summary>
@@ -186,8 +191,29 @@ public class MessageService
             notification = planet is null ? NotificationSource.DirectReply : NotificationSource.PlanetMemberReply;
         }
         
-        if (string.IsNullOrEmpty(message.Content) && !HasAttachments(message))
-            return TaskResult<Message>.FromFailure("Message must contain content or attachments.");
+        // Every message is end-to-end encrypted by its sender, except text
+        // the server writes itself, which it seals to the channel key.
+        var sealKind = writeOptions?.SealKind;
+        var isEndToEnd = sealKind is null;
+        if (isEndToEnd)
+        {
+            if (message.EncryptionVersion != MessageEncryption.EndToEnd)
+                return TaskResult<Message>.FromFailure(EncryptionRequiredMessage);
+
+            if (HasEmbedAttachments(message))
+                return TaskResult<Message>.FromFailure(EncryptedEmbedMessage);
+
+            var validation = await _e2eeMessages.ValidateNewAsync(message, channel);
+            if (!validation.Success)
+                return TaskResult<Message>.FromFailure(validation.Message);
+        }
+        else
+        {
+            if (message.EncryptionVersion != MessageEncryption.None || message.Envelope is not null)
+                return TaskResult<Message>.FromFailure("Server-written messages are sealed by the server.");
+            if (string.IsNullOrEmpty(message.Content) && !HasAttachments(message))
+                return TaskResult<Message>.FromFailure("Message must contain content or attachments.");
+        }
         
         if (message.Fingerprint is null)
             return TaskResult<Message>.FromFailure("Fingerprint is required. Generating a random UUID is suggested.");
@@ -220,28 +246,24 @@ public class MessageService
                 attachment.Inline = false;
         }
 
-        if (!string.IsNullOrWhiteSpace(message.Content))
-        {
-            // Prevent markdown bypassing inline, e.g. [](https://example.com)
-            // This is because a direct image link is not proxied and can steal ip addresses
-            message.Content = message.Content.Replace("[](", "[]\\("); // Fix: Insert backslash instead of removing [] because users could simply type [][]()
+        // The server cannot read encrypted text, so the sender lists the links
+        // it wants previewed. Preview fetches reveal those URLs, never the
+        // message. The server reads links from text it writes itself.
+        if (!isEndToEnd)
+            message.Content = MessageMarkdownSafety.Escape(message.Content);
 
-            // Prevent hiding secret messages with markdown
-            // This is because it cannot be revealed with custom css themes, it can only be seen with right click -> copy text.
-            // Nightmare for moderation.
-            message.Content = message.Content.Replace("]()", "]\\()");
-	        
-            var inlineAttachments = await _proxyHandler.GetUrlAttachmentsFromContent(message.Content, _db);
+        var previewSource = isEndToEnd
+            ? string.Join('\n', E2eeMessageService.SanitizePreviewUrls(message.PreviewUrls))
+            : message.Content;
+        message.PreviewUrls = null;
+        message.CustomEmojiIds = null;
+        if (!string.IsNullOrWhiteSpace(previewSource))
+        {
+            var inlineAttachments = await _proxyHandler.GetUrlAttachmentsFromContent(previewSource, _db);
             if (inlineAttachments is not null)
             {
-                if (attachments is null)
-                {
-                    attachments = inlineAttachments;
-                }
-                else
-                {
-                    attachments.AddRange(inlineAttachments);
-                }
+                attachments ??= new();
+                attachments.AddRange(inlineAttachments);
             }
         }
 
@@ -249,8 +271,10 @@ public class MessageService
         if (!attachmentResult.Success)
             return TaskResult<Message>.FromFailure(attachmentResult);
         
-        // Handle mentions
-        var mentions = MentionParser.Parse(message.Content);
+        // Handle mentions. Encrypted messages list their mentions as metadata.
+        var mentions = isEndToEnd
+            ? E2eeMessageService.SanitizeMentions(message.Mentions)
+            : MentionTextParser.Parse(message.Content);
 
         // Webhooks have no member to check MentionAll against, so role
         // mentions are stripped from their messages
@@ -278,6 +302,12 @@ public class MessageService
             _logger.LogError(e, "Failed to scan message with automod");
             return TaskResult<Message>.FromFailure("Automod scan failed. Message was not posted.");
         }
+
+        // Text the server writes is checked by automod above while it is still
+        // readable, then sealed before anything else, such as a cache or a
+        // notification, can copy it.
+        if (!isEndToEnd)
+            await SealServerMessageAsync(message, channel, sealKind!.Value);
 
         // Add to chat caches
         _chatCacheService.AddMessage(message);
@@ -387,9 +417,36 @@ public class MessageService
     }
 
     /// <summary>
+    /// Returned when a client sends or edits a message without encrypting it.
+    /// The code at the start lets programs recognize it.
+    /// </summary>
+    internal const string EncryptionRequiredMessage =
+        E2eeErrorCodes.EncryptionRequired + ": Messages must be end-to-end encrypted. Update the Valour app, " +
+        "or for bots use the Valour .NET SDK or a webhook. See https://github.com/Valour-Software/Valour/blob/main/Valour/Docs/BOT_GUIDE.md";
+
+    private const string EncryptedEmbedMessage =
+        "An encrypted message carries its embed inside the envelope, not as an attachment.";
+
+    /// <summary>
+    /// Seals text the server wrote to the channel key, moving its embeds into
+    /// the sealed payload as well.
+    /// </summary>
+    private async Task SealServerMessageAsync(Message message, Channel channel, ServerSealedKind kind)
+    {
+        var embeds = message.Attachments?
+            .Where(x => x.Type == MessageAttachmentType.Embed && !string.IsNullOrWhiteSpace(x.Data))
+            .Select(x => x.Data)
+            .ToList();
+        message.Attachments?.RemoveAll(x => x.Type == MessageAttachmentType.Embed);
+        if (message.Attachments is { Count: 0 })
+            message.Attachments = null;
+        await _e2eeMessages.SealAsync(message, channel, kind, embeds);
+    }
+
+    /// <summary>
     /// Used to update a message
     /// </summary>
-    public async Task<TaskResult<Message>> EditMessageAsync(Message updated)
+    public async Task<TaskResult<Message>> EditMessageAsync(Message updated, MessageWriteOptions writeOptions = null)
     {
         if (updated is null)
             return TaskResult<Message>.FromFailure("Include updated message");
@@ -446,12 +503,43 @@ public class MessageService
         updated.OverrideName = old.OverrideName;
         updated.WebhookAvatarAssetId = old.WebhookAvatarAssetId;
         updated.WebhookAvatarAnimated = old.WebhookAvatarAnimated;
-        
-        updated.Content ??= string.Empty;
 
-        // Sanity checks
-        if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))
-            return TaskResult<Message>.FromFailure("Updated message cannot be empty");
+        var channel = await _channelService.GetChannelAsync(old.PlanetId, old.ChannelId);
+        if (channel is null)
+            return TaskResult<Message>.FromFailure("Channel not found.");
+
+        var sealKind = writeOptions?.SealKind;
+        var isEndToEnd = sealKind is null;
+        if (isEndToEnd)
+        {
+            if (updated.EncryptionVersion != MessageEncryption.EndToEnd)
+                return TaskResult<Message>.FromFailure(EncryptionRequiredMessage);
+
+            // Authors can replace their own messages the server sealed from
+            // before encryption, but not webhook or system messages.
+            if (old.EncryptionVersion == MessageEncryption.ServerSealed &&
+                ServerSealing.Read(old.Envelope).Header.Kind != ServerSealedKind.Legacy)
+                return TaskResult<Message>.FromFailure("This message was sealed by the server and cannot be edited here.");
+
+            if (HasEmbedAttachments(updated))
+                return TaskResult<Message>.FromFailure(EncryptedEmbedMessage);
+
+            var validation = await _e2eeMessages.ValidateEditAsync(updated, old, channel);
+            if (!validation.Success)
+                return TaskResult<Message>.FromFailure(validation.Message);
+        }
+        else if (updated.EncryptionVersion != MessageEncryption.None || updated.Envelope is not null)
+        {
+            return TaskResult<Message>.FromFailure("Server-written messages are sealed by the server.");
+        }
+
+        updated.Content ??= string.Empty;
+        if (!isEndToEnd)
+        {
+            updated.Content = MessageMarkdownSafety.Escape(updated.Content);
+            if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))
+                return TaskResult<Message>.FromFailure("Updated message cannot be empty");
+        }
         
         if (updated.Content != null && updated.Content.Length > 2048)
             return TaskResult<Message>.FromFailure("Content must be under 2048 chars");
@@ -463,10 +551,15 @@ public class MessageService
             attachments.RemoveAll(x => x.Inline);
         }
         
-        // Handle new inline attachments
-        if (!string.IsNullOrWhiteSpace(updated.Content))
+        // Handle new inline attachments. Encrypted edits list their links.
+        var previewSource = isEndToEnd
+            ? string.Join('\n', E2eeMessageService.SanitizePreviewUrls(updated.PreviewUrls))
+            : updated.Content;
+        updated.PreviewUrls = null;
+        updated.CustomEmojiIds = null;
+        if (!string.IsNullOrWhiteSpace(previewSource))
         {
-            var inlineAttachments = await _proxyHandler.GetUrlAttachmentsFromContent(updated.Content, _db);
+            var inlineAttachments = await _proxyHandler.GetUrlAttachmentsFromContent(previewSource, _db);
             if (inlineAttachments is not null)
             {
                 if (attachments is null)
@@ -484,13 +577,17 @@ public class MessageService
         if (!attachmentResult.Success)
             return TaskResult<Message>.FromFailure(attachmentResult);
 
-        PrepareMentions(updated, MentionParser.Parse(updated.Content ?? string.Empty));
+        PrepareMentions(updated, isEndToEnd
+            ? E2eeMessageService.SanitizeMentions(updated.Mentions)
+            : MentionTextParser.Parse(updated.Content ?? string.Empty));
 
         // Edited content goes through automod like a new post, so an edit
-        // cannot swap in content automod would have blocked.
+        // cannot swap in content automod would have blocked. The server cannot
+        // see whether an encrypted edit changed the text, so those are always
+        // checked through their search terms.
         AutomodService.MessageScanResult? scanResult = null;
         PlanetMember? memberModel = null;
-        if (updated.PlanetId is not null && updated.Content != old.Content)
+        if (updated.PlanetId is not null && (isEndToEnd || updated.Content != old.Content))
         {
             if (updated.AuthorMemberId is not null)
                 memberModel = (await _db.PlanetMembers.FindAsync(updated.AuthorMemberId))?.ToModel();
@@ -515,13 +612,23 @@ public class MessageService
 
         updated.EditedTime = DateTime.UtcNow;
 
+        // Keep proof of the revision being replaced so it can still be reported.
+        await _e2eeMessages.SaveProofAsync(oldModel);
+
+        if (!isEndToEnd)
+            await SealServerMessageAsync(updated, channel, sealKind!.Value);
+
         old.Content = updated.Content;
         old.EditedTime = updated.EditedTime;
+        old.EncryptionVersion = updated.EncryptionVersion;
+        old.Envelope = updated.Envelope;
+        old.KeyGeneration = updated.KeyGeneration;
 
         if (stagedOld is not null)
         {
             stagedOld.Attachments = updated.Attachments;
             stagedOld.Mentions = updated.Mentions;
+            stagedOld.IndexedTerms = updated.IndexedTerms;
         }
         
         // In this case, the message has posted to the database so
@@ -532,6 +639,7 @@ public class MessageService
             {
                 dbOld.Content = updated.Content;
                 dbOld.EditedTime = updated.EditedTime;
+                dbOld.SearchTerms = updated.IndexedTerms;
 
                 if (dbOld.Attachments is { Count: > 0 })
                     _db.MessageAttachments.RemoveRange(dbOld.Attachments);
@@ -616,6 +724,7 @@ public class MessageService
             if (staged is not null)
             {
                 message = staged;
+                await _e2eeMessages.SaveProofAsync(staged);
                 PlanetMessageWorker.RemoveFromQueue(staged);
             }
             else
@@ -624,6 +733,7 @@ public class MessageService
                 if (queued is not null)
                 {
                     message = queued;
+                    await _e2eeMessages.SaveProofAsync(queued);
                     PlanetMessageWorker.RemoveFromQueue(queued);
                 }
                 else
@@ -635,6 +745,10 @@ public class MessageService
         else
         {
             message = dbMessage.ToModel();
+
+            // Deleting the text keeps its signed proof, so a recipient can
+            // still report what it said.
+            await _e2eeMessages.SaveProofAsync(message);
 
             try
             {
@@ -790,37 +904,6 @@ public class MessageService
         return messages;
     }
 
-    public async Task<List<Message>> SearchChannelMessagesAsync(long? planetId, long channelId, string search, int count = 20)
-    {
-        var channel = await _channelService.GetChannelAsync(planetId, channelId);
-        if (channel is null)
-            return [];
-        
-        if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
-            return [];
-        
-        // Use postgres functions to search for the search string
-        var messages = await _db.Messages.AsSplitQuery()
-            .AsNoTracking()
-            .Where(x => x.ChannelId == channel.Id)
-            .Where(x => EF.Functions.ILike(x.Content, $"%{search}%"))
-            .Include(x => x.ReplyToMessage)
-                .ThenInclude(x => x.Attachments)
-            .Include(x => x.ReplyToMessage)
-                .ThenInclude(x => x.Mentions)
-            .Include(x => x.ReplyToMessage)
-                .ThenInclude(x => x.Reactions)
-            .Include(x => x.Reactions)
-            .Include(x => x.Attachments)
-            .Include(x => x.Mentions)
-            .OrderByDescending(x => x.Id)
-            .Take(count)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-        
-        return messages;
-    }
-
     public async Task<TaskResult> AddReactionAsync(User user, PlanetMember? member, Message message, string emoji)
     {
         var migrationGuard = await MigrationLock.GuardAsync(_db, message.PlanetId);
@@ -941,6 +1024,9 @@ public class MessageService
         return message.Attachments is { Count: > 0 };
     }
 
+    private static bool HasEmbedAttachments(Message message) =>
+        message.Attachments?.Any(x => x?.Type == MessageAttachmentType.Embed) == true;
+
     private static void PrepareMentions(Message message, List<Mention>? mentions)
     {
         if (mentions is null || mentions.Count == 0)
@@ -1057,41 +1143,8 @@ public class MessageService
         return TaskResult.SuccessResult;
     }
 
-    private static TaskResult ValidateEmbedAttachment(Valour.Sdk.Models.MessageAttachment attachment)
-    {
-        if (string.IsNullOrWhiteSpace(attachment.Data))
-            return TaskResult.FromFailure("Embed attachment must include data.");
-
-        if (attachment.Data.Length > EmbedParser.MaxPayloadLength)
-            return TaskResult.FromFailure($"Embed data must be under {EmbedParser.MaxPayloadLength} chars");
-
-        var embed = EmbedParser.TryParse(attachment.Data);
-        if (embed is null)
-            return TaskResult.FromFailure("Embed data is invalid.");
-
-        var valid = EmbedParser.Validate(embed);
-        if (!valid.Success)
-            return valid;
-
-        foreach (var item in embed.EnumerateItems())
-        {
-            if (item is not EmbedMediaItem media)
-                continue;
-
-            if (media.Attachment is null)
-                return TaskResult.FromFailure("Embed media item is missing its attachment.");
-
-            // Inline previews are generated by the server from message
-            // content; an Inline flag inside embed JSON is client-supplied.
-            media.Attachment.Inline = false;
-
-            var result = MediaUriHelper.ScanMediaUri(media.Attachment);
-            if (!result.Success)
-                return TaskResult.FromFailure($"Error scanning media URI in embed | Item {item.Id} | URI {media.Attachment.Location}");
-        }
-
-        return TaskResult.SuccessResult;
-    }
+    private static TaskResult ValidateEmbedAttachment(Valour.Sdk.Models.MessageAttachment attachment) =>
+        EmbedSafety.Check(attachment.Data);
 
     private async Task<TaskResult> TryAttachCdnBucketItemAsync(Valour.Sdk.Models.MessageAttachment attachment)
     {

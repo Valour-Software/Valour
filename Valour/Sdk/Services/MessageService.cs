@@ -26,6 +26,17 @@ public class MessageService : ServiceBase
     public HybridEvent<Message> MessageDeleted;
     
     /// <summary>
+    /// Run when an encrypted message that could not be read when it arrived
+    /// becomes readable, for example once another member shares the channel's
+    /// key. <see cref="MessageReceived"/> and <see cref="MessageEdited"/> have
+    /// already run for such a message, with empty content and a
+    /// <see cref="Message.DecryptionState"/> other than Decrypted. Bots that
+    /// act on message text handle both events; this one runs at most once for
+    /// each message or edit that arrived undecrypted.
+    /// </summary>
+    public HybridEvent<Message> MessageDecrypted;
+
+    /// <summary>
     /// Run when a live embed update is received (channel-wide or personal)
     /// </summary>
     public HybridEvent<EmbedUpdate> EmbedUpdated;
@@ -55,7 +66,10 @@ public class MessageService : ServiceBase
             return cached;
         
         var response = await _client.PrimaryNode.GetJsonAsync<Message>($"api/messages/{id}");
+        if (!response.Success || response.Data is null)
+            return null;
 
+        await _client.E2eeService.DecryptAsync(response.Data);
         return response.Data.Sync(_client);
     }
 
@@ -66,7 +80,10 @@ public class MessageService : ServiceBase
             return cached;
 
         var response = await (planet?.Node ?? _client.PrimaryNode).GetJsonAsync<Message>($"api/messages/{id}");
+        if (!response.Success || response.Data is null)
+            return null;
 
+        await _client.E2eeService.DecryptAsync(response.Data);
         return response.Data.Sync(_client);
     }
     
@@ -196,6 +213,8 @@ public class MessageService : ServiceBase
         }
     }
 
+    internal void NotifyMessageDecrypted(Message message) => MessageDecrypted?.Invoke(message);
+
     private void OnMessageDeleted(Message message)
     {
         MessageDeleted?.Invoke(message);
@@ -221,9 +240,14 @@ public class MessageService : ServiceBase
         }
     }
     
-    private void OnEmbedUpdate(EmbedUpdate update)
+    /// <summary>
+    /// Embed updates are encrypted with the channel key; only updates that
+    /// decrypt and pass the embed safety checks reach subscribers.
+    /// </summary>
+    private async Task OnEmbedUpdateAsync(EmbedUpdate update)
     {
-        EmbedUpdated?.Invoke(update);
+        if (await _client.E2eeService.DecryptEmbedUpdateAsync(update))
+            EmbedUpdated?.Invoke(update);
     }
     
     private void OnMessageReactionAdded(Node node, MessageReaction reaction)
@@ -246,25 +270,31 @@ public class MessageService : ServiceBase
     
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<Message>("Relay", message =>
+        // Encrypted messages are decrypted before they reach the cache, so
+        // every consumer sees readable text.
+        node.HubConnection.On<Message>("Relay", async message =>
         {
-            if (node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
-                OnPlanetMessageReceived(message);
+            if (!node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
+                return;
+            await _client.E2eeService.DecryptAsync(message);
+            OnPlanetMessageReceived(message);
         });
-        node.HubConnection.On<Message>("RelayEdit", message =>
+        node.HubConnection.On<Message>("RelayEdit", async message =>
         {
-            if (node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
-                OnPlanetMessageEdited(message);
+            if (!node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
+                return;
+            await _client.E2eeService.DecryptAsync(message);
+            OnPlanetMessageEdited(message);
         });
         node.HubConnection.On<Message>("DeleteMessage", message =>
         {
             if (node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
                 _client.MessageService.OnMessageDeleted(message);
         });
-        node.HubConnection.On<EmbedUpdate>("Channel-Embed-Update", update =>
+        node.HubConnection.On<EmbedUpdate>("Channel-Embed-Update", async update =>
         {
             if (update is not null && node.AcceptsExternalMessageRealtimeEvent(update.TargetMessageId))
-                OnEmbedUpdate(update);
+                await OnEmbedUpdateAsync(update);
         });
         node.HubConnection.On<MessageReaction>("MessageReactionAdd", reaction =>
         {
@@ -281,9 +311,17 @@ public class MessageService : ServiceBase
         // federated community node has no authority over those global caches.
         if (!node.IsExternal)
         {
-            node.HubConnection.On<Message>("RelayDirect", OnDirectMessageReceived);
-            node.HubConnection.On<Message>("RelayDirectEdit", OnDirectMessageEdited);
-            node.HubConnection.On<EmbedUpdate>("Personal-Embed-Update", OnEmbedUpdate);
+            node.HubConnection.On<Message>("RelayDirect", async message =>
+            {
+                await _client.E2eeService.DecryptAsync(message);
+                await OnDirectMessageReceived(message);
+            });
+            node.HubConnection.On<Message>("RelayDirectEdit", async message =>
+            {
+                await _client.E2eeService.DecryptAsync(message);
+                OnDirectMessageEdited(message);
+            });
+            node.HubConnection.On<EmbedUpdate>("Personal-Embed-Update", OnEmbedUpdateAsync);
         }
     }
 }

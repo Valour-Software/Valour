@@ -1,0 +1,53 @@
+@using System.Text
+@using QRCoder
+
+<svg class="qr-code" viewBox="0 0 @_size @_size" role="img" aria-label="@Label" shape-rendering="crispEdges">
+    <rect class="qr-background" width="@_size" height="@_size" />
+    <path class="qr-modules" d="@_path" />
+</svg>
+
+@code {
+    /// <summary>The text to encode.</summary>
+    [Parameter]
+    public string Text { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "QR code";
+
+    private string _encoded;
+    private string _path = string.Empty;
+    private int _size = 1;
+
+    protected override void OnParametersSet()
+    {
+        if (Text == _encoded)
+            return;
+
+        _encoded = Text;
+        if (string.IsNullOrEmpty(Text))
+        {
+            _path = string.Empty;
+            _size = 1;
+            return;
+        }
+
+        // The matrix includes the quiet zone scanners need around the code.
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(Text, QRCodeGenerator.ECCLevel.M);
+        var matrix = data.ModuleMatrix;
+        _size = matrix.Count;
+
+        var path = new StringBuilder();
+        for (var y = 0; y < matrix.Count; y++)
+        {
+            var row = matrix[y];
+            for (var x = 0; x < row.Length; x++)
+            {
+                if (row[x])
+                    path.Append('M').Append(x).Append(',').Append(y).Append("h1v1h-1z");
+            }
+        }
+
+        _path = path.ToString();
+    }
+}

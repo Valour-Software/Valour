@@ -22,7 +22,6 @@ public class MigrationLockTests : IAsyncLifetime
     private readonly IServiceScope _scope;
     private readonly ValourDb _db;
     private readonly PlanetService _planetService;
-    private readonly MessageService _messageService;
     private readonly PlanetMemberService _memberService;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly FederationMigrationService _migrationService;
@@ -39,7 +38,6 @@ public class MigrationLockTests : IAsyncLifetime
         _scope = fixture.Factory.Services.CreateScope();
         _db = _scope.ServiceProvider.GetRequiredService<ValourDb>();
         _planetService = _scope.ServiceProvider.GetRequiredService<PlanetService>();
-        _messageService = _scope.ServiceProvider.GetRequiredService<MessageService>();
         _memberService = _scope.ServiceProvider.GetRequiredService<PlanetMemberService>();
         _hostedPlanetService = _scope.ServiceProvider.GetRequiredService<HostedPlanetService>();
         _migrationService = _scope.ServiceProvider.GetRequiredService<FederationMigrationService>();
@@ -74,17 +72,11 @@ public class MigrationLockTests : IAsyncLifetime
         _scope.Dispose();
     }
 
-    private Message NewMessage(string content) => new()
-    {
-        PlanetId = _planet.Id, ChannelId = _channel.Id, AuthorUserId = _owner.Id,
-        AuthorMemberId = _member.Id, Content = content, Fingerprint = Guid.NewGuid().ToString(),
-    };
-
     [Fact]
     public async Task LockedPlanet_RejectsMessagePost_ThenAbortRestoresWrites()
     {
         // Writable to start.
-        var before = await _messageService.PostMessageAsync(NewMessage("before lock"));
+        var before = await EncryptedChat.SendAsync(_fixture.Client, _planet.Id, _channel.Id, "before lock");
         Assert.True(before.Success, before.Message);
 
         // Lock it (as migration initiate does) and evict the hosted cache.
@@ -99,7 +91,7 @@ public class MigrationLockTests : IAsyncLifetime
         _hostedPlanetService.Remove(_planet.Id);
 
         // Writes are now rejected.
-        var during = await _messageService.PostMessageAsync(NewMessage("during migration"));
+        var during = await EncryptedChat.SendAsync(_fixture.Client, _planet.Id, _channel.Id, "during migration");
         Assert.False(during.Success);
         Assert.Contains("read-only", during.Message, StringComparison.OrdinalIgnoreCase);
 
@@ -107,7 +99,7 @@ public class MigrationLockTests : IAsyncLifetime
         var abort = await _migrationService.AbortAsync(_owner.Id, _planet.Id);
         Assert.True(abort.Success, abort.Message);
 
-        var after = await _messageService.PostMessageAsync(NewMessage("after abort"));
+        var after = await EncryptedChat.SendAsync(_fixture.Client, _planet.Id, _channel.Id, "after abort");
         Assert.True(after.Success, after.Message);
     }
 

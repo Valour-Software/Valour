@@ -1,4 +1,4 @@
-<div class="basic-modal" 
+<div class="basic-modal" role="@Role" aria-modal="@(Role is null ? null : "true")" aria-label="@(Role is null ? null : Title)"
      style="max-width: min(90vw, @MaxWidth); @(MinWidth is null ? "" : $"min-width: {MinWidth};")"
 >
     <div class="top">
@@ -38,4 +38,11 @@
     
     [Parameter]
     public RenderFragment ButtonArea { get; set; }
+
+    /// <summary>
+    /// An ARIA role for the modal, such as "dialog" or "alertdialog". When
+    /// set, the title labels the modal for screen readers.
+    /// </summary>
+    [Parameter]
+    public string Role { get; set; }
 }

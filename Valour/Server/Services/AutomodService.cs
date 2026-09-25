@@ -201,6 +201,9 @@ public class AutomodService
         // Invalidate cache
         InvalidateRulesCache(trigger.PlanetId);
 
+        // Moderators' clients hash the new trigger for encrypted channels.
+        await _serviceProvider.GetRequiredService<E2eeAutomodService>().RequestWorkAsync(trigger.PlanetId);
+
         _coreHub.NotifyPlanetItemChange(trigger);
         return new(true, "Success", trigger);
     }
@@ -234,6 +237,7 @@ public class AutomodService
 
         // Invalidate cache
         InvalidateRulesCache(trigger.PlanetId);
+        await _serviceProvider.GetRequiredService<E2eeAutomodService>().RequestWorkAsync(trigger.PlanetId);
 
         _coreHub.NotifyPlanetItemChange(trigger);
         foreach (var action in actions)
@@ -254,6 +258,8 @@ public class AutomodService
         if (existing.MemberAddedBy != trigger.MemberAddedBy)
             return new(false, "MemberAddedBy cannot be changed.");
 
+        var matchingChanged = existing.Type != trigger.Type || existing.TriggerWords != trigger.TriggerWords;
+
         try
         {
             _db.Entry(existing).CurrentValues.SetValues(trigger.ToDatabase());
@@ -267,6 +273,10 @@ public class AutomodService
 
         // Invalidate cache
         InvalidateRulesCache(trigger.PlanetId);
+
+        if (matchingChanged)
+            await _serviceProvider.GetRequiredService<E2eeAutomodService>()
+                .InvalidateTriggerAsync(trigger.Id, trigger.PlanetId);
 
         _coreHub.NotifyPlanetItemChange(trigger);
         return new(true, "Success", trigger);
@@ -301,6 +311,8 @@ public class AutomodService
 
         // Invalidate cache
         InvalidateRulesCache(trigger.PlanetId);
+        await _serviceProvider.GetRequiredService<E2eeAutomodService>()
+            .InvalidateTriggerAsync(trigger.Id, trigger.PlanetId);
 
         _coreHub.NotifyPlanetItemDelete(trigger);
         return new(true, "Success");
@@ -786,8 +798,11 @@ public class AutomodService
 
                         // Responses are posted by Victor, who has no member to check MentionAll
                         // against, so role mentions in the configured text never notify anyone.
-                        var responseResult = await messageService.PostMessageAsync(response,
-                            new MessageWriteOptions { SuppressRoleMentions = true });
+                        var responseResult = await messageService.PostMessageAsync(response, new MessageWriteOptions
+                        {
+                            SuppressRoleMentions = true,
+                            SealKind = Valour.Sdk.E2ee.ServerSealedKind.System
+                        });
                         if (!responseResult.Success)
                         {
                             _logger.LogWarning(
@@ -905,11 +920,33 @@ public class AutomodService
             return new MessageScanResult { AllowMessage = true };
 
         var recent = await _serviceProvider.GetRequiredService<ChatCacheService>().GetLastMessagesAsync(message.ChannelId);
-        var matchedTriggers = triggers
-            .Where(t => t.Type != AutomodTriggerType.Join && CheckTrigger(t, message, recent))
+        var encryptedAutomod = _serviceProvider.GetRequiredService<E2eeAutomodService>();
+        var matchedTriggers = new List<AutomodTrigger>();
+        foreach (var trigger in triggers)
+        {
+            if (trigger.Type == AutomodTriggerType.Join)
+                continue;
+
             // Spam triggers count recent posts, and an edit is not a new post.
-            .Where(t => !isEdit || t.Type != AutomodTriggerType.Spam)
-            .ToList();
+            if (isEdit && trigger.Type == AutomodTriggerType.Spam)
+                continue;
+
+            // Chat messages are encrypted, so word and command triggers match
+            // them through keyed search terms, and text the server sealed
+            // itself is never scanned. Only thread posts and comments, which
+            // are public and not encrypted, are matched against their text.
+            if (message.EncryptionVersion != Valour.Sdk.E2ee.MessageEncryption.None &&
+                E2eeAutomodService.UsesTerms(trigger.Type))
+            {
+                if (message.EncryptionVersion == Valour.Sdk.E2ee.MessageEncryption.EndToEnd &&
+                    await encryptedAutomod.MatchesAsync(trigger, message))
+                    matchedTriggers.Add(trigger);
+                continue;
+            }
+
+            if (CheckTrigger(trigger, message, recent))
+                matchedTriggers.Add(trigger);
+        }
 
         if (matchedTriggers.Count == 0)
             return new MessageScanResult { AllowMessage = true };

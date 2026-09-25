@@ -66,6 +66,10 @@
         </div>
     }
 
+    @if (!_loading && string.IsNullOrWhiteSpace(_setupError) && Channel is not null)
+    {
+        <ChatEncryptionNotice Channel="@Channel" AdmissionChanged="@OnEncryptionAdmissionChanged" />
+    }
     <InputComponent @ref="@InputComponent" ChatComponent="@this" />
 </div>
 
@@ -140,6 +144,25 @@
     
     // Child references
     public InputComponent InputComponent;
+
+    /// <summary>
+    /// True when this person has not been admitted to an invite-only planet's
+    /// encryption yet, so its messages explain that an admin must admit them.
+    /// </summary>
+    public bool AwaitingEncryptionAdmission { get; private set; }
+
+    private async Task OnEncryptionAdmissionChanged(bool awaiting)
+    {
+        if (AwaitingEncryptionAdmission == awaiting)
+            return;
+
+        AwaitingEncryptionAdmission = awaiting;
+        foreach (var message in RenderedMessages.ToList())
+        {
+            if (message.ParamData.Message.IsEncrypted)
+                await message.ReRender();
+        }
+    }
     public MemberListComponent MemberListComponent;
     
     // Used for locking channel connection while window is open
@@ -858,6 +881,20 @@
             return TaskResult.FromFailure(result);
 
         await AddMessages(result.Data, true, true);
+
+        // Opening an encrypted channel is a good moment to share its key with
+        // members who asked while this device was offline, and to index
+        // history the server sealed, in the background.
+        if (Channel.IsEncrypted && Client.E2eeService.Status == E2eeStatus.Ready)
+        {
+            var channel = Channel;
+            _ = Task.Run(async () =>
+            {
+                await Client.E2eeService.ServeChannelAsync(channel);
+                await Client.E2eeService.IndexSealedHistoryAsync(channel);
+            });
+        }
+
         return TaskResult.SuccessResult;
     }
 

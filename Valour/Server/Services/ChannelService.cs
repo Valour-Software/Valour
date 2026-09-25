@@ -828,6 +828,11 @@ public class ChannelService
             return TaskResult<Channel>.FromFailure("Use move channel endpoint to change position.");
         }
         
+        // The encryption generation is server-managed and advances only when a
+        // new channel key is published, by a member or by the server when it
+        // creates a channel's first key.
+        updated.EncryptionGeneration = old.EncryptionGeneration;
+
         // Basic validation
         var baseValid = await ValidateChannel(updated);
         if (!baseValid.Success)

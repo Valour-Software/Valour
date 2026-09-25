@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq.Expressions;
+using Valour.Sdk.E2ee;
 using Valour.Server.Database;
 using Valour.Server.Utilities;
 using Valour.Shared;
@@ -18,13 +19,15 @@ public class PlanetService
     private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly PlanetPermissionService _permissionService;
+    private readonly E2eeAccessLogService _accessLogs;
     
     public PlanetService(
         ValourDb db,
         CoreHubService coreHub,
         ILogger<PlanetService> logger,
         NodeLifecycleService nodeLifecycleService,
-        HostedPlanetService hostedPlanetService, PlanetPermissionService permissionService)
+        HostedPlanetService hostedPlanetService, PlanetPermissionService permissionService,
+        E2eeAccessLogService accessLogs)
     {
         _db = db;
         _coreHub = coreHub;
@@ -32,6 +35,7 @@ public class PlanetService
         _nodeLifecycleService = nodeLifecycleService;
         _hostedPlanetService = hostedPlanetService;
         _permissionService = permissionService;
+        _accessLogs = accessLogs;
     }
     
     /// <summary>
@@ -729,6 +733,11 @@ public class PlanetService
         if (old.LockedForMigration)
             return new TaskResult<Planet>(false, MigrationLock.Message);
 
+        // Encryption settings change only through PlanetEncryptionService.
+        // Keep the stored values so the cache and broadcast below stay correct.
+        planet.EncryptionMode = old.EncryptionMode;
+        planet.EncryptionSharesHistory = old.EncryptionSharesHistory;
+
         if (planet.VanityInviteEnabled && !old.VanityInviteEnabled)
         {
             if (string.IsNullOrWhiteSpace(old.Vanity))
@@ -789,7 +798,16 @@ public class PlanetService
         return new TaskResult<Planet>(true, "Planet updated successfully.", planet);
     }
 
-    public async Task<TaskResult<Planet>> TransferOwnershipAsync(long planetId, long currentOwnerId, long newOwnerId)
+    /// <summary>
+    /// Transfers a planet to another member. An invite-only planet's membership
+    /// log names its own owner and the server cannot sign for it, so the
+    /// transfer requires a <c>TransferOwnership</c> entry signed by the current
+    /// owner's device (<paramref name="accessLogEntryBody"/> and
+    /// <paramref name="accessLogEntrySignature"/>), unless the log already
+    /// names the new owner. The entry is appended in the same transaction.
+    /// </summary>
+    public async Task<TaskResult<Planet>> TransferOwnershipAsync(long planetId, long currentOwnerId, long newOwnerId,
+        byte[] accessLogEntryBody = null, byte[] accessLogEntrySignature = null)
     {
         await using var transaction = await _db.Database.BeginTransactionAsync();
         var planet = await _db.Planets.FirstOrDefaultAsync(x => x.Id == planetId);
@@ -806,6 +824,11 @@ public class PlanetService
         if (await _db.Planets.CountAsync(x => x.OwnerId == newOwnerId) >= ISharedUser.MaxOwnedPlanets)
             return TaskResult<Planet>.FromFailure("That member already owns the maximum number of planets.");
 
+        var accessLog = await TransferAccessLogOwnershipAsync(planet, currentOwnerId, newOwnerId, accessLogEntryBody,
+            accessLogEntrySignature);
+        if (!accessLog.Success)
+            return TaskResult<Planet>.FromFailure(accessLog.Message);
+
         planet.OwnerId = newOwnerId;
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
@@ -815,6 +838,53 @@ public class PlanetService
         return TaskResult<Planet>.FromData(model);
     }
     
+    /// <summary>
+    /// Moves an invite-only planet's membership log to the new owner along
+    /// with the planet, so the log's owner and the planet's owner stay the
+    /// same account.
+    /// </summary>
+    private async Task<TaskResult> TransferAccessLogOwnershipAsync(Valour.Database.Planet planet, long currentOwnerId,
+        long newOwnerId, byte[] body, byte[] signature)
+    {
+        if (planet.EncryptionMode != PlanetEncryptionMode.InviteOnly &&
+            !await _accessLogs.ExistsAsync(AccessLogScope.Planet, planet.Id))
+            return TaskResult.SuccessResult;
+
+        var log = await _accessLogs.GetStateAsync(AccessLogScope.Planet, planet.Id);
+        if (log is null)
+            return TaskResult.FromFailure("The planet's membership log could not be verified.");
+        if (log.Owner.UserId == newOwnerId)
+            return TaskResult.SuccessResult;
+
+        if (body is null || signature is null)
+            return TaskResult.FromFailure(
+                "This planet is invite-only. Transfer it from an app on your verified device, which signs the change to its membership log.");
+
+        AccessLogRecord record;
+        try
+        {
+            record = AccessLogRecord.Decode(body);
+        }
+        catch (E2eeFormatException e)
+        {
+            return TaskResult.FromFailure(e.Message);
+        }
+
+        if (record.Type != AccessLogEntryType.TransferOwnership || record.Target.UserId != newOwnerId)
+            return TaskResult.FromFailure("The signed membership log change does not name the new owner.");
+
+        var appended = await _accessLogs.AppendAsync(AccessLogScope.Planet, planet.Id, currentOwnerId,
+            new AccessLogEntry
+            {
+                Scope = AccessLogScope.Planet,
+                ScopeId = planet.Id,
+                Seq = record.Seq,
+                Body = body,
+                Signature = signature
+            }, allowOwnershipTransfer: true);
+        return appended.Success ? TaskResult.SuccessResult : TaskResult.FromFailure(appended.Message);
+    }
+
     //////////////////////
     // Validation Logic //
     //////////////////////

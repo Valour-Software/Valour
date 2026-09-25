@@ -41,8 +41,12 @@ ports 80 and 443. From the repository root:
 cp .env.example .env
 ```
 
-Edit `.env` to set the domain, database password, and bootstrap administrator
-credentials, then start the services:
+Edit `.env` to set the domain, database password, bootstrap administrator
+credentials, and `DATAPROTECTION__KEK`, a secret key that protects the encryption
+keys the server stores (generate it with `openssl rand -base64 32` and keep a
+copy apart from database backups; see
+[Data Protection KEK](Docs/Deployment/README.md#data-protection-kek)). Compose
+refuses to start without it. Then start the services:
 
 ```sh
 docker compose up -d

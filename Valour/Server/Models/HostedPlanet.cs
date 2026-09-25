@@ -315,6 +315,15 @@ public class HostedPlanet : ServerModel<long>
 
     public int MemberCount => _members.Count;
 
+    private long _membershipVersion;
+
+    /// <summary>
+    /// Increases whenever someone joins or leaves, so caches of results that
+    /// depend on who the members are can tell they are out of date even when
+    /// the member count is unchanged.
+    /// </summary>
+    public long MembershipVersion => Interlocked.Read(ref _membershipVersion);
+
     public void SetMembers(IEnumerable<PlanetMember> members)
     {
         _members.Clear();
@@ -322,6 +331,7 @@ public class HostedPlanet : ServerModel<long>
         foreach (var member in members)
             StoreCore(member);
         _membersLoaded = true;
+        Interlocked.Increment(ref _membershipVersion);
     }
 
     /// <summary>
@@ -355,14 +365,20 @@ public class HostedPlanet : ServerModel<long>
     private void StoreCore(PlanetMember member)
     {
         var core = member.CopyWithUser(null);
+        var joined = !_members.ContainsKey(core.Id);
         _members[core.Id] = core;
         _userIdToMemberId[member.UserId] = member.Id;
+        if (joined)
+            Interlocked.Increment(ref _membershipVersion);
     }
 
     public void RemoveMember(long memberId)
     {
         if (_members.TryRemove(memberId, out var removed))
+        {
             _userIdToMemberId.TryRemove(removed.UserId, out _);
+            Interlocked.Increment(ref _membershipVersion);
+        }
     }
 
     /// <summary>
@@ -386,6 +402,12 @@ public class HostedPlanet : ServerModel<long>
 
         return result;
     }
+
+    /// <summary>
+    /// Returns a snapshot of every cached core member (User is null). Same read-only contract as
+    /// <see cref="TryGetMember"/>.
+    /// </summary>
+    public List<PlanetMember> GetAllMembers() => _members.Values.ToList();
 
     // Voice Participants //
 

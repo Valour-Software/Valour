@@ -362,6 +362,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<int>("EncryptionGeneration")
+                        .HasColumnType("integer")
+                        .HasColumnName("encryption_generation");
+
                     b.Property<bool>("InheritsPerms")
                         .HasColumnType("boolean")
                         .HasColumnName("inherits_perms");
@@ -617,6 +621,355 @@ namespace Valour.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("direct_call_members", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeAccessLogEntry", b =>
+                {
+                    b.Property<int>("Scope")
+                        .HasColumnType("integer")
+                        .HasColumnName("scope");
+
+                    b.Property<long>("ScopeId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("scope_id");
+
+                    b.Property<int>("Seq")
+                        .HasColumnType("integer")
+                        .HasColumnName("seq");
+
+                    b.Property<byte[]>("Body")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsCheckpoint")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_checkpoint");
+
+                    b.Property<byte[]>("Signature")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("signature");
+
+                    b.Property<long>("SignerUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("signer_user_id");
+
+                    b.HasKey("Scope", "ScopeId", "Seq");
+
+                    b.ToTable("e2ee_access_log_entries", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeAutomodTerm", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<int>("IndexGeneration")
+                        .HasColumnType("integer")
+                        .HasColumnName("index_generation");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.PrimitiveCollection<int[]>("Terms")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("terms");
+
+                    b.Property<Guid>("TriggerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trigger_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("TriggerId");
+
+                    b.HasIndex("ChannelId", "IndexGeneration");
+
+                    b.ToTable("e2ee_automod_terms", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeChannelKeyBox", b =>
+                {
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<int>("Generation")
+                        .HasColumnType("integer")
+                        .HasColumnName("generation");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<byte[]>("Box")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("box");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("SharedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("shared_by_user_id");
+
+                    b.Property<int>("UserKeyGeneration")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_key_generation");
+
+                    b.HasKey("ChannelId", "Generation", "UserId");
+
+                    b.HasIndex("UserId", "ChannelId");
+
+                    b.ToTable("e2ee_channel_key_boxes", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeChannelKeyGeneration", b =>
+                {
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<int>("Generation")
+                        .HasColumnType("integer")
+                        .HasColumnName("generation");
+
+                    b.Property<byte[]>("Body")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("CreatorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("creator_user_id");
+
+                    b.Property<bool>("HasMessages")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_messages");
+
+                    b.Property<string>("HeldSecretProtected")
+                        .HasColumnType("text")
+                        .HasColumnName("held_secret_protected");
+
+                    b.Property<int>("IndexGeneration")
+                        .HasColumnType("integer")
+                        .HasColumnName("index_generation");
+
+                    b.Property<byte[]>("SealPublicKey")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("seal_public_key");
+
+                    b.Property<byte[]>("Signature")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("signature");
+
+                    b.HasKey("ChannelId", "Generation");
+
+                    b.ToTable("e2ee_channel_key_generations", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeDeviceLinkSession", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("id");
+
+                    b.Property<byte[]>("ApprovalMac")
+                        .HasColumnType("bytea")
+                        .HasColumnName("approval_mac");
+
+                    b.Property<byte[]>("ApprovalPins")
+                        .HasColumnType("bytea")
+                        .HasColumnName("approval_pins");
+
+                    b.Property<string>("ApprovedByDeviceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("approved_by_device_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<byte[]>("DeviceEncryptPublicKey")
+                        .HasColumnType("bytea")
+                        .HasColumnName("device_encrypt_public_key");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("device_id");
+
+                    b.Property<byte[]>("DeviceJoinProof")
+                        .HasColumnType("bytea")
+                        .HasColumnName("device_join_proof");
+
+                    b.Property<string>("DeviceName")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("device_name");
+
+                    b.Property<byte[]>("DeviceSignPublicKey")
+                        .HasColumnType("bytea")
+                        .HasColumnName("device_sign_public_key");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<byte[]>("JoinMac")
+                        .HasColumnType("bytea")
+                        .HasColumnName("join_mac");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("integer")
+                        .HasColumnName("mode");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("e2ee_device_link_sessions", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeKeyLogEntry", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("Seq")
+                        .HasColumnType("integer")
+                        .HasColumnName("seq");
+
+                    b.Property<byte[]>("Body")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<byte[]>("Signature")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("signature");
+
+                    b.HasKey("UserId", "Seq");
+
+                    b.ToTable("e2ee_key_log_entries", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeKeyRequest", b =>
+                {
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.HasKey("ChannelId", "UserId");
+
+                    b.ToTable("e2ee_key_requests", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeServerKey", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("PrivateKeyProtected")
+                        .HasColumnType("text")
+                        .HasColumnName("private_key_protected");
+
+                    b.Property<byte[]>("PublicKey")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("public_key");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("e2ee_server_keys", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.E2eeUserKeyBox", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("Generation")
+                        .HasColumnType("integer")
+                        .HasColumnName("generation");
+
+                    b.Property<string>("RecipientId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("recipient_id");
+
+                    b.Property<byte[]>("Box")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("box");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("UserId", "Generation", "RecipientId");
+
+                    b.ToTable("e2ee_user_key_boxes", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.Economy.Currency", b =>
@@ -1344,10 +1697,22 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("edit_time");
 
+                    b.Property<int>("EncryptionVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("encryption_version");
+
+                    b.Property<byte[]>("Envelope")
+                        .HasColumnType("bytea")
+                        .HasColumnName("envelope");
+
                     b.Property<string>("ImportSource")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("import_source");
+
+                    b.Property<int>("KeyGeneration")
+                        .HasColumnType("integer")
+                        .HasColumnName("key_generation");
 
                     b.Property<string>("OverrideName")
                         .HasMaxLength(32)
@@ -1361,6 +1726,10 @@ namespace Valour.Database.Migrations
                     b.Property<long?>("ReplyToId")
                         .HasColumnType("bigint")
                         .HasColumnName("reply_to_id");
+
+                    b.PrimitiveCollection<int[]>("SearchTerms")
+                        .HasColumnType("integer[]")
+                        .HasColumnName("search_terms");
 
                     b.Property<DateTime>("TimeSent")
                         .HasColumnType("timestamp with time zone")
@@ -1514,6 +1883,60 @@ namespace Valour.Database.Migrations
                     b.HasIndex("Type", "TargetId");
 
                     b.ToTable("message_mentions", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.MessageProof", b =>
+                {
+                    b.Property<long>("MessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("message_id");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<byte[]>("BodyHash")
+                        .HasColumnType("bytea")
+                        .HasColumnName("body_hash");
+
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("EncryptionVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("encryption_version");
+
+                    b.Property<byte[]>("Header")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("header");
+
+                    b.Property<long?>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<byte[]>("Signature")
+                        .HasColumnType("bytea")
+                        .HasColumnName("signature");
+
+                    b.Property<DateTime>("TimeSent")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("time_sent");
+
+                    b.HasKey("MessageId", "Revision");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("message_proofs", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.MessageReaction", b =>
@@ -1944,6 +2367,14 @@ namespace Valour.Database.Migrations
                     b.Property<bool>("EnableWiki")
                         .HasColumnType("boolean")
                         .HasColumnName("enable_wiki");
+
+                    b.Property<int>("EncryptionMode")
+                        .HasColumnType("integer")
+                        .HasColumnName("encryption_mode");
+
+                    b.Property<bool>("EncryptionSharesHistory")
+                        .HasColumnType("boolean")
+                        .HasColumnName("encryption_shares_history");
 
                     b.Property<bool>("HasAnimatedIcon")
                         .HasColumnType("boolean")
@@ -3410,6 +3841,68 @@ namespace Valour.Database.Migrations
                     b.HasIndex("ThreadId");
 
                     b.ToTable("reports", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.ReportEvidence", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<string>("Content")
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Embed")
+                        .HasColumnType("text")
+                        .HasColumnName("embed");
+
+                    b.Property<long>("MessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("message_id");
+
+                    b.Property<long?>("PlanetReportId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_report_id");
+
+                    b.Property<string>("ReportId")
+                        .HasColumnType("text")
+                        .HasColumnName("report_id");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.Property<DateTime>("TimeSent")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("time_sent");
+
+                    b.Property<int>("Verification")
+                        .HasColumnType("integer")
+                        .HasColumnName("verification");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetReportId");
+
+                    b.HasIndex("ReportId");
+
+                    b.ToTable("report_evidence", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.StaffAuditLog", b =>

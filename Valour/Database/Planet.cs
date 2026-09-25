@@ -209,6 +209,20 @@ public class Planet : ISharedPlanet
     /// </summary>
     public ChannelActivityCadence ActivityNotificationCadence { get; set; } = ChannelActivityCadence.Standard;
 
+    /// <summary>
+    /// Who may receive the planet's channel keys. Every message is end-to-end
+    /// encrypted either way. See <see cref="PlanetEncryptionMode"/>.
+    /// </summary>
+    [Column("encryption_mode")]
+    public PlanetEncryptionMode EncryptionMode { get; set; }
+
+    /// <summary>
+    /// Whether members who join an encrypted planet can read messages sent
+    /// before they joined.
+    /// </summary>
+    [Column("encryption_shares_history")]
+    public bool EncryptionSharesHistory { get; set; } = true;
+
     // Only to fulfill contract
     [NotMapped]
     public string NodeName { get; set; }

@@ -57,9 +57,14 @@ registered signing key.
 
 The node stores the user information and membership it needs to serve the planet.
 The hub remains responsible for account state and user-wide features such as
-friends and direct messages. Community responses cannot overwrite those hub
-models in the SDK. External HTTP caches and model stores carry origin scope so
-identical local IDs from different servers remain separate.
+friends and direct messages. Account encryption key logs also belong to the hub.
+A node keeps verified copies of the ones it needs, refreshed through the
+node-authenticated `api/federation/e2ee/key-logs` endpoint, so it can check
+message signatures in the planets it hosts. See
+[End-to-end encryption](EndToEndEncryption.md#community-nodes). Community
+responses cannot overwrite those hub models in the SDK. External HTTP caches and
+model stores carry origin scope so identical local IDs from different servers
+remain separate.
 
 `ValourFederation.ProtocolVersion` in `Valour/Shared/Models/Federation.cs` defines
 the wire version. Descriptors and credentials must match it exactly. A missing or
@@ -105,9 +110,17 @@ state. To move between community nodes, pull back to the hub and then start a
 forward migration to the next destination.
 
 Snapshot data includes roles, permissions, memberships, moderation state, messages,
-attachment metadata, tags, invites, read state, and boost history. Export rejects
-encrypted node-local storage or voice credentials, custom planet or emoji assets,
-and thread attachments that do not have a supported transfer path.
+attachment metadata, tags, invites, read state, and boost history. It also carries
+the encryption records members need to keep reading: message envelopes, channel
+key generations and sealed boxes, the planet's membership log, automod term hashes,
+and the source server's public attestation keys. Planet, user, and channel IDs are
+kept, because encrypted messages and keys are signed over the planet and channel.
+Automod trigger IDs are kept too, because an invite-only planet's membership log
+approves triggers by ID. An import fails if a channel or trigger ID is already
+taken. Other IDs are remapped on a cross-domain import. Key requests and proofs of
+edited or deleted messages do not move. Export rejects encrypted node-local
+storage or voice credentials, custom planet or emoji assets, and thread
+attachments that do not have a supported transfer path.
 
 During pull-back, node-local CDN database pointers are removed because they cannot
 refer to hub database rows. Attachment locations remain part of the imported data.

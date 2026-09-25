@@ -14,6 +14,21 @@ public class InstanceManifest
     public const int CurrentProtocolVersion = ValourFederation.ProtocolVersion;
 
     /// <summary>
+    /// The client protocol this build speaks. Raise it when a server change
+    /// requires every client to update. Protocol 1: every chat message is
+    /// end-to-end encrypted, and the server refuses plain text.
+    /// </summary>
+    public const int CurrentClientProtocol = 1;
+
+    /// <summary>
+    /// The first client protocol at which the server accepts end-to-end
+    /// encrypted messages. A server that reports an older
+    /// <see cref="ClientProtocol"/> only accepts plain text, which current
+    /// clients never send.
+    /// </summary>
+    public const int EncryptedMessagesProtocol = 1;
+
+    /// <summary>
     /// Display name of the instance
     /// </summary>
     public string Name { get; set; }
@@ -27,6 +42,20 @@ public class InstanceManifest
     /// Federation protocol version this instance speaks
     /// </summary>
     public int ProtocolVersion { get; set; } = CurrentProtocolVersion;
+
+    /// <summary>
+    /// The oldest client protocol this server works with. A client with an
+    /// older <see cref="CurrentClientProtocol"/> asks the person to update.
+    /// </summary>
+    public int MinimumClientProtocol { get; set; }
+
+    /// <summary>
+    /// The client protocol this server speaks, which is its build's
+    /// <see cref="CurrentClientProtocol"/>. Servers from before client
+    /// protocols do not send it, so it reads as zero. Clients check it for
+    /// each community node they connect to.
+    /// </summary>
+    public int ClientProtocol { get; set; }
 
     /// <summary>
     /// True for the official Valour deployment; false for self-hosted instances

@@ -452,6 +452,47 @@ public class PlanetPermissionService
     }
 
     /// <summary>
+    /// Returns the user ids of every member who can view the channel, whether or not they are
+    /// connected. End-to-end encryption uses this to decide who should receive channel keys.
+    /// Access is cached per role combination, so this costs one lookup per distinct combination.
+    /// </summary>
+    public async Task<List<long>> GetAllChannelViewerUserIdsAsync(HostedPlanet hostedPlanet, long channelId)
+    {
+        var viewers = new List<long>();
+        foreach (var member in hostedPlanet.GetAllMembers())
+        {
+            var access = await GetChannelAccessForMemberAsync(ToStub(member));
+            if (access is not null && access.Contains(channelId))
+                viewers.Add(member.UserId);
+        }
+
+        return viewers;
+    }
+
+    /// <summary>
+    /// Returns true if the given user's membership lets them view the channel.
+    /// </summary>
+    public async Task<bool> CanUserViewChannelAsync(HostedPlanet hostedPlanet, long userId, long channelId)
+    {
+        if (!hostedPlanet.TryGetMemberByUser(userId, out var member))
+        {
+            // A cache miss is not proof of non-membership: a member who just
+            // joined can be missing while the hosted planet is still settling.
+            // Confirm against the database and repair the cache.
+            var dbMember = await _db.PlanetMembers.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.PlanetId == hostedPlanet.Id && x.UserId == userId && !x.IsDeleted);
+            if (dbMember is null)
+                return false;
+
+            member = dbMember.ToModel();
+            hostedPlanet.UpsertMember(member);
+        }
+
+        var access = await GetChannelAccessForMemberAsync(ToStub(member));
+        return access is not null && access.Contains(channelId);
+    }
+
+    /// <summary>
     /// Returns the members currently present in the planet's SignalR group, resolved entirely
     /// from in-memory caches: member ids come from the connection tracker and the member state
     /// comes from the hosted planet's member cache - no database round-trip.

@@ -291,7 +291,7 @@ public class RegisterService
                 ChannelId = victorDm.Id,
                 AuthorUserId = ISharedUser.VictorUserId,
                 Fingerprint = Guid.NewGuid().ToString(),
-            });
+            }, new MessageWriteOptions { SealKind = Valour.Sdk.E2ee.ServerSealedKind.System });
 
             if (!victorMessage.Success)
             {

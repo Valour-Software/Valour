@@ -41,10 +41,7 @@ public class BlockedReplyPreviewLiveTests
 
         // A second user joins the planet and writes the message that gets replied to
         var blockedDetails = await _fixture.RegisterUser();
-        var blockedClient = new ValourClient("https://localhost:5001/", httpProvider: new TestHttpProvider(_fixture.Factory));
-        blockedClient.SetHttpClient(_fixture.Factory.CreateClient());
-        var login = await blockedClient.AuthService.LoginAsync(blockedDetails.Email, blockedDetails.Password);
-        Assert.True(login.Success, login.Message);
+        var blockedClient = await EncryptedChat.LoginAsync(_fixture, blockedDetails);
 
         using var scope = _fixture.Factory.Services.CreateScope();
         var memberService = scope.ServiceProvider.GetRequiredService<PlanetMemberService>();
@@ -56,6 +53,9 @@ public class BlockedReplyPreviewLiveTests
 
         var blockedPlanet = await blockedClient.PlanetService.FetchPlanetAsync(planet.Id, skipCache: true);
         await blockedPlanet.EnsureReadyAsync();
+
+        // Messages are encrypted, so the second user needs the channel's key.
+        await EncryptedChat.ShareKeysAsync(viewer, blockedClient, planet.Id, channel.Id);
 
         var original = await SendAsync(blockedClient, planet.Id, channel.Id, join.Data!.Id, "original message");
         var reply = await SendAsync(viewer, planet.Id, channel.Id, planet.MyMember?.Id, "reply", original.Id);
@@ -89,18 +89,8 @@ public class BlockedReplyPreviewLiveTests
     private static async Task<Valour.Sdk.Models.Message> SendAsync(
         ValourClient client, long planetId, long channelId, long? memberId, string content, long? replyToId = null)
     {
-        var message = new Valour.Sdk.Models.Message(client)
-        {
-            Content = content,
-            ChannelId = channelId,
-            PlanetId = planetId,
-            AuthorUserId = client.Me.Id,
-            AuthorMemberId = memberId,
-            ReplyToId = replyToId,
-            Fingerprint = Guid.NewGuid().ToString(),
-        };
-
-        var result = await client.MessageService.SendMessage(message);
+        var channel = await EncryptedChat.GetChannelAsync(client, planetId, channelId);
+        var result = await EncryptedChat.SendAsync(client, channel, content, memberId, replyToId);
         Assert.True(result.Success, result.Message);
         return result.Data;
     }

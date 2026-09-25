@@ -247,7 +247,8 @@ public class FederationNodeService
         }
 
         if (!HasCurrentProtocol(result.Claims))
-            return TaskResult<AuthToken>.FromFailure("Unsupported federation protocol.");
+            return TaskResult<AuthToken>.FromFailure(
+                $"The hub uses a different federation protocol than this node (v{ValourFederation.ProtocolVersion}). Update the node and the hub to the same Valour release.");
 
         if (!result.Claims.TryGetValue("sub", out var subRaw) || !long.TryParse(subRaw?.ToString(), out var hubUserId))
             return TaskResult<AuthToken>.FromFailure("Token missing subject.");

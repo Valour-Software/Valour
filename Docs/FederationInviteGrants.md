@@ -1,6 +1,6 @@
 # Offline federation invite grants
 
-Federation protocol v5 lets a recipient join a private community-hosted planet
+The federation protocol lets a recipient join a private community-hosted planet
 while the hub is unavailable. The grant authorizes one named recipient;
 ordinary community-node invite codes do not establish hub membership.
 

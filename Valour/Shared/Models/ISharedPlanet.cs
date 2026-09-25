@@ -103,6 +103,17 @@ public interface ISharedPlanet : ISharedModel<long>
     bool EnableThreads { get; set; }
 
     /// <summary>
+    /// Who may receive the planet's channel keys. Every message is end-to-end
+    /// encrypted either way.
+    /// </summary>
+    PlanetEncryptionMode EncryptionMode { get; set; }
+
+    /// <summary>
+    /// Whether new members of an encrypted planet can read earlier messages
+    /// </summary>
+    bool EncryptionSharesHistory { get; set; }
+
+    /// <summary>
     /// True if this planet's threads can be browsed publicly without an account
     /// </summary>
     bool PublicThreads { get; set; }

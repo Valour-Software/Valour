@@ -50,6 +50,8 @@ public class MessageApi
         return Results.Json(result.Data);
     }
     
+    private const int MaxCustomEmojiIds = 100;
+
     [ValourRoute(HttpVerbs.Put, "api/messages/{id}")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> EditMessageRouteAsync(
@@ -387,10 +389,13 @@ public class MessageApi
     /// <summary>
     /// Checks that the token's user may write this message to the channel:
     /// channel access, direct message scope and blocks, planet posting
-    /// permissions, and permissions for attachments, embeds, role mentions,
-    /// and custom emoji. When editing, <paramref name="previous"/> is the
-    /// stored message and only content the edit adds needs those content
-    /// permissions. Returns an error result, or null when allowed.
+    /// permissions, and permissions for attachments, role mentions, and custom
+    /// emoji. The server cannot read the text, so the sender lists its
+    /// mentions and custom emoji as metadata; embeds travel inside the
+    /// encrypted envelope, where the sender's app checks the embed permission.
+    /// When editing, <paramref name="previous"/> is the stored message and only
+    /// attachments and role mentions the edit adds need those permissions.
+    /// Returns an error result, or null when allowed.
     /// </summary>
     private static async Task<IResult?> ValidateMessageWriteAsync(
         Message message,
@@ -424,11 +429,10 @@ public class MessageApi
             }
         }
 
-        // Custom emoji ids the message adds; on edit, ones already present were
-        // checked when they were first sent.
-        var customEmojiIds = PlanetEmojiText.ExtractCustomEmojiIds(message.Content);
-        if (previous is not null)
-            customEmojiIds.ExceptWith(PlanetEmojiText.ExtractCustomEmojiIds(previous.Content));
+        var customEmojiIds = (message.CustomEmojiIds ?? [])
+            .Where(x => x > 0).Distinct().Take(MaxCustomEmojiIds + 1).ToHashSet();
+        if (customEmojiIds.Count > MaxCustomEmojiIds)
+            return ValourResult.BadRequest("Message contains too many custom emojis.");
 
         // For planet channels, planet roles and membership are used
         // to determine if the user can post messages and content
@@ -463,23 +467,15 @@ public class MessageApi
                     return ValourResult.Forbid("You lack permission to attach content to messages in this channel");
             }
 
-            // If the message has embed data...
-            if (addedAttachments?.Any(x => x.Type == MessageAttachmentType.Embed) == true)
-            {
-                if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.Embed))
-                    return ValourResult.Forbid("You lack permission to attach embeds to messages in this channel");
-            }
-
-            // Check role mention permissions against parsed content, not client-supplied rows.
-            var mentions = MentionParser.Parse(message.Content ?? string.Empty);
+            // Check role mention permissions against the mentions the sender
+            // lists; recipients ignore listed mentions the text does not contain.
+            var mentions = E2eeMessageService.SanitizeMentions(message.Mentions);
             if (mentions is not null)
             {
-                var previousRoleIds = previous is null
-                    ? null
-                    : MentionParser.Parse(previous.Content ?? string.Empty)?
-                        .Where(x => x.Type == MentionType.Role)
-                        .Select(x => x.TargetId)
-                        .ToHashSet();
+                var previousRoleIds = previous?.Mentions?
+                    .Where(x => x.Type == MentionType.Role)
+                    .Select(x => x.TargetId)
+                    .ToHashSet();
 
                 foreach (var mention in mentions)
                 {

@@ -331,11 +331,13 @@ public class PlanetSnapshotServiceTests : IAsyncLifetime
         var importedInvite = await _db.PlanetInvites.SingleAsync(x => x.PlanetId == _planet.Id);
         var importedPlanet = await _db.Planets.IgnoreQueryFilters().SingleAsync(x => x.Id == _planet.Id);
 
-        Assert.NotEqual(sourceChannelId, importedChannel.Id);
+        // Channel ids are kept because encrypted messages are signed over them,
+        // and automod trigger ids because membership log approvals name them.
+        Assert.Equal(sourceChannelId, importedChannel.Id);
+        Assert.Equal(sourceTriggerId, importedTrigger.Id);
         Assert.NotEqual(sourceMessageId, importedMessage.Id);
         Assert.NotEqual(sourceThreadId, importedThread.Id);
         Assert.NotEqual(sourceCommentId, importedComment.Id);
-        Assert.NotEqual(sourceTriggerId, importedTrigger.Id);
         Assert.NotEqual(sourceInviteCode, importedInvite.Id);
 
         Assert.Equal(importedChannel.Id, importedMessage.ChannelId);

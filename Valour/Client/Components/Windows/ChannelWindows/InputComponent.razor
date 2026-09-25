@@ -88,9 +88,38 @@
     <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" AnimateClose="true" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
     
     <div class="textbox-holder" @onclick="@OnClickTextbox">
-        <div class="textbox" @ref="_dropZoneElement">
+        @* The textbox stays in the page while hidden; its script holds a reference to it. *@
+        @if (EncryptionBlocksInput)
+        {
+            <div class="e2ee-send-notice" role="status" @onclick:stopPropagation="true">
+                <i class="bi bi-shield-lock"></i>
+                <span>@EncryptionNoticeText</span>
+                @if (Client.E2eeService.Status == E2eeStatus.NeedsVerification)
+                {
+                    <button type="button" class="v-btn primary small" @onclick="@(() => ModalRoot.OpenModal<VerifyDeviceModal>(new VerifyDeviceModal.Params()))">Verify this device</button>
+                }
+                else if (Client.E2eeService.Status == E2eeStatus.NotSetUp)
+                {
+                    <button type="button" class="v-btn primary small" @onclick="@(() => ModalRoot.OpenModal<EncryptionSetupModal>(new EncryptionSetupModal.Params()))">Set up encryption</button>
+                }
+                else
+                {
+                    <button type="button" class="v-btn primary small" disabled="@_retryingEncryption" @onclick="RetryEncryptionAsync">
+                        @(_retryingEncryption ? "Retrying..." : "Retry")
+                    </button>
+                }
+            </div>
+        }
+        else if (_sendStatus is not null)
+        {
+            <div class="e2ee-send-status" role="status">
+                <span class="send-status-spinner" aria-hidden="true"></span>
+                <span>@_sendStatus</span>
+            </div>
+        }
+        <div class="textbox @(EncryptionBlocksInput ? "encryption-blocked" : string.Empty)" @ref="_dropZoneElement">
             <div class="textbox-wrapper">
-                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" autofocus>
+                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost && DeviceCanEncrypt ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" autofocus>
                 </div>
                 @if (!CanUserPost)
                 {
@@ -103,11 +132,11 @@
             </div>
         </div>
         
-        <button type="button" tabindex="0" class="input-action-btn upload-btn" title="Add" aria-label="Open add menu" @onclick="@ToggleUploadMenu" @onclick:stopPropagation="true">
+        <button type="button" tabindex="0" class="input-action-btn upload-btn @(EncryptionBlocksInput ? "encryption-blocked" : string.Empty)" title="Add" aria-label="Open add menu" @onclick="@ToggleUploadMenu" @onclick:stopPropagation="true">
             <i class="bi bi-plus-circle"></i>
         </button>
 
-        <button id="emoji-button" class="input-action-btn emoji-button" title="Emoji" aria-label="Open emoji picker" @onclick="@ToggleEmojis">
+        <button id="emoji-button" class="input-action-btn emoji-button @(EncryptionBlocksInput ? "encryption-blocked" : string.Empty)" title="Emoji" aria-label="Open emoji picker" @onclick="@ToggleEmojis">
             <i class="bi bi-emoji-smile"></i>
         </button>
 
@@ -277,6 +306,57 @@
     protected override bool ShouldRender()
         => CanRenderFlag;
 
+    /// <summary>
+    /// Messages are end-to-end encrypted, so a device without keys cannot send.
+    /// </summary>
+    private bool DeviceCanEncrypt => Client.E2eeService.Status == E2eeStatus.Ready;
+
+    private bool EncryptionBlocksInput => CanUserPost && !DeviceCanEncrypt;
+
+    private string EncryptionNoticeText => Client.E2eeService.Status switch
+    {
+        E2eeStatus.NeedsVerification => "Messages are end-to-end encrypted. Verify this device to send messages.",
+        E2eeStatus.NotSetUp => "Messages are end-to-end encrypted, and encryption is not set up for your account yet.",
+        E2eeStatus.Error => "Your encryption keys couldn't be loaded or verified, so this device can't send messages. Check your connection and try again.",
+        E2eeStatus.Unknown => "Loading your encryption keys...",
+        _ => "Your encryption keys couldn't be loaded, so this device can't send messages. Check your connection and try again."
+    };
+
+    private bool _retryingEncryption;
+
+    private async Task RetryEncryptionAsync()
+    {
+        _retryingEncryption = true;
+        Refresh();
+
+        var usable = await E2eeCoordinator.ReloadKeysAsync(Client);
+
+        _retryingEncryption = false;
+        if (!usable)
+        {
+            ToastContainer.Instance?.AddToast(new ToastData("Encryption still unavailable",
+                "Your encryption keys could not be loaded. If this keeps happening, contact Valour support.",
+                ToastProgressState.Failure));
+        }
+        Refresh();
+    }
+
+    // Shown while a send takes longer than a moment, usually because this
+    // device is waiting for another member to share the channel's key.
+    private string _sendStatus;
+    private int _pendingSends;
+
+    private E2eeService _encryptionEvents;
+
+    protected override void OnInitialized()
+    {
+        KeyboardListener.KeyDown += OnGlobalKeyDown;
+        _encryptionEvents = Client.E2eeService;
+        _encryptionEvents.StatusChanged += OnEncryptionStatusChanged;
+    }
+
+    private void OnEncryptionStatusChanged(E2eeStatus status) => _ = InvokeAsync(Refresh);
+
     public void Refresh()
     {
         CanRenderFlag = true;
@@ -369,10 +449,6 @@
     private Task _interopCleanupTask;
     private IJSObjectReference _fileDropZone;
 
-    protected override void OnInitialized()
-    {
-        KeyboardListener.KeyDown += OnGlobalKeyDown;
-    }
 
     /// <summary>
     /// Escape removes the draft's reply and its last attachment once per key
@@ -400,6 +476,8 @@
     {
         _disposed = true;
         KeyboardListener.KeyDown -= OnGlobalKeyDown;
+        if (_encryptionEvents is not null)
+            _encryptionEvents.StatusChanged -= OnEncryptionStatusChanged;
         var channelId = ChatComponent?.Channel?.Id;
         if (channelId is not null)
             _retainedInputCache.Remove(channelId.Value, out _);
@@ -1156,8 +1234,31 @@
         if (message.Id == 0)
         {
             await ChatComponent.AddQueuedMessage(message);
-            
-            var result = await message.PostAsync();
+
+            var channel = ChatComponent.Channel;
+            var postTask = message.PostAsync();
+            _pendingSends++;
+            _ = ShowSendStatusIfSlowAsync(postTask, channel);
+
+            TaskResult<Message> result;
+            try
+            {
+                result = await postTask;
+            }
+            finally
+            {
+                _pendingSends--;
+                if (_pendingSends == 0 && _sendStatus is not null)
+                {
+                    _sendStatus = null;
+                    Refresh();
+                }
+            }
+
+            // Text typed while the send was in progress is kept over the
+            // failed message's text.
+            var typedMeanwhile = _retainedInputCache.TryGetValue(channel.Id, out var typed) &&
+                                 !string.IsNullOrEmpty(typed);
 
             if (!result.Success)
             {
@@ -1184,6 +1285,10 @@
             PreviewMessage.Clear();
             await PreviewMessageComponent.ReRender();
             _retainedInputCache.Remove(ChatComponent.Channel.Id, out _);
+
+            // Don't lose what the person wrote when sending fails.
+            if (!result.Success && !typedMeanwhile)
+                await RestoreFailedMessageAsync(message, channel);
         }
         // Editing message
         else
@@ -1213,6 +1318,63 @@
                     await editingComponent.CloseEditMode();
             }
         }
+    }
+
+    /// <summary>
+    /// Explains a send that takes more than a moment. Sending waits up to a
+    /// few seconds for another member to share the channel's key, and
+    /// without feedback it looks like nothing happened.
+    /// </summary>
+    private async Task ShowSendStatusIfSlowAsync(Task postTask, Channel channel)
+    {
+        try
+        {
+            if (await Task.WhenAny(postTask, Task.Delay(800)) == postTask || _disposed)
+                return;
+
+            var ring = channel.IsChatChannel ? await Client.E2eeService.GetKeyRingAsync(channel) : null;
+            if (postTask.IsCompleted || _disposed || ChatComponent?.Channel?.Id != channel.Id)
+                return;
+
+            _sendStatus = ring is not null && ring.LatestGeneration > 0 && ring.Latest is null
+                ? "Getting this channel's key..."
+                : "Sending...";
+            await InvokeAsync(Refresh);
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<InputComponent>($"Checking send progress failed: {e.Message}", "red");
+        }
+    }
+
+    /// <summary>
+    /// Puts the text, reply, and attachments of a message that failed to send
+    /// back into the input.
+    /// </summary>
+    private async Task RestoreFailedMessageAsync(Message message, Channel channel)
+    {
+        if (_disposed || EditingMessageComponent is not null || ChatComponent?.Channel?.Id != channel.Id ||
+            string.IsNullOrEmpty(message.Content))
+            return;
+
+        PreviewMessage ??= BuildNewMessage();
+        PreviewMessage.Content = message.Content;
+        PreviewMessage.ReplyToId = message.ReplyToId;
+        PreviewMessage.ReplyTo = message.ReplyTo;
+        if (PreviewMessageComponent is not null && !ReferenceEquals(PreviewMessageComponent.ParamData.Message, PreviewMessage))
+            PreviewMessageComponent.SetMessage(PreviewMessage);
+
+        // Invite cards are added again from the text on the next send.
+        var attachments = message.Attachments?
+            .Where(a => a.Type != MessageAttachmentType.ValourInvite)
+            .ToList();
+        if (attachments is { Count: > 0 })
+            PreviewMessage.SetAttachments(attachments);
+
+        _retainedInputCache[channel.Id] = message.Content;
+        await SetInputContent(message.Content);
+        RefreshPreviewMessage();
+        Refresh();
     }
 
     /////////////////////
@@ -1404,7 +1566,9 @@
         var lastMessage = ChatComponent.RenderedMessages
             .LastOrDefault(m => m.ParamData.Message.AuthorUserId == Client.Me.Id);
 
-        if (lastMessage is null)
+        // A message this device cannot read (or that failed verification)
+        // cannot be edited, because its text is not known here.
+        if (lastMessage is null || !lastMessage.ParamData.Message.HasReadableText())
         {
             return;
         }

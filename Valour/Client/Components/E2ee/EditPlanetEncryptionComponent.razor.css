@@ -1,0 +1,121 @@
+.mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-3) 0;
+}
+
+.mode-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-3);
+    text-align: left;
+    color: var(--font-color);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.mode-option.selected {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-soft);
+}
+
+.mode-option:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.mode-option.selected:disabled {
+    opacity: 1;
+}
+
+.mode-option i {
+    font-size: var(--font-size-lg);
+    color: var(--color-primary);
+}
+
+.mode-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.mode-copy span {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+.warning-text {
+    display: flex;
+    gap: var(--space-2);
+    color: var(--color-warning);
+}
+
+.people {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-2) 0;
+}
+
+.person {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--main-3);
+}
+
+.person-name {
+    flex: 1;
+    font-weight: var(--font-weight-semibold);
+}
+
+.person-note {
+    color: var(--color-warning);
+    font-size: var(--font-size-sm);
+}
+
+.safety-number {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+    letter-spacing: 0.06em;
+    word-spacing: 0.4em;
+}
+
+.empty {
+    color: var(--font-alt-color);
+}
+
+.subsection-title {
+    margin: var(--space-4) 0 var(--space-2);
+    font-size: var(--font-size-md);
+}
+
+.invite-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-3);
+}
+
+.invite-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--main-3);
+}
+
+.invite-link code {
+    flex: 1;
+    overflow-wrap: anywhere;
+}

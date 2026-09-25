@@ -126,12 +126,20 @@ else
                             <MessageComponent ParamData="@_messageParams" />
                         </div>
                     }
-                    else
+                    else if (_evidence.Count == 0)
                     {
                         <div class="message-state error">
                             <span>Message could not be loaded.</span>
                             <button class="v-btn secondary" @onclick="LoadSelectedMessageAsync">Retry</button>
                         </div>
+                    }
+
+                    @if (_evidence.Count > 0)
+                    {
+                        <div class="review-header">
+                            <label>Revealed by the reporter</label>
+                        </div>
+                        <ReportEvidenceView Evidence="@_evidence" PlanetId="@Planet.Id" />
                     }
                 </div>
             }
@@ -365,10 +373,13 @@ else
         _isLoadingThread = false;
     }
 
+    private List<ReportEvidenceDto> _evidence = new();
+
     private async Task LoadSelectedMessageAsync()
     {
         _reportedMessage = null;
         _messageParams = null;
+        _evidence = new();
 
         var selected = _selected;
         if (selected?.MessageId is null)
@@ -380,15 +391,21 @@ else
         try
         {
             var message = await SafetyService.GetPlanetReportMessageAsync(Planet, selected.Id);
+            var evidence = await SafetyService.GetPlanetReportEvidenceAsync(Planet, selected.Id);
             if (_selected?.Id != selected.Id)
                 return;
+
+            _evidence = evidence;
 
             _reportedMessage = message;
             if (_reportedMessage is not null)
             {
                 _messageParams = new MessageComponent.Params
                 {
-                    Message = _reportedMessage
+                    Message = _reportedMessage,
+                    UnreadableNotice = _evidence.Count > 0
+                        ? "End-to-end encrypted, and this device doesn't have its key. Review the text the reporter revealed below."
+                        : "End-to-end encrypted, and this device doesn't have its key. The reporter did not reveal its text."
                 };
             }
         }

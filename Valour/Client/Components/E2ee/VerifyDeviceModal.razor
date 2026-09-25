@@ -1,0 +1,413 @@
+@inherits Modal<VerifyDeviceModal.Params>
+@implements IDisposable
+@inject ValourClient Client
+
+<BasicModalLayout Title="@Title" Icon="shield-lock-fill" MaxWidth="480px" Role="dialog">
+    <MainArea>
+        @switch (_step)
+        {
+            case Step.Choose:
+                @if (Client.E2eeService.KeysResetElsewhere)
+                {
+                    <div class="danger-note">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span>
+                            Your encryption was started over from another sign-in, which signed this device out of it.
+                            If you did that, add this device from the one you used. If you didn't, someone may know
+                            your password: change it, then start over from this device instead.
+                        </span>
+                    </div>
+                    <button class="v-btn danger reset-here" @onclick="@(() => GoTo(Step.Reset))">Start over from this device</button>
+                }
+                else
+                {
+                    <p>
+                        Your account uses end-to-end encryption. This device needs your keys before it can
+                        read encrypted messages. Choose how to get them.
+                    </p>
+                }
+                <div class="verify-options">
+                    <button class="verify-option" @onclick="StartShowingCodeAsync">
+                        <i class="bi bi-qr-code"></i>
+                        <span class="option-copy">
+                            <strong>Approve from another device</strong>
+                            <span>Show a code here and scan it with a device you already use.</span>
+                        </span>
+                    </button>
+                    <button class="verify-option" @onclick="@(() => GoTo(Step.Scan))">
+                        <i class="bi bi-camera"></i>
+                        <span class="option-copy">
+                            <strong>Scan a code from another device</strong>
+                            <span>On the other device, open Settings, then Encryption, then Link a device.</span>
+                        </span>
+                    </button>
+                    <button class="verify-option" @onclick="@(() => GoTo(Step.EnterCode))">
+                        <i class="bi bi-keyboard"></i>
+                        <span class="option-copy">
+                            <strong>Enter a code from another device</strong>
+                            <span>For a device without a camera. On the other device, open Settings, then Encryption, then Link a device.</span>
+                        </span>
+                    </button>
+                    <button class="verify-option" @onclick="@(() => GoTo(Step.Recovery))">
+                        <i class="bi bi-key"></i>
+                        <span class="option-copy">
+                            <strong>Use your recovery code</strong>
+                            <span>The code you saved when your account's encryption was set up.</span>
+                        </span>
+                    </button>
+                </div>
+                <button class="link-button" @onclick="@(() => GoTo(Step.Reset))">I lost all my devices and my recovery code</button>
+                break;
+
+            case Step.ShowCode:
+                @if (_link is null)
+                {
+                    <div class="loading-state"><div class="loading-indicator"></div><span>Preparing a code...</span></div>
+                }
+                else
+                {
+                    <p>On a device where you are already signed in, open the approval prompt and scan this code.</p>
+                    <QrCodeView Text="@_link.QrCode" Label="Device link code" />
+                    <p class="helper-text">
+                        No camera on your other device? Go back, choose <strong>Enter a code from another device</strong>,
+                        and type the code your other device shows under Settings, then Encryption, then Link a device.
+                    </p>
+                    <div class="loading-state"><div class="loading-indicator"></div><span>Waiting for approval...</span></div>
+                }
+                break;
+
+            case Step.Scan:
+                <p>On a device where you are already signed in, open Settings, then Encryption, and choose Link a device.</p>
+                <QrScanner OnScanned="OnScannedAsync" Fallback="Go back and enter the code instead, or choose another way to verify this device." />
+                break;
+
+            case Step.EnterCode:
+                <label class="field-label" for="verify-link-code">
+                    On a device where you are already signed in, open Settings, then Encryption, and choose Link a device.
+                    Type the code it shows under the QR code.
+                </label>
+                <input id="verify-link-code" class="v-input code-input" placeholder="XXXX-XXXX-XXXX-XXXX"
+                       aria-label="Device link code" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                       @bind="_linkCodeInput" @bind:event="oninput" />
+                break;
+
+            case Step.WaitingAfterScan:
+                <p>Approve this device on your other device to finish.</p>
+                <div class="loading-state"><div class="loading-indicator"></div><span>Waiting for approval...</span></div>
+                break;
+
+            case Step.Recovery:
+                <label class="field-label" for="verify-recovery-code">Enter the recovery code you saved when your account's encryption was set up.</label>
+                <input id="verify-recovery-code" class="v-input recovery-input" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+                       aria-label="Recovery code" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                       @bind="_recoveryInput" @bind:event="oninput" />
+                break;
+
+            case Step.Reset:
+                <div class="danger-note">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    @if (Client.E2eeService.KeysResetElsewhere)
+                    {
+                        <span>
+                            Starting over from this device gives you a new recovery code and signs out every device the
+                            other sign-in set up. Change your password first, so whoever did this can't sign in again.
+                            This device keeps the messages it could already read, and people you talk to will see that
+                            your security code changed again.
+                        </span>
+                    }
+                    else
+                    {
+                        <span>
+                            If you start over, encrypted messages sent before now can't be read on any device, and people
+                            you talk to will see that your security code changed. Only do this if you have no other
+                            signed-in device and no recovery code.
+                        </span>
+                    }
+                </div>
+                <label class="field-label" for="verify-reset-confirm">Type <strong>RESET</strong> to confirm.</label>
+                <input id="verify-reset-confirm" class="v-input" aria-label="Type RESET to confirm" autocomplete="off"
+                       autocapitalize="characters" spellcheck="false" @bind="_resetConfirm" @bind:event="oninput" />
+                break;
+
+            case Step.NewRecoveryCode:
+                <p><strong>You've started over.</strong> Save your new recovery code before you continue.</p>
+                <RecoveryCodeView Code="@_newRecoveryCode" @bind-Saved="_saved" />
+                break;
+
+            case Step.Done:
+                <div class="done">
+                    <i class="bi bi-shield-check"></i>
+                    <span>This device can now read and send encrypted messages.</span>
+                </div>
+                break;
+        }
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @switch (_step)
+            {
+                case Step.Choose:
+                    <button class="v-btn" @onclick="@Close">Later</button>
+                    break;
+                case Step.ShowCode:
+                case Step.Scan:
+                case Step.WaitingAfterScan:
+                    <button class="v-btn" @onclick="BackAsync">Back</button>
+                    break;
+                case Step.EnterCode:
+                    <button class="v-btn" @onclick="BackAsync">Back</button>
+                    <button class="v-btn primary" disabled="@(_working || string.IsNullOrWhiteSpace(_linkCodeInput))" @onclick="SubmitCodeAsync">
+                        @(_working ? "Linking..." : "Link")
+                    </button>
+                    break;
+                case Step.Recovery:
+                    <button class="v-btn" @onclick="BackAsync">Back</button>
+                    <button class="v-btn primary" disabled="@_working" @onclick="RestoreAsync">
+                        @(_working ? "Restoring..." : "Restore")
+                    </button>
+                    break;
+                case Step.Reset:
+                    <button class="v-btn" @onclick="BackAsync">Back</button>
+                    <button class="v-btn danger" disabled="@(_working || _resetConfirm != "RESET")" @onclick="ResetAsync">
+                        @(_working ? "Starting over..." : "Start over")
+                    </button>
+                    break;
+                case Step.NewRecoveryCode:
+                    <button class="v-btn primary" disabled="@(!_saved)" @onclick="ContinueAfterResetAsync">Continue</button>
+                    break;
+                case Step.Done:
+                    <button class="v-btn primary" @onclick="@Close">Done</button>
+                    break;
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+        /// <summary>
+        /// Opens the reset step directly, for a device whose keys were reset
+        /// from another sign-in the person does not recognize.
+        /// </summary>
+        public bool StartWithReset { get; set; }
+    }
+
+    private enum Step { Choose, ShowCode, Scan, EnterCode, WaitingAfterScan, Recovery, Reset, NewRecoveryCode, Done }
+
+    private Step _step = Step.Choose;
+    private DeviceLinkStart _link;
+
+    // The link session this device is waiting on, if any.
+    private string _sessionId;
+    private string _linkCodeInput;
+
+    // Increases whenever the person leaves the code step, so a session that
+    // finishes starting afterwards is cancelled instead of shown.
+    private int _linkAttempt;
+    private bool _startingLink;
+    private bool _disposed;
+    private string _recoveryInput;
+    private string _resetConfirm;
+    private string _newRecoveryCode;
+    private bool _saved;
+    private bool _working;
+    private ITaskResult _result;
+
+    private string Title => _step == Step.Done ? "Device verified" : "Verify this device";
+
+    protected override void OnInitialized()
+    {
+        if (Data?.StartWithReset == true)
+            _step = Step.Reset;
+        Client.E2eeService.StatusChanged += OnStatusChanged;
+        Client.E2eeService.LinkSessionUpdated += OnLinkSessionUpdated;
+        Client.E2eeService.LinkFailed += OnLinkFailed;
+    }
+
+    private void OnLinkSessionUpdated(DeviceLinkSessionDto session)
+    {
+        if (session.Id != _sessionId || _step is not (Step.ShowCode or Step.WaitingAfterScan) ||
+            session.Status is not (DeviceLinkStatus.Denied or DeviceLinkStatus.Expired))
+            return;
+
+        _ = InvokeAsync(() =>
+        {
+            ReturnToChoices(TaskResult.FromFailure(session.Status == DeviceLinkStatus.Denied
+                ? "Your other device ended this request. If it has no camera, choose Enter a code from another device."
+                : "The request expired. Try again."));
+        });
+    }
+
+    private void OnLinkFailed(string message)
+    {
+        if (_step is not (Step.ShowCode or Step.WaitingAfterScan))
+            return;
+        _ = InvokeAsync(() => ReturnToChoices(TaskResult.FromFailure(message)));
+    }
+
+    private void ReturnToChoices(ITaskResult result)
+    {
+        if (_disposed)
+            return;
+        _linkAttempt++;
+        _link = null;
+        _sessionId = null;
+        _result = result;
+        _step = Step.Choose;
+        StateHasChanged();
+    }
+
+    private void OnStatusChanged(E2eeStatus status)
+    {
+        if (status != E2eeStatus.Ready || _step is Step.NewRecoveryCode or Step.Done)
+            return;
+
+        _step = Step.Done;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void GoTo(Step step)
+    {
+        _result = null;
+        _step = step;
+        StateHasChanged();
+    }
+
+    private async Task BackAsync()
+    {
+        _linkAttempt++;
+        var hadSession = _link is not null || _step == Step.WaitingAfterScan;
+        _link = null;
+        _sessionId = null;
+        GoTo(Step.Choose);
+
+        // A code that is still being prepared is cancelled when it arrives.
+        if (hadSession)
+            await Client.E2eeService.CancelLinkingAsync();
+    }
+
+    private async Task StartShowingCodeAsync()
+    {
+        if (_startingLink)
+            return;
+
+        var attempt = ++_linkAttempt;
+        _startingLink = true;
+        GoTo(Step.ShowCode);
+
+        TaskResult<DeviceLinkStart> result;
+        try
+        {
+            result = await Client.E2eeService.StartLinkingAsync();
+        }
+        finally
+        {
+            _startingLink = false;
+        }
+
+        // The person went back or closed this while the code was prepared.
+        if (attempt != _linkAttempt || _disposed)
+        {
+            if (result.Success)
+                await Client.E2eeService.CancelLinkingAsync();
+            return;
+        }
+
+        if (result.Success)
+        {
+            _link = result.Data;
+            _sessionId = result.Data.Session.Id;
+        }
+        else
+        {
+            _result = result;
+            _step = Step.Choose;
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnScannedAsync(string text)
+    {
+        var result = await Client.E2eeService.JoinLinkAsync(text);
+        if (result.Success)
+        {
+            _sessionId = result.Data.Id;
+            GoTo(Step.WaitingAfterScan);
+        }
+        else
+        {
+            _result = result;
+            _step = Step.Choose;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SubmitCodeAsync()
+    {
+        _working = true;
+        _result = null;
+        var result = await Client.E2eeService.JoinLinkAsync(_linkCodeInput);
+        _working = false;
+        if (result.Success)
+        {
+            _sessionId = result.Data.Id;
+            _linkCodeInput = null;
+            GoTo(Step.WaitingAfterScan);
+        }
+        else
+        {
+            _result = result;
+        }
+    }
+
+    private async Task RestoreAsync()
+    {
+        _working = true;
+        _result = null;
+        var result = await Client.E2eeService.RestoreWithRecoveryCodeAsync(_recoveryInput);
+        _working = false;
+        if (result.Success)
+            GoTo(Step.Done);
+        else
+            _result = result;
+    }
+
+    // The new code was shown here, so it counts as saved once confirmed.
+    private async Task ContinueAfterResetAsync()
+    {
+        await Client.E2eeService.MarkRecoveryCodeSavedAsync();
+        GoTo(Step.Done);
+    }
+
+    private async Task ResetAsync()
+    {
+        _working = true;
+        _result = null;
+        var result = await Client.E2eeService.ResetKeysAsync();
+        _working = false;
+        if (result.Success)
+        {
+            _newRecoveryCode = result.Data;
+            E2eeCoordinator.ShownRecoveryCode = _newRecoveryCode;
+            GoTo(Step.NewRecoveryCode);
+        }
+        else
+        {
+            _result = result;
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Client.E2eeService.StatusChanged -= OnStatusChanged;
+        Client.E2eeService.LinkSessionUpdated -= OnLinkSessionUpdated;
+        Client.E2eeService.LinkFailed -= OnLinkFailed;
+        // A code still being prepared is cancelled when it arrives instead.
+        if ((_link is not null && _step == Step.ShowCode || _step == Step.WaitingAfterScan) &&
+            Client.E2eeService.Status != E2eeStatus.Ready)
+            _ = Client.E2eeService.CancelLinkingAsync();
+    }
+}

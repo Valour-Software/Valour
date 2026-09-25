@@ -161,9 +161,11 @@ There is no direct community-node-to-community-node migration. To change
 community hosts, first complete a verified pull-back to the hub, then begin a
 new forward migration.
 
-The export format has transfer limits. An export rejects planets with encrypted node-local storage or voice
-credentials, thread attachments, or custom planet/emoji assets. Resolve or
-remove those blockers before starting the handoff.
+The export format has transfer limits. An export rejects planets with encrypted
+node-local storage or voice credentials, thread attachments, or custom
+planet/emoji assets. Resolve or remove those blockers before starting the
+handoff. End-to-end encrypted messages move with the planet, and members keep
+reading them with the keys they already hold.
 
 ## Security and trust model
 
@@ -178,12 +180,47 @@ remove those blockers before starting the handoff.
   credential expires.
 - Joining a community node requires explicit domain acceptance. Community
   servers are independently operated and should be treated accordingly.
-- The Data Protection KEK encrypts federation signing material stored in a
-  database. Keep it out of source control and never reuse a development key in
+- The Data Protection KEK encrypts federation signing material and the
+  encryption keys the server stores in its database. Every production server
+  needs one. Keep it out of source control and never reuse a development key in
   a shared or production deployment.
 - Federation protocol versions must match exactly. Upgrade all official hub
   replicas and participating community nodes together; re-verify nodes and
   reissue open grants after a protocol upgrade.
+
+## Upgrading for end-to-end encryption
+
+Every chat message is [end-to-end encrypted](EndToEndEncryption.md). A server
+built before encryption accepts only plain-text messages, which current clients
+never send. Upgrade in this order:
+
+1. **Official hub replicas.** Community nodes check message signatures against
+   users' key logs, which they copy from the hub's
+   `api/federation/e2ee/key-logs` endpoint. A node upgraded before its hub has
+   no key logs to check against, so it refuses encrypted messages.
+2. **Community nodes.** On startup an upgraded node applies the encryption
+   migrations. The hub and nodes must speak the same federation protocol
+   version, which is 6, and they refuse each other's credentials when the
+   versions differ. The hub logs that the node must be updated and does not
+   issue sign-in tokens for it, so signing in to a node that has not been
+   upgraded fails with "Community node verification has expired or changed."
+   Upgrade nodes soon after the hub. Sealing the plain-text history of the
+   planets a node hosts is a separate step the operator turns on later (see
+   [Configuration and rollout](EndToEndEncryption.md#configuration-and-rollout)).
+3. **Clients and bots.** Current apps and the .NET SDK 0.9.0 or later encrypt
+   messages. Earlier apps, earlier SDK versions, and raw HTTP bots are refused
+   by upgraded servers with an `E2EE_REQUIRED` error.
+
+Each server reports the client protocol it speaks as `ClientProtocol` in its
+instance manifest at `/.well-known/valour-instance`. Encryption is protocol 1.
+When a client connects to a community node it reads that manifest. If the node
+reports an earlier protocol, or has no manifest, members can still read its
+existing messages, but sending in its planets fails with "This community node
+must be updated before you can send messages here." A client that found a node
+outdated reads its manifest again the next time it tries to send, once at least
+five minutes have passed, so an upgrade takes effect without restarting the app.
+If the manifest cannot be read because of a network error, the client sends
+anyway and the node's own response decides.
 
 ## Local development
 

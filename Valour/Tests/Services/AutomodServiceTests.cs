@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Valour.Database.Context;
@@ -164,7 +163,7 @@ public class AutomodServiceTests : IAsyncLifetime
     [Fact]
     public async Task ScanMessage_BlacklistRespond_PostsVictorResponse()
     {
-        var regularMember = await RegisterAndJoinPlanetAsync();
+        var (regularMember, memberClient) = await RegisterAndJoinPlanetAsync();
 
         var trigger = new AutomodTrigger
         {
@@ -187,20 +186,14 @@ public class AutomodServiceTests : IAsyncLifetime
 
         var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
         Assert.True(createResult.Success, createResult.Message);
+        await PrepareEncryptedChannelAsync(memberClient);
 
-        var postResult = await _messageService.PostMessageAsync(new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = regularMember.UserId,
-            AuthorMemberId = regularMember.Id,
-            Content = "hello blacklist-trigger-word",
-            Fingerprint = Guid.NewGuid().ToString()
-        });
-
+        var postResult = await EncryptedChat.SendAsync(memberClient, _planet.Id, _defaultChannel.Id,
+            "hello blacklist-trigger-word");
         Assert.True(postResult.Success, postResult.Message);
 
-        var response = await WaitForMessageAsync(_defaultChannel.Id, m =>
+        // The response is sealed to the channel key, so a member reads it.
+        var response = await EncryptedChat.WaitForMessageAsync(_fixture.Client, _planet.Id, _defaultChannel.Id, m =>
             m.AuthorUserId == ISharedUser.VictorUserId &&
             m.Content.Contains("Automod response text", StringComparison.Ordinal) &&
             m.Content.Contains($"«@m-{regularMember.Id}»", StringComparison.Ordinal));
@@ -211,7 +204,7 @@ public class AutomodServiceTests : IAsyncLifetime
     [Fact]
     public async Task ScanMessage_BlacklistBlockMessage_PreventsPosting()
     {
-        var regularMember = await RegisterAndJoinPlanetAsync();
+        var (regularMember, memberClient) = await RegisterAndJoinPlanetAsync();
 
         var trigger = new AutomodTrigger
         {
@@ -234,42 +227,28 @@ public class AutomodServiceTests : IAsyncLifetime
 
         var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
         Assert.True(createResult.Success, createResult.Message);
+        await PrepareEncryptedChannelAsync(memberClient);
 
-        var blockedMessage = new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = regularMember.UserId,
-            AuthorMemberId = regularMember.Id,
-            Content = "this should be blocked-by-automod",
-            Fingerprint = Guid.NewGuid().ToString()
-        };
-
-        var postResult = await _messageService.PostMessageAsync(blockedMessage);
+        var postResult = await EncryptedChat.SendAsync(memberClient, _planet.Id, _defaultChannel.Id,
+            "this should be blocked-by-automod");
 
         Assert.False(postResult.Success);
         Assert.Contains("automod", postResult.Message, StringComparison.OrdinalIgnoreCase);
-
-        var persisted = await _db.Messages.AnyAsync(m => m.Id == blockedMessage.Id);
-        Assert.False(persisted);
+        Assert.False(await _db.Messages.AnyAsync(m => m.AuthorUserId == regularMember.UserId));
+        Assert.Empty(PlanetMessageWorker.GetStagedMessages(_defaultChannel.Id)
+            .Where(m => m.AuthorUserId == regularMember.UserId));
     }
 
     [Fact]
     public async Task ScanMessage_BlockedMessage_DoesNotSendMentionNotifications()
     {
-        var author = await RegisterAndJoinPlanetAsync();
-        var target = await RegisterAndJoinPlanetAsync();
+        var (_, authorClient) = await RegisterAndJoinPlanetAsync();
+        var (target, _) = await RegisterAndJoinPlanetAsync();
         await CreateBlockTriggerAsync("mention-blocked-word");
+        await PrepareEncryptedChannelAsync(authorClient);
 
-        var postResult = await _messageService.PostMessageAsync(new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = author.UserId,
-            AuthorMemberId = author.Id,
-            Content = $"«@m-{target.Id}» mention-blocked-word",
-            Fingerprint = Guid.NewGuid().ToString()
-        });
+        var postResult = await EncryptedChat.SendAsync(authorClient, _planet.Id, _defaultChannel.Id,
+            $"«@m-{target.Id}» mention-blocked-word");
 
         Assert.False(postResult.Success);
         Assert.False(await _db.Notifications.AnyAsync(x =>
@@ -279,33 +258,25 @@ public class AutomodServiceTests : IAsyncLifetime
     [Fact]
     public async Task EditMessage_IntoBlockedContent_IsRejected()
     {
-        var member = await RegisterAndJoinPlanetAsync();
+        var (_, memberClient) = await RegisterAndJoinPlanetAsync();
         await CreateBlockTriggerAsync("edit-blocked-word");
+        await PrepareEncryptedChannelAsync(memberClient);
 
-        var postResult = await _messageService.PostMessageAsync(new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = member.UserId,
-            AuthorMemberId = member.Id,
-            Content = "clean original content",
-            Fingerprint = Guid.NewGuid().ToString()
-        });
+        var postResult = await EncryptedChat.SendAsync(memberClient, _planet.Id, _defaultChannel.Id,
+            "clean original content");
         Assert.True(postResult.Success, postResult.Message);
-        var messageId = postResult.Data!.Id;
+        var message = postResult.Data!;
+        await EncryptedChat.WaitForStoredAsync(_fixture, message.Id);
 
-        var editResult = await _messageService.EditMessageAsync(new Message
-        {
-            Id = messageId,
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            Content = "now with edit-blocked-word"
-        });
+        message.Content = "now with edit-blocked-word";
+        var editResult = await message.UpdateAsync();
 
         Assert.False(editResult.Success);
         Assert.Contains("automod", editResult.Message, StringComparison.OrdinalIgnoreCase);
 
-        var stored = await _messageService.GetMessageAsync(messageId);
+        // The server cannot read the text, so another member reads it back.
+        var stored = await EncryptedChat.WaitForMessageAsync(_fixture.Client, _planet.Id, _defaultChannel.Id,
+            m => m.Id == message.Id);
         Assert.NotNull(stored);
         Assert.Equal("clean original content", stored!.Content);
     }
@@ -313,7 +284,7 @@ public class AutomodServiceTests : IAsyncLifetime
     [Fact]
     public async Task ScanMessage_BlacklistBan_BansTargetMember()
     {
-        var regularMember = await RegisterAndJoinPlanetAsync();
+        var (regularMember, memberClient) = await RegisterAndJoinPlanetAsync();
 
         var trigger = new AutomodTrigger
         {
@@ -336,16 +307,10 @@ public class AutomodServiceTests : IAsyncLifetime
 
         var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
         Assert.True(createResult.Success, createResult.Message);
+        await PrepareEncryptedChannelAsync(memberClient);
 
-        var postResult = await _messageService.PostMessageAsync(new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = regularMember.UserId,
-            AuthorMemberId = regularMember.Id,
-            Content = "triggering ban-trigger-word",
-            Fingerprint = Guid.NewGuid().ToString()
-        });
+        var postResult = await EncryptedChat.SendAsync(memberClient, _planet.Id, _defaultChannel.Id,
+            "triggering ban-trigger-word");
 
         Assert.True(postResult.Success, postResult.Message);
 
@@ -363,17 +328,10 @@ public class AutomodServiceTests : IAsyncLifetime
     [Fact]
     public async Task DeleteMessage_ImmediatelyAfterPost_Succeeds()
     {
-        var regularMember = await RegisterAndJoinPlanetAsync();
+        var (_, memberClient) = await RegisterAndJoinPlanetAsync();
 
-        var postResult = await _messageService.PostMessageAsync(new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = regularMember.UserId,
-            AuthorMemberId = regularMember.Id,
-            Content = "delete-me-immediately",
-            Fingerprint = Guid.NewGuid().ToString()
-        });
+        var postResult = await EncryptedChat.SendAsync(memberClient, _planet.Id, _defaultChannel.Id,
+            "delete-me-immediately");
 
         Assert.True(postResult.Success, postResult.Message);
         Assert.NotNull(postResult.Data);
@@ -410,7 +368,7 @@ public class AutomodServiceTests : IAsyncLifetime
         var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
         Assert.True(createResult.Success, createResult.Message);
 
-        var newUser = await RegisterNewUserAsync();
+        var (newUser, _) = await RegisterNewUserAsync();
         var joinResult = await _memberService.AddMemberAsync(_planet.Id, newUser.Id);
         Assert.True(joinResult.Success, joinResult.Message);
         Assert.NotNull(joinResult.Data);
@@ -420,7 +378,9 @@ public class AutomodServiceTests : IAsyncLifetime
         Assert.True(await _db.AutomodLogs.AnyAsync(x =>
             x.TriggerId == trigger.Id && x.MemberId == joinedMember.Id));
 
-        var response = await WaitForMessageAsync(_defaultChannel.Id, m =>
+        // The server created the channel's first key to seal the response and
+        // gave it to the owner, who has set up encryption.
+        var response = await EncryptedChat.WaitForMessageAsync(_fixture.Client, _planet.Id, _defaultChannel.Id, m =>
             m.AuthorUserId == ISharedUser.VictorUserId &&
             m.Content.Contains("Welcome to the planet", StringComparison.Ordinal) &&
             m.Content.Contains($"«@m-{joinedMember.Id}»", StringComparison.Ordinal));
@@ -431,7 +391,7 @@ public class AutomodServiceTests : IAsyncLifetime
     [Fact]
     public async Task DeleteTrigger_WhenLogsExist_DeletesTriggerAndLogs()
     {
-        var regularMember = await RegisterAndJoinPlanetAsync();
+        var (_, memberClient) = await RegisterAndJoinPlanetAsync();
 
         var trigger = new AutomodTrigger
         {
@@ -444,16 +404,10 @@ public class AutomodServiceTests : IAsyncLifetime
 
         var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, []);
         Assert.True(createResult.Success, createResult.Message);
+        await PrepareEncryptedChannelAsync(memberClient);
 
-        var postResult = await _messageService.PostMessageAsync(new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = regularMember.UserId,
-            AuthorMemberId = regularMember.Id,
-            Content = "contains delete-trigger-word",
-            Fingerprint = Guid.NewGuid().ToString()
-        });
+        var postResult = await EncryptedChat.SendAsync(memberClient, _planet.Id, _defaultChannel.Id,
+            "contains delete-trigger-word");
 
         Assert.True(postResult.Success, postResult.Message);
 
@@ -473,8 +427,8 @@ public class AutomodServiceTests : IAsyncLifetime
     public async Task ScanMessage_BanActionFromCreatorWithoutAuthority_IsSkipped()
     {
         // A regular member has neither the Ban permission nor authority over other members
-        var creator = await RegisterAndJoinPlanetAsync();
-        var target = await RegisterAndJoinPlanetAsync();
+        var (creator, _) = await RegisterAndJoinPlanetAsync();
+        var (target, targetClient) = await RegisterAndJoinPlanetAsync();
 
         var trigger = new AutomodTrigger
         {
@@ -497,15 +451,9 @@ public class AutomodServiceTests : IAsyncLifetime
         var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
         Assert.True(createResult.Success, createResult.Message);
 
-        var postResult = await _messageService.PostMessageAsync(new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = target.UserId,
-            AuthorMemberId = target.Id,
-            Content = "triggering unauthorized-ban-word",
-            Fingerprint = Guid.NewGuid().ToString()
-        });
+        await PrepareEncryptedChannelAsync(targetClient);
+        var postResult = await EncryptedChat.SendAsync(targetClient, _planet.Id, _defaultChannel.Id,
+            "triggering unauthorized-ban-word");
 
         Assert.True(postResult.Success, postResult.Message);
         Assert.False(await _db.PlanetBans.AnyAsync(b => b.PlanetId == _planet.Id && b.TargetId == target.UserId));
@@ -531,7 +479,7 @@ public class AutomodServiceTests : IAsyncLifetime
             PlanetId = _planet.Id
         })).Data!;
 
-        var admin = await RegisterAndJoinPlanetAsync();
+        var (admin, adminClient) = await RegisterAndJoinPlanetAsync();
         var addAdmin = await _memberService.AddRoleAsync(_planet.Id, admin.Id, adminRole.Id);
         Assert.True(addAdmin.Success, addAdmin.Message);
 
@@ -557,15 +505,9 @@ public class AutomodServiceTests : IAsyncLifetime
         var createResult = await _automodService.CreateTriggerWithActionsAsync(trigger, [action]);
         Assert.True(createResult.Success, createResult.Message);
 
-        var postResult = await _messageService.PostMessageAsync(new Message
-        {
-            PlanetId = _planet.Id,
-            ChannelId = _defaultChannel.Id,
-            AuthorUserId = admin.UserId,
-            AuthorMemberId = admin.Id,
-            Content = "admin-role-word",
-            Fingerprint = Guid.NewGuid().ToString()
-        });
+        await PrepareEncryptedChannelAsync(adminClient);
+        var postResult = await EncryptedChat.SendAsync(adminClient, _planet.Id, _defaultChannel.Id,
+            "admin-role-word");
 
         Assert.True(postResult.Success, postResult.Message);
         var adminAfter = await _memberService.GetAsync(admin.Id);
@@ -601,7 +543,7 @@ public class AutomodServiceTests : IAsyncLifetime
         Assert.True((await _automodService.ValidateActionAsync(RoleAction(plainRole.Id), _ownerMember)).Success);
 
         // A member without ManageRoles cannot configure role actions at all
-        var regular = await RegisterAndJoinPlanetAsync();
+        var (regular, _) = await RegisterAndJoinPlanetAsync();
         Assert.False((await _automodService.ValidateActionAsync(RoleAction(plainRole.Id), regular)).Success);
     }
 
@@ -698,51 +640,37 @@ public class AutomodServiceTests : IAsyncLifetime
         Assert.True(createResult.Success, createResult.Message);
     }
 
-    private async Task<User> RegisterNewUserAsync()
+    private async Task<(User User, RegisterUserRequest Details)> RegisterNewUserAsync()
     {
         var details = await _fixture.RegisterUser();
         var dbUser = await _db.Users.FirstAsync(x => x.Name == details.Username);
         var user = dbUser.ToModel();
         _createdUsers.Add(user);
-        return user;
+        return (user, details);
     }
 
-    private async Task<PlanetMember> RegisterAndJoinPlanetAsync()
+    /// <summary>
+    /// Adds a new user to the planet and signs them in with their own keys,
+    /// since every message must be encrypted by its sender.
+    /// </summary>
+    private async Task<(PlanetMember Member, Valour.Sdk.Client.ValourClient Client)> RegisterAndJoinPlanetAsync()
     {
-        var user = await RegisterNewUserAsync();
+        var (user, details) = await RegisterNewUserAsync();
         var joinResult = await _memberService.AddMemberAsync(_planet.Id, user.Id);
         Assert.True(joinResult.Success, joinResult.Message);
         Assert.NotNull(joinResult.Data);
-        return joinResult.Data!;
+        return (joinResult.Data!, await EncryptedChat.LoginAsync(_fixture, details));
     }
 
-    private async Task<Message?> WaitForMessageAsync(
-        long channelId,
-        Func<Message, bool> predicate,
-        int timeoutMs = 5000)
+    /// <summary>
+    /// The owner publishes the channel key, prepares automod term hashes as a
+    /// moderator's app does, and shares the key with the member.
+    /// </summary>
+    private async Task PrepareEncryptedChannelAsync(Valour.Sdk.Client.ValourClient member)
     {
-        var timer = Stopwatch.StartNew();
-        while (timer.ElapsedMilliseconds < timeoutMs)
-        {
-            var staged = PlanetMessageWorker.GetStagedMessages(channelId);
-            var match = staged.FirstOrDefault(predicate);
-            if (match is not null)
-                return match;
-
-            // The worker may flush between polling iterations. Treat a
-            // persisted response as success too; staging is an implementation
-            // detail, while delivery is the actual behavior under test.
-            var persisted = await _db.Messages
-                .AsNoTracking()
-                .Where(x => x.ChannelId == channelId)
-                .ToListAsync();
-            match = persisted.Select(x => x.ToModel()).FirstOrDefault(predicate);
-            if (match is not null)
-                return match;
-
-            await Task.Delay(50);
-        }
-
-        return null;
+        await EncryptedChat.ShareKeysAsync(_fixture.Client, member, _planet.Id, _defaultChannel.Id);
+        var planet = await _fixture.Client.PlanetService.FetchPlanetAsync(_planet.Id, skipCache: true);
+        var sync = await _fixture.Client.E2eeService.SyncAutomodTermsAsync(planet);
+        Assert.True(sync.Success, sync.Message);
     }
 }

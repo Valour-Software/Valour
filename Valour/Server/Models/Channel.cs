@@ -74,4 +74,10 @@ public class Channel : ServerModel<long>, ISharedChannel
     /// For call channels, the associated chat channel id.
     /// </summary>
     public long? AssociatedChatChannelId { get; set; }
+
+    /// <summary>
+    /// The newest end-to-end encryption key generation, or zero until the
+    /// channel's first key is created. Server-managed.
+    /// </summary>
+    public int EncryptionGeneration { get; set; }
 }

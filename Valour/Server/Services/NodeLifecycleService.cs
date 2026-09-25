@@ -322,6 +322,7 @@ public class NodeLifecycleService
         PlanetUserDelete,
         PlanetRealtimeEviction,
         ChannelRealtimeEviction,
+        E2ee,
     }
     
     public sealed class NodeRelayEventData
@@ -606,6 +607,12 @@ public class NodeLifecycleService
             {
                 if (TryReadRelayPayload(data, out ChannelRealtimeEvictionPayload eviction))
                     _ = EvictUsersFromChannelRealtimeLocalAsync(eviction.ChannelId, eviction.UserIds);
+                break;
+            }
+            case NodeEventType.E2ee:
+            {
+                if (TryReadRelayPayload(data, out Valour.Sdk.E2ee.E2eeRealtimeEvent e2eeEvent))
+                    _ = _hub.Clients.Group($"u-{data.TargetUser}").SendAsync(Valour.Sdk.E2ee.E2eeRealtimeEvent.HubMethod, e2eeEvent);
                 break;
             }
         }

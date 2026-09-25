@@ -51,18 +51,13 @@ public class MessageEditLiveTests : IAsyncLifetime
         return result.Data;
     }
 
-    // The send response is not bound to the client, so edits go through a bound copy
-    private Valour.Sdk.Models.Message ForEdit(Valour.Sdk.Models.Message sent, string content) =>
-        new(_fixture.Client)
-        {
-            Id = sent.Id,
-            Content = content,
-            ChannelId = sent.ChannelId,
-            PlanetId = sent.PlanetId,
-            AuthorUserId = sent.AuthorUserId,
-            AuthorMemberId = sent.AuthorMemberId,
-            Fingerprint = sent.Fingerprint,
-        };
+    // An encrypted edit keeps the message's nonce, so it goes through the
+    // message the client sent rather than a new copy.
+    private static Valour.Sdk.Models.Message ForEdit(Valour.Sdk.Models.Message sent, string content)
+    {
+        sent.Content = content;
+        return sent;
+    }
 
     [Fact]
     public async Task Edit_ByAuthor_Succeeds()

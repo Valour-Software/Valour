@@ -1,0 +1,248 @@
+@implements IDisposable
+@inject ValourClient Client
+
+@if (_resetUser is not null)
+{
+    <div class="e2ee-chat-notice" role="status">
+        <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+        <span class="notice-copy">
+            <strong>@_resetUser.Name's security code changed.</strong> This usually means they got a new phone or
+            reinstalled Valour without their recovery code. To keep this chat private, make sure it's really them
+            before you continue.
+        </span>
+        <div class="notice-actions">
+            <button type="button" class="v-btn small" @onclick="CompareNumbers">Compare codes</button>
+            <button type="button" class="v-btn primary small" disabled="@_working" @onclick="ConfirmResetAsync">
+                @(_working ? "Saving..." : "It's them")
+            </button>
+        </div>
+    </div>
+}
+else if (_awaitingAdmission)
+{
+    <div class="e2ee-chat-notice" role="status">
+        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+        <span class="notice-copy">
+            This planet is invite-only. An admin needs to admit you to this planet's encryption before you can
+            read its messages.
+        </span>
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Shows why a chat's encrypted messages are paused: in a direct chat,
+    /// the other person reset their keys and this person has not confirmed
+    /// it; in an invite-only planet, no admin has admitted this person yet.
+    /// </summary>
+    [Parameter]
+    public Channel Channel { get; set; }
+
+    /// <summary>
+    /// Called with true when this person is waiting to be admitted to the
+    /// planet's encryption, and false once they are, so messages can explain
+    /// why they are unreadable.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> AdmissionChanged { get; set; }
+
+    // Planets whose admins were already told that people are waiting, so the
+    // notice appears once per planet in a session.
+    private static readonly HashSet<long> AdminsNotified = new();
+
+    private Channel _checkedChannel;
+    private User _resetUser;
+
+    // The security number of the keys the banner is about. Confirming accepts
+    // only these keys, so a second reset in the meantime is not accepted unseen.
+    private string _resetNumber;
+    private long? _otherUserId;
+    private bool _awaitingAdmission;
+    private bool _working;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        Client.E2eeService.ContactWarning += OnContactWarning;
+        Client.E2eeService.StatusChanged += OnStatusChanged;
+        Client.E2eeService.ChannelKeysChanged += OnChannelKeysChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_checkedChannel, Channel))
+            return;
+
+        _checkedChannel = Channel;
+        _resetUser = null;
+        _otherUserId = null;
+        await CheckAsync();
+    }
+
+    private async Task CheckAsync()
+    {
+        var channel = Channel;
+        if (_disposed || channel is null || Client.E2eeService.Status != E2eeStatus.Ready)
+            return;
+
+        try
+        {
+            if (channel.ChannelType == ChannelTypeEnum.DirectChat)
+                await CheckKeyResetAsync(channel);
+            else if (channel.PlanetId is not null)
+                await CheckAdmissionAsync(channel);
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<ChatEncryptionNotice>($"Checking the chat's encryption state failed: {e.Message}", "red");
+        }
+    }
+
+    private async Task CheckKeyResetAsync(Channel channel)
+    {
+        _otherUserId ??= channel.Members?.FirstOrDefault(m => m.UserId != Client.Me.Id)?.UserId ??
+                         (await channel.GetChannelMemberUsersAsync()).FirstOrDefault(u => u.Id != Client.Me.Id)?.Id;
+        if (_otherUserId is not { } userId)
+            return;
+
+        var pending = await Client.E2eeService.IsKeyResetPendingAsync(userId);
+        var user = pending ? await Client.UserService.FetchUserAsync(userId) : null;
+        var number = pending ? await Client.E2eeService.GetSafetyNumberAsync(userId) : null;
+        if (!ReferenceEquals(channel, Channel))
+            return;
+
+        _resetUser = user;
+        _resetNumber = number;
+        StateHasChanged();
+    }
+
+    private async Task CheckAdmissionAsync(Channel channel)
+    {
+        var planet = channel.Planet;
+        var me = Client.E2eeService.MyKeyState;
+        var awaiting = false;
+
+        if (planet is not null && me is not null && planet.EncryptionMode == PlanetEncryptionMode.InviteOnly)
+        {
+            var log = await Client.E2eeService.GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node);
+            if (log is not null)
+            {
+                awaiting = !log.IsMember(Client.Me.Id, me);
+                if (log.IsAdmin(Client.Me.Id, me))
+                    _ = NotifyAdminOfWaitingAsync(planet);
+            }
+        }
+
+        if (!ReferenceEquals(channel, Channel) || awaiting == _awaitingAdmission)
+            return;
+
+        _awaitingAdmission = awaiting;
+        StateHasChanged();
+        await AdmissionChanged.InvokeAsync(awaiting);
+    }
+
+    /// <summary>
+    /// Tells an admin once per planet that people are waiting to be
+    /// admitted, since nobody else can let them read the planet.
+    /// </summary>
+    private async Task NotifyAdminOfWaitingAsync(Planet planet)
+    {
+        if (!AdminsNotified.Add(planet.Id))
+            return;
+
+        try
+        {
+            var pending = await Client.E2eeService.GetPendingAdmissionsAsync(planet);
+            var waiting = pending.Count(p => !p.KeysChanged);
+            var changed = pending.Count(p => p.KeysChanged);
+            if (waiting == 0 && changed == 0)
+                return;
+
+            var parts = new List<string>();
+            if (waiting > 0)
+                parts.Add(waiting == 1 ? "1 person is waiting to be admitted" : $"{waiting} people are waiting to be admitted");
+            if (changed > 0)
+                parts.Add(changed == 1
+                    ? "1 member has a new security code, so check it's them"
+                    : $"{changed} members have a new security code, so check it's them");
+
+            ToastContainer.Instance?.AddToast(new ToastData($"{planet.Name}: people are waiting",
+                $"{string.Join(", and ", parts)}. Open the planet's settings, then Encryption, to review them.")
+            {
+                ShouldAutoClose = false
+            });
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<ChatEncryptionNotice>($"Checking pending admissions failed: {e.Message}", "red");
+        }
+    }
+
+    private void CompareNumbers() =>
+        ModalRoot.Instance?.OpenModal<ChannelEncryptionModal>(new ChannelEncryptionModal.Params { Channel = Channel });
+
+    private async Task ConfirmResetAsync()
+    {
+        if (_otherUserId is not { } userId)
+            return;
+
+        _working = true;
+        StateHasChanged();
+
+        var result = await Client.E2eeService.AcceptKeyResetAsync(userId, _resetNumber);
+        _working = false;
+
+        if (result.Success)
+        {
+            _resetUser = null;
+        }
+        else
+        {
+            ToastContainer.Instance?.AddToast(new ToastData("Couldn't save that",
+                result.Message ?? "Try again in a moment.", ToastProgressState.Failure));
+
+            // Load the current keys, so the next confirmation is about them.
+            await CheckAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnContactWarning(E2eeContactWarning warning)
+    {
+        if (warning is null || !warning.KeysReset || Channel?.ChannelType != ChannelTypeEnum.DirectChat ||
+            (_otherUserId is not null && warning.UserId != _otherUserId))
+            return;
+
+        _ = InvokeAsync(CheckAsync);
+    }
+
+    private void OnStatusChanged(E2eeStatus status)
+    {
+        if (status == E2eeStatus.Ready)
+            _ = InvokeAsync(CheckAsync);
+    }
+
+    // Keys arriving in an invite-only planet can mean an admin admitted this person.
+    private void OnChannelKeysChanged(long channelId)
+    {
+        if (_awaitingAdmission && channelId == Channel?.Id)
+            _ = InvokeAsync(RecheckAdmissionAsync);
+    }
+
+    private async Task RecheckAdmissionAsync()
+    {
+        var planet = Channel?.Planet;
+        if (planet is not null)
+            await Client.E2eeService.GetAccessLogStateAsync(AccessLogScope.Planet, planet.Id, planet.Node, refresh: true);
+        await CheckAsync();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Client.E2eeService.ContactWarning -= OnContactWarning;
+        Client.E2eeService.StatusChanged -= OnStatusChanged;
+        Client.E2eeService.ChannelKeysChanged -= OnChannelKeysChanged;
+    }
+}

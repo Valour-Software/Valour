@@ -33,6 +33,7 @@ public static class ConfigLoader
         config.GetSection("Hosting").Get<HostingConfig>();
         config.GetSection("Bootstrap").Get<BootstrapConfig>();
         config.GetSection("Federation").Get<FederationConfig>();
+        config.GetSection("E2ee").Get<E2eeConfig>();
 
         // Override with Kubernetes node details
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
@@ -73,6 +74,11 @@ public static class ConfigLoader
         if (HostingConfig.Current is null)
         {
             new HostingConfig();
+        }
+
+        if (E2eeConfig.Current is null)
+        {
+            new E2eeConfig();
         }
 
         // Ensure every config singleton exists even when its section is absent

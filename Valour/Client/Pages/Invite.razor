@@ -2,9 +2,12 @@
 
 @inject ValourClient Client
 @inject PlanetService PlanetService
+@inject NavigationManager NavigationManager
+@inject EncryptedInviteRedeemer InviteRedeemer
 
 <PlanetJoinLanding Result="@_inviteDataResult"
                    JoinAsync="@JoinAsync"
+                   OnMemberAsync="@OnMemberAsync"
                    LoginReturnPath="@($"/I/{InviteCode}")"
                    RegisterUrl="@($"/register/i/{InviteCode}")" />
 
@@ -17,6 +20,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Invite-only encrypted planets put an admission key in the fragment.
+        await InviteRedeemer.RememberAsync(InviteCode, new Uri(NavigationManager.Uri).Fragment);
+
         var inviteDataTask = PlanetService.FetchInviteScreenDataAsync(InviteCode);
         var joinedPlanetsTask = Client.IsLoggedIn ? PlanetService.FetchJoinedPlanetsAsync() : Task.CompletedTask;
         await joinedPlanetsTask;
@@ -25,4 +31,9 @@
 
     private Task<TaskResult<PlanetMember>> JoinAsync(long planetId) =>
         PlanetService.JoinPlanetAsync(planetId, InviteCode);
+
+    // Joining, already being a member, and joining a community-hosted planet
+    // all redeem the encryption key carried in the link.
+    private Task OnMemberAsync(long planetId) =>
+        InviteRedeemer.OnJoinedAsync(InviteCode, planetId);
 }

@@ -1,0 +1,100 @@
+@inherits Modal<RecoveryActionModal.Params>
+@inject ValourClient Client
+
+<BasicModalLayout Title="@(Data.Reset ? "Start over" : "New recovery code")" Icon="key-fill" MaxWidth="460px" Role="dialog">
+    <MainArea>
+        @if (_code is null)
+        {
+            @if (Data.Reset)
+            {
+                <div class="danger-note">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>
+                        Starting over signs out every other device. You'll lose access to encrypted messages sent
+                        before now, and people you talk to will see that your security code changed. Type
+                        <strong>RESET</strong> to confirm.
+                    </span>
+                </div>
+                <input class="v-input" aria-label="Type RESET to confirm" autocomplete="off" autocapitalize="characters"
+                       spellcheck="false" @bind="_confirm" @bind:event="oninput" />
+            }
+            else
+            {
+                <p>
+                    A new recovery code replaces your current one, which stops working. Do this if you lost
+                    your code or think someone else has seen it.
+                </p>
+            }
+        }
+        else
+        {
+            <p><strong>Save your new recovery code.</strong> The old one no longer works.</p>
+            <RecoveryCodeView Code="@_code" @bind-Saved="_saved" />
+        }
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (_code is null)
+            {
+                <button class="v-btn" @onclick="@Close">Cancel</button>
+                @if (Data.Reset)
+                {
+                    <button class="v-btn danger" disabled="@(_working || _confirm != "RESET")" @onclick="RunAsync">
+                        @(_working ? "Starting over..." : "Start over")
+                    </button>
+                }
+                else
+                {
+                    <button class="v-btn primary" disabled="@_working" @onclick="RunAsync">
+                        @(_working ? "Creating..." : "Create new code")
+                    </button>
+                }
+            }
+            else
+            {
+                <button class="v-btn primary" disabled="@(!_saved)" @onclick="@OnDoneAsync">Done</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+        /// <summary>True to reset all keys; false to replace only the recovery code.</summary>
+        public bool Reset { get; set; }
+    }
+
+    private string _code;
+    private string _confirm;
+    private bool _saved;
+    private bool _working;
+    private ITaskResult _result;
+
+    private async Task RunAsync()
+    {
+        _working = true;
+        _result = null;
+        var result = Data.Reset
+            ? await Client.E2eeService.ResetKeysAsync()
+            : await Client.E2eeService.CreateNewRecoveryCodeAsync();
+        _working = false;
+
+        if (result.Success)
+        {
+            _code = result.Data;
+            E2eeCoordinator.ShownRecoveryCode = _code;
+        }
+        else
+        {
+            _result = result;
+        }
+    }
+
+    private async Task OnDoneAsync()
+    {
+        await Client.E2eeService.MarkRecoveryCodeSavedAsync();
+        Close();
+    }
+}

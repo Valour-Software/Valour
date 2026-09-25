@@ -7,6 +7,14 @@ namespace Valour.Sdk.Models;
 
 public class PlanetReport : ClientPlanetModel<PlanetReport, long>, ISharedPlanetReport
 {
+    /// <summary>
+    /// Messages the reporter reveals with the report. For encrypted messages
+    /// this is the only way their text reaches moderators; the server checks it
+    /// against the author's signed commitment. Request-only.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Valour.Sdk.E2ee.MessageEvidenceDto> Evidence { get; set; }
+
     public override string BaseRoute => ISharedPlanetReport.GetBaseRoute(PlanetId);
     public override string IdRoute => ISharedPlanetReport.GetIdRoute(PlanetId, Id);
 

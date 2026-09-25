@@ -1,4 +1,5 @@
-﻿using Valour.Sdk.Client;
+﻿using Valour.Shared;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
@@ -47,6 +48,23 @@ public class PlanetBan : ClientPlanetModel<PlanetBan, long>, ISharedPlanetBan
     [JsonConstructor]
     private PlanetBan() : base() {}
     public PlanetBan(ValourClient client) : base(client) { }
+
+    /// <summary>
+    /// Bans the target. Invite-only planets also remove them from their
+    /// signed membership log so they cannot receive keys again.
+    /// </summary>
+    public override async Task<TaskResult<PlanetBan>> CreateAsync()
+    {
+        var result = await base.CreateAsync();
+        if (result.Success && Planet is not null)
+        {
+            var removed = await Client.E2eeService.RemovePlanetMembersAsync(Planet, [TargetId]);
+            if (!removed.Success)
+                Client.Logger.Log("E2EE", "Could not remove the banned user from the planet's membership log: " + removed.Message, "yellow");
+        }
+
+        return result;
+    }
 
     public override PlanetBan AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

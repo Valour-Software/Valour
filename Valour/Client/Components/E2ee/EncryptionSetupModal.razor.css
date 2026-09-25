@@ -1,0 +1,10 @@
+.e2ee-point {
+    display: flex;
+    gap: var(--space-2);
+    margin: var(--space-3) 0;
+    color: var(--font-alt-color);
+}
+
+.e2ee-point i {
+    color: var(--color-primary);
+}

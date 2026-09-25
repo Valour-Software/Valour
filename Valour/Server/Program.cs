@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Npgsql;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
@@ -418,7 +419,11 @@ public partial class Program
         //{
             using var scope = services.BuildServiceProvider().CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-            db.Database.Migrate();
+            // Some migrations build indexes on large tables concurrently, which
+            // can take far longer than the default 30 second command timeout.
+            db.Database.SetCommandTimeout(TimeSpan.FromMinutes(30));
+            using (HoldMigrationLock())
+                db.Database.Migrate();
         //}
         
         Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
@@ -471,6 +476,31 @@ public partial class Program
             throw new InvalidOperationException(
                 "Federation requires DataProtection:Kek (or DataProtection:KekFile). " +
                 "Use a stable base64-encoded 32-byte key stored outside the database.");
+        }
+
+        // The server keeps channel keys it creates (for webhook, system, and
+        // welcome messages, and for sealed history) under Data Protection
+        // until enough members hold them. Without a KEK the key ring sits in
+        // the same database, so a copy of the database would open them.
+        if (!kekProvider.Available)
+        {
+            if (builder.Environment.IsProduction())
+            {
+                throw new InvalidOperationException(
+                    "End-to-end encryption requires DataProtection:Kek (or DataProtection:KekFile) in production. " +
+                    "Use a stable base64-encoded 32-byte key stored outside the database, the same on every instance.");
+            }
+
+            if (E2eeConfig.Current.SealLegacyMessages)
+            {
+                throw new InvalidOperationException(
+                    "E2ee:SealLegacyMessages requires DataProtection:Kek (or DataProtection:KekFile). " +
+                    "Use a stable base64-encoded 32-byte key stored outside the database, or turn sealing off.");
+            }
+
+            LoggerFactory.Create(b => b.AddConsole()).CreateLogger<Program>().LogWarning(
+                "No DataProtection:Kek is configured. Channel keys the server holds for encrypted chat are " +
+                "protected by a key ring stored in the same database. Configure a KEK before running in production.");
         }
 
         services.AddSingleton(kekProvider);
@@ -573,6 +603,15 @@ public partial class Program
         services.AddScoped<ChannelService>();
         services.AddScoped<DirectCallService>();
         services.AddScoped<MessageService>();
+        services.AddScoped<E2eeRealtimeService>();
+        services.AddScoped<E2eeIdentityService>();
+        services.AddScoped<E2eeServerKeyService>();
+        services.AddScoped<E2eeAccessLogService>();
+        services.AddScoped<E2eeChannelKeyService>();
+        services.AddScoped<E2eeMessageService>();
+        services.AddScoped<E2eeAutomodService>();
+        services.AddScoped<PlanetEncryptionService>();
+        services.AddScoped<E2eeMaintenanceService>();
         services.AddScoped<PlanetStorageService>();
         services.AddScoped<PlanetVoiceService>();
         services.AddScoped<FederationKeyService>();
@@ -679,6 +718,7 @@ public partial class Program
         services.AddHostedService<DirectCallCleanupWorker>();
         services.AddHostedService<HostedPlanetCleanupWorker>();
         services.AddHostedService<NotificationCleanupWorker>();
+        services.AddHostedService<E2eeMaintenanceWorker>();
         services.AddHostedService<CalendarReminderWorker>();
         services.AddHostedService<MigrationWorker>();
         services.AddEndpointsApiExplorer();
@@ -697,5 +737,37 @@ public partial class Program
             });
             c.OperationFilter<FileUploadOperation>();
         });
+    }
+
+    /// <summary>Advisory lock key held by the server applying database migrations.</summary>
+    private const long MigrationLockKey = 0x56_41_4C_4F_55_52_4D_47; // "VALOURMG"
+
+    /// <summary>
+    /// Takes a PostgreSQL advisory lock so only one server applies migrations
+    /// at a time. Some migrations build indexes concurrently outside a
+    /// transaction, where a second server would otherwise treat the first
+    /// one's unfinished index as a broken one and drop it. The lock is asked
+    /// for every two seconds rather than waited on: a session blocked inside
+    /// a query would itself hold up the concurrent index build it waits for.
+    /// Disposing the returned connection releases the lock.
+    /// </summary>
+    private static NpgsqlConnection HoldMigrationLock()
+    {
+        var builder = new NpgsqlConnectionStringBuilder(ValourDb.ConnectionString) { Pooling = false };
+        var connection = new NpgsqlConnection(builder.ConnectionString);
+        connection.Open();
+
+        using var tryLock = new NpgsqlCommand("SELECT pg_try_advisory_lock(@key)", connection);
+        tryLock.Parameters.AddWithValue("key", MigrationLockKey);
+        var waiting = false;
+        while (tryLock.ExecuteScalar() is not true)
+        {
+            if (!waiting)
+                Console.WriteLine("Waiting for another server to finish applying database migrations");
+            waiting = true;
+            Thread.Sleep(TimeSpan.FromSeconds(2));
+        }
+
+        return connection;
     }
 }

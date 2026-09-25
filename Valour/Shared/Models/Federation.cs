@@ -10,7 +10,12 @@ public static class ValourFederation
     // never treat arbitrary community-local ids as a shared Snowflake space.
     // Refuse older peers rather than allowing a mixed deployment to collide in
     // a client's cache.
-    public const int ProtocolVersion = 5;
+    //
+    // v6 makes end-to-end encryption mandatory. Nodes must store encrypted
+    // envelopes, key generations, sealed boxes, and access logs, carry them in
+    // planet snapshots, and fetch account key logs from the hub. An older node
+    // would store messages it cannot validate and drop keys during a move.
+    public const int ProtocolVersion = 6;
 
     public const string HubWellKnownRoute = "/.well-known/valour-federation";
     public const string NodeWellKnownRoute = "/.well-known/valour-node";

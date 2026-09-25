@@ -1504,9 +1504,23 @@ public class UserService
             }
             await _db.SaveChangesAsync();
             
+            // End-to-end encryption. The account's key log is kept: it holds
+            // only public keys, and other people's signed membership logs and
+            // messages refer to it. Everything that could open anything goes.
+            await _db.E2eeUserKeyBoxes.Where(x => x.UserId == dbUser.Id).ExecuteDeleteAsync();
+            await _db.E2eeDeviceLinkSessions.Where(x => x.UserId == dbUser.Id).ExecuteDeleteAsync();
+            await _db.E2eeKeyRequests.Where(x => x.UserId == dbUser.Id).ExecuteDeleteAsync();
+            await _db.E2eeChannelKeyBoxes.Where(x => x.UserId == dbUser.Id).ExecuteDeleteAsync();
+            await _db.MessageProofs.Where(x => x.AuthorUserId == dbUser.Id).ExecuteDeleteAsync();
+
             // Direct Message Channels
             if (directChannelIds.Count > 0)
             {
+                await _db.E2eeChannelKeyBoxes.Where(x => directChannelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+                await _db.E2eeChannelKeyGenerations.Where(x => directChannelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+                await _db.E2eeKeyRequests.Where(x => directChannelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+                await _db.MessageProofs.Where(x => directChannelIds.Contains(x.ChannelId)).ExecuteDeleteAsync();
+
                 await _db.Messages.IgnoreQueryFilters()
                     .Where(x => directChannelIds.Contains(x.ChannelId))
                     .ExecuteDeleteAsync();

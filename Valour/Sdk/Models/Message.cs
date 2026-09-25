@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
+using Valour.Sdk.E2ee;
 using Valour.Sdk.Models.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared;
@@ -90,6 +91,128 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public long? WebhookAvatarAssetId { get; set; }
 
     public bool WebhookAvatarAnimated { get; set; }
+
+    /// <summary>
+    /// How the text is stored. See <see cref="MessageEncryption"/>. The SDK
+    /// decrypts encrypted messages before they reach the cache, so
+    /// <see cref="Content"/> holds the readable text when decryption succeeds.
+    /// </summary>
+    public int EncryptionVersion { get; set; }
+
+    /// <summary>
+    /// The encrypted message, when <see cref="EncryptionVersion"/> is nonzero.
+    /// </summary>
+    public byte[] Envelope { get; set; }
+
+    /// <summary>
+    /// The channel key generation the envelope was encrypted with.
+    /// </summary>
+    public int KeyGeneration { get; set; }
+
+    /// <summary>
+    /// Keyed search terms sent with an encrypted message. Request-only.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int[] SearchTerms { get; set; }
+
+    /// <summary>
+    /// Links in an encrypted message that the sender wants previewed.
+    /// Request-only; the server cannot read the text to find them.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string> PreviewUrls { get; set; }
+
+    /// <summary>
+    /// IDs of the custom planet emojis in an encrypted message's text, so the
+    /// server can check them. Request-only.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<long> CustomEmojiIds { get; set; }
+
+    /// <summary>
+    /// Whether the text of an encrypted message could be read.
+    /// </summary>
+    [JsonIgnore]
+    public MessageDecryptionState DecryptionState { get; set; }
+
+    /// <summary>
+    /// Why an encrypted message could not be read, when it could not.
+    /// </summary>
+    [JsonIgnore]
+    public string DecryptionError { get; set; }
+
+    /// <summary>
+    /// The revision of an end-to-end encrypted message. Edits increase it.
+    /// </summary>
+    [JsonIgnore]
+    public int EncryptedRevision { get; set; }
+
+    /// <summary>
+    /// The key that opens this message's franking commitment. Revealing it
+    /// with the text in a report proves the author sent that text.
+    /// </summary>
+    [JsonIgnore]
+    public byte[] FrankingKey { get; set; }
+
+    /// <summary>
+    /// The decrypted text exactly as its author signed it. <see cref="Content"/>
+    /// holds the display copy, which escapes unsafe markdown as the server does
+    /// for plain text. Reports reveal this copy so the commitment verifies.
+    /// </summary>
+    [JsonIgnore]
+    public string SignedContent { get; set; }
+
+    /// <summary>
+    /// For messages the server sealed, the salt that proves the text against
+    /// the server's attestation.
+    /// </summary>
+    [JsonIgnore]
+    public byte[] SealedSalt { get; set; }
+
+    /// <summary>
+    /// For messages the server sealed, why it sealed them. The server knew the
+    /// text of these messages. <see cref="ServerSealedKind.Legacy"/> messages
+    /// were written before the channel was encrypted, and apps label them so
+    /// people can tell them apart from messages encrypted by their author.
+    /// </summary>
+    [JsonIgnore]
+    public ServerSealedKind? SealedKind { get; set; }
+
+    /// <summary>
+    /// True for a message written before its channel was encrypted, which the
+    /// server sealed later.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsLegacySealed => SealedKind == ServerSealedKind.Legacy;
+
+    /// <summary>
+    /// The embeds of an encrypted message exactly as its author signed them or
+    /// the server attested them. The embeds shown may differ, because unsafe
+    /// ones are hidden and live updates change them; reports reveal these.
+    /// </summary>
+    [JsonIgnore]
+    internal IReadOnlyList<string> SignedEmbeds { get; set; }
+
+    /// <summary>
+    /// True when the server returned files with an end-to-end encrypted
+    /// message that its author did not send. They are not shown, and apps
+    /// tell the person that some attachments were withheld.
+    /// </summary>
+    [JsonIgnore]
+    public bool AttachmentsWithheld { get; internal set; }
+
+    /// <summary>
+    /// True when the message's text is encrypted on the server.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsEncrypted => EncryptionVersion != MessageEncryption.None;
+
+    /// <summary>
+    /// Raised when an encrypted message is decrypted after it was first shown,
+    /// for example once a missing key arrives.
+    /// </summary>
+    [JsonIgnore]
+    public HybridEvent<Message> DecryptionChanged;
 
     public async ValueTask<IMessageAuthor> FetchAuthorAsync()
     {
@@ -356,8 +479,20 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         attachment.SetEmbedPayload(data);
     }
     
+    /// <summary>
+    /// Sends a live update to this message's embed. Only the bot that sent
+    /// the message can do this. The update is encrypted with the channel key.
+    /// </summary>
+    public Task<TaskResult> SendEmbedUpdateAsync(EmbedUpdate update) =>
+        Client.E2eeService.SendEmbedUpdateAsync(this, update);
+
     public bool IsEmpty()
     {
+        // An encrypted message this device cannot read yet has no text, but
+        // it is still a message; apps show why it cannot be read.
+        if (IsEncrypted)
+            return false;
+
         // early returns are faster than checking all conditions
         if (!string.IsNullOrWhiteSpace(Content))
             return false;
@@ -389,9 +524,81 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public Task<TaskResult<Message>> PostAsync() => 
         CreateAsync();
 
+    /// <summary>
+    /// Sends this message. The text is end-to-end encrypted on this device
+    /// first and never sent in the clear.
+    /// </summary>
+    public override Task<TaskResult<Message>> CreateAsync() =>
+        Client.E2eeService.SendMessageAsync(this);
+
+    /// <summary>
+    /// Saves an edit. The new text is encrypted as the message's next revision.
+    /// </summary>
+    public override Task<TaskResult<Message>> UpdateAsync() =>
+        Client.E2eeService.EditMessageAsync(this);
+
+    /// <summary>
+    /// Creates a copy to send to the server with the given encrypted fields,
+    /// leaving this instance, which the UI may be showing, unchanged.
+    /// </summary>
+    internal Message CreateWireCopy()
+    {
+        var copy = (Message)MemberwiseClone();
+        copy.ReplyTo = null;
+        copy.ReactionAdded = null;
+        copy.ReactionRemoved = null;
+        copy.DecryptionChanged = null;
+        copy.Attachments = Attachments?.ToList();
+        copy.Mentions = Mentions?.ToList();
+        return copy;
+    }
+
+    internal void NotifyDecryptionChanged() => DecryptionChanged?.Invoke(this);
+
     public override Message AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
+        if (IsEncrypted && Client.Cache.Messages.TryGet(Id, CacheScope, out var cached))
+        {
+            // Realtime events can arrive out of order. A copy of an earlier
+            // revision must not replace an edit the cache already holds.
+            if (EncryptionVersion == MessageEncryption.EndToEnd &&
+                cached.EncryptionVersion == MessageEncryption.EndToEnd &&
+                cached.DecryptionState == MessageDecryptionState.Decrypted &&
+                DecryptionState == MessageDecryptionState.Decrypted &&
+                cached.EncryptedRevision > EncryptedRevision)
+                return cached;
+
+            // An encrypted copy that was not decrypted must not overwrite text
+            // the cache already decrypted from the same envelope.
+            if (DecryptionState == MessageDecryptionState.NotAttempted &&
+                cached.DecryptionState != MessageDecryptionState.NotAttempted &&
+                cached.Envelope is not null && Envelope is not null && cached.Envelope.AsSpan().SequenceEqual(Envelope))
+            {
+                CopyDecryptionFrom(cached);
+            }
+        }
+
         return Client.Cache.Messages.Put(this, flags, CacheScope);
+    }
+
+    internal void CopyDecryptionFrom(Message source)
+    {
+        Content = source.Content;
+        DecryptionState = source.DecryptionState;
+        DecryptionError = source.DecryptionError;
+        EncryptedRevision = source.EncryptedRevision;
+        FrankingKey = source.FrankingKey;
+        SignedContent = source.SignedContent;
+        SealedSalt = source.SealedSalt;
+        SealedKind = source.SealedKind;
+        SignedEmbeds = source.SignedEmbeds;
+        AttachmentsWithheld = source.AttachmentsWithheld;
+        Mentions = source.Mentions;
+
+        // Embeds on an encrypted message come only from its decrypted payload,
+        // and files only from the list its author signed, never from what the
+        // server returned beside the ciphertext, so the checked list is copied.
+        Attachments = source.Attachments?.ToList();
     }
 
     public override Message RemoveFromCache(bool skipEvents = false)

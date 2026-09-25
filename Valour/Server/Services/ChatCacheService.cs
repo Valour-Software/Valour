@@ -1,3 +1,4 @@
+using Valour.Server.Workers;
 using System.Collections.Concurrent;
 using Valour.Server.Workers;
 using Valour.Shared.Models;
@@ -121,6 +122,23 @@ public class ChatCacheService
     {
         if (LastMessagesCaches.TryGet(message.ChannelId, out var cache))
             cache.Add(message);
+    }
+
+    /// <summary>
+    /// Drops a channel's cached messages so the next read loads them from the
+    /// database, for example after its history was sealed.
+    /// </summary>
+    public void ForgetChannelMessages(long channelId) => LastMessagesCaches.Remove(channelId);
+
+    /// <summary>
+    /// Forgets everything cached for a channel. A planet that moves between
+    /// nodes keeps its channel ids, so caches from before a move must not be
+    /// served after it.
+    /// </summary>
+    public void ForgetChannel(long channelId)
+    {
+        LastMessagesCaches.Remove(channelId);
+        LastChattersCaches.Remove(channelId);
     }
 
     public void RemoveMessage(long channelId, long messageId)
@@ -434,6 +452,8 @@ public class ChatCacheService
             _caches.TryGetValue(channelId, out cache);
 
         public IEnumerable<ChannelCache<T>> All() => _caches.Values;
+
+        public void Remove(long channelId) => _caches.TryRemove(channelId, out _);
 
         /// <summary>
         /// Returns the channel's snapshot, loading it first if the channel is not cached.

@@ -90,9 +90,7 @@
         if (!CanTransfer || _saving)
             return;
         _saving = true;
-        var response = await Planet.Node.PostAsyncWithResponse<Planet>(
-            $"api/planets/{Planet.Id}/transfer-ownership",
-            new PlanetOwnershipTransferRequest { NewOwnerUserId = _newOwnerUserId, MultiFactorCode = _mfaCode });
+        var response = await Client.E2eeService.TransferPlanetOwnershipAsync(Planet, _newOwnerUserId, _mfaCode);
         _result = response;
         if (response.Success && response.Data is not null)
             response.Data.Sync(Client);

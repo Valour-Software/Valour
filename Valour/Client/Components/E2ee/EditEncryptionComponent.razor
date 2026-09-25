@@ -1,0 +1,303 @@
+@implements IDisposable
+@inject ValourClient Client
+
+<div class="settings-page">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-lock-fill"></i>
+            End-to-end encryption
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Status</span>
+                @switch (_status)
+                {
+                    case E2eeStatus.Ready:
+                        <span class="status-badge enabled">On</span>
+                        break;
+                    case E2eeStatus.NeedsVerification:
+                        <span class="status-badge">This device is not verified</span>
+                        break;
+                    case E2eeStatus.NotSetUp:
+                        <span class="status-badge">Not set up</span>
+                        break;
+                    default:
+                        <span class="status-badge">Unavailable</span>
+                        break;
+                }
+            </div>
+            <p class="toggle-description">
+                Every message is end-to-end encrypted. Only the people in each conversation can read it. Valour
+                stores messages encrypted and never has the keys.
+            </p>
+            <div class="toggle-content">
+                @switch (_status)
+                {
+                    case E2eeStatus.NotSetUp:
+                        <VButton Variant="primary" OnClick="@(() => ModalRoot.OpenModal<EncryptionSetupModal>(new EncryptionSetupModal.Params()))">Set up encryption</VButton>
+                        break;
+                    case E2eeStatus.NeedsVerification:
+                        <VButton Variant="primary" OnClick="@(() => ModalRoot.OpenModal<VerifyDeviceModal>(new VerifyDeviceModal.Params()))">Verify this device</VButton>
+                        break;
+                    case E2eeStatus.Ready:
+                        break;
+                    default:
+                        <p class="helper-text">
+                            @(_status == E2eeStatus.Error
+                                ? "This device couldn't load or verify your encryption keys. Check your connection and try again."
+                                : "Your encryption keys haven't loaded yet. Check your connection and try again.")
+                        </p>
+                        <VButton Variant="primary" Icon="arrow-clockwise" Disabled="@_retrying" OnClick="RetryAsync">
+                            @(_retrying ? "Retrying..." : "Try again")
+                        </VButton>
+                        @if (_retryFailed)
+                        {
+                            <p class="helper-text warning-text">Still unavailable. If this keeps happening, contact Valour support.</p>
+                        }
+                        break;
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (_status == E2eeStatus.Ready && Client.E2eeService.MyKeyState is { } state)
+    {
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-phone"></i>
+                Your devices
+            </h3>
+            <p class="helper-text">Each device holds your keys. Remove any device you no longer use or don't recognize.</p>
+
+            <div class="device-list">
+                @foreach (var device in state.ActiveDevices.Values.OrderByDescending(d => d.AddedAt))
+                {
+                    var isThis = device.DeviceId == Client.E2eeService.Device?.DeviceId;
+                    <div class="device-item">
+                        <i class="bi @(DeviceIcon(device.Name))"></i>
+                        <div class="device-copy">
+                            <span class="device-name">
+                                @device.Name
+                                @if (isThis)
+                                {
+                                    <span class="badge badge-primary">This device</span>
+                                }
+                            </span>
+                            <span class="device-meta">Added @device.AddedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                        </div>
+                        @if (!isThis)
+                        {
+                            <VButton Variant="danger" Size="sm" OnClick="@(() => ConfirmRemove(device))">Remove</VButton>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="actions">
+                <VButton Variant="primary" Icon="qr-code" OnClick="@(() => ModalRoot.OpenModal<LinkDeviceModal>(new LinkDeviceModal.Params()))">Link a device</VButton>
+            </div>
+
+            @if (_linkRequests.Count > 0)
+            {
+                <h4 class="subsection-title">Sign-in requests</h4>
+                <p class="helper-text">These devices asked to read your encrypted messages. Only approve a device you are signing in on right now.</p>
+                <div class="device-list">
+                    @foreach (var request in _linkRequests)
+                    {
+                        <div class="device-item">
+                            <i class="bi @(DeviceIcon(request.Device?.Name))" aria-hidden="true"></i>
+                            <div class="device-copy">
+                                <span class="device-name">@(request.Device?.Name ?? "A new device")</span>
+                                <span class="device-meta">Requested @request.CreatedAt.ToLocalTime().ToString("t")</span>
+                            </div>
+                            <VButton Variant="primary" Size="sm" OnClick="@(() => ReviewRequest(request))">Review</VButton>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-key"></i>
+                Recovery code
+            </h3>
+            @if (_recoveryUnsaved)
+            {
+                <p class="helper-text warning-text">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    You have not saved your recovery code. Without it, losing every device means losing your
+                    encrypted messages.
+                </p>
+            }
+            <p class="helper-text">
+                @(state.Recovery is null
+                    ? "You have no recovery code. Create one so you can get back in if you lose every device."
+                    : "Your recovery code restores your keys when you lose every device. Only you have it.")
+            </p>
+            <div class="actions">
+                @if (Client.E2eeService.PendingRecoveryCode is not null)
+                {
+                    <VButton Variant="primary" OnClick="@(() => ModalRoot.OpenModal<EncryptionSetupModal>(new EncryptionSetupModal.Params()))">
+                        Show my recovery code
+                    </VButton>
+                }
+                else
+                {
+                    <VButton Variant="@(_recoveryUnsaved ? "primary" : "secondary")" OnClick="@(() => ModalRoot.OpenModal<RecoveryActionModal>(new RecoveryActionModal.Params { Reset = false }))">
+                        @(state.Recovery is null ? "Create recovery code" : "Create a new recovery code")
+                    </VButton>
+                }
+            </div>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-fingerprint"></i>
+                Your security code
+            </h3>
+            <p class="helper-text">
+                People can compare this with the code they see for you to make sure no one is listening in. It only
+                changes if you start over.
+            </p>
+            <div class="safety-number">@state.SafetyNumber()</div>
+        </div>
+
+        <div class="editor-section danger-zone">
+            <h3 class="editor-section-title">
+                <i class="bi bi-exclamation-triangle"></i>
+                Start over
+            </h3>
+            <p class="helper-text">
+                You'll lose access to encrypted messages sent before now on every device, and people you talk to will
+                see your security code changed. Only do this if you think someone else has your devices or recovery
+                code.
+            </p>
+            <div class="actions">
+                <VButton Variant="danger" OnClick="@(() => ModalRoot.OpenModal<RecoveryActionModal>(new RecoveryActionModal.Params { Reset = true }))">Start over without old messages</VButton>
+            </div>
+        </div>
+    }
+    <ResultLabel Result="@_result" />
+</div>
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private E2eeStatus _status;
+    private bool _recoveryUnsaved;
+    private bool _retrying;
+    private bool _retryFailed;
+    private bool _disposed;
+    private List<DeviceLinkSessionDto> _linkRequests = new();
+    private ITaskResult _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = Client.E2eeService.Status;
+        Client.E2eeService.StatusChanged += OnStatusChanged;
+        Client.E2eeService.LinkSessionUpdated += OnLinkSessionUpdated;
+        Client.E2eeService.RecoveryCodeChanged += OnRecoveryCodeChanged;
+        _recoveryUnsaved = await Client.E2eeService.IsRecoveryCodeUnsavedAsync();
+        await LoadLinkRequestsAsync();
+    }
+
+    /// <summary>
+    /// Sign-in requests from new devices waiting for approval. A prompt the
+    /// person dismissed can be opened again from here.
+    /// </summary>
+    private async Task LoadLinkRequestsAsync()
+    {
+        if (Client.E2eeService.Status != E2eeStatus.Ready)
+        {
+            _linkRequests = new();
+            return;
+        }
+
+        try
+        {
+            var requests = await Client.E2eeService.GetPendingLinkRequestsAsync();
+            _linkRequests = requests
+                .Where(r => DeviceLinkApprovalModal.NeedsApproval(Client.E2eeService, r))
+                .OrderByDescending(r => r.CreatedAt)
+                .ToList();
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<EditEncryptionComponent>($"Loading sign-in requests failed: {e.Message}", "red");
+            _linkRequests = new();
+        }
+    }
+
+    private void ReviewRequest(DeviceLinkSessionDto request)
+    {
+        if (DeviceLinkApprovalModal.TryReserve(request.Id))
+            ModalRoot.OpenModal<DeviceLinkApprovalModal>(new DeviceLinkApprovalModal.Params { Session = request });
+    }
+
+    private async Task RetryAsync()
+    {
+        _retrying = true;
+        _retryFailed = false;
+        StateHasChanged();
+
+        _retryFailed = !await E2eeCoordinator.ReloadKeysAsync(Client);
+        _retrying = false;
+        _status = Client.E2eeService.Status;
+        StateHasChanged();
+    }
+
+    private async Task OnRecoveryCodeChanged()
+    {
+        _recoveryUnsaved = await Client.E2eeService.IsRecoveryCodeUnsavedAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnStatusChanged(E2eeStatus status)
+    {
+        _status = status;
+        _recoveryUnsaved = await Client.E2eeService.IsRecoveryCodeUnsavedAsync();
+        await LoadLinkRequestsAsync();
+        if (!_disposed)
+            await InvokeAsync(StateHasChanged);
+    }
+
+    // An approved link adds a device to the list; any change can add or
+    // remove a waiting request.
+    private async Task OnLinkSessionUpdated(DeviceLinkSessionDto session)
+    {
+        await LoadLinkRequestsAsync();
+        if (!_disposed)
+            await InvokeAsync(StateHasChanged);
+    }
+
+    private static string DeviceIcon(string name) =>
+        name?.Contains("iPhone") == true || name?.Contains("Android") == true ? "bi-phone" : "bi-laptop";
+
+    private void ConfirmRemove(UserDeviceInfo device)
+    {
+        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams(
+            "Remove device",
+            $"{device.Name} will no longer be able to read new encrypted messages. It keeps what it already downloaded.",
+            "Remove",
+            "Cancel",
+            async () =>
+            {
+                _result = await Client.E2eeService.RevokeDeviceAsync(device.DeviceId);
+                if (_result.Success)
+                    _result = TaskResult.FromSuccess($"Removed {device.Name}.");
+                StateHasChanged();
+            },
+            () => Task.CompletedTask));
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Client.E2eeService.StatusChanged -= OnStatusChanged;
+        Client.E2eeService.LinkSessionUpdated -= OnLinkSessionUpdated;
+        Client.E2eeService.RecoveryCodeChanged -= OnRecoveryCodeChanged;
+    }
+}

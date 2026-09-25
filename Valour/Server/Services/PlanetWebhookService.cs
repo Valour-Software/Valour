@@ -1,3 +1,4 @@
+using Valour.Sdk.E2ee;
 using System.Security.Cryptography;
 using System.Text;
 using Valour.Sdk.Models.Embeds;
@@ -318,18 +319,27 @@ public class PlanetWebhookService
             WebhookAvatarAssetId = webhook.AvatarAssetId,
             WebhookAvatarAnimated = webhook.AvatarAnimated,
             SuppressRoleMentions = true,
+            SealKind = ServerSealedKind.Webhook,
         };
 
         return await _messageService.PostMessageAsync(message, writeOptions);
     }
 
     /// <summary>
-    /// Edits a message previously sent by this webhook.
+    /// Edits a message previously sent by this webhook. The server seals
+    /// webhook messages to the channel key and cannot read them afterward, so
+    /// an edit cannot keep text or embeds it omits. Both
+    /// <see cref="WebhookMessageEditRequest.Content"/> and
+    /// <see cref="WebhookMessageEditRequest.Embeds"/> are therefore required and
+    /// replace the message's text and embeds. Media attachments are kept.
     /// </summary>
     public async Task<TaskResult<Message>> EditMessageAsync(PlanetWebhook webhook, long messageId, WebhookMessageEditRequest request)
     {
         if (request is null)
             return new(false, "Include a request body.");
+
+        if (request.Content is null || request.Embeds is null)
+            return new(false, WebhookMessageEditRequest.BothFieldsRequiredMessage);
 
         var ownership = await GetOwnedMessageAsync(webhook, messageId);
         if (!ownership.Success)
@@ -337,26 +347,29 @@ public class PlanetWebhookService
 
         var old = ownership.Data;
 
-        List<SdkMessageAttachment> attachments;
-        if (request.Embeds is not null)
+        var attachments = BuildAttachments(request.Embeds, null, out var attachmentError) ?? new();
+        if (attachmentError is not null)
+            return new(false, attachmentError);
+
+        // Uploaded media stays; embeds are replaced and link previews are
+        // regenerated from the new text.
+        if (old.Attachments is not null)
         {
-            attachments = BuildAttachments(request.Embeds, null, out var attachmentError);
-            if (attachmentError is not null)
-                return new(false, attachmentError);
-        }
-        else
-        {
-            attachments = old.Attachments?.Where(x => !x.Inline).ToList();
+            attachments.AddRange(old.Attachments.Where(x =>
+                x is not null && !x.Inline && x.Type != MessageAttachmentType.Embed));
         }
 
         var updated = new Message
         {
             Id = messageId,
-            Content = request.Content ?? old.Content,
+            Content = request.Content,
             Attachments = attachments,
         };
 
-        return await _messageService.EditMessageAsync(updated);
+        return await _messageService.EditMessageAsync(updated, new MessageWriteOptions
+        {
+            SealKind = ServerSealedKind.Webhook
+        });
     }
 
     /// <summary>

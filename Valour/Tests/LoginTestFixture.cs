@@ -39,6 +39,7 @@ public class LoginTestFixture : IAsyncLifetime
         var httpClient = Factory.CreateClient();
         
         Client = new ValourClient("https://localhost:5001/", httpProvider: new TestHttpProvider(Factory));
+        Client.E2eeService.KeyStore = new Valour.Sdk.E2ee.MemoryE2eeKeyStore();
         httpClient.BaseAddress = new Uri(Client.BaseAddress);
         Client.SetHttpClient(httpClient);
         
@@ -125,10 +126,16 @@ public class LoginTestFixture : IAsyncLifetime
             Client = new ValourClient("https://localhost:5001/", httpProvider: oldClient.HttpClientProvider);
             Client.SetHttpClient(oldClient.Http);
 
+            // Messages are always end-to-end encrypted, so the test user gets
+            // keys the way an app does at its first login.
+            Client.E2eeService.KeyStore = new Valour.Sdk.E2ee.MemoryE2eeKeyStore();
+
             var loginResult = await Client.AuthService.LoginAsync(PrimaryTestUserDetails.Email, PrimaryTestUserDetails.Password);
 
             Assert.NotNull(loginResult);
             Assert.True(loginResult.Success);
+
+            await Client.E2eeService.InitializeAsync();
 
             Console.WriteLine("Startup: Logged in to Test User");
             
@@ -201,6 +208,7 @@ public class TeardownTestFixture : IAsyncLifetime
             // Build new client for logged in user
             Client = new ValourClient("https://localhost:5001/", httpProvider: new TestHttpProvider(Factory));
             Client.SetHttpClient(httpClient);
+            Client.E2eeService.KeyStore = new Valour.Sdk.E2ee.MemoryE2eeKeyStore();
 
             var loginResult = await Client.AuthService.LoginAsync(TestShared.PrimaryTestUserDetails.Email, TestShared.PrimaryTestUserDetails.Password);
 

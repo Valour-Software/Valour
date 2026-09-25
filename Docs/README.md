@@ -14,6 +14,7 @@ use placeholder values; use private local settings when running a server or test
 ## Application architecture
 
 - [Reactive models and real-time updates](ReactiveModelSystem.md)
+- [End-to-end encryption](EndToEndEncryption.md)
 - [API routing and authorization](../Valour/Docs/API_ROUTES.md)
 - [Roles and permissions](../Valour/Docs/ROLES.md)
 - [Channel activity notifications](ChannelActivityNotifications.md)
@@ -33,8 +34,11 @@ use placeholder values; use private local settings when running a server or test
 - [Tilesets and artwork](VillageTilesets.md)
 - [Staff default template](VillageDefaultTemplate.md)
 - [Release verification](VillageReleaseQA.md)
-- [JavaScript tests](../Valour/Tests/Js/README.md)
-- [Browser tests](../Valour/Tests/Browser/README.md)
+
+## Testing
+
+- [Browser tests and the isolated C# test runner](../Valour/Tests/Browser/README.md)
+- [Client JavaScript tests](../Valour/Tests/Js/README.md)
 
 ## Maintaining these guides
 

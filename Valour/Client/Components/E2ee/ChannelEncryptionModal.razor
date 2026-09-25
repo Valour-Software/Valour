@@ -1,0 +1,346 @@
+@inherits Modal<ChannelEncryptionModal.Params>
+@inject ValourClient Client
+
+<BasicModalLayout Title="Encryption" Icon="lock-fill" MaxWidth="480px" Role="dialog">
+    <MainArea>
+        <p>
+            Messages here are end-to-end encrypted. Only the people who hold this channel's key can read them.
+            Valour stores them encrypted and cannot read them.
+        </p>
+        @if (!Data.Channel.IsEncrypted)
+        {
+            <p class="helper-text">This channel's first key is created when someone sends the first message.</p>
+        }
+
+        @if (_policyText is not null)
+        {
+            <p class="helper-text">@_policyText</p>
+        }
+
+        @if (_people is null)
+        {
+            <div class="loading-state"><div class="loading-indicator"></div><span>Loading...</span></div>
+        }
+        else if (_people.Count > 0)
+        {
+            <h4 class="section-title">@_peopleTitle</h4>
+            <div class="people">
+                @foreach (var person in _people)
+                {
+                    <div class="person">
+                        <span class="person-name">
+                            @person.Name
+                            @if (person.Verified)
+                            {
+                                <i class="bi bi-patch-check-fill verified" title="Security code checked"></i>
+                            }
+                        </span>
+                        @if (person.SafetyNumber is not null)
+                        {
+                            <span class="safety-number">@person.SafetyNumber</span>
+                            @if (person.UserId != Client.Me.Id)
+                            {
+                                <label class="verify-toggle">
+                                    <input type="checkbox" checked="@person.Verified"
+                                           @onchange="@(e => SetVerifiedAsync(person, (bool)e.Value!))" />
+                                    I checked this code with them
+                                </label>
+                            }
+                        }
+                        else if (_isGroup)
+                        {
+                            <span class="helper-text">Hasn't signed in since encryption started. A member can add them once they do.</span>
+                        }
+                        else
+                        {
+                            <span class="helper-text">Can read messages after their next sign-in</span>
+                        }
+                        @if (person.NeedsAdmission)
+                        {
+                            <div class="confirm-keys" role="status">
+                                <span>@person.Name hasn't been added to this chat's encryption yet, so they can't read new messages.</span>
+                                @if (_canConfirm)
+                                {
+                                    <div class="confirm-actions">
+                                        <button class="v-btn small" disabled="@_working" @onclick="@(() => AdmitAsync(person))">Add them</button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (person.NeedsConfirm)
+                        {
+                            <div class="confirm-keys" role="status">
+                                @if (_confirming == person)
+                                {
+                                    <span>
+                                        Ask @person.Name to read you their security code in person or on a call. If every
+                                        digit matches this one, it's really them.
+                                    </span>
+                                    <span class="safety-number">@(_confirmNumber ?? "Loading...")</span>
+                                    <div class="confirm-actions">
+                                        <button class="v-btn small" disabled="@_working" @onclick="CancelConfirm">Cancel</button>
+                                        <button class="v-btn primary small" disabled="@(_working || _confirmNumber is null)"
+                                                @onclick="@(() => ConfirmKeysAsync(person))">
+                                            @(_working ? "Saving..." : "Yes, it's them")
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span>
+                                        @person.Name's security code changed. They can't read new messages until someone
+                                        checks it's really them.
+                                    </span>
+                                    @if (_canConfirm)
+                                    {
+                                        <div class="confirm-actions">
+                                            <button class="v-btn small" disabled="@_working" @onclick="@(() => StartConfirmAsync(person))">Check it's them</button>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            @if (_moreCount > 0)
+            {
+                <p class="helper-text">And @_moreCount more.</p>
+            }
+        }
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (Data.Channel.IsEncrypted && Client.E2eeService.Status == E2eeStatus.Ready)
+            {
+                <button class="v-btn" disabled="@_working" @onclick="RotateAsync">Replace key</button>
+            }
+            <button class="v-btn primary" @onclick="@Close">Close</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+        public Channel Channel { get; set; }
+    }
+
+    private sealed class Person
+    {
+        public long UserId { get; init; }
+        public string Name { get; init; }
+        public string SafetyNumber { get; set; }
+        public bool Verified { get; set; }
+
+        /// <summary>
+        /// A group member who reset their keys and is not trusted with the
+        /// new ones until a member confirms them.
+        /// </summary>
+        public bool NeedsConfirm { get; set; }
+
+        /// <summary>
+        /// A group member with keys whom the group's access log does not list,
+        /// for example because they set up encryption after the log started.
+        /// </summary>
+        public bool NeedsAdmission { get; set; }
+    }
+
+    private const int MaxPeopleShown = 50;
+
+    private List<Person> _people;
+    private int _moreCount;
+    private string _peopleTitle;
+    private string _policyText;
+    private bool _working;
+    private bool _isGroup;
+    private ITaskResult _result;
+
+    // Group chats: whether this account may confirm members' new keys, and
+    // the member whose security number is being compared.
+    private bool _canConfirm;
+    private Person _confirming;
+    private string _confirmNumber;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var channel = Data.Channel;
+        List<long> userIds;
+        var holderCount = 0;
+        if (channel.PlanetId is null)
+        {
+            _peopleTitle = "Security codes";
+            userIds = channel.Members?.Select(m => m.UserId).ToList() ?? [];
+        }
+        else
+        {
+            _policyText = channel.Planet?.EncryptionMode == PlanetEncryptionMode.InviteOnly
+                ? "This planet is invite-only: only members a planet admin added can read it."
+                : "Anyone the planet's permissions allow to view this channel can read it. Everyone who can is listed below.";
+            _peopleTitle = "People who can read this channel";
+
+            var recipients = await channel.Node.GetJsonAsync<ChannelKeyRecipientsDto>(
+                $"api/e2ee/channels/{channel.Id}/recipients?planetId={channel.PlanetId}", cacheDurationMs: null);
+            userIds = recipients.Success ? recipients.Data.Holders : [];
+            holderCount = recipients.Success ? recipients.Data.HolderCount : 0;
+        }
+
+        _moreCount = Math.Max(0, Math.Max(holderCount, userIds.Count) - MaxPeopleShown);
+        var shown = userIds.Take(MaxPeopleShown).ToList();
+        var states = await Client.E2eeService.GetUserStatesAsync(shown);
+        var people = new List<Person>();
+        foreach (var userId in shown)
+        {
+            var user = await Client.UserService.FetchUserAsync(userId);
+            states.TryGetValue(userId, out var state);
+            people.Add(new Person
+            {
+                UserId = userId,
+                Name = user?.Name ?? "Unknown user",
+                SafetyNumber = state?.SafetyNumber(),
+                Verified = await Client.E2eeService.IsVerifiedAsync(userId)
+            });
+        }
+
+        _isGroup = channel.PlanetId is null && channel.ChannelType == ChannelTypeEnum.GroupChat;
+        if (_isGroup)
+            await FindMembersToConfirmAsync(channel, people, states);
+
+        _people = people;
+    }
+
+    /// <summary>
+    /// A group's access log admits each member with the keys they had when
+    /// they joined. A member who reset since then needs another member to
+    /// confirm the new keys before they receive the chat's keys again.
+    /// </summary>
+    private async Task FindMembersToConfirmAsync(Channel channel, List<Person> people, Dictionary<long, UserKeyState> states)
+    {
+        try
+        {
+            var log = await Client.E2eeService.GetAccessLogStateAsync(AccessLogScope.GroupChannel, channel.Id,
+                channel.Node, refresh: true);
+            if (log is null)
+                return;
+
+            var me = Client.E2eeService.MyKeyState;
+            _canConfirm = Client.E2eeService.Status == E2eeStatus.Ready && me is not null &&
+                          log.IsMember(Client.Me.Id, me);
+
+            foreach (var person in people)
+            {
+                if (person.UserId == Client.Me.Id || !states.TryGetValue(person.UserId, out var state) ||
+                    state?.HasIdentity != true)
+                    continue;
+                person.NeedsConfirm = log.IsMemberAnyEpoch(person.UserId) && !log.IsMember(person.UserId, state);
+                person.NeedsAdmission = !log.IsMemberAnyEpoch(person.UserId);
+            }
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<ChannelEncryptionModal>($"Loading the group's access log failed: {e.Message}", "red");
+        }
+    }
+
+    private async Task StartConfirmAsync(Person person)
+    {
+        _confirming = person;
+        _confirmNumber = null;
+        _result = null;
+        StateHasChanged();
+
+        // Read the number fresh, so it matches the keys being confirmed.
+        _confirmNumber = await Client.E2eeService.GetSafetyNumberAsync(person.UserId);
+        if (_confirmNumber is null)
+        {
+            _confirming = null;
+            _result = TaskResult.FromFailure($"Couldn't load {person.Name}'s security code. Try again later.");
+        }
+        StateHasChanged();
+    }
+
+    private void CancelConfirm()
+    {
+        _confirming = null;
+        _confirmNumber = null;
+    }
+
+    private async Task ConfirmKeysAsync(Person person)
+    {
+        var channel = Data.Channel;
+        _working = true;
+        _result = null;
+        StateHasChanged();
+
+        var result = await Client.E2eeService.ConfirmMemberKeysAsync(AccessLogScope.GroupChannel, channel.Id,
+            channel.Node, person.UserId, _confirmNumber);
+        _working = false;
+
+        if (result.Success)
+        {
+            // They compared the number to confirm, so this also marks them verified.
+            await Client.E2eeService.SetVerifiedAsync(person.UserId, true, _confirmNumber);
+            person.Verified = true;
+            person.NeedsConfirm = false;
+            person.SafetyNumber = _confirmNumber;
+            _confirming = null;
+            _confirmNumber = null;
+            _result = TaskResult.FromSuccess($"Done. {person.Name} can read new messages again.");
+        }
+        else
+        {
+            // Show the current number, in case their keys changed while comparing.
+            _result = result;
+            _confirmNumber = await Client.E2eeService.GetSafetyNumberAsync(person.UserId);
+        }
+        StateHasChanged();
+    }
+
+    private async Task SetVerifiedAsync(Person person, bool verified)
+    {
+        // Marking applies only to the number shown; if the keys changed, the
+        // new number is loaded so the person can compare it.
+        var result = await Client.E2eeService.SetVerifiedAsync(person.UserId, verified, person.SafetyNumber);
+        if (result.Success)
+        {
+            person.Verified = verified;
+            _result = null;
+        }
+        else
+        {
+            _result = result;
+            person.SafetyNumber = await Client.E2eeService.GetSafetyNumberAsync(person.UserId);
+            person.Verified = await Client.E2eeService.IsVerifiedAsync(person.UserId);
+        }
+    }
+
+    private async Task AdmitAsync(Person person)
+    {
+        _working = true;
+        _result = null;
+        StateHasChanged();
+
+        var result = await Client.E2eeService.AdmitGroupMembersAsync(Data.Channel, [person.UserId]);
+        _working = false;
+        if (result.Success)
+        {
+            person.NeedsAdmission = false;
+            _result = TaskResult.FromSuccess($"Added {person.Name}. They can read new messages once a member's app shares the key.");
+        }
+        else
+        {
+            _result = result;
+        }
+        StateHasChanged();
+    }
+
+    private async Task RotateAsync()
+    {
+        _working = true;
+        _result = await Client.E2eeService.RotateChannelKeyAsync(Data.Channel, ChannelKeyRotationReason.Manual);
+        if (_result.Success)
+            _result = TaskResult.FromSuccess("The channel has a new key. Members receive it automatically.");
+        _working = false;
+    }
+}

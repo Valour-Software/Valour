@@ -1,11 +1,19 @@
-﻿using Valour.Sdk.Models;
+using System.Text.RegularExpressions;
+using Valour.Sdk.Models;
 using Valour.Shared;
 using Valour.Shared.Cdn;
+using Valour.Shared.Hosting;
 using Valour.Shared.Models;
 
-namespace Valour.Server.Cdn;
+namespace Valour.Sdk.Cdn;
 
-public class MediaUriHelper
+/// <summary>
+/// Decides which media locations messages and embeds may load. Media outside
+/// these sources would load directly from a third party and reveal the
+/// reader's IP address. The server applies it to attachments it can see, and
+/// clients apply it to embeds inside encrypted messages.
+/// </summary>
+public static class MediaUriHelper
 {
     public static readonly Regex AttachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
 
@@ -66,7 +74,7 @@ public class MediaUriHelper
         };
     }
 
-    internal static bool MatchesConfiguredOrigin(Uri location, string configuredHost)
+    public static bool MatchesConfiguredOrigin(Uri location, string configuredHost)
     {
         return Uri.TryCreate($"https://{configuredHost}", UriKind.Absolute, out var configured) &&
                location.Scheme.Equals(configured.Scheme, StringComparison.OrdinalIgnoreCase) &&

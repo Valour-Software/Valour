@@ -72,6 +72,30 @@ function IsEmbedded() {
     return embedded;
 }
 
+// A readable name for this device, shown in the account's device list when
+// linking devices for end-to-end encryption.
+function getValourDeviceName(isHybrid) {
+    const ua = navigator.userAgent || "";
+    let os = "this device";
+    if (/iPhone/.test(ua)) os = "iPhone";
+    else if (/iPad/.test(ua)) os = "iPad";
+    else if (/Android/.test(ua)) os = "Android";
+    else if (/Mac OS X|Macintosh/.test(ua)) os = "macOS";
+    else if (/Windows/.test(ua)) os = "Windows";
+    else if (/CrOS/.test(ua)) os = "ChromeOS";
+    else if (/Linux/.test(ua)) os = "Linux";
+
+    if (isHybrid) return "Valour app on " + os;
+
+    let browser = "Browser";
+    if (/Edg\//.test(ua)) browser = "Edge";
+    else if (/OPR\//.test(ua)) browser = "Opera";
+    else if (/Firefox\//.test(ua)) browser = "Firefox";
+    else if (/Chrome\//.test(ua)) browser = "Chrome";
+    else if (/Safari\//.test(ua)) browser = "Safari";
+    return browser + " on " + os;
+}
+
 // Web lock
 // The idea here is to *force* the tab to stay active
 

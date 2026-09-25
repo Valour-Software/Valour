@@ -32,6 +32,7 @@
     private RenderFragment NotificationsContent => @<EditUserNotificationsComponent />;
     private RenderFragment DevicePreferencesContent => @<EditDevicePreferencesComponent />;
     private RenderFragment SecurityContent => @<EditSessionsComponent />;
+    private RenderFragment EncryptionContent => @<EditEncryptionComponent />;
     private RenderFragment FederationContent => @<EditFederationMigrationComponent />;
     private RenderFragment LogOutContent => @<div></div>;
     private RenderFragment OAuthContent => @<EditOAuthComponent />;
@@ -151,6 +152,13 @@
                         Icon = "shield-lock-fill",
                         Description = "MFA, password, and active sessions",
                         Content = SecurityContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Encryption",
+                        Icon = "lock-fill",
+                        Description = "End-to-end encryption, devices, and recovery",
+                        Content = EncryptionContent
                     },
                     new MainMenu.MenuItem()
                     {
@@ -285,9 +293,32 @@
     {
         try
         {
+            // Logging out removes this device from encryption. If it is the
+            // only device, or no recovery code was saved, that can lose every
+            // encrypted message, so warn first and offer to save a code.
+            var e2ee = Client.E2eeService;
+            if (e2ee.Status == E2eeStatus.Ready && e2ee.MyKeyState is { } keyState)
+            {
+                var onlyDevice = keyState.ActiveDevices.Count <= 1;
+                var needsRecoveryCode = keyState.Recovery is null || await e2ee.IsRecoveryCodeUnsavedAsync();
+                if (onlyDevice || needsRecoveryCode)
+                {
+                    ModalRoot.OpenModal<LogoutEncryptionWarningModal>(new LogoutEncryptionWarningModal.Params
+                    {
+                        OnlyDevice = onlyDevice,
+                        NeedsRecoveryCode = needsRecoveryCode,
+                        LogOutAsync = PerformLogoutAsync
+                    });
+                    return;
+                }
+            }
+
+            var description = Client.E2eeService.Status == E2eeStatus.Ready
+                ? "Logging out also removes this device from your encrypted messages. To read them here again, approve it from another device or use your recovery code."
+                : "Are you sure?";
             var cData = new ConfirmModalComponent.ModalParams(
             "Log Out",
-            "Are you sure?",
+            description,
             "Yes, log out",
             "Cancel",
             PerformLogoutAsync,
@@ -310,6 +341,11 @@
 
     private async Task PerformLogoutAsync()
     {
+        // Removing this device from end-to-end encryption needs the session,
+        // so it happens before the token is revoked.
+        E2eeCoordinator.SigningOut = true;
+        await Client.E2eeService.SignOutDeviceAsync();
+
         // Revokes the token server-side and clears SDK auth state (best-effort)
         var result = await Client.AuthService.LogoutAsync();
         Console.WriteLine($"Logout result: {result.Message}");

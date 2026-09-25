@@ -78,4 +78,21 @@ public interface ISharedMessage : ISharedModel<long>
     /// Whether the stamped webhook avatar asset has multiple frames.
     /// </summary>
     bool WebhookAvatarAnimated { get; set; }
+
+    /// <summary>
+    /// How the text is stored: 0 plain text, 1 end-to-end encrypted by the
+    /// sender, 2 sealed by the server to the channel key. When nonzero the
+    /// text is in <see cref="Envelope"/>.
+    /// </summary>
+    int EncryptionVersion { get; set; }
+
+    /// <summary>
+    /// The encrypted message, when <see cref="EncryptionVersion"/> is nonzero.
+    /// </summary>
+    byte[] Envelope { get; set; }
+
+    /// <summary>
+    /// The channel key generation the envelope was encrypted with.
+    /// </summary>
+    int KeyGeneration { get; set; }
 }

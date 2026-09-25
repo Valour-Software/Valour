@@ -18,6 +18,8 @@ NodeConfig.json
 
 *.min.*
 *.map
+# Vendored libraries the app loads at run time are committed.
+!Valour/Client/wwwroot/js/vendor/*.min.js
 _build/
 _site/
 

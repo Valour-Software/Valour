@@ -52,14 +52,30 @@ public class WebhookExecuteRequest
 
 /// <summary>
 /// The body of a webhook message edit (PUT api/webhooks/{id}/{token}/messages/{messageId}).
+/// The server seals webhook messages to the channel's encryption key and
+/// cannot read them afterward, so it cannot keep text or embeds an edit leaves
+/// out. <see cref="Content"/> and <see cref="Embeds"/> are both required and
+/// together replace the message; a request missing either is refused. Media
+/// attachments from the original message are kept.
 /// </summary>
 public class WebhookMessageEditRequest
 {
+    /// <summary>
+    /// The error returned when <see cref="Content"/> or <see cref="Embeds"/> is missing.
+    /// </summary>
+    public const string BothFieldsRequiredMessage =
+        "Webhook edits replace the whole message. Include both Content (use \"\" for no text) " +
+        "and Embeds (use [] for no embeds).";
+
+    /// <summary>
+    /// The new text. Required; an empty string removes the text.
+    /// </summary>
     public string? Content { get; set; }
 
     /// <summary>
-    /// Replaces the message's embeds when provided (serialized v2 embed JSON);
-    /// null leaves them unchanged, an empty list removes them.
+    /// The new embeds as serialized v2 embed JSON, up to
+    /// <see cref="WebhookExecuteRequest.MaxEmbeds"/>. Required; an empty list
+    /// removes the embeds.
     /// </summary>
     public List<string>? Embeds { get; set; }
 

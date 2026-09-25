@@ -1,0 +1,518 @@
+@implements IDisposable
+@inject ValourClient Client
+@inject EncryptedInviteRedeemer InviteRedeemer
+
+@if (_banner != BannerKind.None && !_bannerDismissed && !_modalOpen)
+{
+    <section class="e2ee-banner" role="status">
+        <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+        @if (_banner == BannerKind.Verify)
+        {
+            @if (Client.E2eeService.KeysResetElsewhere)
+            {
+                <span class="banner-copy">
+                    <strong>Your encryption was started over from another sign-in</strong>
+                    <span>
+                        If that wasn't you, someone may know your password. Change it, then start over from this
+                        device. If it was you, add this device from the one you used.
+                    </span>
+                </span>
+                <span class="banner-actions">
+                    <button class="v-btn danger small" @onclick="OpenResetHere">Start over here</button>
+                    <button class="v-btn small" @onclick="OpenVerify">It was me</button>
+                </span>
+            }
+            else
+            {
+                <span class="banner-copy">
+                    <strong>This device can't read encrypted messages yet</strong>
+                    <span>Approve it from another device or use your recovery code.</span>
+                </span>
+                <button class="v-btn primary small" @onclick="OpenVerify">Verify</button>
+            }
+        }
+        else
+        {
+            <span class="banner-copy">
+                <strong>Encryption isn't available right now</strong>
+                <span>@ProblemText</span>
+            </span>
+            <button class="v-btn primary small" disabled="@_retrying" @onclick="RetryAsync">
+                @(_retrying ? "Retrying..." : "Retry")
+            </button>
+        }
+        <button class="dismiss" title="Dismiss" aria-label="Dismiss" @onclick="DismissBanner">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </section>
+}
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    /// <summary>
+    /// Set while the person is logging out, when this device removes itself
+    /// from the account. The status changes that follow are expected and are
+    /// not reported as the device being removed elsewhere.
+    /// </summary>
+    public static bool SigningOut { get; set; }
+
+    /// <summary>
+    /// The last recovery code a modal showed the person. Modals that create a
+    /// code show it themselves and record it here, so this never shows the
+    /// same code a second time, even if the person chose to save it later.
+    /// </summary>
+    public static string ShownRecoveryCode { get; set; }
+
+    /// <summary>
+    /// Loads this account's encryption keys again after a failure. Returns
+    /// false when encryption is still unavailable, and true when it works or
+    /// only needs the person to set up or verify this device.
+    /// </summary>
+    public static async Task<bool> ReloadKeysAsync(ValourClient client)
+    {
+        try
+        {
+            await client.E2eeService.InitializeAsync();
+        }
+        catch (Exception e)
+        {
+            client.Logger.Log<E2eeCoordinator>($"Retrying encryption failed: {e}", "red");
+        }
+
+        return client.E2eeService.Status is E2eeStatus.Ready or E2eeStatus.NeedsVerification or E2eeStatus.NotSetUp;
+    }
+
+    private enum BannerKind { None, Verify, Problem }
+
+    // Prompts wait for the first-run onboarding window, but never longer than
+    // this, so a person who ignores it still sees their recovery code.
+    private static readonly TimeSpan OnboardingWaitLimit = TimeSpan.FromMinutes(3);
+
+    // How long the onboarding window may take to appear after startup.
+    private static readonly TimeSpan OnboardingAppearGrace = TimeSpan.FromSeconds(10);
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly DateTime _startedAt = DateTime.UtcNow;
+
+    private BannerKind _banner;
+    private bool _bannerDismissed;
+    private bool _modalOpen;
+    private bool _retrying;
+    private bool _disposed;
+
+    private bool _setupHandled;
+    private bool _verifyPrompted;
+    private bool _recoveryPromptQueued;
+    private bool _unknownCheckPending;
+    private bool _wasReady;
+    private bool _keysResetNotified;
+
+    // Toasts are shown once per message or person in a session.
+    private readonly HashSet<long> _tamperedNotified = new();
+    private readonly HashSet<string> _contactWarned = new();
+
+    private string ProblemText => Client.E2eeService.Status == E2eeStatus.Error
+        ? "This device couldn't load or verify your encryption keys, so it can't read or send messages. Check your connection and try again."
+        : "Your encryption keys haven't loaded yet, so this device can't read or send messages. Check your connection and try again.";
+
+    protected override void OnInitialized()
+    {
+        Client.E2eeService.StatusChanged += OnStatusChanged;
+        Client.E2eeService.LinkSessionUpdated += OnLinkSessionUpdated;
+        Client.E2eeService.ContactWarning += OnContactWarning;
+        Client.E2eeService.TamperedMessageDetected += OnTamperedMessage;
+        Client.E2eeService.RecoveryCodeChanged += OnRecoveryCodeChanged;
+        Client.E2eeService.KeysResetElsewhereDetected += OnKeysResetElsewhere;
+        if (ModalRoot is not null)
+            ModalRoot.ModalsChanged += OnModalsChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await EvaluateAsync();
+    }
+
+    /// <summary>
+    /// Works out what the device needs: saving the recovery code created at
+    /// login, verifying a new device, retrying a setup that failed, or
+    /// loading keys that failed to load. Login can render the app before
+    /// encryption finishes loading, so this also runs when the status
+    /// changes. A failure here is logged and never reaches the app's error
+    /// boundary.
+    /// </summary>
+    private async Task EvaluateAsync()
+    {
+        if (_disposed || !Client.IsLoggedIn)
+            return;
+
+        try
+        {
+            await EvaluateCoreAsync();
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<E2eeCoordinator>($"Encryption check failed: {e}", "red");
+        }
+    }
+
+    private async Task EvaluateCoreAsync()
+    {
+        switch (Client.E2eeService.Status)
+        {
+            case E2eeStatus.NotSetUp:
+                SetBanner(BannerKind.None);
+                if (!_setupHandled)
+                {
+                    _setupHandled = true;
+                    _ = HandleNotSetUpAsync();
+                }
+                break;
+
+            case E2eeStatus.NeedsVerification:
+                SetBanner(BannerKind.Verify);
+                if (!_verifyPrompted)
+                {
+                    _verifyPrompted = true;
+                    _ = PromptWhenQuietAsync(
+                        () => Client.E2eeService.Status == E2eeStatus.NeedsVerification,
+                        () => ModalRoot.OpenModal<VerifyDeviceModal>(new VerifyDeviceModal.Params()));
+                }
+                break;
+
+            case E2eeStatus.Ready:
+                _wasReady = true;
+                SetBanner(BannerKind.None);
+                QueueRecoveryCodePrompt();
+
+                foreach (var session in await Client.E2eeService.GetPendingLinkRequestsAsync())
+                    OpenApproval(session);
+                await InviteRedeemer.RedeemPendingAsync();
+                break;
+
+            case E2eeStatus.Unknown:
+                // Unknown is normal for a moment after login. If it lasts,
+                // loading failed in a way the service could not report.
+                _ = ShowProblemIfStillUnknownAsync();
+                break;
+
+            default:
+                // Error, and any status that means keys could not be loaded.
+                SetBanner(BannerKind.Problem);
+                break;
+        }
+    }
+
+    private void SetBanner(BannerKind banner)
+    {
+        if (_banner == banner)
+            return;
+
+        _banner = banner;
+        _bannerDismissed = false;
+        StateHasChanged();
+    }
+
+    private void DismissBanner()
+    {
+        _bannerDismissed = true;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Setup runs automatically at login and normally finishes moments after
+    /// the app renders. If the account still has no keys, setup may have
+    /// failed because another device set it up at the same moment; loading
+    /// again finds that device's keys, so this one asks to be verified
+    /// instead. Only if the account still has no keys is the person asked
+    /// to retry.
+    /// </summary>
+    private async Task HandleNotSetUpAsync()
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), _cts.Token);
+            if (_disposed || Client.E2eeService.Status != E2eeStatus.NotSetUp)
+                return;
+
+            await Client.E2eeService.InitializeAsync();
+            if (_disposed || Client.E2eeService.Status != E2eeStatus.NotSetUp)
+                return;
+
+            await PromptWhenQuietAsync(
+                () => Client.E2eeService.Status == E2eeStatus.NotSetUp,
+                () => ModalRoot.OpenModal<EncryptionSetupModal>(new EncryptionSetupModal.Params()));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<E2eeCoordinator>($"Encryption setup check failed: {e}", "red");
+        }
+    }
+
+    /// <summary>
+    /// Shows a recovery code this device created and the person has not
+    /// confirmed saving. Modals that create a code show it themselves; this
+    /// waits until they close and only shows a code no modal has shown, so
+    /// the same code never appears in two modals.
+    /// </summary>
+    private void QueueRecoveryCodePrompt()
+    {
+        var code = Client.E2eeService.PendingRecoveryCode;
+        if (code is null || code == ShownRecoveryCode || _recoveryPromptQueued)
+            return;
+
+        _recoveryPromptQueued = true;
+        _ = QueueRecoveryCodePromptAsync(code);
+    }
+
+    private async Task QueueRecoveryCodePromptAsync(string code)
+    {
+        try
+        {
+            await PromptWhenQuietAsync(
+                () => Client.E2eeService.Status == E2eeStatus.Ready &&
+                      Client.E2eeService.PendingRecoveryCode == code && ShownRecoveryCode != code,
+                () => ModalRoot.OpenModal<EncryptionSetupModal>(new EncryptionSetupModal.Params()));
+        }
+        finally
+        {
+            _recoveryPromptQueued = false;
+        }
+    }
+
+    /// <summary>
+    /// Opens a prompt once no other modal is open and the first-run
+    /// onboarding window is out of the way, if it is still needed by then.
+    /// </summary>
+    private async Task PromptWhenQuietAsync(Func<bool> stillNeeded, Action open)
+    {
+        try
+        {
+            while (!_disposed && stillNeeded() && ModalRoot is not null)
+            {
+                if (OnboardingInProgress())
+                {
+                    await Task.Delay(1000, _cts.Token);
+                    continue;
+                }
+
+                if (await ModalRoot.OpenWhenNoModalsAsync(open,
+                        () => !_disposed && stillNeeded() && !OnboardingInProgress(), _cts.Token))
+                    return;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<E2eeCoordinator>($"Encryption prompt failed: {e}", "red");
+        }
+    }
+
+    private bool OnboardingInProgress()
+    {
+        var me = Client.Me;
+        if (me is null || UserTutorials.IsCompleted(me.TutorialState, UserTutorials.Onboarding))
+            return false;
+
+        var waited = DateTime.UtcNow - _startedAt;
+        if (waited > OnboardingWaitLimit)
+            return false;
+
+        // The onboarding window opens shortly after startup. Once it has had
+        // time to appear, only wait while it is actually open.
+        if (waited < OnboardingAppearGrace)
+            return true;
+
+        return WindowService.Docks.Any(dock => dock.Tabs.Any(tab => tab.Content is OnboardingWindowComponent.Content));
+    }
+
+    private async Task ShowProblemIfStillUnknownAsync()
+    {
+        if (_unknownCheckPending)
+            return;
+
+        _unknownCheckPending = true;
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), _cts.Token);
+            if (!_disposed && !SigningOut && Client.IsLoggedIn && Client.E2eeService.Status == E2eeStatus.Unknown)
+                await InvokeAsync(() => SetBanner(BannerKind.Problem));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            _unknownCheckPending = false;
+        }
+    }
+
+    private async Task RetryAsync()
+    {
+        _retrying = true;
+        StateHasChanged();
+
+        await ReloadKeysAsync(Client);
+
+        _retrying = false;
+        await EvaluateAsync();
+
+        if (_banner == BannerKind.Problem)
+        {
+            ToastContainer.Instance?.AddToast(new ToastData("Encryption still unavailable",
+                "Your encryption keys could not be loaded. Check your connection and try again. If this keeps happening, contact Valour support.",
+                ToastProgressState.Failure));
+        }
+
+        StateHasChanged();
+    }
+
+    private void OpenVerify() =>
+        ModalRoot.OpenModal<VerifyDeviceModal>(new VerifyDeviceModal.Params());
+
+    private void OpenResetHere() =>
+        ModalRoot.OpenModal<VerifyDeviceModal>(new VerifyDeviceModal.Params { StartWithReset = true });
+
+    private void OpenApproval(DeviceLinkSessionDto session)
+    {
+        if (!DeviceLinkApprovalModal.NeedsApproval(Client.E2eeService, session) ||
+            !DeviceLinkApprovalModal.TryReserve(session.Id))
+            return;
+
+        ModalRoot.OpenModal<DeviceLinkApprovalModal>(new DeviceLinkApprovalModal.Params { Session = session });
+    }
+
+    private void OnModalsChanged()
+    {
+        var open = ModalRoot?.HasOpenModals == true;
+        if (open == _modalOpen)
+            return;
+
+        _modalOpen = open;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnStatusChanged(E2eeStatus status)
+    {
+        try
+        {
+            if (status == E2eeStatus.Ready)
+            {
+                // Messages loaded before this device had keys can be read now.
+                await Client.E2eeService.RetryUnverifiedMessagesAsync(Client.Cache.Messages.ToList());
+            }
+            else if (status == E2eeStatus.NeedsVerification && _wasReady && !SigningOut &&
+                     !Client.E2eeService.KeysResetElsewhere)
+            {
+                ToastContainer.Instance?.AddToast(new ToastData("Device removed from encryption",
+                    "This device was removed from your account's devices. Verify it again to read encrypted messages.",
+                    ToastProgressState.Failure));
+            }
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<E2eeCoordinator>($"Handling an encryption status change failed: {e}", "red");
+        }
+
+        if (SigningOut)
+            return;
+
+        await InvokeAsync(EvaluateAsync);
+    }
+
+    private void OnRecoveryCodeChanged()
+    {
+        if (_disposed || SigningOut)
+            return;
+        _ = InvokeAsync(() =>
+        {
+            if (Client.E2eeService.Status == E2eeStatus.Ready)
+                QueueRecoveryCodePrompt();
+        });
+    }
+
+    /// <summary>
+    /// The account's keys were reset from another sign-in while this device
+    /// was set up. That is expected if the person did it. If not, someone who
+    /// knows the password, or the server itself, replaced the keys, so the
+    /// person is told to reset from this device rather than link it to the
+    /// new keys.
+    /// </summary>
+    private void OnKeysResetElsewhere()
+    {
+        if (_keysResetNotified || SigningOut)
+            return;
+        _keysResetNotified = true;
+
+        ToastContainer.Instance?.AddToast(new ToastData("Your encryption was started over",
+            "Someone started over your encryption from another sign-in, which signed this device out of it. If that wasn't you, someone may know your password: change it, then start over from this device. If it was you, add this device from the one you used. This device can still read earlier messages.",
+            ToastProgressState.Failure) { ShouldAutoClose = false });
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLinkSessionUpdated(DeviceLinkSessionDto session)
+    {
+        if (Client.E2eeService.Status != E2eeStatus.Ready)
+            return;
+        _ = InvokeAsync(() => OpenApproval(session));
+    }
+
+    private async Task OnContactWarning(E2eeContactWarning warning)
+    {
+        try
+        {
+            if (!_contactWarned.Add($"{warning.UserId}:{warning.Conflict}"))
+                return;
+
+            var user = await Client.UserService.FetchUserAsync(warning.UserId);
+            var name = user?.Name ?? "Someone";
+
+            if (warning.Conflict)
+            {
+                ToastContainer.Instance?.AddToast(new ToastData($"Something's wrong with {name}'s security code",
+                    "It doesn't match what this device saw before. Messages with them are paused until you compare codes in person.",
+                    ToastProgressState.Failure) { ShouldAutoClose = false });
+            }
+            else if (warning.KeysReset)
+            {
+                ToastContainer.Instance?.AddToast(new ToastData($"{name}'s security code changed",
+                    "This usually means they got a new phone or reinstalled Valour without their recovery code. Compare codes if you want to be sure."));
+            }
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<E2eeCoordinator>($"Showing a security key warning failed: {e}", "red");
+        }
+    }
+
+    private void OnTamperedMessage(Message message)
+    {
+        if (message is null || !_tamperedNotified.Add(message.Id))
+            return;
+
+        ToastContainer.Instance?.AddToast(new ToastData("Message hidden",
+            "A message was hidden because its sender tampered with automod checks. You can report it from the message menu.",
+            ToastProgressState.Failure));
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _cts.Cancel();
+        Client.E2eeService.StatusChanged -= OnStatusChanged;
+        Client.E2eeService.LinkSessionUpdated -= OnLinkSessionUpdated;
+        Client.E2eeService.ContactWarning -= OnContactWarning;
+        Client.E2eeService.TamperedMessageDetected -= OnTamperedMessage;
+        Client.E2eeService.RecoveryCodeChanged -= OnRecoveryCodeChanged;
+        Client.E2eeService.KeysResetElsewhereDetected -= OnKeysResetElsewhere;
+        if (ModalRoot is not null)
+            ModalRoot.ModalsChanged -= OnModalsChanged;
+    }
+}

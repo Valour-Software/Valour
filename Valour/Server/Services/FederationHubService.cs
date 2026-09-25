@@ -665,7 +665,9 @@ public class FederationHubService
 
         if (!HasCurrentProtocol(result.Claims))
         {
-            _logger.LogInformation("Node S2S token used an unsupported federation protocol for {Domain}", claimedDomain);
+            _logger.LogWarning(
+                "Node {Domain} uses a different federation protocol than this hub (v{Protocol}); it must be updated before it can connect",
+                claimedDomain, ValourFederation.ProtocolVersion);
             return null;
         }
 
@@ -713,8 +715,15 @@ public class FederationHubService
         {
             var current = await FetchNodeDescriptorAsync(url);
 
+            if (current is not null && current.ProtocolVersion != ValourFederation.ProtocolVersion)
+            {
+                _logger.LogWarning(
+                    "Federated node {Domain} speaks federation protocol v{NodeProtocol}; this hub speaks v{HubProtocol}. The node must be updated",
+                    node.Domain, current.ProtocolVersion, ValourFederation.ProtocolVersion);
+                return false;
+            }
+
             if (current is null ||
-                current.ProtocolVersion != ValourFederation.ProtocolVersion ||
                 !string.Equals(NormalizeDomain(current.Domain), node.Domain, StringComparison.OrdinalIgnoreCase) ||
                 !IsValidNodePublicJwk(current.PublicJwk))
             {

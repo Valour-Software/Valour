@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Valour.Database.Context;
 using Valour.Server.Database;
+using Valour.Server.Mapping;
 using Valour.Server.Services;
+using Valour.Sdk.E2ee;
 using Valour.Shared.Models;
 using DbMessage = Valour.Database.Message;
 using Message = Valour.Server.Models.Message;
@@ -28,7 +30,7 @@ public class SentryMessageQueryTests(LoginTestFixture fixture)
         var messages = Enumerable.Range(0, 5).Select(i => new DbMessage
         {
             Id = IdManager.Generate(), ChannelId = channelId, AuthorUserId = fixture.Client.Me.Id,
-            Content = $"Sentry graph {i}", TimeSent = DateTime.UtcNow,
+            Content = $"Sentry graph {i}", TimeSent = DateTime.UtcNow, SearchTerms = [42],
         }).ToArray();
         foreach (var message in messages)
         {
@@ -55,7 +57,9 @@ public class SentryMessageQueryTests(LoginTestFixture fixture)
         Assert.Equal(new[] { messages[2].Id, messages[3].Id }, before.Select(x => x.Id));
         var after = (await service.GetChannelMessagesAfterAsync(null, channelId, messages[1].Id, count: 2))!.ToArray();
         Assert.Equal(before.Select(x => x.Id), after.Select(x => x.Id));
-        var search = await service.SearchChannelMessagesAsync(null, channelId, "Sentry graph", count: 2);
+        var channel = (await db.Channels.AsNoTracking().FirstAsync(x => x.Id == channelId)).ToModel();
+        var search = await scope.ServiceProvider.GetRequiredService<E2eeMessageService>().SearchAsync(channel,
+            new EncryptedSearchRequest { TermSets = [[42]], Count = 2 });
         Assert.Equal(new[] { messages[4].Id, messages[3].Id }, search.Select(x => x.Id));
         var cached = (await service.GetChannelMessagesAsync(null, channelId))!.ToArray();
         Assert.Equal(messages.Select(x => x.Id), cached.Select(x => x.Id));

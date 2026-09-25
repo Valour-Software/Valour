@@ -699,53 +699,11 @@ public class ChannelApi
         return Results.Json(messages);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/{channelId}/messages/search")]
-    [ValourRoute(HttpVerbs.Post, "api/channels/direct/{channelId}/messages/search")]
-    [UserRequired(UserPermissionsEnum.Messages)]
-    public static async Task<IResult> SearchMessagesAsync(
-        [FromBody] MessageSearchRequest request,
-        long channelId,
-        long? planetId,
-        MessageService messageService,
-        ChannelService channelService,
-        TokenService tokenService,
-        UserBlockService userBlockService)
-    {
-        if (request.Count > 20)
-            return Results.BadRequest("Maximum count is 20.");
-
-        var token = await tokenService.GetCurrentTokenAsync();
-
-        if (planetId is null && !token.HasScope(UserPermissions.DirectMessages))
-        {
-            return ValourResult.Forbid("Token lacks permission to view messages in this channel");
-        }
-
-        var channel = await channelService.GetChannelAsync(planetId, channelId);
-        if (channel is null)
-            return ValourResult.NotFound("Channel not found");
-
-        if (!await channelService.HasAccessAsync(channel, token.UserId))
-            return ValourResult.Forbid("You are not a member of this channel");
-
-        var messages = await messageService.SearchChannelMessagesAsync(planetId, channelId, request.SearchText, request.Count);
-
-        // Filter out messages from blocked users
-        var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
-        if (hidden.Count > 0)
-        {
-            messages = RemoveBlockedReplyPreviews(
-                messages.Where(m => !hidden.Contains(m.AuthorUserId)), hidden);
-        }
-
-        return Results.Json(messages);
-    }
-
     /// <summary>
     /// Hides replies to blocked users' messages. The messages can be shared instances from the
     /// chat cache, so affected messages are replaced with copies rather than changed in place.
     /// </summary>
-    private static List<Message> RemoveBlockedReplyPreviews(IEnumerable<Message> messages, HashSet<long> hiddenUserIds)
+    internal static List<Message> RemoveBlockedReplyPreviews(IEnumerable<Message> messages, HashSet<long> hiddenUserIds)
     {
         var result = new List<Message>();
         foreach (var message in messages)

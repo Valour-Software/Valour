@@ -836,6 +836,10 @@ public class AuthService : ServiceBase
 
         SetToken(null);
 
+        // The signed-out account's keys and caches must not carry over to
+        // whoever signs in next. Keys stored on the device are kept.
+        _client.E2eeService.Reset();
+
         try
         {
             if (_client.Http.DefaultRequestHeaders.Contains("authorization"))

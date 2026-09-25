@@ -1,0 +1,134 @@
+@inherits Modal<LinkDeviceModal.Params>
+@implements IDisposable
+@inject ValourClient Client
+
+<BasicModalLayout Title="Link a device" Icon="qr-code" MaxWidth="440px" Role="dialog">
+    <MainArea>
+        @switch (_step)
+        {
+            case Step.Show:
+                @if (_offer is null)
+                {
+                    <div class="loading-state"><div class="loading-indicator"></div><span>Preparing a code...</span></div>
+                }
+                else
+                {
+                    <p>On your new device, sign in, choose <strong>Scan a code from another device</strong>, and point it at this code.</p>
+                    <QrCodeView Text="@_offer.QrCode" Label="Device link code" />
+                    <div class="typed-code">
+                        <span class="helper-text">No camera on the new device? Choose <strong>Enter a code from another device</strong> and type:</span>
+                        <span class="typed-code-value" aria-label="Device link code to type">@_offer.TypedCode</span>
+                    </div>
+                    <p class="helper-text">The code works once and expires in ten minutes. Only enter it on your own device.</p>
+                }
+                break;
+
+            case Step.Confirm:
+                <div class="device-card">
+                    <i class="bi bi-laptop"></i>
+                    <span class="device-copy">
+                        <strong>@(_session?.Device?.Name ?? "A new device")</strong>
+                        <span>Used this code and wants to read your encrypted messages.</span>
+                    </span>
+                </div>
+                break;
+
+            case Step.Done:
+                <div class="done">
+                    <i class="bi bi-shield-check"></i>
+                    <span>@(_session?.Device?.Name ?? "The new device") is linked.</span>
+                </div>
+                break;
+        }
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @switch (_step)
+            {
+                case Step.Show:
+                    <button class="v-btn" @onclick="CancelAsync">Cancel</button>
+                    break;
+                case Step.Confirm:
+                    <button class="v-btn danger" @onclick="CancelAsync">Deny</button>
+                    <button class="v-btn primary" disabled="@_working" @onclick="ApproveAsync">
+                        @(_working ? "Approving..." : "Approve")
+                    </button>
+                    break;
+                case Step.Done:
+                    <button class="v-btn primary" @onclick="@Close">Done</button>
+                    break;
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+    }
+
+    private enum Step { Show, Confirm, Done }
+
+    private Step _step = Step.Show;
+    private string _sessionId;
+    private DeviceLinkOffer _offer;
+    private DeviceLinkSessionDto _session;
+    private bool _working;
+    private ITaskResult _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Client.E2eeService.LinkSessionUpdated += OnSessionUpdated;
+        var result = await Client.E2eeService.ShowLinkCodeAsync();
+        if (result.Success)
+        {
+            _sessionId = result.Data.Session.Id;
+            _offer = result.Data;
+        }
+        else
+        {
+            _result = result;
+        }
+    }
+
+    private void OnSessionUpdated(DeviceLinkSessionDto session)
+    {
+        if (session.Id != _sessionId || _step != Step.Show)
+            return;
+
+        if (session.Status == DeviceLinkStatus.WaitingForApproval)
+        {
+            _session = session;
+            _step = Step.Confirm;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ApproveAsync()
+    {
+        _working = true;
+        _result = null;
+        var result = await Client.E2eeService.ApproveLinkAsync(_session);
+        _working = false;
+        if (result.Success)
+            _step = Step.Done;
+        else
+            _result = result;
+    }
+
+    private async Task CancelAsync()
+    {
+        if (_sessionId is not null)
+            await Client.E2eeService.DenyLinkAsync(_sessionId);
+        _sessionId = null;
+        Close();
+    }
+
+    public void Dispose()
+    {
+        Client.E2eeService.LinkSessionUpdated -= OnSessionUpdated;
+        if (_sessionId is not null && _step != Step.Done)
+            _ = Client.E2eeService.DenyLinkAsync(_sessionId);
+    }
+}

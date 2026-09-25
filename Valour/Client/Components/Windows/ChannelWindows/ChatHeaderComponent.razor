@@ -18,6 +18,7 @@
         }
     </div>
     <div class="h-right">
+        <EncryptionIndicator Channel="@Channel" />
         @if (Channel?.PlanetId is null && Channel?.ChannelType is ChannelTypeEnum.DirectChat or ChannelTypeEnum.GroupChat)
         {
             <TooltipTrigger Position="left">

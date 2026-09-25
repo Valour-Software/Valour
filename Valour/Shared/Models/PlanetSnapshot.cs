@@ -5,10 +5,12 @@ namespace Valour.Shared.Models;
 /// <summary>
 /// A complete, portable copy of a planet's data for migration between the
 /// official network and community nodes. Planet and user IDs are hub-global and
-/// preserved on import. All other IDs are node-local and are remapped whenever
-/// the snapshot crosses domains, including every internal reference. Referenced
-/// users are hub-global; the destination materializes shadow user rows for any
-/// it doesn't already have.
+/// preserved on import. Channel IDs are also preserved, because encrypted
+/// messages and channel keys are signed over the planet and channel they belong
+/// to. All other IDs are node-local and are remapped whenever the snapshot
+/// crosses domains, including every internal reference. Referenced users are
+/// hub-global; the destination materializes shadow user rows for any it doesn't
+/// already have.
 /// </summary>
 public class PlanetSnapshot
 {
@@ -44,6 +46,21 @@ public class PlanetSnapshot
     public List<PlanetSnapshotAutomodAction> AutomodActions { get; set; } = new();
     public List<PlanetSnapshotAutomodLog> AutomodLogs { get; set; } = new();
     public List<PlanetSnapshotModerationAuditLog> ModerationAuditLogs { get; set; } = new();
+
+    // End-to-end encryption. Messages carry their encrypted envelopes; these
+    // hold the signed channel keys, members' sealed copies of them, the
+    // planet's membership log, and automod term hashes. Key requests and
+    // proofs of edited or deleted messages stay behind.
+    public List<PlanetSnapshotChannelKeyGeneration> ChannelKeyGenerations { get; set; } = new();
+    public List<PlanetSnapshotChannelKeyBox> ChannelKeyBoxes { get; set; } = new();
+    public List<PlanetSnapshotAccessLogEntry> AccessLogEntries { get; set; } = new();
+    public List<PlanetSnapshotAutomodTerm> AutomodTerms { get; set; } = new();
+
+    /// <summary>
+    /// Public attestation keys of the source server, so messages it sealed
+    /// still verify at the destination. Keyed by key ID.
+    /// </summary>
+    public Dictionary<string, byte[]> ServerPublicKeys { get; set; } = new();
 
     /// <summary>
     /// Names of members/authors so the destination can build shadow users.
@@ -220,6 +237,8 @@ public class PlanetSnapshotPlanet
     public string Vanity { get; set; }
     public int Version { get; set; }
     public List<long> TagIds { get; set; } = new();
+    public PlanetEncryptionMode EncryptionMode { get; set; }
+    public bool EncryptionSharesHistory { get; set; } = true;
 }
 
 public class PlanetSnapshotInvite
@@ -255,6 +274,7 @@ public class PlanetSnapshotChannel
     public bool Nsfw { get; set; }
     public long? AssociatedChatChannelId { get; set; }
     public int Version { get; set; }
+    public int EncryptionGeneration { get; set; }
 }
 
 public class PlanetSnapshotRole
@@ -344,6 +364,58 @@ public class PlanetSnapshotMessage
     public long ChannelId { get; set; }
     public DateTime? EditedTime { get; set; }
     public string ImportSource { get; set; }
+    public int EncryptionVersion { get; set; }
+    public byte[] Envelope { get; set; }
+    public int KeyGeneration { get; set; }
+    public int[] SearchTerms { get; set; }
+}
+
+public class PlanetSnapshotChannelKeyGeneration
+{
+    public long ChannelId { get; set; }
+    public int Generation { get; set; }
+    public byte[] Body { get; set; }
+    public byte[] Signature { get; set; }
+    public long CreatorUserId { get; set; }
+    public byte[] SealPublicKey { get; set; }
+    public int IndexGeneration { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public bool HasMessages { get; set; }
+
+    /// <summary>
+    /// A server-created key no member holds yet. The source server protects it
+    /// with its own keys, so it travels in the clear inside the authenticated
+    /// migration and the destination protects it again.
+    /// </summary>
+    public byte[] HeldSecret { get; set; }
+}
+
+public class PlanetSnapshotChannelKeyBox
+{
+    public long ChannelId { get; set; }
+    public int Generation { get; set; }
+    public long UserId { get; set; }
+    public int UserKeyGeneration { get; set; }
+    public byte[] Box { get; set; }
+    public long SharedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class PlanetSnapshotAccessLogEntry
+{
+    public int Seq { get; set; }
+    public byte[] Body { get; set; }
+    public byte[] Signature { get; set; }
+    public long SignerUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class PlanetSnapshotAutomodTerm
+{
+    public Guid TriggerId { get; set; }
+    public long ChannelId { get; set; }
+    public int IndexGeneration { get; set; }
+    public int[] Terms { get; set; }
 }
 
 public class PlanetSnapshotAttachment
@@ -364,6 +436,7 @@ public class PlanetSnapshotAttachment
     public string OpenGraphData { get; set; }
     public bool PlanetHosted { get; set; }
     public string ReportedSha256 { get; set; }
+    public bool IsSpoiler { get; set; }
 }
 
 public class PlanetSnapshotReaction

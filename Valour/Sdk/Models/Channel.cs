@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
+using System.Text;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Embeds;
@@ -152,6 +154,19 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// For call channels, the associated chat channel id.
     /// </summary>
     public long? AssociatedChatChannelId { get; set; }
+
+    /// <summary>
+    /// The newest end-to-end encryption key generation, or zero when the
+    /// channel has no key yet. Its first key is created with its first message.
+    /// </summary>
+    public int EncryptionGeneration { get; set; }
+
+    /// <summary>
+    /// True when the channel has a key. Every chat message is end-to-end
+    /// encrypted; a channel without a key has no messages yet.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsEncrypted => EncryptionGeneration > 0;
 
     /// <summary>
     /// Used to limit typing updates
@@ -585,8 +600,10 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return TaskResult<List<Message>>.FromData([]);
 
+        // History changes with every send and edit, and decrypting changes the
+        // returned messages, so responses are never shared between requests.
         var result = await Node.GetJsonAsync<List<Message>>(
-                $"{IdRoute}/messages?index={index}&count={count}");
+                $"{IdRoute}/messages?index={index}&count={count}", cacheDurationMs: null);
         
         if (!result.Success)
         {
@@ -595,6 +612,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         }
 
         result.Data ??= [];
+        await Client.E2eeService.DecryptAllAsync(result.Data);
         result.Data.SyncAll(Client);
 
         return TaskResult<List<Message>>.FromData(result.Data);
@@ -617,7 +635,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             return TaskResult<List<Message>>.FromData([]);
 
         var result = await Node.GetJsonAsync<List<Message>>(
-            $"{IdRoute}/messages/after?afterId={afterId}&count={count}");
+            $"{IdRoute}/messages/after?afterId={afterId}&count={count}", cacheDurationMs: null);
 
         if (!result.Success)
         {
@@ -626,34 +644,25 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         }
 
         result.Data ??= [];
+        await Client.E2eeService.DecryptAllAsync(result.Data);
         result.Data.SyncAll(Client);
 
         return TaskResult<List<Message>>.FromData(result.Data);
     }
 
+    /// <summary>
+    /// Searches the channel's messages. Messages are end-to-end encrypted, so
+    /// the query is hashed with the channel's search key on this device and
+    /// candidates are checked after decrypting.
+    /// </summary>
     public async Task<List<Message>> SearchMessagesAsync(string searchText, int count = 20)
     {
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return new List<Message>();
 
-        var request = new MessageSearchRequest()
-        {
-            SearchText = searchText,
-            Count = count
-        };
-        
-        var result = await Node.PostAsyncWithResponse<List<Message>>(
-            $"{IdRoute}/messages/search", request);
-        
-        if (!result.Success)
-        {
-            Client.Logger.Log("Channel",$"Failed to search messages in {Id}: {result.Message}", "Yellow");
-            return new List<Message>();
-        }
-
-        result.Data.SyncAll(Client);
-
-        return result.Data;
+        var messages = await Client.E2eeService.SearchAsync(this, searchText, count);
+        messages.SyncAll(Client);
+        return messages;
     }
 
     public Task<List<PlanetMember>> FetchRecentChattersAsync() =>
@@ -766,7 +775,22 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return sb.ToString();
     }
 
-    public async Task<TaskResult<Message>> SendMessageAsync(string content, List<MessageAttachment> attachments = null, List<Mention> mentions = null, Embed embed = null)
+    /// <summary>
+    /// Sends a message, encrypting it on this device. Mentions are read from
+    /// the text.
+    /// </summary>
+    [Obsolete("Mentions are read from the message text, so the mentions argument is ignored. " +
+              "Call SendMessageAsync without it.")]
+    public Task<TaskResult<Message>> SendMessageAsync(string content, List<MessageAttachment> attachments = null,
+        List<Mention> mentions = null, Embed embed = null) =>
+        SendMessageAsync(content, attachments, embed);
+
+    /// <summary>
+    /// Sends a message, encrypting it on this device. Mentions are read from
+    /// the text.
+    /// </summary>
+    [OverloadResolutionPriority(1)]
+    public async Task<TaskResult<Message>> SendMessageAsync(string content, List<MessageAttachment> attachments = null, Embed embed = null)
     {
         if (!IsChatChannel)
             return new TaskResult<Message>(false, "Cannot send messages to non-chat channels.");
@@ -791,9 +815,6 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
             msg.AuthorMemberId = Planet.MyMember.Id;
         }
-        
-        if (mentions is not null)
-            msg.Mentions = mentions;
         
         if (attachments is not null)
             msg.Attachments = attachments;

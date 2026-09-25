@@ -1,4 +1,5 @@
 using Valour.Sdk.Client;
+using Valour.Sdk.E2ee;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
@@ -65,6 +66,47 @@ public class NotificationService
     }
 
     public NotificationService(ValourClient client) => _client = client;
+
+    /// <summary>
+    /// Fetches and decrypts the message a notification is about. The server
+    /// cannot read messages, so a message notification's
+    /// <see cref="Notification.Body"/> is a placeholder ("Encrypted message")
+    /// and <see cref="Notification.SourceId"/> holds the message ID. Show the
+    /// returned message's <see cref="Message.Content"/> in place of the body.
+    /// Returns null when the notification is not about a message, or the
+    /// message was deleted or cannot be read on this device.
+    /// </summary>
+    public async Task<Message> FetchNotificationMessageAsync(Notification notification)
+    {
+        if (notification?.SourceId is not { } messageId || !IsMessageSource(notification.Source))
+            return null;
+
+        Planet planet = null;
+        if (notification.PlanetId is { } planetId)
+        {
+            planet = await _client.PlanetService.FetchPlanetAsync(planetId);
+            if (planet is null)
+                return null;
+        }
+
+        var message = planet is null
+            ? await _client.MessageService.FetchMessageAsync(messageId)
+            : await _client.MessageService.FetchMessageAsync(messageId, planet);
+
+        return message?.DecryptionState is MessageDecryptionState.Decrypted or MessageDecryptionState.NotAttempted
+            ? message
+            : null;
+    }
+
+    /// <summary>
+    /// Whether notifications from this source are about a chat message, so
+    /// <see cref="Notification.SourceId"/> is a message ID.
+    /// </summary>
+    public static bool IsMessageSource(NotificationSource source) => source is
+        NotificationSource.DirectMessage or NotificationSource.DirectReply or NotificationSource.DirectMention or
+        NotificationSource.PlanetMemberReply or NotificationSource.PlanetMemberMention or
+        NotificationSource.PlanetRoleMention or NotificationSource.PlanetHereMention or
+        NotificationSource.PlanetEveryoneMention or NotificationSource.ChannelActivity;
 
     public async Task LoadUnreadNotificationsAsync()
     {

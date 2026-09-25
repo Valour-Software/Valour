@@ -114,6 +114,69 @@
         
         UpdateRecede();
         StateHasChanged();
+        ModalsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Raised when a modal opens, starts closing, or is removed.
+    /// </summary>
+    public event Action ModalsChanged;
+
+    /// <summary>
+    /// Completes once no modal is open or fading out. Prompts that are not a
+    /// direct response to the person, such as first-login notices, wait for
+    /// this so they never stack on top of another modal. Open the prompt
+    /// right after this completes, without awaiting anything in between.
+    /// </summary>
+    public async Task WaitUntilNoModalsAsync(CancellationToken cancellationToken = default)
+    {
+        while (_openModals.Count > 0)
+        {
+            var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            void OnChanged() => changed.TrySetResult();
+
+            ModalsChanged += OnChanged;
+            try
+            {
+                // A modal may have closed before the handler was added.
+                if (_openModals.Count == 0)
+                    return;
+                await changed.Task.WaitAsync(cancellationToken);
+            }
+            finally
+            {
+                ModalsChanged -= OnChanged;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens a prompt once no other modal is open, unless
+    /// <paramref name="stillNeeded"/> returns false first. Returns true when
+    /// the prompt opened.
+    /// </summary>
+    public async Task<bool> OpenWhenNoModalsAsync(Action open, Func<bool> stillNeeded = null,
+        CancellationToken cancellationToken = default)
+    {
+        stillNeeded ??= () => true;
+        while (stillNeeded())
+        {
+            await WaitUntilNoModalsAsync(cancellationToken);
+
+            var opened = false;
+            await InvokeAsync(() =>
+            {
+                if (HasOpenModals || !stillNeeded())
+                    return;
+                open();
+                opened = true;
+            });
+
+            if (opened)
+                return true;
+        }
+
+        return false;
     }
 
     public void CloseModal(string id)
@@ -178,6 +241,7 @@
         _ = FadeOutAndRemoveAsync(modal);
         UpdateRecede();
         StateHasChanged();
+        ModalsChanged?.Invoke();
     }
 
     private async Task FadeOutAndRemoveAsync(ModalInstance modal)
@@ -210,6 +274,7 @@
         _openModals.Remove(modal);
         UpdateRecede();
         StateHasChanged();
+        ModalsChanged?.Invoke();
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)

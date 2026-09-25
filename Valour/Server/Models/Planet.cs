@@ -82,6 +82,18 @@ public class Planet : ServerModel<long>, ISharedPlanet
     public bool EnableThreads { get; set; }
 
     /// <summary>
+    /// Who may receive the planet's channel keys. Every message is end-to-end
+    /// encrypted either way. Changed only through the encryption endpoint.
+    /// </summary>
+    public PlanetEncryptionMode EncryptionMode { get; set; }
+
+    /// <summary>
+    /// Whether new members can read messages sent before they joined.
+    /// Changed only through the encryption endpoint.
+    /// </summary>
+    public bool EncryptionSharesHistory { get; set; } = true;
+
+    /// <summary>
     /// True if this planet's threads can be browsed publicly without an account
     /// </summary>
     public bool PublicThreads { get; set; }

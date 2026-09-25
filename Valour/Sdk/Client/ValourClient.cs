@@ -66,6 +66,7 @@ public class ValourClient
     public readonly ThreadService ThreadService;
     public readonly WikiService WikiService;
     public readonly VillageService VillageService;
+    public readonly E2eeService E2eeService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -149,6 +150,7 @@ public class ValourClient
         ThreadService = new ThreadService(this);
         WikiService = new WikiService(this);
         VillageService = new VillageService(this);
+        E2eeService = new E2eeService(this);
 
         KlipyService = new KlipyService(this);
     }
@@ -186,6 +188,13 @@ public class ValourClient
     /// Describes the instance's hosts and configured capabilities.
     /// </summary>
     public InstanceManifest InstanceManifest { get; private set; }
+
+    /// <summary>
+    /// True when the server requires a newer client than this one, for
+    /// example because it changed how messages are sent.
+    /// </summary>
+    public bool UpdateRequired =>
+        InstanceManifest?.MinimumClientProtocol > InstanceManifest.CurrentClientProtocol;
 
     /// <summary>User preferences included in the login bootstrap response.</summary>
     public UserPreferences StartupPreferences { get; private set; }
@@ -282,6 +291,7 @@ public class ValourClient
         {
             DirectCallService.ApplyCurrent(await currentCallsTask);
             AuthService.ScheduleFederationPassportPrefetch();
+            await InitializeEncryptionAsync();
             return TaskResult.SuccessResult;
         }
 
@@ -313,7 +323,24 @@ public class ValourClient
         }
 
         AuthService.ScheduleFederationPassportPrefetch();
+        await InitializeEncryptionAsync();
         return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Loads this device's encryption keys. A failure here leaves encrypted
+    /// messages unreadable on this device but does not fail login.
+    /// </summary>
+    private async Task InitializeEncryptionAsync()
+    {
+        try
+        {
+            await E2eeService.InitializeAsync();
+        }
+        catch (Exception e)
+        {
+            Logger.Log("E2EE", "Could not load encryption keys: " + e.Message, "red");
+        }
     }
 
     private async Task<bool> TryLoadBootstrapAsync()

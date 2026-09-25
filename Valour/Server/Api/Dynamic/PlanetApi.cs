@@ -252,7 +252,8 @@ public class PlanetApi
                 return ValourResult.Problem(sync.Message ?? "Could not update this community planet at the hub.");
         }
 
-        var result = await planetService.TransferOwnershipAsync(id, userId, request.NewOwnerUserId);
+        var result = await planetService.TransferOwnershipAsync(id, userId, request.NewOwnerUserId,
+            request.AccessLogEntryBody, request.AccessLogEntrySignature);
         if (!result.Success)
         {
             if (previousStub is not null)

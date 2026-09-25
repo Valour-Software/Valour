@@ -88,10 +88,23 @@ and empty successful deletions with `Results.NoContent` where appropriate.
 | `Problem(message)` | The operation failed on the server |
 | `WrongNode(node, planetId)` | The request belongs on another node |
 
+Some bad-request messages begin with a code and a colon so that programs can
+recognize them without matching the rest of the text:
+
+| Code | Meaning |
+| --- | --- |
+| `E2EE_REQUIRED` | A message post or edit was not end-to-end encrypted. Raw HTTP clients cannot send chat messages; they must use the .NET SDK 0.9.0 or later, or a planet webhook. See the [bot guide](BOT_GUIDE.md#programs-that-do-not-use-the-sdk). |
+| `E2EE_ROTATION_REQUIRED` | The channel key must be replaced before sending. The SDK replaces it and retries. |
+| `E2EE_STALE_GENERATION` | The message used an older channel key. The SDK reloads the keys and retries. |
+
 Services commonly return `TaskResult` or `TaskResult<T>`. Check `Success` before
 reading `Data`, then translate the result into the endpoint's HTTP response.
 Avoid returning internal exception details to clients; keep diagnostic context
 in server logs.
+
+Webhook message edits must include both `Content` and `Embeds`, because the
+server seals webhook messages and cannot keep fields an edit leaves out. A
+missing field returns a bad-request response.
 
 Webhook execution and editing bind their JSON through `JsonRequestBody<T>`.
 Malformed JSON, null bodies, and embed items with missing or unsupported `$type`

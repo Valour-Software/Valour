@@ -81,20 +81,7 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         return webhook;
     }
 
-    private async Task WaitForPersistedAsync(long messageId)
-    {
-        using var scope = _fixture.Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-
-        for (var i = 0; i < 60; i++)
-        {
-            if (await db.Messages.AnyAsync(x => x.Id == messageId))
-                return;
-            await Task.Delay(500);
-        }
-
-        Assert.Fail("Message was not persisted in time.");
-    }
+    private Task WaitForPersistedAsync(long messageId) => EncryptedChat.WaitForStoredAsync(_fixture, messageId);
 
     [Theory]
     [InlineData("{\"Embeds\":[{\"Pages\":[{\"Children\":[{}]}]}]}", false)]
@@ -184,6 +171,13 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
 
         var overrideMessage = await overrideResponse.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
         Assert.NotNull(overrideMessage);
+
+        // The server seals webhook text and embeds to the channel key; members
+        // read them after decrypting.
+        Assert.Equal(Valour.Sdk.E2ee.MessageEncryption.ServerSealed, overrideMessage.EncryptionVersion);
+        Assert.Null(overrideMessage.EmbedAttachment);
+        await _fixture.Client.E2eeService.DecryptAsync(overrideMessage);
+        Assert.Equal("With overrides", overrideMessage.Content);
         Assert.Equal("CI Bot", overrideMessage.OverrideName);
         Assert.Equal(webhook.AvatarAssetId, overrideMessage.WebhookAvatarAssetId);
         Assert.NotNull(overrideMessage.EmbedAttachment?.Embed);
@@ -229,10 +223,11 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         await WaitForPersistedAsync(plainMessage.Id);
 
         var editResponse = await _anonymous.PutAsJsonAsync($"{executeUrl}/messages/{plainMessage.Id}",
-            new WebhookMessageEditRequest { Content = "Edited by webhook" });
+            new WebhookMessageEditRequest { Content = "Edited by webhook", Embeds = [] });
         Assert.True(editResponse.IsSuccessStatusCode, await editResponse.Content.ReadAsStringAsync());
 
         var edited = await editResponse.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
+        await _fixture.Client.E2eeService.DecryptAsync(edited);
         Assert.Equal("Edited by webhook", edited!.Content);
         Assert.Equal(webhook.Id, edited.WebhookId); // identity preserved on edit
         Assert.Equal("Test Hook", edited.OverrideName);
@@ -242,7 +237,7 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
         Assert.True(normalSend.Success, normalSend.Message);
 
         var editForeign = await _anonymous.PutAsJsonAsync($"{executeUrl}/messages/{normalSend.Data.Id}",
-            new WebhookMessageEditRequest { Content = "hijacked" });
+            new WebhookMessageEditRequest { Content = "hijacked", Embeds = [] });
         Assert.False(editForeign.IsSuccessStatusCode);
 
         // ---- Delete via token (even though another message replies to it) ----
@@ -374,5 +369,95 @@ public class PlanetWebhookApiLiveTests : IAsyncLifetime
 
         Assert.True(got429, $"Expected a 429 during the burst; last status was {(int)last.StatusCode}");
         Assert.True(last.Headers.Contains("Retry-After"));
+    }
+
+    [Fact]
+    public async Task Webhook_SealsEveryEmbed()
+    {
+        var webhook = await CreateWebhookAsync("Multi Embed Hook");
+        var executeUrl = ISharedPlanetWebhook.GetExecuteRoute(webhook.Id, webhook.Token!);
+
+        var request = new WebhookExecuteRequest { Content = "three embeds" };
+        foreach (var title in new[] { "First", "Second", "Third" })
+            request.WithEmbed(new EmbedBuilder().AddPage(title).AddText(title + " body").Build());
+
+        var response = await _anonymous.PostAsJsonAsync(executeUrl, request);
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+        var message = await response.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
+        Assert.NotNull(message);
+
+        // No embed is stored or relayed outside the sealed payload.
+        Assert.Equal(Valour.Sdk.E2ee.MessageEncryption.ServerSealed, message.EncryptionVersion);
+        Assert.DoesNotContain(message.Attachments ?? [], a => a.Type == MessageAttachmentType.Embed);
+        await WaitForPersistedAsync(message.Id);
+        using (var scope = _fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            Assert.False(await db.MessageAttachments.AnyAsync(a => a.MessageId == message.Id));
+        }
+
+        await _fixture.Client.E2eeService.DecryptAsync(message);
+        Assert.Equal("three embeds", message.Content);
+        var titles = message.Attachments!
+            .Where(a => a.Type == MessageAttachmentType.Embed)
+            .Select(a => a.Embed!.Pages[0].Title)
+            .ToList();
+        Assert.Equal(["First", "Second", "Third"], titles);
+
+        // Report evidence carries every embed, so it matches the attestation.
+        var evidence = Valour.Sdk.Services.E2eeService.BuildEvidence(message);
+        var (header, _, _) = Valour.Sdk.E2ee.ServerSealing.Read(message.Envelope);
+        using (var scope = _fixture.Factory.Services.CreateScope())
+        {
+            var serverKeys = scope.ServiceProvider.GetRequiredService<Valour.Server.Services.E2eeServerKeyService>();
+            var publicKey = await serverKeys.GetPublicKeyAsync(header.ServerKeyId);
+            Assert.True(Valour.Sdk.E2ee.ServerSealing.VerifyAttestation(header, evidence.Salt, evidence.Content,
+                evidence.Embed, publicKey));
+        }
+
+        var tooMany = new WebhookExecuteRequest { Content = "six embeds" };
+        for (var i = 0; i < WebhookExecuteRequest.MaxEmbeds + 1; i++)
+            tooMany.WithEmbed(new EmbedBuilder().AddPage("Page " + i).AddText("x").Build());
+        var tooManyResponse = await _anonymous.PostAsJsonAsync(executeUrl, tooMany);
+        Assert.Equal(HttpStatusCode.BadRequest, tooManyResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task WebhookEdit_RequiresContentAndEmbeds()
+    {
+        var webhook = await CreateWebhookAsync("Edit Hook");
+        var executeUrl = ISharedPlanetWebhook.GetExecuteRoute(webhook.Id, webhook.Token!);
+
+        var post = await _anonymous.PostAsJsonAsync(executeUrl, new WebhookExecuteRequest { Content = "original" }
+            .WithEmbed(new EmbedBuilder().AddPage("Original").AddText("x").Build()));
+        Assert.True(post.IsSuccessStatusCode, await post.Content.ReadAsStringAsync());
+        var posted = await post.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
+        await WaitForPersistedAsync(posted!.Id);
+        var editUrl = $"{executeUrl}/messages/{posted.Id}";
+
+        // The server cannot read the sealed original, so it cannot keep an
+        // omitted field; a partial edit is refused instead of wiping it.
+        var contentOnly = await _anonymous.PutAsJsonAsync(editUrl, new WebhookMessageEditRequest { Content = "text only" });
+        Assert.Equal(HttpStatusCode.BadRequest, contentOnly.StatusCode);
+        Assert.Contains("Include both Content", await contentOnly.Content.ReadAsStringAsync());
+
+        var embedsOnly = await _anonymous.PutAsJsonAsync(editUrl, new WebhookMessageEditRequest { Embeds = [] });
+        Assert.Equal(HttpStatusCode.BadRequest, embedsOnly.StatusCode);
+
+        var replace = await _anonymous.PutAsJsonAsync(editUrl, new WebhookMessageEditRequest { Content = "replaced" }
+            .WithEmbed(new EmbedBuilder().AddPage("Replaced").AddText("y").Build()));
+        Assert.True(replace.IsSuccessStatusCode, await replace.Content.ReadAsStringAsync());
+        var replaced = await replace.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
+        await _fixture.Client.E2eeService.DecryptAsync(replaced!);
+        Assert.Equal("replaced", replaced.Content);
+        Assert.Equal("Replaced", replaced.EmbedAttachment?.Embed?.Pages[0].Title);
+
+        var removeEmbeds = await _anonymous.PutAsJsonAsync(editUrl,
+            new WebhookMessageEditRequest { Content = "no embeds", Embeds = [] });
+        Assert.True(removeEmbeds.IsSuccessStatusCode, await removeEmbeds.Content.ReadAsStringAsync());
+        var withoutEmbeds = await removeEmbeds.Content.ReadFromJsonAsync<Valour.Sdk.Models.Message>();
+        await _fixture.Client.E2eeService.DecryptAsync(withoutEmbeds!);
+        Assert.Equal("no embeds", withoutEmbeds.Content);
+        Assert.Null(withoutEmbeds.EmbedAttachment);
     }
 }

@@ -88,6 +88,30 @@ public class Message : ISharedMessage
 
     public bool WebhookAvatarAnimated { get; set; }
 
+    /// <summary>
+    /// How the text is stored. See <c>MessageEncryption</c>: 0 is plain text,
+    /// 1 is end-to-end encrypted, 2 is sealed by the server to the channel key.
+    /// When nonzero, <see cref="Content"/> is empty and the text is in
+    /// <see cref="Envelope"/>.
+    /// </summary>
+    public int EncryptionVersion { get; set; }
+
+    /// <summary>
+    /// The encrypted message: signed header, ciphertext, and signature.
+    /// </summary>
+    public byte[] Envelope { get; set; }
+
+    /// <summary>
+    /// The channel key generation the envelope was encrypted with.
+    /// </summary>
+    public int KeyGeneration { get; set; }
+
+    /// <summary>
+    /// Keyed search terms computed by a client. The server matches them for
+    /// search and automod without learning the words.
+    /// </summary>
+    public int[] SearchTerms { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<Message>(e =>
@@ -145,6 +169,18 @@ public class Message : ISharedMessage
 
             e.Property(x => x.WebhookAvatarAnimated)
                 .HasColumnName("webhook_avatar_animated");
+
+            e.Property(x => x.EncryptionVersion)
+                .HasColumnName("encryption_version");
+
+            e.Property(x => x.Envelope)
+                .HasColumnName("envelope");
+
+            e.Property(x => x.KeyGeneration)
+                .HasColumnName("key_generation");
+
+            e.Property(x => x.SearchTerms)
+                .HasColumnName("search_terms");
             
             // Keys
             e.HasKey(x => x.Id);
