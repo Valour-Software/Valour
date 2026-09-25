@@ -221,6 +221,9 @@
      var planet = created.Sync(Client);
      PlanetService.AddJoinedPlanet(planet);
 
+     // The create response does not name the planet's node, and its channels
+     // route through that node, so look it up before loading them.
+     await planet.EnsureReadyAsync();
      await planet.FetchInitialDataAsync();
      await FinishPrivacyAsync(planet);
 

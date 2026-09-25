@@ -81,6 +81,7 @@
     {
         try { await service.InvokeVoidAsync("setMoveSubscribed", active); }
         catch (JSException) { }
+        catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { }
         catch (TaskCanceledException) { }
     }
@@ -198,16 +199,19 @@
             {
                 try { await _jsService.InvokeVoidAsync(method); }
                 catch (JSException) { }
+                catch (JSDisconnectedException) { }
                 catch (ObjectDisposedException) { }
             }
             try { await _jsService.DisposeAsync(); }
             catch (JSException) { }
+            catch (JSDisconnectedException) { }
             catch (ObjectDisposedException) { }
         }
         if (_jsModule is not null)
         {
             try { await _jsModule.DisposeAsync(); }
             catch (JSException) { }
+            catch (JSDisconnectedException) { }
             catch (ObjectDisposedException) { }
         }
         _jsService = null;

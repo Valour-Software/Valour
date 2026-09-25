@@ -32,6 +32,7 @@
                 await _jsModule.InvokeVoidAsync("fadeIn", _containerRef);
         }
         catch (JSException) { }
+        catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) when (_disposed) { }
         finally
         {
@@ -54,6 +55,7 @@
             }
         }
         catch (JSException) { }
+        catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { }
 
         if (OnFadeOut is not null)
@@ -76,6 +78,7 @@
             return;
         try { await module.DisposeAsync(); }
         catch (JSException) { }
+        catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { }
     }
 }

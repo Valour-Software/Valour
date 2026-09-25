@@ -18,6 +18,14 @@ public class MessageAttachment : ISharedMessageAttachment
     /// </summary>
     [JsonIgnore]
     public bool Local { get; set; } = false;
+
+    /// <summary>
+    /// True for an upload preview that this device created from a blob: or
+    /// data: URL. Only the client sets <see cref="Local"/>, so attachments
+    /// received from a server never count as previews.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsLocalPreview => Local && IsBrowserLocalLocation(Location);
     
     public string Location { get; set; }
     public string MimeType { get; set; }
@@ -175,7 +183,7 @@ public class MessageAttachment : ISharedMessageAttachment
 
     public async ValueTask<string?> GetSignedUrl(ValourClient client, Node node)
     {
-        if (Local && IsBrowserLocalLocation(Location)) // Browser-local previews do not need a signed URL.
+        if (IsLocalPreview) // Browser-local previews do not need a signed URL.
         {
             return Location;
         }

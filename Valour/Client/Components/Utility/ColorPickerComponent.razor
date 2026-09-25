@@ -73,9 +73,11 @@
             {
                 try { await module.InvokeVoidAsync("destroy", _id); }
                 catch (JSException) { }
+                catch (JSDisconnectedException) { }
                 catch (ObjectDisposedException) { }
                 try { await module.DisposeAsync(); }
                 catch (JSException) { }
+                catch (JSDisconnectedException) { }
                 catch (ObjectDisposedException) { }
             }
         }

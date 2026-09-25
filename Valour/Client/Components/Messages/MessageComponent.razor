@@ -423,9 +423,10 @@ else
     private async Task<(User User, PlanetMember Member)> FetchReactionAuthorAsync(MessageReaction reaction)
     {
         PlanetMember member = null;
-        if (reaction.AuthorMemberId is not null && _message.Planet is not null)
+        var planet = _message.GetPlanet(throwIfNull: false);
+        if (reaction.AuthorMemberId is not null && planet is not null)
         {
-            member = await _message.Planet.FetchMemberAsync(reaction.AuthorMemberId.Value);
+            member = await planet.FetchMemberAsync(reaction.AuthorMemberId.Value);
         }
 
         var user = member?.User ?? await Client.UserService.FetchUserAsync(reaction.AuthorUserId);

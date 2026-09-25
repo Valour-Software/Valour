@@ -116,6 +116,10 @@ public partial class E2eeService
             if (_keyRingFailures.TryGetValue(ChannelKey(channel), out var failure) && failure.IsWaiting)
                 return _keyRings.GetValueOrDefault(ChannelKey(channel));
 
+            // A planet channel has no node until its planet's node is known.
+            if (channel.Node is null)
+                return _keyRings.GetValueOrDefault(ChannelKey(channel));
+
             var result = await channel.Node.GetJsonAsync<ChannelKeyStateDto>(ChannelRoute(channel, "keys"),
                 cacheDurationMs: null);
             if (!result.Success || result.Data is null)
