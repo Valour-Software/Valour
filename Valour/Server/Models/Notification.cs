@@ -1,4 +1,5 @@
-﻿using Valour.Shared.Models;
+﻿using System.Text.Json.Serialization;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
@@ -66,4 +67,13 @@ public class Notification : ISharedNotification
     /// The url the user is brought to when the notification is clicked
     /// </summary>
     public string ClickUrl { get; set; }
+
+    /// <summary>
+    /// The end-to-end encrypted envelope of the message this notification is
+    /// about. It is copied into push payloads so the receiving device can
+    /// decrypt the text with a channel key it already holds. It is never
+    /// stored or relayed.
+    /// </summary>
+    [JsonIgnore]
+    public byte[] PreviewEnvelope { get; set; }
 }

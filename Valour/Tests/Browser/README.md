@@ -166,6 +166,24 @@ covered. A scanned code carries the same secret as the typed code, and both
 directions share the approval and the approval proof check, which the SDK tests
 in `E2eeLiveTests` cover.
 
+`notification-previews.mjs` checks that push notifications show decrypted text.
+It needs two fresh accounts like the device linking test and uses the same
+variables. The recipient reads a direct chat, and the test checks that the app
+kept the chat's content key in IndexedDB. The sender then posts a message with
+bold text and a spoiler. The test delivers a push with that message's envelope
+to the recipient's service worker through the DevTools protocol, and checks
+that the notification shows `lunch at noon? (spoiler)`. Pushes without an
+envelope, or naming another channel, must keep the server's body.
+
+```sh
+node Valour/Tests/Browser/notification-previews.mjs
+```
+
+The test uses full Chromium in headless mode (`channel: 'chromium'`), because
+the headless shell never grants service workers notification permission. It
+does not cover delivery through a real push service or the Android app, whose
+decryption shares the SDK code covered by `NotificationPreviewTests`.
+
 ## Local media regression
 
 With an isolated LiveKit server running on localhost, configure the QA server's

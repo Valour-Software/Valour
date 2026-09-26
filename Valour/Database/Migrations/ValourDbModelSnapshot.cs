@@ -3632,6 +3632,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("auth");
 
+                    b.Property<string>("AuthTokenId")
+                        .HasColumnType("text")
+                        .HasColumnName("auth_token_id");
+
                     b.Property<int>("DeviceType")
                         .HasColumnType("integer")
                         .HasColumnName("device_type");
@@ -3656,6 +3660,8 @@ namespace Valour.Database.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AuthTokenId");
 
                     b.HasIndex("UserId");
 
@@ -5904,11 +5910,18 @@ namespace Valour.Database.Migrations
 
             modelBuilder.Entity("Valour.Database.PushNotificationSubscription", b =>
                 {
+                    b.HasOne("Valour.Database.AuthToken", "AuthToken")
+                        .WithMany()
+                        .HasForeignKey("AuthTokenId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("Valour.Database.User", "User")
                         .WithMany("NotificationSubscriptions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("AuthToken");
 
                     b.Navigation("User");
                 });

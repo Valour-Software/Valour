@@ -25,7 +25,7 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
-        CreateNotificationChannel();
+        PushNotificationPresenter.EnsureChannel(this);
         _ = RequestNotificationPermissionAsync();
 
         HookNotificationTaps();
@@ -108,23 +108,6 @@ public class MainActivity : MauiAppCompatActivity
         }
 
         base.OnActivityResult(requestCode, resultCode, data);
-    }
-
-    private void CreateNotificationChannel()
-    {
-        if (!OperatingSystem.IsAndroidVersionAtLeast(26))
-            return;
-
-        var channel = new NotificationChannel(
-            "valour_default",
-            "Valour Notifications",
-            NotificationImportance.Default)
-        {
-            Description = "Notifications from Valour"
-        };
-
-        var manager = (NotificationManager?)GetSystemService(NotificationService);
-        manager?.CreateNotificationChannel(channel);
     }
 
     private async Task RequestNotificationPermissionAsync()

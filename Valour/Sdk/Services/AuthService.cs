@@ -837,8 +837,18 @@ public class AuthService : ServiceBase
         SetToken(null);
 
         // The signed-out account's keys and caches must not carry over to
-        // whoever signs in next. Keys stored on the device are kept.
+        // whoever signs in next. Keys stored on the device are kept, except
+        // the notification keys, which background code reads without
+        // knowing who is signed in.
         _client.E2eeService.Reset();
+        try
+        {
+            await _client.E2eeService.ForgetNotificationKeysAsync();
+        }
+        catch (Exception ex)
+        {
+            LogError("Could not delete notification keys", ex);
+        }
 
         try
         {

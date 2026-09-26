@@ -99,6 +99,26 @@ public class NotificationService
     }
 
     /// <summary>
+    /// Returns the one line a system notification shows for a message
+    /// notification, from the decrypted message. See
+    /// <see cref="NotificationPreviewText"/>. Returns null when
+    /// <see cref="FetchNotificationMessageAsync"/> finds no readable message.
+    /// </summary>
+    public async Task<string> FetchNotificationTextAsync(Notification notification)
+    {
+        var message = await FetchNotificationMessageAsync(notification);
+        if (message is null)
+            return null;
+
+        return NotificationPreviewText.Describe(new NotificationPreview
+        {
+            Content = message.Content,
+            HasEmbed = message.IsEmbed(),
+            AttachmentCount = message.Attachments?.Count(a => a.Type != MessageAttachmentType.Embed) ?? 0
+        });
+    }
+
+    /// <summary>
     /// Whether notifications from this source are about a chat message, so
     /// <see cref="Notification.SourceId"/> is a message ID.
     /// </summary>

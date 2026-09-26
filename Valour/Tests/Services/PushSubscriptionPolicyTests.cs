@@ -47,15 +47,32 @@ public class PushSubscriptionPolicyTests
     [InlineData("", false)]
     public void FcmTokens_MustBeOpaqueTokens(string token, bool valid)
     {
-        var subscription = new Valour.Server.Models.PushNotificationSubscription
+        foreach (var deviceType in new[] { NotificationDeviceType.AndroidFcm, NotificationDeviceType.AndroidFcmData })
         {
-            DeviceType = NotificationDeviceType.AndroidFcm,
-            Endpoint = token,
-            Key = "",
-            Auth = ""
+            var subscription = new Valour.Server.Models.PushNotificationSubscription
+            {
+                DeviceType = deviceType,
+                Endpoint = token,
+                Key = "",
+                Auth = ""
+            };
+
+            Assert.Equal(valid, PushSubscriptionPolicy.Validate(subscription) is null);
+        }
+    }
+
+    [Fact]
+    public void SameDevice_AllowsAnAppUpdateToChangeTheFcmType()
+    {
+        Valour.Server.Models.PushNotificationSubscription Fcm(NotificationDeviceType type) => new()
+        {
+            DeviceType = type, Endpoint = "dXk3bm9fOjE:APA91bH-ab_cd", Key = "", Auth = ""
         };
 
-        Assert.Equal(valid, PushSubscriptionPolicy.Validate(subscription) is null);
+        Assert.True(PushSubscriptionPolicy.IsSameDeviceSubscription(
+            Fcm(NotificationDeviceType.AndroidFcm), Fcm(NotificationDeviceType.AndroidFcmData)));
+        Assert.False(PushSubscriptionPolicy.IsSameDeviceSubscription(
+            Fcm(NotificationDeviceType.AndroidFcmData), WebPush("https://fcm.googleapis.com/fcm/send/abc")));
     }
 
     [Fact]

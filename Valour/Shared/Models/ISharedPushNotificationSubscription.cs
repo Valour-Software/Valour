@@ -3,7 +3,18 @@
 public enum NotificationDeviceType
 {
     WebPush,
+
+    /// <summary>
+    /// An Android app that receives FCM notification messages, which the
+    /// system displays as they arrive.
+    /// </summary>
     AndroidFcm,
+
+    /// <summary>
+    /// An Android app that receives FCM data messages and displays them
+    /// itself, so it can decrypt message text carried in the payload.
+    /// </summary>
+    AndroidFcmData,
 }
 
 public interface ISharedPushNotificationSubscription

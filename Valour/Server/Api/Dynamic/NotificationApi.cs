@@ -12,12 +12,16 @@ public class NotificationApi
     public static async Task<IResult> SubscribeAsync(
         [FromBody] PushNotificationSubscription subscription,
         PushNotificationWorker pushWorker,
-        UserService userService)
+        UserService userService,
+        TokenService tokenService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
 
         if (subscription is null)
             return ValourResult.BadRequest("Include subscription in body.");
+
+        // The subscription ends with the session that registered it.
+        subscription.AuthTokenId = (await tokenService.GetCurrentTokenAsync())?.Id;
 
         if (subscription.UserId != userId)
             return ValourResult.Forbid("You do not have permission to subscribe on behalf of another user");

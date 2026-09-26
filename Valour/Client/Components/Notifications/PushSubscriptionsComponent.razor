@@ -10,7 +10,9 @@
 
     // Renewal is a cheap POST, but no need to spam it on every window focus
     private static readonly TimeSpan RenewInterval = TimeSpan.FromHours(6);
-    private const string LastRenewalKeyPrefix = "push-subscription-last-renewal";
+    // The name changes when a registration must be sent again right away, as
+    // when Android apps moved to data messages so they can decrypt previews.
+    private const string LastRenewalKeyPrefix = "push-subscription-renewed-v2";
     private readonly SemaphoreSlim _renewalLock = new(1, 1);
     private bool _disposed;
     private DateTime _lastRenewalAttempt = DateTime.MinValue;

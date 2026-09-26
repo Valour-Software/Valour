@@ -55,11 +55,12 @@ sent as `||url||` so its preview is hidden as a spoiler. The part of a link afte
 invite link. Fetching a preview reveals that URL to the proxy but not the
 surrounding text.
 
-Push notifications and notification rows for messages, including channel
-activity alerts, say "Encrypted message" instead of the text. A notification's
-`SourceId` is the message ID, and the SDK's
-`NotificationService.FetchNotificationMessageAsync` fetches and decrypts that
-message so an app can show its text.
+Notification rows for messages, including channel activity alerts, say
+"Encrypted message" instead of the text. A notification's `SourceId` is the
+message ID, and the SDK's `NotificationService.FetchNotificationMessageAsync`
+fetches and decrypts that message so an app can show its text. Push
+notifications carry the encrypted message, which the receiving device decrypts
+itself (see [Notification text](#notification-text)).
 
 ## Primitives
 
@@ -778,6 +779,83 @@ the update's key generation is at least the message's, was created by a member
 rather than the server, and is one this device trusts for sending
 (`E2eeService.EmbedUpdateViolation`). A removed member who kept an older key
 cannot use it to change newer messages.
+
+### Notification text
+
+A push notification can arrive while the app is closed, when nothing that holds
+the keys is running. The device therefore keeps a small set of message keys
+where its background code can read them, and the server puts the message's
+envelope in the push payload. The server still never sees the text.
+
+**Keys a device keeps.** When the SDK loads and verifies a channel's keys, or
+creates a new generation, it keeps the content keys of the channel's two newest
+generations in its `NotificationKeyStore` (`INotificationKeyStore`). A content
+key only decrypts messages. It cannot open key boxes, server-sealed messages,
+or search terms. The set holds up to 400 channels and drops the one used least
+recently. It is JSON, keyed by planet ID ("0" for direct chats), channel ID,
+and generation, because channel IDs are unique only within one node. Writes
+are batched for two seconds. A write first reads the stored set, keeps the
+channels another tab of the app added, and writes nothing if another tab
+deleted the set or stored one for another account. The set is deleted when the
+person logs out, when the app finds its session has ended, and when the device
+is removed from the account. The SDK ignores a stored set that belongs to
+another account. The background readers do not check the account, because the
+set is deleted whenever its account signs out. Hosts without a store keep no
+keys.
+
+**Ending a session.** Each push subscription records the session that
+registered it (`auth_token_id`), and deleting the session deletes its
+subscriptions. A device whose session was revoked from another device therefore
+stops receiving pushes it could decrypt, even if the app never runs again.
+Subscriptions registered before this was recorded have no session until the app
+registers again, which it does on the next launch.
+
+| Host | Store | Reader |
+| --- | --- | --- |
+| Web | IndexedDB database `valour-notifications` | The service worker |
+| Android | Secure storage key `valour-notification-keys` | The FCM message handler |
+
+**The push payload.** For a message its sender encrypted, the server adds
+`channelId`, `planetId`, and `envelope` (base64) to the payload. The envelope
+is left out when the payload would pass 3,584 bytes, since Web Push and FCM
+accept about 4 KB. Messages the server sealed are left out too, because they
+need a different key. The body stays "Encrypted message" either way.
+
+**Decrypting.** The device finds the content key for the header's planet,
+channel, and generation, checks that the header names the channel the payload
+names, decrypts the payload, and checks the franking commitment. It does not
+check the author's signature, because the author's device keys are not
+available outside the app, so the text is known to come from someone who holds
+the channel key. Opening the notification loads the message and checks it
+fully. When anything fails, the notification shows "Encrypted message".
+
+**Text shown.** `NotificationPreviewText` turns the markdown into one line of
+up to 300 characters. Everything from the first spoiler marker to the last
+becomes "(spoiler)", since spoilers can nest, mentions become `@user`,
+`@role`, or `#channel`, and markdown markers are removed. A message without
+text says "Sent an attachment", "Sent N attachments", or "Sent an embed". The
+service worker applies the same rules in `notification-preview.js`, and a
+shared test vector checks that both produce the same text.
+
+**Platforms.**
+
+- **Web.** The service worker imports `notification-preview.js` and
+  `lib/noble-chacha.js`, a build of the `@noble/ciphers` ChaCha20-Poly1305
+  implementation, since WebCrypto has no ChaCha20. HKDF and HMAC come from
+  WebCrypto.
+- **Android.** Apps register as `AndroidFcmData`. The server sends them
+  high-priority FCM data messages, which Android delivers to the app even when
+  it is closed, and `PushNotificationPresenter` decrypts and shows them. Apps
+  registered as `AndroidFcm` keep receiving notification messages, which
+  Android shows as sent. The app does not show system notifications while it
+  is in the foreground. FCM data messages are not encrypted to the device, so
+  Google can read the envelope header: the author's user and device IDs, the
+  reply target, the time, the channel and planet IDs, and the ciphertext
+  length. It cannot read the text. Web Push payloads are encrypted to the
+  browser. The server must support `AndroidFcmData` before apps that register
+  with it are released, since an older server refuses the registration.
+- **Windows.** Notifications arrive in real time while the app runs, so the
+  app decrypts the message through the SDK before it shows the toast.
 
 ### Server-sealed messages
 
