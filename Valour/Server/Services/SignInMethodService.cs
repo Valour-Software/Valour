@@ -211,8 +211,10 @@ public class SignInMethodService
         {
             await _db.SaveChangesAsync();
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
+            // Only the unique index means someone else has it. Other failures
+            // must surface as errors instead of this misleading message.
             _db.ChangeTracker.Clear();
             return TaskResult.FromFailure($"This {providerName} account is already linked to another Valour account.");
         }

@@ -11,9 +11,7 @@
         <i class="bi bi-box-arrow-in-right"></i>
         Ways to sign in
     </h3>
-    <p class="toggle-description">
-        Link accounts to sign in with them. Your account always keeps at least one way to sign in from a new device.
-    </p>
+    <p class="helper-text">Link accounts to sign in with them. Your account always keeps at least one way to sign in from a new device.</p>
 
     @if (_methods is null)
     {
@@ -21,64 +19,64 @@
     }
     else
     {
-        <div class="toggle-item">
-            <div class="toggle-header">
-                <span class="toggle-title"><i class="bi bi-key connection-icon"></i> Password</span>
-                @if (_password is not null)
+        <div class="method-list">
+            <div class="method-item">
+                <div class="method-row">
+                    <i class="bi bi-key"></i>
+                    <div class="method-copy">
+                        <span class="method-name">Password</span>
+                        <span class="method-meta">@(_password is not null ? _password.DisplayName : "No password. You sign in with a linked account.")</span>
+                    </div>
+                    @if (_password is not null)
+                    {
+                        <VButton Variant="danger" Size="sm" Disabled="@(_busy || !CanRemove(_password))"
+                                 Title="@RemoveTitle(_password)" OnClick="@(() => OnClickRemove(_password))">Remove</VButton>
+                    }
+                    else if (!_addingPassword)
+                    {
+                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@(() => _addingPassword = true)">Add password</VButton>
+                    }
+                </div>
+
+                @if (_addingPassword)
                 {
-                    <VButton Variant="secondary" Size="sm" Disabled="@(_busy || !CanRemove(_password))"
-                             Title="@RemoveTitle(_password)" OnClick="@(() => OnClickRemove(_password))">Remove</VButton>
-                }
-                else if (!_addingPassword)
-                {
-                    <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@(() => _addingPassword = true)">Add password</VButton>
+                    <div class="method-form">
+                        <PasswordInput placeholder="New password" autocomplete="new-password" @bind-Value="@_newPassword" />
+                        <PasswordInput placeholder="Type it once more" autocomplete="new-password" @bind-Value="@_newPasswordConfirm" />
+                        <div class="method-form-actions">
+                            <VButton Variant="secondary" Size="sm" OnClick="@(() => _addingPassword = false)">Cancel</VButton>
+                            <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickSavePassword">Save password</VButton>
+                        </div>
+                    </div>
                 }
             </div>
-            <p class="toggle-description">@(_password is not null ? _password.DisplayName : "No password. You sign in with a linked account.")</p>
 
-            @if (_addingPassword)
+            @foreach (var provider in _providers)
             {
-                <div class="toggle-content connection-password">
-                    <PasswordInput placeholder="New password" autocomplete="new-password" @bind-Value="@_newPassword" />
-                    <PasswordInput placeholder="Type it once more" autocomplete="new-password" @bind-Value="@_newPasswordConfirm" />
-                    <div class="actions">
-                        <VButton Variant="secondary" Size="sm" OnClick="@(() => _addingPassword = false)">Cancel</VButton>
-                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickSavePassword">Save password</VButton>
+                var linked = _methods.FirstOrDefault(x => ExternalSignInService.FromCredentialType(x.Type) == provider);
+                <div class="method-item">
+                    <div class="method-row">
+                        <i class="bi @ExternalSignInService.GetIcon(provider) method-@provider"></i>
+                        <div class="method-copy">
+                            <span class="method-name">@ExternalSignInService.GetName(provider)</span>
+                            <span class="method-meta">@(linked is not null ? $"Linked to {linked.DisplayName}" : "Not linked")</span>
+                        </div>
+                        @if (linked is not null)
+                        {
+                            <VButton Variant="danger" Size="sm" Disabled="@(_busy || !CanRemove(linked))"
+                                     Title="@RemoveTitle(linked)" OnClick="@(() => OnClickRemove(linked))">Unlink</VButton>
+                        }
+                        else
+                        {
+                            <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickLink(provider))">Link</VButton>
+                        }
                     </div>
                 </div>
             }
         </div>
-
-        @foreach (var provider in _providers)
-        {
-            var linked = _methods.FirstOrDefault(x => ExternalSignInService.FromCredentialType(x.Type) == provider);
-            <div class="toggle-item">
-                <div class="toggle-header">
-                    <span class="toggle-title">
-                        <i class="bi @ExternalSignInService.GetIcon(provider) connection-icon connection-@provider"></i>
-                        @ExternalSignInService.GetName(provider)
-                    </span>
-                    @if (linked is not null)
-                    {
-                        <VButton Variant="secondary" Size="sm" Disabled="@(_busy || !CanRemove(linked))"
-                                 Title="@RemoveTitle(linked)" OnClick="@(() => OnClickRemove(linked))">Unlink</VButton>
-                    }
-                    else
-                    {
-                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickLink(provider))">Link</VButton>
-                    }
-                </div>
-                <p class="toggle-description">
-                    @(linked is not null ? $"Linked to {linked.DisplayName}" : $"Sign in with your {ExternalSignInService.GetName(provider)} account.")
-                </p>
-            </div>
-        }
     }
 
-    @if (!string.IsNullOrEmpty(_message))
-    {
-        <p class="helper-text @(_messageIsError ? "text-danger" : "")">@_message</p>
-    }
+    <ResultLabel Result="@_result" />
 </div>
 
 @if (_deviceKeys is not null && _methods is not null)
@@ -88,53 +86,61 @@
             <i class="bi bi-fingerprint"></i>
             Fingerprint sign-in
         </h3>
+        <p class="helper-text">
+            @(_deviceKeys.IsAvailable
+                ? "Sign in on this device with your fingerprint instead of your password."
+                : "Add a fingerprint in your device's settings to use fingerprint sign-in.")
+        </p>
 
-        <div class="toggle-item">
-            <div class="toggle-header">
-                <span class="toggle-title">This device</span>
-                @if (!_deviceKeys.IsAvailable)
+        <div class="method-list">
+            <div class="method-item">
+                <div class="method-row">
+                    <i class="bi bi-phone"></i>
+                    <div class="method-copy">
+                        <span class="method-name">
+                            @(ThisDeviceKey?.DisplayName ?? _deviceKeys.DeviceName)
+                            <span class="badge badge-primary">This device</span>
+                        </span>
+                        <span class="method-meta">@(ThisDeviceKey is not null ? LastUsed(ThisDeviceKey) : _deviceKeys.IsAvailable ? "Off" : "Unavailable")</span>
+                    </div>
+                    @if (ThisDeviceKey is not null)
+                    {
+                        <VButton Variant="danger" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(ThisDeviceKey))">Turn off</VButton>
+                    }
+                    else if (_deviceKeys.IsAvailable && !_enteringMfaCode)
+                    {
+                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickTurnOnFingerprint">Turn on</VButton>
+                    }
+                </div>
+
+                @if (_enteringMfaCode)
                 {
-                    <span class="status-badge">Unavailable</span>
-                }
-                else if (ThisDeviceKey is not null)
-                {
-                    <VButton Variant="secondary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(ThisDeviceKey))">Turn off</VButton>
-                }
-                else if (!_enteringMfaCode)
-                {
-                    <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickTurnOnFingerprint">Turn on</VButton>
+                    @* Fingerprint sign-in skips the authenticator code, so turning it on asks for one. *@
+                    <div class="method-form">
+                        <input class="form-control" type="text" inputmode="numeric" autocomplete="one-time-code"
+                               placeholder="Authenticator code" @bind-value="@_mfaCode" />
+                        <div class="method-form-actions">
+                            <VButton Variant="secondary" Size="sm" OnClick="@(() => _enteringMfaCode = false)">Cancel</VButton>
+                            <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickEnableFingerprint">Turn on</VButton>
+                        </div>
+                    </div>
                 }
             </div>
-            <p class="toggle-description">
-                @(_deviceKeys.IsAvailable
-                    ? "Sign in on this device with your fingerprint instead of your password."
-                    : "Add a fingerprint in your device's settings to use fingerprint sign-in.")
-            </p>
 
-            @if (_enteringMfaCode)
+            @foreach (var key in _methods.Where(x => x.Type == "DeviceKey" && x != ThisDeviceKey))
             {
-                @* Fingerprint sign-in skips the authenticator code, so turning it on asks for one. *@
-                <div class="toggle-content connection-password">
-                    <input class="form-control" type="text" inputmode="numeric" autocomplete="one-time-code"
-                           placeholder="Authenticator code" @bind-value="@_mfaCode" />
-                    <div class="actions">
-                        <VButton Variant="secondary" Size="sm" OnClick="@(() => _enteringMfaCode = false)">Cancel</VButton>
-                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickEnableFingerprint">Turn on</VButton>
+                <div class="method-item">
+                    <div class="method-row">
+                        <i class="bi bi-phone"></i>
+                        <div class="method-copy">
+                            <span class="method-name">@key.DisplayName</span>
+                            <span class="method-meta">@LastUsed(key)</span>
+                        </div>
+                        <VButton Variant="danger" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(key))">Remove</VButton>
                     </div>
                 </div>
             }
         </div>
-
-        @foreach (var key in _methods.Where(x => x.Type == "DeviceKey" && x != ThisDeviceKey))
-        {
-            <div class="toggle-item">
-                <div class="toggle-header">
-                    <span class="toggle-title">@key.DisplayName</span>
-                    <VButton Variant="secondary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(key))">Remove</VButton>
-                </div>
-                <p class="toggle-description">@LastUsed(key)</p>
-            </div>
-        }
     </div>
 }
 
@@ -150,8 +156,7 @@
     private IDeviceKeyService _deviceKeys;
 
     private bool _busy;
-    private string _message;
-    private bool _messageIsError;
+    private ITaskResult _result;
 
     private bool _addingPassword;
     private string _newPassword;
@@ -199,8 +204,7 @@
 
     private void Show(string message, bool isError)
     {
-        _message = message;
-        _messageIsError = isError;
+        _result = isError ? TaskResult.FromFailure(message) : TaskResult.FromSuccess(message);
     }
 
     /// <summary>
@@ -242,7 +246,7 @@
     private async Task RunAsync(Func<Task> action)
     {
         _busy = true;
-        _message = null;
+        _result = null;
         StateHasChanged();
 
         try

@@ -1,23 +1,67 @@
-.connection-icon {
-    margin-right: 0.4rem;
+.method-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-3) 0;
 }
 
-.connection-google {
+.method-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+}
+
+.method-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.method-row > i {
+    font-size: var(--font-size-xl);
+    color: var(--color-primary);
+}
+
+.method-row > i.method-google {
     color: #ea4335;
 }
 
-.connection-discord {
+.method-row > i.method-discord {
     color: #5865f2;
 }
 
-.connection-password {
+.method-copy {
     display: flex;
+    flex: 1;
     flex-direction: column;
-    gap: 0.5rem;
+    min-width: 0;
 }
 
-.connection-password .actions {
+.method-name {
     display: flex;
-    gap: 0.5rem;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.method-meta {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.method-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.method-form-actions {
+    display: flex;
+    gap: var(--space-2);
     justify-content: flex-end;
 }
