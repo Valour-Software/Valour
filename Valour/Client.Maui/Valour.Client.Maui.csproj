@@ -69,6 +69,13 @@
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
     </PropertyGroup>
 
+    <!-- The Mac SDK names the app bundle after ApplicationTitle (Valour.app), while
+         IDEs launch the bundle named after the assembly. Matching them lets Run
+         and Debug find the app, and the process shows as Valour. -->
+    <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+        <AssemblyName>Valour</AssemblyName>
+    </PropertyGroup>
+
     <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
         <AssemblyName>Valour</AssemblyName>
         <!-- MauiIcon supplies packaged tile assets, but unpackaged releases
@@ -154,6 +161,21 @@
             <_Parameter1>ValourApiBase</_Parameter1>
             <_Parameter2>$(ValourApiBase)</_Parameter2>
         </AssemblyAttribute>
+    </ItemGroup>
+    <!-- The Keychain needs an entitlement that only a build signed with the Apple
+         team can carry; an ad-hoc signed app that claims it is refused at launch.
+         Set CodesignKey and CodesignProvision (in Local.props, for example) to sign
+         with the team. Unsigned Debug builds keep encryption keys in a file inside
+         the app's sandbox instead, and unsigned Release builds have no fallback. -->
+    <PropertyGroup Condition="$(TargetFramework.Contains('maccatalyst'))">
+        <ValourTeamSigned Condition="'$(CodesignKey)' != '' and '$(CodesignKey)' != '-'">true</ValourTeamSigned>
+        <CodesignEntitlements Condition="'$(ValourTeamSigned)' == 'true'">Platforms\MacCatalyst\Entitlements.Signed.plist</CodesignEntitlements>
+        <DefineConstants Condition="'$(ValourTeamSigned)' != 'true' and '$(Configuration)' == 'Debug'">$(DefineConstants);VALOUR_UNSIGNED_KEYCHAIN</DefineConstants>
+    </PropertyGroup>
+
+    <!-- Apple platforms block plain HTTP unless the app declares an exception. -->
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' and '$(ValourApiBase)' != '' and ($(TargetFramework.Contains('ios')) or $(TargetFramework.Contains('maccatalyst')))">
+        <PartialAppManifest Include="Platforms\Apple\LocalServerTransport.plist" />
     </ItemGroup>
 
     <Target Name="ShowAppleTargetFrameworkSkipMessage"

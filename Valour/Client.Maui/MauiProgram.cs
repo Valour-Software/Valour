@@ -70,11 +70,21 @@ public static class MauiProgram
         });
 #elif IOS || MACCATALYST
         BlazorWebViewHandler.BlazorWebViewMapper.AppendToMapping("AppleWebViewConfig", (handler, _) =>
-            AppleWebViewUIDelegate.Attach(handler.PlatformView));
+        {
+            AppleWebViewUIDelegate.Attach(handler.PlatformView);
+            AppleWebViewNavigationDelegate.Attach(handler.PlatformView);
+        });
 #endif
 
         builder.Services.AddSingleton<IAppStorage, MauiStorageService>();
+#if VALOUR_UNSIGNED_KEYCHAIN
+        // An unsigned Mac build can't use the Keychain (see the project file), so
+        // local Debug builds keep keys in a file inside the app's sandbox.
+        builder.Services.AddSingleton<Valour.Sdk.E2ee.IE2eeKeyStore>(_ =>
+            new Valour.Sdk.E2ee.FileE2eeKeyStore(Path.Combine(FileSystem.AppDataDirectory, "e2ee-keys")));
+#else
         builder.Services.AddSingleton<Valour.Sdk.E2ee.IE2eeKeyStore, SecureE2eeKeyStore>();
+#endif
         builder.Services.AddSingleton<IPushNotificationService, MauiPushNotificationService>();
 #if ANDROID
         builder.Services.AddSingleton<Valour.Sdk.E2ee.INotificationKeyStore, SecureNotificationKeyStore>();
@@ -96,11 +106,17 @@ public static class MauiProgram
 #elif IOS || MACCATALYST
         builder.Services.AddScoped<IExternalAuthLauncher, AppleExternalAuthLauncher>();
 #endif
+#if MACCATALYST
+        builder.Services.AddSingleton<IDeviceKeyService, MacDeviceKeyService>();
+        builder.Services.AddSingleton<INativeUpdateService, MacUpdateService>();
+#endif
 
         // Override the browser share service with the native OS share sheet
         builder.Services.AddSingleton<Valour.Client.Utility.IShareService, MauiShareService>();
 #if WINDOWS
         builder.Services.AddSingleton<WindowsToastService>();
+#endif
+#if WINDOWS || MACCATALYST
         builder.Services.AddSingleton<INativeWindowService, MauiNativeWindowService>();
 #endif
 

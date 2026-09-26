@@ -143,6 +143,13 @@ dotnet build Valour/Client.Maui -f net11.0-maccatalyst
 open Valour/Client.Maui/bin/Debug/net11.0-maccatalyst/maccatalyst-arm64/Valour.app
 ```
 
+Encryption keys and Touch ID sign-in keys live in the Keychain, which only a build
+signed with the Apple team can use. To sign, add `CodesignKey` (the certificate
+name) and `CodesignProvision` (the provisioning profile name) to `Local.props`.
+An unsigned Debug build keeps encryption keys in a file inside the app's sandbox
+and offers no Touch ID sign-in. Debug builds that name a local server with
+`ValourApiBase` may reach it over plain HTTP.
+
 Build from the root with `dotnet build`. C# integration tests start application
 services and need a dedicated test database and Redis instance. Use the
 [isolated test runner](Valour/Tests/Browser/README.md#isolated-c-regression) rather
