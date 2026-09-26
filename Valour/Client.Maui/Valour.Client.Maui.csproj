@@ -102,6 +102,10 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" Version="11.0.0-rc.1.26451.6" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="11.0.0-rc.1.26451.6" />
+        <!-- WebView.Maui depends on an older Components.WebView, whose bundled
+             blazor.webview.js must match the Components.Web runtime. A mismatch
+             breaks JS interop such as the Virtualize viewport callbacks. -->
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="11.0.0-rc.1.26425.128" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="11.0.0-rc.1.26425.128" />
         <PackageReference Include="Microsoft.Maui.Core" Version="11.0.0-rc.1.26451.6" />
         <PackageReference Include="Sentry.Maui" Version="6.1.0" />

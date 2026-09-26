@@ -214,7 +214,9 @@ python3 Tools/Villages/run-local-tests.py --config /private/path/appsettings.jso
 The runner rejects non-loopback database and Redis endpoints, requires a dedicated
 test/QA database name, copies all binaries and configuration to a temporary
 directory, explicitly overrides data-service environment settings, and disables
-Sentry and uses temporary filesystem media storage. Its default filter runs
+Sentry and uses temporary filesystem media storage. The server also never reports
+to Sentry when it runs in the Development environment, which is the default for
+the integration test host and for `dotnet run`. Its default filter runs
 Villages and ID generation regressions; `--filter`
 selects other tests and `--serial` serializes test collections if needed.
 

@@ -99,7 +99,11 @@ public partial class Program
 #endif
 
 
-        if (builder.Configuration.GetSection("Sentry").Exists())
+        // Development hosts (local servers and the integration test host) often
+        // load a copy of the production settings, so they never report to Sentry.
+        var sentryEnabled = builder.Configuration.GetSection("Sentry").Exists() &&
+                            !builder.Environment.IsDevelopment();
+        if (sentryEnabled)
         {
             builder.WebHost.UseSentry(x =>
             {
@@ -193,7 +197,7 @@ public partial class Program
 
         app.UseWebSockets();
 
-        if (app.Configuration.GetSection("Sentry").Exists())
+        if (app.Configuration.GetSection("Sentry").Exists() && !app.Environment.IsDevelopment())
         {
             app.UseSentryTracing();
         }

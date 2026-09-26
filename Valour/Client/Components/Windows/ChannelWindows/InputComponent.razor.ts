@@ -140,7 +140,10 @@ function insertTextAtCursor(text: string) {
 
 function findTextNodeAndOffset(node: Node, offset: number): { node: Text, offset: number } | null {
     if (node.nodeType === Node.TEXT_NODE) {
-        return { node: node as Text, offset };
+        // Offsets on element containers count child nodes, not characters, so
+        // the offset carried down to a text node can fall outside its text.
+        const text = node as Text;
+        return { node: text, offset: Math.min(Math.max(offset, 0), text.length) };
     }
     if (node.childNodes.length > 0) {
         let childNode: Node | null = null;
@@ -278,7 +281,10 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
                         return;
                     }
                 }
-                ctx.currentWord = ctx.getCurrentWord(0);
+                // Read the word from the same text node the range is built on.
+                // The selection may sit on an element, whose text and offsets
+                // do not line up with the resolved text node.
+                ctx.currentWord = (endContainer.textContent ?? '').substring(0, endOffset).split(/\s+/g).pop() || '';
                 const range = document.createRange();
                 const wordLength = ctx.currentWord.length;
                 const startOffset = endOffset - wordLength;

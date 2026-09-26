@@ -13,6 +13,20 @@ dotnet run -- export
 The output is `dist/`, including rendered pages, static assets, `sitemap.xml`, and
 `_redirects`. Use the repository's pinned .NET SDK for local builds.
 
+## Policy pages
+
+The privacy policy, terms of service, and platform rules are written as files at
+the repository root (`PRIVACY`, `TERMS_OF_SERVICE.md`, `PLATFORM_RULES.md`, and
+`PLATFORM_ECO_RULES.md`). The build copies them next to the site binaries, and
+`LegalDocumentLibrary` renders them as Markdown into `/privacy/`, `/terms/`,
+`/rules/`, and `/rules/economy/`. Links between these files, written as file
+names or GitHub URLs, point to the matching site pages. Edit the root files, not
+the site, to change a policy.
+
+`/delete-account/` is a Razor view (`Views/Home/DeleteAccount.cshtml`) that
+explains how to delete an account and what is kept afterwards. Google Play links
+to it from the app listing, so keep it in step with `UserService.HardDelete`.
+
 ## Cloudflare Pages
 
 The website's Pages project uses these settings:

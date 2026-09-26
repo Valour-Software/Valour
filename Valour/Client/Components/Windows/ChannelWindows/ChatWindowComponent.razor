@@ -720,9 +720,14 @@
 
         foreach (var message in lastMessages)
         {
+            // System, error, and departed-member messages have no member.
             var member = await message.FetchAuthorMemberAsync();
-            if (!chatters.Contains(member))
-                chatters.Add(member);
+            if (member is null || chatters.Contains(member))
+                continue;
+
+            chatters.Add(member);
+            if (chatters.Count >= count)
+                break;
         }
 
         return chatters;
