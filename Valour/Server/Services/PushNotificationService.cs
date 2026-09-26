@@ -2,7 +2,9 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Valour.Config.Configs;
 using Valour.Server.Database;
@@ -92,6 +94,7 @@ public class PushNotificationService
             existingUserSub.DeviceType = subscription.DeviceType;
             existingUserSub.Auth = subscription.Auth;
             existingUserSub.Key = subscription.Key;
+            existingUserSub.AuthTokenId = subscription.AuthTokenId;
             existingUserSub.ExpiresAt = DateTime.UtcNow.Add(SubscriptionLifetime);
         }
         else
@@ -165,22 +168,67 @@ public class PushNotificationService
         _logger.LogInformation("Deleted {Count} subscriptions for endpoint {Endpoint}", subscriptions, endpoint);
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <summary>
+    /// The largest payload sent, in UTF-8 bytes. Web Push and FCM both accept
+    /// about 4 KB, and Web Push encryption adds about 100 bytes. A message
+    /// envelope that would pass this is left out, and the device shows the
+    /// placeholder body instead of the text.
+    /// </summary>
+    internal const int MaxPayloadBytes = 3584;
+
+    private sealed class PushPayload
+    {
+        [JsonPropertyName("title")] public string Title { get; init; }
+        [JsonPropertyName("message")] public string Message { get; init; }
+        [JsonPropertyName("iconUrl")] public string IconUrl { get; init; }
+        [JsonPropertyName("url")] public string Url { get; init; }
+        [JsonPropertyName("notificationId")] public string NotificationId { get; init; }
+        [JsonPropertyName("sourceId")] public string SourceId { get; init; }
+        [JsonPropertyName("timeSent")] public long TimeSent { get; init; }
+
+        [JsonPropertyName("planetId"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string PlanetId { get; init; }
+
+        [JsonPropertyName("channelId"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string ChannelId { get; init; }
+
+        /// <summary>The message envelope, base64. Only the recipient's device can decrypt it.</summary>
+        [JsonPropertyName("envelope"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string Envelope { get; set; }
+    }
+
+    // Base64 and non-ASCII text are written as they are, not as \u escapes,
+    // so more envelopes fit. Readers parse the JSON; it is never put in HTML.
+    private static readonly JsonSerializerOptions PayloadJsonOptions = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     internal static string GetPayload(NotificationContent content)
     {
         var timeSent = content.TimeSent == default ? DateTime.UtcNow : content.TimeSent;
 
-        return JsonSerializer.Serialize(new
+        var payload = new PushPayload
         {
-            title = content.Title,
-            message = content.Message,
-            iconUrl = content.IconUrl,
-            url = content.Url,
-            notificationId = content.NotificationId?.ToString(),
-            sourceId = content.SourceId?.ToString(CultureInfo.InvariantCulture),
-            timeSent = new DateTimeOffset(DateTime.SpecifyKind(timeSent, DateTimeKind.Utc))
-                .ToUnixTimeMilliseconds()
-        });
+            Title = content.Title,
+            Message = content.Message,
+            IconUrl = content.IconUrl,
+            Url = content.Url,
+            NotificationId = content.NotificationId?.ToString(),
+            SourceId = content.SourceId?.ToString(CultureInfo.InvariantCulture),
+            TimeSent = new DateTimeOffset(DateTime.SpecifyKind(timeSent, DateTimeKind.Utc))
+                .ToUnixTimeMilliseconds(),
+            PlanetId = content.PlanetId?.ToString(CultureInfo.InvariantCulture),
+            ChannelId = content.ChannelId?.ToString(CultureInfo.InvariantCulture),
+        };
+
+        var json = JsonSerializer.Serialize(payload, PayloadJsonOptions);
+        if (content.Envelope is not { Length: > 0 })
+            return json;
+
+        payload.Envelope = Convert.ToBase64String(content.Envelope);
+        var withEnvelope = JsonSerializer.Serialize(payload, PayloadJsonOptions);
+        return Encoding.UTF8.GetByteCount(withEnvelope) <= MaxPayloadBytes ? withEnvelope : json;
     }
     
     internal static string GetNotificationImageUrl(string iconUrl, string appBaseUrl)
@@ -205,7 +253,8 @@ public class PushNotificationService
     {
         return sub.DeviceType switch
         {
-            NotificationDeviceType.AndroidFcm => SendFcmNotificationAsync(sub, payload, unsubscribes),
+            NotificationDeviceType.AndroidFcm or NotificationDeviceType.AndroidFcmData =>
+                SendFcmNotificationAsync(sub, payload, unsubscribes),
             _ => SendWebPushNotificationAsync(sub, payload, unsubscribes, cancellationToken),
         };
     }
@@ -257,38 +306,8 @@ public class PushNotificationService
             return;
         }
 
-        // Deserialize the payload to get notification fields
-        var content = JsonSerializer.Deserialize<JsonElement>(payload);
-        var title = content.GetProperty("title").GetString() ?? "";
-        var body = content.GetProperty("message").GetString() ?? "";
-        var iconUrl = content.TryGetProperty("iconUrl", out var icon) ? icon.GetString() : null;
-        var url = content.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null;
-
-        // Without an explicit event time Android cards render a bogus date
-        var eventTime = content.TryGetProperty("timeSent", out var timeSentProp)
-                        && timeSentProp.TryGetInt64(out var timeSentMs)
-            ? DateTimeOffset.FromUnixTimeMilliseconds(timeSentMs).UtcDateTime
-            : DateTime.UtcNow;
-
-        var message = new FirebaseAdmin.Messaging.Message
-        {
-            Token = sub.Endpoint,
-            Notification = new FirebaseAdmin.Messaging.Notification
-            {
-                Title = title,
-                Body = body,
-                ImageUrl = GetNotificationImageUrl(iconUrl, HostingConfig.Current?.AppBaseUrl ?? "https://app.valour.gg"),
-            },
-            Android = new FirebaseAdmin.Messaging.AndroidConfig
-            {
-                Notification = new FirebaseAdmin.Messaging.AndroidNotification
-                {
-                    ChannelId = "valour_default",
-                    EventTimestamp = eventTime,
-                },
-            },
-            Data = new Dictionary<string, string> { ["url"] = url ?? "" },
-        };
+        var message = BuildFcmMessage(sub.Endpoint, sub.DeviceType, payload,
+            HostingConfig.Current?.AppBaseUrl ?? "https://app.valour.gg");
 
         try
         {
@@ -306,6 +325,91 @@ public class PushNotificationService
         }
     }
     
+    /// <summary>
+    /// Builds the FCM message for a payload from <see cref="GetPayload"/>.
+    /// Apps registered as <see cref="NotificationDeviceType.AndroidFcmData"/>
+    /// receive a data message with every payload field and display it
+    /// themselves, after decrypting the message text when they can. Other
+    /// apps receive a notification message, which Android displays as sent.
+    /// </summary>
+    internal static FirebaseAdmin.Messaging.Message BuildFcmMessage(string token, NotificationDeviceType deviceType,
+        string payload, string appBaseUrl)
+    {
+        var content = JsonSerializer.Deserialize<JsonElement>(payload);
+        string Field(string name) =>
+            content.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+
+        var title = Field("title") ?? "";
+        var body = Field("message") ?? "";
+        var imageUrl = GetNotificationImageUrl(Field("iconUrl"), appBaseUrl);
+        var url = Field("url");
+
+        var timeSentMs = content.TryGetProperty("timeSent", out var timeSentProp)
+                         && timeSentProp.TryGetInt64(out var parsedTimeSent)
+            ? parsedTimeSent
+            : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        if (deviceType == NotificationDeviceType.AndroidFcmData)
+        {
+            var data = new Dictionary<string, string>
+            {
+                ["title"] = title,
+                ["message"] = body,
+                ["url"] = url ?? "",
+                ["timeSent"] = timeSentMs.ToString(CultureInfo.InvariantCulture),
+            };
+
+            void AddIfSet(string key, string value)
+            {
+                if (!string.IsNullOrEmpty(value))
+                    data[key] = value;
+            }
+
+            AddIfSet("iconUrl", imageUrl);
+            AddIfSet("notificationId", Field("notificationId"));
+            AddIfSet("sourceId", Field("sourceId"));
+            AddIfSet("planetId", Field("planetId"));
+            AddIfSet("channelId", Field("channelId"));
+            AddIfSet("envelope", Field("envelope"));
+
+            return new FirebaseAdmin.Messaging.Message
+            {
+                Token = token,
+                Data = data,
+                // Data messages are delivered right away only at high
+                // priority. Each one is shown to the person, which Android
+                // requires to keep delivering them that way.
+                Android = new FirebaseAdmin.Messaging.AndroidConfig
+                {
+                    Priority = FirebaseAdmin.Messaging.Priority.High,
+                },
+            };
+        }
+
+        return new FirebaseAdmin.Messaging.Message
+        {
+            Token = token,
+            Notification = new FirebaseAdmin.Messaging.Notification
+            {
+                Title = title,
+                Body = body,
+                ImageUrl = imageUrl,
+            },
+            Android = new FirebaseAdmin.Messaging.AndroidConfig
+            {
+                Notification = new FirebaseAdmin.Messaging.AndroidNotification
+                {
+                    ChannelId = "valour_default",
+                    // Without an explicit event time Android cards render a bogus date
+                    EventTimestamp = DateTimeOffset.FromUnixTimeMilliseconds(timeSentMs).UtcDateTime,
+                },
+            },
+            Data = new Dictionary<string, string> { ["url"] = url ?? "" },
+        };
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal async Task SendParallelNotificationsAsync(
         Valour.Database.PushNotificationSubscription[] subs, 

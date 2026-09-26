@@ -1,0 +1,93 @@
+{
+  "keySet": "{\"v\":1,\"u\":\"9007199254740993\",\"keys\":[{\"p\":\"1234567890123456789\",\"c\":\"987654321098765432\",\"g\":3,\"k\":\"ebnCJKvQXAzWn9\\u002BO\\u002Br3KxNOAdHeIEuHIFTuBiqahx/8=\"}]}",
+  "planetId": "1234567890123456789",
+  "channelId": "987654321098765432",
+  "messages": [
+    {
+      "envelope": "Vk1FMQAAAJ5WTUgxDbTaX0n4tHgRIhD0femBFQAAAANwvl34pkp4W7H0+ARPfpZDAAAAAAAgAAAAAAADAAAAFlhucGpST3B5blk0RkYyUGpHTXQ5Y1EAAAAAAAAAAAAAAaDEUGwAc5NM+unBMf20omby4nf1RMrxCI4lzw7bplud4MEIgDIW58oF0RqL/6lCiCilnisSRR7iq8FflgnElymdyxo4HAAAAK5ZxVfD8gV2W+8bVnXoh1fPkbBLFgbHFs9r0HdLhTsKNfZbBSGuI12cIXNYRrNP6pojNLjtC0Y8pnA5YCVGRA4mOCJDRLmQ9ZPFnYEKnKExF/ETklVZmCwdo+F0GKCVz9YmohsEMJEwoiBY+SSkdyELqlNYGDPiS4gagsR0T1IYGbjGUcLpmaCCl4uB6RAsiJto0dShaw8VUJqbOXMJGHoFpnZaJ3HJmpE9xcme2jrUq2b8aBJRHczV9kDnrdlHqa7gKiBe/GPY446JAKmxLIfWkC2P1NMsszvBarCuEBHFmjt/J4cuWdxhIDmJOkcK",
+      "text": "Hey there (spoiler) @user, see the docs ✨"
+    },
+    {
+      "envelope": "Vk1FMQAAAJ5WTUgxDbTaX0n4tHgRIhD0femBFQAAAAPFM0i0c11R1LJe4v/TZM0CAAAAAgAgAAAAAAADAAAAFlhucGpST3B5blk0RkYyUGpHTXQ5Y1EAAAAAAAAAAAAAAaDEUGwAIH+D/WsxUXOTyIXvfVQSY5KiSANwVfrrou3ULOLK0Y8W58oF0RqL/6lCiCilnisSRR7iq8FflgnElymdyxo4HAAAAFxbvjo9vf3+9Ovk1LxoWciZrFcpgKbUSX6BLBJ2XBunqdQnkYKYgDwrGOAVZ7uFeQflH+2rZZ9PjR8cjFPwg+zindV9kpY/DuNuaKeap4g3r0UVVrARlNn1Z6vlfAAiIa9FHX4d+W+gsKeNs928CT/JO2fOoxm8Hc7krARnVaaDjP/XY7pJKMw92bUtu60acFRKbFLmwFcCq2f2VgQ=",
+      "text": "edited text"
+    },
+    {
+      "envelope": "Vk1FMQAAAJ5WTUgxDbTaX0n4tHgRIhD0femBFQAAAAO5dioi/wxH9r0M0WMMHqBdAAAAAAAgAAAAAAADAAAAFlhucGpST3B5blk0RkYyUGpHTXQ5Y1EAAAAAAAAAAAAAAaDEUGwAAEYbBjoDWd8nkIRaKUG+ZOjdHV6292O8xoTZaqGOVKYW58oF0RqL/6lCiCilnisSRR7iq8FflgnElymdyxo4HAAAAHFB9FYnNUbtStUfB2OZpSwW7xXwKpiO8Rp/wcobIQvaE6pt8NXJDMfme1vUB2dA/T5WhE2ebOh7ELlDUuUTkraXfjx4LCzwCFE+VraY0E3ZG6sgsfcKhodIhmlxLbdKfDbNzGNJGYNFydXg+pJ9KUsmXw3eUFdGQL4wi+L/KhztyC6gC1JKrhi8CGOIYRDNjNVBcQ7rjLqNwgCTJ5ON4qjmqE7SCNePTa2U0JgF4iyAhQI=",
+      "text": "Sent an attachment"
+    },
+    {
+      "envelope": "Vk1FMQAAAJ5WTUgxDbTaX0n4tHgRIhD0femBFQAAAAP7aSX9LwvQS3TVvYiFId+3AAAAAAAgAAAAAAADAAAAFlhucGpST3B5blk0RkYyUGpHTXQ5Y1EAAAAAAAAAAAAAAaDEUGwA90HYiut8WeY096QtlMtuGS5m4kU5JDMVVdva5QaHJgwW58oF0RqL/6lCiCilnisSRR7iq8FflgnElymdyxo4HAAAAF2jedJ+J+5qSI+PFju4OKECLoFqmHTqAmGPZhTafKzk8Pte/2GLCJoaLg4BD+d8HBdCHWpK0BcoMqWp1BERgQ1d3Q5QxnFsJL4m4UeU/6kh8XRoy8reb9/moTz393SaIvkOiVG5oBmaZK2QDqzfceOLsJTesWHB6Pdc7ERgzisU3B+zxkP//75ir/O9BNVORj2Kg5K1QBL1NACclZUL",
+      "text": "Sent an embed"
+    },
+    {
+      "envelope": "Vk1FMQAAAJ5WTUgxDbTaX0n4tHgRIhD0femBFQAAAAOftkpiRPBZxsQ/vIbf08jAAAAAAAAgAAAAAAADAAAAFlhucGpST3B5blk0RkYyUGpHTXQ5Y1EAAAAAAAAAAAAAAaDEUGwANGgmBt2atXVq1asQKd9irNSCbBMQ7G6OSvv7V4pejUoW58oF0RqL/6lCiCilnisSRR7iq8FflgnElymdyxo4HAAAAkXgYf/mlpTAPjFBr3QRkMKMDsSwLzd5JqKaYSXO0wganSMC/Niy/0Y4XTs5OtK4q+SqpvNUKgn026jMCGG7sEyEvLdBIHT3yLdPuNxoNTh6xmBYPpm52E8wVaSMfV52k2j6wBSjxMLdN1UV5LU8615Xx69iXuqmSIrfKMZ3M6JlHuiz52kA1R5W5ty4Whg3+YQnpU4F+nzBBviPqKoQ9P/CLwxpIly1A3w+RCxJDQLaAh5afBwsmsajOB/l4uvaJ5kiMvukcJJfHrNqswwFdNYUS6IukoomGZAIDHVod/wUi+mt31tlFQ63gz4y4EhzNUZh18mDD1p6HtPMpQVLSABxHbFTBCt9AFW//xcHWiMAi0FEmSUx4pMg+kFCF5k+YQHFHx79I1xoYbczTO0dfhCIkzwg9QgKYTNZPkGeTVZN2Ef2LFG1PTMY6s1K+2Nf7OXxzcSpvcLO/LjbDiofjRpBzEgkm53f5jgtvKPK0NpS3kWEka5uWlJ4DR4mePVW0Abai6lDTLzz2ZWz5MYogHFklX3r8F+5QNqHAFmEj9XL+TqIzzXBky03E534ympHLg2Y236WPJqXQpRl6RdtMW1Dm96vV+yGO+TJ4QM38jOL6N66o+37sqMlCnQIKN2OpSrw2rLzdUTPD/e+R5bfIGgrMdO6q1jyujnyxjOOEBGbbmQ+jZ71v2uPFiSwM9HzaRiTdiq1L5zWq1Ur3LoFTiO20VS3bNDTRSxMNoLp5pMBgluPMo8+Yqfka/n5Ftrb6Y3oLK+EhL62m1NyTcMl3hRfOx4+Lp6glw4731232DQ7jbpYKKckKrAKWMS4/e/LIEdNrKlHM+hlZJMG/rOAMK0W4yJJ3QM=",
+      "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
+    }
+  ],
+  "formatCases": [
+    {
+      "input": "Hello **world**",
+      "expected": "Hello world"
+    },
+    {
+      "input": "||spoiler|| text",
+      "expected": "(spoiler) text"
+    },
+    {
+      "input": "hi «@m-12345» and «@r-9» in «@c-7»",
+      "expected": "hi @user and @role in #channel"
+    },
+    {
+      "input": "«e-:party_parrot:~123» nice",
+      "expected": ":party_parrot: nice"
+    },
+    {
+      "input": "# Heading\n> quote\n-# small",
+      "expected": "Heading quote small"
+    },
+    {
+      "input": "[link](https://example.com) and `code`",
+      "expected": "link and code"
+    },
+    {
+      "input": "```js\nconst a = 1;\n```",
+      "expected": "const a = 1;"
+    },
+    {
+      "input": "multi\n\nline   text",
+      "expected": "multi line text"
+    },
+    {
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…"
+    },
+    {
+      "input": "__under__ ~~strike~~ *it*",
+      "expected": "under strike it"
+    },
+    {
+      "input": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+      "expected": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀…"
+    },
+    {
+      "input": "   ",
+      "expected": ""
+    },
+    {
+      "input": "snake_case and 2*3",
+      "expected": "snake_case and 2*3"
+    },
+    {
+      "input": "||multi\nline spoiler|| after",
+      "expected": "(spoiler) after"
+    },
+    {
+      "input": "||a ||b|| c||",
+      "expected": "(spoiler)"
+    },
+    {
+      "input": "||a|| shown ||b|| end",
+      "expected": "(spoiler) end"
+    }
+  ]
+}

@@ -31,6 +31,14 @@ and unchanged loading for ordinary images. The browser library and atlas suites
 check decoded pixels and the actual published files; the decoder unit tests do
 not establish license compliance or resistance to determined extraction.
 
+`notification-preview.test.mjs` loads the service worker's
+`notification-preview.js` and `lib/noble-chacha.js` as classic scripts. It
+decrypts messages the SDK sealed from the shared vector in
+`Fixtures/notification-preview-vector.json`, which `NotificationPreviewTests`
+also reads, and checks the notification text rules against the same cases. It
+also checks that a wrong channel, a missing key, or a tampered envelope gives
+no text.
+
 `ui-lifecycle.test.mjs` exercises teardown of animations, color pickers, file-drop
 listeners, browser listeners, dock history ownership, and delayed input callbacks.
 The standalone [browser lifecycle suite](../Browser/sentry-ui-lifecycle.mjs) checks

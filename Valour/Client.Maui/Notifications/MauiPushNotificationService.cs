@@ -68,7 +68,7 @@ public class MauiPushNotificationService : IPushNotificationService
                 Endpoint = token,
                 Key = "",
                 Auth = "",
-                DeviceType = NotificationDeviceType.AndroidFcm,
+                DeviceType = NotificationDeviceType.AndroidFcmData,
             };
 
             var result = await _client.PrimaryNode.PostAsync("api/notifications/subscribe", pushNotificationSubscription);
@@ -119,7 +119,7 @@ public class MauiPushNotificationService : IPushNotificationService
                     Endpoint = token,
                     Key = "",
                     Auth = "",
-                    DeviceType = NotificationDeviceType.AndroidFcm,
+                    DeviceType = NotificationDeviceType.AndroidFcmData,
                 };
 
                 await _client.PrimaryNode.PostAsync("api/notifications/unsubscribe", pushNotificationSubscription);
@@ -259,9 +259,17 @@ public class MauiPushNotificationService : IPushNotificationService
         return Task.CompletedTask;
     }
 
-    public Task DismissNotificationAsync(Guid notificationId, long? sourceId) => Task.CompletedTask;
+    public Task DismissNotificationAsync(Guid notificationId, long? sourceId)
+    {
+        PushNotificationPresenter.Dismiss(notificationId, sourceId);
+        return Task.CompletedTask;
+    }
 
-    public Task DismissAllNotificationsAsync() => Task.CompletedTask;
+    public Task DismissAllNotificationsAsync()
+    {
+        PushNotificationPresenter.DismissAll();
+        return Task.CompletedTask;
+    }
 }
 #elif WINDOWS
 public class MauiPushNotificationService : IPushNotificationService

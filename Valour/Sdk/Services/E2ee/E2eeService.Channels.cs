@@ -131,6 +131,7 @@ public partial class E2eeService
             _keyRingFailures.TryRemove(ChannelKey(channel), out _);
             var ring = await BuildKeyRingAsync(channel, result.Data, _keyRings.GetValueOrDefault(ChannelKey(channel)));
             _keyRings[ChannelKey(channel)] = ring;
+            RememberNotificationKeys(channel, ring);
             return ring;
         }
         finally
@@ -1226,6 +1227,7 @@ public partial class E2eeService
         ring.RotationRequired = false;
         channel.EncryptionGeneration = generation;
         await PinGenerationAsync(channel, generation);
+        RememberNotificationKeys(channel, ring);
         ChannelKeysChanged?.Invoke(channel.Id);
         return TaskResult.SuccessResult;
     }

@@ -73,6 +73,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<Valour.Sdk.E2ee.IE2eeKeyStore, SecureE2eeKeyStore>();
         builder.Services.AddSingleton<IPushNotificationService, MauiPushNotificationService>();
 #if ANDROID
+        builder.Services.AddSingleton<Valour.Sdk.E2ee.INotificationKeyStore, SecureNotificationKeyStore>();
         builder.Services.AddSingleton<INativeUpdateService, AndroidUpdateService>();
 #elif WINDOWS
         builder.Services.AddSingleton<INativeUpdateService, WindowsUpdateService>();
