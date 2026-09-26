@@ -282,8 +282,9 @@ public class ChannelActivityService
             return;
         }
 
-        // The server cannot read the message, so the preview is the
-        // placeholder every message notification uses.
+        // The server cannot read the message, so the body is the placeholder
+        // every message notification uses. Push payloads carry the envelope
+        // for devices that can decrypt it.
         var preview = NotificationService.EncryptedMessageBody;
         var senderName = GetSenderName(activityMessage);
         var senderAvatar = GetSenderAvatar(activityMessage);
@@ -341,6 +342,8 @@ public class ChannelActivityService
             ChannelId = eval.ChannelId,
             Source = NotificationSource.ChannelActivity,
             SourceId = activityMessage.Id,
+            PreviewEnvelope = NotificationService.PreviewEnvelopeOf(activityMessage.EncryptionVersion,
+                activityMessage.Envelope),
         };
 
         await _notificationService.SendChannelActivityNotificationsAsync(

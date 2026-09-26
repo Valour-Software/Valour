@@ -75,6 +75,16 @@ else
         // storage writes and JS interop onto the renderer's dispatcher.
         return InvokeAsync(async () =>
         {
+            // A revoked session must not keep decrypting push notifications.
+            try
+            {
+                await Client.E2eeService.ForgetNotificationKeysAsync();
+            }
+            catch (Exception)
+            {
+                // The server also deletes the session's push subscriptions.
+            }
+
             await LocalStorage.RemoveAsync("token");
             await LocalStorage.SetStringAsync("logout-reason", reason ?? "expired");
             await JsRuntime.InvokeVoidAsync("location.reload");
@@ -135,6 +145,9 @@ else
         // Linking or restoring a device, which can replace keys, always goes
         // through the person. This must be configured before any login.
         Client.E2eeService.KeyStore = E2eeKeyStore;
+        // Hosts that show notifications while the app is closed keep message
+        // keys where their background code can read them.
+        Client.E2eeService.NotificationKeyStore = Services.GetService<Valour.Sdk.E2ee.INotificationKeyStore>();
         Client.E2eeService.AutoRecover = false;
         Client.E2eeService.StoreRecoveryCode = false;
         try

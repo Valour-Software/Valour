@@ -1,5 +1,6 @@
 ﻿using Android.App;
 using Android.Runtime;
+using Plugin.Firebase.CloudMessaging;
 
 namespace Valour.Client.Maui;
 
@@ -15,6 +16,15 @@ public class MainApplication : MauiApplication
     public MainApplication(IntPtr handle, JniHandleOwnership ownership)
         : base(handle, ownership)
     {
+    }
+
+    public override void OnCreate()
+    {
+        base.OnCreate();
+
+        // A push message can start the app with no activity, so its handler
+        // is set up here rather than in MainActivity.
+        FirebaseCloudMessagingImplementation.ShowLocalNotificationAction = PushNotificationPresenter.Show;
     }
 
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();

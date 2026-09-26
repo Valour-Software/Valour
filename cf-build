@@ -118,6 +118,8 @@ for required in \
   _framework/blazor.webassembly.js \
   manifest.json \
   service-worker.js \
+  notification-preview.js \
+  lib/noble-chacha.js \
   _content/Valour.Client/js/main.js \
   _content/Valour.Client/css/bundled.min.css
 do
@@ -177,6 +179,14 @@ cat >> "$OUTPUT_DIR/_headers" <<'EOF'
   Cache-Control: no-cache
 
 /service-worker-assets.js
+  Cache-Control: no-cache
+
+# Scripts the service worker imports. Browsers check them for updates only
+# through the HTTP cache, so they must revalidate like the worker itself.
+/notification-preview.js
+  Cache-Control: no-cache
+
+/lib/noble-chacha.js
   Cache-Control: no-cache
 
 # Framework resources below have content hashes in their filenames, so they get a

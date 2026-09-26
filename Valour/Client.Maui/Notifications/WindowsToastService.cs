@@ -13,6 +13,8 @@ namespace Valour.Client.Maui.Notifications;
 /// </summary>
 public class WindowsToastService : IDisposable
 {
+    private static readonly TimeSpan TextTimeout = TimeSpan.FromSeconds(5);
+
     private readonly NotificationService _notificationService;
     private bool _enabled;
 
@@ -65,7 +67,7 @@ public class WindowsToastService : IDisposable
         _notificationService.NotificationReceived -= OnNotificationReceived;
     }
 
-    private void OnNotificationReceived(Notification notification)
+    private async Task OnNotificationReceived(Notification notification)
     {
         if (notification.TimeRead is not null)
             return;
@@ -73,11 +75,28 @@ public class WindowsToastService : IDisposable
         if (NotificationDisplayGate.ShouldSuppressLocalNotification(notification))
             return;
 
+        // Message text is end-to-end encrypted, so the body the server sent
+        // is a placeholder. The app decrypts the message to show its text.
+        var body = notification.Body;
+        try
+        {
+            body = await _notificationService.FetchNotificationTextAsync(notification)
+                .WaitAsync(TextTimeout) ?? body;
+        }
+        catch (Exception)
+        {
+            // The placeholder is shown when the message cannot be loaded in time.
+        }
+
+        // It may have been read elsewhere while the message loaded.
+        if (notification.TimeRead is not null)
+            return;
+
         try
         {
             var builder = new ToastContentBuilder()
                 .AddText(notification.Title ?? "Valour")
-                .AddText(notification.Body ?? string.Empty)
+                .AddText(body ?? string.Empty)
                 .AddAudio(new ToastAudio { Silent = true });
 
             // Carries the in-app route so OnToastActivated can deep link on click.

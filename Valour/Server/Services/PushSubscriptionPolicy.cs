@@ -52,7 +52,8 @@ public static class PushSubscriptionPolicy
         return subscription.DeviceType switch
         {
             NotificationDeviceType.WebPush => ValidateWebPush(subscription),
-            NotificationDeviceType.AndroidFcm => IsValidFcmToken(subscription.Endpoint)
+            NotificationDeviceType.AndroidFcm or NotificationDeviceType.AndroidFcmData =>
+                IsValidFcmToken(subscription.Endpoint)
                 ? null
                 : "Invalid device token.",
             _ => "Unsupported device type."
@@ -109,14 +110,18 @@ public static class PushSubscriptionPolicy
         ISharedPushNotificationSubscription existing,
         ISharedPushNotificationSubscription incoming)
     {
+        // An app update moves an FCM registration between the two FCM types.
+        if (IsFcm(existing.DeviceType) && IsFcm(incoming.DeviceType))
+            return true;
+
         if (existing.DeviceType != incoming.DeviceType)
             return false;
 
-        if (incoming.DeviceType == NotificationDeviceType.AndroidFcm)
-            return true;
-
         return FixedTimeEquals(existing.Key, incoming.Key) && FixedTimeEquals(existing.Auth, incoming.Auth);
     }
+
+    public static bool IsFcm(NotificationDeviceType deviceType) =>
+        deviceType is NotificationDeviceType.AndroidFcm or NotificationDeviceType.AndroidFcmData;
 
     private static string ValidateWebPush(ISharedPushNotificationSubscription subscription)
     {

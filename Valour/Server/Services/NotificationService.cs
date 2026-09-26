@@ -18,6 +18,17 @@ public class NotificationService
     /// </summary>
     public const string EncryptedMessageBody = "Encrypted message";
 
+    /// <summary>
+    /// The envelope a device can decrypt a notification preview from: the
+    /// envelope of a message its sender encrypted. Messages the server sealed
+    /// need a different key and are left out.
+    /// </summary>
+    public static byte[]? PreviewEnvelopeOf(int encryptionVersion, byte[]? envelope) =>
+        encryptionVersion == Valour.Sdk.E2ee.MessageEncryption.EndToEnd && envelope is { Length: > 0 } ? envelope : null;
+
+    private static byte[]? PreviewEnvelopeOf(ISharedMessage message) =>
+        PreviewEnvelopeOf(message.EncryptionVersion, message.Envelope);
+
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly NodeLifecycleService _nodeLifecycleService;
@@ -182,6 +193,9 @@ public class NotificationService
                     NotificationId = notification.Id,
                     SourceId = notification.SourceId,
                     TimeSent = notification.TimeSent,
+                    PlanetId = notification.PlanetId,
+                    ChannelId = notification.ChannelId,
+                    Envelope = notification.PreviewEnvelope,
                 },
                 UserId = userId
             });
@@ -275,6 +289,9 @@ public class NotificationService
                     Url = template.ClickUrl,
                     SourceId = template.SourceId,
                     TimeSent = now,
+                    PlanetId = template.PlanetId,
+                    ChannelId = template.ChannelId,
+                    Envelope = template.PreviewEnvelope,
                 }
             });
         }
@@ -418,6 +435,9 @@ public class NotificationService
             Url = baseNotification.ClickUrl,
             SourceId = baseNotification.SourceId,
             TimeSent = DateTime.UtcNow,
+            PlanetId = baseNotification.PlanetId,
+            ChannelId = baseNotification.ChannelId,
+            Envelope = baseNotification.PreviewEnvelope,
         };
 
         const int insertBatchSize = 2_000;
@@ -504,6 +524,7 @@ public class NotificationService
             ChannelId = channel.Id,
             Source = planet is null ? NotificationSource.DirectReply : NotificationSource.PlanetMemberReply,
             SourceId = message.Id,
+            PreviewEnvelope = PreviewEnvelopeOf(message),
             UserId = repliedToMessage.AuthorUserId,
         };
 
@@ -594,6 +615,7 @@ public class NotificationService
                 ChannelId = channel.Id,
                 Source = NotificationSource.DirectMessage,
                 SourceId = message.Id,
+                PreviewEnvelope = PreviewEnvelopeOf(message),
                 UserId = recipientId,
             };
 
@@ -647,6 +669,7 @@ public class NotificationService
             ChannelId = channel.Id,
             Source = NotificationSource.DirectMention,
             SourceId = message.Id,
+            PreviewEnvelope = PreviewEnvelopeOf(message),
             UserId = mentionTargetUser.Id,
         };
         
@@ -696,6 +719,7 @@ public class NotificationService
             PlanetId = planet.Id,
             ChannelId = channel.Id,
             SourceId = message.Id,
+            PreviewEnvelope = PreviewEnvelopeOf(message),
             Source = NotificationSource.PlanetMemberMention,
             ClickUrl = $"/planetchannels/{planet.Id}/{channel.Id}/{message.Id}",
             TimeSent = DateTime.UtcNow
@@ -734,6 +758,7 @@ public class NotificationService
             ChannelId = channel.Id,
             Source = mentionSource,
             SourceId = message.Id,
+            PreviewEnvelope = PreviewEnvelopeOf(message),
             ClickUrl = $"/planetchannels/{planet.Id}/{channel.Id}/{message.Id}"
         };
 
