@@ -212,7 +212,7 @@
             var tokenResult = await AuthService.FetchTokenWithDeviceKey(saved.KeyId, challenge.Data.ChallengeId, signature);
             if (!tokenResult.Success && !tokenResult.RequiresEmailVerification)
             {
-                _passwordSpan = "Fingerprint sign-in didn't work. Sign in another way, then turn it on again in Settings, under Connections.";
+                _passwordSpan = "Fingerprint sign-in didn't work. Sign in another way, then turn it on again in Settings, under Security.";
                 return;
             }
 

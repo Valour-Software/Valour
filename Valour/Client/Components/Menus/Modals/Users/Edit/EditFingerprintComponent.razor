@@ -1,0 +1,216 @@
+@inject AuthService AuthService
+@inject ValourClient Client
+@inject ExternalSignInService ExternalSignIn
+@inject IServiceProvider Services
+@using Microsoft.Extensions.DependencyInjection
+
+@* Shown in the app on devices that can use fingerprint sign-in, and anywhere
+   devices already use it, so a lost phone can be removed from a computer. *@
+@if (_keys is not null && (_deviceKeys is not null || _keys.Count > 0))
+{
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-fingerprint"></i>
+            Fingerprint sign-in
+        </h3>
+        <p class="helper-text">
+            @(_deviceKeys is null
+                ? "These devices sign in with a fingerprint. Remove any device you no longer use or don't recognize."
+                : _deviceKeys.IsAvailable
+                    ? "Sign in on this device with your fingerprint instead of your password."
+                    : "Add a fingerprint in your device's settings to use fingerprint sign-in.")
+        </p>
+
+        <div class="method-list">
+            @if (_deviceKeys is not null)
+            {
+                <div class="method-item">
+                    <div class="method-row">
+                        <i class="bi bi-phone"></i>
+                        <div class="method-copy">
+                            <span class="method-name">
+                                @(ThisDeviceKey?.DisplayName ?? _deviceKeys.DeviceName)
+                                <span class="badge badge-primary">This device</span>
+                            </span>
+                            <span class="method-meta">@(ThisDeviceKey is not null ? LastUsed(ThisDeviceKey) : _deviceKeys.IsAvailable ? "Off" : "Unavailable")</span>
+                        </div>
+                        @if (ThisDeviceKey is not null)
+                        {
+                            <VButton Variant="danger" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(ThisDeviceKey))">Turn off</VButton>
+                        }
+                        else if (_deviceKeys.IsAvailable && !_enteringMfaCode)
+                        {
+                            <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickTurnOn">Turn on</VButton>
+                        }
+                    </div>
+
+                    @if (_enteringMfaCode)
+                    {
+                        @* Fingerprint sign-in skips the authenticator code, so turning it on asks for one. *@
+                        <div class="method-form">
+                            <input class="form-control" type="text" inputmode="numeric" autocomplete="one-time-code"
+                                   placeholder="Authenticator code" @bind-value="@_mfaCode" />
+                            <div class="method-form-actions">
+                                <VButton Variant="secondary" Size="sm" OnClick="@(() => _enteringMfaCode = false)">Cancel</VButton>
+                                <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickConfirmTurnOn">Turn on</VButton>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @foreach (var key in _keys.Where(x => x != ThisDeviceKey))
+            {
+                <div class="method-item">
+                    <div class="method-row">
+                        <i class="bi bi-phone"></i>
+                        <div class="method-copy">
+                            <span class="method-name">@key.DisplayName</span>
+                            <span class="method-meta">@LastUsed(key)</span>
+                        </div>
+                        <VButton Variant="danger" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(key))">Remove</VButton>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <ResultLabel Result="@_result" />
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private IDeviceKeyService _deviceKeys;
+    private List<SignInMethodInfo> _keys;
+
+    private bool _busy;
+    private ITaskResult _result;
+
+    private bool _enteringMfaCode;
+    private string _mfaCode;
+
+    private SignInMethodInfo ThisDeviceKey =>
+        _deviceKeys?.Saved is { } saved && saved.UserId == Client.Me?.Id
+            ? _keys?.FirstOrDefault(x => x.DeviceKeyId == saved.KeyId)
+            : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _deviceKeys = Services.GetService<IDeviceKeyService>();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _keys = (await AuthService.GetSignInMethodsAsync()).Where(x => x.Type == "DeviceKey").ToList();
+
+        // Forget a key that was removed from another device.
+        if (_deviceKeys?.Saved is { } saved && saved.UserId == Client.Me?.Id &&
+            _keys.All(x => x.DeviceKeyId != saved.KeyId))
+        {
+            _deviceKeys.Clear();
+        }
+    }
+
+    private static string LastUsed(SignInMethodInfo method) =>
+        method.LastUsedAt is { } used ? $"Last used {used.ToLocalTime():MMM d, yyyy}" : "Not used yet";
+
+    private void Show(string message, bool isError)
+    {
+        _result = isError ? TaskResult.FromFailure(message) : TaskResult.FromSuccess(message);
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _result = null;
+        StateHasChanged();
+
+        try
+        {
+            await action();
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
+    // Turning fingerprint sign-in off removes a way in rather than adding
+    // one, so it needs no confirmation.
+    private Task OnClickRemove(SignInMethodInfo key) => RunAsync(async () =>
+    {
+        var result = await AuthService.RemoveSignInMethodAsync(key.Id, null);
+        if (!result.Success)
+        {
+            Show(result.Message, true);
+            return;
+        }
+
+        if (key == ThisDeviceKey)
+            _deviceKeys.Clear();
+
+        Show("Fingerprint sign-in is off for that device.", false);
+    });
+
+    private Task OnClickTurnOn() => RunAsync(async () =>
+    {
+        if ((await AuthService.GetMfaMethodsAsync()).Count > 0)
+        {
+            _mfaCode = null;
+            _enteringMfaCode = true;
+            return;
+        }
+
+        await TurnOnAsync();
+    });
+
+    private Task OnClickConfirmTurnOn() => RunAsync(async () =>
+    {
+        if (string.IsNullOrWhiteSpace(_mfaCode))
+        {
+            Show("Enter the code from your authenticator app.", true);
+            return;
+        }
+
+        await TurnOnAsync();
+    });
+
+    private async Task TurnOnAsync()
+    {
+        var proof = await ExternalSignIn.ConfirmIdentityAsync(ModalRoot, "Confirm it's you to turn on fingerprint sign-in.");
+        if (proof is null)
+            return;
+
+        var publicKey = await _deviceKeys.CreateKeyAsync();
+        if (publicKey is null)
+        {
+            Show("This device couldn't create a fingerprint key.", true);
+            return;
+        }
+
+        var registered = await AuthService.RegisterDeviceKeyAsync(new DeviceKeyRegisterRequest
+        {
+            PublicKey = publicKey,
+            DeviceName = _deviceKeys.DeviceName,
+            ReauthProof = proof,
+            MultiFactorCode = _enteringMfaCode ? _mfaCode?.Trim() : null,
+        });
+
+        if (!registered.Success)
+        {
+            _deviceKeys.Clear();
+            Show(registered.Message, true);
+            return;
+        }
+
+        _enteringMfaCode = false;
+        _mfaCode = null;
+        _deviceKeys.Save(new SavedDeviceKey(registered.Data, Client.Me.Id, Client.Me.Name));
+        Show("Fingerprint sign-in is on for this device.", false);
+    }
+}

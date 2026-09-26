@@ -1,0 +1,67 @@
+@inherits Modal<FingerprintOfferModal.ModalParams>
+@inject AuthService AuthService
+@inject ValourClient Client
+
+<BasicModalLayout Title="Sign in with your fingerprint?" Icon="fingerprint" MaxWidth="400px">
+    <MainArea>
+        <p>Next time, sign in on this device with your fingerprint instead of your password. You can change this in Settings, under Security.</p>
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@Close" class="v-btn" disabled="@_busy">Not now</button>
+            <button @onclick="@OnClickTurnOn" class="v-btn primary" disabled="@_busy">Turn on</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public IDeviceKeyService DeviceKeys { get; init; }
+
+        /// <summary>The proof from the sign-in that just happened.</summary>
+        public string ReauthProof { get; init; }
+    }
+
+    private ITaskResult _result;
+    private bool _busy;
+
+    private async Task OnClickTurnOn()
+    {
+        _busy = true;
+        _result = null;
+
+        try
+        {
+            var publicKey = await Data.DeviceKeys.CreateKeyAsync();
+            if (publicKey is null)
+            {
+                _result = TaskResult.FromFailure("This device couldn't create a fingerprint key.");
+                return;
+            }
+
+            var registered = await AuthService.RegisterDeviceKeyAsync(new DeviceKeyRegisterRequest
+            {
+                PublicKey = publicKey,
+                DeviceName = Data.DeviceKeys.DeviceName,
+                ReauthProof = Data.ReauthProof,
+            });
+
+            if (!registered.Success)
+            {
+                Data.DeviceKeys.Clear();
+                _result = TaskResult.FromFailure(registered.Message);
+                return;
+            }
+
+            Data.DeviceKeys.Save(new SavedDeviceKey(registered.Data, Client.Me.Id, Client.Me.Name));
+            Close();
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+}

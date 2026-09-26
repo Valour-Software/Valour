@@ -10,7 +10,7 @@ public interface IDeviceKeyService
     /// <summary>True when the device can check a fingerprint and one is enrolled.</summary>
     bool IsAvailable { get; }
 
-    /// <summary>A readable name for this device, shown in Connections.</summary>
+    /// <summary>A readable name for this device, shown in Security settings.</summary>
     string DeviceName { get; }
 
     /// <summary>The account this device signs in to, or null when fingerprint sign-in is off.</summary>

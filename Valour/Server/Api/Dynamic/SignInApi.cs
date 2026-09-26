@@ -275,8 +275,10 @@ public class SignInApi
 
         // Fingerprint sign-in skips the authenticator code, so adding it needs
         // that code. Otherwise a stolen session and password could add a key
-        // that gets around two-factor authentication for good.
-        if ((await multiAuthService.GetAppMultiAuthTypes(userId)).Count > 0)
+        // that gets around two-factor authentication for good. A proof from
+        // signing in with the code a moment ago counts as the code.
+        if ((await multiAuthService.GetAppMultiAuthTypes(userId)).Count > 0 &&
+            !await signInMethods.ProofIncludesMultiFactorAsync(userId, request.ReauthProof))
         {
             if (string.IsNullOrWhiteSpace(request.MultiFactorCode))
                 return ValourResult.Forbid(DeviceKeyNeedsMultiFactorMessage);
