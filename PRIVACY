@@ -1,13 +1,15 @@
 Privacy Policy
 ==============
 
-Last updated: February 20, 2026
+Last updated: September 25, 2026
 
 This Privacy Policy explains what data Valour collects, why we collect it,
-and how you can control it. We believe in minimal data collection — we only
-store what is necessary to run the service.
+who receives it, and how you can control or delete it. We aim to collect
+only what is necessary to run the service.
 
 Valour is operated by Valour Software LLC ("the Company", "we", "us", "our").
+This policy covers Valour on every platform: the website (valour.gg), the
+web app (app.valour.gg), and the Valour apps for desktop and mobile devices.
 You can reach us at support@valour.gg.
 
 
@@ -19,16 +21,18 @@ Account Information
 
 When you register, we collect:
 
-  * Email address: for account verification, password recovery, and policy updates
+  * Email address: for account verification, password recovery, security
+    notices, and important service or policy updates
   * Username and tag: your display identity on the platform
   * Password: stored as a salted hash, never in plain text
-  * Date of birth: to verify you are at least 13 years old (COPPA compliance)
-  * Country/locality: to determine which data regulations apply to you
+  * Date of birth: to confirm you meet the minimum age and to apply safer
+    defaults for users under 18
 
 Optionally, you may provide:
 
-  * Invite code: tracks which invite brought you to Valour
+  * Invite code: records which invite brought you to Valour
   * Referral source: how you heard about us (e.g. YouTube, Twitter)
+  * Two-factor authentication: a secret used to generate sign-in codes
 
 Profile Information
 -------------------
@@ -45,26 +49,72 @@ Valour users.
 Messages and Content
 --------------------
 
-Messages you send are stored on our servers to deliver them to other users.
-This includes text content, attachments, embeds, replies, and emoji reactions.
+Chat messages in direct messages, group chats and planet channels are end-to-end
+encrypted. Your device encrypts the text and embeds of each message
+before sending it, and only members of the conversation hold the keys to
+read it. Our servers store the encrypted message, but not the keys needed
+to read it.
+
+To deliver messages, our servers still see information about them: who
+sent a message, to which channel, and when; which message it replies to;
+who it mentions; its reactions and custom emoji; and records of its
+attachments. The servers can read message content in these cases:
+
+  * Messages sent by webhooks, automated moderation, and the system itself
+    are encrypted by our servers.
+  * When you report a message, the report includes its readable text so
+    moderators and our staff can review it.
+  * Messages sent before end-to-end encryption was introduced may remain
+    stored without it.
+
+Other content is not end-to-end encrypted. It is stored so that the
+people who can access it are able to see it:
+
+  * Files, images and GIFs attached to messages
+  * Threads and thread comments, wiki pages, and calendar events in planets
+  * Planet names, channel names, roles, and other planet settings
+  * Link previews: when a message contains a link, our servers fetch the
+    page to build a preview
+
+Voice and Video Calls
+---------------------
+
+Voice and video calls are carried by Cloudflare's real-time service, or by a
+server the planet's owner has configured for the planet. Calls are not
+recorded or stored, and they are not end-to-end encrypted. We store basic
+call records: who called whom and when the call started and ended.
 
 Technical Data
 --------------
 
-  * IP address: recorded on your authentication token for account security.
-    Also logged when you upload images or video, for compliance with NCMEC
-    and child safety law.
-  * Device type: a simple mobile/desktop flag, used to show your online status
-  * Push notification endpoints: to deliver notifications to your device
+  * IP address: recorded on each sign-in session for account security.
+    It is kept with the session record until the session is removed.
+  * Device type: a mobile or desktop flag, used to show your online status
+  * Presence and activity: your online status, when you were last active,
+    which messages you have read, and one record per day you use Valour,
+    used to run the service and to count active users
+  * Push notification registrations: to deliver notifications to your
+    devices
 
 We do NOT collect:
 
   * Your real name, phone number, or physical address
-  * Browser fingerprints, cookies, or tracking pixels
-  * Browsing behavior, page views, or session analytics
-  * Contact lists from other services
+  * Your location, contacts, or advertising identifiers
+  * Browser fingerprints or tracking pixels
+  * Page views or session analytics from third-party analytics tools
 
-We do not use Google Analytics or any other third-party tracking software.
+We do not use Google Analytics or any other third-party tracking or
+advertising software.
+
+Device Permissions
+------------------
+
+The Valour apps may ask for these permissions, depending on your device:
+
+  * Microphone and camera: for voice and video calls
+  * Notifications: to show message and call notifications
+  * Files and photos: only the files you choose to upload, using the system
+    file picker
 
 
 How We Use Your Data
@@ -74,14 +124,16 @@ We use your data to:
 
   * Operate the service: deliver messages, manage your account, authenticate you
   * Verify your age: ensure compliance with COPPA (minimum age 13)
-  * Secure your account: detect unauthorized access via IP on auth tokens
-  * Send transactional emails: account verification, password recovery, and policy updates only
-  * Process payments: if you purchase a subscription (handled by third parties)
-  * Report errors: only if you opt in (see below)
+  * Keep accounts and communities safe: detect unauthorized access, enforce
+    our rules, and review reports
+  * Send service emails: account verification, password recovery, security
+    notices, and important updates about the service or our policies
+  * Process payments: if you purchase a subscription (handled by Stripe)
+  * Fix problems: diagnose errors and keep the service running reliably
 
 We do NOT use your data to:
 
-  * Send marketing emails or newsletters
+  * Send advertising or marketing on behalf of anyone else
   * Serve advertisements
   * Build behavioral profiles
   * Sell or rent to third parties
@@ -93,17 +145,18 @@ If you are in the EU/EEA, here is the legal basis we rely on for each type
 of processing:
 
   * Contract (Art. 6(1)(b)): account registration, message delivery,
-    payment processing, and all core service functionality. We need your
-    email, username, password, and messages to provide the service you
+    calls, payment processing, and all core service functionality. We need
+    your email, username, password, and messages to provide the service you
     signed up for.
-  * Legal obligation (Art. 6(1)(c)): age verification (COPPA), IP logging
-    on media uploads (NCMEC/child safety law), and responding to lawful
-    government requests.
-  * Legitimate interest (Art. 6(1)(f)): IP address on auth tokens for
-    account security and fraud prevention. This is essential to protecting
-    all accounts on the platform and cannot be disabled on a per-user basis.
-  * Consent (Art. 6(1)(a)): opt-in error reporting via Sentry. You can
-    withdraw consent at any time in your preferences.
+  * Legal obligation (Art. 6(1)(c)): age verification (COPPA), preserving
+    material related to child sexual abuse when required by law, and
+    responding to lawful government requests.
+  * Legitimate interest (Art. 6(1)(f)): IP address on sign-in sessions for
+    account security and fraud prevention, server error monitoring, and
+    counting active users. Protecting accounts on the platform requires
+    this processing, so it cannot be disabled on a per-user basis.
+  * Consent (Art. 6(1)(a)): error reports sent from your device to Sentry.
+    You can withdraw consent at any time in your preferences.
 
 
 Third-Party Services
@@ -111,50 +164,103 @@ Third-Party Services
 
 These services receive limited data to provide specific functionality:
 
-  * SendGrid: delivers transactional emails (verification, password recovery, policy updates).
-    We have disabled click tracking.
+  * Microsoft Azure: hosts our servers and databases.
+    Privacy statement: https://privacy.microsoft.com/privacystatement
+
+  * Cloudflare: protects and speeds up our network traffic, stores uploaded
+    files and images, and carries voice and video calls. For calls,
+    Cloudflare receives your username, user ID, and the channel you join.
+    Privacy policy: https://www.cloudflare.com/privacypolicy/
+
+  * SendGrid: delivers our emails (verification, password recovery, security
+    notices, and service updates). We have disabled click tracking.
     Privacy policy: https://www.twilio.com/legal/privacy
 
-  * Sentry: receives error reports, but ONLY if you opt in via your
-    preferences. You can disable this at any time.
+  * Sentry: receives error reports. Reports from your device are sent ONLY if
+    you opt in via your preferences. Errors on our servers are also reported
+    to Sentry, without request contents or personal details such as your
+    email or IP address.
+    Privacy policy: https://sentry.io/privacy/
 
   * Stripe: processes card payments, subscription billing, and checkout
     sessions. We never see or store your full payment card details.
     Privacy policy: https://stripe.com/privacy
 
-  * Apple App Store / Google Play: processes in-app purchases on mobile.
-    Privacy policies:
-    - Apple: https://www.apple.com/legal/privacy/en-ww/
-    - Google: https://www.google.com/policies/privacy/
+  * Firebase Cloud Messaging (Google): delivers push notifications on
+    Android. A notification includes the sender's name and the channel and
+    planet it came from. The message text inside it stays encrypted.
+    Privacy policy: https://policies.google.com/privacy
 
-  * Firebase Cloud Messaging: delivers push notifications on Android.
+  * Browser push services (such as those run by Google, Mozilla, Apple and
+    Microsoft): deliver push notifications to web browsers. The contents of
+    these notifications are encrypted to your browser.
 
-  * Tenor: powers GIF search. Your GIF favorites are stored on our servers,
-    not shared with Tenor.
+  * Klipy: powers GIF search. When you search for GIFs, your device sends
+    your search text directly to Klipy, which can see your IP address. Your
+    GIF favorites are stored on our servers, not shared with Klipy.
+    Privacy policy: https://klipy.com/support/privacy-policy
 
 We do not share your data with advertisers, data brokers, or any parties
-not listed above.
+not listed in this policy.
+
+Content From Other Providers
+----------------------------
+
+Some content in Valour is loaded directly from other companies. When this
+happens, your device connects to that company, which can see your IP
+address and may apply its own privacy policy:
+
+  * Embedded media in messages, such as YouTube, Vimeo, Twitch, TikTok, X,
+    Reddit, Instagram, Bluesky, Spotify, SoundCloud and GitHub content
+  * Images linked from sites such as Discord, Imgur, X, Tenor and Klipy
+  * Stock ticker widgets from TradingView, shown when a message mentions a
+    ticker such as $AAPL
+  * Code libraries and emoji images served by public content networks
+    (jsDelivr, unpkg and cdnjs)
+
+Images from other websites that are not on this list are loaded through our
+servers, so those websites do not see your IP address.
+
+Community Nodes and Other Operators
+-----------------------------------
+
+Valour lets communities run planets on independently operated servers,
+called community nodes. Before you connect to a new node, Valour asks you
+to accept its domain. When you join a planet on a community node, that node
+receives your user ID, username, tag, avatar, subscription tier, the age of
+your account, and your planet memberships. It also receives everything you
+post in its planets, and your device connects to it directly. Each node is
+run by its own operator, not by us.
+
+Similarly, a planet owner can configure the planet to store files or carry
+calls on servers they operate. Files and calls in that planet then go to
+the owner's servers.
+
+Bots and third-party applications you authorize can access the data you
+grant them, and bots in a planet can see the activity their permissions
+allow.
 
 International Data Transfers
 -----------------------------
 
-Our servers and several of our third-party service providers (SendGrid,
-Sentry, Stripe, Firebase) are based in the United States. If you are
-located outside the US, your data will be transferred to and processed in
-the US. Our third-party providers each publish their own GDPR compliance
-documentation and data processing terms, which you can review at the
-links in the Third-Party Services section above. These transfers are 
-necessary to perform our contract with you (Art. 49(1)(b)) and are 
-further protected by our providers' data processing agreements.
+Our servers and several of our third-party service providers are based in
+the United States. If you are located outside the US, your data will be
+transferred to and processed in the US. Our third-party providers each
+publish their own GDPR compliance documentation and data processing terms,
+which you can review at the links in the Third-Party Services section
+above. These transfers are necessary to perform our contract with you
+(Art. 49(1)(b)) and are further protected by our providers' data
+processing agreements.
 
-Valour Software LLC is the data controller. Our third-party service 
+Valour Software LLC is the data controller. Our third-party service
 providers act as data processors under data processing agreements.
 
 Error Reporting (Opt-In)
 ========================
 
-Valour uses Sentry for error reporting. This is fully opt-in. By default,
-no error data is sent. You can control this in your user preferences:
+The Valour apps use Sentry for error reporting. Reports from your device
+are fully opt-in. By default, no error data is sent. You can control this
+in your user preferences:
 
   * Off (default): no error data is sent
   * On: error logs, stack traces, and basic device info are sent to Sentry
@@ -165,20 +271,44 @@ You can change this setting at any time.
 Data Retention and Deletion
 ===========================
 
-We retain your data for as long as your account exists. We do not maintain
-long-term backups of user data — deleted data is not recoverable from
-backup systems. Data may be retained beyond account deletion only if
-required by law (e.g. a valid legal hold or regulatory obligation).
+We retain your data for as long as your account exists, with these
+exceptions:
 
-You can permanently delete your account at any time through the app. When
-you delete your account, we delete:
+  * Sign-in sessions expire after 7 days. Session records, including their
+    IP address, are kept until you sign out, revoke the session, or delete
+    your account.
+  * Read notifications are deleted after 30 days.
+  * When you edit or delete a message, a record that proves the change
+    (without the message text) is kept for 180 days.
+  * Our hosting provider keeps automatic database backups for disaster
+    recovery. Backups expire on a rolling schedule, and deleted data is
+    removed from them when they expire.
+  * Our servers keep operational logs for troubleshooting and security.
+    These logs can include user IDs and the email addresses we send mail to.
 
-  * All your messages and attachments
-  * Your profile and private information
-  * Your credentials and authentication tokens
-  * Your friend relationships and memberships
-  * Your notification history and channel states
+You can permanently delete your account at any time through the app or at
+app.valour.gg. Deletion is immediate. When you delete your account, we
+delete:
+
+  * Your account details, credentials, sessions, profile and preferences
+  * All your messages, their attachments, and your direct message
+    conversations
+  * Files you uploaded
+  * Threads you started; comments you left on other threads become empty
+    placeholders
+  * Your friends, blocks, and memberships
+  * Your notifications, push registrations, and activity records
+  * Your economy accounts and transaction history
+  * Your encryption key backups and linked devices
   * Your referral records
+
+Your subscription is cancelled when you delete your account. Some data is
+kept after deletion: planets you own stay with their communities, shared
+planet content (such as wiki pages and calendar events) stays without a
+link to you, your public encryption keys stay so others can verify past
+messages, and safety records are kept as the law requires. See
+https://valour.gg/delete-account/ for step-by-step instructions and the
+full list.
 
 This deletion is permanent and cannot be undone.
 
@@ -186,16 +316,16 @@ This deletion is permanent and cannot be undone.
 Data Security
 =============
 
-Passwords are hashed and salted before storage. Authentication uses
-token-based sessions stored in your browser's local storage — we do not
-use HTTP cookies for authentication or tracking. Push notification
-endpoints (Firebase) use device-level tokens managed by your operating
-system, not browser cookies. You can view and revoke individual sessions
-from your account settings.
+All connections to Valour are encrypted in transit with TLS. Passwords are
+hashed with PBKDF2 (SHA-256, 600,000 iterations) and a unique salt before
+storage. Authentication uses token-based sessions stored on your device; we
+do not use HTTP cookies for authentication or tracking. The private keys
+used for end-to-end encryption are created and kept on your devices. You can
+view and revoke individual sessions from your account settings.
 
 No method of electronic storage is 100% secure. While we use reasonable
 measures to protect your data, we cannot guarantee absolute security.
-If you are a security professional and discover a vulnerability, 
+If you are a security professional and discover a vulnerability,
 please report it to us at support@valour.gg and consider contributing
 to our open-source codebase to help us improve security.
 
@@ -208,7 +338,8 @@ Regardless of where you live, you can:
   * Access your data: view your profile, messages, and active sessions
     through the app
   * Correct your data: update your profile, email, and username at any time
-  * Delete your data: permanently delete your account and all associated data
+  * Delete your data: delete individual messages and files, or permanently
+    delete your account
   * Revoke sessions: individually revoke any active login session
   * Control error reporting: opt in or out of error reporting at any time
 
@@ -233,24 +364,14 @@ information for cross-context behavioral advertising.
 The table below fulfills our disclosure obligations under Cal. Civ. Code
 § 1798.110 and § 1798.115:
 
-  Category             | What we collect           | Source     | Purpose                  | Shared with
-  ----------------------|---------------------------|------------|--------------------------|-------------------
-  Identifiers           | Email, username, IP       | You / auto | Account operation,       | SendGrid (email),
-                        | address                   |            | security                 | Sentry (opt-in)
-  ----------------------|---------------------------|------------|--------------------------|-------------------
-  Customer records      | Email, hashed password    | You        | Authentication           | None
-  (Cal. Civ. 1798.80e) |                           |            |                          |
-  ----------------------|---------------------------|------------|--------------------------|-------------------
-  Internet activity     | Device type (mobile/      | Automatic  | Online status,           | None
-                        | desktop flag)             |            | service delivery         |
-  ----------------------|---------------------------|------------|--------------------------|-------------------
-  Sensory data          | User-uploaded images,     | You        | Message delivery,        | None
-                        | video, audio              |            | content sharing          |
-  ----------------------|---------------------------|------------|--------------------------|-------------------
-  Commercial info       | Subscription status       | You /      | Payment processing       | Stripe, Apple,
-                        |                           | Stripe     |                          | Google
-  ----------------------|---------------------------|------------|--------------------------|-------------------
-  Age / DOB             | Date of birth             | You        | COPPA age verification   | None
+| Category | What we collect | Source | Purpose | Shared with |
+| --- | --- | --- | --- | --- |
+| Identifiers | Email, username, IP address | You / automatic | Account operation, security | Azure (hosting), SendGrid (email), Cloudflare (calls) |
+| Customer records (Cal. Civ. 1798.80e) | Email, hashed password | You | Authentication | Azure (hosting) |
+| Internet activity | Device type, online status, last active time, days active | Automatic | Online status, service delivery, active user counts | None |
+| Sensory data | User-uploaded images, video, audio; live call audio and video (not recorded) | You | Message delivery, content sharing, calls | Cloudflare (storage, calls) |
+| Commercial info | Subscription status | You / Stripe | Payment processing | Stripe |
+| Age / DOB | Date of birth | You | COPPA age verification | None |
 
 We do not collect: protected classifications, biometrics, geolocation,
 professional/employment info, education records, or inferences.
@@ -271,8 +392,10 @@ Children's Privacy
 ==================
 
 Valour requires users to be at least 13 years old. We collect date of birth
-at registration to verify this. If you believe a child under 13 has created
-an account, please contact us at support@valour.gg and we will delete it.
+at registration to verify this. Accounts of users under 18 only accept
+direct messages from friends by default. If you believe a child under 13
+has created an account, please contact us at support@valour.gg and we will
+delete it.
 
 
 Disclosure for Legal Reasons

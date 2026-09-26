@@ -1285,3 +1285,256 @@ a:hover {
     gap: 1rem;
   }
 }
+
+/* Policy pages (privacy, terms, rules, account deletion) */
+.legal-page {
+  padding-top: var(--space-md);
+  padding-bottom: var(--space-lg);
+}
+
+.legal-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.legal-nav {
+  position: sticky;
+  top: 96px;
+}
+
+.legal-nav-heading {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-xs);
+}
+
+.legal-nav ul {
+  list-style: none;
+  margin: 0 0 var(--space-sm);
+  padding: 0;
+}
+
+.legal-nav li a {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  margin-bottom: 2px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.legal-nav li a:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.legal-nav li a.active {
+  background: rgba(0, 250, 255, 0.06);
+  border-left-color: var(--accent-cyan);
+  color: var(--text-primary);
+}
+
+.legal-nav-contact {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.legal-document {
+  background: rgba(18, 30, 39, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-md) clamp(1.25rem, 4vw, 3.5rem);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.legal-document h1 {
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+
+.legal-document h1:not(:first-child) {
+  display: block;
+  font-size: 1.5rem;
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.legal-document h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.legal-document h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 1.25rem;
+}
+
+.legal-document p,
+.legal-document ul,
+.legal-document ol {
+  margin-bottom: 0.9rem;
+}
+
+.legal-document ul,
+.legal-document ol {
+  padding-left: 1.4rem;
+}
+
+.legal-document li {
+  margin-bottom: 0.3rem;
+}
+
+.legal-document li::marker {
+  color: var(--accent-cyan);
+}
+
+.legal-document strong {
+  color: var(--text-primary);
+}
+
+.legal-document table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin-bottom: var(--space-sm);
+  font-size: 0.9rem;
+}
+
+.legal-document th,
+.legal-document td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+  text-align: left;
+}
+
+.legal-document th {
+  color: var(--text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.legal-document code {
+  color: var(--accent-cyan);
+}
+
+.legal-source {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+/* Account deletion guide */
+.deletion-steps {
+  list-style: none;
+  counter-reset: deletion-step;
+  padding-left: 0 !important;
+}
+
+.deletion-steps > li {
+  counter-increment: deletion-step;
+  position: relative;
+  padding-left: 2.75rem;
+  margin-bottom: 1rem;
+}
+
+.deletion-steps > li::before {
+  content: counter(deletion-step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deletion-shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0 var(--space-md);
+}
+
+.deletion-shots figure {
+  margin: 0;
+}
+
+.deletion-shots img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-sm);
+}
+
+.deletion-shots figcaption {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin-top: 0.4rem;
+  text-align: center;
+}
+
+.deletion-callout {
+  border: 1px solid rgba(0, 250, 255, 0.25);
+  background: rgba(0, 250, 255, 0.05);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: var(--space-sm);
+}
+
+@media (max-width: 991.98px) {
+  .legal-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .legal-nav {
+    position: static;
+  }
+
+  .legal-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .legal-nav li a {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+  }
+
+  .legal-nav li a.active {
+    border-bottom-color: var(--accent-cyan);
+  }
+}

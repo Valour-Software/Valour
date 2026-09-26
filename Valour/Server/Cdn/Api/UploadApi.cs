@@ -1071,6 +1071,21 @@ public partial class UploadApi
         return ValourResult.Ok(fullPath);
     }
 
+    /// <summary>
+    /// Every storage path UploadPublicImageVariants can write for an image,
+    /// so the files can be removed later without listing the bucket.
+    /// </summary>
+    public static IEnumerable<string> GetPublicImagePaths(string folder, string id, ImageSize[] sizes)
+    {
+        foreach (var size in sizes)
+        {
+            yield return $"{folder}/{id}/{size}.webp";
+            yield return $"{folder}/{id}/{size}.jpg";
+            yield return $"{folder}/{id}/anim-{size}.webp";
+            yield return $"{folder}/{id}/anim-{size}.gif";
+        }
+    }
+
     public static async Task<TaskResult<bool>> UploadPublicImageVariants(CdnBucketService bucketService, Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doAnimated, bool doTransparency)
     {
         // By default we use the high quality image as the main image

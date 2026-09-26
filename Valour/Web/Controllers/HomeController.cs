@@ -30,6 +30,36 @@ public class HomeController : Controller
         return View();
     }
 
+    [HttpGet("/privacy")]
+    public IActionResult Privacy()
+    {
+        return View();
+    }
+
+    [HttpGet("/terms")]
+    public IActionResult Terms()
+    {
+        return View();
+    }
+
+    [HttpGet("/rules")]
+    public IActionResult Rules()
+    {
+        return View();
+    }
+
+    [HttpGet("/rules/economy")]
+    public IActionResult EconomyRules()
+    {
+        return View();
+    }
+
+    [HttpGet("/delete-account")]
+    public IActionResult DeleteAccount()
+    {
+        return View();
+    }
+
     [HttpGet("/texas")]
     public IActionResult Texas()
     {

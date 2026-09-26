@@ -1,0 +1,21 @@
+@model string
+@{
+    var links = LegalDocumentLibrary.All
+        .Select(document => (document.Path, document.Title))
+        .Append(("/delete-account/", "Delete Your Account"));
+}
+
+<nav class="legal-nav" aria-label="Policies">
+    <h2 class="legal-nav-heading">Policies</h2>
+    <ul>
+        @foreach (var (path, title) in links)
+        {
+            <li>
+                <a href="@path" class="@(path == Model ? "active" : null)" aria-current="@(path == Model ? "page" : null)">@title</a>
+            </li>
+        }
+    </ul>
+    <p class="legal-nav-contact">
+        Questions? Email <a href="mailto:support@valour.gg">support@valour.gg</a>.
+    </p>
+</nav>

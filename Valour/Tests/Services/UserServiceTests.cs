@@ -204,6 +204,151 @@ public class UserServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task HardDelete_RemovesPersonalPlanetContentAndCreditsSharedContent()
+    {
+        var model = await RegisterDisposableUserAsync();
+        var otherUserId = _client.Me.Id;
+        var planetId = ISharedPlanet.ValourCentralId;
+        var now = DateTime.UtcNow;
+
+        var ownThreadId = IdManager.Generate();
+        var commentOnOwnThreadId = IdManager.Generate();
+        var otherThreadId = IdManager.Generate();
+        var ownCommentId = IdManager.Generate();
+        var replyId = IdManager.Generate();
+        var boostId = IdManager.Generate();
+        var eventId = IdManager.Generate();
+        var ownEventId = IdManager.Generate();
+        var wikiPageId = IdManager.Generate();
+        var uploadHash = Guid.NewGuid().ToString("N");
+        var quarantinedHash = Guid.NewGuid().ToString("N");
+
+        _db.PlanetThreads.AddRange(
+            new Valour.Database.PlanetThread
+            {
+                Id = ownThreadId, PlanetId = planetId, AuthorUserId = model.Id,
+                Title = "Deleted with author", Content = "Body", TimeCreated = now, CommentCount = 1
+            },
+            new Valour.Database.PlanetThread
+            {
+                Id = otherThreadId, PlanetId = planetId, AuthorUserId = otherUserId,
+                Title = "Kept", Content = "Body", TimeCreated = now, CommentCount = 2, BoostCount = 1
+            });
+        await _db.SaveChangesAsync();
+
+        _db.ThreadComments.AddRange(
+            new Valour.Database.ThreadComment
+            {
+                Id = commentOnOwnThreadId, PlanetId = planetId, ThreadId = ownThreadId,
+                AuthorUserId = otherUserId, Content = "Goes with the thread", TimeCreated = now
+            },
+            new Valour.Database.ThreadComment
+            {
+                Id = ownCommentId, PlanetId = planetId, ThreadId = otherThreadId,
+                AuthorUserId = model.Id, Content = "Personal words", TimeCreated = now, ReplyCount = 1
+            });
+        await _db.SaveChangesAsync();
+
+        _db.ThreadComments.Add(new Valour.Database.ThreadComment
+        {
+            Id = replyId, PlanetId = planetId, ThreadId = otherThreadId, ParentCommentId = ownCommentId,
+            Depth = 1, AuthorUserId = otherUserId, Content = "Reply", TimeCreated = now
+        });
+        _db.ThreadBoosts.Add(new Valour.Database.ThreadBoost
+        {
+            Id = boostId, ThreadId = otherThreadId, PlanetId = planetId, UserId = model.Id, CreatedAt = now
+        });
+        _db.PlanetEvents.AddRange(
+            new Valour.Database.PlanetEvent
+            {
+                Id = eventId, PlanetId = planetId, AuthorUserId = otherUserId, Title = "Kept event",
+                StartsAt = now.AddDays(1), TimeCreated = now
+            },
+            new Valour.Database.PlanetEvent
+            {
+                Id = ownEventId, PlanetId = planetId, AuthorUserId = model.Id, Title = "Shared event",
+                StartsAt = now.AddDays(1), TimeCreated = now
+            });
+        await _db.SaveChangesAsync();
+
+        _db.PlanetEventRsvps.Add(new Valour.Database.PlanetEventRsvp
+        {
+            EventId = eventId, UserId = model.Id, TimeCreated = now
+        });
+        _db.PlanetWikiPages.Add(new Valour.Database.PlanetWikiPage
+        {
+            Id = wikiPageId, PlanetId = planetId, Slug = $"del-{Guid.NewGuid():N}"[..20], Title = "Shared page",
+            Content = "Body", TimeCreated = now, CreatedByUserId = model.Id, LastEditedByUserId = model.Id
+        });
+        _db.UserActivityDays.Add(new Valour.Database.UserActivityDay
+        {
+            Day = DateOnly.FromDateTime(now), UserId = model.Id
+        });
+        _db.CdnBucketItems.AddRange(
+            new Valour.Database.CdnBucketItem
+            {
+                Id = $"Image/{model.Id}/{uploadHash}", Hash = uploadHash, UserId = model.Id, MimeType = "image/webp",
+                FileName = "plain.webp", Category = Valour.Shared.Cdn.ContentCategory.Image, CreatedAt = now, SizeBytes = 10
+            },
+            new Valour.Database.CdnBucketItem
+            {
+                Id = $"Image/{model.Id}/{quarantinedHash}", Hash = quarantinedHash, UserId = model.Id, MimeType = "image/webp",
+                FileName = "held.webp", Category = Valour.Shared.Cdn.ContentCategory.Image, CreatedAt = now, SizeBytes = 10,
+                SafetyQuarantinedAt = now
+            });
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var result = await _userService.HardDelete(model);
+            Assert.True(result.Success, result.Message);
+            _createdUsers.Remove(model);
+            _db.ChangeTracker.Clear();
+
+            // Personal content is removed.
+            Assert.False(await _db.PlanetThreads.IgnoreQueryFilters().AnyAsync(x => x.Id == ownThreadId));
+            Assert.False(await _db.ThreadComments.IgnoreQueryFilters().AnyAsync(x => x.Id == commentOnOwnThreadId));
+            Assert.False(await _db.ThreadBoosts.AnyAsync(x => x.Id == boostId));
+            Assert.False(await _db.PlanetEventRsvps.AnyAsync(x => x.UserId == model.Id));
+            Assert.False(await _db.UserActivityDays.AnyAsync(x => x.UserId == model.Id));
+            Assert.False(await _db.CdnBucketItems.AnyAsync(x => x.Hash == uploadHash));
+
+            // A comment on someone else's thread becomes an empty tombstone so the reply keeps its parent.
+            var tombstone = await _db.ThreadComments.IgnoreQueryFilters().AsNoTracking().SingleAsync(x => x.Id == ownCommentId);
+            Assert.True(tombstone.IsDeleted);
+            Assert.Equal(string.Empty, tombstone.Content);
+            Assert.Equal(ISharedUser.VictorUserId, tombstone.AuthorUserId);
+            Assert.Null(tombstone.AuthorMemberId);
+            Assert.True(await _db.ThreadComments.IgnoreQueryFilters().AnyAsync(x => x.Id == replyId));
+
+            var otherThread = await _db.PlanetThreads.IgnoreQueryFilters().AsNoTracking().SingleAsync(x => x.Id == otherThreadId);
+            Assert.Equal(0, otherThread.BoostCount);
+
+            // Shared planet content stays and is credited to the system user.
+            var sharedEvent = await _db.PlanetEvents.AsNoTracking().SingleAsync(x => x.Id == ownEventId);
+            Assert.Equal(ISharedUser.VictorUserId, sharedEvent.AuthorUserId);
+            var wikiPage = await _db.PlanetWikiPages.AsNoTracking().SingleAsync(x => x.Id == wikiPageId);
+            Assert.Equal(ISharedUser.VictorUserId, wikiPage.CreatedByUserId);
+            Assert.Equal(ISharedUser.VictorUserId, wikiPage.LastEditedByUserId);
+
+            // Quarantined uploads are preserved as child-safety evidence.
+            Assert.True(await _db.CdnBucketItems.AnyAsync(x => x.Hash == quarantinedHash));
+        }
+        finally
+        {
+            await _db.ThreadComments.IgnoreQueryFilters().Where(x => x.Id == replyId).ExecuteDeleteAsync();
+            await _db.ThreadComments.IgnoreQueryFilters().Where(x => x.ThreadId == otherThreadId || x.ThreadId == ownThreadId).ExecuteDeleteAsync();
+            await _db.ThreadBoosts.Where(x => x.Id == boostId).ExecuteDeleteAsync();
+            await _db.PlanetThreads.IgnoreQueryFilters().Where(x => x.Id == otherThreadId || x.Id == ownThreadId).ExecuteDeleteAsync();
+            await _db.PlanetEventRsvps.Where(x => x.EventId == eventId).ExecuteDeleteAsync();
+            await _db.PlanetEvents.IgnoreQueryFilters().Where(x => x.Id == eventId || x.Id == ownEventId).ExecuteDeleteAsync();
+            await _db.PlanetWikiPages.Where(x => x.Id == wikiPageId).ExecuteDeleteAsync();
+            await _db.UserActivityDays.Where(x => x.UserId == model.Id).ExecuteDeleteAsync();
+            await _db.CdnBucketItems.Where(x => x.UserId == model.Id).ExecuteDeleteAsync();
+        }
+    }
+
+    [Fact]
     public async Task HardDelete_RemovesReportsAndDirectMessageChannels()
     {
         var model = await RegisterDisposableUserAsync();

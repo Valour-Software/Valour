@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Data;
 using Valour.Database;
+using Valour.Server.Cdn;
+using Valour.Server.Cdn.Api;
 using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Server.Utilities;
@@ -67,6 +69,7 @@ public class UserService
     private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly IConnectionMultiplexer _redis;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly CdnBucketService _bucketService;
 
 
     /// <summary>
@@ -81,9 +84,11 @@ public class UserService
         CoreHubService coreHub,
         NodeLifecycleService nodeLifecycleService,
         IConnectionMultiplexer redis,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        CdnBucketService bucketService)
     {
         _db = db;
+        _bucketService = bucketService;
         _httpContextAccessor = httpContextAccessor;
         _tokenService = tokenService;
         _logger = logger;
@@ -1196,6 +1201,12 @@ public class UserService
             }
         }
 
+        // Billing stops before any data is removed. If this fails the account
+        // is left intact, so a deleted account can never keep being charged.
+        var billingResult = await CancelStripeSubscriptionsAsync(user.Id);
+        if (!billingResult.Success)
+            return billingResult;
+
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         var dbUser = await _db.Users.FindAsync(user.Id);
@@ -1203,6 +1214,8 @@ public class UserService
             return TaskResult.FromFailure("User not found.");
 
         List<string> revokedTokenIds = [];
+        List<string> deletedUploadHashes = [];
+        List<long> ownedAppIds = [];
 
         try
         {
@@ -1425,6 +1438,14 @@ public class UserService
                 .Select(x => x.Id)
                 .ToListAsync();
 
+            // Uploads quarantined by the media safety check are evidence that
+            // child-safety law requires us to preserve, so their records stay.
+            deletedUploadHashes = await _db.CdnBucketItems.IgnoreQueryFilters()
+                .Where(x => x.UserId == user.Id && x.SafetyQuarantinedAt == null)
+                .Select(x => x.Hash)
+                .Distinct()
+                .ToListAsync();
+
             if (attachmentItemIds.Count > 0)
             {
                 await _db.MessageAttachments.IgnoreQueryFilters()
@@ -1459,8 +1480,10 @@ public class UserService
             }
 
             await _db.CdnBucketItems.IgnoreQueryFilters()
-                .Where(x => x.UserId == user.Id)
+                .Where(x => x.UserId == user.Id && x.SafetyQuarantinedAt == null)
                 .ExecuteDeleteAsync();
+
+            await DeleteCommunityContentAsync(dbUser.Id, planetMemberIds);
 
             // Bulk updates/deletes bypass EF's change tracker. Clear before switching
             // back to tracked removals so previously loaded related rows are not saved
@@ -1587,6 +1610,10 @@ public class UserService
             await _db.SaveChangesAsync();
 
             // Remove OAuth apps owned by this user
+            ownedAppIds = await _db.OauthApps.IgnoreQueryFilters()
+                .Where(x => x.OwnerId == dbUser.Id)
+                .Select(x => x.Id)
+                .ToListAsync();
             var oauthApps = _db.OauthApps.IgnoreQueryFilters().Where(x => x.OwnerId == dbUser.Id);
             _db.OauthApps.RemoveRange(oauthApps);
 
@@ -1770,6 +1797,8 @@ public class UserService
                 _coreHub.ForceLogoutToken(tokenId);
             }
 
+            await DeleteStoredFilesAsync(dbUser.Id, deletedUploadHashes, ownedAppIds);
+
             _logger.LogInformation("Hard deleted user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
 
             return TaskResult.SuccessResult;
@@ -1782,6 +1811,234 @@ public class UserService
                 dbUser.Name, dbUser.Id, e.GetBaseException().Message);
             
             return new TaskResult(false, "An unexpected Database error occured.");
+        }
+    }
+
+    /// <summary>
+    /// Cancels the user's Stripe subscriptions immediately. Subscriptions
+    /// bought through an app store are managed by that store and cannot be
+    /// cancelled from here.
+    /// </summary>
+    private async Task<TaskResult> CancelStripeSubscriptionsAsync(long userId)
+    {
+        var stripeSubscriptionIds = await _db.UserSubscriptions.IgnoreQueryFilters()
+            .Where(x => x.UserId == userId && x.Active && x.StripeSubscriptionId != null)
+            .Select(x => x.StripeSubscriptionId)
+            .ToListAsync();
+
+        if (stripeSubscriptionIds.Count == 0)
+            return TaskResult.SuccessResult;
+
+        var stripeService = new Stripe.SubscriptionService();
+        List<string> customerIds = [];
+        foreach (var stripeSubscriptionId in stripeSubscriptionIds)
+        {
+            try
+            {
+                var subscription = await stripeService.GetAsync(stripeSubscriptionId);
+                if (!string.IsNullOrEmpty(subscription.CustomerId))
+                    customerIds.Add(subscription.CustomerId);
+
+                if (subscription.Status is not ("canceled" or "incomplete_expired"))
+                    await stripeService.CancelAsync(stripeSubscriptionId);
+            }
+            catch (Stripe.StripeException e) when (e.StripeError?.Code == "resource_missing")
+            {
+                // Already gone on Stripe's side; nothing left to bill.
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to cancel Stripe subscription {StripeSubscriptionId} while deleting user {UserId}",
+                    stripeSubscriptionId, userId);
+                return TaskResult.FromFailure(
+                    "We couldn't cancel your subscription, so your account was not deleted. Try again, or contact support@valour.gg.");
+            }
+        }
+
+        // Deleting the customer removes the saved payment methods and contact
+        // details Stripe holds for them. Stripe keeps its own payment records.
+        var customerService = new Stripe.CustomerService();
+        foreach (var customerId in customerIds.Distinct())
+        {
+            try
+            {
+                await customerService.DeleteAsync(customerId);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Failed to delete Stripe customer {CustomerId} while deleting user {UserId}",
+                    customerId, userId);
+            }
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Removes or detaches the user's content in planet features outside chat.
+    /// Personal content (threads, comments, RSVPs, stats, folders) is deleted.
+    /// Shared planet content that other members rely on (wiki pages, calendar
+    /// events, webhooks) stays with the planet and is credited to the system user.
+    /// </summary>
+    private async Task DeleteCommunityContentAsync(long userId, List<long> planetMemberIds)
+    {
+        // Threads the user started are removed with every comment, attachment
+        // and boost on them (those rows cascade from the thread).
+        var authoredThreadIds = await _db.PlanetThreads.IgnoreQueryFilters()
+            .Where(x => x.AuthorUserId == userId)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        if (authoredThreadIds.Count > 0)
+        {
+            var removedCommentIds = await _db.ThreadComments.IgnoreQueryFilters()
+                .Where(x => authoredThreadIds.Contains(x.ThreadId))
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            await _db.Planets.IgnoreQueryFilters()
+                .Where(x => x.PinnedThreadId.HasValue && authoredThreadIds.Contains(x.PinnedThreadId.Value))
+                .ExecuteUpdateAsync(x => x.SetProperty(p => p.PinnedThreadId, (long?)null));
+
+            await _db.PlanetReports.IgnoreQueryFilters()
+                .Where(x => x.ThreadId.HasValue && authoredThreadIds.Contains(x.ThreadId.Value))
+                .ExecuteUpdateAsync(x => x.SetProperty(r => r.ThreadId, (long?)null));
+
+            if (removedCommentIds.Count > 0)
+            {
+                await _db.PlanetReports.IgnoreQueryFilters()
+                    .Where(x => x.ThreadCommentId.HasValue && removedCommentIds.Contains(x.ThreadCommentId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(r => r.ThreadCommentId, (long?)null));
+            }
+
+            await _db.PlanetThreads.IgnoreQueryFilters()
+                .Where(x => authoredThreadIds.Contains(x.Id))
+                .ExecuteDeleteAsync();
+        }
+
+        // Comments on other people's threads become empty tombstones, the same
+        // as a normal comment delete, so replies to them keep their place.
+        await _db.ThreadComments.IgnoreQueryFilters()
+            .Where(x => x.AuthorUserId == userId)
+            .ExecuteUpdateAsync(x => x
+                .SetProperty(c => c.IsDeleted, true)
+                .SetProperty(c => c.Content, string.Empty)
+                .SetProperty(c => c.AuthorUserId, ISharedUser.VictorUserId)
+                .SetProperty(c => c.AuthorMemberId, (long?)null));
+
+        await _db.PlanetThreads.IgnoreQueryFilters()
+            .Where(t => _db.ThreadBoosts.Any(b => b.ThreadId == t.Id && b.UserId == userId))
+            .ExecuteUpdateAsync(x => x.SetProperty(t => t.BoostCount, t => t.BoostCount - 1));
+        await _db.ThreadBoosts.IgnoreQueryFilters()
+            .Where(x => x.UserId == userId)
+            .ExecuteDeleteAsync();
+
+        await _db.ThreadComments.IgnoreQueryFilters()
+            .Where(c => _db.ThreadCommentBoosts.Any(b => b.CommentId == c.Id && b.UserId == userId))
+            .ExecuteUpdateAsync(x => x.SetProperty(c => c.BoostCount, c => c.BoostCount - 1));
+        await _db.ThreadCommentBoosts.IgnoreQueryFilters()
+            .Where(x => x.UserId == userId)
+            .ExecuteDeleteAsync();
+
+        await _db.PlanetEventRsvps.IgnoreQueryFilters()
+            .Where(x => x.UserId == userId)
+            .ExecuteDeleteAsync();
+
+        await _db.PlanetEvents.IgnoreQueryFilters()
+            .Where(x => x.AuthorUserId == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(e => e.AuthorUserId, ISharedUser.VictorUserId));
+
+        await _db.PlanetWikiPages.IgnoreQueryFilters()
+            .Where(x => x.CreatedByUserId == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(p => p.CreatedByUserId, ISharedUser.VictorUserId));
+        await _db.PlanetWikiPages.IgnoreQueryFilters()
+            .Where(x => x.LastEditedByUserId == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(p => p.LastEditedByUserId, (long?)ISharedUser.VictorUserId));
+        await _db.PlanetWikiRevisions.IgnoreQueryFilters()
+            .Where(x => x.AuthorUserId == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(r => r.AuthorUserId, ISharedUser.VictorUserId));
+
+        await _db.PlanetWebhooks.IgnoreQueryFilters()
+            .Where(x => x.CreatorUserId == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(w => w.CreatorUserId, ISharedUser.VictorUserId));
+
+        await _db.PlanetReports.IgnoreQueryFilters()
+            .Where(x => x.ReportingUserId == userId)
+            .ExecuteDeleteAsync();
+        await _db.PlanetReports.IgnoreQueryFilters()
+            .Where(x => x.ReportedUserId == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(r => r.ReportedUserId, (long?)null));
+        await _db.PlanetReports.IgnoreQueryFilters()
+            .Where(x => x.ResolvedById == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(r => r.ResolvedById, (long?)null));
+
+        await _db.UserActivityDays.IgnoreQueryFilters()
+            .Where(x => x.UserId == userId)
+            .ExecuteDeleteAsync();
+        await _db.UserPlanetFolders.IgnoreQueryFilters()
+            .Where(x => x.UserId == userId)
+            .ExecuteDeleteAsync();
+        await _db.UserPlanetSettings.IgnoreQueryFilters()
+            .Where(x => x.UserId == userId)
+            .ExecuteDeleteAsync();
+
+        await _db.VillageTemplates.IgnoreQueryFilters()
+            .Where(x => x.PublishedByUserId == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(t => t.PublishedByUserId, (long?)null));
+
+        if (planetMemberIds.Count > 0)
+        {
+            await _db.PlanetReports.IgnoreQueryFilters()
+                .Where(x => x.ReportedMemberId.HasValue && planetMemberIds.Contains(x.ReportedMemberId.Value))
+                .ExecuteUpdateAsync(x => x.SetProperty(r => r.ReportedMemberId, (long?)null));
+
+            // Village plots, buildings and objects the user held return to the planet.
+            await _db.VillagePlots.IgnoreQueryFilters()
+                .Where(x => x.OwnerMemberId.HasValue && planetMemberIds.Contains(x.OwnerMemberId.Value))
+                .ExecuteUpdateAsync(x => x.SetProperty(v => v.OwnerMemberId, (long?)null));
+            await _db.VillageBuildings.IgnoreQueryFilters()
+                .Where(x => x.OwnerMemberId.HasValue && planetMemberIds.Contains(x.OwnerMemberId.Value))
+                .ExecuteUpdateAsync(x => x.SetProperty(v => v.OwnerMemberId, (long?)null));
+            await _db.VillageObjects.IgnoreQueryFilters()
+                .Where(x => x.OwnerMemberId.HasValue && planetMemberIds.Contains(x.OwnerMemberId.Value))
+                .ExecuteUpdateAsync(x => x.SetProperty(v => v.OwnerMemberId, (long?)null));
+        }
+    }
+
+    /// <summary>
+    /// Removes the deleted user's files from storage once the database no
+    /// longer refers to them. Runs after commit; failures are logged, not
+    /// surfaced, because the account itself is already gone.
+    /// </summary>
+    private async Task DeleteStoredFilesAsync(long userId, List<string> uploadHashes, List<long> appIds)
+    {
+        foreach (var hash in uploadHashes)
+        {
+            try
+            {
+                var result = await _bucketService.DeletePrivateObjectIfUnusedAsync(hash, _db);
+                if (!result.Success)
+                    _logger.LogWarning("Could not delete upload {Hash} of deleted user {UserId}: {Message}", hash, userId, result.Message);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Could not delete upload {Hash} of deleted user {UserId}", hash, userId);
+            }
+        }
+
+        var publicPaths = UploadApi.GetPublicImagePaths("avatars", userId.ToString(), UploadApi.AvatarSizes)
+            .Concat(UploadApi.GetPublicImagePaths("profiles", userId.ToString(), UploadApi.ProfileBackgroundSizes))
+            .Concat(appIds.SelectMany(appId =>
+                UploadApi.GetPublicImagePaths("apps", appId.ToString(), UploadApi.AppSizes)))
+            .ToList();
+
+        try
+        {
+            await _bucketService.DeletePublicObjectsAsync(publicPaths);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not delete public images of deleted user {UserId}", userId);
         }
     }
 

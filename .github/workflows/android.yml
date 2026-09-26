@@ -266,6 +266,7 @@ jobs:
         -f net11.0-android
         -c Release
         -o ./artifacts-aab
+        -p:ValourPlayStore=true
         -p:AndroidKeyStore=true
         -p:AndroidSigningKeyStore="${{ steps.signing-keystore.outputs.keystore_path }}"
         -p:AndroidSigningStorePass="$ANDROID_SIGNING_STORE_PASSWORD"

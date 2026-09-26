@@ -1,0 +1,124 @@
+@{
+    ViewData["Title"] = "Delete Your Account | Valour";
+    ViewData["Description"] = "How to delete your Valour account and data, what is deleted, and what is kept.";
+}
+
+<div class="container legal-page">
+    <div class="legal-layout">
+        <partial name="_LegalNav" model="@("/delete-account/")" />
+
+        <article class="legal-document">
+            <h1>Delete Your Account</h1>
+            <p>
+                This page explains how to delete your account on Valour, the community chat platform operated by
+                Valour Software LLC. It applies to Valour on every platform, including the Android app
+                (<code>gg.valour.app</code>), the other desktop and mobile apps, and Valour on the web. One account works across all of them, so deleting it once
+                removes it everywhere. You do not need the app installed to delete your account.
+            </p>
+
+            <h2 id="in-app">Delete your account in Valour</h2>
+            <ol class="deletion-steps">
+                <li>Sign in to the Valour app, or go to <a href="https://app.valour.gg">app.valour.gg</a> in any browser.</li>
+                <li>
+                    Open <strong>Settings</strong> with the gear button next to your name at the bottom of the sidebar.
+                    On a phone, tap the menu button in the top left corner first to show the sidebar.
+                </li>
+                <li>Under <strong>General Settings</strong>, open <strong>Profile</strong> and scroll to the <strong>Account</strong> section.</li>
+                <li>Select <strong>Delete Account</strong>, enter your password, and select <strong>Confirm</strong>.</li>
+            </ol>
+
+            <div class="deletion-shots">
+                <figure>
+                    <img src="/media/delete-account/step-1.png" alt="The Valour sidebar with the settings gear next to the username" loading="lazy" width="540" height="1170" />
+                    <figcaption>Open Settings from the sidebar</figcaption>
+                </figure>
+                <figure>
+                    <img src="/media/delete-account/step-2.png" alt="The Account section of profile settings with the Delete Account button" loading="lazy" width="540" height="1170" />
+                    <figcaption>Account section in Profile</figcaption>
+                </figure>
+                <figure>
+                    <img src="/media/delete-account/step-3.png" alt="The Delete Account confirmation asking for your password" loading="lazy" width="540" height="1170" />
+                    <figcaption>Confirm with your password</figcaption>
+                </figure>
+            </div>
+
+            <p class="deletion-callout">
+                Deletion happens immediately and cannot be undone. You are signed out on every device, and there is
+                no waiting period in which the account can be restored.
+            </p>
+
+            <h2 id="by-email">If you cannot sign in</h2>
+            <p>
+                If you have forgotten your password, you can reset it from the
+                <a href="https://app.valour.gg/ForgotPassword">password recovery page</a> and then follow the steps above.
+            </p>
+            <p>
+                Otherwise, email <a href="mailto:support@valour.gg?subject=Delete%20my%20account">support@valour.gg</a>
+                from the email address registered to your account, with the subject "Delete my account" and your
+                username. We may ask you to confirm that you own the account. We complete verified requests within
+                30 days and reply when the account has been deleted.
+            </p>
+
+            <h2 id="deleted">What is deleted</h2>
+            <ul>
+                <li>Your account details: email address, password, date of birth, two-factor authentication, and sign-in sessions.</li>
+                <li>Your profile, avatar, profile background and preferences.</li>
+                <li>Every message you sent, in any channel, with its reactions, mentions and attachments.</li>
+                <li>Your direct message conversations. Both sides of a one-to-one conversation are removed.</li>
+                <li>Files you uploaded, removed from storage once nothing else uses them.</li>
+                <li>Threads you started, including all comments on them. Comments you left on other people's threads are replaced with an empty "deleted" placeholder so replies keep their place.</li>
+                <li>Your friends, friend requests, blocks, planet and group chat memberships, planet bans, and invites you created.</li>
+                <li>Encrypted key backups, linked devices and pending key requests used for end-to-end encryption.</li>
+                <li>Notifications, push notification registrations, calendar RSVPs, activity statistics, planet folders, GIF favorites and referrals.</li>
+                <li>Economy accounts, balances, items and transaction history.</li>
+                <li>Bots and OAuth applications you own.</li>
+                <li>Your Stargazer subscription, which is cancelled with no further charges. The billing customer record held by our payment processor, Stripe, is also deleted.</li>
+            </ul>
+
+            <h2 id="kept">What is kept, and why</h2>
+            <ul>
+                <li>
+                    <strong>Planets you own.</strong> Planets belong to their communities, so they are not deleted.
+                    Ownership moves to Valour's system account. To hand a planet to someone else, transfer ownership
+                    in the planet's settings before you delete your account.
+                </li>
+                <li>
+                    <strong>Shared planet content.</strong> Wiki pages, calendar events, webhooks and themes you
+                    published stay available to their communities. They are credited to Valour's system account
+                    and are no longer linked to you.
+                </li>
+                <li>
+                    <strong>Your public encryption keys.</strong> The log of public keys for your account is kept so
+                    other people can still verify messages in shared conversations. It holds public keys only and
+                    cannot decrypt anything.
+                </li>
+                <li>
+                    <strong>Safety and moderation records.</strong> Reports about your account and moderation logs
+                    are kept with the link to your account removed. Files flagged by child-safety checks are preserved
+                    when the law requires it.
+                </li>
+                <li>
+                    <strong>Records we are legally required to keep.</strong> Data covered by a legal hold or a valid
+                    legal obligation is kept only for as long as that obligation lasts. Stripe keeps its own records
+                    of past payments as payment regulations require.
+                </li>
+            </ul>
+            <p>
+                If you joined planets hosted on independently operated community nodes, Valour tells those nodes to
+                delete their copy of your account.
+            </p>
+
+            <h2 id="partial">Delete some data without deleting your account</h2>
+            <ul>
+                <li><strong>Messages:</strong> delete any message you sent from its message menu.</li>
+                <li><strong>Files:</strong> open Settings, then <strong>Attachments</strong>, to find and delete files you uploaded.</li>
+                <li><strong>Threads and comments:</strong> delete them from their menus in the planet's thread feed.</li>
+                <li><strong>Friends, blocks and sessions:</strong> manage them from the Friends, Safety and Security pages in Settings.</li>
+            </ul>
+            <p>
+                For any other request, email <a href="mailto:support@valour.gg">support@valour.gg</a>. Our
+                <a href="/privacy/">Privacy Policy</a> describes all of the data we collect and your rights.
+            </p>
+        </article>
+    </div>
+</div>

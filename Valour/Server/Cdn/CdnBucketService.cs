@@ -232,6 +232,32 @@ public class CdnBucketService
         return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
     }
 
+    /// <summary>
+    /// Deletes public objects and purges them from the CDN cache. Paths that
+    /// do not exist are ignored.
+    /// </summary>
+    public async Task DeletePublicObjectsAsync(IReadOnlyCollection<string> paths)
+    {
+        foreach (var path in paths)
+        {
+            var result = await _storage.Public.DeleteAsync(path);
+            if (!result.Success)
+                _logger.LogWarning("Failed to delete public object {Path}: {Message}", path, result.Message);
+        }
+
+        if (string.IsNullOrWhiteSpace(_zone) || paths.Count == 0)
+            return;
+
+        // Cloudflare accepts at most 30 URLs per purge request.
+        foreach (var batch in paths.Chunk(30))
+        {
+            var urls = batch.Select(path => $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{path}").ToArray();
+            var purgeResult = await _cloudflare.Zones.PurgeFilesAsync(_zone, urls);
+            if (!purgeResult.Success)
+                _logger.LogWarning("Failed to purge deleted public objects from cache: {Error}", purgeResult.Errors);
+        }
+    }
+
     public async Task<TaskResult> DeletePrivateObjectIfUnusedAsync(string hash, ValourDb db)
     {
         if (await db.CdnBucketItems.AsNoTracking().AnyAsync(x => x.Hash == hash))

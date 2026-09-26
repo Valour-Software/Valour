@@ -5,4 +5,17 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <RazorLangVersion>Latest</RazorLangVersion>
     </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Markdig" Version="1.4.0" />
+    </ItemGroup>
+
+    <!-- The policy documents at the repository root are the source of truth.
+         They are copied next to the binaries and rendered by LegalDocumentLibrary. -->
+    <ItemGroup>
+        <None Include="..\..\PRIVACY" Link="Legal\PRIVACY" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\..\TERMS_OF_SERVICE.md" Link="Legal\TERMS_OF_SERVICE.md" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\..\PLATFORM_RULES.md" Link="Legal\PLATFORM_RULES.md" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\..\PLATFORM_ECO_RULES.md" Link="Legal\PLATFORM_ECO_RULES.md" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
 </Project>

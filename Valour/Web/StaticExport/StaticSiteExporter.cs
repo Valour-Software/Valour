@@ -8,6 +8,11 @@ public sealed class StaticSiteExporter
     [
         new("Home", "Index", "/", "index.html"),
         new("Home", "Faq", "/faq/", "faq/index.html"),
+        new("Home", "Privacy", "/privacy/", "privacy/index.html"),
+        new("Home", "Terms", "/terms/", "terms/index.html"),
+        new("Home", "Rules", "/rules/", "rules/index.html"),
+        new("Home", "EconomyRules", "/rules/economy/", "rules/economy/index.html"),
+        new("Home", "DeleteAccount", "/delete-account/", "delete-account/index.html"),
         new("Home", "Texas", "/texas/", "texas/index.html"),
         new("Home", "UserCount", "/userCount/", "userCount/index.html")
     ];
@@ -127,6 +132,11 @@ public sealed class StaticSiteExporter
     private static string BuildRedirects() =>
         """
         /faq /faq/ 301
+        /privacy /privacy/ 301
+        /terms /terms/ 301
+        /rules /rules/ 301
+        /rules/economy /rules/economy/ 301
+        /delete-account /delete-account/ 301
         /texas /texas/ 301
         /userCount /userCount/ 301
         """;

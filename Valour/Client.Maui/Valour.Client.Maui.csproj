@@ -49,6 +49,10 @@
         <!-- App Identifier --> 
         <ApplicationId>gg.valour.app</ApplicationId>
 
+        <!-- Set ValourPlayStore=true for the Google Play bundle. It removes the
+             self-update path, which Play policy forbids for apps it distributes. -->
+        <DefineConstants Condition="'$(ValourPlayStore)' == 'true'">$(DefineConstants);VALOUR_PLAY_STORE</DefineConstants>
+
         <!-- Versions -->
         <ApplicationDisplayVersion>0.9.3</ApplicationDisplayVersion>
         <ApplicationVersion>95</ApplicationVersion>
