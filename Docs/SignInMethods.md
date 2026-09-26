@@ -36,6 +36,11 @@ accounts, email verification, the authenticator code, and a new session.
 Fingerprint sign-in skips the authenticator code, because the key only signs
 after a fingerprint check on the device that holds it.
 
+A session from signing in to Valour lasts seven days from its last use.
+`TokenService` moves the expiry forward at most once an hour, and never past 90
+days after sign-in, so even a session used every day ends eventually. Tokens
+for bots, OAuth apps, and federation keep their fixed expiry.
+
 ## Google and Discord
 
 Each provider is a class that extends
@@ -54,19 +59,38 @@ never reach an app:
 2. The client opens the returned provider page. Google does not allow sign-in
    inside embedded web views, so apps use the system browser.
 3. The provider redirects to `api/auth/external/{provider}/callback`. The server
-   exchanges the code, reads the account, and decides the outcome: sign in, start
-   registration, link, confirm identity, or an error.
+   exchanges the code, reads the account, and issues a ticket for the outcome:
+   sign in, start registration, link, or confirm identity. Otherwise it reports
+   an error.
 4. The result goes back to the client. The Android app receives it on
    `gg.valour.app://auth`, the Windows app on a temporary loopback port, and the
    web app polls `api/auth/external/result`, because provider pages can cut a
    popup's link to the window that opened it.
 5. The client redeems the ticket with its verifier: at `api/users/token` to
-   sign in, or at `api/users/register` with `ExternalTicket` to create an account.
+   sign in, at `api/users/register` with `ExternalTicket` to create an account,
+   at `api/users/me/signin-methods/link` to link, or at `api/users/me/reauth`
+   to confirm identity. Linking and confirming identity also need the session
+   of the user who started the flow, so nothing changes on an account until
+   that app redeems the ticket.
 
 Flow state, tickets, and proofs live in Redis
 ([AuthTicketStore.cs](../Valour/Server/Services/AuthTicketStore.cs)) for a few
 minutes, so any node can finish a flow another node started. A ticket is useless
 without the verifier, so a result intercepted on its way back can't be used.
+
+Web flows are also bound to the browser that started them. The begin response
+sets an HttpOnly cookie named `valour-ext-{flowId}`, scoped to
+`/api/auth/external`, and the callback rejects the flow if that cookie is
+missing or wrong. Without this, someone could start a flow, send the provider
+link to another person, and collect that person's sign-in or link their account
+by polling for the result. The app sends the begin request with credentials
+included, and the cookie uses `SameSite=Lax`, so the web app and the API must
+be served from the same site. Android and Windows deliver results straight to
+the app on the device, so they don't use the cookie. A provider link sent to
+another person there leaves the result on that person's device, where the
+sender's verifier and session are missing. The Windows app listens on a
+loopback port that any local program can reach, so it accepts only the request
+that carries its own flow ID.
 
 New accounts need a verified email from the provider. If a verified Valour
 account already has that email, the person is asked to sign in with their
@@ -81,9 +105,14 @@ Linking an account, removing a sign-in method, adding a password, turning on
 fingerprint sign-in, changing the username, removing two-factor
 authentication, and deleting the account all need recent confirmation. A
 person confirms with their password, by signing in again with a linked
-account, or with their fingerprint. The last two produce a proof from
-`api/users/me/reauth` or the provider flow, which these changes accept for five
-minutes. Accounts without a password rely on these proofs.
+account, or with their fingerprint. Each of these produces a proof from
+`api/users/me/reauth`, which these changes accept for five minutes. A proof
+works only with the session that created it, so a leaked proof is useless to
+another session. Accounts without a password rely on these proofs.
+
+When a password, linked account, or fingerprint key is added, the account's
+email address gets a notice, so a method added by someone else doesn't go
+unnoticed.
 
 ## Fingerprint sign-in
 
@@ -94,6 +123,11 @@ The server stores the public key. To sign in, the app asks
 `api/auth/device/challenge` for a one-time challenge, signs it after the
 fingerprint check, and sends the signature to `api/users/token`. A password
 reset removes every device key, because the account may have been taken over.
+
+Because fingerprint sign-in skips the authenticator code, turning it on for an
+account with two-factor authentication requires a current authenticator code.
+Otherwise a stolen session and password could add a key that gets around the
+second factor.
 
 ## Turning on Google and Discord
 

@@ -689,7 +689,7 @@
         {
             HideUploadMenu();
 
-            var file = e.File;
+            var file = e.FileCount > 0 ? e.File : null;
             if (file is null)
             {
                 Client.Logger.Log<InputComponent>("No file was selected.", "orange");

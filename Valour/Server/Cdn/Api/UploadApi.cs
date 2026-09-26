@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Valour.Database;
 using Valour.Server.Cdn.Extensions;
+using Valour.Server.EndpointFilters;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Cdn;
@@ -161,18 +162,26 @@ public partial class UploadApi
     public static void AddRoutes(WebApplication app)
     {
         app.MapPost("/upload/profile", AvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
-        app.MapPost("/upload/memberavatar/{planetId}/{memberId}", MemberAvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
         app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
         app.MapPost("/upload/image", ImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
-        app.MapPost("/upload/planet/{planetId}", PlanetImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
-        app.MapPost("/upload/planetbg/{planetId}", PlanetBackgroundImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
-        app.MapPost("/upload/planetemoji/{planetId}", PlanetEmojiImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
-        app.MapPost("/upload/webhook/{webhookId}", WebhookAvatarImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
+
+        // Planet permission checks load the hosted planet. A planet that was deleted or is
+        // hosted on another node gets the same not found or wrong node response as the API.
+        MapPlanetUpload(app, "/upload/memberavatar/{planetId}/{memberId}", MemberAvatarImageRoute);
+        MapPlanetUpload(app, "/upload/planet/{planetId}", PlanetImageRoute);
+        MapPlanetUpload(app, "/upload/planetbg/{planetId}", PlanetBackgroundImageRoute);
+        MapPlanetUpload(app, "/upload/planetemoji/{planetId}", PlanetEmojiImageRoute);
+        MapPlanetUpload(app, "/upload/webhook/{webhookId}", WebhookAvatarImageRoute);
         app.MapPost("/upload/app/{appId}", AppImageRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
         app.MapPost("/upload/file", FileRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
         app.MapPost("upload/themeBanner/{themeId}", ThemeBannerRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
         app.MapPost("upload/themeAsset/{themeId}", ThemeAssetRoute).AddEndpointFilter<ImageUploadExceptionFilter>();
     }
+
+    private static void MapPlanetUpload(WebApplication app, string pattern, Delegate handler) =>
+        app.MapPost(pattern, handler)
+            .AddEndpointFilter<ImageUploadExceptionFilter>()
+            .AddEndpointFilter<NotHostedExceptionFilter>();
 
     /// <summary>
     /// Returns the max upload size in bytes for the given user based on their subscription tier.

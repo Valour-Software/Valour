@@ -114,6 +114,37 @@ public class ExternalSignInService
         if (result is null)
             return new ExternalSignInOutcome(null, null, "Sign-in was cancelled.", verifier, provider);
 
-        return new ExternalSignInOutcome(result.Result, result.Ticket, result.Message, verifier, provider);
+        var outcome = new ExternalSignInOutcome(result.Result, result.Ticket, result.Message, verifier, provider);
+        return result.Result switch
+        {
+            ExternalAuthResults.Linked or ExternalAuthResults.Reauth when !string.IsNullOrEmpty(result.Ticket) =>
+                await RedeemAsync(outcome),
+            _ => outcome,
+        };
+    }
+
+    /// <summary>
+    /// Linking and confirming identity finish with this session, so only the
+    /// app that started the sign-in can complete them. A confirmed identity
+    /// becomes a proof, which replaces the ticket in the outcome.
+    /// </summary>
+    private async Task<ExternalSignInOutcome> RedeemAsync(ExternalSignInOutcome outcome)
+    {
+        if (outcome.Result == ExternalAuthResults.Linked)
+        {
+            var linked = await _authService.LinkExternalAccountAsync(outcome.Ticket, outcome.Verifier);
+            return linked.Success
+                ? outcome with { Ticket = null }
+                : outcome with { Result = ExternalAuthResults.Error, Ticket = null, Message = linked.Message };
+        }
+
+        var proof = await _authService.ReauthAsync(new ReauthRequest
+        {
+            ExternalTicket = outcome.Ticket,
+            ExternalVerifier = outcome.Verifier,
+        });
+        return proof.Success
+            ? outcome with { Ticket = proof.Data.Proof }
+            : outcome with { Result = ExternalAuthResults.Error, Ticket = null, Message = proof.Message };
     }
 }

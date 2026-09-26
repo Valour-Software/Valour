@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -27,42 +28,56 @@ public class SignInMethodService
     private readonly ValourDb _db;
     private readonly AuthTicketStore _tickets;
     private readonly UserService _userService;
+    private readonly TokenService _tokenService;
     private readonly ILogger<SignInMethodService> _logger;
 
     public SignInMethodService(
         ValourDb db,
         AuthTicketStore tickets,
         UserService userService,
+        TokenService tokenService,
         ILogger<SignInMethodService> logger)
     {
         _db = db;
         _tickets = tickets;
         _userService = userService;
+        _tokenService = tokenService;
         _logger = logger;
     }
 
-    private record ReauthProof(long UserId);
+    /// <summary>
+    /// A proof belongs to the session that confirmed identity, so a proof
+    /// that leaks can't be used from another session.
+    /// </summary>
+    private record ReauthProof(long UserId, string SessionId);
 
     private record DeviceChallenge(string KeyId, string Challenge);
 
     // Identity proofs //
 
+    /// <summary>Creates an identity proof for the session making this request.</summary>
     public async Task<ReauthResponse> CreateReauthProofAsync(long userId)
     {
-        var proof = await _tickets.CreateAsync(ReauthKind, new ReauthProof(userId), ReauthLifetime);
+        var session = await _tokenService.GetCurrentTokenAsync();
+        if (session is null || session.UserId != userId)
+            throw new InvalidOperationException("Identity proofs are created for the signed-in session.");
+
+        var proof = await _tickets.CreateAsync(ReauthKind, new ReauthProof(userId, session.Id), ReauthLifetime);
         return new ReauthResponse { Proof = proof, ExpiresAt = DateTime.UtcNow.Add(ReauthLifetime) };
     }
 
     /// <summary>
     /// Confirms that the account owner is present, by password or by a recent
-    /// identity proof. Accounts without a password must use a proof.
+    /// identity proof from the same session. Accounts without a password must
+    /// use a proof.
     /// </summary>
     public async Task<TaskResult> ConfirmIdentityAsync(long userId, string password, string reauthProof)
     {
         if (!string.IsNullOrWhiteSpace(reauthProof))
         {
             var proof = await _tickets.GetAsync<ReauthProof>(ReauthKind, reauthProof);
-            if (proof is not null && proof.UserId == userId)
+            var session = proof is null ? null : await _tokenService.GetCurrentTokenAsync();
+            if (proof is not null && proof.UserId == userId && session?.Id == proof.SessionId)
                 return TaskResult.SuccessResult;
 
             return TaskResult.FromFailure("Your confirmation expired. Confirm it's you again.");
@@ -86,6 +101,9 @@ public class SignInMethodService
 
     public Task<Valour.Database.Credential> GetPasswordCredentialAsync(long userId) =>
         _db.Credentials.FirstOrDefaultAsync(x => x.UserId == userId && x.CredentialType == CredentialType.PASSWORD);
+
+    public Task<bool> HasCredentialAsync(long userId, long credentialId) =>
+        _db.Credentials.AnyAsync(x => x.Id == credentialId && x.UserId == userId);
 
     public async Task<List<SignInMethodInfo>> GetMethodsAsync(long userId)
     {
@@ -113,6 +131,12 @@ public class SignInMethodService
     /// </summary>
     public async Task<TaskResult> RemoveMethodAsync(long userId, long credentialId)
     {
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
+        // Lock the account so two removals at once can't each see the other's
+        // method still present and together remove the last way in.
+        await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM users WHERE id = {userId} FOR UPDATE");
+
         var credentials = await _db.Credentials.Where(x => x.UserId == userId).ToListAsync();
         var target = credentials.FirstOrDefault(x => x.Id == credentialId);
         if (target is null)
@@ -127,6 +151,7 @@ public class SignInMethodService
 
         _db.Credentials.Remove(target);
         await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return TaskResult.SuccessResult;
     }
 
@@ -149,7 +174,83 @@ public class SignInMethodService
 
         _db.Credentials.Add(NewPasswordCredential(userId, privateInfo.Email, newPassword));
         await _db.SaveChangesAsync();
+        await NotifyMethodAddedAsync(userId, "A password");
         return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Links a Google or Discord account. The unique index on (type,
+    /// identifier) keeps one provider account from being linked twice, even
+    /// when two links race.
+    /// </summary>
+    public async Task<TaskResult> LinkProviderAsync(long userId, string credentialType, string providerUserId, string label, string providerName)
+    {
+        var existing = await _db.Credentials.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CredentialType == credentialType && x.Identifier == providerUserId);
+        if (existing is not null)
+        {
+            return existing.UserId == userId
+                ? TaskResult.SuccessResult
+                : TaskResult.FromFailure($"This {providerName} account is already linked to another Valour account.");
+        }
+
+        if (await _db.Credentials.AnyAsync(x => x.UserId == userId && x.CredentialType == credentialType))
+            return TaskResult.FromFailure($"Another {providerName} account is already linked. Remove it first.");
+
+        _db.Credentials.Add(new Valour.Database.Credential
+        {
+            Id = IdManager.Generate(),
+            UserId = userId,
+            CredentialType = credentialType,
+            Identifier = providerUserId,
+            DisplayName = label,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            _db.ChangeTracker.Clear();
+            return TaskResult.FromFailure($"This {providerName} account is already linked to another Valour account.");
+        }
+
+        await NotifyMethodAddedAsync(userId, $"Your {providerName} account {label}");
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Emails the account owner when a new way to sign in is added, so a
+    /// method added by someone else doesn't go unnoticed. Delivery problems
+    /// never block the change itself.
+    /// </summary>
+    private async Task NotifyMethodAddedAsync(long userId, string method)
+    {
+        if (!EmailManager.IsConfigured)
+            return;
+
+        try
+        {
+            var email = await _db.PrivateInfos.AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .Select(x => x.Email)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrWhiteSpace(email))
+                return;
+
+            var text = $"{method} can now be used to sign in to your Valour account. " +
+                       "If this wasn't you, reset your password right away and remove it under Settings, Connections.";
+
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await EmailManager.SendEmailAsync(email, "New sign-in method on your Valour account", text,
+                $"<p>{System.Net.WebUtility.HtmlEncode(text)}</p>", timeout.Token);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not send the new sign-in method notice for user {UserId}", userId);
+        }
     }
 
     public static Valour.Database.Credential NewPasswordCredential(long userId, string email, string password)
@@ -217,6 +318,7 @@ public class SignInMethodService
             CreatedAt = DateTime.UtcNow,
         });
         await _db.SaveChangesAsync();
+        await NotifyMethodAddedAsync(userId, $"Fingerprint sign-in on {name}");
 
         return TaskResult<string>.FromData(keyId);
     }

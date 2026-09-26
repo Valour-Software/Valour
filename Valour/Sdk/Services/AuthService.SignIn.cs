@@ -44,14 +44,37 @@ public partial class AuthService
     /// Starts a provider sign-in and returns the page to open. Linking and
     /// confirming identity send the current session.
     /// </summary>
-    public Task<TaskResult<ExternalAuthBeginResponse>> BeginExternalAuthAsync(string provider, ExternalAuthBeginRequest request)
+    public async Task<TaskResult<ExternalAuthBeginResponse>> BeginExternalAuthAsync(string provider, ExternalAuthBeginRequest request)
     {
         var uri = $"api/auth/external/{Uri.EscapeDataString(provider)}/begin";
 
-        return request.Intent == ExternalAuthIntent.Login
-            ? PostUnauthenticatedAsync<ExternalAuthBeginResponse>(uri, request)
-            : _client.PrimaryNode.PostAsyncWithResponse<ExternalAuthBeginResponse>(uri, request);
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Post, uri) { Content = JsonContent.Create(request) };
+
+            // Linking and confirming identity act on the signed-in account.
+            if (request.Intent != ExternalAuthIntent.Login && !string.IsNullOrEmpty(Token))
+                message.Headers.TryAddWithoutValidation("authorization", Token);
+
+            // In a browser, the server ties a web sign-in to this browser with
+            // a cookie, which fetch only keeps when credentials are included.
+            // Native HTTP handlers ignore this option.
+            message.Options.Set(BrowserFetchOptions, new Dictionary<string, object> { ["credentials"] = "include" });
+
+            using var response = await _client.Http.SendAsync(message);
+            if (!response.IsSuccessStatusCode)
+                return TaskResult<ExternalAuthBeginResponse>.FromFailure(await response.Content.ReadAsStringAsync(), (int)response.StatusCode);
+
+            return TaskResult<ExternalAuthBeginResponse>.FromData(await response.Content.ReadFromJsonAsync<ExternalAuthBeginResponse>());
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
+        {
+            return TaskResult<ExternalAuthBeginResponse>.FromFailure("Unable to reach the server. Check your connection and try again.");
+        }
     }
+
+    /// <summary>The request option Blazor WebAssembly's HTTP handler reads fetch settings from.</summary>
+    private static readonly HttpRequestOptionsKey<IDictionary<string, object>> BrowserFetchOptions = new("WebAssemblyFetchOptions");
 
     /// <summary>
     /// Collects a web sign-in's result. Returns a null result while the person
@@ -151,6 +174,11 @@ public partial class AuthService
     /// </summary>
     public Task<TaskResult<ReauthResponse>> ReauthAsync(ReauthRequest request) =>
         _client.PrimaryNode.PostAsyncWithResponse<ReauthResponse>("api/users/me/reauth", request);
+
+    /// <summary>Links the account from a provider sign-in with the Link intent.</summary>
+    public Task<TaskResult> LinkExternalAccountAsync(string ticket, string verifier) =>
+        _client.PrimaryNode.PostAsync("api/users/me/signin-methods/link",
+            new ExternalTicketRequest { Ticket = ticket, Verifier = verifier });
 
     public async Task<List<SignInMethodInfo>> GetSignInMethodsAsync()
     {

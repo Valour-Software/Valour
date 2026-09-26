@@ -40,6 +40,14 @@ public class DiscordImportServiceTests
     }
 
     [Fact]
+    public void CutToLength_DoesNotSplitSurrogatePairs()
+    {
+        // The emoji is a surrogate pair that straddles the limit
+        var name = DiscordImportService.CutToLength(new string('a', 31) + "\U0001F4E2" + "news", 32);
+        Assert.Equal(new string('a', 31), name);
+    }
+
+    [Fact]
     public void MapRolePermissions_AdministratorSetsAdminFlag()
     {
         var (_, _, _, _, isAdmin) = DiscordImportService.MapRolePermissions(Administrator);

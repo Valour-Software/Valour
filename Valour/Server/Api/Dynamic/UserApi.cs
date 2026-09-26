@@ -387,7 +387,9 @@ public class UserApi
         if (!string.IsNullOrWhiteSpace(tokenRequest.ExternalTicket))
         {
             var ticket = await externalAuth.GetLoginTicketAsync(tokenRequest.ExternalTicket, tokenRequest.ExternalVerifier);
-            if (ticket is null)
+
+            // The linked account may have been removed since the ticket was issued.
+            if (ticket is null || !await signInMethods.HasCredentialAsync(ticket.UserId, ticket.CredentialId))
                 return Results.Json(new ServerAuthResult { Success = false, Message = "This sign-in has expired. Try again." });
 
             var externalUser = await userService.GetAsync(ticket.UserId);

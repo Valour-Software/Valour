@@ -118,6 +118,9 @@
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
+        // Cancelling the file picker can raise a change event with no files,
+        // and InputFileChangeEventArgs.File throws in that case.
+        if (e.FileCount == 0) return;
         _selectedFile = e.File;
         StateHasChanged();
         await Task.CompletedTask;

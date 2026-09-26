@@ -38,7 +38,9 @@
         _initializing = true;
         try
         {
-            _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
+            // Startup cannot continue without this module, so a transient fetch
+            // failure is retried before the error reaches the render tree.
+            _module = await JsRuntime.ImportModuleAsync("./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
             if (_disposed) return;
             WindowDimensions = await _module.InvokeAsync<ElementDimensions>("getWindowDimensions");
             if (_disposed) return;

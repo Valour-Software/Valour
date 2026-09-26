@@ -14,6 +14,27 @@ public class TokenService
     /// how long other nodes keep accepting it.
     /// </summary>
     private static readonly TimeSpan QuickCacheTtl = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// How long a Valour app session lasts without being used. Each use moves
+    /// the expiry to this long from now, up to <see cref="MaxSessionAge"/>.
+    /// </summary>
+    public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// Sessions end this long after sign-in even when used every day, so a
+    /// stolen session can't be kept alive forever.
+    /// </summary>
+    public static readonly TimeSpan MaxSessionAge = TimeSpan.FromDays(90);
+
+    /// <summary>
+    /// A session's expiry is moved at most this often, so renewal costs one
+    /// database write per session per hour instead of one per request.
+    /// </summary>
+    private static readonly TimeSpan SessionRenewInterval = TimeSpan.FromHours(1);
+
+    /// <summary>The app ID of sessions from signing in to Valour itself.</summary>
+    public const string SessionAppId = "VALOUR";
     
     private readonly ValourDb _db;
     private readonly IHttpContextAccessor _contextAccessor;
@@ -118,6 +139,38 @@ public class TokenService
             return null;
         }
 
+        return await RenewSessionAsync(token);
+    }
+
+    /// <summary>
+    /// Restarts a Valour app session's lifetime when it is used. Tokens for
+    /// bots, OAuth apps, and federation keep their fixed expiry, and an expiry
+    /// is never moved earlier.
+    /// </summary>
+    private async ValueTask<AuthToken> RenewSessionAsync(AuthToken token)
+    {
+        if (token.AppId != SessionAppId)
+            return token;
+
+        var now = DateTime.UtcNow;
+        var renewed = now + SessionLifetime;
+        var latest = token.TimeCreated + MaxSessionAge;
+        if (renewed > latest)
+            renewed = latest;
+
+        if (renewed - token.TimeExpires < SessionRenewInterval)
+            return token;
+
+        // Nothing changes when the session was revoked in the meantime, and
+        // then it must not be cached again as if it were valid.
+        var updated = await _db.AuthTokens.IgnoreQueryFilters()
+            .Where(x => x.Id == token.Id && x.TimeExpires < renewed)
+            .ExecuteUpdateAsync(x => x.SetProperty(t => t.TimeExpires, renewed));
+        if (updated == 0)
+            return token;
+
+        token.TimeExpires = renewed;
+        QuickCache[token.Id] = new CachedToken(token, now);
         return token;
     }
 

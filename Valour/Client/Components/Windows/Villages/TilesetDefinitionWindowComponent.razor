@@ -1261,7 +1261,7 @@
 
     private async Task ImportDefinitionsAsync(InputFileChangeEventArgs args)
     {
-        var file = args.File;
+        var file = args.FileCount > 0 ? args.File : null;
         if (file is null)
             return;
 

@@ -100,9 +100,9 @@
                 {
                     <VButton Variant="secondary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(ThisDeviceKey))">Turn off</VButton>
                 }
-                else
+                else if (!_enteringMfaCode)
                 {
-                    <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickEnableFingerprint">Turn on</VButton>
+                    <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickTurnOnFingerprint">Turn on</VButton>
                 }
             </div>
             <p class="toggle-description">
@@ -110,6 +110,19 @@
                     ? "Sign in on this device with your fingerprint instead of your password."
                     : "Add a fingerprint in your device's settings to use fingerprint sign-in.")
             </p>
+
+            @if (_enteringMfaCode)
+            {
+                @* Fingerprint sign-in skips the authenticator code, so turning it on asks for one. *@
+                <div class="toggle-content connection-password">
+                    <input class="form-control" type="text" inputmode="numeric" autocomplete="one-time-code"
+                           placeholder="Authenticator code" @bind-value="@_mfaCode" />
+                    <div class="actions">
+                        <VButton Variant="secondary" Size="sm" OnClick="@(() => _enteringMfaCode = false)">Cancel</VButton>
+                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickEnableFingerprint">Turn on</VButton>
+                    </div>
+                </div>
+            }
         </div>
 
         @foreach (var key in _methods.Where(x => x.Type == "DeviceKey" && x != ThisDeviceKey))
@@ -143,6 +156,9 @@
     private bool _addingPassword;
     private string _newPassword;
     private string _newPasswordConfirm;
+
+    private bool _enteringMfaCode;
+    private string _mfaCode;
 
     private SignInMethodInfo ThisDeviceKey =>
         _deviceKeys?.Saved is { } saved && saved.UserId == Client.Me?.Id
@@ -306,7 +322,30 @@
         Show("Your password is set. You can sign in with your email and password.", false);
     });
 
+    private Task OnClickTurnOnFingerprint() => RunAsync(async () =>
+    {
+        if ((await AuthService.GetMfaMethodsAsync()).Count > 0)
+        {
+            _mfaCode = null;
+            _enteringMfaCode = true;
+            return;
+        }
+
+        await EnableFingerprintAsync();
+    });
+
     private Task OnClickEnableFingerprint() => RunAsync(async () =>
+    {
+        if (string.IsNullOrWhiteSpace(_mfaCode))
+        {
+            Show("Enter the code from your authenticator app.", true);
+            return;
+        }
+
+        await EnableFingerprintAsync();
+    });
+
+    private async Task EnableFingerprintAsync()
     {
         var proof = await GetReauthProofAsync();
         if (proof is null)
@@ -324,6 +363,7 @@
             PublicKey = publicKey,
             DeviceName = _deviceKeys.DeviceName,
             ReauthProof = proof,
+            MultiFactorCode = _enteringMfaCode ? _mfaCode?.Trim() : null,
         });
 
         if (!registered.Success)
@@ -333,7 +373,9 @@
             return;
         }
 
+        _enteringMfaCode = false;
+        _mfaCode = null;
         _deviceKeys.Save(new SavedDeviceKey(registered.Data, Client.Me.Id, Client.Me.Name));
         Show("Fingerprint sign-in is on for this device.", false);
-    });
+    }
 }

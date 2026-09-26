@@ -592,6 +592,15 @@ public partial class AuthService : ServiceBase
     
     public async Task<TaskResult> LoginAsync()
     {
+        // A token that cannot be sent as a header value (for example, a damaged
+        // saved login containing a line break) is treated as an expired login,
+        // so callers clear it instead of HttpClient throwing a FormatException.
+        if (string.IsNullOrWhiteSpace(Token) || Token.Any(char.IsControl))
+        {
+            SetToken(null);
+            return TaskResult.FromFailure("The saved login token is invalid. Sign in again.", 401);
+        }
+
         // Ensure any existing auth headers are removed
         if (_client.Http.DefaultRequestHeaders.Contains("authorization"))
         {

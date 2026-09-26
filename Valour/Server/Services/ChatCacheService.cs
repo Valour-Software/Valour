@@ -13,7 +13,7 @@ namespace Valour.Server.Services;
 /// </summary>
 public class ChatCacheService
 {
-    private const int CacheCapacity = 50;
+    public const int CacheCapacity = 50;
     private const int MaxCachedChannels = 2048;
     private static readonly TimeSpan IdleTimeout = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan SweepInterval = TimeSpan.FromMinutes(1);

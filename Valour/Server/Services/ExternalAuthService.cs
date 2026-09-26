@@ -13,8 +13,8 @@ namespace Valour.Server.Services;
 /// server runs the OAuth authorization code flow itself, so client secrets
 /// never reach an app. The result of each
 /// flow is a short-lived ticket that the client redeems through the normal
-/// sign-in and registration routes, which keeps two-factor checks, email
-/// rules, and session creation in one place.
+/// sign-in, registration, linking, and identity routes, which keeps two-factor
+/// checks, email rules, and session creation in one place.
 /// </summary>
 public class ExternalAuthService
 {
@@ -25,12 +25,25 @@ public class ExternalAuthService
     private const string LoginKind = "ext-login";
     private const string RegistrationKind = "ext-register";
     private const string ResultKind = "ext-result";
+    private const string GrantKind = "ext-grant";
 
     private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan LoginTicketLifetime = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan RegistrationTicketLifetime = TimeSpan.FromMinutes(30);
 
     private const int MaxAvatarBytes = 8 * 1024 * 1024;
+
+    /// <summary>The providers' profile picture hosts.</summary>
+    private static readonly HashSet<string> AvatarHosts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "cdn.discordapp.com",
+        "lh3.googleusercontent.com",
+        "lh4.googleusercontent.com",
+        "lh5.googleusercontent.com",
+        "lh6.googleusercontent.com",
+    };
+
+    private static readonly HashSet<string> AvatarContentTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 
     private readonly AuthTicketStore _tickets;
     private readonly SignInMethodService _signInMethods;
@@ -62,11 +75,37 @@ public class ExternalAuthService
         int? LoopbackPort,
         string VerifierHash,
         long? UserId,
-        string RedirectUri);
+        string RedirectUri,
+        string BrowserBindingHash);
+
+    /// <summary>
+    /// The cookie that ties a web flow to the browser that started it. Only
+    /// that browser can finish the flow, so a provider link sent to someone
+    /// else can't sign them in on the sender's behalf.
+    /// </summary>
+    public static string BrowserBindingCookieName(string flowId) => "valour-ext-" + flowId;
+
+    /// <summary>The cookie value a web client's browser must present when the provider returns.</summary>
+    public record BeginResult(ExternalAuthBeginResponse Response, string BrowserBindingSecret);
 
     public record LoginTicket(long UserId, long CredentialId, string VerifierHash);
 
     public record RegistrationTicket(ExternalIdentity Identity, string VerifierHash);
+
+    /// <summary>
+    /// A confirmed provider account waiting to be linked, or a confirmed
+    /// identity waiting to become a proof. The callback only records this.
+    /// The client that started the flow redeems it with its verifier and its
+    /// own session, so a provider link sent to someone else can't link their
+    /// account or confirm identity for the sender.
+    /// </summary>
+    public record Grant(
+        ExternalAuthIntent Intent,
+        long UserId,
+        string CredentialType,
+        string ProviderUserId,
+        string Label,
+        string VerifierHash);
 
     private ExternalAuthProvider GetConfiguredProvider(string name) =>
         name is not null && _providers.TryGetValue(name, out var provider) && provider.IsConfigured ? provider : null;
@@ -87,14 +126,14 @@ public class ExternalAuthService
     /// <paramref name="userId"/> is the signed-in user, required to link or
     /// confirm identity.
     /// </summary>
-    public async Task<TaskResult<ExternalAuthBeginResponse>> BeginAsync(string providerName, ExternalAuthBeginRequest request, long? userId, HttpRequest httpRequest)
+    public async Task<TaskResult<BeginResult>> BeginAsync(string providerName, ExternalAuthBeginRequest request, long? userId, HttpRequest httpRequest)
     {
         var provider = GetConfiguredProvider(providerName);
         if (provider is null)
-            return TaskResult<ExternalAuthBeginResponse>.FromFailure("This sign-in method is not available.");
+            return TaskResult<BeginResult>.FromFailure("This sign-in method is not available.");
 
         if (string.IsNullOrWhiteSpace(request.VerifierHash) || request.VerifierHash.Length != 43)
-            return TaskResult<ExternalAuthBeginResponse>.FromFailure("Missing verifier.");
+            return TaskResult<BeginResult>.FromFailure("Missing verifier.");
 
         switch (request.Client)
         {
@@ -102,16 +141,16 @@ public class ExternalAuthService
                 break;
             case ExternalAuthClient.Desktop:
                 if (request.LoopbackPort is null or < 1024 or > 65535)
-                    return TaskResult<ExternalAuthBeginResponse>.FromFailure("Invalid loopback port.");
+                    return TaskResult<BeginResult>.FromFailure("Invalid loopback port.");
                 break;
             case ExternalAuthClient.Android:
                 break;
             default:
-                return TaskResult<ExternalAuthBeginResponse>.FromFailure("Unknown client.");
+                return TaskResult<BeginResult>.FromFailure("Unknown client.");
         }
 
         if (request.Intent != ExternalAuthIntent.Login && userId is null)
-            return TaskResult<ExternalAuthBeginResponse>.FromFailure("Sign in first.");
+            return TaskResult<BeginResult>.FromFailure("Sign in first.");
 
         if (request.Intent == ExternalAuthIntent.Link)
         {
@@ -119,10 +158,15 @@ public class ExternalAuthService
             // alone is not enough.
             var confirmed = await _signInMethods.ConfirmIdentityAsync(userId!.Value, null, request.ReauthProof);
             if (!confirmed.Success)
-                return TaskResult<ExternalAuthBeginResponse>.FromFailure(confirmed.Message);
+                return TaskResult<BeginResult>.FromFailure(confirmed.Message);
         }
 
         var redirectUri = $"{PublicLinks.GetApiBaseUrl(httpRequest)}/api/auth/external/{provider.Name}/callback";
+
+        // Web results wait on the server for whoever holds the verifier, so the
+        // flow is also tied to this browser. Apps receive the result on their
+        // own device, so they don't need this.
+        var browserSecret = request.Client == ExternalAuthClient.Web ? AuthTicketStore.NewId() : null;
 
         var state = new FlowState(
             provider.Name,
@@ -131,16 +175,34 @@ public class ExternalAuthService
             request.LoopbackPort,
             request.VerifierHash,
             request.Intent == ExternalAuthIntent.Login ? null : userId,
-            redirectUri);
+            redirectUri,
+            browserSecret is null ? null : AuthTicketStore.HashVerifier(browserSecret));
 
         var stateId = await _tickets.CreateAsync(StateKind, state, StateLifetime);
 
-        return TaskResult<ExternalAuthBeginResponse>.FromData(new ExternalAuthBeginResponse
+        return TaskResult<BeginResult>.FromData(new BeginResult(new ExternalAuthBeginResponse
         {
             AuthorizationUrl = provider.BuildAuthorizationUrl(redirectUri, stateId),
             FlowId = stateId,
-        });
+        }, browserSecret));
     }
+
+    /// <summary>
+    /// The binding cookie is sent back only to the sign-in routes, is hidden
+    /// from scripts, and survives the provider's top-level redirect back.
+    /// </summary>
+    public static CookieOptions BrowserBindingCookieOptions(HttpRequest request) => new()
+    {
+        HttpOnly = true,
+        // Local development servers run over plain HTTP.
+        Secure = !IsLoopback(request),
+        SameSite = SameSiteMode.Lax,
+        Path = "/api/auth/external",
+        MaxAge = StateLifetime,
+    };
+
+    private static bool IsLoopback(HttpRequest request) =>
+        request.Host.Host is "localhost" or "127.0.0.1" or "[::1]";
 
     // Finishing a flow //
 
@@ -148,11 +210,22 @@ public class ExternalAuthService
     /// Handles the provider's redirect back to the server and sends the result
     /// to the client that started the flow.
     /// </summary>
-    public async Task<IResult> HandleCallbackAsync(string providerName, string code, string stateId, string error)
+    public async Task<IResult> HandleCallbackAsync(string providerName, string code, string stateId, string error, HttpContext httpContext)
     {
         var state = await _tickets.TakeAsync<FlowState>(StateKind, stateId);
         if (state is null || !string.Equals(state.Provider, providerName, StringComparison.OrdinalIgnoreCase))
             return PlainPage("This sign-in link has expired. Go back to Valour and try again.");
+
+        if (state.BrowserBindingHash is not null)
+        {
+            var cookieName = BrowserBindingCookieName(stateId);
+            var presented = httpContext.Request.Cookies[cookieName];
+            httpContext.Response.Cookies.Delete(cookieName, BrowserBindingCookieOptions(httpContext.Request));
+
+            if (!AuthTicketStore.VerifierMatches(presented, state.BrowserBindingHash))
+                return await DeliverAsync(state, stateId, ExternalAuthResults.Error,
+                    message: "Sign-in has to finish in the same browser it started in. Go back to Valour and try again.");
+        }
 
         var provider = GetConfiguredProvider(state.Provider);
         if (provider is null)
@@ -190,8 +263,8 @@ public class ExternalAuthService
                         message: $"That {provider.DisplayName} account isn't linked to your Valour account.");
 
                 await _signInMethods.MarkUsedAsync(credential.Id);
-                var proof = await _signInMethods.CreateReauthProofAsync(credential.UserId);
-                return await DeliverAsync(state, stateId, ExternalAuthResults.Reauth, ticket: proof.Proof);
+                return await DeliverAsync(state, stateId, ExternalAuthResults.Reauth,
+                    ticket: await CreateGrantAsync(state, provider, identity));
             default:
                 return await DeliverAsync(state, stateId, ExternalAuthResults.Error, message: "Unknown sign-in request.");
         }
@@ -225,44 +298,20 @@ public class ExternalAuthService
 
     private async Task<IResult> FinishLinkAsync(string stateId, FlowState state, ExternalAuthProvider provider, ExternalIdentity identity, Valour.Database.Credential credential)
     {
-        var userId = state.UserId!.Value;
-
-        if (credential is not null)
-        {
-            if (credential.UserId != userId)
-                return await DeliverAsync(state, stateId, ExternalAuthResults.Error,
-                    message: $"This {provider.DisplayName} account is already linked to another Valour account.");
-
-            return await DeliverAsync(state, stateId, ExternalAuthResults.Linked);
-        }
-
-        if (await _db.Credentials.AnyAsync(x => x.UserId == userId && x.CredentialType == provider.CredentialType))
-            return await DeliverAsync(state, stateId, ExternalAuthResults.Error,
-                message: $"Another {provider.DisplayName} account is already linked. Remove it first.");
-
-        _db.Credentials.Add(new Valour.Database.Credential
-        {
-            Id = IdManager.Generate(),
-            UserId = userId,
-            CredentialType = provider.CredentialType,
-            Identifier = identity.ProviderUserId,
-            DisplayName = identity.Label,
-            CreatedAt = DateTime.UtcNow,
-        });
-
-        try
-        {
-            await _db.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            // The unique index caught a simultaneous link of the same account.
+        // Obvious refusals are reported now. Linking itself waits for the
+        // client that started the flow (see Grant), which checks again.
+        if (credential is not null && credential.UserId != state.UserId)
             return await DeliverAsync(state, stateId, ExternalAuthResults.Error,
                 message: $"This {provider.DisplayName} account is already linked to another Valour account.");
-        }
 
-        return await DeliverAsync(state, stateId, ExternalAuthResults.Linked);
+        return await DeliverAsync(state, stateId, ExternalAuthResults.Linked,
+            ticket: await CreateGrantAsync(state, provider, identity));
     }
+
+    private Task<string> CreateGrantAsync(FlowState state, ExternalAuthProvider provider, ExternalIdentity identity) =>
+        _tickets.CreateAsync(GrantKind,
+            new Grant(state.Intent, state.UserId!.Value, provider.CredentialType, identity.ProviderUserId, identity.Label, state.VerifierHash),
+            StateLifetime);
 
     // Redeeming tickets //
 
@@ -287,6 +336,32 @@ public class ExternalAuthService
 
     public Task RemoveRegistrationTicketAsync(string ticket) => _tickets.RemoveAsync(RegistrationKind, ticket);
 
+    /// <summary>
+    /// Spends a link or identity grant for the signed-in user who started the
+    /// flow and holds its verifier. Returns null if any of that doesn't match.
+    /// </summary>
+    public async Task<Grant> TakeGrantAsync(string ticket, string verifier, ExternalAuthIntent intent, long userId)
+    {
+        var value = await _tickets.GetAsync<Grant>(GrantKind, ticket);
+        if (value is null || value.Intent != intent || value.UserId != userId ||
+            !AuthTicketStore.VerifierMatches(verifier, value.VerifierHash))
+            return null;
+
+        // Only one redemption wins if two arrive at once.
+        return await _tickets.TakeAsync<Grant>(GrantKind, ticket) is null ? null : value;
+    }
+
+    /// <summary>Links the provider account from a grant to the signed-in user.</summary>
+    public async Task<TaskResult> RedeemLinkAsync(string ticket, string verifier, long userId)
+    {
+        var grant = await TakeGrantAsync(ticket, verifier, ExternalAuthIntent.Link, userId);
+        if (grant is null)
+            return TaskResult.FromFailure("This link has expired. Try again.");
+
+        return await _signInMethods.LinkProviderAsync(userId, grant.CredentialType, grant.ProviderUserId, grant.Label,
+            GetDisplayName(grant.CredentialType));
+    }
+
     public static ExternalRegistrationInfo ToRegistrationInfo(RegistrationTicket ticket) => new()
     {
         Provider = ticket.Identity.Provider,
@@ -304,9 +379,7 @@ public class ExternalAuthService
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != "https")
             return (null, null);
 
-        var host = uri.Host.ToLowerInvariant();
-        var allowed = host == "cdn.discordapp.com" || host.EndsWith(".googleusercontent.com");
-        if (!allowed)
+        if (!AvatarHosts.Contains(uri.Host))
             return (null, null);
 
         try
@@ -320,7 +393,11 @@ public class ExternalAuthService
             if (response.Content.Headers.ContentLength > MaxAvatarBytes)
                 return (null, null);
 
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/png";
+            // The picture is served back from the API's own address, so only
+            // image types are passed along.
+            var contentType = response.Content.Headers.ContentType?.MediaType?.ToLowerInvariant();
+            if (contentType is null || !AvatarContentTypes.Contains(contentType))
+                return (null, null);
 
             await using var stream = await response.Content.ReadAsStreamAsync();
             var buffer = new MemoryStream();
@@ -367,6 +444,9 @@ public class ExternalAuthService
             case ExternalAuthClient.Android:
                 return Results.Redirect(QueryHelpers.AddQueryString(AndroidCallbackUrl, values));
             case ExternalAuthClient.Desktop:
+                // Other local programs can reach the port too. The app accepts
+                // only the request that carries its own flow ID.
+                values["flow"] = stateId;
                 return Results.Redirect(QueryHelpers.AddQueryString($"http://127.0.0.1:{state.LoopbackPort}/callback", values));
             default:
                 await _tickets.SetAsync(ResultKind, stateId, new WebResult(result, ticket, message, state.VerifierHash), StateLifetime);

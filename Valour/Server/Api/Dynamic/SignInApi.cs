@@ -12,6 +12,8 @@ namespace Valour.Server.Api.Dynamic;
 /// </summary>
 public class SignInApi
 {
+    public const string DeviceKeyNeedsMultiFactorMessage = "Enter your authenticator code to turn on fingerprint sign-in.";
+
     // Google and Discord //
 
     [ValourRoute(HttpVerbs.Get, "api/auth/external/providers")]
@@ -46,7 +48,15 @@ public class SignInApi
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
-        return Results.Json(result.Data);
+        if (result.Data.BrowserBindingSecret is not null)
+        {
+            ctx.Response.Cookies.Append(
+                ExternalAuthService.BrowserBindingCookieName(result.Data.Response.FlowId),
+                result.Data.BrowserBindingSecret,
+                ExternalAuthService.BrowserBindingCookieOptions(ctx.Request));
+        }
+
+        return Results.Json(result.Data.Response);
     }
 
     /// <summary>
@@ -62,14 +72,16 @@ public class SignInApi
         return result is null ? Results.NoContent() : Results.Json(result);
     }
 
+    [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Get, "api/auth/external/{provider}/callback")]
     public static Task<IResult> ExternalCallbackRouteAsync(
         string provider,
-        [FromQuery] string code,
-        [FromQuery] string state,
-        [FromQuery] string error,
+        [FromQuery] string? code,
+        [FromQuery] string? state,
+        [FromQuery] string? error,
+        HttpContext ctx,
         ExternalAuthService externalAuth) =>
-        externalAuth.HandleCallbackAsync(provider, code, state, error);
+        externalAuth.HandleCallbackAsync(provider, code, state, error, ctx);
 
     [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/auth/external/registration")]
@@ -108,9 +120,10 @@ public class SignInApi
     // Identity confirmation //
 
     /// <summary>
-    /// Confirms the signed-in person with their password or this device's key,
-    /// and returns a proof that sensitive changes accept for a few minutes.
-    /// Linked accounts confirm through api/auth/external/{provider}/begin.
+    /// Confirms the signed-in person with their password, this device's key,
+    /// or a linked account (the ticket from api/auth/external/{provider}/begin
+    /// with the Reauth intent), and returns a proof that sensitive changes from
+    /// this session accept for a few minutes.
     /// </summary>
     [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/reauth")]
@@ -118,14 +131,21 @@ public class SignInApi
     public static async Task<IResult> ReauthRouteAsync(
         [FromBody] ReauthRequest request,
         UserService userService,
-        SignInMethodService signInMethods)
+        SignInMethodService signInMethods,
+        ExternalAuthService externalAuth)
     {
         if (request is null)
             return ValourResult.BadRequest("Include request in body.");
 
         var userId = await userService.GetCurrentUserIdAsync();
 
-        if (!string.IsNullOrWhiteSpace(request.DeviceKeyId))
+        if (!string.IsNullOrWhiteSpace(request.ExternalTicket))
+        {
+            var grant = await externalAuth.TakeGrantAsync(request.ExternalTicket, request.ExternalVerifier, ExternalAuthIntent.Reauth, userId);
+            if (grant is null)
+                return ValourResult.Forbid("Your confirmation expired. Confirm it's you again.");
+        }
+        else if (!string.IsNullOrWhiteSpace(request.DeviceKeyId))
         {
             var signed = await signInMethods.VerifyDeviceSignatureAsync(
                 request.DeviceKeyId, request.DeviceChallengeId, request.DeviceSignature);
@@ -143,6 +163,29 @@ public class SignInApi
     }
 
     // Managing sign-in methods //
+
+    /// <summary>
+    /// Finishes linking a Google or Discord account, with the ticket from
+    /// api/auth/external/{provider}/begin with the Link intent.
+    /// </summary>
+    [RateLimit(RateLimitPolicies.Auth)]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/signin-methods/link")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> LinkSignInMethodRouteAsync(
+        [FromBody] ExternalTicketRequest request,
+        UserService userService,
+        ExternalAuthService externalAuth)
+    {
+        if (request is null)
+            return ValourResult.BadRequest("Include request in body.");
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await externalAuth.RedeemLinkAsync(request.Ticket, request.Verifier, userId);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.NoContent();
+    }
 
     [ValourRoute(HttpVerbs.Get, "api/users/me/signin-methods")]
     [UserRequired(UserPermissionsEnum.FullControl)]
@@ -217,6 +260,7 @@ public class SignInApi
     public static async Task<IResult> RegisterDeviceKeyRouteAsync(
         [FromBody] DeviceKeyRegisterRequest request,
         UserService userService,
+        MultiAuthService multiAuthService,
         SignInMethodService signInMethods)
     {
         if (request is null)
@@ -228,6 +272,19 @@ public class SignInApi
         var confirmed = await signInMethods.ConfirmIdentityAsync(userId, null, request.ReauthProof);
         if (!confirmed.Success)
             return ValourResult.Forbid(confirmed.Message);
+
+        // Fingerprint sign-in skips the authenticator code, so adding it needs
+        // that code. Otherwise a stolen session and password could add a key
+        // that gets around two-factor authentication for good.
+        if ((await multiAuthService.GetAppMultiAuthTypes(userId)).Count > 0)
+        {
+            if (string.IsNullOrWhiteSpace(request.MultiFactorCode))
+                return ValourResult.Forbid(DeviceKeyNeedsMultiFactorMessage);
+
+            var mfa = await multiAuthService.VerifyEstablishedAppMultiAuth(userId, request.MultiFactorCode);
+            if (!mfa.Success)
+                return ValourResult.Forbid(mfa.Message);
+        }
 
         var result = await signInMethods.RegisterDeviceKeyAsync(userId, request.PublicKey, request.DeviceName);
         if (!result.Success)

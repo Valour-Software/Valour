@@ -505,8 +505,8 @@ public partial class E2eeService
             // come, so the message is tried again on a timer.
             var fetchFailed = ring is null || _keyRingFailures.ContainsKey(ChannelKey(channel));
             MarkWaiting(message, fetchFailed
-                    ? "The channel's keys could not be loaded yet. Valour tries again automatically."
-                    : "Waiting for the key from another member. It arrives once one of them is online.",
+                    ? "The channel's keys could not be loaded. Retrying automatically..."
+                    : "Waiting for e2ee keys from another member...",
                 retryLater: fetchFailed, channel: channel);
             return;
         }
@@ -1230,7 +1230,11 @@ public partial class E2eeService
                 if (sealedHere)
                 {
                     await DecryptAsync(message);
-                    await Task.Yield();
+
+                    // A browser runs this on its only thread. Task.Yield can
+                    // resume without returning to the browser, so a timer is
+                    // used to let rendering and input run between messages.
+                    await Task.Delay(1);
                 }
 
                 var indexSecret = sealedHere && message.DecryptionState == MessageDecryptionState.Decrypted

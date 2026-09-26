@@ -1080,10 +1080,10 @@ public class UserService
             // Always create a new token for each login
             var token = new AuthToken()
             {
-                AppId = "VALOUR",
+                AppId = TokenService.SessionAppId,
                 Id = "val-" + Guid.NewGuid().ToString(),
                 TimeCreated = DateTime.UtcNow,
-                TimeExpires = DateTime.UtcNow.AddDays(7),
+                TimeExpires = DateTime.UtcNow + TokenService.SessionLifetime,
                 Scope = UserPermissions.FullControl.Value,
                 UserId = userId,
                 IssuedAddress = ClientAddressResolver.GetClientAddress(ctx),
@@ -1196,6 +1196,8 @@ public class UserService
         return TaskResult.SuccessResult;
     }
 
+    private const int AccountDeletionLockClass = 0x56444C55; // "VDLU"
+
     /// <summary>
     /// Nuke it. Bots owned by the user are deleted first, because a bot must
     /// not keep acting (with its long-lived token) after its owner is gone.
@@ -1230,6 +1232,16 @@ public class UserService
             return billingResult;
 
         await using var tran = await _db.Database.BeginTransactionAsync();
+
+        // The deletion holds row locks on everything the account owns until it
+        // commits. A repeated request for the same account would wait on those
+        // locks until its commands time out, so it is turned away instead.
+        var deletionKey = (int)(user.Id ^ (user.Id >> 32));
+        var deletionLocked = await _db.Database
+            .SqlQuery<bool>($"SELECT pg_try_advisory_xact_lock({AccountDeletionLockClass}, {deletionKey}) AS \"Value\"")
+            .SingleAsync();
+        if (!deletionLocked)
+            return TaskResult.FromFailure("This account is already being deleted.");
 
         var dbUser = await _db.Users.FindAsync(user.Id);
         if (dbUser is null)

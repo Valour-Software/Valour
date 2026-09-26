@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Valour.Server.Models;
 using Valour.Server.Services;
@@ -160,5 +161,20 @@ public class PushNotificationServiceTests
         Assert.Equal(NotificationService.EncryptedMessageBody, message.Notification.Body);
         Assert.Equal("valour_default", message.Android.Notification.ChannelId);
         Assert.Equal(["url"], message.Data.Keys);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Gone, null, PushNotificationService.WebPushFailure.SubscriptionGone)]
+    [InlineData(HttpStatusCode.NotFound, null, PushNotificationService.WebPushFailure.SubscriptionGone)]
+    [InlineData(HttpStatusCode.Forbidden, "{\"reason\":\"BadJwtToken\"}", PushNotificationService.WebPushFailure.SubscriptionRejected)]
+    [InlineData(HttpStatusCode.InternalServerError, "permanent internal error encountered, do not retry the request.", PushNotificationService.WebPushFailure.SubscriptionRejected)]
+    [InlineData(HttpStatusCode.InternalServerError, "transient internal error encountered, retry the request with exponential backoff.", PushNotificationService.WebPushFailure.Transient)]
+    [InlineData(HttpStatusCode.BadGateway, null, PushNotificationService.WebPushFailure.Transient)]
+    [InlineData(HttpStatusCode.TooManyRequests, null, PushNotificationService.WebPushFailure.Transient)]
+    [InlineData(HttpStatusCode.RequestEntityTooLarge, null, PushNotificationService.WebPushFailure.Unexpected)]
+    public void ClassifyWebPushFailure_SortsProviderResponses(HttpStatusCode status, string? body,
+        PushNotificationService.WebPushFailure expected)
+    {
+        Assert.Equal(expected, PushNotificationService.ClassifyWebPushFailure(status, body));
     }
 }

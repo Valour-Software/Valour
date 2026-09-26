@@ -89,10 +89,16 @@ public static class ExternalAuthResults
     /// <summary>No Valour account uses this sign-in. The ticket starts registration.</summary>
     public const string Register = "register";
 
-    /// <summary>The account was added to the signed-in user's sign-in methods.</summary>
+    /// <summary>
+    /// The account can be linked. Redeem the ticket at
+    /// api/users/me/signin-methods/link from the session that started the flow.
+    /// </summary>
     public const string Linked = "linked";
 
-    /// <summary>Identity confirmed. The ticket is a reauth proof.</summary>
+    /// <summary>
+    /// Identity confirmed. Redeem the ticket at api/users/me/reauth from the
+    /// session that started the flow to get a proof.
+    /// </summary>
     public const string Reauth = "reauth";
 
     public const string Error = "error";
@@ -144,6 +150,10 @@ public class ReauthRequest
     public string DeviceKeyId { get; set; }
     public string DeviceChallengeId { get; set; }
     public string DeviceSignature { get; set; }
+
+    /// <summary>The ticket from signing in again with a linked account, and its verifier.</summary>
+    public string ExternalTicket { get; set; }
+    public string ExternalVerifier { get; set; }
 }
 
 public class ReauthResponse
@@ -170,6 +180,12 @@ public class DeviceKeyRegisterRequest
 
     public string DeviceName { get; set; }
     public string ReauthProof { get; set; }
+
+    /// <summary>
+    /// Required when the account has two-factor authentication, because
+    /// fingerprint sign-in skips the authenticator code afterwards.
+    /// </summary>
+    public string MultiFactorCode { get; set; }
 }
 
 public class DeviceKeyRegisterResponse

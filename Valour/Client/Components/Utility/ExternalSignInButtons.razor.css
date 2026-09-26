@@ -1,8 +1,11 @@
+/* The divider line sits in the middle of its row, so the row's own height
+   already adds space above it. A small top margin keeps the gap above the
+   line equal to the gap below it. */
 .external-sign-in {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-top: 16px;
+    margin-top: 6px;
 }
 
 .external-divider {

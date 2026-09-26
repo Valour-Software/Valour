@@ -67,6 +67,7 @@
     private string? _error;
     private bool _visible;
     private bool _canRender;
+    private bool _disposed;
     private DateTime _lastLoad = DateTime.UtcNow;
 
     protected override bool ShouldRender() => _canRender;
@@ -201,8 +202,20 @@
         if (firstRender)
         {
             _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Valour.Client/Components/Menus/Upload/KlipyMenuComponent.razor.js");
+            // The GIF menu still opens without its script; only outside-click
+            // hiding and the masonry layout are unavailable.
+            var module = await JsRuntime.TryImportModuleAsync(
+                "./_content/Valour.Client/Components/Menus/Upload/KlipyMenuComponent.razor.js");
+            if (module is null)
+                return;
+
+            if (_disposed)
+            {
+                await ReleaseModuleAsync(module);
+                return;
+            }
+
+            _jsModule = module;
             await _jsModule.InvokeVoidAsync("setupHide", "klipy-bg-" + ChannelWindow.WindowCtx.Id, _thisRef);
         }
 
@@ -247,8 +260,19 @@
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        if (_jsModule is not null)
-            await _jsModule.DisposeAsync();
+        _disposed = true;
+        var module = _jsModule;
+        _jsModule = null;
+        if (module is not null)
+            await ReleaseModuleAsync(module);
         _thisRef?.Dispose();
+    }
+
+    private static async ValueTask ReleaseModuleAsync(IJSObjectReference module)
+    {
+        try { await module.DisposeAsync(); }
+        catch (JSException) { }
+        catch (JSDisconnectedException) { }
+        catch (ObjectDisposedException) { }
     }
 }

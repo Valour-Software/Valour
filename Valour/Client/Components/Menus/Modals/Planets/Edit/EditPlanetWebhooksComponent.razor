@@ -301,6 +301,7 @@
         Func<byte[], string, string, Task> onReady)
     {
         const long maxBytes = 20_971_520;
+        if (args.FileCount == 0) return;
         var file = args.File;
         if (file.Size > maxBytes)
         {

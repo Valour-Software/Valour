@@ -44,7 +44,8 @@ public static class MauiProgram
             options.Dsn = "https://4d0d4a0caff54b8d5a0dc1a6e2a17486@o4510867505479680.ingest.us.sentry.io/4510887562444800";
 #endif
             options.MinimumEventLevel = LogLevel.Error;
-            options.SetBeforeSend((e, _) => SentryGate.IsEnabled ? e : null);
+            options.SetBeforeSend((e, _) =>
+                SentryGate.IsEnabled && (e.Exception is null || !SentryGate.IsKnownFrameworkNoise(e.Exception)) ? e : null);
         });
 
         builder.Services.AddMauiBlazorWebView();
