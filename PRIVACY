@@ -1,7 +1,7 @@
 Privacy Policy
 ==============
 
-Last updated: September 25, 2026
+Last updated: September 26, 2026
 
 This Privacy Policy explains what data Valour collects, why we collect it,
 who receives it, and how you can control or delete it. We aim to collect
@@ -33,6 +33,15 @@ Optionally, you may provide:
   * Invite code: records which invite brought you to Valour
   * Referral source: how you heard about us (e.g. YouTube, Twitter)
   * Two-factor authentication: a secret used to generate sign-in codes
+  * Linked accounts: if you sign in with Google or Discord, we receive that
+    account's ID, email address, name or username, and profile picture. We
+    keep the account ID and a label (your Google email or Discord username)
+    so you can sign in with it and see it in your settings. The picture is
+    used only if you choose it as your avatar.
+  * Fingerprint sign-in: your fingerprint never leaves your device. The
+    Valour app creates a key on your device that only works after your
+    fingerprint is checked. We store the public part of that key and your
+    device's name.
 
 Profile Information
 -------------------
@@ -113,6 +122,7 @@ The Valour apps may ask for these permissions, depending on your device:
 
   * Microphone and camera: for voice and video calls
   * Notifications: to show message and call notifications
+  * Fingerprint: to sign in with your fingerprint, if you turn it on
   * Files and photos: only the files you choose to upload, using the system
     file picker
 
@@ -194,6 +204,11 @@ These services receive limited data to provide specific functionality:
   * Browser push services (such as those run by Google, Mozilla, Apple and
     Microsoft): deliver push notifications to web browsers. The contents of
     these notifications are encrypted to your browser.
+
+  * Google and Discord: if you choose to sign in with one of them, you sign
+    in on their site and they send us the account details listed above.
+    Privacy policies: https://policies.google.com/privacy and
+    https://discord.com/privacy
 
   * Klipy: powers GIF search. When you search for GIFs, your device sends
     your search text directly to Klipy, which can see your IP address. Your
@@ -290,7 +305,8 @@ You can permanently delete your account at any time through the app or at
 app.valour.gg. Deletion is immediate. When you delete your account, we
 delete:
 
-  * Your account details, credentials, sessions, profile and preferences
+  * Your account details, credentials, linked Google and Discord accounts,
+    fingerprint sign-in keys, sessions, profile and preferences
   * All your messages, their attachments, and your direct message
     conversations
   * Files you uploaded

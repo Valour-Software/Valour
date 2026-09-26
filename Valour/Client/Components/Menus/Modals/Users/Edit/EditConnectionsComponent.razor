@@ -1,0 +1,339 @@
+@inject AuthService AuthService
+@inject ValourClient Client
+@inject ExternalSignInService ExternalSignIn
+@inject IServiceProvider Services
+@using Microsoft.Extensions.DependencyInjection
+
+<div class="settings-page">
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-box-arrow-in-right"></i>
+        Ways to sign in
+    </h3>
+    <p class="toggle-description">
+        Link accounts to sign in with them. Your account always keeps at least one way to sign in from a new device.
+    </p>
+
+    @if (_methods is null)
+    {
+        <div class="loading-indicator"></div>
+    }
+    else
+    {
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title"><i class="bi bi-key connection-icon"></i> Password</span>
+                @if (_password is not null)
+                {
+                    <VButton Variant="secondary" Size="sm" Disabled="@(_busy || !CanRemove(_password))"
+                             Title="@RemoveTitle(_password)" OnClick="@(() => OnClickRemove(_password))">Remove</VButton>
+                }
+                else if (!_addingPassword)
+                {
+                    <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@(() => _addingPassword = true)">Add password</VButton>
+                }
+            </div>
+            <p class="toggle-description">@(_password is not null ? _password.DisplayName : "No password. You sign in with a linked account.")</p>
+
+            @if (_addingPassword)
+            {
+                <div class="toggle-content connection-password">
+                    <PasswordInput placeholder="New password" autocomplete="new-password" @bind-Value="@_newPassword" />
+                    <PasswordInput placeholder="Type it once more" autocomplete="new-password" @bind-Value="@_newPasswordConfirm" />
+                    <div class="actions">
+                        <VButton Variant="secondary" Size="sm" OnClick="@(() => _addingPassword = false)">Cancel</VButton>
+                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickSavePassword">Save password</VButton>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @foreach (var provider in _providers)
+        {
+            var linked = _methods.FirstOrDefault(x => ExternalSignInService.FromCredentialType(x.Type) == provider);
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">
+                        <i class="bi @ExternalSignInService.GetIcon(provider) connection-icon connection-@provider"></i>
+                        @ExternalSignInService.GetName(provider)
+                    </span>
+                    @if (linked is not null)
+                    {
+                        <VButton Variant="secondary" Size="sm" Disabled="@(_busy || !CanRemove(linked))"
+                                 Title="@RemoveTitle(linked)" OnClick="@(() => OnClickRemove(linked))">Unlink</VButton>
+                    }
+                    else
+                    {
+                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickLink(provider))">Link</VButton>
+                    }
+                </div>
+                <p class="toggle-description">
+                    @(linked is not null ? $"Linked to {linked.DisplayName}" : $"Sign in with your {ExternalSignInService.GetName(provider)} account.")
+                </p>
+            </div>
+        }
+    }
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <p class="helper-text @(_messageIsError ? "text-danger" : "")">@_message</p>
+    }
+</div>
+
+@if (_deviceKeys is not null && _methods is not null)
+{
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-fingerprint"></i>
+            Fingerprint sign-in
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">This device</span>
+                @if (!_deviceKeys.IsAvailable)
+                {
+                    <span class="status-badge">Unavailable</span>
+                }
+                else if (ThisDeviceKey is not null)
+                {
+                    <VButton Variant="secondary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(ThisDeviceKey))">Turn off</VButton>
+                }
+                else
+                {
+                    <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@OnClickEnableFingerprint">Turn on</VButton>
+                }
+            </div>
+            <p class="toggle-description">
+                @(_deviceKeys.IsAvailable
+                    ? "Sign in on this device with your fingerprint instead of your password."
+                    : "Add a fingerprint in your device's settings to use fingerprint sign-in.")
+            </p>
+        </div>
+
+        @foreach (var key in _methods.Where(x => x.Type == "DeviceKey" && x != ThisDeviceKey))
+        {
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">@key.DisplayName</span>
+                    <VButton Variant="secondary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickRemove(key))">Remove</VButton>
+                </div>
+                <p class="toggle-description">@LastUsed(key)</p>
+            </div>
+        }
+    </div>
+}
+
+</div>
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private List<SignInMethodInfo> _methods;
+    private List<string> _providers = new();
+    private SignInMethodInfo _password;
+    private IDeviceKeyService _deviceKeys;
+
+    private bool _busy;
+    private string _message;
+    private bool _messageIsError;
+
+    private bool _addingPassword;
+    private string _newPassword;
+    private string _newPasswordConfirm;
+
+    private SignInMethodInfo ThisDeviceKey =>
+        _deviceKeys?.Saved is { } saved && saved.UserId == Client.Me?.Id
+            ? _methods?.FirstOrDefault(x => x.DeviceKeyId == saved.KeyId)
+            : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _deviceKeys = Services.GetService<IDeviceKeyService>();
+        _providers = await ExternalSignIn.GetProvidersAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _methods = await AuthService.GetSignInMethodsAsync();
+        _password = _methods.FirstOrDefault(x => x.Type == "Password");
+
+        // Forget a key that was removed from another device.
+        if (_deviceKeys?.Saved is { } saved && saved.UserId == Client.Me?.Id &&
+            _methods.All(x => x.DeviceKeyId != saved.KeyId))
+        {
+            _deviceKeys.Clear();
+        }
+    }
+
+    // Mirrors the server rule: a password or linked account can only be
+    // removed while another one remains. Fingerprint keys don't count.
+    private bool CanRemove(SignInMethodInfo method) =>
+        method.Type == "DeviceKey" ||
+        _methods.Any(x => x.Id != method.Id && x.Type != "DeviceKey");
+
+    private string RemoveTitle(SignInMethodInfo method) =>
+        CanRemove(method) ? null : "This is your only way to sign in. Add a password or link another account first.";
+
+    private static string LastUsed(SignInMethodInfo method) =>
+        method.LastUsedAt is { } used ? $"Last used {used.ToLocalTime():MMM d, yyyy}" : "Not used yet";
+
+    private void Show(string message, bool isError)
+    {
+        _message = message;
+        _messageIsError = isError;
+    }
+
+    /// <summary>
+    /// Returns a recent identity proof, asking the person to confirm it's them
+    /// when there isn't one. Null when they cancel.
+    /// </summary>
+    private async Task<string> GetReauthProofAsync()
+    {
+        if (ExternalSignIn.GetReauthProof() is { } cached)
+            return cached;
+
+        var confirmed = new TaskCompletionSource<string>();
+        ModalRoot.OpenModal<PasswordConfirmModal>(new PasswordConfirmModal.Params
+        {
+            Title = "Confirm it's you",
+            Description = "Confirm it's you to change how you sign in.",
+            OnCancel = () => confirmed.TrySetResult(null),
+            OnConfirmIdentityAsync = async (confirmation, _) =>
+            {
+                if (confirmation.ReauthProof is not null)
+                {
+                    confirmed.TrySetResult(confirmation.ReauthProof);
+                    return TaskResult.SuccessResult;
+                }
+
+                var result = await AuthService.ReauthAsync(new ReauthRequest { Password = confirmation.Password });
+                if (!result.Success)
+                    return TaskResult.FromFailure(result.Message);
+
+                ExternalSignIn.RememberReauthProof(result.Data.Proof);
+                confirmed.TrySetResult(result.Data.Proof);
+                return TaskResult.SuccessResult;
+            },
+        });
+
+        return await confirmed.Task;
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _message = null;
+        StateHasChanged();
+
+        try
+        {
+            await action();
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
+    private Task OnClickLink(string provider) => RunAsync(async () =>
+    {
+        var proof = await GetReauthProofAsync();
+        if (proof is null)
+            return;
+
+        var outcome = await ExternalSignIn.RunAsync(provider, ExternalAuthIntent.Link, proof);
+        if (outcome.Result == ExternalAuthResults.Linked)
+            Show($"{ExternalSignInService.GetName(provider)} is linked. You can sign in with it now.", false);
+        else
+            Show(outcome.Message, true);
+    });
+
+    private Task OnClickRemove(SignInMethodInfo method) => RunAsync(async () =>
+    {
+        string proof = null;
+        if (method.Type != "DeviceKey")
+        {
+            proof = await GetReauthProofAsync();
+            if (proof is null)
+                return;
+        }
+
+        var result = await AuthService.RemoveSignInMethodAsync(method.Id, proof);
+        if (!result.Success)
+        {
+            Show(result.Message, true);
+            return;
+        }
+
+        if (method == ThisDeviceKey)
+            _deviceKeys.Clear();
+
+        Show(method.Type switch
+        {
+            "Password" => "Your password is removed.",
+            "DeviceKey" => "Fingerprint sign-in is off for that device.",
+            _ => $"{method.Type} is unlinked.",
+        }, false);
+    });
+
+    private Task OnClickSavePassword() => RunAsync(async () =>
+    {
+        if (string.IsNullOrWhiteSpace(_newPassword) || _newPassword != _newPasswordConfirm)
+        {
+            Show("Those passwords do not match.", true);
+            return;
+        }
+
+        var proof = await GetReauthProofAsync();
+        if (proof is null)
+            return;
+
+        var result = await AuthService.AddPasswordAsync(_newPassword, proof);
+        if (!result.Success)
+        {
+            Show(result.Message, true);
+            return;
+        }
+
+        _addingPassword = false;
+        _newPassword = _newPasswordConfirm = null;
+        Show("Your password is set. You can sign in with your email and password.", false);
+    });
+
+    private Task OnClickEnableFingerprint() => RunAsync(async () =>
+    {
+        var proof = await GetReauthProofAsync();
+        if (proof is null)
+            return;
+
+        var publicKey = await _deviceKeys.CreateKeyAsync();
+        if (publicKey is null)
+        {
+            Show("This device couldn't create a fingerprint key.", true);
+            return;
+        }
+
+        var registered = await AuthService.RegisterDeviceKeyAsync(new DeviceKeyRegisterRequest
+        {
+            PublicKey = publicKey,
+            DeviceName = _deviceKeys.DeviceName,
+            ReauthProof = proof,
+        });
+
+        if (!registered.Success)
+        {
+            _deviceKeys.Clear();
+            Show(registered.Message, true);
+            return;
+        }
+
+        _deviceKeys.Save(new SavedDeviceKey(registered.Data, Client.Me.Id, Client.Me.Name));
+        Show("Fingerprint sign-in is on for this device.", false);
+    });
+}

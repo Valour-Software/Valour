@@ -308,9 +308,6 @@ public class UserService
     public async Task<PasswordRecovery> GetPasswordRecoveryAsync(string code) =>
         (await _db.PasswordRecoveries.FirstOrDefaultAsync(x => x.Code == code && x.ExpiresAt > DateTime.UtcNow)).ToModel();
 
-    public async Task<Valour.Database.Credential> GetCredentialAsync(long userId) =>
-        await _db.Credentials.FirstOrDefaultAsync(x => x.UserId == userId);
-
     public async Task<List<UserChannelState>> GetUserChannelStatesAsync(long userId) =>
         await _db.UserChannelStates.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
 
@@ -354,6 +351,9 @@ public class UserService
 
         return friends;
     }
+
+    public async Task<UserPrivateInfo> GetUserPrivateInfoAsync(long userId) =>
+        (await _db.PrivateInfos.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId)).ToModel();
 
     public async Task<UserPrivateInfo> GetUserPrivateInfoAsync(string email, bool makelowercase = true)
     {
@@ -434,9 +434,11 @@ public class UserService
 
     /// <summary>
     /// Sets a new password from a recovery code. A reset usually means the old
-    /// password was lost or stolen, so every existing session is revoked.
-    /// Following the emailed link also proves control of the address, so an
-    /// unverified email becomes verified.
+    /// password was lost or stolen, so every existing session and fingerprint
+    /// device key is revoked. Following the emailed link also proves control of
+    /// the address, so an unverified email becomes verified. An account that
+    /// signed in only with Google or Discord gets its first password here, in
+    /// which case <paramref name="cred"/> is null.
     /// </summary>
     public async Task<TaskResult> RecoveryUserAsync(PasswordRecoveryRequest request, PasswordRecovery recovery, Valour.Database.Credential cred)
     {
@@ -448,15 +450,35 @@ public class UserService
         {
             _db.PasswordRecoveries.Remove(await _db.PasswordRecoveries.FindAsync(recovery.Code));
 
-            byte[] salt = PasswordManager.GenerateSalt();
-            byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
+            if (cred is null)
+            {
+                var email = await _db.PrivateInfos
+                    .Where(x => x.UserId == recovery.UserId)
+                    .Select(x => x.Email)
+                    .FirstOrDefaultAsync();
+                if (string.IsNullOrWhiteSpace(email))
+                    return new(false, "This account has no email address.");
 
-            cred.Salt = salt;
-            cred.Secret = hash;
-            cred.Iterations = PasswordManager.CurrentIterations;
+                cred = SignInMethodService.NewPasswordCredential(recovery.UserId, email, request.Password);
+                _db.Credentials.Add(cred);
+            }
+            else
+            {
+                byte[] salt = PasswordManager.GenerateSalt();
+                byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
 
-            _db.Credentials.Update(cred);
+                cred.Salt = salt;
+                cred.Secret = hash;
+                cred.Iterations = PasswordManager.CurrentIterations;
+
+                _db.Credentials.Update(cred);
+            }
+
             await _db.SaveChangesAsync();
+
+            await _db.Credentials
+                .Where(x => x.UserId == cred.UserId && x.CredentialType == CredentialType.DEVICE_KEY)
+                .ExecuteDeleteAsync();
 
             revokedTokenIds = await _db.AuthTokens
                 .Where(x => x.UserId == cred.UserId)

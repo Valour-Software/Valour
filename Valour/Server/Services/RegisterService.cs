@@ -2,6 +2,7 @@ using SendGrid;
 using Valour.Config.Configs;
 using Valour.Server.Database;
 using Valour.Server.Email;
+using Valour.Server.Services.ExternalAuth;
 using Valour.Server.Users;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -49,8 +50,20 @@ public class RegisterService
         _messageService = messageService;
     }
     
-    public async Task<TaskResult<User>> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null)
+    /// <summary>
+    /// Creates an account. With <paramref name="external"/>, the account signs
+    /// in with that Google or Discord account instead of a password, and uses
+    /// its email, which the provider has verified.
+    /// </summary>
+    public async Task<TaskResult<User>> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null,
+        ExternalIdentity external = null)
     {
+        if (external is not null)
+        {
+            request.Email = external.Email;
+            skipEmail = true;
+        }
+
         if (!request.IsNotTexasResident)
             return new(false, "New registrations are not available to legal residents of Texas. Visit valour.gg/texas to learn why.");
 
@@ -89,9 +102,12 @@ public class RegisterService
         if (!usernameValid.Success)
             return new(false, usernameValid.Message);
 
-        var passwordValid = UserUtils.TestPasswordComplexity(request.Password);
-        if (!passwordValid.Success)
-            return new(false, passwordValid.Message);
+        if (external is null)
+        {
+            var passwordValid = UserUtils.TestPasswordComplexity(request.Password);
+            if (!passwordValid.Success)
+                return new(false, passwordValid.Message);
+        }
 
         Valour.Database.Referral refer = null;
         if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
@@ -129,9 +145,6 @@ public class RegisterService
                 return new(false, EmailAlreadyRegisteredCode);
             }
         }
-
-        var salt = PasswordManager.GenerateSalt();
-        var hash = PasswordManager.GetHashForPassword(request.Password, salt);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
@@ -175,18 +188,17 @@ public class RegisterService
             
             _db.PrivateInfos.Add(userPrivateInfo.ToDatabase());
 
-            Valour.Database.Credential cred = new()
-            {
-                Id = IdManager.Generate(),
-                CredentialType = Valour.Database.CredentialType.PASSWORD,
-                Identifier = request.Email,
-                Salt = salt,
-                Secret = hash,
-                Iterations = PasswordManager.CurrentIterations,
-                UserId = user.Id
-            };
-
-            _db.Credentials.Add(cred);
+            _db.Credentials.Add(external is null
+                ? SignInMethodService.NewPasswordCredential(user.Id, request.Email, request.Password)
+                : new Valour.Database.Credential
+                {
+                    Id = IdManager.Generate(),
+                    UserId = user.Id,
+                    CredentialType = external.CredentialType,
+                    Identifier = external.ProviderUserId,
+                    DisplayName = external.Label,
+                    CreatedAt = DateTime.UtcNow,
+                });
 
             Valour.Database.UserProfile profile = new()
             {

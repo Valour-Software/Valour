@@ -1,0 +1,86 @@
+@inject ExternalSignInService ExternalSignIn
+
+@if (_providers is { Count: > 0 })
+{
+    <div class="external-sign-in">
+        @if (!string.IsNullOrEmpty(DividerText))
+        {
+            <div class="external-divider"><span>@DividerText</span></div>
+        }
+        <div class="external-buttons">
+            @foreach (var provider in _providers)
+            {
+                var name = ExternalSignInService.GetName(provider);
+                <button type="button"
+                        class="v-btn external-btn external-@provider"
+                        disabled="@(_busyProvider is not null)"
+                        @onclick="@(() => OnClickProvider(provider))">
+                    <i class="bi @ExternalSignInService.GetIcon(provider)" aria-hidden="true"></i>
+                    <span>@(_busyProvider == provider ? $"Waiting for {name}..." : $"{Verb} with {name}")</span>
+                </button>
+            }
+        </div>
+        @if (_busyProvider is not null)
+        {
+            <button type="button" class="external-cancel" @onclick="@OnClickCancel">Cancel</button>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>What finishing the provider sign-in should do.</summary>
+    [Parameter]
+    public ExternalAuthIntent Intent { get; set; } = ExternalAuthIntent.Login;
+
+    /// <summary>Button text before the provider name, as in "Continue with Google".</summary>
+    [Parameter]
+    public string Verb { get; set; } = "Continue";
+
+    /// <summary>Text on the line above the buttons. Empty hides the line.</summary>
+    [Parameter]
+    public string DividerText { get; set; } = "or";
+
+    /// <summary>Only these providers, when set.</summary>
+    [Parameter]
+    public IReadOnlyCollection<string> Only { get; set; }
+
+    [Parameter]
+    public EventCallback<ExternalSignInOutcome> OnOutcome { get; set; }
+
+    private List<string> _providers;
+    private string _busyProvider;
+    private CancellationTokenSource _cancel;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var available = await ExternalSignIn.GetProvidersAsync();
+        _providers = Only is null ? available : available.Where(Only.Contains).ToList();
+    }
+
+    private async Task OnClickProvider(string provider)
+    {
+        // RunAsync opens the web popup before it awaits anything, which
+        // browsers only allow while this click is being handled.
+        _cancel = new CancellationTokenSource();
+        var run = ExternalSignIn.RunAsync(provider, Intent, cancellationToken: _cancel.Token);
+
+        _busyProvider = provider;
+        StateHasChanged();
+
+        ExternalSignInOutcome outcome;
+        try
+        {
+            outcome = await run;
+        }
+        finally
+        {
+            _busyProvider = null;
+            _cancel.Dispose();
+            _cancel = null;
+        }
+
+        await OnOutcome.InvokeAsync(outcome);
+    }
+
+    private void OnClickCancel() => _cancel?.Cancel();
+}

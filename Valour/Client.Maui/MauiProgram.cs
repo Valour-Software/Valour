@@ -80,6 +80,14 @@ public static class MauiProgram
         // Native clients should talk directly to the API host.
         builder.Services.AddValourClientServices(ApiBaseAddress());
 
+        // Provider sign-in uses the system browser, not the app's web view.
+#if ANDROID
+        builder.Services.AddScoped<IExternalAuthLauncher, AndroidExternalAuthLauncher>();
+        builder.Services.AddSingleton<IDeviceKeyService, AndroidDeviceKeyService>();
+#elif WINDOWS
+        builder.Services.AddScoped<IExternalAuthLauncher, LoopbackExternalAuthLauncher>();
+#endif
+
         // Override the browser share service with the native OS share sheet
         builder.Services.AddSingleton<Valour.Client.Utility.IShareService, MauiShareService>();
 #if WINDOWS

@@ -122,6 +122,8 @@
         <PackageReference Include="Xamarin.GooglePlayServices.Base" Version="118.9.0" />
         <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.9.0" />
         <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.11.0.1" />
+        <!-- Fingerprint sign-in (AndroidDeviceKeyService) -->
+        <PackageReference Include="Xamarin.AndroidX.Biometric" Version="1.1.0.33" />
         <GoogleServicesJson Include="Platforms\Android\google-services.json" Condition="Exists('Platforms\Android\google-services.json')" />
 
         <!--

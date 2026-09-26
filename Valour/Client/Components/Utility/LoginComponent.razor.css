@@ -149,3 +149,12 @@
     color: var(--color-primary);
     text-decoration: underline;
 }
+
+.fingerprint-btn {
+    width: 100%;
+    min-height: 40px;
+}
+
+.fingerprint-btn i {
+    font-size: 1.2em;
+}

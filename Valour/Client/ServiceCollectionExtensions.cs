@@ -3,6 +3,7 @@ using Valour.Client.Categories;
 using Valour.Client.Components.Calls;
 using Valour.Client.Components.Sidebar.Directory;
 using Valour.Client.ContextMenu;
+using Valour.Client.Device;
 using Valour.Client.Sounds;
 using Valour.Client.Utility;
 using Valour.Sdk.Client;
@@ -39,6 +40,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<GlobalCallSessionService>();
         services.AddScoped<RealtimeKitDeviceService>();
         services.AddScoped<UploadService>();
+        // Native shells replace the web launcher with the system browser.
+        services.AddScoped<IExternalAuthLauncher, WebExternalAuthLauncher>();
+        services.AddScoped<ExternalSignInService>();
         services.AddSingleton<EncryptedInviteRedeemer>();
 
         // new services

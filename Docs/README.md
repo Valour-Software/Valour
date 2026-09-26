@@ -15,6 +15,7 @@ use placeholder values; use private local settings when running a server or test
 
 - [Reactive models and real-time updates](ReactiveModelSystem.md)
 - [End-to-end encryption](EndToEndEncryption.md)
+- [Sign-in methods](SignInMethods.md)
 - [API routing and authorization](../Valour/Docs/API_ROUTES.md)
 - [Roles and permissions](../Valour/Docs/ROLES.md)
 - [Channel activity notifications](ChannelActivityNotifications.md)

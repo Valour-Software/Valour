@@ -1,0 +1,55 @@
+.external-sign-in {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.external-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--font-alt-color, #ffffff99);
+    font-size: var(--font-size-sm);
+}
+
+.external-divider::before,
+.external-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--medium-tint, #ffffff22);
+}
+
+.external-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.external-btn {
+    width: 100%;
+    min-height: 40px;
+}
+
+.external-btn i {
+    font-size: 1.1em;
+}
+
+.external-google i {
+    color: #ea4335;
+}
+
+.external-discord i {
+    color: #5865f2;
+}
+
+.external-cancel {
+    align-self: center;
+    background: none;
+    border: none;
+    color: var(--font-alt-color, #ffffffaa);
+    font-size: var(--font-size-sm);
+    text-decoration: underline;
+    cursor: pointer;
+}

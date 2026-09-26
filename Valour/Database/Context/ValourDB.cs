@@ -387,6 +387,7 @@ public partial class ValourDb : DbContext, IDataProtectionKeyContext
         //base.OnModelCreating(modelBuilder);
         
         MessageReaction.SetupDbModel(modelBuilder);
+        Credential.SetupDbModel(modelBuilder);
         MessageAttachment.SetupDbModel(modelBuilder);
         MessageMention.SetupDbModel(modelBuilder);
         RealtimeKitMeeting.SetupDbModel(modelBuilder);

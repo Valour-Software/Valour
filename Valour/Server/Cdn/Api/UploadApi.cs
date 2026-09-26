@@ -66,24 +66,34 @@ public partial class UploadApi
     /// </summary>
     private static async Task<IResult> RejectIfOversizedAsync(IFormFile file)
     {
+        var problem = await CheckImageDimensionsAsync(file.OpenReadStream());
+        return problem is null ? null : Results.BadRequest(problem);
+    }
+
+    /// <summary>
+    /// Returns why an image is too large to decode safely, or null when it is
+    /// acceptable. Reads only the image header.
+    /// </summary>
+    private static async Task<string> CheckImageDimensionsAsync(Stream stream)
+    {
         ImageInfo info;
 
         try
         {
-            info = await Image.IdentifyAsync(file.OpenReadStream());
+            info = await Image.IdentifyAsync(stream);
         }
         catch
         {
-            return Results.BadRequest("Could not read image. Try a different format.");
+            return "Could not read image. Try a different format.";
         }
 
         var pixelsPerFrame = (long)info.Width * info.Height;
         if (pixelsPerFrame > MaxDecodedPixelsPerFrame)
-            return Results.BadRequest("Image dimensions are too large.");
+            return "Image dimensions are too large.";
 
         var frameCount = Math.Max(1, info.FrameMetadataCollection?.Count ?? 1);
         if (pixelsPerFrame * frameCount > MaxDecodedPixelsAllFrames)
-            return Results.BadRequest("Image has too many total pixels across its frames.");
+            return "Image has too many total pixels across its frames.";
 
         return null;
     }
@@ -277,45 +287,79 @@ public partial class UploadApi
         if (file is null)
             return Results.BadRequest("Please attach a file");
 
-        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
-            return Results.BadRequest("Unsupported file type");
+        using var source = new MemoryStream();
+        await file.CopyToAsync(source);
 
-        var oversized = await RejectIfOversizedAsync(file);
-        if (oversized is not null) return oversized;
+        var result = await SetUserAvatarAsync(authToken.UserId, source, file.FileName, file.ContentType,
+            valourDb, hubService, bucketService, mediaSafetyService);
 
-        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
-        if (scan.Rejection is not null) return scan.Rejection;
-        using var source = scan.Source;
+        if (result.Success)
+            return ValourResult.Ok(result.Data);
 
+        return result.Code switch
+        {
+            StatusCodes.Status403Forbidden => ValourResult.Forbid(result.Message),
+            StatusCodes.Status404NotFound => ValourResult.NotFound("User not found"),
+            StatusCodes.Status500InternalServerError => ValourResult.Problem(result.Message),
+            _ => Results.BadRequest(result.Message)
+        };
+    }
+
+    /// <summary>
+    /// Sets a user's avatar from image bytes: checks the size, runs the media
+    /// safety match, writes every avatar size, and notifies clients. Used by
+    /// avatar uploads and by importing a picture from a linked account.
+    /// Returns the public URL of the main avatar image.
+    /// </summary>
+    public static async Task<TaskResult<string>> SetUserAvatarAsync(
+        long userId,
+        MemoryStream source,
+        string fileName,
+        string contentType,
+        ValourDb valourDb,
+        CoreHubService hubService,
+        CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService)
+    {
+        if (!CdnUtils.ImageSharpSupported.Contains(contentType))
+            return new(false, "Unsupported file type", null, code: StatusCodes.Status400BadRequest);
+
+        source.Position = 0;
+        var tooLarge = await CheckImageDimensionsAsync(source);
+        if (tooLarge is not null)
+            return new(false, tooLarge, null, code: StatusCodes.Status400BadRequest);
+
+        source.Position = 0;
+        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(source, fileName, contentType);
+        if (safetyHashMatch.ShouldBlock)
+            return new(false, "Unable to upload this image.", null, code: StatusCodes.Status403Forbidden);
+
+        source.Position = 0;
         using var image = await Image.LoadAsync(
             new() { TargetSize = new(AvatarSizes[0].Width, AvatarSizes[0].Height) },
             source
         );
-        
+
         HandleExif(image);
-        
-        var result = await UploadPublicImageVariants(bucketService, image, "avatars", authToken.UserId.ToString(), AvatarSizes, 0, true, false);
+
+        var result = await UploadPublicImageVariants(bucketService, image, "avatars", userId.ToString(), AvatarSizes, 0, true, false);
         if (!result.Success)
-            return ValourResult.Problem(result.Message);
-        
-        var resultPath = result.Message;
+            return new(false, result.Message, null, code: StatusCodes.Status500InternalServerError);
 
-        var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + resultPath;
+        var fullPath = ValourHosts.PublicCdnBaseUrl + "/valour-public/" + result.Message;
 
-        var animated = result.Data;
-        
-        var user = await valourDb.Users.FindAsync(authToken.UserId);
+        var user = await valourDb.Users.FindAsync(userId);
         if (user is null)
-            return ValourResult.NotFound("User not found");
-        
+            return new(false, "User not found", null, code: StatusCodes.Status404NotFound);
+
         user.HasCustomAvatar = true;
-        user.HasAnimatedAvatar = animated;
+        user.HasAnimatedAvatar = result.Data;
         user.Version++;
-        
+
         await valourDb.SaveChangesAsync();
         await hubService.NotifyUserChange(user.ToModel());
-        
-        return ValourResult.Ok(fullPath);
+
+        return new(true, "Avatar set", fullPath);
     }
 
     [FileUploadOperation.FileContentType]

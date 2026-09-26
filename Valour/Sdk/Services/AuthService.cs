@@ -13,7 +13,7 @@ namespace Valour.Sdk.Services;
 /// <summary>
 /// Handles tokens and authentication
 /// </summary>
-public class AuthService : ServiceBase
+public partial class AuthService : ServiceBase
 {
     /// <summary>
     /// Run when the user logs in
@@ -78,15 +78,20 @@ public class AuthService : ServiceBase
     /// <summary>
     /// Gets the Token for the client
     /// </summary>
-    public async Task<AuthResult> FetchToken(string email, string password, string multiFactorCode = null)
-    {
-        TokenRequest request = new()
+    public Task<AuthResult> FetchToken(string email, string password, string multiFactorCode = null) =>
+        FetchToken(new TokenRequest
         {
             Email = email,
             Password = password,
             MultiFactorCode = multiFactorCode
-        };
+        });
 
+    /// <summary>
+    /// Signs in with any method the token route accepts, and keeps the new
+    /// token when sign-in completes.
+    /// </summary>
+    public async Task<AuthResult> FetchToken(TokenRequest request)
+    {
         try
         {
             using var httpContent = JsonContent.Create(request);
@@ -736,12 +741,13 @@ public class AuthService : ServiceBase
     /// Removes the account's authenticator. Requires the password and, once the
     /// authenticator has been verified, a current code from it.
     /// </summary>
-    public async Task<TaskResult> RemoveMfaAsync(string password, string mfaCode = null)
+    public async Task<TaskResult> RemoveMfaAsync(string password, string mfaCode = null, string reauthProof = null)
     {
         var request = new RemoveMfaRequest()
         {
             Password = password,
-            MultiFactorCode = mfaCode
+            MultiFactorCode = mfaCode,
+            ReauthProof = reauthProof
         };
         
         var result = await _client.PrimaryNode.PostAsyncWithResponse<RemoveMfaResponse>(

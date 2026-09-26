@@ -358,10 +358,47 @@ public class UserApi
         [FromBody] TokenRequest tokenRequest,
         HttpContext ctx,
         UserService userService,
-        MultiAuthService multiAuthService)
+        MultiAuthService multiAuthService,
+        SignInMethodService signInMethods,
+        ExternalAuthService externalAuth)
     {
         if (tokenRequest is null)
             return ValourResult.BadRequest("Include request in body.");
+
+        // Fingerprint sign-in. The key only signs after a fingerprint check on
+        // the device that holds it, which already proves two factors, so no
+        // authenticator code is asked for.
+        if (!string.IsNullOrWhiteSpace(tokenRequest.DeviceKeyId))
+        {
+            var signed = await signInMethods.VerifyDeviceSignatureAsync(
+                tokenRequest.DeviceKeyId, tokenRequest.DeviceChallengeId, tokenRequest.DeviceSignature);
+            if (!signed.Success)
+                return Results.Json(new ServerAuthResult { Success = false, Message = signed.Message });
+
+            var deviceUser = await userService.GetAsync(signed.Data.UserId);
+            var deviceSignIn = await FinishSignInAsync(ctx, deviceUser, false, null, userService, multiAuthService);
+            if (deviceSignIn.SignedIn)
+                await signInMethods.MarkUsedAsync(signed.Data.Id);
+            return deviceSignIn.Response;
+        }
+
+        // Google or Discord sign-in. The ticket stays valid until sign-in
+        // completes, so the client can send it again with an authenticator code.
+        if (!string.IsNullOrWhiteSpace(tokenRequest.ExternalTicket))
+        {
+            var ticket = await externalAuth.GetLoginTicketAsync(tokenRequest.ExternalTicket, tokenRequest.ExternalVerifier);
+            if (ticket is null)
+                return Results.Json(new ServerAuthResult { Success = false, Message = "This sign-in has expired. Try again." });
+
+            var externalUser = await userService.GetAsync(ticket.UserId);
+            var externalSignIn = await FinishSignInAsync(ctx, externalUser, true, tokenRequest.MultiFactorCode, userService, multiAuthService);
+            if (externalSignIn.SignedIn)
+            {
+                await externalAuth.RemoveLoginTicketAsync(tokenRequest.ExternalTicket);
+                await signInMethods.MarkUsedAsync(ticket.CredentialId);
+            }
+            return externalSignIn.Response;
+        }
 
         tokenRequest.Email = UserUtils.SanitizeEmail(tokenRequest.Email);
         if (string.IsNullOrWhiteSpace(tokenRequest.Email))
@@ -389,58 +426,89 @@ public class UserApi
         if (userPrivateInfo is null || userPrivateInfo.UserId != user.Id)
             return Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage });
 
+        var passwordSignIn = await FinishSignInAsync(ctx, user, true, tokenRequest.MultiFactorCode, userService, multiAuthService);
+        return passwordSignIn.Response;
+    }
+
+    /// <summary>
+    /// The checks every sign-in method shares once it has identified the
+    /// account: disabled accounts, email verification, the authenticator
+    /// code when <paramref name="requireMultiFactor"/> is set, then a new session.
+    /// </summary>
+    private static async Task<(IResult Response, bool SignedIn)> FinishSignInAsync(
+        HttpContext ctx,
+        User user,
+        bool requireMultiFactor,
+        string multiFactorCode,
+        UserService userService,
+        MultiAuthService multiAuthService)
+    {
+        if (user is null)
+            return (Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage }), false);
+
+        if (user.Disabled)
+            return (Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage, Disabled = true }), false);
+
+        var userPrivateInfo = await userService.GetUserPrivateInfoAsync(user.Id);
+        if (userPrivateInfo is null)
+            return (Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage }), false);
+
         if (!userPrivateInfo.Verified)
         {
-            return Results.Json(new ServerAuthResult
+            return (Results.Json(new ServerAuthResult
             {
                 Success = false,
                 Message = GenericAuthFailureMessage,
                 RequiresEmailVerification = true
-            });
+            }), false);
         }
 
-        var multiAuths = await multiAuthService.GetAppMultiAuthTypes(user.Id);
-        if (multiAuths.Count > 0)
+        if (requireMultiFactor)
         {
-            if (string.IsNullOrWhiteSpace(tokenRequest.MultiFactorCode))
+            var multiAuths = await multiAuthService.GetAppMultiAuthTypes(user.Id);
+            if (multiAuths.Count > 0)
             {
-                return Results.Json(new ServerAuthResult
+                if (string.IsNullOrWhiteSpace(multiFactorCode))
                 {
-                    Success = true,
-                    Token = null,
-                    Message = "Multi-factor authentication is required.",
-                    RequiresMultiAuth = true
-                });
-            }
+                    return (Results.Json(new ServerAuthResult
+                    {
+                        Success = true,
+                        Token = null,
+                        Message = "Multi-factor authentication is required.",
+                        RequiresMultiAuth = true
+                    }), false);
+                }
 
-            var mfaValid = await multiAuthService.VerifyAppMultiAuth(user.Id, tokenRequest.MultiFactorCode);
-            if (!mfaValid.Success)
-            {
-                if (mfaValid.Code == StatusCodes.Status429TooManyRequests)
-                    return Results.Text(mfaValid.Message, statusCode: StatusCodes.Status429TooManyRequests);
+                var mfaValid = await multiAuthService.VerifyAppMultiAuth(user.Id, multiFactorCode);
+                if (!mfaValid.Success)
+                {
+                    if (mfaValid.Code == StatusCodes.Status429TooManyRequests)
+                        return (Results.Text(mfaValid.Message, statusCode: StatusCodes.Status429TooManyRequests), false);
 
-                return ValourResult.Forbid(mfaValid.Message == "Invalid" ? "Invalid code." : mfaValid.Message);
+                    return (ValourResult.Forbid(mfaValid.Message == "Invalid" ? "Invalid code." : mfaValid.Message), false);
+                }
             }
         }
 
         var result = await userService.GetTokenAfterLoginAsync(ctx, user.Id);
         if (!result.Success)
-            return ValourResult.Problem(result.Message);
+            return (ValourResult.Problem(result.Message), false);
 
-        return Results.Json(new ServerAuthResult
+        return (Results.Json(new ServerAuthResult
         {
             Success = true,
             Token = result.Data,
             Message = "Succeeded",
             RequiresMultiAuth = false
-        });
+        }), true);
     }
 
     [RateLimit(RateLimitPolicies.Email)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/recovery")]
     public static async Task<IResult> RecoverPasswordRouteAsync(
         [FromBody] PasswordRecoveryRequest request,
-        UserService userService)
+        UserService userService,
+        SignInMethodService signInMethods)
     {
         if (request is null)
             return ValourResult.BadRequest("Include request in body.");
@@ -453,10 +521,8 @@ public class UserApi
         if (recovery is null)
             return ValourResult.NotFound<PasswordRecovery>();
 
-        // Old credentialsto set 
-        Valour.Database.Credential cred = await userService.GetCredentialAsync(recovery.UserId);
-        if (cred is null)
-            return ValourResult.BadRequest("No old credentials found. Do you log in via third party service (Like Google)?");
+        // Accounts that only use Google or Discord get their first password here.
+        var cred = await signInMethods.GetPasswordCredentialAsync(recovery.UserId);
 
         var result = await userService.RecoveryUserAsync(request, recovery, cred);
         if (!result.Success)
@@ -471,13 +537,19 @@ public class UserApi
         [FromBody] RegisterUserRequest request, 
         UserService userService,
         RegisterService registerService,
+        ExternalAuthService externalAuth,
+        IServiceProvider services,
         HttpContext ctx)
     {
         if (request is null)
             return ValourResult.BadRequest("Include request in body");
 
         // Prevent trailing whitespace
-        request.Username = request.Username.Trim();
+        request.Username = request.Username?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(request.ExternalTicket))
+            return await RegisterWithExternalAccountAsync(request, userService, registerService, externalAuth, services, ctx);
+
         // Sanitize email: trim, lowercase, strip invisible chars
         request.Email = UserUtils.SanitizeEmail(request.Email);
         if (string.IsNullOrEmpty(request.Email))
@@ -492,6 +564,58 @@ public class UserApi
         }
 
         return ValourResult.Ok(GenericRegistrationResponse);
+    }
+
+    /// <summary>
+    /// Creates an account that signs in with Google or Discord. The provider
+    /// has verified the email, so the new account is signed in right away.
+    /// </summary>
+    private static async Task<IResult> RegisterWithExternalAccountAsync(
+        RegisterUserRequest request,
+        UserService userService,
+        RegisterService registerService,
+        ExternalAuthService externalAuth,
+        IServiceProvider services,
+        HttpContext ctx)
+    {
+        var ticket = await externalAuth.GetRegistrationTicketAsync(request.ExternalTicket, request.ExternalVerifier);
+        if (ticket is null)
+            return ValourResult.BadRequest("This sign-up has expired. Start again.");
+
+        var registered = await registerService.RegisterUserAsync(request, ctx, external: ticket.Identity);
+        if (!registered.Success)
+        {
+            if (registered.Message == RegisterService.EmailAlreadyRegisteredCode)
+                return ValourResult.BadRequest(
+                    $"An account with this email already exists. Sign in with your password, then link {externalAuth.GetDisplayName(ticket.Identity.CredentialType)} in Settings, under Connections.");
+            return ValourResult.BadRequest(registered.Message);
+        }
+
+        await externalAuth.RemoveRegistrationTicketAsync(request.ExternalTicket);
+        var user = registered.Data;
+
+        // The picture is a convenience, so a failed import doesn't fail sign-up.
+        if (request.UseProviderAvatar && ticket.Identity.AvatarUrl is not null)
+        {
+            var (avatar, contentType) = await externalAuth.DownloadAvatarAsync(ticket.Identity.AvatarUrl);
+            if (avatar is not null)
+            {
+                await using (avatar)
+                {
+                    await Valour.Server.Cdn.Api.UploadApi.SetUserAvatarAsync(user.Id, avatar, "avatar", contentType,
+                        services.GetRequiredService<ValourDb>(),
+                        services.GetRequiredService<CoreHubService>(),
+                        services.GetRequiredService<Valour.Server.Cdn.CdnBucketService>(),
+                        services.GetRequiredService<Valour.Server.Cdn.MediaSafetyService>());
+                }
+            }
+        }
+
+        var token = await userService.GetTokenAfterLoginAsync(ctx, user.Id);
+        if (!token.Success)
+            return ValourResult.Problem(token.Message);
+
+        return Results.Json(new ServerAuthResult { Success = true, Token = token.Data, Message = "Succeeded" });
     }
 
     [RateLimit(RateLimitPolicies.Email)]
@@ -646,23 +770,20 @@ public class UserApi
         HttpContext ctx,
         UserService userService,
         TokenService tokenService,
-        MultiAuthService multiAuthService)
+        MultiAuthService multiAuthService,
+        SignInMethodService signInMethods)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Password))
-            return ValourResult.BadRequest("Password is required.");
+        if (request is null)
+            return ValourResult.BadRequest("Include request in body.");
 
         var userId = await userService.GetCurrentUserIdAsync();
         var currentToken = await tokenService.GetCurrentTokenAsync();
         if (currentToken is null)
             return ValourResult.InvalidToken();
 
-        var currentCredential = await userService.GetCredentialAsync(userId);
-        if (currentCredential is null || string.IsNullOrWhiteSpace(currentCredential.Identifier))
-            return ValourResult.Forbid("Password authentication is not available for this account.");
-
-        var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.Password);
-        if (!validResult.Success)
-            return ValourResult.Forbid(validResult.Message);
+        var confirmed = await signInMethods.ConfirmIdentityAsync(userId, request.Password, request.ReauthProof);
+        if (!confirmed.Success)
+            return ValourResult.Forbid(confirmed.Message);
 
         // A stolen session plus the password must not be enough to strip the
         // second factor. An authenticator that was never finished setting up
@@ -737,7 +858,8 @@ public class UserApi
         [FromBody] ChangePasswordRequest request,
         HttpContext ctx,
         UserService userService,
-        TokenService tokenService)
+        TokenService tokenService,
+        SignInMethodService signInMethods)
     {
         if (request is null)
             return ValourResult.BadRequest("Include request in body.");
@@ -746,9 +868,9 @@ public class UserApi
         var currentToken = await tokenService.GetCurrentTokenAsync();
 
         // Ensure current password is valid
-        var currentCredential = await userService.GetCredentialAsync(userId);
+        var currentCredential = await signInMethods.GetPasswordCredentialAsync(userId);
         if (currentCredential is null || string.IsNullOrWhiteSpace(currentCredential.Identifier))
-            return ValourResult.Forbid("Password authentication is not available for this account.");
+            return ValourResult.Forbid("This account has no password. Add one in Settings, under Connections.");
 
         var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.OldPassword);
         if (!validResult.Success)
@@ -776,7 +898,8 @@ public class UserApi
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> ChangeUsernameRouteAsync(
         [FromBody] ChangeUsernameRequest request,
-        UserService userService)
+        UserService userService,
+        SignInMethodService signInMethods)
     {
         if (request is null)
         {
@@ -784,14 +907,9 @@ public class UserApi
         }
         
         var userId = await userService.GetCurrentUserIdAsync();
-        var credential = await userService.GetCredentialAsync(userId);
-        if (credential is null || string.IsNullOrWhiteSpace(credential.Identifier))
-            return ValourResult.Forbid("Password authentication is not available for this account.");
-
-        // Verify password
-        var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, credential.Identifier, request.Password);
-        if (!validResult.Success)
-            return ValourResult.Forbid(validResult.Message);
+        var confirmed = await signInMethods.ConfirmIdentityAsync(userId, request.Password, request.ReauthProof);
+        if (!confirmed.Success)
+            return ValourResult.Forbid(confirmed.Message);
 
         var result = await userService.ChangeUsernameAsync(userId, request.NewUsername);
         if (!result.Success)
@@ -803,24 +921,19 @@ public class UserApi
     [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/users/me/hardDelete")]
     [UserRequired(UserPermissionsEnum.FullControl)]
-    public static async Task<IResult> DeleteAccountAsync(UserService userService, [FromBody] DeleteAccountModel model)
+    public static async Task<IResult> DeleteAccountAsync(
+        UserService userService,
+        SignInMethodService signInMethods,
+        [FromBody] DeleteAccountModel model)
     {
         if (model is null)
             return ValourResult.BadRequest("Include request in body.");
 
-        // Get user id
+        // Password, or a recent confirmation for accounts without one
         var user = await userService.GetCurrentUserAsync();
-        var cred = await userService.GetCredentialAsync(user.Id);
-        if (cred is null || string.IsNullOrWhiteSpace(cred.Identifier))
-            return ValourResult.Forbid("Password authentication is not available for this account.");
-
-        // Check password
-        var passResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, cred.Identifier, model.Password);
-
-        if (!passResult.Success)
-        {
-            return ValourResult.Forbid(passResult.Message);
-        }
+        var confirmed = await signInMethods.ConfirmIdentityAsync(user.Id, model.Password, model.ReauthProof);
+        if (!confirmed.Success)
+            return ValourResult.Forbid(confirmed.Message);
         
         // Validated
         var result =  await userService.HardDelete(user);

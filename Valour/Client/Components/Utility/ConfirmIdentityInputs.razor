@@ -1,0 +1,148 @@
+@inject AuthService AuthService
+@inject ValourClient Client
+@inject ExternalSignInService ExternalSignIn
+@inject IServiceProvider Services
+@using Microsoft.Extensions.DependencyInjection
+
+@* Ways to confirm it's you before a sensitive change. The password is bound
+   by the parent; the other ways report a proof through OnConfirmed. *@
+
+@if (_methods is null)
+{
+    <div class="loading-indicator"></div>
+}
+else
+{
+    <div class="confirm-identity">
+        @if (HasPassword)
+        {
+            <PasswordInput placeholder="Enter Password..." id="password-input" autocomplete="current-password"
+                           Value="@Password" ValueChanged="@OnPasswordChanged" />
+        }
+
+        @if (_fingerprintAvailable)
+        {
+            <button type="button" class="v-btn confirm-fingerprint" disabled="@_busy" @onclick="@OnClickFingerprint">
+                <i class="bi bi-fingerprint" aria-hidden="true"></i>
+                <span>Confirm with fingerprint</span>
+            </button>
+        }
+
+        @if (_linkedProviders.Count > 0)
+        {
+            <ExternalSignInButtons Intent="ExternalAuthIntent.Reauth"
+                                   Verb="Confirm"
+                                   Only="@_linkedProviders"
+                                   DividerText="@(HasPassword || _fingerprintAvailable ? "or" : "")"
+                                   OnOutcome="@OnProviderOutcome" />
+        }
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <span class="text-danger">@_error</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Password { get; set; }
+
+    [Parameter]
+    public EventCallback<string> PasswordChanged { get; set; }
+
+    /// <summary>Raised when the person confirms with a linked account or fingerprint.</summary>
+    [Parameter]
+    public EventCallback<IdentityConfirmation> OnConfirmed { get; set; }
+
+    /// <summary>Raised once it is known whether the account has a password.</summary>
+    [Parameter]
+    public EventCallback<bool> OnLoaded { get; set; }
+
+    public bool HasPassword { get; private set; }
+
+    private List<SignInMethodInfo> _methods;
+    private List<string> _linkedProviders = new();
+    private bool _fingerprintAvailable;
+    private IDeviceKeyService _deviceKeys;
+    private bool _busy;
+    private string _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _methods = await AuthService.GetSignInMethodsAsync();
+        HasPassword = _methods.Any(x => x.Type == "Password");
+        _linkedProviders = _methods
+            .Select(x => ExternalSignInService.FromCredentialType(x.Type))
+            .Where(x => x is not null)
+            .ToList();
+
+        _deviceKeys = Services.GetService<IDeviceKeyService>();
+        _fingerprintAvailable = _deviceKeys is { IsAvailable: true, Saved: { } saved } &&
+                                saved.UserId == Client.Me?.Id &&
+                                _methods.Any(x => x.DeviceKeyId == saved.KeyId);
+
+        await OnLoaded.InvokeAsync(HasPassword);
+    }
+
+    private Task OnPasswordChanged(string value)
+    {
+        Password = value;
+        return PasswordChanged.InvokeAsync(value);
+    }
+
+    private async Task OnProviderOutcome(ExternalSignInOutcome outcome)
+    {
+        _error = null;
+        if (outcome.Result != ExternalAuthResults.Reauth)
+        {
+            _error = outcome.Message;
+            return;
+        }
+
+        ExternalSignIn.RememberReauthProof(outcome.Ticket);
+        await OnConfirmed.InvokeAsync(new IdentityConfirmation(null, outcome.Ticket));
+    }
+
+    private async Task OnClickFingerprint()
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            var saved = _deviceKeys.Saved;
+            var challenge = await AuthService.GetDeviceChallengeAsync(saved.KeyId);
+            if (!challenge.Success)
+            {
+                _error = challenge.Message;
+                return;
+            }
+
+            var signature = await _deviceKeys.SignAsync(challenge.Data.Challenge, "Confirm it's you");
+            if (signature is null)
+                return;
+
+            var proof = await AuthService.ReauthAsync(new ReauthRequest
+            {
+                DeviceKeyId = saved.KeyId,
+                DeviceChallengeId = challenge.Data.ChallengeId,
+                DeviceSignature = signature,
+            });
+
+            if (!proof.Success)
+            {
+                _error = proof.Message;
+                return;
+            }
+
+            ExternalSignIn.RememberReauthProof(proof.Data.Proof);
+            await OnConfirmed.InvokeAsync(new IdentityConfirmation(null, proof.Data.Proof));
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+}

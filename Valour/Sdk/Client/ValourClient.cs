@@ -392,9 +392,9 @@ public class ValourClient
         return await PrimaryNode.PostAsync("api/users/me/password", model);
     }
 
-    public async Task<TaskResult> UpdateMyUsernameAsync(string newUsername, string password)
+    public async Task<TaskResult> UpdateMyUsernameAsync(string newUsername, string password, string reauthProof = null)
     {
-        var model = new ChangeUsernameRequest() { NewUsername = newUsername, Password = password };
+        var model = new ChangeUsernameRequest() { NewUsername = newUsername, Password = password, ReauthProof = reauthProof };
         var result =  await PrimaryNode.PostAsync("api/users/me/username", model);
 
         if (result.Success)
@@ -418,9 +418,13 @@ public class ValourClient
     }
     
     // Sad zone
-    public async Task<TaskResult> DeleteMyAccountAsync(string password)
+    /// <summary>
+    /// Deletes the signed-in account. Confirm with the password, or with a
+    /// proof from confirming identity another way.
+    /// </summary>
+    public async Task<TaskResult> DeleteMyAccountAsync(string password, string reauthProof = null)
     {
-        var model = new DeleteAccountModel() { Password = password };
+        var model = new DeleteAccountModel() { Password = password, ReauthProof = reauthProof };
         return await PrimaryNode.PostAsync("api/users/me/hardDelete", model);
     }
 }
