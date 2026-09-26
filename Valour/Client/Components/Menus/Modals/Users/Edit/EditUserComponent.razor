@@ -32,6 +32,7 @@
     private RenderFragment NotificationsContent => @<EditUserNotificationsComponent />;
     private RenderFragment DevicePreferencesContent => @<EditDevicePreferencesComponent />;
     private RenderFragment SecurityContent => @<EditSessionsComponent />;
+    private RenderFragment ConnectionsContent => @<EditConnectionsComponent />;
     private RenderFragment EncryptionContent => @<EditEncryptionComponent />;
     private RenderFragment FederationContent => @<EditFederationMigrationComponent />;
     private RenderFragment LogOutContent => @<div></div>;
@@ -152,6 +153,13 @@
                         Icon = "shield-lock-fill",
                         Description = "MFA, password, and active sessions",
                         Content = SecurityContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Connections",
+                        Icon = "link-45deg",
+                        Description = "Sign in with Google, Discord, or your fingerprint",
+                        Content = ConnectionsContent
                     },
                     new MainMenu.MenuItem()
                     {

@@ -44,7 +44,8 @@ public static class MauiProgram
             options.Dsn = "https://4d0d4a0caff54b8d5a0dc1a6e2a17486@o4510867505479680.ingest.us.sentry.io/4510887562444800";
 #endif
             options.MinimumEventLevel = LogLevel.Error;
-            options.SetBeforeSend((e, _) => SentryGate.IsEnabled ? e : null);
+            options.SetBeforeSend((e, _) =>
+                SentryGate.IsEnabled && (e.Exception is null || !SentryGate.IsKnownFrameworkNoise(e.Exception)) ? e : null);
         });
 
         builder.Services.AddMauiBlazorWebView();
@@ -80,6 +81,14 @@ public static class MauiProgram
 #endif
         // Native clients should talk directly to the API host.
         builder.Services.AddValourClientServices(ApiBaseAddress());
+
+        // Provider sign-in uses the system browser, not the app's web view.
+#if ANDROID
+        builder.Services.AddScoped<IExternalAuthLauncher, AndroidExternalAuthLauncher>();
+        builder.Services.AddSingleton<IDeviceKeyService, AndroidDeviceKeyService>();
+#elif WINDOWS
+        builder.Services.AddScoped<IExternalAuthLauncher, LoopbackExternalAuthLauncher>();
+#endif
 
         // Override the browser share service with the native OS share sheet
         builder.Services.AddSingleton<Valour.Client.Utility.IShareService, MauiShareService>();

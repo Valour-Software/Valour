@@ -43,6 +43,9 @@ public class MessageProof
             e.Property(x => x.CreatedAt).HasColumnName("created_at")
                 .HasConversion(x => x, x => new DateTime(x.Ticks, DateTimeKind.Utc));
             e.HasIndex(x => x.CreatedAt);
+
+            // Proofs are removed by channel when channels are deleted.
+            e.HasIndex(x => x.ChannelId);
         });
     }
 }

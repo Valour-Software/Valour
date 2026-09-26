@@ -12,7 +12,12 @@ export function ensureLoaded() {
         script.addEventListener("load", resolve, { once: true });
         script.addEventListener(
             "error",
-            () => reject(new Error("Failed to load Lottie player")),
+            () => {
+                // Forget the failed attempt so the next loader can try again.
+                loadPromise = null;
+                script.remove();
+                reject(new Error("Failed to load Lottie player"));
+            },
             { once: true });
 
         if (!existing) {

@@ -5,6 +5,7 @@ using Valour.Database.Context;
 using Valour.Sdk.Client;
 using Valour.Server;
 using Valour.Server.Utilities;
+using Valour.Server.Workers;
 using Valour.Shared.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -13,6 +14,37 @@ namespace Valour.Tests;
 public class TestShared
 {
     public static RegisterUserRequest PrimaryTestUserDetails { get; set; }
+}
+
+/// <summary>
+/// The test server shared by every fixture in a run. Starting a server applies
+/// migrations, connects to Redis, and starts every hosted worker, which takes
+/// several seconds, so fixtures share one instead of starting their own. Each
+/// fixture still registers its own user. The server starts the first time a
+/// fixture asks for it, so runs that use no fixture never reach the database.
+/// </summary>
+public static class SharedTestServer
+{
+    private static readonly Lazy<WebApplicationFactory<Program>> LazyFactory = new(Create);
+
+    public static WebApplicationFactory<Program> Factory => LazyFactory.Value;
+
+    private static WebApplicationFactory<Program> Create()
+    {
+        var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("https_port", "5001");
+                builder.UseSetting(RateLimitPolicies.DisabledSetting, "true");
+                // Tests wait for staged messages to be stored, so flush often
+                builder.UseSetting(PlanetMessageWorker.FlushIntervalSetting, "00:00:00.200");
+                builder.UseUrls("http://localhost:5000");
+            });
+
+        // Start the server here so concurrent first uses start it only once
+        _ = factory.Server;
+        return factory;
+    }
 }
 
 public class LoginTestFixture : IAsyncLifetime
@@ -26,14 +58,7 @@ public class LoginTestFixture : IAsyncLifetime
     
     public async ValueTask InitializeAsync()
     {
-        // Create the underlying WebApplicationFactory
-        Factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.UseSetting("https_port", "5001");
-                builder.UseSetting(RateLimitPolicies.DisabledSetting, "true");
-                builder.UseUrls("http://localhost:5000");
-            });
+        Factory = SharedTestServer.Factory;
 
         // Create a client from the factory
         var httpClient = Factory.CreateClient();
@@ -149,7 +174,7 @@ public class LoginTestFixture : IAsyncLifetime
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         /*
         // Hard delete the test user
@@ -169,8 +194,8 @@ public class LoginTestFixture : IAsyncLifetime
         }
         */
 
-        // Clean up if needed
-        await Factory.DisposeAsync();
+        // The shared server outlives this fixture and stops when the run ends
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -183,14 +208,7 @@ public class TeardownTestFixture : IAsyncLifetime
     
     public async ValueTask InitializeAsync()
     {
-        // Create the underlying WebApplicationFactory
-        Factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.UseSetting("https_port", "5001");
-                builder.UseSetting(RateLimitPolicies.DisabledSetting, "true");
-                builder.UseUrls("http://localhost:5000");
-            });
+        Factory = SharedTestServer.Factory;
         
         // Log in the user
         await TestLoginUser();
@@ -225,9 +243,9 @@ public class TeardownTestFixture : IAsyncLifetime
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        // Clean up if needed
-        await Factory.DisposeAsync();
+        // The shared server outlives this fixture and stops when the run ends
+        return ValueTask.CompletedTask;
     }
 }

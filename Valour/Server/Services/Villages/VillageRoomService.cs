@@ -25,16 +25,19 @@ public sealed class VillageRoomService
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<VillageRoomService> _logger;
+    private readonly CancellationToken _stopping;
     private readonly ConcurrentDictionary<RoomKey, RoomState> _rooms = new();
     private readonly ConcurrentDictionary<RoomKey, SemaphoreSlim> _roomLocks = new();
     private readonly ConcurrentDictionary<long, Lazy<Task>> _planetInitializers = new();
 
     public VillageRoomService(
         IServiceScopeFactory scopeFactory,
-        ILogger<VillageRoomService> logger)
+        ILogger<VillageRoomService> logger,
+        IHostApplicationLifetime lifetime)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _stopping = lifetime.ApplicationStopping;
     }
 
     public async Task<TaskResult<VillageEphemeralRoom>> AcquireAsync(
@@ -288,7 +291,16 @@ public sealed class VillageRoomService
 
     private async Task DeleteIfStillEmptyAfterGraceAsync(RoomKey key, long generation)
     {
-        await Task.Delay(EmptyRoomGracePeriod);
+        // The service provider is disposed once the host stops, so a pending
+        // cleanup cannot run. The next start removes the leftover channel.
+        try
+        {
+            await Task.Delay(EmptyRoomGracePeriod, _stopping);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
 
         if (!_roomLocks.TryGetValue(key, out var gate))
             return;
@@ -372,6 +384,12 @@ public sealed class VillageRoomService
                     channelId,
                     result.Message);
             }
+        }
+        catch (ObjectDisposedException) when (_stopping.IsCancellationRequested)
+        {
+            _logger.LogInformation(
+                "Village room channel {ChannelId} will be removed on the next start because the server is stopping.",
+                channelId);
         }
         catch (Exception ex)
         {

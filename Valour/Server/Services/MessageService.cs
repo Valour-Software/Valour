@@ -92,7 +92,7 @@ public class MessageService
     /// Returns the message with the given id (no reply!)
     /// </summary>
     public async Task<Message?> GetMessageNoReplyAsync(long id) =>
-        (await _db.Messages
+        (await _db.Messages.AsSplitQuery()
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -169,6 +169,7 @@ public class MessageService
         {
             replyTo = (await _db.Messages
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Include(x => x.Attachments)
                 .Include(x => x.Mentions)
                 .FirstOrDefaultAsync(x => x.Id == message.ReplyToId)).ToModel();
@@ -459,7 +460,7 @@ public class MessageService
         Message oldModel = null;
         Message stagedOld = null;
         
-        var dbOld = await _db.Messages
+        var dbOld = await _db.Messages.AsSplitQuery()
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)
@@ -700,7 +701,7 @@ public class MessageService
     {
         Message message = null;
         
-        var dbMessage = await _db.Messages
+        var dbMessage = await _db.Messages.AsSplitQuery()
             .Include(x => x.Reactions)
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
@@ -809,10 +810,12 @@ public class MessageService
         if (count > 64)
             count = 64;
         
-        // For default latest messages, use the cache
-        if (index == long.MaxValue && count == 50)
+        // The cache holds the newest messages in ascending order, so any latest
+        // page that fits in it is its tail.
+        if (index == long.MaxValue && count <= ChatCacheService.CacheCapacity)
         {
-            return await _chatCacheService.GetLastMessagesAsync(channelId);
+            var cached = await _chatCacheService.GetLastMessagesAsync(channelId);
+            return cached.Count > count ? cached.GetRange(cached.Count - count, count) : cached;
         }
 
         var messages = await _db.Messages.AsSplitQuery()

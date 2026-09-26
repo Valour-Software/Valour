@@ -2,8 +2,13 @@
 @page "/Register/I/{InviteCode}"
 @page "/Register/from/{Source}"
 @page "/Register/referral/{Referral}"
+@page "/Register/External"
 
 @inject AuthService AuthService
+@inject ExternalSignInService ExternalSignIn
+@inject ValourClient Client
+@inject IAppStorage LocalStorage
+@inject NavigationManager NavManager
 
 <PageTitle>Join Valour</PageTitle>
 
@@ -50,20 +55,48 @@
                             <input id="register-username" class="form-control" autocomplete="username" placeholder="How Valournauts will know you" @bind-value="@_username" />
                         </div>
 
-                        <div class="register-field">
-                            <label for="register-email">Email</label>
-                            <input id="register-email" type="email" class="form-control" autocomplete="email" placeholder="you@example.com" @bind-value="@_email" />
-                        </div>
+                        @if (_external is null)
+                        {
+                            <div class="register-field">
+                                <label for="register-email">Email</label>
+                                <input id="register-email" type="email" class="form-control" autocomplete="email" placeholder="you@example.com" @bind-value="@_email" />
+                            </div>
 
-                        <div class="register-field">
-                            <label for="register-password">Password</label>
-                            <PasswordInput id="register-password" autocomplete="new-password" placeholder="Choose a strong password" @bind-Value="@_password" />
-                        </div>
+                            <div class="register-field">
+                                <label for="register-password">Password</label>
+                                <PasswordInput id="register-password" autocomplete="new-password" placeholder="Choose a strong password" @bind-Value="@_password" />
+                            </div>
 
-                        <div class="register-field">
-                            <label for="register-password-confirm">Confirm password</label>
-                            <PasswordInput id="register-password-confirm" autocomplete="new-password" placeholder="Type it once more" @bind-Value="@_passwordConf" />
-                        </div>
+                            <div class="register-field">
+                                <label for="register-password-confirm">Confirm password</label>
+                                <PasswordInput id="register-password-confirm" autocomplete="new-password" placeholder="Type it once more" @bind-Value="@_passwordConf" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="register-field register-linked">
+                                @if (_externalAvatar is not null)
+                                {
+                                    <img src="@_externalAvatar" alt="Your @ExternalSignInService.GetName(_external.Provider) picture" />
+                                }
+                                else
+                                {
+                                    <i class="bi @ExternalSignInService.GetIcon(_external.Provider)" aria-hidden="true"></i>
+                                }
+                                <div class="register-linked-text">
+                                    <strong>Signing up with @ExternalSignInService.GetName(_external.Provider)</strong>
+                                    <span>@_externalInfo?.Email</span>
+                                    @if (_externalAvatar is not null)
+                                    {
+                                        <label class="register-linked-avatar">
+                                            <input type="checkbox" @bind="@_useProviderAvatar" />
+                                            Use this picture as my avatar
+                                        </label>
+                                    }
+                                </div>
+                                <button type="button" class="register-linked-cancel" @onclick="@OnClickUseEmail">Use email instead</button>
+                            </div>
+                        }
 
                         <div class="register-field">
                             <label for="register-birthday">Birthday</label>
@@ -92,9 +125,10 @@
                         <div class="register-agreement">
                             <input id="valour-terms" type="checkbox" @bind-value="@_termsAgreed" />
                             <label for="valour-terms">
-                                I agree to Valour's <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md" target="_blank" rel="noopener noreferrer">Terms of Service</a>,
-                                <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md" target="_blank" rel="noopener noreferrer">Platform Rules</a>, and
-                                <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_ECO_RULES.md" target="_blank" rel="noopener noreferrer">Eco Rules</a>.
+                                I agree to Valour's <a href="https://valour.gg/terms/" target="_blank" rel="noopener noreferrer">Terms of Service</a>,
+                                <a href="https://valour.gg/rules/" target="_blank" rel="noopener noreferrer">Platform Rules</a>, and
+                                <a href="https://valour.gg/rules/economy/" target="_blank" rel="noopener noreferrer">Eco Rules</a>.
+                                I have read the <a href="https://valour.gg/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
                             </label>
                         </div>
                     </div>
@@ -118,6 +152,11 @@
                             <i class="bi bi-arrow-right"></i>
                         }
                     </button>
+
+                    @if (_external is null)
+                    {
+                        <ExternalSignInButtons Verb="Sign up" OnOutcome="@OnExternalOutcome" />
+                    }
                 </form>
             }
             else
@@ -161,12 +200,133 @@
     private string _errorSpan;
     private string _dobSpan;
 
-    protected override void OnInitialized()
+    // A Google or Discord sign-up in progress
+    private ExternalSignInOutcome _external;
+    private ExternalRegistrationInfo _externalInfo;
+    private string _externalAvatar;
+    private bool _useProviderAvatar = true;
+
+    protected override async Task OnInitializedAsync()
     {
         if (!string.IsNullOrWhiteSpace(Referral))
         {
             _referral = Referral;
             _lockReferral = true;
+        }
+
+        // The login page hands over a provider sign-up.
+        if (ExternalSignIn.PendingRegistration is { } pending)
+        {
+            ExternalSignIn.PendingRegistration = null;
+            await StartExternalRegistrationAsync(pending);
+        }
+    }
+
+    private async Task OnExternalOutcome(ExternalSignInOutcome outcome)
+    {
+        _errorSpan = "";
+
+        switch (outcome.Result)
+        {
+            case ExternalAuthResults.Register:
+                await StartExternalRegistrationAsync(outcome);
+                return;
+            case ExternalAuthResults.Login:
+                // The account already exists, so this is a sign-in.
+                var tokenResult = await AuthService.FetchTokenWithExternalTicket(outcome.Ticket, outcome.Verifier);
+                if (tokenResult.RequiresMultiAuth)
+                {
+                    ExternalSignIn.PendingLogin = outcome;
+                    NavManager.NavigateTo("/");
+                    return;
+                }
+
+                if (tokenResult.Success && tokenResult.Token is not null)
+                {
+                    await FinishSignInAsync(tokenResult.Token.Id);
+                    return;
+                }
+
+                _errorSpan = tokenResult.Message;
+                return;
+            default:
+                _errorSpan = outcome.Message;
+                return;
+        }
+    }
+
+    private async Task StartExternalRegistrationAsync(ExternalSignInOutcome outcome)
+    {
+        var info = await AuthService.GetExternalRegistrationAsync(outcome.Ticket, outcome.Verifier);
+        if (!info.Success)
+        {
+            _errorSpan = info.Message;
+            return;
+        }
+
+        _external = outcome;
+        _externalInfo = info.Data;
+        _username ??= info.Data.SuggestedUsername;
+        _externalAvatar = null;
+
+        if (info.Data.HasAvatar)
+        {
+            var avatar = await AuthService.GetExternalRegistrationAvatarAsync(outcome.Ticket, outcome.Verifier);
+            if (avatar is not null)
+                _externalAvatar = "data:image/png;base64," + Convert.ToBase64String(avatar);
+        }
+    }
+
+    private void OnClickUseEmail()
+    {
+        _external = null;
+        _externalInfo = null;
+        _externalAvatar = null;
+    }
+
+    private async Task FinishSignInAsync(string token)
+    {
+        var result = await Client.InitializeUser(token);
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+            return;
+        }
+
+        await LocalStorage.SetStringAsync("token", AuthService.Token);
+        NavManager.NavigateTo("/", true);
+    }
+
+    private async Task SubmitExternalAsync(DateTime dateOfBirth)
+    {
+        _submitting = true;
+
+        try
+        {
+            var result = await AuthService.RegisterWithExternalAccountAsync(new RegisterUserRequest
+            {
+                Username = _username,
+                Referrer = _referral,
+                DateOfBirth = dateOfBirth,
+                InviteCode = InviteCode,
+                Source = Source,
+                IsNotTexasResident = _isNotTexasResident,
+                ExternalTicket = _external.Ticket,
+                ExternalVerifier = _external.Verifier,
+                UseProviderAvatar = _useProviderAvatar && _externalAvatar is not null,
+            });
+
+            if (!result.Success || result.Token is null)
+            {
+                _errorSpan = result.Message;
+                return;
+            }
+
+            await FinishSignInAsync(result.Token.Id);
+        }
+        finally
+        {
+            _submitting = false;
         }
     }
 
@@ -190,22 +350,25 @@
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_email))
+        if (_external is null)
         {
-            _errorSpan = "Please enter your email.";
-            return;
-        }
+            if (string.IsNullOrWhiteSpace(_email))
+            {
+                _errorSpan = "Please enter your email.";
+                return;
+            }
 
-        if (string.IsNullOrWhiteSpace(_password))
-        {
-            _errorSpan = "Please enter a password.";
-            return;
-        }
+            if (string.IsNullOrWhiteSpace(_password))
+            {
+                _errorSpan = "Please enter a password.";
+                return;
+            }
 
-        if (!string.Equals(_password, _passwordConf))
-        {
-            _errorSpan = "Those passwords do not match.";
-            return;
+            if (!string.Equals(_password, _passwordConf))
+            {
+                _errorSpan = "Those passwords do not match.";
+                return;
+            }
         }
 
         if (string.IsNullOrWhiteSpace(_username))
@@ -239,6 +402,12 @@
             case > 120:
                 _dobSpan = $"If you are actually {age} years old, please contact us at support@valour.gg and we will buy you a cake.";
                 return;
+        }
+
+        if (_external is not null)
+        {
+            await SubmitExternalAsync(dateOfBirth);
+            return;
         }
 
         _regRequest = new RegisterUserRequest()

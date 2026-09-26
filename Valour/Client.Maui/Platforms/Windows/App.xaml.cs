@@ -372,6 +372,13 @@ public partial class App : MauiWinUIApplication
     {
         UnhandledException += (_, e) =>
         {
+            if (IsTitleBarVisibilityFault(e.Exception))
+            {
+                // Keep the app alive; the title bar simply keeps its current state.
+                e.Handled = true;
+                return;
+            }
+
             try
             {
                 if (e.Exception is not null)
@@ -439,6 +446,21 @@ public partial class App : MauiWinUIApplication
                 // Best-effort reporting only.
             }
         };
+    }
+
+    /// <summary>
+    /// MAUI's window message hook calls AppWindow.GetFromWindowId to toggle title
+    /// bar visibility. When the native window is no longer valid (for example
+    /// while it is being destroyed), WinRT rejects the window ID with E_INVALIDARG
+    /// and the exception escapes the window procedure. Only the title bar toggle
+    /// is lost, so this specific fault is safe to ignore.
+    /// </summary>
+    private static bool IsTitleBarVisibilityFault(Exception? exception)
+    {
+        const int E_INVALIDARG = unchecked((int)0x80070057);
+
+        return exception is ArgumentException { HResult: E_INVALIDARG } &&
+               exception.StackTrace?.Contains("NavigationRootManager.SetTitleBarVisibility", StringComparison.Ordinal) == true;
     }
 
     private static bool ShouldCaptureUnobservedException(Exception exception)

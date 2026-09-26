@@ -24,6 +24,7 @@ using Valour.Server.Api.Dynamic;
 using Valour.Server.Hubs;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Valour.Server.Services.ExternalAuth;
 namespace Valour.Server;
 
 public partial class Program
@@ -99,7 +100,11 @@ public partial class Program
 #endif
 
 
-        if (builder.Configuration.GetSection("Sentry").Exists())
+        // Development hosts (local servers and the integration test host) often
+        // load a copy of the production settings, so they never report to Sentry.
+        var sentryEnabled = builder.Configuration.GetSection("Sentry").Exists() &&
+                            !builder.Environment.IsDevelopment();
+        if (sentryEnabled)
         {
             builder.WebHost.UseSentry(x =>
             {
@@ -193,7 +198,7 @@ public partial class Program
 
         app.UseWebSockets();
 
-        if (app.Configuration.GetSection("Sentry").Exists())
+        if (app.Configuration.GetSection("Sentry").Exists() && !app.Environment.IsDevelopment())
         {
             app.UseSentryTracing();
         }
@@ -674,6 +679,12 @@ public partial class Program
         services.AddScoped<ReportService>();
         services.AddHttpContextAccessor();
         services.AddScoped<RegisterService>();
+        services.AddSingleton<AuthTicketStore>();
+        services.AddScoped<SignInMethodService>();
+        services.AddScoped<ExternalAuthService>();
+        // Each sign-in provider is one class; ExternalAuthService receives them all.
+        services.AddScoped<ExternalAuthProvider, GoogleAuthProvider>();
+        services.AddScoped<ExternalAuthProvider, DiscordAuthProvider>();
         services.AddScoped<SubscriptionService>();
         services.AddScoped<ThemeService>();
         services.AddScoped<StaffService>();
@@ -691,6 +702,14 @@ public partial class Program
         services.AddScoped<ITagService,TagService>();
 
         services.AddHttpClient<DiscordImportService>();
+
+        // Calls to sign-in providers' token and account endpoints, which are
+        // fixed addresses rather than user-supplied URLs.
+        services.AddHttpClient(ExternalAuthProvider.HttpClientName, client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Valour/1.0");
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
 
         services.AddSingleton<NodeLifecycleService>();
         services.AddSingleton<DashboardEventService>();

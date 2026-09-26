@@ -34,6 +34,7 @@ public static class ConfigLoader
         config.GetSection("Bootstrap").Get<BootstrapConfig>();
         config.GetSection("Federation").Get<FederationConfig>();
         config.GetSection("E2ee").Get<E2eeConfig>();
+        config.GetSection("ExternalAuth").Get<ExternalAuthConfig>();
 
         // Override with Kubernetes node details
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
@@ -79,6 +80,11 @@ public static class ConfigLoader
         if (E2eeConfig.Current is null)
         {
             new E2eeConfig();
+        }
+
+        if (ExternalAuthConfig.Current is null)
+        {
+            new ExternalAuthConfig();
         }
 
         // Ensure every config singleton exists even when its section is absent

@@ -1392,6 +1392,7 @@ public class ChannelService
             .ThenInclude(x => x.Children.OrderBy(y => y.RawPosition)) // Layer 3
             .ThenInclude(x => x.Children.OrderBy(y => y.RawPosition)) // Layer 4
             .OrderBy(x => x.RawPosition)
+            .AsSingleQuery() // One nested chain, so one row per leaf and no cartesian product
             .ToListAsync();
 
         // Build a lookup for the channels

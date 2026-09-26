@@ -20,4 +20,16 @@ public class RegisterUserRequest
     /// A one-time registration attestation. This value is not persisted.
     /// </summary>
     public bool IsNotTexasResident { get; set; }
+
+    /// <summary>
+    /// Set when signing up with Google or Discord instead of a password. The
+    /// email comes from the linked account, so Email and Password are ignored.
+    /// </summary>
+    public string ExternalTicket { get; set; }
+    public string ExternalVerifier { get; set; }
+
+    /// <summary>
+    /// Use the linked account's profile picture as the new account's avatar.
+    /// </summary>
+    public bool UseProviderAvatar { get; set; }
 }

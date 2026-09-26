@@ -7,6 +7,7 @@
 @inject IServiceProvider Services
 @inject AppBannerService Banners
 @inject Valour.Sdk.E2ee.IE2eeKeyStore E2eeKeyStore
+@implements IDisposable
 
 <BrowserUtils OnReady="@ReadyAsync" />
 
@@ -59,6 +60,8 @@ else
     private bool _isWebHost;
     private Task _instanceManifestTask = Task.CompletedTask;
     private DotNetObjectReference<ValourApp> _updateCallbackReference;
+
+    private bool _disposed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -423,7 +426,37 @@ else
 
     public void Log(string prefix, string msg, string color)
     {
-        _ = JsRuntime.InvokeVoidAsync("Log", $"[{prefix}] {msg}", color);
+        if (_disposed)
+            return;
+
+        _ = LogToConsoleAsync($"[{prefix}] {msg}", color);
+    }
+
+    private async Task LogToConsoleAsync(string text, string color)
+    {
+        // Logging must never throw. The WebView can go away between the
+        // disposed check and the call, and nobody awaits this task.
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("Log", text, color);
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+        catch (ObjectDisposedException) { }
+        catch (TaskCanceledException) { }
+    }
+
+    // Native hosts can mount more than one ValourApp over the lifetime of the
+    // process (pop-out windows, Android renderer recovery), all sharing the
+    // same singleton services. Unhook from them so a torn-down WebView is not
+    // called again.
+    public void Dispose()
+    {
+        _disposed = true;
+        Logger.RemoveColorLogger(Log);
+        Client.AuthService.LoggedOut -= OnTokenInvalidatedAsync;
+        Client.PlatformBannerChanged -= OnPlatformBannerChangedAsync;
+        _updateCallbackReference?.Dispose();
     }
 
     /* TODO: Fix push subscriptions

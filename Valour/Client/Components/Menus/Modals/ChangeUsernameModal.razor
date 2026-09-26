@@ -8,8 +8,8 @@
             <div class="form-group">
                 <label class="m-2">New Username</label>
                 <input id="new-username-input" type="text" autocomplete="off" class="form-control" @bind-value="@_newUsername"/>
-                <label class="m-2">Password</label>
-                <PasswordInput id="password-input" autocomplete="current-password" @bind-Value="@_password"/>
+                <label class="m-2">Confirm it's you</label>
+                <ConfirmIdentityInputs @bind-Password="@_password" OnLoaded="@OnIdentityLoaded" OnConfirmed="@OnConfirmedWithProof" />
             </div>
         }
         else
@@ -23,7 +23,7 @@
         <div class="basic-modal-buttons">
             <button @onclick="@OnCancel" class="v-btn">Cancel</button>
             
-            @if (_canChangeUsername)
+            @if (_canChangeUsername && _hasPassword)
             {
                 <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
             }
@@ -47,11 +47,19 @@
         Close();
     }
 
-    private async Task OnConfirm()
+    private bool _hasPassword = true;
+
+    private void OnIdentityLoaded(bool hasPassword) => _hasPassword = hasPassword;
+
+    private Task OnConfirm() => ChangeAsync(_password, null);
+
+    private Task OnConfirmedWithProof(IdentityConfirmation confirmation) => ChangeAsync(null, confirmation.ReauthProof);
+
+    private async Task ChangeAsync(string password, string reauthProof)
     {
         var toastData = new ProgressToastData<TaskResult>()
         {
-            ProgressTask = Client.UpdateMyUsernameAsync(_newUsername, _password),
+            ProgressTask = Client.UpdateMyUsernameAsync(_newUsername, password, reauthProof),
             Title = "Changing Username",
             Message = "Updating...",
             SuccessMessage = "Username updated!",

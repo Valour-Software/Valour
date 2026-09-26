@@ -318,7 +318,7 @@ else
         MessageDecryptionState.NeedsNewerVersion => _message.DecryptionError ?? "Update Valour to see this message.",
         MessageDecryptionState.WaitingForKey when ParamData?.ChatComponent?.AwaitingEncryptionAdmission == true =>
             "An admin needs to let you in to this private planet before you can read this.",
-        MessageDecryptionState.WaitingForKey => _message.DecryptionError ?? "Waiting for the key from another member.",
+        MessageDecryptionState.WaitingForKey => _message.DecryptionError ?? "Waiting for e2ee keys from another member...",
         _ => "Encrypted message."
     };
 

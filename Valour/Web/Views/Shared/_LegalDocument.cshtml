@@ -1,0 +1,20 @@
+@model RenderedLegalDocument
+@{
+    var current = Model.Document.Path;
+}
+
+<div class="container legal-page">
+    <div class="legal-layout">
+        <partial name="_LegalNav" model="current" />
+
+        <article class="legal-document">
+            @Html.Raw(Model.Html)
+
+            <p class="legal-source">
+                This page is generated from
+                <a href="https://github.com/Valour-Software/Valour/blob/main/@Model.Document.FileName">@Model.Document.FileName</a>
+                in the Valour repository, where you can review its full change history.
+            </p>
+        </article>
+    </div>
+</div>

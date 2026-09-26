@@ -1,4 +1,5 @@
 using Npgsql;
+using NpgsqlTypes;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -99,6 +100,25 @@ public class UnreadService
         return await UpsertReadState(channelId, userId, planetId, memberId, updateTime, onlyMoveForward: false);
     }
 
+    private const string ReadStateUpsertSql = """
+        INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
+        SELECT @channel_id, @user_id, @last_viewed_time, @planet_id, @member_id
+        WHERE EXISTS (SELECT 1 FROM users WHERE id = @user_id FOR KEY SHARE)
+          AND EXISTS (SELECT 1 FROM channels WHERE id = @channel_id FOR KEY SHARE)
+          AND (@planet_id IS NULL OR EXISTS (SELECT 1 FROM planets WHERE id = @planet_id FOR KEY SHARE))
+          AND (@member_id IS NULL OR EXISTS (SELECT 1 FROM planet_members WHERE id = @member_id FOR KEY SHARE))
+        ON CONFLICT (user_id, channel_id) DO UPDATE
+        SET
+            planet_id = EXCLUDED.planet_id,
+            member_id = EXCLUDED.member_id,
+        """;
+
+    private const string MoveReadStateForwardSql = ReadStateUpsertSql +
+        " last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time)";
+
+    private const string SetReadStateSql = ReadStateUpsertSql +
+        " last_viewed_time = EXCLUDED.last_viewed_time";
+
     private async Task<TaskResult<UserChannelState>> UpsertReadState(
         long channelId,
         long userId,
@@ -113,41 +133,32 @@ public class UnreadService
 
         var effectiveUpdateTime = DateTime.SpecifyKind(updateTime ?? DateTime.UtcNow, DateTimeKind.Utc);
 
+        // Atomic upsert, so concurrent requests for the same (user_id, channel_id) row
+        // cannot race. The user, channel, planet, or membership can be deleted after the
+        // request was authorized, for example while the user's account is being deleted.
+        // The row is only written when all of them still exist. FOR KEY SHARE waits for a
+        // concurrent delete to finish and skips the row if it committed, so the insert
+        // never reaches a foreign key violation.
+        var sql = onlyMoveForward ? MoveReadStateForwardSql : SetReadStateSql;
+
+        int written;
         try
         {
-            // Atomic upsert to avoid race conditions when multiple requests update the same
-            // (user_id, channel_id) row concurrently.
-            if (onlyMoveForward)
-            {
-                await _db.Database.ExecuteSqlInterpolatedAsync($@"
-                    INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
-                    VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
-                    ON CONFLICT (user_id, channel_id) DO UPDATE
-                    SET
-                        last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time),
-                        planet_id = EXCLUDED.planet_id,
-                        member_id = EXCLUDED.member_id
-                ");
-            }
-            else
-            {
-                await _db.Database.ExecuteSqlInterpolatedAsync($@"
-                    INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
-                    VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
-                    ON CONFLICT (user_id, channel_id) DO UPDATE
-                    SET
-                        last_viewed_time = EXCLUDED.last_viewed_time,
-                        planet_id = EXCLUDED.planet_id,
-                        member_id = EXCLUDED.member_id
-                ");
-            }
+            written = await _db.Database.ExecuteSqlRawAsync(sql,
+                new NpgsqlParameter<long>("channel_id", channelId),
+                new NpgsqlParameter<long>("user_id", userId),
+                new NpgsqlParameter<DateTime>("last_viewed_time", effectiveUpdateTime),
+                new NpgsqlParameter("planet_id", NpgsqlDbType.Bigint) { Value = (object)planetId ?? DBNull.Value },
+                new NpgsqlParameter("member_id", NpgsqlDbType.Bigint) { Value = (object)memberId ?? DBNull.Value });
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation &&
                                            ex.TableName == "user_channel_states")
         {
-            // The user, channel, or membership can be deleted after request authorization.
-            return TaskResult<UserChannelState>.FromFailure("The user, channel, or membership no longer exists.");
+            written = 0;
         }
+
+        if (written == 0)
+            return TaskResult<UserChannelState>.FromFailure("The user, channel, or membership no longer exists.");
 
         // Viewing a channel clears any coalesced activity notification for it
         // and resets its activity cooldown (not on explicit mark-unread)

@@ -161,7 +161,8 @@ reply draft when they receive the deletion.
 ## Staged planet messages
 
 `PlanetMessageWorker` holds accepted planet messages in memory until a database
-flush. If a batch fails, it clears the failed entity tracking state and retries
+flush. Flushes run every 20 seconds by default; the `MessageWorker:FlushInterval`
+setting (a TimeSpan such as `00:00:05`) changes that interval. If a batch fails, it clears the failed entity tracking state and retries
 each message independently. Only confirmed saves leave staging. Individual
 failures remain staged for another attempt, so one invalid message cannot discard
 other accepted messages. Existing database IDs are recognized when retrying after

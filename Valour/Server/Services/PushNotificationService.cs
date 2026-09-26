@@ -274,14 +274,33 @@ public class PushNotificationService
         }
         catch (PushServiceClientException ex)
         {
-            if (ex.StatusCode == HttpStatusCode.Gone)
+            var provider = new Uri(sub.Endpoint).Host;
+            switch (ClassifyWebPushFailure(ex.StatusCode, ex.Body))
             {
-                _logger.LogInformation("Subscription {Endpoint} is no longer valid", sub.Endpoint);
-                unsubscribes.Add(sub.Endpoint);
-            }
-            else
-            {
-                _logger.LogError(ex, "Failed to send notification to {Endpoint}", sub.Endpoint);
+                case WebPushFailure.SubscriptionGone:
+                    _logger.LogInformation("Subscription {Endpoint} is no longer valid", sub.Endpoint);
+                    unsubscribes.Add(sub.Endpoint);
+                    break;
+                case WebPushFailure.SubscriptionRejected:
+                    // The provider refuses this subscription for good. Providers return
+                    // 403 when a subscription was created with a different application
+                    // server key (Apple reports it as BadJwtToken), so it can never be
+                    // delivered to. The device subscribes again the next time the app
+                    // opens. If every subscription of one provider lands here, check
+                    // the VAPID settings instead.
+                    _logger.LogWarning(
+                        "Removing push subscription rejected by {Provider} ({StatusCode}): {Reason}",
+                        provider, (int)ex.StatusCode, ex.Body);
+                    unsubscribes.Add(sub.Endpoint);
+                    break;
+                case WebPushFailure.Transient:
+                    _logger.LogWarning("Web Push provider {Provider} failed ({StatusCode}): {Reason}",
+                        provider, (int)ex.StatusCode, ex.Body);
+                    break;
+                default:
+                    _logger.LogError(ex, "Failed to send notification to {Provider} ({StatusCode}): {Reason}",
+                        provider, (int)ex.StatusCode, ex.Body);
+                    break;
             }
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
@@ -292,6 +311,49 @@ public class PushNotificationService
         {
             _logger.LogWarning(ex, "Web Push transport failed for provider {Provider}", new Uri(sub.Endpoint).Host);
         }
+    }
+
+    public enum WebPushFailure
+    {
+        /// <summary>The subscription expired or was removed by the browser.</summary>
+        SubscriptionGone,
+        /// <summary>The provider permanently refuses messages for this subscription.</summary>
+        SubscriptionRejected,
+        /// <summary>The provider had a temporary problem; later messages may succeed.</summary>
+        Transient,
+        /// <summary>The request itself was wrong, which points to a server bug.</summary>
+        Unexpected
+    }
+
+    /// <summary>
+    /// Sorts a Web Push provider error response. 404 and 410 mean the
+    /// subscription no longer exists. 403 means the provider rejects the
+    /// application server's VAPID credentials for this subscription. FCM
+    /// answers some broken subscriptions with a 500 that it marks as permanent
+    /// ("do not retry"); those are dropped as well.
+    /// </summary>
+    internal static WebPushFailure ClassifyWebPushFailure(HttpStatusCode status, string? body)
+    {
+        switch (status)
+        {
+            case HttpStatusCode.NotFound:
+            case HttpStatusCode.Gone:
+                return WebPushFailure.SubscriptionGone;
+            case HttpStatusCode.Forbidden:
+                return WebPushFailure.SubscriptionRejected;
+            case HttpStatusCode.RequestTimeout:
+            case HttpStatusCode.TooManyRequests:
+                return WebPushFailure.Transient;
+        }
+
+        if ((int)status >= 500)
+        {
+            return body?.Contains("do not retry", StringComparison.OrdinalIgnoreCase) == true
+                ? WebPushFailure.SubscriptionRejected
+                : WebPushFailure.Transient;
+        }
+
+        return WebPushFailure.Unexpected;
     }
 
     private async Task SendFcmNotificationAsync(
@@ -314,10 +376,21 @@ public class PushNotificationService
             await FirebaseAdmin.Messaging.FirebaseMessaging.DefaultInstance.SendAsync(message);
             _logger.LogDebug("Sent FCM notification to {Endpoint}", sub.Endpoint);
         }
-        catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex) when (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
+        catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex) when (ex.MessagingErrorCode is
+                   FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered or
+                   FirebaseAdmin.Messaging.MessagingErrorCode.SenderIdMismatch)
         {
-            _logger.LogInformation("FCM token {Endpoint} is no longer valid", sub.Endpoint);
+            // Unregistered tokens were removed from the device. A sender id
+            // mismatch means the token belongs to another Firebase project.
+            _logger.LogInformation("FCM token {Endpoint} is no longer valid ({Error})", sub.Endpoint, ex.MessagingErrorCode);
             unsubscribes.Add(sub.Endpoint);
+        }
+        catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex) when (ex.MessagingErrorCode is
+                   FirebaseAdmin.Messaging.MessagingErrorCode.Unavailable or
+                   FirebaseAdmin.Messaging.MessagingErrorCode.Internal or
+                   FirebaseAdmin.Messaging.MessagingErrorCode.QuotaExceeded)
+        {
+            _logger.LogWarning("FCM failed temporarily ({Error}): {Message}", ex.MessagingErrorCode, ex.Message);
         }
         catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
         {

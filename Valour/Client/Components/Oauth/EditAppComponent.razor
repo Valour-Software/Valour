@@ -127,7 +127,7 @@
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        var file = e.File;
+        var file = e.FileCount > 0 ? e.File : null;
 
         if (file == null)
         {

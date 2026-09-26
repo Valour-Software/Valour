@@ -1,3 +1,4 @@
+using Valour.Web.Legal;
 using Valour.Web.StaticExport;
 
 if (StaticExportOptions.IsExportRequested(args))
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<RazorViewRenderer>();
 builder.Services.AddSingleton<StaticSiteExporter>();
+builder.Services.AddSingleton<LegalDocumentLibrary>();
 //builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Any, 5000));
 
 var app = builder.Build();

@@ -120,6 +120,7 @@
     private const int MessagePageSize = 64;
     private const int TrimThreshold = 360;
     private const int TargetMessages = 120;
+    private static readonly TimeSpan SealedIndexDelay = TimeSpan.FromSeconds(5);
     private bool _isCaughtUp = true;
     private bool _loadingForward = false;
     private bool _loadingBackward = false;
@@ -720,9 +721,14 @@
 
         foreach (var message in lastMessages)
         {
+            // System, error, and departed-member messages have no member.
             var member = await message.FetchAuthorMemberAsync();
-            if (!chatters.Contains(member))
-                chatters.Add(member);
+            if (member is null || chatters.Contains(member))
+                continue;
+
+            chatters.Add(member);
+            if (chatters.Count >= count)
+                break;
         }
 
         return chatters;
@@ -884,13 +890,16 @@
 
         // Opening an encrypted channel is a good moment to share its key with
         // members who asked while this device was offline, and to index
-        // history the server sealed, in the background.
+        // history the server sealed, in the background. Indexing decrypts
+        // hundreds of messages, so it waits until the channel has finished
+        // opening rather than competing with it for the browser's thread.
         if (Channel.IsEncrypted && Client.E2eeService.Status == E2eeStatus.Ready)
         {
             var channel = Channel;
             _ = Task.Run(async () =>
             {
                 await Client.E2eeService.ServeChannelAsync(channel);
+                await Task.Delay(SealedIndexDelay);
                 await Client.E2eeService.IndexSealedHistoryAsync(channel);
             });
         }

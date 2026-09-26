@@ -508,8 +508,8 @@ public class PlanetMemberService
             .FirstOrDefaultAsync(x => x.Id == member.Id);
 
         if (old is null)
-            return new TaskResult<PlanetMember>(false, "Member not found.");
-        
+            return TaskResult<PlanetMember>.FromFailure("Member not found.", 404);
+
         if (old.PlanetId != member.PlanetId)
             return new TaskResult<PlanetMember>(false, "Cannot change planet of member.");
         
@@ -531,6 +531,11 @@ public class PlanetMemberService
             old.Nickname = member.Nickname;
             _db.PlanetMembers.Update(old);
             await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The member left or was removed after it was loaded
+            return TaskResult<PlanetMember>.FromFailure("Member not found.", 404);
         }
         catch (Exception e)
         {

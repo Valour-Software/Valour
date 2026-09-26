@@ -185,6 +185,7 @@ public class UserAttachmentService
 
         var persistedMessages = await _db.Messages
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.ReplyToMessage)
                 .ThenInclude(x => x.Attachments)
             .Include(x => x.ReplyToMessage)

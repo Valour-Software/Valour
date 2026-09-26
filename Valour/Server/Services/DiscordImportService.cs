@@ -207,7 +207,25 @@ public class DiscordImportService
     internal static string ToChannelName(string name, string fallback)
     {
         name = string.IsNullOrWhiteSpace(name) ? fallback : name.Trim();
-        return name.Length > MaxChannelNameLength ? name[..MaxChannelNameLength] : name;
+        return CutToLength(name, MaxChannelNameLength);
+    }
+
+    // Match the planet name limit and the planet_members.nickname column
+    private const int MaxPlanetNameLength = 32;
+    private const int MaxNicknameLength = 32;
+
+    /// <summary>
+    /// Cuts text to at most <paramref name="maxLength"/> UTF-16 characters
+    /// without splitting a surrogate pair, which would leave text that cannot
+    /// be encoded. Emoji, common in Discord names, are surrogate pairs.
+    /// </summary>
+    internal static string CutToLength(string text, int maxLength)
+    {
+        if (text.Length <= maxLength)
+            return text;
+
+        var length = char.IsHighSurrogate(text[maxLength - 1]) ? maxLength - 1 : maxLength;
+        return text[..length];
     }
 
     /// <summary>
@@ -240,8 +258,7 @@ public class DiscordImportService
         var planetName = !string.IsNullOrWhiteSpace(nameOverride) ? nameOverride.Trim() : guildName?.Trim();
         if (string.IsNullOrWhiteSpace(planetName))
             planetName = "Imported Planet";
-        if (planetName.Length > 32)
-            planetName = planetName[..32];
+        planetName = CutToLength(planetName, MaxPlanetNameLength);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
@@ -520,7 +537,7 @@ public class DiscordImportService
             {
                 Planet = planet,
                 Id = IdManager.Generate(),
-                Nickname = user.Name,
+                Nickname = CutToLength(user.Name ?? string.Empty, MaxNicknameLength),
                 UserId = user.Id,
                 RoleMembership = new PlanetRoleMembership(0x01) // default role flag
             };

@@ -194,7 +194,7 @@ public class AutomodService
         }
         catch (Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError(e, "Automod change failed: {Message}", e.Message);
             return new(false, e.Message);
         }
 
@@ -231,7 +231,7 @@ public class AutomodService
         catch (Exception e)
         {
             await tran.RollbackAsync();
-            _logger.LogError(e.Message);
+            _logger.LogError(e, "Automod change failed: {Message}", e.Message);
             return new(false, e.Message);
         }
 
@@ -267,7 +267,7 @@ public class AutomodService
         }
         catch (Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError(e, "Automod change failed: {Message}", e.Message);
             return new(false, e.Message);
         }
 
@@ -305,7 +305,7 @@ public class AutomodService
         }
         catch (Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError(e, "Automod change failed: {Message}", e.Message);
             return new(false, e.Message);
         }
 
@@ -336,7 +336,7 @@ public class AutomodService
         }
         catch (Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError(e, "Automod change failed: {Message}", e.Message);
             return new(false, e.Message);
         }
 
@@ -369,7 +369,7 @@ public class AutomodService
         }
         catch (Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError(e, "Automod change failed: {Message}", e.Message);
             return new(false, e.Message);
         }
 
@@ -393,7 +393,7 @@ public class AutomodService
         }
         catch (Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError(e, "Automod change failed: {Message}", e.Message);
             return new(false, e.Message);
         }
 

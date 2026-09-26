@@ -42,6 +42,11 @@ public class UserOnlineWorker : BackgroundService
                 var onlineService = scope.ServiceProvider.GetRequiredService<UserOnlineService>();
                 await onlineService.UpdateOnlineStatesBatchAsync(updates, stoppingToken);
             }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // The host is stopping; the batch is dropped with the process.
+                break;
+            }
             catch (Exception ex)
             {
                 _onlineQueue.Requeue(updates);

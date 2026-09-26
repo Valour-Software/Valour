@@ -883,18 +883,21 @@ public class E2eeChannelKeyService
     /// in one transaction. Advancing only when the channel still holds the
     /// expected value stops two members from publishing the same generation.
     /// Returns false, with nothing saved, when another request got there first.
+    /// The channel is advanced before the rows are inserted: a concurrent
+    /// request waits on the channel row and then finds it already advanced,
+    /// so it never attempts a duplicate insert.
     /// </summary>
     private async Task<bool> SaveAndAdvanceGenerationAsync(long channelId, int expected, int next)
     {
         await using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            await _db.SaveChangesAsync();
             var updated = await _db.Channels
                 .Where(x => x.Id == channelId && x.EncryptionGeneration == expected)
                 .ExecuteUpdateAsync(x => x.SetProperty(c => c.EncryptionGeneration, next));
             if (updated == 1)
             {
+                await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
             }
@@ -1073,6 +1076,7 @@ public class E2eeChannelKeyService
             .Where(x => x.ChannelId == channel.Id && x.Generation <= lastLinked)
             .Select(x => x.UserId)
             .Distinct()
+            .OrderBy(id => id)
             .Take(E2eeLimits.MaxBoxesPerRequest)
             .ToListAsync();
         var holders = (await GetOpenableGenerationsAsync(channel.Id, holderIds))
@@ -1374,34 +1378,19 @@ public class E2eeChannelKeyService
             return TaskResult.FromFailure("Set up encryption first.");
 
         // Members were just asked; asking again would only repeat the same
-        // notifications to everyone watching the channel.
+        // notifications to everyone watching the channel. The request is
+        // recorded in one statement, so when a device sends several at once
+        // only the one that records it notifies anyone.
         var now = DateTime.UtcNow;
-        var existing = await _db.E2eeKeyRequests.FindAsync(channel.Id, userId);
-        if (existing is not null && now - existing.RequestedAt < KeyRequestRepeatInterval)
+        var recorded = await _db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO e2ee_key_requests (channel_id, user_id, requested_at)
+            VALUES ({channel.Id}, {userId}, {now})
+            ON CONFLICT (channel_id, user_id) DO UPDATE
+            SET requested_at = EXCLUDED.requested_at
+            WHERE e2ee_key_requests.requested_at <= {now - KeyRequestRepeatInterval}
+            """);
+        if (recorded == 0)
             return TaskResult.SuccessResult;
-
-        if (existing is null)
-        {
-            _db.E2eeKeyRequests.Add(new Valour.Database.E2eeKeyRequest
-            {
-                ChannelId = channel.Id,
-                UserId = userId,
-                RequestedAt = now
-            });
-        }
-        else
-        {
-            existing.RequestedAt = now;
-        }
-
-        try
-        {
-            await _db.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            _db.ChangeTracker.Clear();
-        }
 
         var evt = new E2eeRealtimeEvent
         {

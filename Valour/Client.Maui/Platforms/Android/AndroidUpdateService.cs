@@ -2,12 +2,18 @@ using Android.Content;
 using Valour.Client.Device;
 using Valour.Shared;
 
+// Google Play does not allow apps it distributes to update themselves, so
+// Play Store builds (ValourPlayStore=true) do not request the install permission.
+#if !VALOUR_PLAY_STORE
+[assembly: Android.App.UsesPermission(Android.Manifest.Permission.RequestInstallPackages)]
+#endif
+
 namespace Valour.Client.Maui;
 
 /// <summary>
 /// Self-update support for sideloaded (GitHub release) Android builds.
 /// Downloads the release APK and hands it to the system package installer.
-/// Suppressed entirely for Play Store installs, which Play keeps updated.
+/// Suppressed entirely for Play Store builds and installs, which Play keeps updated.
 /// </summary>
 public class AndroidUpdateService : INativeUpdateService
 {
@@ -18,9 +24,15 @@ public class AndroidUpdateService : INativeUpdateService
 
     public string CurrentVersion => AppInfo.Current.VersionString;
 
+#if VALOUR_PLAY_STORE
+    public bool UpdatesManagedExternally => true;
+
+    public bool CanSelfUpdate => false;
+#else
     public bool UpdatesManagedExternally => IsPlayInstalled();
 
     public bool CanSelfUpdate => !IsPlayInstalled();
+#endif
 
     public string UpdateActionLabel => "Update";
 

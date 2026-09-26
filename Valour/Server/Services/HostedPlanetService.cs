@@ -266,7 +266,8 @@ public class HostedPlanetService
         var rootChannels = new List<Valour.Database.Channel>();
         foreach (var group in channels.GroupBy(c => c.ParentId))
         {
-            var ordered = group.OrderBy(c => c.RawPosition).ToList();
+            // Channels sharing a position keep a stable order across restarts
+            var ordered = group.OrderBy(c => c.RawPosition).ThenBy(c => c.Id).ToList();
             if (group.Key is null)
                 rootChannels = ordered;
             else

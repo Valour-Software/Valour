@@ -29,15 +29,27 @@ namespace Valour.Server.Workers
         /// </summary>
         private static Task _queueTask;
         
+        /// <summary>
+        /// How often staged messages are saved to the database, as a TimeSpan.
+        /// Defaults to 20 seconds. The test host lowers it so tests that wait
+        /// for a message to be stored do not wait for a full production flush.
+        /// </summary>
+        public const string FlushIntervalSetting = "MessageWorker:FlushInterval";
+
+        private static readonly TimeSpan DefaultFlushInterval = TimeSpan.FromSeconds(20);
+
         // Timer for executing timed tasks
         private Timer _timer;
         private int _isFlushing;
+        private readonly TimeSpan _flushInterval;
         
         public PlanetMessageWorker(ILogger<PlanetMessageWorker> logger,
-                                   IServiceProvider serviceProvider)
+                                   IServiceProvider serviceProvider,
+                                   IConfiguration configuration)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _flushInterval = configuration.GetValue<TimeSpan?>(FlushIntervalSetting) ?? DefaultFlushInterval;
         }
         
         public static void AddToQueue(Message message)
@@ -184,8 +196,7 @@ namespace Valour.Server.Workers
             // Start the queue task
             _queueTask = Task.Run(ConsumeMessageQueue, stoppingToken);
             
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, 
-                TimeSpan.FromSeconds(20));
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, _flushInterval);
 
             return Task.CompletedTask;
         }
@@ -403,6 +414,7 @@ namespace Valour.Server.Workers
                 {
                     var replyToDb = await dbService.Messages
                         .AsNoTracking()
+                        .AsSplitQuery()
                         .Include(x => x.Attachments)
                         .Include(x => x.Mentions)
                         .FirstOrDefaultAsync(x => x.Id == message.ReplyToId);

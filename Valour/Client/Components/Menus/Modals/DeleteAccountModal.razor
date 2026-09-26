@@ -5,10 +5,12 @@
 <BasicModalLayout Title="Delete Account" Icon="trash-fill" MaxWidth="500px">
     <MainArea>
         <p>This is a permanent action. You will lose all your data and will not be able to recover it, including eco balances and items.</p>
+        <p>Any active Stargazer subscription is cancelled automatically.
+            <a href="https://valour.gg/delete-account/" target="_blank" rel="noopener noreferrer">What gets deleted</a></p>
         
         <div class="form-group">
-            <label>Password</label>
-            <PasswordInput id="password-input" autocomplete="current-password" @bind-Value="@_password" />
+            <label>Confirm it's you</label>
+            <ConfirmIdentityInputs @bind-Password="@_password" OnLoaded="@OnIdentityLoaded" OnConfirmed="@OnConfirmedWithProof" />
         </div>
         
         @if (!string.IsNullOrWhiteSpace(_errorSpan))
@@ -19,7 +21,10 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button @onclick="@OnCancel" class="v-btn">Cancel</button>
-            <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
+            @if (_hasPassword)
+            {
+                <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
+            }
         </div>
     </ButtonArea>
 </BasicModalLayout>
@@ -30,10 +35,17 @@
 	
 	private string _password = "";
 	private string _errorSpan;
+	private bool _hasPassword = true;
 
-	private async Task OnConfirm()
+	private void OnIdentityLoaded(bool hasPassword) => _hasPassword = hasPassword;
+
+	private Task OnConfirm() => DeleteAsync(_password, null);
+
+	private Task OnConfirmedWithProof(IdentityConfirmation confirmation) => DeleteAsync(null, confirmation.ReauthProof);
+
+	private async Task DeleteAsync(string password, string reauthProof)
 	{
-		var result = await Client.DeleteMyAccountAsync(_password);
+		var result = await Client.DeleteMyAccountAsync(password, reauthProof);
 		if (result.Success)
 		{
 			NavManager.NavigateTo("/", true);
@@ -41,6 +53,7 @@
 		else
 		{
 			_errorSpan = "An error occured. Check your password or contact support@valour.gg";
+			StateHasChanged();
 		}
 	}
 

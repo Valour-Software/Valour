@@ -37,6 +37,11 @@ dotnet run \
 for required in \
   index.html \
   faq/index.html \
+  privacy/index.html \
+  terms/index.html \
+  rules/index.html \
+  rules/economy/index.html \
+  delete-account/index.html \
   texas/index.html \
   userCount/index.html \
   sitemap.xml \

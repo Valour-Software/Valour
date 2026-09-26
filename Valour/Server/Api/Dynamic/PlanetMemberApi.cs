@@ -141,7 +141,11 @@ public class PlanetMemberApi
 
         var result = await service.UpdateAsync(targetMember);
         if (!result.Success)
-            return ValourResult.BadRequest(result.Message);
+        {
+            return result.Code == 404
+                ? ValourResult.NotFound(result.Message)
+                : ValourResult.BadRequest(result.Message);
+        }
 
         if (selfMember.UserId != targetMember.UserId)
         {

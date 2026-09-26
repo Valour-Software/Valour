@@ -102,6 +102,7 @@ public class ChannelServiceTests : IAsyncLifetime
         var otherUserIds = await _db.Users
             .Where(x => x.Id != _client.Me.Id)
             .Select(x => x.Id)
+            .OrderBy(id => id)
             .Take(2)
             .ToListAsync();
         Assert.Equal(2, otherUserIds.Count);
@@ -128,6 +129,7 @@ public class ChannelServiceTests : IAsyncLifetime
         var otherUserIds = await _db.Users
             .Where(x => x.Id != _client.Me.Id)
             .Select(x => x.Id)
+            .OrderBy(id => id)
             .Take(2)
             .ToListAsync();
         Assert.Equal(2, otherUserIds.Count);

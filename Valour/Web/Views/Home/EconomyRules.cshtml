@@ -1,0 +1,8 @@
+@inject LegalDocumentLibrary Library
+@{
+    var document = Library.Render(LegalDocumentLibrary.EconomyRules);
+    ViewData["Title"] = $"{document.Document.Title} | Valour";
+    ViewData["Description"] = document.Document.Description;
+}
+
+<partial name="_LegalDocument" model="document" />

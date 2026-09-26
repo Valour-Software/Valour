@@ -551,7 +551,7 @@
             AuthorUserId = Client.Me.Id,
             Content = prevContent,
             ChannelId = ChatComponent.Channel.Id,
-            AuthorMemberId = ChatComponent.Channel.Planet?.MyMember.Id,
+            AuthorMemberId = ChatComponent.Channel.Planet?.MyMember?.Id,
             TimeSent = DateTime.UtcNow,
             ReplyToId = null,
             PlanetId = ChatComponent.Channel.PlanetId,
@@ -673,13 +673,14 @@
         // Clear preview
         EditingMessageComponent = null;
         PreviewMessage = BuildNewMessage();
-        PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent?.SetMessage(PreviewMessage);
 
         // Clear input
         await OnChatboxUpdate(null, "");
         await SetInputContent(string.Empty);
-        
-        await PreviewMessageComponent.ReRender();
+
+        if (PreviewMessageComponent is not null)
+            await PreviewMessageComponent.ReRender();
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
@@ -688,7 +689,7 @@
         {
             HideUploadMenu();
 
-            var file = e.File;
+            var file = e.FileCount > 0 ? e.File : null;
             if (file is null)
             {
                 Client.Logger.Log<InputComponent>("No file was selected.", "orange");
@@ -1286,9 +1287,12 @@
                 ChatComponent.RemoveErrorMessage();
             }
             
-            PreviewMessageComponent.ParamData.Message.ReplyTo = null;
             PreviewMessage.Clear();
-            await PreviewMessageComponent.ReRender();
+            if (PreviewMessageComponent is not null)
+            {
+                PreviewMessageComponent.ParamData.Message.ReplyTo = null;
+                await PreviewMessageComponent.ReRender();
+            }
             _retainedInputCache.Remove(ChatComponent.Channel.Id, out _);
 
             // Don't lose what the person wrote when sending fails.
@@ -1594,6 +1598,11 @@
     [JSInvokable]
     public async Task OnChatboxSubmit()
     {
+        // The textbox script can submit before the channel finishes loading
+        // and the preview message is created.
+        if (PreviewMessage is null)
+            return;
+
         if (PreviewMessage.Content is not null)
         {
             PreviewMessage.Content =
@@ -1611,6 +1620,10 @@
         var postMessage = PreviewMessage;
         InsertInviteAttachments(postMessage);
 
+        // The draft may have been created before this planet's member loaded.
+        if (postMessage.PlanetId is not null)
+            postMessage.AuthorMemberId ??= ChatComponent.Channel.Planet?.MyMember?.Id;
+
         // Queue ghost message BEFORE clearing the preview so both changes
         // are batched into the same render frame (no layout shift gap).
         // Only for new messages — edits are already visible in the chat.
@@ -1619,9 +1632,10 @@
             ChatComponent.QueuedMessages.Add(postMessage);
         }
 
-        // New message for preview
+        // New message for preview. The preview component only exists after a
+        // render with content, and a fast submit can arrive before that render.
         PreviewMessage = BuildNewMessage();
-        PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent?.SetMessage(PreviewMessage);
 
         // Queue a chat re-render so the ghost appears in the same paint
         // as the preview clearing (both flush at the next yield).

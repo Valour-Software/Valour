@@ -427,3 +427,6 @@ google-services.json
 /Valour/Client/wwwroot/media/villages/library-atlas.png
 /Valour/Client/wwwroot/media/villages/library-atlas.vtex.bin
 /Valour/Client/wwwroot/media/villages/library-atlas.vtex.bin*.tmp
+
+# Local file storage written by a server or test run without S3 configured.
+/Valour/Server/media-storage/

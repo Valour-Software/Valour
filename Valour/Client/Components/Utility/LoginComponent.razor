@@ -4,8 +4,11 @@
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
 @inject AuthService AuthService
+@inject ExternalSignInService ExternalSignIn
+@inject IServiceProvider Services
 
 @using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.Extensions.DependencyInjection
 
 <div class="page">
     <div class="login-background">
@@ -58,6 +61,16 @@
                 </div>
             </div>
             <a class="mt-4 forgot-password" href="/ForgotPassword">Forgot my password</a>
+
+            @if (_deviceKeys?.IsAvailable == true && _deviceKeys.Saved is { } saved)
+            {
+                <button type="button" class="v-btn fingerprint-btn mt-4" disabled="@_fingerprintBusy" @onclick="@OnClickFingerprint">
+                    <i class="bi bi-fingerprint" aria-hidden="true"></i>
+                    <span>Sign in as @saved.UserName</span>
+                </button>
+            }
+
+            <ExternalSignInButtons Verb="Continue" OnOutcome="@OnExternalOutcome" />
         </form>
     </div>
 
@@ -135,6 +148,83 @@
     private bool _resendSuccess;
     private bool _resendDisabled;
 
+    private IDeviceKeyService _deviceKeys;
+    private bool _fingerprintBusy;
+
+    // Set while a Google or Discord sign-in waits for a two-factor code.
+    private ExternalSignInOutcome _externalLogin;
+
+    protected override void OnInitialized()
+    {
+        _deviceKeys = Services.GetService<IDeviceKeyService>();
+
+        // The register page hands over a provider sign-in that needs a code.
+        if (ExternalSignIn.PendingLogin is { } pending)
+        {
+            ExternalSignIn.PendingLogin = null;
+            _externalLogin = pending;
+            _showMultiFactorAuth = true;
+        }
+    }
+
+    private async Task OnExternalOutcome(ExternalSignInOutcome outcome)
+    {
+        _passwordSpan = "";
+
+        switch (outcome.Result)
+        {
+            case ExternalAuthResults.Register:
+                ExternalSignIn.PendingRegistration = outcome;
+                NavManager.NavigateTo("/Register/External");
+                return;
+            case ExternalAuthResults.Login:
+                _externalLogin = outcome;
+                await CompleteLoginAsync(await AuthService.FetchTokenWithExternalTicket(outcome.Ticket, outcome.Verifier));
+                return;
+            default:
+                _passwordSpan = outcome.Message;
+                StateHasChanged();
+                return;
+        }
+    }
+
+    private async Task OnClickFingerprint()
+    {
+        if (_deviceKeys?.Saved is not { } saved)
+            return;
+
+        _fingerprintBusy = true;
+        _passwordSpan = "";
+
+        try
+        {
+            var challenge = await AuthService.GetDeviceChallengeAsync(saved.KeyId);
+            if (!challenge.Success)
+            {
+                _passwordSpan = challenge.Message;
+                return;
+            }
+
+            var signature = await _deviceKeys.SignAsync(challenge.Data.Challenge, "Sign in to Valour");
+            if (signature is null)
+                return;
+
+            var tokenResult = await AuthService.FetchTokenWithDeviceKey(saved.KeyId, challenge.Data.ChallengeId, signature);
+            if (!tokenResult.Success && !tokenResult.RequiresEmailVerification)
+            {
+                _passwordSpan = "Fingerprint sign-in didn't work. Sign in another way, then turn it on again in Settings, under Connections.";
+                return;
+            }
+
+            await CompleteLoginAsync(tokenResult);
+        }
+        finally
+        {
+            _fingerprintBusy = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task OnEmailKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -166,7 +256,9 @@
             _multiFactorSpan = "Enter your authentication code.";
             return;
         }
-        var multiResult = await AuthService.FetchToken(_email, _password, _multiFactorCode);
+        var multiResult = _externalLogin is not null
+            ? await AuthService.FetchTokenWithExternalTicket(_externalLogin.Ticket, _externalLogin.Verifier, _multiFactorCode)
+            : await AuthService.FetchToken(_email, _password, _multiFactorCode);
         if (multiResult.Success && multiResult.Token is not null)
         {
             var result = await Client.InitializeUser(multiResult.Token.Id);
@@ -236,8 +328,16 @@
         _passwordSpan = "";
         _emailSpan = "";
 
-        var tokenResult = await AuthService.FetchToken(_email, _password);
+        _externalLogin = null;
+        await CompleteLoginAsync(await AuthService.FetchToken(_email, _password));
+    }
 
+    /// <summary>
+    /// Continues after any sign-in method: asks for a two-factor code or email
+    /// verification when needed, shows failures, and starts the session.
+    /// </summary>
+    private async Task CompleteLoginAsync(AuthResult tokenResult)
+    {
         if (tokenResult.RequiresMultiAuth){
             // Show multi-factor auth dialog
             _showMultiFactorAuth = true;
@@ -262,6 +362,8 @@
                 _passwordSpan = "Too many requests. Please try again later.";
             else if (tokenResult.Disabled)
                 _passwordSpan = "Your account has been disabled.";
+            else if (_externalLogin is not null)
+                _passwordSpan = tokenResult.Message ?? "Sign-in didn't work. Try again.";
             else
                 _passwordSpan = "Incorrect email or password. Are you using your username instead?";
 

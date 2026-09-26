@@ -1,0 +1,23 @@
+.connection-icon {
+    margin-right: 0.4rem;
+}
+
+.connection-google {
+    color: #ea4335;
+}
+
+.connection-discord {
+    color: #5865f2;
+}
+
+.connection-password {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.connection-password .actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}

@@ -239,6 +239,7 @@ public class DirectCallServiceTests : IDisposable
                 (member.State == DirectCallMemberState.Invited ||
                  member.State == DirectCallMemberState.Joined)))
             .Select(x => x.Id)
+            .OrderBy(id => id)
             .Take(count)
             .ToListAsync();
         Assert.Equal(count, ids.Count);
