@@ -138,7 +138,10 @@ public partial class AuthService
             return new AuthResult { Success = false, Message = result.Message, Code = result.Code ?? 0 };
 
         if (result.Data?.Token is not null)
+        {
             SetToken(result.Data.Token.Id);
+            _signInProof = result.Data.ReauthProof;
+        }
 
         return result.Data ?? new AuthResult { Success = false, Message = "The server returned an empty response." };
     }
@@ -167,6 +170,20 @@ public partial class AuthService
     }
 
     // Identity confirmation and sign-in methods //
+
+    private string _signInProof;
+
+    /// <summary>
+    /// The identity proof from signing in during this run of the app, or null.
+    /// It is handed out once, so only the first caller after a sign-in gets
+    /// it, and never after the app restarts with a saved session.
+    /// </summary>
+    public string TakeSignInProof()
+    {
+        var proof = _signInProof;
+        _signInProof = null;
+        return proof;
+    }
 
     /// <summary>
     /// Confirms the signed-in person with their password or this device's key.

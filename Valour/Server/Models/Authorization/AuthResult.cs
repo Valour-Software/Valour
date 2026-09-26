@@ -7,4 +7,10 @@ internal class ServerAuthResult {
     public bool RequiresMultiAuth { get; set; } = false;
     public bool RequiresEmailVerification { get; set; } = false;
     public bool Disabled { get; set; } = false;
+
+    /// <summary>
+    /// A proof of identity for the new session, so a change right after
+    /// signing in, like turning on fingerprint sign-in, doesn't ask again.
+    /// </summary>
+    public string? ReauthProof { get; set; }
 }

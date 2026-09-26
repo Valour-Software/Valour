@@ -26,14 +26,6 @@
     color: var(--color-primary);
 }
 
-.method-row > i.method-google {
-    color: #ea4335;
-}
-
-.method-row > i.method-discord {
-    color: #5865f2;
-}
-
 .method-copy {
     display: flex;
     flex: 1;

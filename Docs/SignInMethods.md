@@ -1,8 +1,9 @@
 # Sign-in methods
 
 An account can sign in with a password, a Google account, a Discord account,
-and, in the Android app, a fingerprint. People manage these in Settings, under
-Connections. This guide explains how the pieces fit together and how to turn
+and, in the Android app, a fingerprint. People manage their password and linked
+accounts in Settings, under Connections, and fingerprint sign-in under Security,
+beside the password and two-factor settings. This guide explains how the pieces fit together and how to turn
 Google and Discord sign-in on for a server.
 
 ## Credentials
@@ -110,6 +111,10 @@ account, or with their fingerprint. Each of these produces a proof from
 works only with the session that created it, so a leaked proof is useless to
 another session. Accounts without a password rely on these proofs.
 
+Signing in also confirms identity, so every successful sign-in and every
+Google or Discord sign-up returns a proof for the new session. A change made
+right after signing in doesn't ask again.
+
 When a password, linked account, or fingerprint key is added, the account's
 email address gets a notice, so a method added by someone else doesn't go
 unnoticed.
@@ -127,7 +132,14 @@ reset removes every device key, because the account may have been taken over.
 Because fingerprint sign-in skips the authenticator code, turning it on for an
 account with two-factor authentication requires a current authenticator code.
 Otherwise a stolen session and password could add a key that gets around the
-second factor.
+second factor. A proof from a sign-in that checked the code counts as the code.
+
+Right after signing in, the Android app offers fingerprint sign-in once
+([FingerprintOfferCoordinator.razor](../Valour/Client/Components/Utility/FingerprintOfferCoordinator.razor)).
+It asks only when the device has a fingerprint enrolled and no account uses
+fingerprint sign-in on it yet. It uses the sign-in's proof, so turning it on
+needs no password or code. The app remembers that it asked each account, so
+either answer is final on that device, and Security settings can still change it.
 
 ## Turning on Google and Discord
 

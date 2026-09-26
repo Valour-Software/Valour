@@ -376,7 +376,7 @@ public class UserApi
                 return Results.Json(new ServerAuthResult { Success = false, Message = signed.Message });
 
             var deviceUser = await userService.GetAsync(signed.Data.UserId);
-            var deviceSignIn = await FinishSignInAsync(ctx, deviceUser, false, null, userService, multiAuthService);
+            var deviceSignIn = await FinishSignInAsync(ctx, deviceUser, false, null, userService, multiAuthService, signInMethods);
             if (deviceSignIn.SignedIn)
                 await signInMethods.MarkUsedAsync(signed.Data.Id);
             return deviceSignIn.Response;
@@ -393,7 +393,7 @@ public class UserApi
                 return Results.Json(new ServerAuthResult { Success = false, Message = "This sign-in has expired. Try again." });
 
             var externalUser = await userService.GetAsync(ticket.UserId);
-            var externalSignIn = await FinishSignInAsync(ctx, externalUser, true, tokenRequest.MultiFactorCode, userService, multiAuthService);
+            var externalSignIn = await FinishSignInAsync(ctx, externalUser, true, tokenRequest.MultiFactorCode, userService, multiAuthService, signInMethods);
             if (externalSignIn.SignedIn)
             {
                 await externalAuth.RemoveLoginTicketAsync(tokenRequest.ExternalTicket);
@@ -428,7 +428,7 @@ public class UserApi
         if (userPrivateInfo is null || userPrivateInfo.UserId != user.Id)
             return Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage });
 
-        var passwordSignIn = await FinishSignInAsync(ctx, user, true, tokenRequest.MultiFactorCode, userService, multiAuthService);
+        var passwordSignIn = await FinishSignInAsync(ctx, user, true, tokenRequest.MultiFactorCode, userService, multiAuthService, signInMethods);
         return passwordSignIn.Response;
     }
 
@@ -443,7 +443,8 @@ public class UserApi
         bool requireMultiFactor,
         string multiFactorCode,
         UserService userService,
-        MultiAuthService multiAuthService)
+        MultiAuthService multiAuthService,
+        SignInMethodService signInMethods)
     {
         if (user is null)
             return (Results.Json(new ServerAuthResult { Success = false, Message = GenericAuthFailureMessage }), false);
@@ -465,6 +466,7 @@ public class UserApi
             }), false);
         }
 
+        var checkedMultiFactor = false;
         if (requireMultiFactor)
         {
             var multiAuths = await multiAuthService.GetAppMultiAuthTypes(user.Id);
@@ -489,6 +491,8 @@ public class UserApi
 
                     return (ValourResult.Forbid(mfaValid.Message == "Invalid" ? "Invalid code." : mfaValid.Message), false);
                 }
+
+                checkedMultiFactor = true;
             }
         }
 
@@ -496,12 +500,15 @@ public class UserApi
         if (!result.Success)
             return (ValourResult.Problem(result.Message), false);
 
+        var proof = await signInMethods.CreateReauthProofAsync(user.Id, result.Data.Id, checkedMultiFactor);
+
         return (Results.Json(new ServerAuthResult
         {
             Success = true,
             Token = result.Data,
             Message = "Succeeded",
-            RequiresMultiAuth = false
+            RequiresMultiAuth = false,
+            ReauthProof = proof.Proof,
         }), true);
     }
 
@@ -617,7 +624,8 @@ public class UserApi
         if (!token.Success)
             return ValourResult.Problem(token.Message);
 
-        return Results.Json(new ServerAuthResult { Success = true, Token = token.Data, Message = "Succeeded" });
+        var proof = await services.GetRequiredService<SignInMethodService>().CreateReauthProofAsync(user.Id, token.Data.Id, false);
+        return Results.Json(new ServerAuthResult { Success = true, Token = token.Data, Message = "Succeeded", ReauthProof = proof.Proof });
     }
 
     [RateLimit(RateLimitPolicies.Email)]

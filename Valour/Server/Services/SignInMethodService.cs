@@ -47,9 +47,10 @@ public class SignInMethodService
 
     /// <summary>
     /// A proof belongs to the session that confirmed identity, so a proof
-    /// that leaks can't be used from another session.
+    /// that leaks can't be used from another session. <paramref name="MultiFactor"/>
+    /// is true when an authenticator code was checked along the way.
     /// </summary>
-    private record ReauthProof(long UserId, string SessionId);
+    private record ReauthProof(long UserId, string SessionId, bool MultiFactor = false);
 
     private record DeviceChallenge(string KeyId, string Challenge);
 
@@ -62,8 +63,34 @@ public class SignInMethodService
         if (session is null || session.UserId != userId)
             throw new InvalidOperationException("Identity proofs are created for the signed-in session.");
 
-        var proof = await _tickets.CreateAsync(ReauthKind, new ReauthProof(userId, session.Id), ReauthLifetime);
+        return await CreateReauthProofAsync(userId, session.Id, false);
+    }
+
+    /// <summary>
+    /// Creates an identity proof for a session that was just created by
+    /// signing in, which confirmed identity itself.
+    /// </summary>
+    public async Task<ReauthResponse> CreateReauthProofAsync(long userId, string sessionId, bool multiFactor)
+    {
+        var proof = await _tickets.CreateAsync(ReauthKind, new ReauthProof(userId, sessionId, multiFactor), ReauthLifetime);
         return new ReauthResponse { Proof = proof, ExpiresAt = DateTime.UtcNow.Add(ReauthLifetime) };
+    }
+
+    /// <summary>
+    /// True when the proof is valid for this session and came from a sign-in
+    /// that checked an authenticator code, so it can stand in for a new code.
+    /// </summary>
+    public async Task<bool> ProofIncludesMultiFactorAsync(long userId, string reauthProof)
+    {
+        if (string.IsNullOrWhiteSpace(reauthProof))
+            return false;
+
+        var proof = await _tickets.GetAsync<ReauthProof>(ReauthKind, reauthProof);
+        if (proof is null || !proof.MultiFactor || proof.UserId != userId)
+            return false;
+
+        var session = await _tokenService.GetCurrentTokenAsync();
+        return session?.Id == proof.SessionId;
     }
 
     /// <summary>
@@ -211,8 +238,10 @@ public class SignInMethodService
         {
             await _db.SaveChangesAsync();
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
+            // Only the unique index means someone else has it. Other failures
+            // must surface as errors instead of this misleading message.
             _db.ChangeTracker.Clear();
             return TaskResult.FromFailure($"This {providerName} account is already linked to another Valour account.");
         }
@@ -300,7 +329,7 @@ public class SignInMethodService
 
         var count = await _db.Credentials.CountAsync(x => x.UserId == userId && x.CredentialType == CredentialType.DEVICE_KEY);
         if (count >= MaxDeviceKeysPerUser)
-            return TaskResult<string>.FromFailure("Too many devices use fingerprint sign-in. Remove one in Connections first.");
+            return TaskResult<string>.FromFailure("Too many devices use fingerprint sign-in. Remove one in Settings, under Security, first.");
 
         var name = string.IsNullOrWhiteSpace(deviceName) ? "Device" : deviceName.Trim();
         if (name.Length > 64)
