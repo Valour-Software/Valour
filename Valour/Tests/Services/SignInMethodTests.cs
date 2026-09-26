@@ -383,6 +383,47 @@ public class SignInMethodTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SigningIn_GivesTheNewSessionAProofForTurningOnFingerprint()
+    {
+        var (user, email) = await RegisterPasswordUserAsync();
+        var signIn = await PostTokenAsync(new TokenRequest { Email = email, Password = Password });
+        Assert.True(signIn.Success, signIn.Message);
+        Assert.False(string.IsNullOrEmpty(signIn.ReauthProof));
+
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var request = new DeviceKeyRegisterRequest
+        {
+            PublicKey = Convert.ToBase64String(key.ExportSubjectPublicKeyInfo()),
+            DeviceName = "Test phone",
+            ReauthProof = signIn.ReauthProof,
+        };
+
+        // The proof belongs to the session the sign-in created.
+        var otherSession = await NewSessionAsync(user.Id);
+        Assert.False((await PostAsSessionAsync(otherSession, "api/auth/device/register", request)).IsSuccessStatusCode);
+
+        var registered = await PostAsSessionAsync(signIn.Token!.Id, "api/auth/device/register", request);
+        Assert.True(registered.IsSuccessStatusCode, await registered.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task ProofFromATwoFactorSignIn_StandsInForTheCodeOnlyInItsSession()
+    {
+        var (user, _) = await RegisterPasswordUserAsync();
+        var session = await NewSessionAsync(user.Id);
+        var otherSession = await NewSessionAsync(user.Id);
+
+        var signIn = AsSession(session);
+        var withCode = (await signIn.CreateReauthProofAsync(user.Id, session, true)).Proof;
+        var withoutCode = (await signIn.CreateReauthProofAsync(user.Id, session, false)).Proof;
+        Assert.True(await signIn.ProofIncludesMultiFactorAsync(user.Id, withCode));
+        Assert.False(await signIn.ProofIncludesMultiFactorAsync(user.Id, withoutCode));
+
+        var fromOtherSession = AsSession(otherSession);
+        Assert.False(await fromOtherSession.ProofIncludesMultiFactorAsync(user.Id, withCode));
+    }
+
+    [Fact]
     public async Task PasswordRecovery_AddsAPasswordAndRemovesDeviceKeys()
     {
         var identity = NewGoogleIdentity();

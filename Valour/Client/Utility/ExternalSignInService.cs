@@ -1,5 +1,8 @@
+using Valour.Client.Components.Utility;
 using Valour.Client.Device;
+using Valour.Client.Modals;
 using Valour.Sdk.Services;
+using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Client.Utility;
@@ -63,6 +66,42 @@ public class ExternalSignInService
         _reauthProof is not null && DateTime.UtcNow < _reauthProofExpires ? _reauthProof : null;
 
     public void ForgetReauthProof() => _reauthProof = null;
+
+    /// <summary>
+    /// Returns a recent identity proof, asking the person to confirm it's them
+    /// when there isn't one. Null when they cancel.
+    /// </summary>
+    public async Task<string> ConfirmIdentityAsync(ModalRoot modalRoot, string description)
+    {
+        if (GetReauthProof() is { } cached)
+            return cached;
+
+        var confirmed = new TaskCompletionSource<string>();
+        modalRoot.OpenModal<PasswordConfirmModal>(new PasswordConfirmModal.Params
+        {
+            Title = "Confirm it's you",
+            Description = description,
+            OnCancel = () => confirmed.TrySetResult(null),
+            OnConfirmIdentityAsync = async (confirmation, _) =>
+            {
+                if (confirmation.ReauthProof is not null)
+                {
+                    confirmed.TrySetResult(confirmation.ReauthProof);
+                    return TaskResult.SuccessResult;
+                }
+
+                var result = await _authService.ReauthAsync(new ReauthRequest { Password = confirmation.Password });
+                if (!result.Success)
+                    return TaskResult.FromFailure(result.Message);
+
+                RememberReauthProof(result.Data.Proof);
+                confirmed.TrySetResult(result.Data.Proof);
+                return TaskResult.SuccessResult;
+            },
+        });
+
+        return await confirmed.Task;
+    }
 
     public static string GetName(string provider) =>
         Providers.TryGetValue(provider ?? string.Empty, out var info) ? info.Name : provider;

@@ -1,0 +1,43 @@
+@inject AuthService AuthService
+@inject ValourClient Client
+@inject IAppStorage AppStorage
+@inject IServiceProvider Services
+@using Microsoft.Extensions.DependencyInjection
+
+@code {
+    // Offers fingerprint sign-in once, right after signing in on a device that
+    // can use it. Whatever the answer, this account isn't asked again on this
+    // device; Security settings can still turn it on later.
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        // Only a sign-in during this run of the app has a proof, so reopening
+        // the app with a saved session never asks.
+        var proof = AuthService.TakeSignInProof();
+        if (proof is null || Client.Me is null)
+            return;
+
+        // Fingerprint sign-in keeps one account per device, so an account that
+        // already uses it here isn't replaced.
+        var deviceKeys = Services.GetService<IDeviceKeyService>();
+        if (deviceKeys is null || !deviceKeys.IsAvailable || deviceKeys.Saved is not null)
+            return;
+
+        var askedKey = $"fingerprint-offer-asked-{Client.Me.Id}";
+        if (await AppStorage.ContainsKeyAsync(askedKey))
+            return;
+
+        await AppStorage.SetStringAsync(askedKey, "true");
+        ModalRoot.OpenModal<FingerprintOfferModal>(new FingerprintOfferModal.ModalParams
+        {
+            DeviceKeys = deviceKeys,
+            ReauthProof = proof,
+        });
+    }
+}

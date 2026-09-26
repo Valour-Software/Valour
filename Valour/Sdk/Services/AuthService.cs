@@ -102,7 +102,10 @@ public partial class AuthService : ServiceBase
                 if (result is null)
                     return new AuthResult { Success = false, Message = "The server returned an empty login response." };
                 if (result.Success && result.Token is not null)
+                {
                     SetToken(result.Token.Id);
+                    _signInProof = result.ReauthProof;
+                }
                 return result;
             }
             return new AuthResult
