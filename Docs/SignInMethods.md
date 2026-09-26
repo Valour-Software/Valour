@@ -62,8 +62,10 @@ never reach an app:
    exchanges the code, reads the account, and issues a ticket for the outcome:
    sign in, start registration, link, or confirm identity. Otherwise it reports
    an error.
-4. The result goes back to the client. The Android app receives it on
-   `gg.valour.app://auth`, the Windows app on a temporary loopback port, and the
+4. The result goes back to the client. The Android, iOS, and Mac apps receive
+   it on `gg.valour.app://auth` (the Apple apps through an
+   `ASWebAuthenticationSession`, which catches that address without a
+   registered URL scheme), the Windows app on a temporary loopback port, and the
    web app polls `api/auth/external/result`, because provider pages can cut a
    popup's link to the window that opened it.
 5. The client redeems the ticket with its verifier: at `api/users/token` to
@@ -85,7 +87,7 @@ missing or wrong. Without this, someone could start a flow, send the provider
 link to another person, and collect that person's sign-in or link their account
 by polling for the result. The app sends the begin request with credentials
 included, and the cookie uses `SameSite=Lax`, so the web app and the API must
-be served from the same site. Android and Windows deliver results straight to
+be served from the same site. The native apps deliver results straight to
 the app on the device, so they don't use the cookie. A provider link sent to
 another person there leaves the result on that person's device, where the
 sender's verifier and session are missing. The Windows app listens on a

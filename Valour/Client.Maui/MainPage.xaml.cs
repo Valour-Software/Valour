@@ -39,7 +39,7 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private static bool IsInternalHost(string? host)
+    internal static bool IsInternalHost(string? host)
     {
         return string.Equals(host, "0.0.0.0", StringComparison.OrdinalIgnoreCase)
                || string.Equals(host, "0.0.0.1", StringComparison.OrdinalIgnoreCase)

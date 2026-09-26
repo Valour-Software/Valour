@@ -31,7 +31,7 @@ public enum ExternalAuthClient
     /// <summary>A browser popup. The web app collects the result from the server.</summary>
     Web = 0,
 
-    /// <summary>The Android app, through the gg.valour.app:// scheme.</summary>
+    /// <summary>The Android, iOS, and Mac apps, through the gg.valour.app:// scheme.</summary>
     Android = 1,
 
     /// <summary>A desktop app listening on a loopback port.</summary>

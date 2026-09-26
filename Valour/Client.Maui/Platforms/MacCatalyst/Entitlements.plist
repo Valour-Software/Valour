@@ -9,9 +9,16 @@
         <!-- When App Sandbox is enabled, this value is required to open outgoing network connections. -->
         <key>com.apple.security.network.client</key>
         <true/>
-        <!-- The camera scans device-link codes for end-to-end encryption. -->
+        <!-- Video calls, and scanning device-link codes for end-to-end encryption. -->
         <key>com.apple.security.device.camera</key>
+        <true/>
+        <!-- Voice and video calls. -->
+        <key>com.apple.security.device.audio-input</key>
+        <true/>
+        <!-- Attaching files the person picks, and saving files they download. -->
+        <key>com.apple.security.files.user-selected.read-write</key>
+        <true/>
+        <key>com.apple.security.files.downloads.read-write</key>
         <true/>
     </dict>
 </plist>
-

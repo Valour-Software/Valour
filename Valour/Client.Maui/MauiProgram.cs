@@ -68,6 +68,9 @@ public static class MauiProgram
                 webView.SetWebViewClient(new RendererCrashRecoveryWebViewClient(innerClient));
             }
         });
+#elif IOS || MACCATALYST
+        BlazorWebViewHandler.BlazorWebViewMapper.AppendToMapping("AppleWebViewConfig", (handler, _) =>
+            AppleWebViewUIDelegate.Attach(handler.PlatformView));
 #endif
 
         builder.Services.AddSingleton<IAppStorage, MauiStorageService>();
@@ -78,6 +81,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<INativeUpdateService, AndroidUpdateService>();
 #elif WINDOWS
         builder.Services.AddSingleton<INativeUpdateService, WindowsUpdateService>();
+#elif IOS || MACCATALYST
+        builder.Services.AddSingleton<AppleNotificationService>();
 #endif
         // Native clients should talk directly to the API host.
         builder.Services.AddValourClientServices(ApiBaseAddress());
@@ -88,6 +93,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<IDeviceKeyService, AndroidDeviceKeyService>();
 #elif WINDOWS
         builder.Services.AddScoped<IExternalAuthLauncher, LoopbackExternalAuthLauncher>();
+#elif IOS || MACCATALYST
+        builder.Services.AddScoped<IExternalAuthLauncher, AppleExternalAuthLauncher>();
 #endif
 
         // Override the browser share service with the native OS share sheet

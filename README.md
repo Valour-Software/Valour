@@ -134,6 +134,15 @@ Debug builds on Android allow plain HTTP for this; Release builds always use the
 official API over HTTPS. The phone and computer must be on the same network, and
 the computer's firewall must allow incoming connections to the server.
 
+The Mac app is a Mac Catalyst build of the same project. Its target is built only
+when a full Xcode is selected, and the .NET for Mac Catalyst workload requires a
+specific Xcode version; the build error names it. Build and run it with:
+
+```sh
+dotnet build Valour/Client.Maui -f net11.0-maccatalyst
+open Valour/Client.Maui/bin/Debug/net11.0-maccatalyst/maccatalyst-arm64/Valour.app
+```
+
 Build from the root with `dotnet build`. C# integration tests start application
 services and need a dedicated test database and Redis instance. Use the
 [isolated test runner](Valour/Tests/Browser/README.md#isolated-c-regression) rather

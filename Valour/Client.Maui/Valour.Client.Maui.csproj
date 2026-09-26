@@ -2,7 +2,9 @@
 
     <PropertyGroup>
         <AndroidSdkDirectory Condition="$([MSBuild]::IsOSPlatform('osx'))">$(HOME)/Library/Android/sdk</AndroidSdkDirectory>
-        <JavaSdkDirectory Condition="$([MSBuild]::IsOSPlatform('osx'))">/Applications/Android Studio.app/Contents/jbr/Contents/Home</JavaSdkDirectory>
+        <!-- The JDK comes from the usual lookup: JAVA_HOME, or the java-sdk path in
+             ~/.config/xbuild/monodroid-config.xml that IDEs write. Android builds need
+             JDK 17 to 21. Android Studio's bundled JDK is newer, so it can't be used. -->
         <AcceptAndroidSDKLicenses>true</AcceptAndroidSDKLicenses>
         <TargetFrameworks>net11.0-android</TargetFrameworks>
         <_AppleSdkRoot Condition="'$(_AppleSdkRoot)' == '' and '$(MD_APPLE_SDK_ROOT)' != ''">$(MD_APPLE_SDK_ROOT)</_AppleSdkRoot>
