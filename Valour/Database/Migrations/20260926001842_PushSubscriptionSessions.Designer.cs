@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using Valour.Database.Context;
 namespace Valour.Database.Migrations
 {
     [DbContext(typeof(ValourDb))]
-    partial class ValourDbModelSnapshot : ModelSnapshot
+    [Migration("20260926001842_PushSubscriptionSessions")]
+    partial class PushSubscriptionSessions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -495,17 +498,9 @@ namespace Valour.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
                     b.Property<string>("CredentialType")
                         .HasColumnType("text")
                         .HasColumnName("credential_type");
-
-                    b.Property<string>("DisplayName")
-                        .HasColumnType("text")
-                        .HasColumnName("display_name");
 
                     b.Property<string>("Identifier")
                         .HasColumnType("text")
@@ -514,10 +509,6 @@ namespace Valour.Database.Migrations
                     b.Property<int>("Iterations")
                         .HasColumnType("integer")
                         .HasColumnName("iterations");
-
-                    b.Property<DateTime?>("LastUsedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_used_at");
 
                     b.Property<byte[]>("Salt")
                         .HasColumnType("bytea")
@@ -534,10 +525,6 @@ namespace Valour.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("CredentialType", "Identifier")
-                        .IsUnique()
-                        .HasFilter("credential_type <> 'Password'");
 
                     b.ToTable("credentials");
                 });

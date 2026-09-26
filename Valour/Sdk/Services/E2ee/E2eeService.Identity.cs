@@ -750,6 +750,7 @@ public partial class E2eeService
 
         await Store.RemoveAsync(StoreKey(DeviceKey));
         await ForgetInviteSecretsAsync();
+        await ForgetNotificationKeysAsync();
     }
 
     /// <summary>

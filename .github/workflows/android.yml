@@ -256,6 +256,13 @@ jobs:
           fi
         done <<< "$ASSEMBLY_STORES"
 
+        # Android developer verification registers gg.valour.app to this
+        # signing key by finding this asset in an APK signed with it.
+        if ! unzip -l "$APK_PATH" | grep -q 'assets/adi-registration\.properties$'; then
+          echo "Release APK is missing assets/adi-registration.properties."
+          exit 1
+        fi
+
     - name: Build AAB for Play Store
       env:
         ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}

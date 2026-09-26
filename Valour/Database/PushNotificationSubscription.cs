@@ -12,6 +12,8 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
     ///////////////////////////
     
     public virtual User? User { get; set; }
+
+    public virtual AuthToken? AuthToken { get; set; }
     
     ///////////////////////
     // Entity Properties //
@@ -42,6 +44,15 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
     public string? Key { get; set; }
     
     public string? Auth { get; set; }
+
+    /// <summary>
+    /// The session that registered this subscription. Ending the session
+    /// deletes the subscription, so a device whose session was revoked stops
+    /// receiving notifications, which it could otherwise decrypt with the
+    /// message keys it kept. Null for subscriptions registered before this
+    /// was recorded.
+    /// </summary>
+    public string? AuthTokenId { get; set; }
 
     public static void SetUpDbModel(ModelBuilder builder)
     {
@@ -79,15 +90,24 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
             
             e.Property(x => x.Endpoint)
                 .HasColumnName("endpoint");
+
+            e.Property(x => x.AuthTokenId)
+                .HasColumnName("auth_token_id");
             
             // Relationships
 
             e.HasOne(x => x.User)
                 .WithMany(x => x.NotificationSubscriptions)
                 .HasForeignKey(x => x.UserId);
+
+            e.HasOne(x => x.AuthToken)
+                .WithMany()
+                .HasForeignKey(x => x.AuthTokenId)
+                .OnDelete(DeleteBehavior.Cascade);
             
             // Indices
             e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.AuthTokenId);
         });
     }
 }

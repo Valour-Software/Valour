@@ -15,4 +15,13 @@ public class NotificationContent
     /// a bogus date. Defaults to send time when unset.
     /// </summary>
     public DateTime TimeSent { get; set; }
+
+    public long? PlanetId { get; set; }
+    public long? ChannelId { get; set; }
+
+    /// <summary>
+    /// The end-to-end encrypted envelope of the message, if the notification
+    /// is about one. See <see cref="Notification.PreviewEnvelope"/>.
+    /// </summary>
+    public byte[]? Envelope { get; set; }
 }

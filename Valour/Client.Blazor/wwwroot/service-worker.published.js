@@ -5,6 +5,13 @@
 const COMMIT_HASH = '$(SHORTHASH)';
 
 self.importScripts('./service-worker-assets.js');
+// Decrypts message text for notifications. See notification-preview.js.
+// A failure here only costs the text, so it must not stop the worker installing.
+try {
+    self.importScripts('./lib/noble-chacha.js', './notification-preview.js');
+} catch (error) {
+    console.warn('[Service Worker] Notification text previews are unavailable.', error);
+}
 
 self.addEventListener('install', event => event.waitUntil(onInstall(event)));
 self.addEventListener('activate', event => event.waitUntil(onActivate(event)));
@@ -141,23 +148,34 @@ self.addEventListener('push', event => {
             ? `source-${payload.sourceId}`
             : undefined;
     
-    event.waitUntil(
-        self.registration.showNotification(payload.title, {
-            body: payload.message,
-            icon: payload.iconUrl,
-            vibrate: [100, 50, 100],
-            badge: "https://app.valour.gg/_content/Valour.Client/media/logo/logo-square-256.png",
-            tag,
-            // Without an explicit timestamp some Android shells render a bogus date
-            timestamp: payload.timeSent ? Number(payload.timeSent) : Date.now(),
-            data: {
-                url: payload.url,
-                notificationId: payload.notificationId,
-                sourceId: payload.sourceId,
-            },
-        })
-    );
+    event.waitUntil(showPushNotification(payload, tag));
 });
+
+async function showPushNotification(payload, tag) {
+    // Message text is end-to-end encrypted. When this device holds the
+    // channel's key, the text replaces the placeholder the server sent.
+    let body = payload.message;
+    try {
+        body = await self.ValourNotificationPreview?.textForPayload(payload) ?? body;
+    } catch (error) {
+        console.warn('[Service Worker] Could not decrypt the notification text.', error);
+    }
+
+    await self.registration.showNotification(payload.title, {
+        body,
+        icon: payload.iconUrl,
+        vibrate: [100, 50, 100],
+        badge: "https://app.valour.gg/_content/Valour.Client/media/logo/logo-square-256.png",
+        tag,
+        // Without an explicit timestamp some Android shells render a bogus date
+        timestamp: payload.timeSent ? Number(payload.timeSent) : Date.now(),
+        data: {
+            url: payload.url,
+            notificationId: payload.notificationId,
+            sourceId: payload.sourceId,
+        },
+    });
+}
 
 self.addEventListener('notificationclick', event => {
     event.notification.close();

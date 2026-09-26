@@ -11,3 +11,7 @@ cf-build text eol=lf
 # build and publish passes, failing publish with duplicate compressed assets.
 *.js text eol=lf
 *.js.map text eol=lf
+
+# Android developer verification compares this snippet byte for byte, so git
+# must not add or convert line endings.
+adi-registration.properties -text

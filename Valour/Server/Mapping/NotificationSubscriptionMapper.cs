@@ -16,6 +16,7 @@ public static class NotificationSubscriptionMapper
             Auth = subscription.Auth,
             ExpiresAt = subscription.ExpiresAt,
             DeviceType = subscription.DeviceType,
+            AuthTokenId = subscription.AuthTokenId,
         };
     }
     
@@ -32,7 +33,8 @@ public static class NotificationSubscriptionMapper
             Key = subscription.Key,
             Auth = subscription.Auth,
             ExpiresAt = subscription.ExpiresAt,
-            DeviceType = subscription.DeviceType
+            DeviceType = subscription.DeviceType,
+            AuthTokenId = subscription.AuthTokenId
         };
     }
 }
