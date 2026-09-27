@@ -1,23 +1,3 @@
-.outer {
-    background-color: var(--main-3);
-    border-radius: var(--radius-xl);
-    padding: 1em;
-}
-
-.inner {
-    background-color: var(--main-1);
-    width: min(400px, 75vw);
-    overflow-y: auto;
-    padding: 1em;
-    border-radius: var(--radius-md);
-}
-
-.btns-wrapper {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1em;
-}
-
 .victor {
     width: 200px;
     height: 200px;
@@ -30,4 +10,11 @@
 
 .victor-text {
     text-align: center;
+    color: var(--text-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .victor {
+        animation: none;
+    }
 }

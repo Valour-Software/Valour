@@ -26,41 +26,47 @@
     display: flex;
     flex-direction: column;
     gap: 0.1em;
-    background-color: var(--main-1);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-sm);
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
     padding: 0.45em 0.7em;
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--font-color);
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
     white-space: nowrap;
     max-width: 220px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--shadow-overlay);
 }
 
 .globe-tooltip .tt-name {
-    font-weight: var(--font-weight-medium, 500);
+    font-weight: var(--font-weight-semibold);
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+.globe-tooltip .tt-members,
+.globe-tooltip .tt-online {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+}
+
 .globe-tooltip .tt-members {
-    color: var(--font-color-mid);
+    color: var(--text-secondary);
 }
 
 .globe-tooltip .tt-online {
-    color: var(--color-success, #58c48b);
+    color: var(--color-success);
 }
 
 .globe-tooltip .tt-online.zero {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .globe-note {
     position: absolute;
     bottom: 0.5em;
     right: 0.75em;
-    font-size: var(--font-size-3xs, 0.5rem);
-    color: var(--font-alt-color);
+    font-size: var(--font-size-2xs);
+    color: var(--text-tertiary);
     pointer-events: none;
     user-select: none;
 }

@@ -6,7 +6,7 @@
 }
 
 .chat-window-root.embedded {
-    border-top: 1px solid rgba(255, 255, 255, 0.02);
+    border-top: 1px solid var(--line);
 }
 
 .chat-setup-error {
@@ -19,11 +19,11 @@
     gap: 10px;
     padding: 24px;
     text-align: center;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .chat-setup-error i {
-    font-size: 2rem;
+    font-size: var(--font-size-3xl);
     color: var(--color-danger);
 }
 
@@ -33,7 +33,7 @@
 }
 
 .chat-setup-error h3 {
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .chat-member-wrapper {
@@ -87,6 +87,10 @@
     min-height: 0
 }
 
+.channel-start {
+    padding: 20px 16px 8px 20px;
+}
+
 .anchor {
     overflow-anchor: auto; 
     height: 1px; 
@@ -98,10 +102,10 @@
     align-items: center;
     gap: 12px;
     margin: 20px 10px 12px 12px;
-    color: rgba(255, 255, 255, 0.52);
-    font-family: var(--font-family-app);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-none);
     user-select: none;
 }
@@ -110,14 +114,11 @@
     flex: 1 1 0;
     height: 1px;
     min-width: 16px;
-    background: rgba(255, 255, 255, 0.10);
+    background: var(--line);
 }
 
 ::deep .message-date-divider-label {
-    padding: 5px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.04);
+    padding: 0 2px;
     white-space: nowrap;
 }
 
@@ -131,16 +132,16 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--main-3) 94%, transparent);
-    color: rgba(255, 255, 255, 0.86);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-full);
+    background: var(--surface-overlay);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-overlay);
     cursor: pointer;
     opacity: 0;
     pointer-events: none;
     transform: translate(-50%, 8px);
-    transition: opacity 0.16s ease, transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    transition: opacity var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard), color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
 }
 
 .scroll-to-bottom-button.visible {
@@ -150,8 +151,8 @@
 }
 
 .scroll-to-bottom-button:hover {
-    border-color: rgba(255, 255, 255, 0.22);
-    background: var(--main-4);
+    color: var(--text-primary);
+    background: var(--surface-hover);
 }
 
 .scroll-to-bottom-button i {

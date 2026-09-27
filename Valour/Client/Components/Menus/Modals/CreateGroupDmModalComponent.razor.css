@@ -1,6 +1,43 @@
-.group-dm-form { display: flex; flex-direction: column; gap: .65rem; }
-.group-dm-label { margin-top: .35rem; font-weight: 600; }
-.group-dm-friends { display: flex; max-height: 300px; overflow-y: auto; flex-direction: column; gap: .35rem; }
-.group-dm-friends label { display: flex; align-items: center; gap: .55rem; padding: .45rem; border-radius: 8px; }
-.group-dm-friends label:hover { background: var(--main-2); }
-.group-dm-error { color: #ff9e9e; }
+.group-dm-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.group-dm-label {
+    margin-top: 0.35rem;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
+}
+
+.group-dm-friends {
+    display: flex;
+    max-height: 300px;
+    overflow-y: auto;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.group-dm-friends label {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0.45rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.group-dm-friends label:hover {
+    background-color: var(--surface-hover);
+}
+
+.group-dm-error {
+    margin: 0;
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}

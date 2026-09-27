@@ -10,12 +10,12 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-tag-fill"></i>
-                Role Identity
+                Role identity
             </h3>
 
             <div class="identity-row">
                 <div class="form-group identity-name">
-                    <label>Role Name</label>
+                    <label>Role name</label>
                     <input class="v-input" placeholder="Role name" @bind-value="@_role.Name"/>
                 </div>
                 <div class="form-group">
@@ -37,7 +37,7 @@
 
             <div class="actions">
                 <button class="v-btn primary" @onclick="@OnClickSave">
-                    @(_role.Id == 0 ? "Create Role" : "Save Changes")
+                    @(_role.Id == 0 ? "Create role" : "Save changes")
                 </button>
                 <button class="v-btn" @onclick="@GoBack">Back</button>
             </div>
@@ -48,7 +48,7 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-globe2"></i>
-                Planet Permissions
+                Planet permissions
             </h3>
 
             <div class="toggle-item">
@@ -108,7 +108,7 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-folder-fill"></i>
-                Category Permissions
+                Category permissions
             </h3>
 
             @for (int i = 1; i < CategoryPermissions.Permissions.Length; i++)
@@ -133,7 +133,7 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-chat-fill"></i>
-                Chat Channel Permissions
+                Chat channel permissions
             </h3>
 
             @for (int i = 1; i < ChatChannelPermissions.Permissions.Length; i++)
@@ -160,7 +160,7 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-mic-fill"></i>
-                Voice Channel Permissions
+                Voice channel permissions
             </h3>
 
             @for (int i = 1; i < VoiceChannelPermissions.Permissions.Length; i++)
@@ -187,7 +187,7 @@
             <div class="editor-section danger-zone">
                 <h3 class="editor-section-title">
                     <i class="bi bi-exclamation-triangle-fill"></i>
-                    Danger Zone
+                    Danger zone
                 </h3>
 
                 <div class="actions">
@@ -260,7 +260,7 @@
             </div>
 
             <div class="actions">
-                <button class="v-btn primary" @onclick="OnClickCreateMode">Create Role</button>
+                <button class="v-btn primary" @onclick="OnClickCreateMode">Create role</button>
             </div>
         </div>
     </div>

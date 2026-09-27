@@ -4,6 +4,7 @@
 @using Valour.Shared.Models
 @using Valour.Client.Components.Threads.Display
 @using Microsoft.AspNetCore.Components
+@using Valour.Client.Utility
 @{
     var title = Model.Thread?.Title ?? "Thread";
     var planetName = Model.Planet?.Name ?? "Planet";
@@ -60,7 +61,7 @@
     }
 </head>
 <body>
-<div class="pt-page">
+<div class="pt-page" style="@(Model.Planet is null ? null : $"--planet-light: {NebulaPalettes.PlanetLight(Model.Planet.Id)}")">
     <header class="pt-topbar">
         <a class="pt-brand" href="/">
             <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>

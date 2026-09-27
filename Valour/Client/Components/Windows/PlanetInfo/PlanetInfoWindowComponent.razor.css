@@ -1,4 +1,10 @@
 .planet-info-loading {
     margin: 1rem;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+}
+
+.planet-info-error {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
 }

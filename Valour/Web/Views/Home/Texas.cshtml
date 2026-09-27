@@ -30,20 +30,18 @@
 
 @Html.Raw($"<script type=\"application/ld+json\">{articleJsonLd}</script>")
 
-<main class="texas-notice">
-    <article class="texas-notice-card">
-        <p class="texas-notice-eyebrow">Registration notice</p>
+<div class="container doc-page">
+    <article class="prose doc-single">
+        <p class="eyebrow">Registration notice</p>
         <h1>Texas and Valour</h1>
 
-        <p class="texas-notice-lead">
+        <p class="doc-lede">
             Hello, future Valournaut. If Texas is your legal home, we cannot welcome you aboard right now.
         </p>
 
-        <section class="texas-notice-stance">
-            <p>
-                We refuse to store your biometric data or hand it to third parties, so we will take the registration hit instead.
-            </p>
-        </section>
+        <p class="callout">
+            We refuse to store your biometric data or hand it to third parties, so we will take the registration hit instead.
+        </p>
 
         <p>
             Texas has joined a growing push to make online services verify ages and identities at the gate. Its
@@ -53,7 +51,7 @@
             requiring age assurance for Texans and new restrictions on how minors use the service.
         </p>
 
-        <section class="texas-notice-context">
+        <section>
             <h2>This is not a defense of Discord</h2>
             <p>
                 Discord has serious child-safety and predator problems. We are not denying them, excusing them, or suggesting that protecting children can wait. Calling those failures acceptable would be absurd.
@@ -72,7 +70,7 @@
             passed the House in June 2026 with another collection of age, parental-control, and messaging rules. It is not law yet, but the destination is not subtle.
         </p>
 
-        <section class="texas-notice-answer">
+        <section>
             <h2>Our answer</h2>
             <p>
                 We are not going to turn every Valournaut's face or government ID into a login credential. We are not going to give an identity vendor a seat at every Planet. New registrations for legal residents of Texas are paused instead.
@@ -85,9 +83,9 @@
             </p>
         </section>
 
-        <div class="texas-notice-actions">
-            <a class="btn btn-gradient" href="https://app.valour.gg/Register">Back to registration <i class="bi bi-arrow-right"></i></a>
-            <a class="texas-notice-home-link" href="/">Return to Valour</a>
+        <div class="doc-actions">
+            <a class="btn btn-primary" href="https://app.valour.gg/Register">Back to registration <i class="bi bi-arrow-right"></i></a>
+            <a href="/">Return to Valour</a>
         </div>
     </article>
-</main>
+</div>

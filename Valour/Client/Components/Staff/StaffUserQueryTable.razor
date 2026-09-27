@@ -46,18 +46,18 @@
                 Name = "Actions",
                 RenderFragment = (rowData) =>
                     @<div class="button-row">
-                        <button class="v-btn" @onclick="@(() => OpenTools(rowData.Row))">Tools</button>
+                        <button class="v-btn small" @onclick="@(() => OpenTools(rowData.Row))">Tools</button>
 
                         @if (rowData.Row.Disabled)
                         {
-                            <button class="v-btn primary" @onclick="@(() => EnableUser(rowData.Row))">Enable</button>
+                            <button class="v-btn small" @onclick="@(() => EnableUser(rowData.Row))">Enable</button>
                         }
                         else
                         {
-                            <button class="v-btn secondary" @onclick="@(() => DisableUser(rowData.Row))">Disable</button>
+                            <button class="v-btn small" @onclick="@(() => DisableUser(rowData.Row))">Disable</button>
                         }
 
-                        <button class="v-btn danger" @onclick="@(() => DeleteUser(rowData.Row))">Delete</button>
+                        <button class="v-btn small danger" @onclick="@(() => DeleteUser(rowData.Row))">Delete</button>
                     </div>
             }
         };

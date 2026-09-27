@@ -3,6 +3,7 @@
 @using Valour.Server.Pages
 @using Valour.Client.Components.Wiki.Display
 @using Microsoft.AspNetCore.Components
+@using Valour.Client.Utility
 @{
     var planetName = Model.Planet?.Name ?? "Planet";
     var title = Model.Doc?.Title ?? "Wiki";
@@ -55,7 +56,7 @@
     <link href="/_content/Valour.Client/css/public-wiki.css" rel="stylesheet"/>
 </head>
 <body>
-<div class="pd-page">
+<div class="pd-page" style="@(Model.Planet is null ? null : $"--planet-light: {NebulaPalettes.PlanetLight(Model.Planet.Id)}")">
     <header class="pd-topbar">
         <a class="pd-brand" href="/">
             <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>
@@ -112,7 +113,7 @@
                     @if (Model.Doc.LastEdited is not null)
                     {
                         <p class="pd-meta">
-                            Last updated @Model.Doc.LastEdited.Value.ToString("MMMM d, yyyy")@(Model.LastEditorName is not null ? $" by {Model.LastEditorName}" : "")
+                            Last updated <time class="pd-num" datetime="@Model.Doc.LastEdited.Value.ToString("yyyy-MM-dd")">@Model.Doc.LastEdited.Value.ToString("MMMM d, yyyy")</time>@(Model.LastEditorName is not null ? $" by {Model.LastEditorName}" : "")
                         </p>
                     }
 

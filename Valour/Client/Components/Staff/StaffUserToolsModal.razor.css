@@ -2,6 +2,15 @@
     margin-bottom: 0.5em;
 }
 
+.staff-tools-heading {
+    margin-bottom: 0.5em;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
+}
+
 .button-row {
     display: flex;
     flex-wrap: wrap;
@@ -10,8 +19,8 @@
 }
 
 .staff-tools-note {
-    font-size: 0.8em;
-    opacity: 0.7;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
     margin-bottom: 0;
 }
 

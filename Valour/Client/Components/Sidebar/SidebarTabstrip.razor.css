@@ -1,49 +1,50 @@
 .tabstrip {
     position: relative;
-    width: 100%;
-    display: flex;
-    min-height: 40px;
-    background-color: var(--main-1);
-    border-top: 1px solid var(--slight-tint);
     bottom: 0;
+    z-index: 10;
+    display: flex;
     justify-content: space-evenly;
     align-items: stretch;
-    z-index: 10;
+    width: 100%;
+    min-height: 42px;
+    background-color: var(--surface-canvas);
+    border-top: 1px solid var(--line);
 }
 
 .tab-indicator {
     position: absolute;
     bottom: 0;
     left: 0;
-    height: 2px;
+    z-index: 1;
     display: flex;
     justify-content: center;
+    height: 2px;
     pointer-events: none;
-    transition: transform 0.45s var(--ease-spring);
-    z-index: 1;
+    transition: transform var(--duration-slow) var(--ease-standard);
 }
 
 .tab-indicator-bar {
-    width: 22px;
+    width: 18px;
     height: 2px;
     border-radius: var(--radius-full);
-    background: linear-gradient(to right, var(--v-cyan), var(--v-purple));
+    background-color: var(--text-primary);
 }
 
 .mobile .tabstrip {
-    min-height: 48px;
+    min-height: 50px;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .tabstrip .item {
-    flex: 1 1 0;
-    cursor: pointer;
     position: relative;
     display: flex;
+    flex: 1 1 0;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.55);
+    color: var(--text-tertiary);
+    cursor: pointer;
     transition: color var(--duration-fast) var(--ease-standard),
-                background-color var(--duration-fast) var(--ease-standard);
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .tabstrip .item ::deep .tooltip-trigger {
@@ -53,57 +54,45 @@
 }
 
 .tabstrip .item:hover {
-    color: var(--font-color);
-    background-color: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
 }
 
 .tabstrip .item.selected {
-    color: var(--font-color);
-}
-
-.tabstrip .item.selected .icon-holder i {
-    animation: tab-icon-pop 0.45s var(--ease-spring);
+    color: var(--text-primary);
 }
 
 .tabstrip .icon-holder {
     position: relative;
     display: inline-block;
-    padding: 8px 0;
-    transition: transform var(--duration-fast) var(--ease-standard);
-}
-
-.tabstrip .item:active .icon-holder {
-    transform: scale(0.85);
-}
-
-@keyframes tab-icon-pop {
-    from { transform: scale(0.7); }
-    to { transform: scale(1); }
+    padding: 9px 0;
 }
 
 .tabstrip .icon-holder i {
-    line-height: var(--line-height-none);
     display: block;
+    line-height: var(--line-height-none);
 }
 
 .tabstrip .icon-holder .notif-badge {
+    position: absolute;
+    top: 2px;
+    right: -11px;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--color-danger);
-    border-radius: var(--radius-full);
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
-    position: absolute;
-    top: 0;
-    right: -10px;
-    z-index: 1;
+    background-color: var(--color-primary);
+    border: 2px solid var(--surface-canvas);
+    border-radius: var(--radius-full);
+    box-sizing: content-box;
 }
 
 .tabstrip .icon-holder .notif-badge span {
-    font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-bold);
-    color: white;
+    color: var(--color-primary-contrast);
+    font-family: var(--font-family-mono);
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-none);
 }

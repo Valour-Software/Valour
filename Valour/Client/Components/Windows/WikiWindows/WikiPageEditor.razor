@@ -9,8 +9,8 @@
     <div class="de-header">
         <h2>@(_isNew ? "New page" : "Edit page")</h2>
         <div class="de-header-actions">
-            <button class="v-pill" @onclick="OnCancelAsync" disabled="@_saving">Cancel</button>
-            <button class="v-pill accent" @onclick="SaveAsync"
+            <button class="v-btn small" @onclick="OnCancelAsync" disabled="@_saving">Cancel</button>
+            <button class="v-btn primary small" @onclick="SaveAsync"
                     disabled="@(_saving || !CanSave)">
                 @(_saving ? "Saving..." : "Save")
             </button>
@@ -31,8 +31,8 @@
             <i class="bi bi-exclamation-octagon"></i>
             <span>This page changed since you started editing.</span>
             <div class="de-banner-actions">
-                <button class="v-pill" @onclick="ReloadLatestAsync">Discard mine &amp; reload</button>
-                <button class="v-pill danger" @onclick="OverwriteAsync">Overwrite with mine</button>
+                <button class="v-btn small" @onclick="ReloadLatestAsync">Discard mine &amp; reload</button>
+                <button class="v-btn danger small" @onclick="OverwriteAsync">Overwrite with mine</button>
             </div>
         </div>
     }

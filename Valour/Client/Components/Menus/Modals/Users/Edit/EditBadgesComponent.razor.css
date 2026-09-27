@@ -1,17 +1,17 @@
 .section-description {
     max-width: 560px;
     margin: 0 0 1.25rem;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
-    line-height: 1.5;
+    line-height: var(--line-height-relaxed);
 }
 
 .badge-preview,
 .badge-toggle-item,
 .badge-empty-state {
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    background: var(--main-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-raised);
 }
 
 .badge-preview {
@@ -30,7 +30,7 @@
 }
 
 .preview-label {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
 }
 
@@ -54,9 +54,9 @@
     justify-content: center;
     width: 34px;
     height: 34px;
-    border-radius: 50%;
-    color: var(--font-color);
-    background: var(--main-1);
+    border-radius: var(--radius-full);
+    color: var(--text-primary);
+    background-color: var(--surface-canvas);
 }
 
 .badge-icon.stargazer i {
@@ -78,7 +78,7 @@
 }
 
 .badge-title {
-    color: var(--font-color);
+    color: var(--text-primary);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
 }
@@ -86,7 +86,7 @@
 .badge-description,
 .badge-empty-state,
 .save-status {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
 }
 
@@ -95,6 +95,9 @@
     align-items: center;
     gap: .75rem;
     padding: 1rem;
+    background-color: transparent;
+    border-style: dashed;
+    border-color: var(--line-strong);
 }
 
 .save-status {

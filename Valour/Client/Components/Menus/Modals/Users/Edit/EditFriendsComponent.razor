@@ -40,8 +40,8 @@
                         <UserInfoComponent User="@addedMe" ShowBadges="false" />
 
                         <div class="action-row" role="group" aria-label="Friend Accept or Deny">
-                            <VButton Variant="primary" Size="sm" OnClick="@(async () => await OnAcceptRequest(addedMe))">Accept</VButton>
-                            <VButton Variant="secondary" Size="sm" OnClick="@(async () => await OnDeclineRequest(addedMe))">Decline</VButton>
+                            <VButton Variant="secondary" Size="sm" OnClick="@(async () => await OnAcceptRequest(addedMe))">Accept</VButton>
+                            <VButton Variant="ghost" Size="sm" OnClick="@(async () => await OnDeclineRequest(addedMe))">Decline</VButton>
                         </div>
                     </div>
                 }

@@ -1,17 +1,43 @@
 .change-log {
+    position: absolute;
+    z-index: 99999;
+    left: 50%;
+    top: 50%;
     width: 800px;
     height: 600px;
     max-width: 90%;
     max-height: 90%;
     padding: 40px;
-    background-color: var(--main-3);
-    border: solid 2px var(--main-4);
-    border-radius: var(--radius-xl);
     overflow-y: auto;
-    position: absolute;
-    z-index: 99999;
-    left: 50%;
-    top: 50%;
+    color: var(--text-secondary);
+    background-color: var(--surface-base);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-modal), var(--rim-light);
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 30px black;
+}
+
+.change-log h4 {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.changelog-image {
+    width: 95%;
+    margin-bottom: 18px;
+    border-radius: var(--radius-lg);
+}
+
+.changelog-label {
+    margin-bottom: 0.5rem;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-label);
+    text-transform: uppercase;
+}
+
+.changelog-highlight {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
 }

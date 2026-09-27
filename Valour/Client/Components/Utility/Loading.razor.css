@@ -1,3 +1,10 @@
-﻿.spin {
-    animation: quirkySpin 3s infinite;
+﻿.compact .loading-logo {
+    width: 56px;
+}
+
+.compact .loading-title {
+    margin-top: 12px;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
 }

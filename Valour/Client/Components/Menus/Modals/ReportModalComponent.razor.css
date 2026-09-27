@@ -14,24 +14,26 @@
 }
 
 .report-progress span {
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-sm);
-    color: var(--font-color);
+    padding: 0.5rem 0.6rem;
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-none);
-    padding: 0.55rem 0.6rem;
     text-align: center;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
 }
 
 .report-progress span.active {
-    border-color: var(--main-4);
-    background: color-mix(in srgb, var(--main-4) 22%, transparent);
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
+    border-color: var(--line-strong);
 }
 
 .report-progress span.done {
-    border-color: color-mix(in srgb, #40d889 55%, transparent);
-    background: color-mix(in srgb, #40d889 15%, transparent);
+    color: var(--color-success);
+    background-color: var(--color-success-soft);
+    border-color: var(--color-success-border);
 }
 
 .report-step {
@@ -41,10 +43,11 @@
 }
 
 .report-step h3 {
-    color: var(--font-color);
-    font-size: var(--font-size-2xl);
-    line-height: var(--line-height-tight);
     margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
 }
 
 .report-scope-grid {
@@ -56,17 +59,19 @@
 .report-scope-card,
 .report-option-card,
 .report-summary-card {
-    background: var(--main-2);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    color: var(--font-color);
+    color: var(--text-primary);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
 }
 
 .report-scope-card,
 .report-option-card {
-    cursor: pointer;
+    font: inherit;
     text-align: left;
-    transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .report-scope-card {
@@ -79,9 +84,14 @@
 
 .report-scope-card:hover:not(:disabled),
 .report-option-card:hover {
-    border-color: var(--main-4);
-    background: color-mix(in srgb, var(--main-4) 12%, var(--main-2));
-    transform: translateY(-1px);
+    background-color: var(--surface-hover);
+    border-color: var(--line-strong);
+}
+
+.report-scope-card:focus-visible,
+.report-option-card:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .report-scope-card:disabled {
@@ -90,7 +100,7 @@
 }
 
 .report-scope-card i {
-    color: var(--font-color);
+    color: var(--text-secondary);
     font-size: var(--font-size-2xl);
     line-height: var(--line-height-none);
 }
@@ -98,9 +108,9 @@
 .report-scope-card span,
 .report-option-card span,
 .report-summary-card span {
-    color: var(--font-color);
+    color: var(--text-primary);
     font-size: var(--font-size-md);
-    font-weight: var(--font-weight-extrabold);
+    font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-snug);
 }
 
@@ -108,10 +118,10 @@
 .report-option-card p,
 .report-summary-card p,
 .report-result p {
-    color: var(--font-color);
-    font-size: var(--font-size-md);
-    line-height: var(--line-height-base);
     margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-base);
 }
 
 .report-option-list {
@@ -141,9 +151,10 @@
 }
 
 .report-field label {
-    color: var(--font-color);
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-extrabold);
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
 }
 
 .report-field textarea {
@@ -161,7 +172,7 @@
 }
 
 .report-result.success i {
-    color: #40d889;
+    color: var(--color-success);
 }
 
 .report-result.failure i {
@@ -188,14 +199,14 @@
     gap: var(--space-2);
     margin-top: var(--space-3);
     padding: var(--space-3);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
 }
 
 .report-evidence > i {
-    color: var(--font-alt-color);
     margin-top: 2px;
+    color: var(--text-tertiary);
 }
 
 .report-evidence > span {
@@ -205,6 +216,6 @@
 }
 
 .report-evidence > span > span {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }

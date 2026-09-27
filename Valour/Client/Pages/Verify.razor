@@ -1,21 +1,14 @@
 ﻿@inject ValourClient Client
 @page "/Verify/{Code}"
 
-<body class="login-background" style="background-image: url('./media/Abstract-Background.png')">
-    <div class="popup-box">
-        <div class="col-md-12">
-            <section>
-                <h2>Email Verification</h2>
-
-                <h4>Thanks for registering!</h4>
-                <hr />
-                <br />
-                
-                <ResultLabel Result="@_result" />
-            </section>
-        </div>
+<SignInShell>
+    <h1 class="headline">Verifying your email.</h1>
+    <p class="lede">Thanks for signing up. This only takes a moment.</p>
+    <ResultLabel Result="@_result" />
+    <div class="sign-in-actions">
+        <a class="v-btn primary" href="/">Continue to Valour</a>
     </div>
-</body>
+</SignInShell>
 
 @code {
 

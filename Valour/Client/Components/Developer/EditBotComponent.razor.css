@@ -2,41 +2,44 @@
     display: flex;
     align-items: center;
     padding: 1rem;
-    background-color: var(--main-4);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     margin-bottom: 1.5rem;
 }
 
 .bot-avatar {
     width: 64px;
     height: 64px;
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-avatar);
     object-fit: cover;
     margin-right: 1rem;
 }
 
 .bot-header-info {
     flex: 1;
+    min-width: 0;
 }
 
 .bot-header-name {
     margin: 0 0 0.25rem 0;
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-semibold);
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .bot-header-tag {
     margin: 0;
-    font-size: var(--font-size-md);
-    color: var(--font-color-muted);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
 }
 
 .bot-header-id {
     margin: 0.25rem 0 0 0;
-    font-size: var(--font-size-sm);
-    color: var(--font-color-muted);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
     font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .input-group {
@@ -49,16 +52,16 @@
 }
 
 .token-section {
-    background-color: var(--main-4);
-    border-radius: var(--radius-md);
+    background-color: var(--color-warning-soft);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-lg);
     padding: 1rem;
     margin-bottom: 1rem;
-    border-left: 3px solid var(--color-warning);
 }
 
 .token-warning {
     color: var(--color-warning);
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
     margin-bottom: 1rem;
 }
 
@@ -75,26 +78,21 @@
     margin-top: 2rem;
     padding: 1rem;
     background-color: var(--color-danger-soft);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-danger-border);
 }
 
 .danger-zone h5 {
     margin: 0 0 0.5rem 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
     color: var(--color-danger);
 }
 
 .danger-zone p {
     margin: 0 0 1rem 0;
-    color: var(--font-color-muted);
-    font-size: var(--font-size-md);
-}
-
-.v-btn.warning {
-    background-color: var(--color-warning);
-    color: var(--color-warning-contrast);
-}
-
-.v-btn.warning:hover {
-    background-color: color-mix(in srgb, var(--color-warning), white 10%);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
 }

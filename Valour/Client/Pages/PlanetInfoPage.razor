@@ -14,16 +14,28 @@
 else if (_planetInfo != null)
 {
     <div class="planet-page-container">
-        <PlanetInfoDisplay PlanetInfo="@_planetInfo" IsFullPage="true" />
+        <PlanetInfoDisplay PlanetInfo="@_planetInfo" IsFullPage="true">
+            <Actions>
+                @if (_planetInfo.Discoverable)
+                {
+                    <button class="v-btn primary" @onclick="@(() => Navigation.NavigateTo($"/D/{_planetInfo.PlanetId}"))">
+                        Join planet
+                    </button>
+                }
+                <button class="v-btn" @onclick="@(() => Navigation.NavigateTo("/"))">
+                    Open Valour
+                </button>
+            </Actions>
+        </PlanetInfoDisplay>
     </div>
 }
 else if (_errorMessage != null)
 {
     <div class="error-container">
-        <h2>Planet Not Found</h2>
+        <h2>Planet not found</h2>
         <p>@_errorMessage</p>
-    <button class="v-btn primary" @onclick="@(() => Navigation.NavigateTo("/"))">
-            Go Home
+        <button class="v-btn primary" @onclick="@(() => Navigation.NavigateTo("/"))">
+            Go home
         </button>
     </div>
 }

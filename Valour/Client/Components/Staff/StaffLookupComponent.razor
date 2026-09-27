@@ -30,11 +30,23 @@
         <div class="lookup-result mt-3">
             <table class="lookup-table">
                 <tbody>
-                <tr><td>User</td><td>@_result.Name#@_result.Tag (@_result.UserId)</td></tr>
+                <tr><td>User</td><td>@_result.Name#@_result.Tag (<span class="lookup-mono">@_result.UserId</span>)</td></tr>
                 <tr><td>Email</td><td>@_result.Email @(_result.EmailVerified ? "(verified)" : "(unverified)")</td></tr>
-                <tr><td>Created</td><td>@_result.TimeCreated.ToString("u")</td></tr>
+                <tr><td>Created</td><td class="lookup-mono">@_result.TimeCreated.ToString("u")</td></tr>
                 <tr><td>Disabled</td><td>@(_result.Disabled ? "Yes" : "No")</td></tr>
-                <tr><td>Bot</td><td>@(_result.Bot ? $"Yes (owner: {_result.OwnerId})" : "No")</td></tr>
+                <tr>
+                    <td>Bot</td>
+                    <td>
+                        @if (_result.Bot)
+                        {
+                            <span>Yes (owner: <span class="lookup-mono">@_result.OwnerId</span>)</span>
+                        }
+                        else
+                        {
+                            <span>No</span>
+                        }
+                    </td>
+                </tr>
                 <tr>
                     <td>Prior name</td>
                     <td>

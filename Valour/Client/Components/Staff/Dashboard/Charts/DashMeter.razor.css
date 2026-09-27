@@ -1,7 +1,7 @@
 .dash-meter {
     width: 100%;
     background: transparent;
-    font-family: var(--font-family-app, sans-serif);
+    font-family: var(--font-family-app);
 }
 
 .meter-head {
@@ -13,8 +13,8 @@
 }
 
 .meter-label {
-    font-size: 12px;
-    color: var(--font-color-mid, #aaaaaa);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -22,20 +22,22 @@
 }
 
 .meter-value {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--font-color, #ffffff);
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
     flex: 0 0 auto;
 }
 
 .meter-track {
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
     overflow: hidden;
 }
 
 .meter-fill {
     height: 100%;
-    border-radius: 3px;
-    transition: width 0.25s ease;
+    border-radius: var(--radius-xs);
+    transition: width var(--duration-slow) var(--ease-standard);
 }

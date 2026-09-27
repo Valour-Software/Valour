@@ -32,7 +32,7 @@
                 <div class="dh-item @(_openingId == rev.Id ? "loading" : "")" @onclick="@(() => OpenRevisionAsync(rev))">
                     <span class="dh-item-title">@rev.Title</span>
                     <span class="dh-item-meta">
-                        @(GetAuthorName(rev.AuthorUserId)) · @rev.TimeCreated.ToLocalTime().ToString("g")
+                        @(GetAuthorName(rev.AuthorUserId)) · <span class="dh-item-time">@rev.TimeCreated.ToLocalTime().ToString("g")</span>
                     </span>
                 </div>
             }

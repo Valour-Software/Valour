@@ -1,49 +1,132 @@
-.account-selected {
-    margin-bottom: 4px;
+.pay-title {
+    margin: 0 0 var(--space-3);
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
 }
 
-.account-selected {
+.pay-balance {
+    margin: 0 0 var(--space-2);
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
     text-align: center;
+}
+
+.pay-status {
+    margin: 0 0 var(--space-3);
+    padding: var(--space-4) 0 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}
+
+.pay-note {
+    margin: var(--space-4) 0 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}
+
+.pay-error {
+    margin: var(--space-4) 0 0;
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+    text-align: center;
+}
+
+.pay-action {
+    margin-top: var(--space-4);
 }
 
 .select-title {
-    margin-top: 0.5em;
-    border-radius: var(--radius-sm);
-    text-align: center;
+    margin: var(--space-4) 0 var(--space-2);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
 }
 
-.account-select {
-    text-align: left;
-    display: flex;
-    flex-direction: row;
-    gap: 16px;
-    height: 45px;
-    align-items: center;
-    background-color: var(--main-3);
-    padding: 8px;
-    border-radius: var(--radius-md);
+.field-label {
+    margin: 0 0 var(--space-1);
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
 }
 
-.account-select:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+.amount,
+.transaction-id {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
-.input-row {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-top: 16px;
+.transaction-id {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.currency-code {
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
 }
 
 .recipient-dropdown-content {
     max-height: 250px;
     overflow-y: auto;
-    padding-right: 12px;
+    padding-right: var(--space-2);
+}
+
+.recipient-dropdown-content .v-input {
+    margin-bottom: var(--space-2);
+}
+
+.account-select {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 45px;
+    padding: var(--space-2);
+    text-align: left;
+    background-color: var(--surface-raised);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.account-select:hover {
+    background-color: var(--surface-hover);
+}
+
+.account-balance,
+.account-line {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.input-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.input-row .amount-input {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.amount-input {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .selected-preview {
-    margin-top: 1em;
-    padding: 0.5em;
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background-color: var(--main-4);
 }

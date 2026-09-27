@@ -6,9 +6,28 @@
 @inject ContextMenuService ContextMenuService
 
 <div class="joined-planets">
+    <div class="section-label">
+        <span>Your planets</span>
+        <div class="section-actions">
+            <button type="button" class="section-action" title="Explore planets" aria-label="Explore planets" @onclick="@OnClickExplore">
+                <i class="bi bi-compass" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="section-action" title="Create a planet" aria-label="Create a planet" @onclick="@OnClickCreatePlanet">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
     @if (_renderPlanets.Count > 0)
     {
         <TutorialHint TutorialId="@UserTutorials.OpenPlanetChat" Text="Your planets have live chat — click one to jump in" />
+    }
+    @if (_loaded && _renderPlanets.Count == 0)
+    {
+        <div class="no-planets">
+            <p>You haven't joined any planets yet.</p>
+            <button type="button" class="v-btn primary" @onclick="@OnClickExplore">Explore planets</button>
+            <button type="button" class="v-btn" @onclick="@OnClickCreatePlanet">Create a planet</button>
+        </div>
     }
     <div class="list hover-scrollbar">
         @if (_creatingFolder)
@@ -69,10 +88,6 @@
             }
         </div>
     </div>
-    <div class="bottom-actions">
-        <VButton Variant="secondary" Icon="compass" FullWidth="true" OnClick="@OnClickExplore">Discover Planets</VButton>
-        <VButton Variant="secondary" Icon="plus-circle" FullWidth="true" OnClick="@OnClickCreatePlanet">Create a Planet</VButton>
-    </div>
 </div>
 
 @code {
@@ -90,6 +105,7 @@
     private readonly List<PlanetListFolder> _folders = [];
     private readonly HashSet<long> _collapsedFolders = [];
     private List<JoinedPlanetRenderInfo> _renderPlanets = [];
+    private bool _loaded;
     private string _lastFilterText;
     private string _folderName = string.Empty;
     private bool _creatingFolder;
@@ -116,7 +132,7 @@
         <TooltipTrigger>
             <ChildContent>
                 <button type="button" aria-label="@item.Planet.Name" @onclick="() => OnPlanetClick(item.Planet)">
-                    <PlanetIcon Planet="item.Planet" Size="28" Unread="item.HasUnread" />
+                    <PlanetIcon Planet="item.Planet" Size="28" Unread="@(item.HasUnread && item.Notifications == 0)" />
                     @if (item.Notifications > 0)
                     {
                         <span class="folder-notif">@(item.Notifications > 9 ? "9+" : item.Notifications)</span>
@@ -146,6 +162,7 @@
             _placements = layout.Data.Planets.ToDictionary(x => x.PlanetId);
         }
         CalculatePlanets();
+        _loaded = true;
         await ReRender();
     }
 

@@ -1,0 +1,137 @@
+.sky-moment {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.sky-moment.stack {
+    align-items: center;
+    text-align: center;
+}
+
+.sky-moment-art {
+    position: relative;
+    width: 100%;
+    height: var(--moment-height);
+    overflow: hidden;
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+}
+
+.sky-moment.stack .sky-moment-art {
+    max-width: calc(var(--moment-height) * 1.6);
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+}
+
+.sky-moment.stack .sky-moment-art ::deep .nebula-sky {
+    mask-image: radial-gradient(ellipse closest-side at 50% 50%, #000 35%, transparent 100%);
+}
+
+.sky-moment.stack .sky-moment-art ::deep .planet-globe {
+    mask-image: linear-gradient(to right, transparent, #000 25%, #000 75%, transparent), linear-gradient(to bottom, #000 82%, transparent);
+    mask-composite: intersect;
+}
+
+.sky-moment-art ::deep canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.victor {
+    position: absolute;
+    left: 50%;
+    width: auto;
+    transform: translateX(-50%);
+    user-select: none;
+    pointer-events: none;
+}
+
+.pose-peeking .victor {
+    top: 31%;
+    height: 58%;
+}
+
+.pose-telescope .victor {
+    top: 1.5%;
+    height: 86%;
+}
+
+.pose-sleeping .victor {
+    top: 2%;
+    height: 96%;
+}
+
+.pose-rocket .victor {
+    top: 6%;
+    height: 88%;
+}
+
+.pose-astronaut .victor {
+    top: 10%;
+    height: 80%;
+    animation: victor-drift 6s ease-in-out infinite alternate;
+}
+
+@keyframes victor-drift {
+    0% {
+        transform: translateX(-50%) translate(-6px, -6px) rotate(-9deg);
+    }
+
+    50% {
+        transform: translateX(-50%) translate(4px, 3px) rotate(-3deg);
+    }
+
+    100% {
+        transform: translateX(-50%) translate(-2px, 7px) rotate(4deg);
+    }
+}
+
+.sky-moment-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 420px;
+}
+
+.sky-moment.stack .sky-moment-copy {
+    align-items: center;
+}
+
+.sky-moment-eyebrow {
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.sky-moment-title {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
+}
+
+.sky-moment.banner .sky-moment-title {
+    font-size: var(--font-size-2xl);
+    letter-spacing: var(--letter-spacing-display);
+}
+
+.sky-moment-description {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pose-astronaut .victor {
+        animation: none;
+    }
+}

@@ -26,11 +26,11 @@
             @if (ShowSpamOptions)
             {
                 <div class="form-group">
-                    <label>Spam Message Count</label>
+                    <label>Spam message count</label>
                     <InputNumber class="v-input" TValue="int" @bind-Value="SpamMessageCount" />
                 </div>
                 <div class="form-group">
-                    <label>Spam Time Window (seconds)</label>
+                    <label>Spam time window (seconds)</label>
                     <InputNumber class="v-input" TValue="int" @bind-Value="SpamWindowSeconds" />
                 </div>
             }
@@ -107,12 +107,12 @@
                     RowHeight="40" />
             }
 
-            <button class="v-btn" @onclick="OnAddAction">Add Action</button>
+            <button class="v-btn" @onclick="OnAddAction">Add action</button>
             <ResultLabel Result="@_result" />
         }
         else if (_step == 3)
         {
-            <p class="subtitle">@(_actionIsNew ? "Add Action" : "Edit Action")</p>
+            <p class="subtitle">@(_actionIsNew ? "Add action" : "Edit action")</p>
             <div class="form-group">
                 <label>Type</label>
                 <select class="v-input" @bind="_action.ActionType">
@@ -124,12 +124,12 @@
             </div>
 
             <div class="form-group">
-                <label>Strikes Required</label>
+                <label>Strikes required</label>
                 <InputNumber class="v-input" TValue="int" @bind-Value="_action.Strikes" />
             </div>
             <div class="toggle-item">
                 <div class="toggle-header">
-                    <span class="toggle-title">Use Global Strikes</span>
+                    <span class="toggle-title">Use global strikes</span>
                     <label class="switch">
                         <input type="checkbox" @bind="_action.UseGlobalStrikes" />
                         <span class="slider round"></span>
@@ -140,7 +140,7 @@
             @if (ShowExpires)
             {
                 <div class="form-group">
-                    <label>Duration Minutes (0 for permanent)</label>
+                    <label>Duration in minutes (0 for permanent)</label>
                     <InputNumber class="v-input" TValue="int" @bind-Value="_duration" />
                 </div>
             }
@@ -303,7 +303,7 @@
     private ITaskResult _actionResult;
 
     private string ModalTitle => _step == 3
-        ? (_actionIsNew ? "Add Action" : "Edit Action")
+        ? (_actionIsNew ? "Add action" : "Edit action")
         : $"{(_isNew ? "Add Trigger" : "Edit Trigger")} - Step {_step} of 2";
 
     private void NextStep() => _step = Math.Min(2, _step + 1);

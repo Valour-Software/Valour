@@ -1,7 +1,4 @@
-﻿.modal-bg {
-    background-color: var(--main-2);
-    border-radius: var(--radius-xl);
-    text-align: center; 
-    padding: 30px; 
-    max-width: 400px
+﻿.error-text {
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
 }

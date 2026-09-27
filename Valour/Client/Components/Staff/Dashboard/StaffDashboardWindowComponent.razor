@@ -27,7 +27,7 @@
 
     <header class="dash-header">
         <div class="dash-title-block">
-            <h2>Platform Dashboard</h2>
+            <h2>Platform dashboard</h2>
             <span class="dash-updated">Updated @_lastUpdate.ToLocalTime().ToString("HH:mm:ss")</span>
         </div>
         <div class="live-badge @(_live ? "on" : "")">
@@ -42,7 +42,7 @@
             <div class="hero-tile">
                 <span class="hero-label">Online now</span>
                 <span class="hero-value">@DashFormat.Compact(Live.OnlineUsers)</span>
-                <span class="hero-sub">@DashFormat.Compact(Live.Connections) realtime connections</span>
+                <span class="hero-sub"><span class="hero-number">@DashFormat.Compact(Live.Connections)</span> realtime connections</span>
             </div>
             <div class="kpi-grid">
                 <DashStatTile Label="Active today" Icon="person-check-fill"
@@ -100,10 +100,10 @@
     <section class="dash-section">
         <div class="section-head">
             <h3>Trends</h3>
-            <div class="range-row" role="group" aria-label="Date range">
+            <div class="range-row v-pill-group" role="group" aria-label="Date range">
                 @foreach (var preset in RangePresets)
                 {
-                    <button class="range-btn @(_rangeDays == preset ? "active" : "")"
+                    <button class="range-btn v-pill-tab @(_rangeDays == preset ? "active" : "")"
                             @onclick="() => SetRangeAsync(preset)">
                         @preset days
                     </button>
@@ -199,7 +199,7 @@
         <div class="section-head"><h3>Infrastructure</h3></div>
         <div class="infra-grid">
             <div class="dash-card nodes-card">
-                <div class="card-title">Official nodes · @AliveNodeCount online</div>
+                <div class="card-title">Official nodes · <span class="card-count">@AliveNodeCount</span> online</div>
                 <div class="node-list">
                     @foreach (var node in _snapshot.ClusterNodes ?? EmptyNodes)
                     {

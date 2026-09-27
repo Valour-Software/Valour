@@ -358,6 +358,8 @@ public class ValourClient
                 data.AddedByFriendIds);
             BlockService.ApplyBlocks(data.Blocks);
             await PlanetService.ApplyJoinedPlanetsAsync(data.Planets, data.FederatedMemberships);
+            if (data.PlanetActivity is not null)
+                PlanetService.ApplyPlanetActivity(data.Planets.Select(x => x.Id), data.PlanetActivity);
             foreach (var member in data.MyPlanetMembers)
                 member.User = Me;
             data.MyPlanetMembers.SyncAll(this, ModelInsertFlags.Batched);

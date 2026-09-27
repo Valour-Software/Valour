@@ -1,5 +1,57 @@
+.oauth-app {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+}
+
 .app-icon {
-    width: 50%;
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
     border-radius: var(--radius-full);
-    margin: 20px;
+    box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.oauth-arrow {
+    color: var(--text-tertiary);
+}
+
+.oauth-scopes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 0 24px;
+    padding: 16px;
+    list-style: none;
+    background-color: var(--surface-base);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+}
+
+.oauth-scopes li {
+    display: flex;
+    gap: 10px;
+}
+
+.oauth-scopes i {
+    color: var(--color-success);
+}
+
+.oauth-scopes div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.scope-name {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.scope-description {
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
 }

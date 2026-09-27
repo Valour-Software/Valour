@@ -34,11 +34,11 @@
     </div>
 
     <div class="form-group">
-        <div class="content-tabs">
-            <button class="content-tab @(_previewing ? "" : "active")" @onclick="@(() => _previewing = false)">
+        <div class="v-pill-group content-tabs">
+            <button class="v-pill-tab content-tab @(_previewing ? "" : "active")" @onclick="@(() => _previewing = false)">
                 <i class="bi bi-pencil"></i> Write
             </button>
-            <button class="content-tab @(_previewing ? "active" : "")" @onclick="@(() => _previewing = true)">
+            <button class="v-pill-tab content-tab @(_previewing ? "active" : "")" @onclick="@(() => _previewing = true)">
                 <i class="bi bi-eye"></i> Preview
             </button>
         </div>
@@ -92,7 +92,7 @@
             <label class="upload-btn @(_uploading || _attachments.Count >= ISharedPlanetThread.MaxAttachments ? "disabled" : "")">
                 <InputFile OnChange="@OnFilesSelected" multiple accept="image/*,video/*" disabled="@_uploading"/>
                 <i class="bi bi-image"></i>
-                @(_uploading ? "Uploading..." : "Add Media")
+                @(_uploading ? "Uploading..." : "Add media")
             </label>
         }
         else

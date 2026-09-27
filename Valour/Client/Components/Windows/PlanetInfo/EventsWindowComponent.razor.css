@@ -9,7 +9,8 @@
 
 .events-loading,
 .events-empty {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
     text-align: center;
     margin: 24px 0;
 }
@@ -28,9 +29,11 @@
 }
 
 .month-label {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
-    color: var(--font-color);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
     min-width: 160px;
     text-align: center;
 }
@@ -39,16 +42,14 @@
     padding: 4px 10px;
 }
 
-/* --- Compose --- */
-
 .event-compose {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 14px;
     border-radius: var(--radius-lg);
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
 }
 
 .compose-times {
@@ -62,7 +63,12 @@
     flex-direction: column;
     gap: 4px;
     font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+}
+
+.compose-times .form-control {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .compose-error {
@@ -77,14 +83,12 @@
     gap: 8px;
 }
 
-/* --- Calendar --- */
-
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 3px;
-    background: var(--main-2);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     padding: 8px;
 }
@@ -92,7 +96,10 @@
 .cal-dayname {
     text-align: center;
     font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
     padding: 2px 0 6px 0;
 }
 
@@ -101,38 +108,41 @@
     aspect-ratio: 1.4;
     min-height: 40px;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     background: transparent;
-    color: var(--font-color);
+    color: var(--text-primary);
     cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 3px;
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .cal-cell:hover {
-    background: var(--slight-tint);
+    background-color: var(--surface-hover);
 }
 
 .cal-cell.other-month {
-    color: var(--font-alt-color);
-    opacity: 0.45;
+    color: var(--text-tertiary);
+    opacity: 0.6;
 }
 
 .cal-cell.today .cal-daynum {
     color: var(--color-primary);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
 }
 
 .cal-cell.selected {
-    background: color-mix(in srgb, var(--color-primary) 18%, var(--main-3));
-    outline: 1px solid color-mix(in srgb, var(--color-primary) 58%, var(--slight-tint));
+    background-color: var(--color-primary-soft);
+    box-shadow: inset 0 0 0 1px var(--color-primary-border);
 }
 
 .cal-daynum {
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
     line-height: 1;
 }
 
@@ -145,10 +155,12 @@
     width: 5px;
     height: 5px;
     border-radius: var(--radius-full);
-    background: var(--color-primary);
+    background-color: var(--text-secondary);
 }
 
-/* --- Event list --- */
+.cal-cell.selected .cal-dot {
+    background-color: var(--color-primary);
+}
 
 .events-list {
     display: flex;
@@ -162,8 +174,8 @@
     gap: 14px;
     padding: 14px;
     border-radius: var(--radius-lg);
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
 }
 
 .event-card.past {
@@ -174,23 +186,28 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 2px;
     min-width: 52px;
     padding: 6px 8px;
-    border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--color-primary) 12%, var(--main-2));
-    border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--slight-tint));
+    border-radius: var(--radius-md);
+    background-color: var(--surface-base);
+    border: 1px solid var(--line);
 }
 
 .event-month {
     font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--color-primary) 48%, white);
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
 }
 
 .event-day {
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--font-color);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
     line-height: 1.1;
 }
 
@@ -202,21 +219,33 @@
 .event-title {
     margin: 0 0 4px 0;
     font-size: var(--font-size-md);
-    font-weight: var(--font-weight-bold);
-    color: var(--font-color);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: normal;
+    color: var(--text-primary);
 }
 
 .event-time,
 .event-location {
     margin: 0 0 2px 0;
     font-size: var(--font-size-sm);
-    color: var(--font-alt-color);
+    color: var(--text-secondary);
+}
+
+.event-time {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.event-time i,
+.event-location i {
+    color: var(--text-tertiary);
 }
 
 .event-desc {
     margin: 6px 0 0 0;
     font-size: var(--font-size-sm);
-    color: var(--font-color);
+    color: var(--text-secondary);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
@@ -234,11 +263,27 @@
     gap: 6px;
 }
 
+.going-btn.going {
+    background-color: var(--color-primary-soft);
+    border-color: var(--color-primary-border);
+    color: var(--color-primary);
+}
+
+.going-btn.going:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
 .going-count {
     padding: 1px 7px;
     border-radius: var(--radius-full);
-    background: var(--slight-tint);
+    background-color: var(--surface-active);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.going-btn.going .going-count {
+    background-color: var(--color-primary-soft);
 }
 
 .reminder-select {
@@ -249,8 +294,4 @@
 
 .icon-btn {
     padding: 5px 8px;
-}
-
-.icon-btn.danger:hover {
-    color: var(--color-danger);
 }

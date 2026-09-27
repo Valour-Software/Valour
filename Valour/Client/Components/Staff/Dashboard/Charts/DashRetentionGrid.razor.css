@@ -2,21 +2,24 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    font-family: var(--font-family-app, sans-serif);
+    font-family: var(--font-family-app);
 }
 
 .chart-title {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-bold);
-    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: var(--letter-spacing-label);
 }
 
 .retention-empty {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
-    padding: 16px 0;
+    padding: 16px;
+    text-align: center;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-md);
 }
 
 table {
@@ -26,8 +29,6 @@ table {
     table-layout: fixed;
 }
 
-/* globals.css boxes every td/th in a light border; this is a heatmap, not a
-   spreadsheet — reset all of it */
 th, td {
     border: none;
     padding: 0;
@@ -37,7 +38,7 @@ th, td {
 th {
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     padding-bottom: 4px;
 }
 
@@ -53,27 +54,29 @@ th.size-col, td.size-col {
 }
 
 td.week-col {
-    color: var(--font-color);
-    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-size-xs);
     white-space: nowrap;
 }
 
 td.size-col {
-    color: var(--font-alt-color);
-    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
     font-variant-numeric: tabular-nums;
 }
 
 td.cell {
-    font-size: var(--font-size-sm);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
-    color: var(--font-color);
+    color: var(--text-primary);
     font-variant-numeric: tabular-nums;
     padding: 9px 0;
     border-radius: var(--radius-sm);
-    /* --heat set inline per cell: 0%..60% primary tint by retention rate */
-    background: color-mix(in srgb, var(--color-primary) var(--heat, 0%),
-                color-mix(in srgb, var(--slight-tint) 60%, transparent));
+    background-color: color-mix(in srgb, var(--color-primary) var(--heat, 0%), var(--surface-hover));
 }
 
 td.cell.immature {
@@ -82,5 +85,5 @@ td.cell.immature {
 
 .retention-note {
     font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }

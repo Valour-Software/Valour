@@ -47,7 +47,7 @@ else
             <div class="village-connection-banner" role="status" aria-live="polite">
                 <i aria-hidden="true" class="bi bi-wifi-off"></i>
                 <span>@(_presenceConnecting ? "Connecting to village presence…" : _presenceError ?? "Village presence is offline.")</span>
-                <button disabled="@_presenceConnecting" @onclick="RetryPresenceAsync">
+                <button class="v-btn small" disabled="@_presenceConnecting" @onclick="RetryPresenceAsync">
                     <i aria-hidden="true" class="bi bi-arrow-clockwise"></i>
                     <span>@(_presenceConnecting ? "Connecting…" : "Retry")</span>
                 </button>
@@ -62,10 +62,17 @@ else
                 <div class="village-subtitle">@_scene.Subtitle</div>
             </div>
             <div class="overlay-inline-group">
-                <span class="hud-chip"><i aria-hidden="true" class="bi bi-geo-alt-fill"></i> @(_currentMap?.Name ?? "Unknown Map")</span>
+                <span class="hud-chip"><i aria-hidden="true" class="bi bi-geo-alt-fill"></i> @(_currentMap?.Name ?? "Unknown map")</span>
                 <span class="hud-chip @(_presenceConnected ? "live" : "offline")">
                     <span class="live-dot"></span>
-                    @(_presenceConnected ? $"{VillageService.Presences.Count + 1} here" : "Presence offline")
+                    @if (_presenceConnected)
+                    {
+                        <span class="hud-count">@(VillageService.Presences.Count + 1)</span><span>here</span>
+                    }
+                    else
+                    {
+                        <span>Presence offline</span>
+                    }
                 </span>
             </div>
         </div>
@@ -264,7 +271,7 @@ else
                         </div>
                         @if (CanEditProperty(_selectedBuilding.IsOwnedByLocalMember))
                         {
-                            <button class="manage-toggle @(_editingProperty ? "open" : string.Empty)" @onclick="ToggleEditProperty">
+                            <button class="v-btn secondary manage-toggle @(_editingProperty ? "open" : string.Empty)" @onclick="ToggleEditProperty">
                                 <i aria-hidden="true" class="bi bi-gear-fill"></i>
                                 @(_editingProperty ? "Close manage panel" : "Manage this building")
                             </button>
@@ -294,7 +301,7 @@ else
                                         <select value="@_editChannelValue"
                                                 @onchange="e => _editChannelValue = e.Value?.ToString() ?? string.Empty"
                                                 aria-label="Linked channel">
-                                            <option value="">None — private area room</option>
+                                            <option value="">None (private area room)</option>
                                             @foreach (var channel in GetLinkableChannels())
                                             {
                                                 <option value="@channel.Id">@ChannelOptionLabel(channel)</option>
@@ -328,14 +335,14 @@ else
                                 </button>
                                 @if (_selectedBuilding.ForSale)
                                 {
-                                    <button class="listing-remove" @onclick="() => SetSelectedBuildingListingAsync(false)">Remove</button>
+                                    <button class="v-btn tertiary listing-remove" @onclick="() => SetSelectedBuildingListingAsync(false)">Remove</button>
                                 }
                             </div>
                         }
                         <div class="overlay-button-column">
                             @if (_selectedBuilding.ForSale && !_selectedBuilding.IsOwnedByLocalMember)
                             {
-                                <button class="v-btn village-primary-action"
+                                <button class="v-btn primary village-primary-action"
                                         disabled="@_purchaseInProgress"
                                         @onclick="ConfirmPurchaseSelectedBuilding">
                                     <i aria-hidden="true" class="bi bi-bag-check-fill"></i>
@@ -374,7 +381,7 @@ else
                             <button class="village-icon-button compact" @onclick="ClearPlaceSelectionAsync" aria-label="Close place details" title="Close place details"><i aria-hidden="true" class="bi bi-x-lg"></i></button>
                         </div>
                         <div class="place-facts">
-                            <span class="place-fact"><i aria-hidden="true" class="bi bi-aspect-ratio-fill"></i> @_selectedPlot.Width × @_selectedPlot.Height tiles</span>
+                            <span class="place-fact numeric"><i aria-hidden="true" class="bi bi-aspect-ratio-fill"></i> @_selectedPlot.Width × @_selectedPlot.Height tiles</span>
                             @if (_selectedPlot.IsOwnedByLocalMember)
                             {
                                 <span class="place-fact owned"><i aria-hidden="true" class="bi bi-key-fill"></i> Yours</span>
@@ -394,7 +401,7 @@ else
                         </div>
                         @if (CanEditProperty(_selectedPlot.IsOwnedByLocalMember))
                         {
-                            <button class="manage-toggle @(_editingProperty ? "open" : string.Empty)" @onclick="ToggleEditProperty">
+                            <button class="v-btn secondary manage-toggle @(_editingProperty ? "open" : string.Empty)" @onclick="ToggleEditProperty">
                                 <i aria-hidden="true" class="bi bi-gear-fill"></i>
                                 @(_editingProperty ? "Close manage panel" : "Manage this parcel")
                             </button>
@@ -435,13 +442,13 @@ else
                                 </button>
                                 @if (_selectedPlot.ForSale)
                                 {
-                                    <button class="listing-remove" @onclick="() => SetSelectedPlotListingAsync(false)">Remove</button>
+                                    <button class="v-btn tertiary listing-remove" @onclick="() => SetSelectedPlotListingAsync(false)">Remove</button>
                                 }
                             </div>
                         }
                         @if (_selectedPlot.ForSale && !_selectedPlot.IsOwnedByLocalMember)
                         {
-                            <button class="v-btn village-primary-action"
+                            <button class="v-btn primary village-primary-action"
                                     disabled="@_purchaseInProgress"
                                     @onclick="ConfirmPurchaseSelectedPlot">
                                 <i aria-hidden="true" class="bi bi-bag-check-fill"></i>
@@ -464,7 +471,7 @@ else
                     <section class="admin-section">
                         <div class="admin-section-heading">
                             <div><strong>Parcels</strong><small>Editable land regions</small></div>
-                            <button class="admin-primary @(_adminDrawing ? "active" : string.Empty)" @onclick="BeginParcelDrawAsync">
+                            <button class="v-btn small secondary admin-draw @(_adminDrawing ? "active" : string.Empty)" @onclick="BeginParcelDrawAsync">
                                 <i aria-hidden="true" class="bi bi-bounding-box-circles"></i> @(_adminDrawing ? "Drag on map…" : "Draw parcel")
                             </button>
                         </div>
@@ -499,8 +506,8 @@ else
                                 </select>
                             </label>
                             <div class="admin-actions">
-                                <button class="admin-primary" disabled="@_adminSaving" @onclick="SaveAdminPlotAsync">Save changes</button>
-                                <button class="admin-danger" disabled="@_adminSaving" @onclick="ConfirmDeleteAdminPlot">Delete</button>
+                                <button class="v-btn small primary" disabled="@_adminSaving" @onclick="SaveAdminPlotAsync">Save changes</button>
+                                <button class="v-btn small danger" disabled="@_adminSaving" @onclick="ConfirmDeleteAdminPlot">Delete</button>
                             </div>
                         </section>
                     }
@@ -754,10 +761,9 @@ else
         @if (HandheldControlsVisible)
         {
             <div class="village-handheld" role="group" aria-label="Handheld village controls">
-                <div class="handheld-gloss" aria-hidden="true"></div>
                 <div class="handheld-brand" aria-hidden="true">
-                    <span>VALOUR</span>
-                    <small>POCKET</small>
+                    <span>Valour</span>
+                    <small>Pocket</small>
                 </div>
 
                 <div class="handheld-dpad" role="group" aria-label="Movement pad">
@@ -2263,8 +2269,8 @@ else
     private static string ChannelOptionLabel(Channel channel) =>
         channel.ChannelType switch
         {
-            ChannelTypeEnum.PlanetVoice => $"🔊 {channel.Name}",
-            ChannelTypeEnum.PlanetVideo => $"🎥 {channel.Name}",
+            ChannelTypeEnum.PlanetVoice => $"{channel.Name} (voice)",
+            ChannelTypeEnum.PlanetVideo => $"{channel.Name} (video)",
             _ => $"# {channel.Name}",
         };
 

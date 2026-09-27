@@ -60,7 +60,7 @@
                         <i class="bi bi-shield-exclamation"></i>
                         <span>Adding MFA greatly improves your account security</span>
                     </div>
-                    <VButton Variant="primary" OnClick="@OnClickMfA">Setup MFA</VButton>
+                    <VButton Variant="primary" OnClick="@OnClickMfA">Set up MFA</VButton>
                 }
             }
         </div>
@@ -75,7 +75,7 @@
     </h3>
 
     <div class="actions">
-        <VButton Variant="secondary" OnClick="@OnClickChangePassword">Change Password</VButton>
+        <VButton Variant="secondary" OnClick="@OnClickChangePassword">Change password</VButton>
     </div>
 </div>
 
@@ -106,7 +106,7 @@
         </div>
 
         <div class="token-actions-bulk">
-            <VButton Variant="danger" OnClick="@RevokeAllOtherTokens">Revoke All Other Sessions</VButton>
+            <VButton Variant="danger" OnClick="@RevokeAllOtherTokens">Revoke all other sessions</VButton>
             <p class="help-text">This will log out all other devices except this one</p>
         </div>
     }
@@ -129,7 +129,7 @@
         </div>
 
         <div class="token-actions-bulk">
-            <VButton Variant="danger" OnClick="@ClearExpiredSessions">Clear Expired Sessions</VButton>
+            <VButton Variant="danger" OnClick="@ClearExpiredSessions">Clear expired sessions</VButton>
             <p class="help-text">This will permanently delete sessions that have expired</p>
         </div>
     </div>
@@ -205,7 +205,7 @@
                 }
                 @if (token.IsCurrent)
                 {
-                    <span class="badge badge-primary">Current Session</span>
+                    <span class="status-badge">Current session</span>
                 }
             </div>
             <div class="token-actions">
@@ -219,11 +219,11 @@
         <div class="token-details">
             <div class="token-info">
                 <span class="label">Created:</span>
-                <span>@token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
+                <span class="token-time">@token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
             </div>
             <div class="token-info">
                 <span class="label">Expires:</span>
-                <span class="@(IsExpired(token) ? "expired" : ExpiresSoon(token) ? "expires-soon" : "")">
+                <span class="token-time @(IsExpired(token) ? "expired" : ExpiresSoon(token) ? "expires-soon" : "")">
                     @token.TimeExpires.ToString("MMM dd, yyyy 'at' HH:mm UTC")
                     @if (!IsExpired(token))
                     {

@@ -25,7 +25,7 @@
         </h3>
         <p class="helper-text top-help">This planet does not have an economy set up yet.</p>
         <div class="actions">
-            <button class="v-btn primary" @onclick="@OnClickSetup">Set Up Now</button>
+            <button class="v-btn primary" @onclick="@OnClickSetup">Set up now</button>
         </div>
     </div>
 
@@ -65,7 +65,7 @@
             </div>
 
             <div class="actions">
-                <button class="v-btn primary" @onclick="@OnClickSaveCurrency">Save Changes</button>
+                <button class="v-btn primary" @onclick="@OnClickSaveCurrency">Save changes</button>
             </div>
 
             @if (!string.IsNullOrWhiteSpace(_currencyError))
@@ -98,12 +98,12 @@
                         <Virtualize @ref="_planetVirtualize" TItem="EcoAccount" ItemsProvider="@_sharedAccountProvider.GetVirtualizedItemsAsync" OverscanCount="20">
                             <tr @key="@context.Id">
                                 <td><input class="v-input" @bind="@context.Name"/></td>
-                                <td>@Currency.Format(@context.BalanceValue)</td> 
+                                <td class="mono">@Currency.Format(@context.BalanceValue)</td> 
 
                                 <td>
                                     <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
                                         <a class="v-drop-model" @onclick="@(async () => await OnClickSaveAccount(@context))">Save</a>
-                                        <a class="v-drop-model" @onclick="@(() => OnClickIssue(@context))">Issue Currency</a>
+                                        <a class="v-drop-model" @onclick="@(() => OnClickIssue(@context))">Issue currency</a>
                                         <a class="v-drop-model v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(@context))">Delete</a>
                                     </DropdownComponent>
                                 </td>
@@ -115,7 +115,7 @@
                 
                 
                 <div class="actions">
-                    <button class="v-btn primary" @onclick="@OnClickAddAccount">Add Account</button>
+                    <button class="v-btn primary" @onclick="@OnClickAddAccount">Add account</button>
                 </div>
 
                 @if (!string.IsNullOrWhiteSpace(_accountError))
@@ -148,13 +148,13 @@
                                     }
                                     else
                                     {
-                                        <span>Unknown Member</span>
+                                        <span>Unknown member</span>
                                     }
                                 </td>
                                 <td>
                                     @if (context.Account is not null)
                                     {
-                                        <span>@Currency.Format(context.Account.BalanceValue)</span>
+                                        <span class="mono">@Currency.Format(context.Account.BalanceValue)</span>
                                     }
                                     else
                                     {

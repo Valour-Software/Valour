@@ -7,6 +7,7 @@ public sealed class StaticSiteExporter
     private static readonly ExportPage[] Pages =
     [
         new("Home", "Index", "/", "index.html"),
+        new("Home", "DiscordAlternative", "/discord-alternative/", "discord-alternative/index.html"),
         new("Home", "Faq", "/faq/", "faq/index.html"),
         new("Home", "Privacy", "/privacy/", "privacy/index.html"),
         new("Home", "Terms", "/terms/", "terms/index.html"),
@@ -14,7 +15,7 @@ public sealed class StaticSiteExporter
         new("Home", "EconomyRules", "/rules/economy/", "rules/economy/index.html"),
         new("Home", "DeleteAccount", "/delete-account/", "delete-account/index.html"),
         new("Home", "Texas", "/texas/", "texas/index.html"),
-        new("Home", "UserCount", "/userCount/", "userCount/index.html")
+        new("Home", "UserCount", "/userCount/", "userCount/index.html", InSitemap: false)
     ];
 
     private readonly RazorViewRenderer _renderer;
@@ -103,7 +104,7 @@ public sealed class StaticSiteExporter
 
     private static string BuildSitemap(string siteBaseUrl)
     {
-        var routes = Pages.Select(page => page.RequestPath).ToArray();
+        var routes = Pages.Where(page => page.InSitemap).Select(page => page.RequestPath).ToArray();
         var urls = routes.Select(route =>
         {
             // Trailing-slash form matches the _redirects rules, so sitemap
@@ -131,6 +132,7 @@ public sealed class StaticSiteExporter
 
     private static string BuildRedirects() =>
         """
+        /discord-alternative /discord-alternative/ 301
         /faq /faq/ 301
         /privacy /privacy/ 301
         /terms /terms/ 301

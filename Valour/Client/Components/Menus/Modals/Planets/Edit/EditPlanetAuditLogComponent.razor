@@ -4,7 +4,7 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-journal-bookmark-fill"></i>
-            Moderation Activity
+            Moderation activity
         </h3>
 
         <QueryTable
@@ -38,7 +38,7 @@
                 Name = "When",
                 SortField = "time",
                 Sortable = true,
-                RenderFragment = row => @<span>@row.Row.TimeCreated.ToLocalTime().ToString("g")</span>,
+                RenderFragment = row => @<span class="mono">@row.Row.TimeCreated.ToLocalTime().ToString("g")</span>,
                 Width = "170px"
             },
             new()

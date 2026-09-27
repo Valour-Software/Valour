@@ -38,17 +38,17 @@ else
         display: flex;
         flex-direction: column;
         max-width: 400px;
-        background: var(--main-3);
-        border-radius: var(--radius-md);
+        background-color: var(--surface-raised);
+        border-radius: var(--radius-lg);
         overflow: hidden;
         text-decoration: none;
         color: inherit;
-        border: 1px solid var(--main-4);
-        transition: border-color 0.2s ease;
+        border: 1px solid var(--line);
+        transition: border-color var(--duration-fast) var(--ease-standard);
     }
 
     .site-preview:hover {
-        border-color: var(--color-secondary);
+        border-color: var(--line-strong);
     }
 
     .site-preview-image {
@@ -72,20 +72,22 @@ else
 
     .site-preview-site {
         font-size: var(--font-size-xs);
-        color: var(--font-alt-color);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-tertiary);
         text-transform: uppercase;
+        letter-spacing: var(--letter-spacing-label);
     }
 
     .site-preview-title {
         font-size: var(--font-size-md);
         font-weight: var(--font-weight-semibold);
-        color: var(--font-color);
+        color: var(--text-primary);
         line-height: var(--line-height-base);
     }
 
     .site-preview-description {
         font-size: var(--font-size-sm);
-        color: var(--font-color-mid);
+        color: var(--text-secondary);
         line-height: var(--line-height-base);
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -102,11 +104,11 @@ else
 
     .site-preview-minimal i {
         font-size: var(--font-size-xl);
-        color: var(--font-alt-color);
+        color: var(--text-tertiary);
     }
 
     .site-preview-minimal span {
-        color: var(--font-color-mid);
+        color: var(--text-secondary);
         font-size: var(--font-size-sm);
     }
 </style>

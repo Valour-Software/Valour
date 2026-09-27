@@ -57,6 +57,9 @@ public class PlanetService : ServiceBase
 
     private readonly List<Planet> _joinedPlanets = new();
 
+    private readonly Dictionary<long, int> _planetActivity = new();
+    private readonly HashSet<long> _planetActivityReported = new();
+
     /// <summary>
     /// Currently opened planets
     /// </summary>
@@ -267,6 +270,28 @@ public class PlanetService : ServiceBase
         await ApplyJoinedPlanetsAsync(response.Data, memberships);
         return TaskResult.SuccessResult;
     }
+
+    /// <summary>
+    /// Stores how many members of each joined planet were connected recently, as
+    /// reported at startup. Planets in <paramref name="reportedPlanetIds"/> that are
+    /// missing from <paramref name="activity"/> had nobody active.
+    /// </summary>
+    public void ApplyPlanetActivity(IEnumerable<long> reportedPlanetIds, IReadOnlyDictionary<long, int> activity)
+    {
+        _planetActivity.Clear();
+        _planetActivityReported.Clear();
+        foreach (var id in reportedPlanetIds)
+            _planetActivityReported.Add(id);
+        foreach (var (id, count) in activity)
+            _planetActivity[id] = count;
+    }
+
+    /// <summary>
+    /// Members of a joined planet connected in the last 15 minutes when the app
+    /// started, or -1 when the planet's host did not report it.
+    /// </summary>
+    public int GetActiveCount(long planetId) =>
+        _planetActivityReported.Contains(planetId) ? _planetActivity.GetValueOrDefault(planetId) : -1;
 
     public async Task ApplyJoinedPlanetsAsync(
         IEnumerable<Planet> joinedPlanets,

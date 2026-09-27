@@ -2,25 +2,26 @@
 @implements IAsyncDisposable
 @inject PlanetService PlanetService
 
-<NebulaBackground>
-    <div class="discovery-window inner-window @_mobileTag">
+<div class="discovery-window inner-window @_mobileTag">
+        <header class="discovery-header">
+            <div>
+                <h1>Discover planets</h1>
+                <p>Find communities to join. Search by name or topic, or browse what people are talking about right now.</p>
+            </div>
+        </header>
         @if (_isLoading)
         {
             <div class="discovery-loading">
-                <div class="discovery-loading-spinner">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </div>
-                <p class="discovery-loading-text">Loading planets...</p>
+                <div class="loading-indicator"></div>
+                <p class="discovery-loading-text">Loading planets</p>
             </div>
         }
         else if (UnjoinedPlanets.Count == 0)
         {
             <div class="discovery-empty">
-                <div class="discovery-empty-icon">
-                    <i class="bi bi-globe-americas"></i>
-                </div>
-                <h3>No Planets to Discover</h3>
-                <p>You've already joined all available planets, or none are available right now.</p>
+                <SkyMoment Pose="SkyMoment.VictorPose.Telescope" Seed="discovery" Palette="orion" Height="200"
+                           Title="You've been everywhere"
+                           Description="You're already on every public planet, or none are listed right now." />
             </div>
         }
         else
@@ -29,10 +30,7 @@
                 @if (PopularPlanets.Count > 0)
                 {
                     <section class="discovery-section">
-                        <div class="discovery-section-header">
-                            <i class="bi bi-star-fill"></i>
-                            <h2>Popular Planets</h2>
-                        </div>
+                        <h2 class="discovery-section-title">Popular</h2>
                         <div class="carousel-section">
                             <Carousel TItem="PlanetListInfo"
                                       @ref="_planetCarousel"
@@ -52,13 +50,10 @@
                 }
 
                 <section class="discovery-section">
-                    <div class="discovery-section-header">
-                        <i class="bi bi-compass"></i>
-                        <h2>Explore All Planets</h2>
-                    </div>
+                    <h2 class="discovery-section-title">All planets</h2>
 
                     <div class="discovery-search-container">
-                        <LargeSearch Placeholder="Search planets by name or description..."
+                        <LargeSearch Placeholder="Search planets by name or description"
                                      DebounceMs="300"
                                      OnSearchChanged="@OnSearchChanged"
                                      OnSearchCleared="@OnSearchCleared" />
@@ -67,12 +62,11 @@
                     <DiscoveryPlanetGrid @ref="PlanetGrid"
                                          IsLoading="@_isSearchLoading"
                                          OnJoin="@HandleJoinAsync"
-                                         EmptyMessage="No planets found matching your search" />
+                                         EmptyMessage="No planets match that search. Try fewer words." />
                 </section>
             </div>
         }
     </div>
-</NebulaBackground>
 
 @code {
     private string _mobileTag = "";

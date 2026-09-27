@@ -1,35 +1,47 @@
 @{
     ViewData["Title"] = "Valour FAQ | Frequently Asked Questions";
-    ViewData["Description"] = "What Valour is, how it protects your privacy, and what makes it different from other community platforms.";
+    ViewData["Description"] = "What Valour is, how it compares to Discord, how encryption works, and how to bring your community over. No ID checks, no ads, and open source.";
 
     var faqs = new (string Question, string Answer)[]
     {
         ("What is Valour?",
-         "Valour is an open-source community platform that combines real-time chat, thread feeds, community wikis, and voice channels in one place. Communities live on planets, spaces you shape with roles, permissions, themes, and your own economy."),
+         "Valour is an open-source community platform and an alternative to Discord. Communities live on planets, with channels, roles and permissions, voice and video, and optional threads, wikis, calendars and villages. Every chat message is end-to-end encrypted."),
 
         ("How do I use Valour?",
-         "Use Valour in any browser at app.valour.gg, or download the Windows and Android apps from our GitHub releases. Your account works everywhere."),
+         "Open app.valour.gg in any modern browser, or download the Windows or Android app. Your account works everywhere."),
+
+        ("Can I use Valour on iPhone or Mac?",
+         "Yes, in the browser at app.valour.gg. Native apps for iOS and macOS are not available yet."),
 
         ("Is Valour free?",
-         "Yes. Valour is free to use. Optional Stargazer subscriptions add perks like larger upload limits and profile flair, and help fund the platform."),
+         "Yes. Valour is free to use. Optional Stargazer subscriptions cost $4.99, $9.99 or $14.99 a month. They add larger uploads and profile extras, and they pay for the servers, since Valour has no ads."),
 
         ("Do I need to show ID or a phone number?",
-         "No. Valour only requires an email address to register. We do not ask for government ID, face scans, or phone verification."),
+         "No. Sign up with an email address, or with Google or Discord, and enter your birth date. You must be at least 13. We never ask for a government ID, a face scan or a phone number. Sign-ups from Texas are paused because Texas is pushing apps toward identity checks."),
 
-        ("What does open source mean for Valour?",
-         "The complete source code for both the client and server is public under the AGPL license. Anyone can audit how Valour works, contribute improvements, or run their own instance."),
-
-        ("Can I host Valour myself?",
-         "Yes. A single docker compose command runs a full instance with automatic HTTPS. Communities on official infrastructure can also migrate to independently operated community nodes through federation."),
-
-        ("Is Valour a Discord knock-off?",
-         "Nope! Valour is built on a different stack and a broader idea. Multi-window chat, reddit-style thread feeds, public community wikis, and built-in economies aren't things a chat clone does. We want to be a home for your community, not just a room."),
+        ("Can I sign in with Discord or Google?",
+         "Yes. You can sign up and sign in with either, and link them to an existing account in your settings."),
 
         ("Can I bring my existing community?",
-         "Yes. Valour has a built-in Discord importer, incoming webhooks, an open API, and bot support, so moving and integrating an existing community is straightforward."),
+         "Yes. When you create a planet, paste a Discord server template link to copy its channels, categories, roles and permissions. Messages and members are not copied, so your members join again with an invite link."),
+
+        ("How is Valour different from Discord?",
+         "Valour covers what a Discord server does, and adds end-to-end encryption for every message, threads and wikis that search engines can find, a workspace with several conversations side by side, villages, and the option to run it yourself. It has no ads and never asks for ID."),
+
+        ("Are my messages encrypted?",
+         "Yes. Messages in direct chats, group chats and planet channels are encrypted on your devices before they are sent, so Valour stores text it cannot read. Uploaded files and images are not end-to-end encrypted. Threads and wiki pages are public on purpose, so they are not encrypted and can appear on the web."),
+
+        ("What does open source mean for Valour?",
+         "The client and server are published on GitHub under the AGPL. Anyone can read how Valour works, contribute improvements, or run their own instance."),
+
+        ("Can I host Valour myself?",
+         "Yes. The repository includes a Docker Compose setup with automatic HTTPS. You fill in a short settings file first, and voice runs as an optional add-on. Planets on the official service can also use their own storage and voice server, or move to an independently run community node."),
+
+        ("Can I build bots and integrations?",
+         "Yes. Bots are built with the Valour .NET SDK, which handles encryption for them. Incoming webhooks let any tool that can send a web request post into a channel, and bots can send interactive embeds with buttons and forms."),
 
         ("How do you protect my privacy?",
-         "We don't sell your data, we don't run ads, and we only use vetted partners where absolutely necessary (such as email delivery). Valour is funded by optional subscriptions, not by your data."),
+         "We don't sell your data and we don't run ads. A few services we rely on handle limited data to do their jobs, such as email delivery, voice and video, payments and Android notifications. The Privacy Policy has the details."),
     };
 
     var faqJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
@@ -49,17 +61,29 @@
     });
 }
 
-<script type="application/ld+json">@Html.Raw(faqJsonLd)</script>
+@Html.Raw($"<script type=\"application/ld+json\">{faqJsonLd}</script>")
 
-<div class="container">
-    <div class="row">
-        <div class="col-8 mx-auto">
-            <h1 class="title-gradient text-center p-2 h3">Valour Frequently Asked Questions</h1>
+<div class="container doc-page">
+    <article class="prose doc-single">
+        <h1>Frequently asked questions</h1>
+        <p class="doc-lede">What Valour is, how it handles your data, and how to get started.</p>
+
+        <div class="faq-list">
             @foreach (var faq in faqs)
             {
-                <h2 class="text-center p-2 h5">@faq.Question</h2>
-                <p class="text-center p-2">@faq.Answer</p>
+                <section class="faq-item">
+                    <h2>@faq.Question</h2>
+                    <p>@faq.Answer</p>
+                </section>
             }
         </div>
-    </div>
+
+        <div class="doc-closing">
+            <img src="/media/victor/victor-sleeping.svg" alt="" width="120" height="120" loading="lazy" draggable="false" />
+            <p>
+                Didn't find your answer? Email <a href="mailto:support@valour.gg">support@valour.gg</a>
+                or <a href="https://github.com/Valour-Software/Valour/issues">open an issue on GitHub</a>.
+            </p>
+        </div>
+    </article>
 </div>

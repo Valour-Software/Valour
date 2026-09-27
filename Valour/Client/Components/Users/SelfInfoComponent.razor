@@ -5,7 +5,7 @@
     <button id="user-edit-button" class="settings-button" aria-label="User settings button"
             @onkeydown="@(e => { if (e.Key == "Enter") OnClickUserSettings(); })"
             @onclick="@OnClickUserSettings">
-        <img alt="User settings button" src="_content/Valour.Client/media/Settings-Icon.svg" class="settings-icon" />
+        <i class="bi bi-gear settings-icon" aria-hidden="true"></i>
     </button>
 </div>
 @code {

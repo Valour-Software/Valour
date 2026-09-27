@@ -15,15 +15,16 @@
     flex-shrink: 0;
     padding: 0.15em 0.55em;
     border-radius: var(--radius-full);
-    border: 1px solid var(--slight-tint);
-    background-color: var(--main-3);
-    color: var(--font-alt-color);
+    border: 1px solid var(--line);
+    background-color: var(--surface-raised);
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
     cursor: default;
 }
 
 .self-label {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }

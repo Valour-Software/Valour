@@ -1,6 +1,10 @@
 ﻿.theme-info {
-    max-width: min(300px, 90vw);
+    max-width: min(340px, 90vw);
+    overflow: hidden;
+    color: var(--text-primary);
+    border: 1px solid var(--line);
     border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-modal), var(--rim-light);
 }
 
 .theme-info .theme-img {
@@ -8,43 +12,86 @@
     aspect-ratio: 2/1;
     background-position: center;
     background-size: 100%, 100%;
-    background-color: #535353;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    background-color: var(--surface-hover);
+    border-bottom: 1px solid var(--line);
+}
+
+.theme-info .theme-img.default {
+    text-align: center;
 }
 
 .theme-info .lower {
-    padding: 1em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem 1.1rem;
 }
 
 .theme-info .title-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.theme-info .title-row h5 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+}
+
+.theme-info .title-row h6 {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-regular);
 }
 
 .theme-info .title-row .author {
+    color: var(--text-secondary);
     cursor: pointer;
 }
 
 .theme-info .title-row .author:hover {
+    color: var(--text-primary);
     text-decoration: underline;
+}
+
+.theme-info .description {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.theme-info .css-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    color: var(--color-warning);
+    font-size: var(--font-size-sm);
+    background-color: var(--color-warning-soft);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-md);
 }
 
 .lower .buttons-wrapper {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    align-items: center;
-    gap: 2em;
+    align-items: flex-end;
+    gap: 1.5rem;
 }
 
 .lower .buttons {
-    
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .lower .buttons .v-btn {
     width: 140px;
-    margin-top: 0.5em;
 }
 
 .lower .voting {
@@ -54,11 +101,12 @@
 }
 
 .lower .voting .thumbs-up {
-    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 
 .lower .voting .thumbs-down {
-    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+    margin-left: -1px;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
 .lower .voting-totals {
@@ -67,5 +115,8 @@
     justify-content: space-around;
     align-items: center;
     margin-top: 0.5em;
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
 }
-

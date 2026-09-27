@@ -7,15 +7,23 @@
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
 @inject IJSRuntime JsRuntime
+@inject PlanetService PlanetService
 
 <div 
     class="@GetCssClass()" 
     id="list-@Planet.Id"
     @oncontextpress="@OnContextPress">
     <div class="header-wrapper" style="cursor:pointer" id="list-inner-@Planet.Id">
-        <div @onclick='@OnClick' class="header" @ondragover:preventDefault="true">
+        <div @onclick='@OnClick' class="header @(_hasUnread ? "unread" : "")" @ondragover:preventDefault="true">
+            <div class="header-sky" aria-hidden="true">
+                <NebulaSky Seed="@_seed" Intensity="0.95" Scale="1.3" FocusX="0.78" FocusY="0.45" Spread="0.5" Stars="90" />
+                <PlanetGlobe Seed="@_seed" Plain="true" Radius="1.15" CenterX="0.9" CenterY="1.05" Lights="@_lights" />
+            </div>
             <div class="left">
-                <PlanetIcon Planet="@Planet" Size="24" Unread="@_hasUnread"/>
+                @if (Planet.HasCustomIcon)
+                {
+                    <PlanetIcon Planet="@Planet" Size="24" />
+                }
                 <p class="planet-name">
                     @Planet.Name
                 </p>
@@ -37,11 +45,12 @@
                         <span>@_notifications</span>
                     </div>
                 }
+                <i class="bi bi-chevron-down chevron @(Open ? "" : "closed")" aria-hidden="true"></i>
                 
                 @if (_canEdit)
                 {
                     <div class="edit-button" @onclick:stopPropagation="true" @onclick="@OnClickEdit">
-                        <i class="bi bi bi-gear-fill"></i>
+                        <i class="bi bi-gear"></i>
                     </div>
                 }
             </div>
@@ -49,12 +58,24 @@
     </div>
     <div class="channel-list @(Open ? "open" : "")">
         <div class="channel-list-inner">
-            <div class="v-gradient-underline"></div>
+            @if (_memberCount is not null || _activeCount >= 0)
+            {
+                <div class="planet-stats">
+                    @if (_memberCount is not null)
+                    {
+                        <span>@_memberCount @(_memberCount == 1 ? "member" : "members")</span>
+                    }
+                    @if (_activeCount >= 0)
+                    {
+                        <span class="@(_activeCount > 0 ? "live" : "")"><span class="dot"></span>@_activeCount active</span>
+                    }
+                </div>
+            }
             <div class="list-wrapper">
                 <div class="channel planet-about" @onclick="OnClickPlanetInfo">
-                    <i class="bi bi-info-circle-fill planet-pseudo-icon"></i>
+                    <i class="bi bi-info-circle planet-pseudo-icon"></i>
                     <p class="name">
-                        About Planet
+                        About
                     </p>
                 </div>
                 <div class="channel planet-rules" @onclick="OnClickPlanetRules">
@@ -114,6 +135,10 @@
 
     private int _notifications;
     private bool _hasUnread;
+    private string _seed;
+    private int? _memberCount;
+    private int _activeCount = -1;
+    private double _lights = 0.6;
     
     private bool _canEdit;
     private DotNetObjectReference<PlanetDirectory> _pointerDragRef;
@@ -124,6 +149,10 @@
     {
         Planet.Channels.Changed += OnChannelsChanged;
         UnreadService.PlanetUnreadChanged += OnPlanetUnreadChanged;
+
+        _seed = Planet.Id.ToString();
+        _activeCount = PlanetService.GetActiveCount(Planet.Id);
+        _ = LoadMemberCountAsync();
 
         await UnreadService.FetchUnreadPlanetChannelsAsync(Planet.Id);
         
@@ -148,6 +177,22 @@
             $"list-{Planet.Id}",
             _pointerDragRef,
             Valour.Client.Device.DeviceInfo.IsEmbedded);
+    }
+
+    private async Task LoadMemberCountAsync()
+    {
+        try
+        {
+            _memberCount = await Planet.FetchMemberCountAsync();
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+        if (_memberCount is { } members && _activeCount >= 0)
+            _lights = PlanetGlobe.LightsFor(members, _activeCount);
+        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]

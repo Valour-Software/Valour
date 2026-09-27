@@ -1,145 +1,162 @@
+@using System.Globalization
 @inject ValourClient Client
 @inject FriendService FriendService
 @inject ChannelService ChannelService
+@inject ContextMenuService ContextMenuService
 
 <div id="@Id" class="card-wrapper" style="@CardStyle">
-    <div class="card-glow"></div>
+    @if (HasGlow)
+    {
+        <div class="card-glow"></div>
+    }
     <div
         @onclick:stopPropagation="true"
-        class="profile-card">
-        <span class="card-bg @(HasAnimatedBorder ? "animated-border" : null)" style="@CardBackground"></span>
+        class="profile-card @(HasFrame ? "framed" : null)">
+        @if (HasFrame)
+        {
+            <span class="card-bg @(HasAnimatedBorder ? "animated-border" : null)" style="@CardBackground"></span>
+        }
         <div class="card-shell">
-            @if (HasBackgroundImage)
-            {
-                <div class="inner-bg" style="@BackgroundImage"></div>
-            }
-
-            <div class="shell-overlay"></div>
+            <div class="card-banner">
+                @if (HasBackgroundImage)
+                {
+                    <div class="inner-bg" style="@BackgroundImage"></div>
+                }
+                else if (User is not null)
+                {
+                    <NebulaSky Seed="@_skySeed" Intensity="0.9" Scale="1.5" FocusX="0.62" FocusY="0.4" Spread="0.5" Stars="140" />
+                }
+            </div>
 
             <div class="card-content">
                 <section class="hero-section">
                     <div class="hero-topline">
-                        <div class="presence-pill @_statusClass">
-                            <span class="presence-dot"></span>
-                            <span>@_presenceName</span>
+                        <div class="avatar-frame">
+                            <img class="pfp" alt="@_displayName's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
+                            <span class="presence-dot @_statusClass" role="img" aria-label="@_presenceName" title="@_presenceName"></span>
                         </div>
 
-                        @if (!string.IsNullOrWhiteSpace(_lastSeenText))
+                        @if (ShowActions)
                         {
-                            <div class="meta-pill">
-                                <i class="bi bi-clock-history"></i>
-                                <span>@_lastSeenText</span>
+                            <div class="action-section">
+                                <button type="button" class="v-btn primary small action-button message-button" @onclick="OnClickMessage">
+                                    <i class="bi bi-chat-left-text" aria-hidden="true"></i>
+                                    <span>Message</span>
+                                </button>
+
+                                @if (_isFriend)
+                                {
+                                    <button type="button" class="v-btn small action-button icon-button friend-button" title="Remove friend" aria-label="Remove friend" disabled="@_friendBusy" @onclick="OnClickRemoveFriend">
+                                        <i class="bi bi-person-check" aria-hidden="true"></i>
+                                    </button>
+                                }
+                                else if (_isFriendRequested)
+                                {
+                                    <button type="button" class="v-btn small action-button icon-button friend-button" title="Cancel friend request" aria-label="Cancel friend request" disabled="@_friendBusy" @onclick="OnClickRemoveFriend">
+                                        <i class="bi bi-person-dash" aria-hidden="true"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="v-btn small action-button icon-button friend-button" title="Add friend" aria-label="Add friend" disabled="@_friendBusy" @onclick="OnClickAddFriend">
+                                        <i class="bi bi-person-plus" aria-hidden="true"></i>
+                                    </button>
+                                }
+
+                                <button type="button" class="v-btn small action-button icon-button more-button" title="More" aria-label="More actions" @onclick="OnClickMore">
+                                    <i class="bi bi-three-dots" aria-hidden="true"></i>
+                                </button>
                             </div>
                         }
                     </div>
 
                     <div class="identity-section">
-                        <div class="identity-main">
-                            <div class="avatar-frame">
-                                <img class="pfp" alt="@_displayName's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
-                            </div>
+                        <h2 class="display-name">@_displayName</h2>
+                        <p class="name-and-tag">
+                            <span>@_nameAndTag</span>
+                            @if (!string.IsNullOrWhiteSpace(User?.PriorName))
+                            {
+                                <span class="separator" aria-hidden="true">&middot;</span>
+                                <span>formerly @User.PriorName</span>
+                            }
+                        </p>
 
-                            <div class="identity-copy">
-                                <div class="identity-row">
-                                    <div class="name-stack">
-                                        <p class="eyebrow">Profile</p>
-                                        <h2 class="display-name">@_displayName</h2>
-                                        <p class="name-and-tag">@_nameAndTag</p>
-                                    </div>
-                                </div>
-
-                                @if (HasBadges)
+                        @if (_badges.Count > 0)
+                        {
+                            <div class="badge-cluster">
+                                @foreach (var badge in _badges)
                                 {
-                                    <div class="badge-cluster">
-                                        @if (User.HasStargazer && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Stargazer))
+                                    <span class="badge-chip @badge.CssClass" @key="@badge.Badge">
+                                        @if (badge.Badge == PlatformBadge.Stargazer)
                                         {
-                                            <div class="badge-chip stargazer">
-                                                <img alt="Stargazer badge" src="@StarBadge.GetDataUri(User.Id, User.GetStarColor1(), User.GetStarColor2())"/>
-                                                <span>Stargazer</span>
-                                            </div>
+                                            <img alt="" src="@StarBadge.GetDataUri(User.Id, User.GetStarColor1(), User.GetStarColor2())"/>
                                         }
-                                        @if (User.Bot && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Bot))
+                                        else
                                         {
-                                            <div class="badge-chip bot">
-                                                <i class="bi bi-cpu-fill"></i>
-                                                <span>Bot</span>
-                                            </div>
+                                            <i class="bi @badge.Icon" aria-hidden="true"></i>
                                         }
-                                        @if (User.ValourStaff && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Staff))
-                                        {
-                                            <div class="badge-chip staff">
-                                                <i class="bi bi-patch-check-fill"></i>
-                                                <span>Staff</span>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-
-                                @if (!string.IsNullOrWhiteSpace(User?.PriorName))
-                                {
-                                    <p class="meta-line">
-                                        <i class="bi bi-arrow-repeat"></i>
-                                        <span>Formerly @User.PriorName</span>
-                                    </p>
+                                        <span>@badge.Label</span>
+                                    </span>
                                 }
                             </div>
-                        </div>
-
+                        }
                     </div>
                 </section>
 
-                @if (HasHeadline)
-                {
-                    <section class="headline-section">
-                        <p class="headline">@HeadlineText</p>
-                    </section>
-                }
+                <div class="details-section">
+                    @if (HasHeadline)
+                    {
+                        <section class="headline-section">
+                            <p class="headline">@HeadlineText</p>
+                        </section>
+                    }
 
-                @if (ShowActions)
-                {
-                    <section class="action-section">
-                        <button class="v-btn large action-button message-button" @onclick="OnClickMessage">
-                            <i class="bi bi-envelope-fill"></i>
-                            <span>Message</span>
-                        </button>
+                    @if (!string.IsNullOrWhiteSpace(_status))
+                    {
+                        <section class="status-panel">
+                            <span class="status-dot @_statusClass" aria-hidden="true"></span>
+                            <p class="status-text">@_status</p>
+                        </section>
+                    }
 
-                        @if (_isFriend)
-                        {
-                            <button class="v-btn large action-button friend-button" @onclick="OnClickRemoveFriend">
-                                <i class="bi bi-person-heart"></i>
-                                <span>Remove Friend</span>
-                            </button>
-                        }
-                        else if (_isFriendRequested)
-                        {
-                            <button class="v-btn large action-button friend-button" @onclick="OnClickRemoveFriend">
-                                <i class="bi bi-person-heart"></i>
-                                <span>Cancel Request</span>
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="v-btn large action-button friend-button" @onclick="OnClickAddFriend">
-                                <i class="bi bi-person-heart"></i>
-                                <span>Add Friend</span>
-                            </button>
-                        }
-                    </section>
-                }
+                    @if (HasBio)
+                    {
+                        <section class="bio-panel">
+                            <p class="panel-label">About</p>
+                            <div class="body-text bio-markdown"><RichText Content="@Profile.Bio" /></div>
+                        </section>
+                    }
 
-                <section class="details-section">
-                    <div class="feature-panel status-panel">
-                        <p class="panel-label">Status</p>
-                        <p class="status-text">@StatusText</p>
-                    </div>
+                    @if (_roles.Count > 0)
+                    {
+                        <section class="roles-panel">
+                            <p class="panel-label">In @_planetName</p>
+                            <div class="role-list">
+                                @foreach (var role in _roles)
+                                {
+                                    <span class="role-chip" @key="@role.Id">
+                                        <span class="role-dot" style="@GetRoleDotStyle(role)"></span>
+                                        <span class="role-name">@role.Name</span>
+                                    </span>
+                                }
+                            </div>
+                        </section>
+                    }
 
-                    <div class="feature-panel bio-panel">
-                        <p class="panel-label">Bio</p>
-                        <div class="bio-scroll">
-                            <div class="body-text bio-markdown"><RichText Content="@BioText" /></div>
-                        </div>
-                    </div>
-                </section>
+                    @if (!string.IsNullOrEmpty(_joinedText) || !string.IsNullOrEmpty(_lastSeenText))
+                    {
+                        <p class="meta-line">
+                            @if (!string.IsNullOrEmpty(_joinedText))
+                            {
+                                <span class="meta-item"><span class="meta-key">joined</span> <span class="meta-value">@_joinedText</span></span>
+                            }
+                            @if (!string.IsNullOrEmpty(_lastSeenText))
+                            {
+                                <span class="meta-item"><span class="meta-key">last online</span> <span class="meta-value">@_lastSeenText</span></span>
+                            }
+                        </p>
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -159,21 +176,32 @@
     [Parameter]
     public string CssStyle { get; set; }
 
+    /// <summary>
+    /// Invoked after an action that moves the user elsewhere, such as opening a
+    /// conversation, so a containing popup can close.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
+
     private string CardStyle
     {
         get
         {
-            var baseStyle = string.IsNullOrWhiteSpace(CssStyle)
+            var style = string.IsNullOrWhiteSpace(CssStyle)
                 ? string.Empty
                 : $"{CssStyle.Trim().TrimEnd(';')};";
 
-            return baseStyle +
-                   $"--profile-primary: {GetProfileColor(Profile?.PrimaryColor, "var(--color-accent)")};" +
-                   $"--profile-secondary: {GetProfileColor(Profile?.SecondaryColor, "var(--color-primary)")};" +
-                   $"--profile-tertiary: {GetProfileColor(Profile?.TertiaryColor, "var(--color-secondary)")};" +
-                   $"--profile-border: {GetProfileColor(Profile?.BorderColor, "var(--main-4)")};" +
-                   $"--profile-glow: {GetProfileColor(Profile?.GlowColor, "var(--color-primary)")};" +
-                   $"--profile-text: {GetProfileColor(Profile?.TextColor, "var(--font-color)")};";
+            style += ProfileVariable("--profile-primary", Profile?.PrimaryColor);
+            style += ProfileVariable("--profile-secondary", Profile?.SecondaryColor);
+            style += ProfileVariable("--profile-tertiary", Profile?.TertiaryColor);
+            style += ProfileVariable("--profile-border", CustomBorderColor);
+            style += ProfileVariable("--profile-glow", Profile?.GlowColor);
+            style += ProfileVariable("--profile-text", Profile?.TextColor);
+
+            if (!string.IsNullOrWhiteSpace(Profile?.TextColor))
+                style += $"--profile-text-muted: color-mix(in srgb, {Profile.TextColor} 68%, var(--text-tertiary));";
+
+            return style;
         }
     }
 
@@ -197,31 +225,37 @@
     {
         get
         {
-            var border = GetProfileColor(Profile?.BorderColor, "var(--main-4)");
-            var primary = GetProfileColor(Profile?.PrimaryColor, border);
-            var secondary = GetProfileColor(Profile?.SecondaryColor, primary);
-            var tertiary = GetProfileColor(Profile?.TertiaryColor, secondary);
+            if (HasMultiColorBorder)
+            {
+                var primary = Profile.PrimaryColor;
+                var secondary = GetProfileColor(Profile.SecondaryColor, primary);
+                var tertiary = GetProfileColor(Profile.TertiaryColor, secondary);
+                return $"background: conic-gradient(from var(--profile-border-angle) at 50% 50%, {primary} 0deg, {secondary} 120deg, {tertiary} 240deg, {primary} 360deg);";
+            }
 
-            var bg = User?.Subscription == null || string.IsNullOrWhiteSpace(Profile?.PrimaryColor)
-                ? $"background: linear-gradient(135deg, {border} 0%, color-mix(in srgb, {border} 60%, black) 100%);"
-                : $"background: conic-gradient(from var(--profile-border-angle) at 50% 50%, {primary} 0deg, {secondary} 120deg, {tertiary} 240deg, {primary} 360deg);";
-
-            return bg;
+            return CustomBorderColor is null ? string.Empty : $"background-color: {CustomBorderColor};";
         }
     }
 
+    // New accounts start with a white border color, which is treated as unset.
+    private string CustomBorderColor =>
+        string.IsNullOrWhiteSpace(Profile?.BorderColor) || string.Equals(Profile.BorderColor, "#fff", StringComparison.OrdinalIgnoreCase) ? null : Profile.BorderColor;
+
+    private bool HasMultiColorBorder => User?.Subscription != null && !string.IsNullOrWhiteSpace(Profile?.PrimaryColor);
+    private bool HasFrame => HasMultiColorBorder || CustomBorderColor is not null;
+    private bool HasGlow => !string.IsNullOrWhiteSpace(Profile?.GlowColor);
     private bool HasAnimatedBorder => Profile?.AnimatedBorder == true;
-    private bool HasBadges => User is not null &&
-        (User.HasStargazer && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Stargazer) ||
-         User.Bot && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Bot) ||
-         User.ValourStaff && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Staff));
     private bool HasHeadline => !string.IsNullOrWhiteSpace(Profile?.Headline);
+    private bool HasBio => !string.IsNullOrWhiteSpace(Profile?.Bio);
     private bool ShowActions => User is not null && Client.Me is not null && User.Id != Client.Me.Id;
-    private string StatusText => string.IsNullOrWhiteSpace(_status) ? "No status set." : _status;
     private string HeadlineText => Profile?.Headline?.Trim() ?? string.Empty;
-    private string BioText => string.IsNullOrWhiteSpace(Profile?.Bio) ? "No bio written yet." : Profile.Bio;
 
     public readonly string Id = Guid.NewGuid().ToString();
+
+    private record BadgeDef(PlatformBadge Badge, string CssClass, string Icon, string Label);
+
+    private readonly List<BadgeDef> _badges = new();
+    private List<PlanetRole> _roles = new();
 
     private string _displayName = "Unknown User";
     private string _nameAndTag = string.Empty;
@@ -230,9 +264,13 @@
     private string _pfpUrl = ISharedUser.DefaultAvatar;
     private string _statusClass = "offline";
     private string _lastSeenText = string.Empty;
+    private string _joinedText = string.Empty;
+    private string _planetName = string.Empty;
+    private string _skySeed = string.Empty;
 
     private bool _isFriend;
     private bool _isFriendRequested;
+    private bool _friendBusy;
 
     protected override void OnParametersSet()
     {
@@ -251,17 +289,66 @@
         if (User is null)
             return;
 
-        _isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == User.Id);
-        _isFriend = FriendService.Friends.Any(x => x.Id == User.Id);
+        SyncFriendState();
 
         _displayName = !string.IsNullOrWhiteSpace(Member?.Nickname) ? Member.Nickname : User.Name;
         _nameAndTag = User.NameAndTag;
         _presenceName = User.UserState?.Name ?? "Offline";
         _status = User.Status;
-        _statusClass = string.IsNullOrWhiteSpace(User.UserState.CssClassName) ? "offline" : User.UserState.CssClassName;
+        _statusClass = string.IsNullOrWhiteSpace(User.UserState?.CssClassName) ? "offline" : User.UserState.CssClassName;
         _lastSeenText = BuildLastSeenText();
+        _joinedText = User.TimeJoined == default ? string.Empty : User.TimeJoined.ToString("MMM yyyy", CultureInfo.InvariantCulture);
         _pfpUrl = Member?.GetAvatar() ?? User.GetAvatar() ?? ISharedUser.DefaultAvatar;
+        _skySeed = User.Id.ToString(CultureInfo.InvariantCulture);
+
+        BuildBadges();
+        BuildRoles();
     }
+
+    private void SyncFriendState()
+    {
+        _isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == User.Id);
+        _isFriend = FriendService.Friends.Any(x => x.Id == User.Id);
+    }
+
+    private void BuildBadges()
+    {
+        _badges.Clear();
+
+        AddBadge(PlatformBadge.Stargazer, "stargazer", "bi-star-fill", "Stargazer");
+        AddBadge(PlatformBadge.FirstOneThousand, "milestone-1k", "bi-award-fill", "First 1k users");
+        AddBadge(PlatformBadge.FirstTenThousand, "milestone-10k", "bi-award-fill", "First 10k users");
+        AddBadge(PlatformBadge.Bot, "bot", "bi-cpu-fill", "Bot");
+        AddBadge(PlatformBadge.Staff, "staff", "bi-patch-check-fill", "Staff");
+    }
+
+    private void AddBadge(PlatformBadge badge, string cssClass, string icon, string label)
+    {
+        if (PlatformBadgeCatalog.IsEarned(User, badge) && PlatformBadgeCatalog.IsVisible(User, badge))
+            _badges.Add(new BadgeDef(badge, cssClass, icon, label));
+    }
+
+    private void BuildRoles()
+    {
+        _roles = new List<PlanetRole>();
+        _planetName = string.Empty;
+
+        if (Member?.Client is null)
+            return;
+
+        var planet = Member.GetPlanet(false);
+        if (planet is null)
+            return;
+
+        _planetName = planet.Name;
+        _roles = Member.Roles.Where(x => !x.IsDefault && !string.IsNullOrWhiteSpace(x.Name)).ToList();
+    }
+
+    private static string GetRoleDotStyle(PlanetRole role) =>
+        string.IsNullOrWhiteSpace(role.Color) ? null : $"background-color: {role.Color};";
+
+    private static string ProfileVariable(string name, string color) =>
+        string.IsNullOrWhiteSpace(color) ? string.Empty : $"{name}: {color};";
 
     private string BuildLastSeenText()
     {
@@ -275,7 +362,7 @@
         if (elapsed.TotalSeconds <= 0)
             return string.Empty;
 
-        return $"Last online {FormatElapsed(elapsed)} ago";
+        return $"{FormatElapsed(elapsed)} ago";
     }
 
     private static string FormatElapsed(TimeSpan elapsed)
@@ -315,31 +402,63 @@
 
     private async Task OnClickAddFriend()
     {
+        if (_friendBusy)
+            return;
+
+        _friendBusy = true;
         var result = await FriendService.AddFriendAsync(User.NameAndTag);
+        _friendBusy = false;
 
         if (!result.Success)
         {
             Client.Logger.Log<ProfileCard>($"Failed to add friend:\n{result.Message}", "orange");
+            ToastContainer.Instance.AddToast(new ToastData("Unable to add friend", result.Message));
             return;
         }
 
-        _isFriend = true;
+        SyncFriendState();
         StateHasChanged();
     }
 
     private async Task OnClickRemoveFriend()
     {
+        if (_friendBusy)
+            return;
+
+        _friendBusy = true;
         var result = await FriendService.RemoveFriendAsync(User.NameAndTag);
+        _friendBusy = false;
 
         if (!result.Success)
         {
             Client.Logger.Log<ProfileCard>($"Failed to remove friend:\n{result.Message}", "orange");
+            ToastContainer.Instance.AddToast(new ToastData("Unable to remove friend", result.Message));
             return;
         }
 
         _isFriend = false;
         _isFriendRequested = false;
         StateHasChanged();
+    }
+
+    private void OnClickMore(MouseEventArgs e)
+    {
+        if (Member is not null)
+        {
+            ContextMenuService.Root.OpenMenu<MemberContextMenu>(e,
+                new MemberContextMenu.MemberContextParams
+                {
+                    Member = Member
+                });
+        }
+        else
+        {
+            ContextMenuService.Root.OpenMenu<UserContextMenu>(e,
+                new UserContextMenu.UserContextParams
+                {
+                    User = User
+                });
+        }
     }
 
     private async Task OnClickMessage()
@@ -352,5 +471,6 @@
         }
         var newWindowContent = await ChatWindowComponent.GetDefaultContent(channel);
         await WindowService.OpenWindowAtFocused(newWindowContent);
+        await OnDismiss.InvokeAsync();
     }
 }

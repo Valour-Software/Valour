@@ -1,6 +1,4 @@
-﻿/* ===== Edit mode ===== */
-
-.identity-row {
+﻿.identity-row {
     display: flex;
     gap: 1rem;
     align-items: flex-start;
@@ -20,14 +18,12 @@
 }
 
 .role-preview-label {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
+    letter-spacing: var(--letter-spacing-label);
 }
-
-/* ===== List mode ===== */
 
 .top-help {
     margin-top: 0;
@@ -43,8 +39,8 @@
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
-    color: var(--font-alt-color);
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
 }
 
 .roles-list {
@@ -60,24 +56,22 @@
     gap: var(--space-3);
     min-height: 40px;
     padding: 0.35rem 0.75rem;
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
     cursor: pointer;
     user-select: none;
     transition: background-color var(--duration-fast) var(--ease-standard),
-                border-color var(--duration-fast) var(--ease-standard),
-                transform var(--duration-fast) var(--ease-standard);
+                border-color var(--duration-fast) var(--ease-standard);
 }
 
 .roles-row:hover {
-    background-color: var(--main-4);
-    border-color: var(--strong-tint, var(--slight-tint));
-    transform: translateX(2px);
+    background-color: var(--surface-hover);
+    border-color: var(--line-strong);
 }
 
 .roles-row:active {
-    transform: scale(0.99);
+    background-color: var(--surface-active);
 }
 
 .role-name-div {
@@ -90,8 +84,10 @@
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
     flex-shrink: 0;
 }
 

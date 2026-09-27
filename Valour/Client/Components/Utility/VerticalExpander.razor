@@ -27,10 +27,10 @@
 
     <div class="expander-buttons">
         @if (_renderedItemCount < TotalItems) {
-            <button class="btn v-btn primary" @onclick="@LoadNext">Show More</button>
+            <button class="v-btn" @onclick="@LoadNext">Show more</button>
         }
         @if (_renderedItemCount > RowSize) {
-            <button class="btn v-btn secondary" @onclick="@OnClickRemove">Show Less</button>
+            <button class="v-btn tertiary" @onclick="@OnClickRemove">Show less</button>
         }
     </div>
 </div>

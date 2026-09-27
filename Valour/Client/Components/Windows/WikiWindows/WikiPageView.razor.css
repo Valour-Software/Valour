@@ -2,8 +2,6 @@
     min-width: 0;
 }
 
-/* Title block */
-
 .dp-header {
     margin-bottom: 18px;
 }
@@ -11,9 +9,10 @@
 .dp-title {
     margin: 0;
     font-size: clamp(20px, 4cqw, 26px);
-    font-weight: var(--font-weight-bold);
-    line-height: var(--line-height-tight, 1.15);
-    letter-spacing: -0.02em;
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-display);
+    color: var(--text-primary);
 }
 
 .dp-meta {
@@ -21,25 +20,22 @@
     align-items: center;
     gap: 6px;
     margin: 7px 0 0 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
 }
 
 .dp-meta i {
     font-size: 12px;
-    opacity: 0.7;
 }
 
 .dp-underline {
     margin-top: 13px;
-    opacity: 0.5;
 }
 
-/* Long-form typography on top of the chat-oriented RichText defaults */
-
 .dp-content {
-    font-size: var(--font-size-sm);
-    line-height: 1.6;
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-loose);
 }
 
 .dp-content ::deep h1,
@@ -47,8 +43,10 @@
 .dp-content ::deep h3,
 .dp-content ::deep h4 {
     margin: 1.5em 0 0.5em 0;
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
     line-height: 1.3;
-    letter-spacing: -0.01em;
+    letter-spacing: var(--letter-spacing-tight);
 }
 
 .dp-content ::deep h1:first-child,
@@ -62,7 +60,7 @@
 .dp-content ::deep h2 {
     font-size: 1.32em;
     padding-bottom: 5px;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
 }
 
 .dp-content ::deep h3 { font-size: 1.14em; }
@@ -72,8 +70,12 @@
     margin: 0 0 0.8em 0;
 }
 
+.dp-content ::deep strong {
+    color: var(--text-primary);
+}
+
 .dp-content ::deep a {
-    color: var(--v-cyan);
+    color: var(--color-primary);
     text-decoration: none;
 }
 
@@ -82,8 +84,8 @@
 }
 
 .dp-content ::deep pre {
-    background: var(--main-1);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
     padding: 10px 12px;
     overflow-x: auto;
@@ -96,19 +98,18 @@
 }
 
 .dp-content ::deep :not(pre) > code {
-    background: var(--main-1);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-xs);
+    color: var(--text-primary);
     padding: 1px 6px;
 }
 
 .dp-content ::deep blockquote {
     margin: 0 0 1em 0;
-    padding: 6px 14px;
-    border-left: 3px solid var(--v-cyan);
-    background: var(--slight-tint);
-    border-radius: 0 var(--radius-s) var(--radius-s) 0;
-    color: color-mix(in srgb, var(--font-color) 80%, transparent);
+    padding: 2px 14px;
+    border-left: 3px solid var(--line-strong);
+    color: var(--text-secondary);
 }
 
 .dp-content ::deep blockquote p:last-child {
@@ -118,7 +119,7 @@
 .dp-content ::deep img {
     max-width: 100%;
     border-radius: var(--radius-md);
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line);
 }
 
 .dp-content ::deep table {
@@ -128,23 +129,24 @@
     overflow-x: auto;
     max-width: 100%;
     border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
 }
 
 .dp-content ::deep th,
 .dp-content ::deep td {
-    border: 1px solid var(--medium-tint);
+    border: 1px solid var(--line);
     padding: 6px 12px;
     text-align: left;
 }
 
 .dp-content ::deep th {
-    background: var(--main-1);
-    font-weight: var(--font-weight-bold);
-    font-size: 0.92em;
+    background-color: var(--surface-raised);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
 }
 
 .dp-content ::deep tr:nth-child(even) td {
-    background: color-mix(in srgb, var(--main-1) 40%, transparent);
+    background-color: color-mix(in srgb, var(--surface-raised) 50%, transparent);
 }
 
 .dp-content ::deep ul,
@@ -158,16 +160,14 @@
 }
 
 .dp-content ::deep li::marker {
-    color: var(--v-cyan);
+    color: var(--text-tertiary);
 }
 
 .dp-content ::deep hr {
     border: none;
-    border-top: 1px solid var(--medium-tint);
+    border-top: 1px solid var(--line);
     margin: 1.5em 0;
 }
-
-/* Prev / next pager */
 
 .dp-pager {
     display: grid;
@@ -181,20 +181,18 @@
     align-items: center;
     gap: 12px;
     padding: 10px 14px;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     min-width: 0;
     transition: border-color var(--duration-fast) var(--ease-standard),
-                background var(--duration-fast) var(--ease-standard),
-                transform var(--duration-fast) var(--ease-standard);
+                background-color var(--duration-fast) var(--ease-standard);
 }
 
 .dp-pager-link:hover {
-    border-color: color-mix(in srgb, var(--v-cyan) 45%, transparent);
-    background: var(--main-4);
-    transform: translateY(-1px);
+    border-color: var(--line-strong);
+    background-color: var(--surface-hover);
 }
 
 .dp-pager-link.next {
@@ -211,17 +209,17 @@
 
 .dp-pager-arrow {
     flex-shrink: 0;
-    color: var(--v-cyan);
+    color: var(--text-tertiary);
     font-size: 15px;
 }
 
 .dp-pager-label {
-    font-size: var(--font-size-xs, 12px);
-    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
 }
 
 .dp-pager-title {
-    color: var(--font-color);
+    color: var(--text-primary);
     font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);
     overflow: hidden;

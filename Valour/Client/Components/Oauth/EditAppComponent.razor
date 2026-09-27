@@ -10,7 +10,7 @@
             <img alt="App Icon" src="@Data.App.ImageUrl" data-click-target="upload-core" class="app-icon" />
             <div class="app-info">
                 <h4 class="app-name">@Data.App.Name</h4>
-                <p class="app-stats">Used @Data.App.Uses time@(Data.App.Uses == 1 ? "" : "s") • ID: @Data.App.Id</p>
+                <p class="app-stats">Used <span class="app-number">@Data.App.Uses</span> time@(Data.App.Uses == 1 ? "" : "s") · ID <span class="app-number">@Data.App.Id</span></p>
             </div>
         </div>
 
@@ -28,9 +28,9 @@
         </div>
 
         <div class="form-group">
-            <label>App Secret</label>
+            <label>App secret</label>
             <div class="input-group">
-                <input class="form-control" value="@Data.App.Secret" readonly />
+                <input class="form-control secret-input" value="@Data.App.Secret" readonly />
                 <button class="v-btn" @onclick="@OnCopySecret">Copy</button>
             </div>
             <span class="helper-text">Keep this secret secure. It's used to authenticate your app.</span>
@@ -41,7 +41,7 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button @onclick="@OnCancel" class="v-btn">Cancel</button>
-            <button @onclick="@OnClickDelete" class="v-btn danger">Delete App</button>
+            <button @onclick="@OnClickDelete" class="v-btn danger">Delete app</button>
         </div>
     </ButtonArea>
 </BasicModalLayout>

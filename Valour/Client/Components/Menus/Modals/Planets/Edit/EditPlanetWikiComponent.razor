@@ -2,7 +2,7 @@
 @inject IJSRuntime JsRuntime
 @using Valour.Client.Components.Windows.WikiWindows
 
-<div class="settings-inner">
+<div class="settings-page">
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-journal-text"></i>
@@ -11,7 +11,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Enable Wiki</span>
+                <span class="toggle-title">Enable wiki</span>
                 <label class="switch">
                     <input type="checkbox" @oninput="OnCheckEnableWiki" checked="@_enableWikiValue"/>
                     <span class="slider round"></span>
@@ -23,7 +23,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Public Wiki</span>
+                <span class="toggle-title">Public wiki</span>
                 <label class="switch">
                     <input type="checkbox" @oninput="OnCheckPublicWiki" checked="@_publicWikiValue" disabled="@(!_enableWikiValue)"/>
                     <span class="slider round"></span>
@@ -38,7 +38,7 @@
             <div class="public-url">
                 <span class="public-url-label">Public URL</span>
                 <code>@_publicUrl</code>
-                <button class="v-btn icon-btn" title="Copy" @onclick="CopyPublicUrlAsync">
+                <button class="v-btn tertiary small icon-btn" title="Copy" @onclick="CopyPublicUrlAsync">
                     <i class="bi bi-clipboard"></i>
                 </button>
             </div>
@@ -49,7 +49,7 @@
 
         <div class="open-wiki">
             <button class="v-btn" @onclick="OpenWikiAsync" disabled="@(!_enableWikiValue)">
-                <i class="bi bi-journal-text"></i> Open Wiki
+                <i class="bi bi-journal-text"></i> Open wiki
             </button>
             <p class="toggle-description">
                 Writing is controlled by the <b>Edit Wiki</b> and <b>Manage Wiki</b> role permissions.

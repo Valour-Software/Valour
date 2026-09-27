@@ -13,7 +13,7 @@
 
     @if (_entries.Count == 0 && _loaded)
     {
-        <p class="mt-2">No audit entries found.</p>
+        <p class="audit-empty mt-2">No audit entries found.</p>
     }
     else
     {
@@ -32,7 +32,7 @@
             @foreach (var entry in _entries)
             {
                 <tr>
-                    <td>@entry.TimeCreated.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td class="audit-time">@entry.TimeCreated.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@(entry.StaffName ?? entry.StaffUserId.ToString())</td>
                     <td>@FormatAction(entry.ActionType)</td>
                     <td>@(entry.TargetName ?? entry.TargetUserId?.ToString() ?? "-")</td>
@@ -45,7 +45,7 @@
 
         @if (_hasMore)
         {
-            <button class="v-btn mt-2" @onclick="LoadMore">Load more</button>
+            <button class="v-btn secondary mt-2" @onclick="LoadMore">Load more</button>
         }
     }
 </div>

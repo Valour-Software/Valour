@@ -1,7 +1,7 @@
 .about-preview {
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    background: var(--main-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-canvas);
     overflow: hidden;
 }
 
@@ -19,8 +19,10 @@
 
 .about-count {
     flex-shrink: 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
 }
 
 .about-textarea {

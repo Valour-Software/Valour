@@ -225,6 +225,7 @@ public class PlanetService
         HasCustomBackground = x.HasCustomBackground,
         Discoverable = x.Discoverable,
         MemberCount = x.Members.Count(m => !m.IsDeleted),
+        ActiveCount = x.Members.Count(m => !m.IsDeleted && m.TimeLastConnected > DateTime.UtcNow.AddMinutes(-15)),
         Version = x.Version,
         Tags = x.Tags.Select(t => new PlanetTag
         {

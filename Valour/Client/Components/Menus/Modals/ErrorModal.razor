@@ -4,13 +4,11 @@
 <BasicModalLayout Title="@($"Error Details {CodeText}")" Icon="bug-fill" MaxWidth="600px">
     <MainArea>
         <p class="subtitle">Send to us... or maybe <a href="https://github.com/Valour-Software/Valour">contribute?</a></p>
-        <pre class="error-details">
-            @(Data.Result.Details ?? "No details available")
-        </pre>
+        <pre class="error-details">@(Data.Result.Details ?? "No details available")</pre>
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
-            <button @onclick="@OnClickCopyAsync" class="v-btn">Copy Details</button>
+            <button @onclick="@OnClickCopyAsync" class="v-btn">Copy details</button>
             <button @onclick="@OnClickClose" class="v-btn">Close</button>
         </div>
     </ButtonArea>

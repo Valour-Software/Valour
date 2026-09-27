@@ -1,7 +1,8 @@
 ﻿.message-modal {
-    background-color: var(--main-3);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-base);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
     padding: 0.75em;
     max-width: min(800px, 90vw);
-    box-shadow: 0 0 20px black, 0 0 20px black;
+    box-shadow: var(--shadow-modal), var(--rim-light);
 }

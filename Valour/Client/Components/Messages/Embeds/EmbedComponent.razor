@@ -25,9 +25,9 @@
 			@if (Embed.Pages.Count > 1 && !Embed.HideChangePageArrows)
 			{
 				<div class="embed-page-arrows">
-					<button @onclick="PrevPage" class="embed-page-arrow">&lt;</button>
+					<button @onclick="PrevPage" class="embed-page-arrow" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button>
 					<span class="embed-page-number">@(_pageIndex + 1) / @Embed.Pages.Count</span>
-					<button @onclick="NextPage" class="embed-page-arrow">&gt;</button>
+					<button @onclick="NextPage" class="embed-page-arrow" aria-label="Next page"><i class="bi bi-chevron-right"></i></button>
 				</div>
 			}
 

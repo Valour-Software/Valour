@@ -1,87 +1,113 @@
 .planet-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    border: 0;
-    background: transparent;
+    min-height: 46px;
+    padding: 6px 8px;
     color: inherit;
     font: inherit;
     text-align: left;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 8px;
-    border-radius: var(--radius-sm);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .planet-row:hover {
-    background-color: var(--main-4);
+    background-color: var(--surface-hover);
 }
 
-.planet-row .left {
+.info {
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
     flex: 1;
-}
-
-.planet-row .left .info {
-    display: flex;
     flex-direction: column;
+    gap: 1px;
     min-width: 0;
 }
 
-.planet-row .left .info .name {
-    font-weight: var(--font-weight-medium);
+.name,
+.description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.name {
+    color: var(--text-secondary);
     font-size: var(--font-size-sm);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-weight: var(--font-weight-medium);
 }
 
-.planet-row .left .info .description {
+.planet-row:hover .name,
+.planet-row.unread .name {
+    color: var(--text-primary);
+}
+
+.planet-row.unread .name {
+    font-weight: var(--font-weight-semibold);
+}
+
+.description {
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-.planet-row .right {
+.meta {
     display: flex;
-    flex-direction: row;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
-    margin-left: 8px;
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
 }
 
-.planet-row .right .nsfw-tag {
-    font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-bold);
-    background-color: var(--color-danger);
-    color: white;
-    padding: 1px 5px;
-    border-radius: var(--radius-sm);
-}
-
-.planet-row .right .notif-badge {
-    background-color: var(--color-danger);
+.meta .dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--line-strong);
     border-radius: var(--radius-full);
-    height: 16px;
-    min-width: 16px;
-    padding: 0 4px;
+}
+
+.meta.live .dot {
+    background-color: var(--color-success);
+}
+
+.nsfw-tag {
+    flex: none;
+    padding: 1px 5px;
+    color: var(--color-danger);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    background-color: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-xs);
+}
+
+.count {
     display: inline-flex;
+    flex: none;
     align-items: center;
     justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    color: var(--color-primary-contrast);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    background-color: var(--color-primary);
+    border-radius: var(--radius-full);
 }
 
-.planet-row .right .notif-badge span {
-    font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-bold);
-    color: white;
-    line-height: var(--line-height-none);
+.unread-dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    margin-right: 4px;
+    background-color: var(--text-primary);
+    border-radius: var(--radius-full);
 }

@@ -65,8 +65,8 @@
                         <div class="attachment-name" title="@attachment.FileName">@attachment.FileName</div>
                         <div class="attachment-meta">
                             <span>@attachment.MimeType</span>
-                            <span>@FormatBytes(attachment.SizeBytes)</span>
-                            <span>@attachment.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                            <span class="numeric">@FormatBytes(attachment.SizeBytes)</span>
+                            <span class="numeric">@attachment.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
                         </div>
                         <div class="attachment-hash">@attachment.Hash</div>
                     </div>
@@ -86,7 +86,7 @@
 
         @if (_attachments.Count < _totalCount)
         {
-            <button class="v-btn primary load-more" @onclick="LoadMoreAsync" disabled="@_loading">
+            <button class="v-btn load-more" @onclick="LoadMoreAsync" disabled="@_loading">
                 Load more (@_attachments.Count / @_totalCount)
             </button>
         }

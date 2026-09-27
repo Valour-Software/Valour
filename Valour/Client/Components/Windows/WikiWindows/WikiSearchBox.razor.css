@@ -11,29 +11,35 @@
     position: absolute;
     left: 12px;
     font-size: 12px;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     pointer-events: none;
 }
 
 .ds-input {
     width: 100%;
-    background: var(--main-3);
-    border: 1px solid color-mix(in srgb, var(--font-color) 10%, transparent);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-full);
-    color: var(--font-color);
+    color: var(--text-primary);
     padding: 5px 14px 5px 30px;
     font-size: var(--font-size-sm);
     font-family: var(--font-family-app);
     outline: none;
-    transition: border-color var(--duration-fast) var(--ease-standard);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.ds-input::placeholder {
+    color: var(--text-tertiary);
 }
 
 .ds-input:hover {
-    border-color: color-mix(in srgb, var(--font-color) 25%, transparent);
+    border-color: color-mix(in srgb, var(--tint) 22%, transparent);
 }
 
 .ds-input:focus {
-    border-color: var(--color-primary-border);
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
 }
 
 .ds-results {
@@ -43,36 +49,40 @@
     right: 0;
     min-width: 220px;
     z-index: 40;
-    background: var(--main-1);
-    border: 1px solid var(--medium-tint);
-    border-radius: var(--radius-md);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    padding: 4px;
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-overlay);
     overflow: hidden;
     max-height: 300px;
     overflow-y: auto;
 }
 
 .ds-status {
-    padding: 10px 12px;
-    font-size: 13px;
-    color: var(--font-alt-color);
+    padding: 8px 10px;
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
 }
 
 .ds-result {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    font-size: 13.5px;
+    padding: 7px 10px;
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
     cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .ds-result:hover {
-    background: var(--slight-tint);
+    background-color: var(--surface-hover);
 }
 
 .ds-result i {
-    opacity: 0.65;
+    color: var(--text-tertiary);
     flex-shrink: 0;
 }
 

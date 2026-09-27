@@ -4,7 +4,7 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-broadcast-pin"></i>
-            Bring Your Own Voice
+            Bring your own voice
         </h3>
 
         <p class="toggle-description">
@@ -22,7 +22,10 @@
 
         @if (_loading)
         {
-            <p>Loading...</p>
+            <div class="loading-state">
+                <div class="loading-indicator"></div>
+                <span>Loading...</span>
+            </div>
         }
         else
         {
@@ -31,17 +34,17 @@
                 <input class="form-control" placeholder="wss://voice.example.com" @bind-value="_liveKitUrl" />
             </div>
             <div class="form-group mt-2 new-input-style">
-                <label>API Key</label>
+                <label>API key</label>
                 <input class="form-control" placeholder="mykey" @bind-value="_apiKey" />
             </div>
             <div class="form-group mt-2 new-input-style">
-                <label>API Secret @(_hasExisting ? "(leave blank to keep current)" : "")</label>
+                <label>API secret @(_hasExisting ? "(leave blank to keep current)" : "")</label>
                 <input class="form-control" type="password" autocomplete="off" @bind-value="_apiSecret" />
             </div>
 
-            <div style="margin-top: 16px;">
-                <div class="perm-list-name mb-1" style="display: inline-block;">Enabled</div>
-                <div type="button" style="float: right">
+            <div class="toggle-item mt-3">
+                <div class="toggle-header">
+                    <span class="toggle-title">Enabled</span>
                     <label class="switch">
                         <input type="checkbox" @bind="_enabled">
                         <span class="slider round"></span>
@@ -49,9 +52,9 @@
                 </div>
             </div>
 
-            <div class="mt-4">
-                <button class="v-btn" @onclick="OnSaveAsync" disabled="@_busy">Save</button>
-                <button class="v-btn" @onclick="OnProbeAsync" disabled="@(_busy || !_hasExisting)">Test Connection</button>
+            <div class="actions">
+                <button class="v-btn primary" @onclick="OnSaveAsync" disabled="@_busy">Save</button>
+                <button class="v-btn secondary" @onclick="OnProbeAsync" disabled="@(_busy || !_hasExisting)">Test connection</button>
                 @if (_hasExisting)
                 {
                     <button class="v-btn danger" @onclick="OnClearAsync" disabled="@_busy">Remove</button>
@@ -64,11 +67,13 @@
                     Status:
                     @if (_verifiedAt is not null)
                     {
-                        <span style="color: var(--p-cyan);">verified @_verifiedAt?.ToLocalTime().ToString("g")</span>
+                        <span class="status-badge enabled">Verified</span>
+                        @_verifiedAt?.ToLocalTime().ToString("g")
                     }
                     else
                     {
-                        <span class="v-text-red">not verified — run Test Connection</span>
+                        <span class="status-badge">Not verified</span>
+                        <span>Run Test connection to check it.</span>
                     }
                 </p>
             }

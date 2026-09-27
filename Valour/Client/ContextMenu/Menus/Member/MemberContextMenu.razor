@@ -33,13 +33,13 @@ else
 }
 @if (_canKick && !_isSelf)
 {
-	<ContextMenuItem OnClickAsync="@OnClickKick" Color="red">
+	<ContextMenuItem OnClickAsync="@OnClickKick" Color="var(--color-danger)">
 		<Label>Kick</Label>
 		<Icon><i class="bi bi-shield-fill-exclamation"></i></Icon>
 	</ContextMenuItem>
 }
 @if (_canBan && !_isSelf) {
-	<ContextMenuItem OnClickAsync="@OnClickBan" Color="red">
+	<ContextMenuItem OnClickAsync="@OnClickBan" Color="var(--color-danger)">
 		<Label>Ban</Label>
 		<Icon><i class="bi bi-hammer"></i></Icon>
 	</ContextMenuItem>

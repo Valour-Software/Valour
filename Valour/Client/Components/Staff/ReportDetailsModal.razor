@@ -10,11 +10,11 @@
                 <div class="info-grid">
                     <div class="info-item">
                         <span class="label">Report ID</span>
-                        <span class="value">@Data.Report.Id</span>
+                        <span class="value mono">@Data.Report.Id</span>
                     </div>
                     <div class="info-item">
                         <span class="label">Created</span>
-                        <span class="value">@Data.Report.TimeCreated.ToString("g")</span>
+                        <span class="value mono">@Data.Report.TimeCreated.ToString("g")</span>
                     </div>
                     <div class="info-item">
                         <span class="label">Reason</span>
@@ -88,7 +88,7 @@
                     else
                     {
                         <div class="message-error">
-                            <span>Thread content could not be loaded (ID: @Data.Report.ThreadId)</span>
+                            <span>Thread content could not be loaded (ID: <span class="mono">@Data.Report.ThreadId</span>)</span>
                             <button class="v-btn small secondary" @onclick="LoadThread">Retry</button>
                         </div>
                     }
@@ -112,7 +112,7 @@
                     else
                     {
                         <div class="message-error">
-                            <span>Message could not be loaded (ID: @Data.Report.MessageId)</span>
+                            <span>Message could not be loaded (ID: <span class="mono">@Data.Report.MessageId</span>)</span>
                             <button class="v-btn small secondary" @onclick="LoadMessage">Retry</button>
                         </div>
                     }
@@ -138,7 +138,7 @@
                         </div>
                         <div class="info-item">
                             <span class="label">Resolved At</span>
-                            <span class="value">@Data.Report.ResolvedAt?.ToString("g")</span>
+                            <span class="value mono">@Data.Report.ResolvedAt?.ToString("g")</span>
                         </div>
                         <div class="info-item">
                             <span class="label">Resolved By</span>
@@ -185,9 +185,9 @@
                         <div class="action-buttons">
                             @if (Data.Report.ReportedUserId.HasValue)
                             {
-                                <button class="v-btn danger" @onclick="DisableUserAndResolve">Disable User</button>
+                                <button class="v-btn danger" @onclick="DisableUserAndResolve">Disable user</button>
                             }
-                            <button class="v-btn secondary" @onclick="() => ResolveReport(ReportResolution.NoAction)">No Action</button>
+                            <button class="v-btn secondary" @onclick="() => ResolveReport(ReportResolution.NoAction)">No action</button>
                         </div>
                     </div>
                 </div>
@@ -206,212 +206,13 @@
                     }
                     else
                     {
-                        <span>Resolve Report</span>
+                        <span>Resolve report</span>
                     }
                 </button>
             }
         </div>
     </ButtonArea>
 </BasicModalLayout>
-
-<style>
-    .report-details {
-        max-height: 60vh;
-        overflow-y: auto;
-    }
-
-    .report-section {
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid var(--main-4);
-    }
-
-    .report-section:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-    }
-
-    .report-section h4 {
-        margin-bottom: 12px;
-        color: var(--font-color-mid);
-        font-size: var(--font-size-sm);
-        text-transform: uppercase;
-        letter-spacing: var(--letter-spacing-normal);
-    }
-
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
-
-    .info-item {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .info-item .label {
-        font-size: var(--font-size-sm);
-        color: var(--font-alt-color);
-    }
-
-    .info-item .value {
-        font-size: var(--font-size-md);
-    }
-
-    .users-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-    }
-
-    .user-item {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .user-item .label {
-        font-size: var(--font-size-sm);
-        color: var(--font-alt-color);
-    }
-
-    .description-box, .notes-box {
-        background: var(--main-4);
-        padding: 12px;
-        border-radius: var(--radius-sm);
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-size: var(--font-size-md);
-    }
-
-    .reported-message-container {
-        background: var(--main-2);
-        border-radius: var(--radius-md);
-        padding: 8px;
-        max-height: 300px;
-        overflow-y: auto;
-    }
-
-    .message-loading {
-        padding: 20px;
-        text-align: center;
-        color: var(--font-alt-color);
-    }
-
-    .message-error {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px;
-        background: rgba(220, 53, 69, 0.1);
-        border-radius: var(--radius-sm);
-        color: var(--font-color-mid);
-    }
-
-    .reason-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: var(--radius-sm);
-        font-size: var(--font-size-sm);
-        font-weight: var(--font-weight-medium);
-    }
-
-    .reason-badge.severe {
-        background: rgba(220, 53, 69, 0.2);
-        color: #dc3545;
-    }
-
-    .reason-badge.moderate {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-    }
-
-    .reason-badge.minor {
-        background: rgba(108, 117, 125, 0.2);
-        color: #6c757d;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: var(--radius-sm);
-        font-size: var(--font-size-sm);
-        font-weight: var(--font-weight-medium);
-    }
-
-    .status-badge.unresolved {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-    }
-
-    .status-badge.resolved {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-    }
-
-    .resolved-section {
-        background: var(--main-3);
-        padding: 15px;
-        border-radius: var(--radius-md);
-        margin-top: 10px;
-    }
-
-    .staff-notes {
-        margin-top: 12px;
-    }
-
-    .staff-notes .label {
-        display: block;
-        font-size: var(--font-size-sm);
-        color: var(--font-alt-color);
-        margin-bottom: 6px;
-    }
-
-    .resolve-form .form-group {
-        margin-bottom: 15px;
-    }
-
-    .resolve-form label {
-        display: block;
-        font-size: var(--font-size-sm);
-        color: var(--font-alt-color);
-        margin-bottom: 6px;
-    }
-
-    .resolve-form .form-control {
-        width: 100%;
-        padding: 10px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--main-4);
-        background: var(--main-3);
-        color: var(--font-color);
-    }
-
-    .quick-actions {
-        margin-top: 20px;
-        padding-top: 15px;
-        border-top: 1px solid var(--main-4);
-    }
-
-    .quick-actions h5 {
-        font-size: var(--font-size-sm);
-        color: var(--font-alt-color);
-        margin-bottom: 10px;
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .text-muted {
-        color: var(--font-alt-color);
-    }
-</style>
 
 @code {
     public class ModalParams

@@ -41,7 +41,7 @@
 
 @if (_canDelete)
 {
-    <ContextMenuItem OnClickAsync="@OnClickDelete" Color="red">
+    <ContextMenuItem OnClickAsync="@OnClickDelete" Color="var(--color-danger)">
         <Label>Delete</Label>
         <Icon><i class="bi bi-trash-fill"></i></Icon>
     </ContextMenuItem>
@@ -55,7 +55,7 @@
     </ContextMenuItem>
 }
 
-<ContextMenuItem OnClickAsync="@OnClickReport" Color="red">
+<ContextMenuItem OnClickAsync="@OnClickReport" Color="var(--color-danger)">
     <Label>Report</Label>
     <Icon><i class="bi bi-flag-fill"></i></Icon>
 </ContextMenuItem>

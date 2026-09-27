@@ -5,7 +5,11 @@
     <MainArea>
         @if (Apps is null)
         {
-            <p>Loading...</p>
+            <p class="apps-status">Loading…</p>
+        }
+        else if (Apps.Count == 0)
+        {
+            <p class="apps-status">You have not created any applications yet.</p>
         }
         else
         {

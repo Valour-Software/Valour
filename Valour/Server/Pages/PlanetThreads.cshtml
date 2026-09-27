@@ -3,6 +3,7 @@
 @using Valour.Server.Pages
 @using Valour.Client.Components.Threads.Display
 @using Microsoft.AspNetCore.Components
+@using Valour.Client.Utility
 @{
     var planetName = Model.Planet?.Name ?? "Planet";
 }
@@ -49,7 +50,7 @@
     }
 </head>
 <body>
-<div class="pt-page">
+<div class="pt-page" style="@(Model.Planet is null ? null : $"--planet-light: {NebulaPalettes.PlanetLight(Model.Planet.Id)}")">
     <header class="pt-topbar">
         <a class="pt-brand" href="/">
             <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>
@@ -107,7 +108,7 @@
                 }
                 @if (Model.HasNextPage)
                 {
-                    <a href="/@Model.PlanetId?p=@(Model.P + 1)">Older &rarr;</a>
+                    <a class="pt-pager-older" href="/@Model.PlanetId?p=@(Model.P + 1)">Older &rarr;</a>
                 }
             </div>
         </main>

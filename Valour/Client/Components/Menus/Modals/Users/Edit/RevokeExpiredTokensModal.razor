@@ -20,7 +20,7 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button @onclick="@OnCancel" class="v-btn">Cancel</button>
-            <button @onclick="@OnConfirm" class="v-btn danger" disabled="@(Data.RequireMfa && string.IsNullOrWhiteSpace(_mfaCode))">Clear Expired Sessions</button>
+            <button @onclick="@OnConfirm" class="v-btn danger" disabled="@(Data.RequireMfa && string.IsNullOrWhiteSpace(_mfaCode))">Clear expired sessions</button>
         </div>
     </ButtonArea>
 </BasicModalLayout>

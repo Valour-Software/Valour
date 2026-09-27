@@ -40,6 +40,17 @@
                     <!-- Pushes messages to bottom -->
                     <div class="pusher"></div>
 
+                    @if (_reachedStart && Channel is not null)
+                    {
+                        <div class="channel-start">
+                            <SkyMoment Pose="SkyMoment.VictorPose.Peeking" Banner="true" Height="150"
+                                       Seed="@(Channel.PlanetId?.ToString() ?? Channel.Id.ToString())"
+                                       Eyebrow="@ChannelStartEyebrow"
+                                       Title="@ChannelStartTitle"
+                                       Description="@ChannelStartDescription" />
+                        </div>
+                    }
+
                     <!-- Actual messages -->
                     @MessagesFragment
 
@@ -124,6 +135,22 @@
     private bool _isCaughtUp = true;
     private bool _loadingForward = false;
     private bool _loadingBackward = false;
+
+    // True once the oldest message of the channel is on screen, so the start of
+    // the channel can be shown above it.
+    private bool _reachedStart;
+
+    private string ChannelStartEyebrow => Channel?.PlanetId is null
+        ? "Direct message"
+        : Channel.Planet?.Name;
+
+    private string ChannelStartTitle => Channel?.PlanetId is null
+        ? "The start of your conversation"
+        : $"Welcome to #{Channel?.Name}";
+
+    private string ChannelStartDescription => Channel?.PlanetId is null
+        ? "Messages here are end-to-end encrypted. Only the people in this chat can read them."
+        : "This is the very beginning. Someone's already peeking.";
 
     /// <summary>
     /// When true, suppresses auto-scroll behaviors (ShiftScrollPosition, ScrollToBottom)
@@ -886,6 +913,8 @@
         if (!result.Success)
             return TaskResult.FromFailure(result);
 
+        _reachedStart = (result.Data?.Count ?? 0) < count;
+
         await AddMessages(result.Data, true, true);
 
         // Opening an encrypted channel is a good moment to share its key with
@@ -930,6 +959,7 @@
 
         var before = beforeResult.Data;
         var after = afterResult.Data;
+        _reachedStart = before is null || before.Count < 32;
 
         var combined = new List<Message>();
         if (before is not null)
@@ -1018,6 +1048,7 @@
     
     public void ClearMessages(bool render = true)
     {
+        _reachedStart = false;
         DisplayedMessages.Clear();
         QueuedMessages.Clear();
         RenderedMessages.Clear();
@@ -1154,6 +1185,7 @@
         if (atBottom && DisplayedMessages.Count > TrimThreshold)
         {
             DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - TargetMessages);
+            _reachedStart = false;
             _liveArrivalIds.RemoveWhere(id => !DisplayedMessages.Any(x => x.Id == id));
         }
 
@@ -1434,6 +1466,7 @@
 
             _isCaughtUp = true;
             ClearMessages(false);
+            _reachedStart = messages.Count < MessagePageSize;
 
             await AddMessages(messages, render: false, scroll: false);
 
@@ -1493,6 +1526,7 @@
             return;
 
         DisplayedMessages.RemoveRange(0, excess);
+        _reachedStart = false;
     }
     
 
@@ -1521,8 +1555,22 @@
 
             var messages = await Channel.GetMessagesAsync(firstId, MessagePageSize);
 
-            if (_disposed || messages is null || !messages.Any())
+            if (_disposed || messages is null)
                 return;
+
+            if (messages.Count == 0)
+            {
+                if (!_reachedStart)
+                {
+                    _reachedStart = true;
+                    await ReRender();
+                }
+
+                return;
+            }
+
+            if (messages.Count < MessagePageSize)
+                _reachedStart = true;
 
             // Insert older messages above, then preserve the viewport after the DOM has rendered them.
             await UpdateScrollPosition();

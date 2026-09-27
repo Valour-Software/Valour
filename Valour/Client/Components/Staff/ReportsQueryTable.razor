@@ -6,7 +6,7 @@
     <div class="filter-group">
         <label>Reason</label>
         <select class="form-control" @onchange="OnReasonFilterChanged">
-            <option value="">All Reasons</option>
+            <option value="">All reasons</option>
             @foreach (var reason in ReportReasons.Reasons)
             {
                 <option value="@((int)reason.Code)">@reason.Title</option>
@@ -33,103 +33,6 @@
     Infinite="true"
     RowHeight="60"
 />
-
-<style>
-    .reports-filters {
-        display: flex;
-        gap: 16px;
-        align-items: flex-end;
-        margin-bottom: 16px;
-        flex-wrap: wrap;
-    }
-
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .filter-group label {
-        font-size: var(--font-size-sm);
-        color: var(--font-alt-color);
-    }
-
-    .filter-group .form-control {
-        padding: 8px 12px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--main-4);
-        background: var(--main-3);
-        color: var(--font-color);
-        min-width: 150px;
-    }
-
-    .reason-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: var(--radius-sm);
-        font-size: var(--font-size-sm);
-        font-weight: var(--font-weight-medium);
-        white-space: nowrap;
-    }
-
-    .reason-badge.severe {
-        background: rgba(220, 53, 69, 0.2);
-        color: #dc3545;
-    }
-
-    .reason-badge.moderate {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-    }
-
-    .reason-badge.minor {
-        background: rgba(108, 117, 125, 0.2);
-        color: #6c757d;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: var(--radius-sm);
-        font-size: var(--font-size-sm);
-        font-weight: var(--font-weight-medium);
-    }
-
-    .status-badge.unresolved {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-    }
-
-    .status-badge.resolved {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-    }
-
-    .report-actions {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-
-    .report-actions .v-btn {
-        padding: 4px 8px;
-        font-size: var(--font-size-sm);
-    }
-
-    .time-cell {
-        font-size: var(--font-size-sm);
-        white-space: nowrap;
-    }
-
-    .description-cell {
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: var(--font-size-sm);
-        color: var(--font-color-mid);
-    }
-</style>
 
 @code {
 
@@ -204,11 +107,11 @@
                         {
                             @if (rowData.Row.ReportedUserId.HasValue)
                             {
-                                <button class="v-btn danger small" @onclick="@(() => DisableUserQuick(rowData.Row))">Disable User</button>
+                                <button class="v-btn danger small" @onclick="@(() => DisableUserQuick(rowData.Row))">Disable user</button>
                             }
-                            <button class="v-btn secondary small" @onclick="@(() => NoActionQuick(rowData.Row))">No Action</button>
+                            <button class="v-btn secondary small" @onclick="@(() => NoActionQuick(rowData.Row))">No action</button>
                         }
-                        <button class="v-btn primary small" @onclick="@(() => OpenDetailsModal(rowData.Row))">Details</button>
+                        <button class="v-btn small" @onclick="@(() => OpenDetailsModal(rowData.Row))">Details</button>
                     </div>
             }
         };

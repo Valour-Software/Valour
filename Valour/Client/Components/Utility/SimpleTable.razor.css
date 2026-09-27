@@ -1,12 +1,13 @@
 .empty-state {
-    text-align: center;
     padding: 1rem;
-    color: var(--font-alt-color);
+    text-align: center;
+    color: var(--text-tertiary);
+    border: none;
 }
 
 .empty-state i {
-    font-size: var(--font-size-2xl);
     display: block;
     margin-bottom: 0.25rem;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-2xl);
 }
-

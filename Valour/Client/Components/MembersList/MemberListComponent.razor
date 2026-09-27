@@ -56,7 +56,7 @@
                     {
                         TitleName = "Online",
                         IsTitle = true,
-                        TitleColor = "#fff",
+                        TitleColor = null,
                         Key = "online"
                     });
 
@@ -83,7 +83,7 @@
                     {
                         TitleName = "Offline",
                         IsTitle = true,
-                        TitleColor = "#fff",
+                        TitleColor = null,
                         Key = "offline"
                     });
 
@@ -105,8 +105,13 @@
                     @if (context.IsTitle)
                     {
                         <div>
-                            <p class="role-title subtitle" style="color: @context.TitleColor;">@context.TitleName</p>
-                            <div class="v-gradient-underline" style="background-image: linear-gradient(to right, @context.TitleColor, transparent);"></div>
+                            <p class="role-title">
+                                @if (context.TitleColor is not null)
+                                {
+                                    <span class="role-dot" style="background-color: @context.TitleColor;"></span>
+                                }
+                                @context.TitleName
+                            </p>
                         </div>
                     }
                     else

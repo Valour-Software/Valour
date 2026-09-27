@@ -1,9 +1,10 @@
 .section-title {
     margin: var(--space-3) 0 var(--space-2);
-    font-size: var(--font-size-sm);
-    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
 }
 
 .people {
@@ -19,8 +20,9 @@
     flex-direction: column;
     gap: var(--space-1);
     padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
+    background-color: var(--surface-raised);
 }
 
 .person-name {
@@ -37,6 +39,7 @@
 .safety-number {
     font-family: var(--font-family-mono);
     font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
     letter-spacing: 0.06em;
     word-spacing: 0.4em;
 }
@@ -46,7 +49,7 @@
     align-items: center;
     gap: var(--space-2);
     font-size: var(--font-size-sm);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .loading-state {
@@ -54,7 +57,7 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3) 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .confirm-keys {

@@ -1,7 +1,8 @@
 .volume-value {
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
     flex-shrink: 0;
 }
 

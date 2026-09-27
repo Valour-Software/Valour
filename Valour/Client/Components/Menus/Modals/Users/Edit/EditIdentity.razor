@@ -20,12 +20,12 @@
                placeholder="Use account name" @bind="_nickname" @bind:event="oninput" />
         <div class="field-help">
             <p class="helper-text">Leave this empty to use <strong>@Member.User.Name</strong>.</p>
-            <span>@_nickname.Length/32</span>
+            <span class="char-count">@_nickname.Length/32</span>
         </div>
     </div>
 
     <div class="actions">
-        <VButton Variant="primary" OnClick="SaveNicknameAsync" Disabled="@_saving">Save Changes</VButton>
+        <VButton Variant="primary" OnClick="SaveNicknameAsync" Disabled="@_saving">Save changes</VButton>
     </div>
     <ResultLabel Result="@_nicknameResult" />
 </div>

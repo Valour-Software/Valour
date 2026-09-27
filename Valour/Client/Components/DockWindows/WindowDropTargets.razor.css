@@ -2,7 +2,7 @@
     position: absolute;
     width: 100%;
     height: 100%;
-    background-color: #000000aa;
+    background-color: var(--scrim);
     left: 0;
     top: 0;
     z-index: 10;
@@ -20,12 +20,12 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--font-color);
-    font-size: var(--font-size-5xl);
+    color: var(--text-primary);
+    font-size: var(--font-size-xl);
     width: 40px;
     height: 40px;
-    background-color: var(--main-3);
-    box-shadow: inset 0 0 0 1px var(--medium-tint);
+    background-color: var(--surface-raised);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
@@ -36,35 +36,35 @@
 }
 
 .drop-targets .targets > div:hover {
-    background-color: color-mix(in srgb, var(--v-cyan) 18%, var(--main-3));
-    box-shadow: inset 0 0 0 1px var(--v-cyan);
-    color: var(--v-cyan);
+    background-color: color-mix(in srgb, var(--color-primary) 18%, var(--surface-raised));
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+    color: var(--color-primary);
 }
 
 .targets .up {
     top: calc(50% - 40px) !important;
     padding-bottom: 8px;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .targets .down {
     top: calc(50% + 40px) !important;
     padding-top: 8px;
-    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .targets .left {
     left: calc(50% - 40px) !important;
-    border-radius: var(--radius-xl) 0 0 var(--radius-xl)
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg)
 }
 
 .targets .right {
     left: calc(50% + 40px) !important;
-    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
 .targets .w-target-active {
-    background-color: color-mix(in srgb, var(--v-cyan) 30%, var(--main-3)) !important;
-    box-shadow: inset 0 0 0 1px var(--v-cyan) !important;
-    color: var(--v-cyan) !important;
+    background-color: color-mix(in srgb, var(--color-primary) 30%, var(--surface-raised)) !important;
+    box-shadow: inset 0 0 0 1px var(--color-primary) !important;
+    color: var(--color-primary) !important;
 }

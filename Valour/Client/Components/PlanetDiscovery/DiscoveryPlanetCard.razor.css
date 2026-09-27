@@ -1,340 +1,164 @@
-.planet-theme-card {
-    background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
-    border-radius: var(--radius-xl);
-    padding: 1.5rem 1.5rem 1.25rem 1.5rem;
-    overflow: hidden;
+.planet-card {
+    position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    color: var(--font-color);
-    height: 440px;
-    min-height: 440px;
-    max-height: 440px;
     width: 100%;
     min-width: 0;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        0 2px 8px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--slight-tint);
-    margin: 0;
-    box-sizing: border-box;
-}
-
-.planet-theme-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg,
-        color-mix(in srgb, var(--color-primary) 10%, transparent) 0%,
-        color-mix(in srgb, var(--color-secondary) 5%, transparent) 50%,
-        color-mix(in srgb, var(--color-accent) 10%, transparent) 100%);
-    border-radius: var(--radius-xl);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.planet-theme-card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow:
-        0 16px 48px rgba(0, 0, 0, 0.5),
-        0 6px 20px rgba(0, 0, 0, 0.3),
-        0 0 0 1px var(--color-primary),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: var(--color-primary);
-}
-
-.planet-theme-card:hover::before {
-    opacity: 1;
-}
-
-.planet-theme-card:active {
-    transform: translateY(-2px) scale(1.01);
-}
-.planet-theme-title {
-    text-align: center;
-    font-weight: var(--font-weight-bold);
-    color: var(--font-color);
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-    word-break: break-word;
-    white-space: nowrap;
-    font-size: var(--font-size-2xl);
-    line-height: var(--line-height-base);
-    margin: 0 0 0.75rem 0;
+    height: 100%;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background-color: var(--surface-base);
+    box-shadow: var(--rim-light);
     overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
+    color: var(--text-primary);
+    transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
-.planet-icon-img-holder {
+.planet-card:hover {
+    border-color: var(--line-strong);
+}
+
+.planet-card-sky {
     position: relative;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 0.75rem;
-    flex-shrink: 0;
-}
-
-.planet-icon-img,
-.auto-icon {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    box-shadow:
-        0 8px 24px rgba(0, 0, 0, 0.4),
-        0 2px 8px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-md);
-    border: 2px solid var(--slight-tint);
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.planet-theme-card:hover .planet-icon-img,
-.planet-theme-card:hover .auto-icon {
-    transform: scale(1.05);
-    box-shadow:
-        0 12px 32px rgba(0, 0, 0, 0.5),
-        0 4px 12px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: var(--color-primary);
-}
-
-.planet-default-svg {
-    position: absolute;
-    width: 115px;
-    height: 115px;
-    left: 0; top: 0;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.planet-initials {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1;
-    font-weight: var(--font-weight-bold);
-    color: var(--font-color);
-    text-align: center;
-    line-height: var(--line-height-none);
-    letter-spacing: var(--letter-spacing-normal);
-    pointer-events: none;
-    user-select: none;
-    white-space: nowrap;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-}
-
-.planet-info {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch;
-    overflow: hidden;
-    width: 100%;
-    min-height: 0;
-    gap: 0.5rem;
-}
-
-.planet-desc {
-    text-align: center;
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-regular);
-    color: var(--font-alt-color);
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    line-height: var(--line-height-relaxed);
-    word-break: break-word;
-    white-space: normal;
-    margin: 0.5rem 0;
-    flex: 1 1 auto;
-    min-height: 3rem;
-    max-height: 4.5rem;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-}
-
-::deep .member-count-tag {
-    background: linear-gradient(135deg, var(--slight-tint) 0%, var(--medium-tint) 100%);
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
-}
-
-::deep .member-count-tag:hover {
-    background: linear-gradient(135deg, var(--medium-tint) 0%, var(--strong-tint) 100%);
-    border-color: var(--color-primary);
-}
-
-::deep .member-count-tag strong {
-    color: var(--color-primary);
-    font-weight: var(--font-weight-medium);
-}
-
-.action-btns {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-top: auto;
-    margin-bottom: 0.5rem;
-    flex-shrink: 0;
-    padding: 0.5rem 0 0 0;
-    width: 100%;
-}
-
-.card-btn {
-    flex: 1 1 0;
-    padding: 0.75rem 0.5rem;
-    border-radius: var(--radius-md);
-    border: none;
-    font-weight: var(--font-weight-semibold);
-    font-size: var(--font-size-md);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
-    position: relative;
+    height: 116px;
+    flex: none;
+    background-color: var(--surface-canvas);
     overflow: hidden;
 }
 
-.card-btn::before {
-    content: '';
+.planet-card-sky ::deep canvas,
+.planet-card-background {
     position: absolute;
-    top: 0;
-    left: -100%;
+    inset: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
 }
 
-.card-btn:hover::before {
-    left: 100%;
+.planet-card-background {
+    object-fit: cover;
 }
 
-.card-btn-gray {
-    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-4) 100%);
-    color: var(--font-color);
-    border: 1px solid var(--main-4);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+.planet-card-sky-name {
+    position: absolute;
+    left: var(--space-3);
+    top: var(--space-2);
+    font-family: var(--font-family-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: rgb(215 225 240 / 0.72);
+    text-shadow: 0 0 8px rgb(0 0 0 / 0.8);
 }
 
-.card-btn-gray:hover, .card-btn-gray:focus {
-    background: linear-gradient(135deg, var(--main-4) 0%, var(--medium-tint) 100%);
-    border-color: var(--medium-tint);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.card-btn-blue {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-    color: white;
-    border: 1px solid var(--color-primary);
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 30%, transparent);
-}
-
-.card-btn-blue:hover, .card-btn-blue:focus {
-    background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
-    border-color: var(--color-secondary);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-secondary) 40%, transparent);
-}
-
-.planet-tags {
+.planet-card-body {
+    position: relative;
     display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin: 0;
-    flex-shrink: 0;
-    min-height: 2rem;
-    max-height: 2.5rem;
-    align-items: center;
+    flex-direction: column;
+    flex: 1;
+    padding: 0 18px 16px;
+}
+
+.planet-card-icon {
+    width: 48px;
+    height: 48px;
+    margin-top: -26px;
+    border-radius: var(--radius-full);
+    border: 3px solid var(--surface-base);
+    background-color: var(--surface-canvas);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.planet-card-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.planet-card-name {
+    margin: var(--space-2) 0 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.planet-card-desc {
+    margin: 2px 0 0;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-.icon-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+.planet-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: auto;
+    padding-top: 14px;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-tertiary);
 }
 
-@media (max-width: 768px) {
-    .planet-theme-card {
-        height: 400px;
-        min-height: 400px;
-        max-height: 400px;
-        padding: 1.25rem 1.25rem 1rem 1.25rem;
-    }
-
-    .planet-theme-card:hover {
-        transform: translateY(-2px) scale(1.01);
-    }
-
-    .planet-theme-title {
-        font-size: var(--font-size-xl);
-        margin: 0 0 0.5rem 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .planet-icon-img,
-    .auto-icon {
-        width: 80px;
-        height: 80px;
-    }
-
-    .planet-theme-card:hover .planet-icon-img,
-    .planet-theme-card:hover .auto-icon {
-        transform: scale(1.03);
-    }
-
-    .planet-desc {
-        font-size: var(--font-size-sm);
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
-        min-height: 3rem;
-        max-height: 3.6rem;
-    }
-
-    .card-btn {
-        font-size: var(--font-size-sm);
-        padding: 0.6rem 0.4rem;
-    }
-
-    .action-btns {
-        margin-bottom: 0.5rem;
-    }
+.planet-card-active {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
 }
 
-@media (min-width: 1200px) {
-    .planet-theme-card {
-        height: 450px;
-        min-height: 450px;
-        max-height: 450px;
-    }
+.planet-card-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background-color: var(--line-strong);
+}
 
-    .planet-theme-title {
-        font-size: var(--font-size-2xl);
-    }
+.planet-card-active.live .planet-card-dot {
+    background-color: var(--color-success);
+}
 
-    .planet-icon-img,
-    .auto-icon {
-        width: 100px;
-        height: 100px;
-    }
+.planet-card-chips {
+    margin-left: auto;
+    display: inline-flex;
+    gap: 6px;
+    min-width: 0;
+}
+
+.planet-card-chip {
+    font-family: var(--font-family-app);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-full);
+    padding: 1px 9px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.planet-card-chip.warning {
+    color: var(--color-warning);
+    border-color: var(--color-warning-border);
+}
+
+.planet-card-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: 14px;
+}
+
+.planet-card-actions .v-btn {
+    flex: 1;
 }

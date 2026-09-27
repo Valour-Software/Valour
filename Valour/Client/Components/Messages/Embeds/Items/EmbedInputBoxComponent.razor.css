@@ -1,6 +1,5 @@
 .embed-input input {
-    background-color: var(--main-1);
-    color: var(--font-color);
+    background-color: var(--surface-base);
     margin-top: 0;
 }
 

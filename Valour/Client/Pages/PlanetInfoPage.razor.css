@@ -1,7 +1,8 @@
 .planet-page-container {
-    min-height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
     padding: 2rem;
-    background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
+    background-color: var(--surface-canvas);
 }
 
 .loading-container {
@@ -11,12 +12,12 @@
     justify-content: center;
     min-height: 100vh;
     gap: 1rem;
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .loading-container p {
-    font-size: var(--font-size-lg);
-    color: var(--font-alt-color);
+    font-size: var(--font-size-md);
+    color: var(--text-tertiary);
     margin: 0;
 }
 
@@ -27,7 +28,7 @@
     justify-content: center;
     min-height: 100vh;
     gap: 1.5rem;
-    color: var(--font-color);
+    color: var(--text-primary);
     text-align: center;
     padding: 2rem;
 }
@@ -35,13 +36,14 @@
 .error-container h2 {
     font-size: var(--font-size-4xl);
     font-weight: var(--font-weight-bold);
-    color: var(--color-danger);
+    letter-spacing: var(--letter-spacing-display);
+    color: var(--text-primary);
     margin: 0;
 }
 
 .error-container p {
     font-size: var(--font-size-lg);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     margin: 0;
     max-width: 500px;
     line-height: var(--line-height-relaxed);
@@ -51,16 +53,22 @@
     .planet-page-container {
         padding: 1rem;
     }
-    
+
     .error-container {
         padding: 1rem;
     }
-    
+
     .error-container h2 {
         font-size: var(--font-size-2xl);
     }
-    
+
     .error-container p {
         font-size: var(--font-size-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .planet-page-container {
+        padding: 0;
     }
 }

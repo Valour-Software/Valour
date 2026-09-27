@@ -1,6 +1,6 @@
 .planet-rules-window {
     padding: 1rem;
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .rules-window-header {
@@ -9,7 +9,7 @@
     gap: 0.75rem;
     padding-bottom: 1rem;
     margin-bottom: 1rem;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
 }
 
 .rules-window-header img {
@@ -17,17 +17,18 @@
     height: 3rem;
     object-fit: cover;
     border-radius: var(--radius-md);
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line);
 }
 
 .rules-window-header h2 {
     margin: 0;
     font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-display);
 }
 
 .rules-window-header p,
 .rules-loading {
     margin: 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }

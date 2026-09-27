@@ -505,8 +505,8 @@ public partial class E2eeService
             // come, so the message is tried again on a timer.
             var fetchFailed = ring is null || _keyRingFailures.ContainsKey(ChannelKey(channel));
             MarkWaiting(message, fetchFailed
-                    ? "The channel's keys could not be loaded. Retrying automatically..."
-                    : "Waiting for e2ee keys from another member...",
+                    ? "Couldn't load this channel's keys. Trying again..."
+                    : "Waiting for a member's device to share the key.",
                 retryLater: fetchFailed, channel: channel);
             return;
         }
