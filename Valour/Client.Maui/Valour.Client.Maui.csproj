@@ -2,7 +2,8 @@
 
     <PropertyGroup>
         <AndroidSdkDirectory Condition="$([MSBuild]::IsOSPlatform('osx'))">$(HOME)/Library/Android/sdk</AndroidSdkDirectory>
-        <JavaSdkDirectory Condition="$([MSBuild]::IsOSPlatform('osx'))">/Applications/Android Studio.app/Contents/jbr/Contents/Home</JavaSdkDirectory>
+        <!-- The JDK comes from ~/.config/xbuild/monodroid-config.xml or JAVA_HOME. Android
+             needs JDK 17-21, and the JDKs bundled with Android Studio and Rider are newer. -->
         <AcceptAndroidSDKLicenses>true</AcceptAndroidSDKLicenses>
         <TargetFrameworks>net11.0-android</TargetFrameworks>
         <_AppleSdkRoot Condition="'$(_AppleSdkRoot)' == '' and '$(MD_APPLE_SDK_ROOT)' != ''">$(MD_APPLE_SDK_ROOT)</_AppleSdkRoot>
@@ -82,11 +83,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- App Icon (square logo scaled to fit adaptive icon safe zone) -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#040d14" ForegroundScale="0.7" />
+        <!-- Android launchers mask the icon to different shapes and only guarantee
+             the middle of it, so Android gets separate sky and Victor layers sized to
+             that safe zone. Other platforms show the whole square. -->
+        <MauiIcon Condition="$(TargetFramework.Contains('-android'))" Include="Resources\AppIcon\Android\appicon.png" ForegroundFile="Resources\AppIcon\Android\appiconfg.svg" Color="#0a0d12" ForegroundScale="1" />
+        <MauiIcon Condition="!$(TargetFramework.Contains('-android'))" Include="Resources\AppIcon\appicon.png" Color="#0a0d12" />
 
-        <!-- Splash Screen (round logo on dark background) -->
-        <MauiSplashScreen Include="Resources\Splash\splash.png" Color="#040d14" BaseSize="256,256" />
+        <!-- Splash Screen (Victor floating, as on the loading screen) -->
+        <MauiSplashScreen Include="Resources\Splash\splash.png" Color="#0a0d12" BaseSize="256,256" />
 
         <!-- Images -->
         <MauiImage Include="Resources\Images\*" />

@@ -4,8 +4,9 @@
     gap: 1rem;
     margin-bottom: 1.5rem;
     padding: 1rem;
-    background-color: var(--main-4);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
 }
 
 .app-icon {
@@ -14,7 +15,7 @@
     border-radius: var(--radius-md);
     object-fit: cover;
     cursor: pointer;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .app-icon:hover {
@@ -23,19 +24,26 @@
 
 .app-info {
     flex: 1;
+    min-width: 0;
 }
 
 .app-name {
     margin: 0 0 0.25rem 0;
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-semibold);
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .app-stats {
     margin: 0;
-    font-size: var(--font-size-md);
-    color: var(--font-color-muted);
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
+.app-number,
+.secret-input {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .input-group {
@@ -50,6 +58,6 @@
 
 .helper-text {
     font-size: var(--font-size-sm);
-    color: var(--font-color-muted);
+    color: var(--text-tertiary);
     margin-top: 0.25rem;
 }

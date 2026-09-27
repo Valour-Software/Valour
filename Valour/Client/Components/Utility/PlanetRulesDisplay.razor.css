@@ -2,7 +2,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .rule-item {
@@ -10,7 +10,7 @@
     grid-template-columns: 2.25rem minmax(0, 1fr);
     gap: 0.85rem;
     padding: 0.85rem 0;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
 }
 
 .rule-item:first-of-type {
@@ -27,12 +27,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-sm);
-    background: var(--main-3);
-    color: var(--color-primary);
-    border: 1px solid var(--slight-tint);
-    font-weight: var(--font-weight-bold);
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    font-variant-numeric: tabular-nums;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
 }
 
 .rule-body {
@@ -41,14 +43,14 @@
 
 .rule-body h3 {
     margin: 0 0 0.35rem 0;
+    color: var(--text-primary);
     font-size: var(--font-size-md);
-    font-weight: var(--font-weight-bold);
-    color: var(--font-color);
+    font-weight: var(--font-weight-semibold);
     word-break: break-word;
 }
 
 .rule-description {
-    color: var(--font-alt-color);
+    color: var(--text-secondary);
     line-height: var(--line-height-loose);
     word-break: break-word;
 }
@@ -68,14 +70,13 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    color: var(--font-alt-color);
-    border: 1px dashed var(--slight-tint);
-    border-radius: var(--radius-md);
+    color: var(--text-tertiary);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-lg);
 }
 
 .rules-empty i {
     font-size: var(--font-size-3xl);
-    opacity: 0.8;
 }
 
 .rules-empty p {

@@ -23,13 +23,16 @@
          "Yes. A single docker compose command runs a full instance with automatic HTTPS. Communities on official infrastructure can also migrate to independently operated community nodes through federation."),
 
         ("Is Valour a Discord knock-off?",
-         "Nope! Valour is built on a different stack and a broader idea. Multi-window chat, reddit-style thread feeds, public community wikis, and built-in economies aren't things a chat clone does. We want to be a home for your community, not just a room."),
+         "No. Valour is built on a different stack around a broader idea. Multi-window chat, thread feeds, public community wikis, end-to-end encryption, and built-in economies sit alongside channels and voice, so a community has a home rather than a single room."),
 
         ("Can I bring my existing community?",
          "Yes. Valour has a built-in Discord importer, incoming webhooks, an open API, and bot support, so moving and integrating an existing community is straightforward."),
 
+        ("Are my messages encrypted?",
+         "Yes. Every chat message on Valour is end-to-end encrypted, including direct messages, group chats, and planet channels. Text is encrypted on your device, and the server stores and relays ciphertext it cannot read. Threads and wiki pages are public publishing features, so they are not encrypted and can appear on the web."),
+
         ("How do you protect my privacy?",
-         "We don't sell your data, we don't run ads, and we only use vetted partners where absolutely necessary (such as email delivery). Valour is funded by optional subscriptions, not by your data."),
+         "We don't sell your data, we don't run ads, and we only use vetted partners where necessary, such as for email delivery. Valour is funded by optional subscriptions, not by your data."),
     };
 
     var faqJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
@@ -51,15 +54,27 @@
 
 <script type="application/ld+json">@Html.Raw(faqJsonLd)</script>
 
-<div class="container">
-    <div class="row">
-        <div class="col-8 mx-auto">
-            <h1 class="title-gradient text-center p-2 h3">Valour Frequently Asked Questions</h1>
+<div class="container doc-page">
+    <article class="prose doc-single">
+        <h1>Frequently asked questions</h1>
+        <p class="doc-lede">What Valour is, how it handles your data, and how to get started.</p>
+
+        <div class="faq-list">
             @foreach (var faq in faqs)
             {
-                <h2 class="text-center p-2 h5">@faq.Question</h2>
-                <p class="text-center p-2">@faq.Answer</p>
+                <section class="faq-item">
+                    <h2>@faq.Question</h2>
+                    <p>@faq.Answer</p>
+                </section>
             }
         </div>
-    </div>
+
+        <div class="doc-closing">
+            <img src="/media/victor/victor-sleeping.svg" alt="" width="120" height="120" loading="lazy" draggable="false" />
+            <p>
+                Didn't find your answer? Email <a href="mailto:support@valour.gg">support@valour.gg</a>
+                or <a href="https://github.com/Valour-Software/Valour/issues">open an issue on GitHub</a>.
+            </p>
+        </div>
+    </article>
 </div>

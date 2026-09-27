@@ -9,7 +9,7 @@
     <div class="settings-toolbar">
         <button class="v-btn primary" @onclick="OnCreateBot" disabled="@(_bots is not null && _bots.Count >= 10)">
             <i class="bi bi-plus-circle"></i>
-            Create New Bot
+            Create bot
         </button>
         @if (_bots is not null && _bots.Count >= 10)
         {
@@ -28,7 +28,7 @@
     {
         <div class="settings-empty">
             <i class="bi bi-robot"></i>
-            <h4>No Bot Accounts</h4>
+            <h4>No bot accounts</h4>
             <p>You haven't created any bot accounts yet. Create your first bot to start building integrations with Valour.</p>
 
         </div>
@@ -45,7 +45,7 @@
                     <div class="settings-row-copy">
                         <h4 class="settings-row-title">@bot.Name</h4>
                         <p class="settings-row-description">#@bot.Tag</p>
-                        <p class="settings-row-description">ID: @bot.Id</p>
+                        <p class="settings-row-description bot-id">ID: @bot.Id</p>
                     </div>
                     <div class="settings-row-action">
                         <i class="bi bi-chevron-right"></i>

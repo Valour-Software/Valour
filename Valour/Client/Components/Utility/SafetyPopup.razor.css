@@ -1,17 +1,36 @@
 .safety-popup {
     position: absolute;
     z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     height: 100vh;
     width: 100vw;
-    padding: 20%;
-    background-image: url(/_content/Valour.Client/media/Spookvooper-tall.jpg);
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
+    padding: var(--space-5);
+    overflow-y: auto;
+    background-color: var(--surface-canvas);
+    isolation: isolate;
+}
+
+.safety-sky {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
 }
 
 .safety-inner {
-    padding: 20px;
-    background-color: var(--main-2);
+    width: min(560px, 100%);
+    padding: 24px;
+    color: var(--text-secondary);
+    background-color: var(--surface-base);
+    border: 1px solid var(--line);
     border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-modal), var(--rim-light);
+}
+
+.safety-inner h4 {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
 }

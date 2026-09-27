@@ -15,7 +15,7 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-plus-circle-fill"></i>
-                Create Webhook
+                Create webhook
             </h3>
 
             <p class="webhook-description">
@@ -65,7 +65,7 @@
             </div>
 
             <button class="v-btn primary mt-2" disabled="@_creating" @onclick="CreateWebhookAsync">
-                <i class="bi bi-plus-lg"></i> Create Webhook
+                <i class="bi bi-plus-lg"></i> Create webhook
             </button>
             <ResultLabel Result="@_createResult" />
 
@@ -121,7 +121,7 @@
                                     <div class="webhook-meta">
                                         <span><i class="bi bi-hash"></i>@(Planet.Channels.Get(webhook.ChannelId)?.Name ?? "Unknown channel")</span>
                                         <span class="separator">·</span>
-                                        <span>Created @webhook.TimeCreated.ToLocalTime().ToShortDateString()</span>
+                                        <span>Created <span class="webhook-date">@webhook.TimeCreated.ToLocalTime().ToShortDateString()</span></span>
                                     </div>
                                 </div>
                             </div>

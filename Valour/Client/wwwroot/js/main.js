@@ -726,10 +726,6 @@ async function injectEmbed(id, html, scriptSrc, provider) {
     }
 }
 
-function playLottie(element) {
-    element.play();
-}
-
 async function themeAssetPickFile(inputId) {
     const input = document.getElementById(inputId);
     if (!input) {
@@ -830,4 +826,16 @@ function themeAssetClearSelection(inputId) {
     if (input) {
         input.value = '';
     }
+}
+
+// The loading scene is a module that may start after the app calls these, so the
+// calls are remembered for it to pick up.
+function valourBootStatus(text) {
+    window.__valourBootStatus = text;
+    window.valourBoot?.status(text);
+}
+
+function valourBootFinish() {
+    window.__valourBootDone = true;
+    window.valourBoot?.finish();
 }

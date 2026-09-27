@@ -32,7 +32,7 @@
                     }
                     else if (!_addingPassword)
                     {
-                        <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@(() => _addingPassword = true)">Add password</VButton>
+                        <VButton Variant="secondary" Size="sm" Disabled="@_busy" OnClick="@(() => _addingPassword = true)">Add password</VButton>
                     }
                 </div>
 
@@ -66,7 +66,7 @@
                         }
                         else
                         {
-                            <VButton Variant="primary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickLink(provider))">Link</VButton>
+                            <VButton Variant="secondary" Size="sm" Disabled="@_busy" OnClick="@(() => OnClickLink(provider))">Link</VButton>
                         }
                     </div>
                 </div>

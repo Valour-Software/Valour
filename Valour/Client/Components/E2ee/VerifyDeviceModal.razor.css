@@ -12,21 +12,29 @@
     width: 100%;
     padding: var(--space-3);
     text-align: left;
-    color: var(--font-color);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    color: var(--text-primary);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
+    font: inherit;
     cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .verify-option:hover {
-    border-color: var(--color-primary-border);
-    background-color: var(--main-4);
+    border-color: var(--line-strong);
+    background-color: var(--surface-hover);
+}
+
+.verify-option:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .verify-option i {
     font-size: var(--font-size-lg);
-    color: var(--color-primary);
+    color: var(--text-secondary);
 }
 
 .option-copy {
@@ -36,17 +44,23 @@
 }
 
 .option-copy span {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
 .link-button {
     padding: 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+    font: inherit;
+    font-size: var(--font-size-sm);
     background: none;
     border: none;
     text-decoration: underline;
     cursor: pointer;
+}
+
+.link-button:hover {
+    color: var(--text-primary);
 }
 
 .reset-here {
@@ -59,13 +73,14 @@
     justify-content: center;
     gap: var(--space-2);
     padding: var(--space-3) 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .recovery-input,
 .code-input {
     width: 100%;
     font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
     text-transform: uppercase;
 }
 
@@ -74,6 +89,7 @@
     gap: var(--space-2);
     padding: var(--space-3);
     margin-bottom: var(--space-3);
+    border: 1px solid var(--color-danger-border);
     border-radius: var(--radius-md);
     background-color: var(--color-danger-soft);
 }
@@ -87,6 +103,7 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3);
+    border: 1px solid var(--color-success-border);
     border-radius: var(--radius-md);
     background-color: var(--color-success-soft);
 }

@@ -6,7 +6,7 @@
     margin: 0 auto;
     overflow: hidden;
     border-radius: var(--radius-lg);
-    background-color: var(--main-1);
+    background-color: var(--surface-canvas);
 }
 
 .qr-video {

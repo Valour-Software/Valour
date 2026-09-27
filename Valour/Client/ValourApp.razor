@@ -40,10 +40,8 @@
         </NotFound>
     </Router>
 }
-else
-{
-    <Loading Subtext='Logging you in...'></Loading>
-}
+@* Until the first login attempt finishes, the loading scene from index.html
+   stays on screen. *@
 
 <!-- Keep theme CSS after routed/component styles so equal-specificity custom
      rules have the final say without requiring !important. -->
@@ -57,6 +55,7 @@ else
     private bool _browserReady;
     private bool _firstRenderReady;
     private bool _startupInitializationStarted;
+    private bool _bootSceneFinished;
     private bool _isWebHost;
     private Task _instanceManifestTask = Task.CompletedTask;
     private DotNetObjectReference<ValourApp> _updateCallbackReference;
@@ -226,7 +225,20 @@ else
             _firstRenderReady = true;
             await TryCompleteStartupInitializationAsync();
         }
-        else if (_needsErrorReportingCheck)
+        else if (_triedInitialLogin && !_bootSceneFinished)
+        {
+            _bootSceneFinished = true;
+            try
+            {
+                await JsRuntime.InvokeVoidAsync("valourBootFinish");
+            }
+            catch (JSException)
+            {
+                // Host pages without the loading scene have nothing to hide.
+            }
+        }
+
+        if (!firstRender && _needsErrorReportingCheck)
         {
             _needsErrorReportingCheck = false;
             await CheckErrorReportingPreference();
@@ -246,6 +258,7 @@ else
 
             if (!string.IsNullOrWhiteSpace(localToken))
             {
+                await SetBootStatusAsync("signing you in");
                 // Signed-in initialization consumes the instance host map, but
                 // anonymous login rendering doesn't need to wait for it.
                 await _instanceManifestTask;
@@ -271,6 +284,18 @@ else
         await InvokeAsync(StateHasChanged);
 
         _ = CheckForShellUpdateAsync();
+    }
+
+    private async Task SetBootStatusAsync(string text)
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("valourBootStatus", text);
+        }
+        catch (JSException)
+        {
+            // Host pages without the loading scene have nothing to update.
+        }
     }
 
     private async Task FetchAndApplyInstanceManifestAsync()

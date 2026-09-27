@@ -10,23 +10,12 @@
     visibility: visible;
 }
 
-.image-attachment-wrapper img {
-}
-
-.image-attachment-wrapper img::before {
-}
-
-.attached-image {
-}
-
 .image-attachment-wrapper.spoiler-hidden {
     position: relative;
     cursor: pointer;
     overflow: hidden;
 }
 
-/* Separate blurred div rather than a filter on the real img - keeps this
-   sized off the wrapper directly instead of a child component's own image. */
 .spoiler-blur-bg {
     position: absolute;
     inset: -12px;
@@ -45,8 +34,8 @@
     text-align: center;
     padding: 8px;
     border-radius: var(--radius-md);
-    background-color: rgba(0, 0, 0, 0.35);
-    color: white;
-    font-weight: 600;
+    background-color: color-mix(in srgb, var(--surface-canvas) 40%, transparent);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
     pointer-events: none;
 }

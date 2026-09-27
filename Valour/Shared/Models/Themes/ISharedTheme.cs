@@ -2,15 +2,15 @@
 
 public interface ISharedTheme : ISharedThemeMeta
 {
-    public const string DefaultFontFamily = "\"Outfit\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif";
+    public const string DefaultFontFamily = "\"Instrument Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif";
     public const int MaxFontFamilyLength = 256;
     public const int MaxRadiusLength = 16;
 
-    public const string DefaultRadiusXs = "2px";
-    public const string DefaultRadiusSm = "6px";
-    public const string DefaultRadiusMd = "8px";
-    public const string DefaultRadiusLg = "12px";
-    public const string DefaultRadiusXl = "16px";
+    public const string DefaultRadiusXs = "3px";
+    public const string DefaultRadiusSm = "5px";
+    public const string DefaultRadiusMd = "7px";
+    public const string DefaultRadiusLg = "10px";
+    public const string DefaultRadiusXl = "14px";
     public const string DefaultRadiusFull = "999px";
 
     public bool Published { get; set; }

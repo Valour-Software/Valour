@@ -65,6 +65,12 @@ public interface ISharedPlanetListInfo : ISharedModel<long>
     /// The number of members in the planet
     /// </summary>
     int MemberCount { get; set; }
+
+    /// <summary>
+    /// Members who connected in the last 15 minutes, or -1 when the planet's host
+    /// does not report it.
+    /// </summary>
+    int ActiveCount { get; set; }
     
     /// <summary>
     /// The version of the planet

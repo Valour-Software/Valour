@@ -1,26 +1,54 @@
-<div class="dm-row" @onclick="OnClick">
+@implements IDisposable
+
+<div class="dm-row @(IsUnread || Notifications > 0 ? "unread" : "")" @onclick="OnClick">
     <div class="left">
         @if (IsTwoPersonChat && OtherUser is not null)
         {
-            <UserAvatar User="@OtherUser" Size="36" Unread="@IsUnread" ShowState="true"/>
+            <UserAvatar User="@OtherUser" Size="32" ShowState="true"/>
+        }
+        else if (_stackUsers.Count >= 2)
+        {
+            <span class="avatar-stack" aria-hidden="true">
+                <span class="stack-back">
+                    <UserAvatar User="@_stackUsers[0]" Size="22"/>
+                </span>
+                <span class="stack-front">
+                    <UserAvatar User="@_stackUsers[1]" Size="22"/>
+                </span>
+            </span>
+        }
+        else if (_stackUsers.Count == 1)
+        {
+            <UserAvatar User="@_stackUsers[0]" Size="32"/>
         }
         else
         {
-            <div class="group-icon @(IsUnread ? "unread" : "")">
+            <div class="group-icon">
                 <i class="bi bi-people-fill"></i>
             </div>
         }
         <div class="info">
-            <span class="name">@(DisplayName ?? OtherUser?.Name ?? Channel.Name)</span>
-            <span class="description">@MemberCountText</span>
+            <div class="name-line">
+                <span class="name">@Title</span>
+                @if (_timestamp is not null)
+                {
+                    <time class="time" datetime="@_timestampIso">@_timestamp</time>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_description))
+            {
+                <span class="description">@_description</span>
+            }
         </div>
     </div>
     <div class="right">
         @if (Notifications > 0)
         {
-            <div class="notif-badge">
-                <span>@(Notifications > 9 ? "9+" : Notifications.ToString())</span>
-            </div>
+            <span class="count">@(Notifications > 99 ? "99+" : Notifications.ToString())</span>
+        }
+        else if (IsUnread)
+        {
+            <span class="unread-dot" aria-label="Unread"></span>
         }
     </div>
 </div>
@@ -31,6 +59,12 @@
 
     [Parameter]
     public User OtherUser { get; set; }
+
+    /// <summary>
+    /// The other members of the conversation, used for group avatars and names.
+    /// </summary>
+    [Parameter]
+    public List<User> Users { get; set; }
 
     [Parameter]
     public string DisplayName { get; set; }
@@ -47,15 +81,125 @@
     [Parameter]
     public bool CloseSidebarOnSelect { get; set; }
 
+    private User _subscribedUser;
+    private List<User> _stackUsers = [];
+    private string _description;
+    private string _timestamp;
+    private string _timestampIso;
+
     private bool IsTwoPersonChat => (Channel.Members?.Count ?? 2) <= 2;
+
+    private string Title
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(DisplayName))
+                return DisplayName;
+
+            if (IsTwoPersonChat && OtherUser is not null)
+                return OtherUser.Name;
+
+            if (!string.IsNullOrWhiteSpace(Channel.Name))
+                return Channel.Name;
+
+            return MemberNames ?? "Group conversation";
+        }
+    }
+
+    private string MemberNames => Users is { Count: > 0 }
+        ? string.Join(", ", Users.Select(x => x.Name))
+        : null;
 
     private string MemberCountText
     {
         get
         {
-            var count = Channel.Members?.Count ?? 2;
+            var count = Channel.Members?.Count ?? Users?.Count + 1 ?? 2;
             return count == 1 ? "1 member" : $"{count} members";
         }
+    }
+
+    protected override void OnParametersSet()
+    {
+        var user = IsTwoPersonChat ? OtherUser : null;
+        if (!ReferenceEquals(user, _subscribedUser))
+        {
+            if (_subscribedUser is not null)
+                _subscribedUser.Updated -= OnUserUpdated;
+
+            _subscribedUser = user;
+
+            if (_subscribedUser is not null)
+                _subscribedUser.Updated += OnUserUpdated;
+        }
+
+        _stackUsers = (Users ?? []).Where(x => x is not null).Take(2).ToList();
+
+        CalculateDescription();
+        CalculateTimestamp();
+    }
+
+    private void CalculateDescription()
+    {
+        if (IsTwoPersonChat)
+        {
+            if (OtherUser is null)
+            {
+                _description = null;
+                return;
+            }
+
+            _description = string.IsNullOrWhiteSpace(OtherUser.Status)
+                ? OtherUser.UserState.Name
+                : OtherUser.Status;
+            return;
+        }
+
+        var names = MemberNames;
+        _description = names is not null && names != Title
+            ? names
+            : MemberCountText;
+    }
+
+    private void CalculateTimestamp()
+    {
+        var updated = Channel.LastUpdateTime;
+        if (updated == default)
+        {
+            _timestamp = null;
+            _timestampIso = null;
+            return;
+        }
+
+        var local = updated.Kind == DateTimeKind.Local
+            ? updated
+            : DateTime.SpecifyKind(updated, DateTimeKind.Utc).ToLocalTime();
+        var today = DateTime.Now.Date;
+        var days = (today - local.Date).TotalDays;
+
+        _timestampIso = local.ToString("o");
+        _timestamp = days switch
+        {
+            <= 0 => local.ToString("HH:mm"),
+            < 7 => local.ToString("ddd"),
+            _ when local.Year == today.Year => local.ToString("MMM d"),
+            _ => local.ToString("MMM yyyy")
+        };
+    }
+
+    private void OnUserUpdated(ModelUpdatedEvent<User> eventData)
+    {
+        if (!eventData.Changes.On(x => x.Status) &&
+            !eventData.Changes.On(x => x.UserStateCode) &&
+            !eventData.Changes.On(x => x.TimeLastActive) &&
+            !eventData.Changes.On(x => x.Name))
+            return;
+
+        InvokeAsync(() =>
+        {
+            CalculateDescription();
+            StateHasChanged();
+        });
     }
 
     private async Task OnClick()
@@ -65,5 +209,11 @@
 
         if (CloseSidebarOnSelect)
             await Sidebar.ToggleMobileSidebar();
+    }
+
+    void IDisposable.Dispose()
+    {
+        if (_subscribedUser is not null)
+            _subscribedUser.Updated -= OnUserUpdated;
     }
 }

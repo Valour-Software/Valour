@@ -46,38 +46,31 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: linear-gradient(135deg, var(--main-3) 0%, var(--main-4) 100%);
-    border: 1px solid var(--slight-tint);
+    background: var(--surface-overlay);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-full);
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--font-color);
+    color: var(--text-primary);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
     z-index: 10;
     touch-action: manipulation; /* Prevent 300ms delay on mobile */
     -webkit-tap-highlight-color: transparent;
-    box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: var(--shadow-overlay);
 }
 
 .carousel-nav:hover:not(.disabled) {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-    border-color: var(--color-primary);
-    transform: translateY(-50%) scale(1.1);
-    box-shadow:
-        0 6px 16px color-mix(in srgb, var(--color-primary) 40%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: var(--surface-hover);
 }
 
 .carousel-nav.disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-4) 100%);
+    background: var(--surface-overlay);
 }
 
 .carousel-prev {
@@ -100,26 +93,22 @@
     justify-content: center;
     padding: 60px 20px;
     min-height: 200px;
-    color: var(--font-alt-color);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--slight-tint);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    color: var(--text-tertiary);
+    border-radius: var(--radius-lg);
 }
 
 .carousel-spinner {
-    font-size: var(--font-size-5xl);
-    margin-bottom: 16px;
-    animation: spin 1s linear infinite;
-    color: var(--color-primary);
-    text-shadow: 0 0 20px color-mix(in srgb, var(--color-primary) 50%, transparent);
+    font-size: var(--font-size-2xl);
+    margin-bottom: 12px;
+    animation: spin 0.8s linear infinite;
+    color: var(--text-tertiary);
 }
 
 .carousel-loading-text {
     margin: 0;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 @keyframes spin {
@@ -135,18 +124,15 @@
     justify-content: center;
     padding: 60px 20px;
     min-height: 200px;
-    color: var(--font-alt-color);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border-radius: var(--radius-xl);
-    border: 1px dashed var(--slight-tint);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    color: var(--text-tertiary);
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--line-strong);
 }
 
 .carousel-empty-icon {
-    font-size: var(--font-size-6xl);
-    margin-bottom: 16px;
-    opacity: 0.5;
-    color: var(--color-primary);
+    font-size: var(--font-size-3xl);
+    margin-bottom: 12px;
+    color: var(--text-tertiary);
 }
 
 .carousel-empty-text {
@@ -155,5 +141,5 @@
     font-weight: var(--font-weight-medium);
     text-align: center;
     max-width: 300px;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }

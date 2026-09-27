@@ -1,6 +1,7 @@
 @inherits WindowContentComponent<PlanetListInfo>
 @implements IDisposable
 @inject ValourClient Client
+@inject NavigationManager Navigation
 
 @if (_planetInfo is null)
 {
@@ -8,39 +9,128 @@
 }
 else
 {
-    <PlanetInfoDisplay PlanetInfo="@_planetInfo" />
+    <PlanetInfoDisplay PlanetInfo="@_planetInfo" Actions="@ActionsFragment" Notices="@NoticesFragment" />
 }
 
 @code {
     private Planet _planet;
     private PlanetListInfo _planetInfo;
     private int _memberCount;
+    private int _activeCount = -1;
+    private bool _isMember;
+    private bool _joining;
+    private string _joinError;
+
+    private RenderFragment ActionsFragment
+    {
+        get
+        {
+            if (!_isMember && _planetInfo?.Discoverable != true)
+                return null;
+
+            return ActionButtons;
+        }
+    }
+
+    private RenderFragment NoticesFragment
+    {
+        get
+        {
+            if (_joinError is null)
+                return null;
+
+            return JoinErrorNotice;
+        }
+    }
+
+    private RenderFragment JoinErrorNotice => @<p class="planet-info-error">@_joinError</p>;
+
+    private RenderFragment ActionButtons => @<text>
+        @if (_isMember)
+        {
+            <button class="v-btn primary" @onclick="OpenPlanetAsync">Open planet</button>
+            @if (_planet is not null)
+            {
+                <button class="v-btn" @onclick="OpenRulesAsync">Rules</button>
+            }
+        }
+        else
+        {
+            <button class="v-btn primary" disabled="@_joining" @onclick="JoinAsync">
+                @(_joining ? "Joining..." : "Join planet")
+            </button>
+        }
+    </text>;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         _planetInfo = Data;
         _memberCount = Data?.MemberCount ?? 0;
+        _activeCount = Data?.ActiveCount ?? -1;
 
-        if (Data is not null)
+        if (Data is null)
+            return;
+
+        _isMember = IsJoined(Data.PlanetId);
+        if (_activeCount < 0 && _isMember)
+            _activeCount = Client.PlanetService.GetActiveCount(Data.PlanetId);
+
+        // Planets the startup data did not report, such as private or newly
+        // joined ones, fall back to the public info route.
+        var infoTask = _activeCount < 0 && string.IsNullOrWhiteSpace(Data.NodeDomain)
+            ? Client.PlanetService.FetchPlanetInfoAsync(Data.PlanetId)
+            : null;
+
+        AttachPlanet(await Client.PlanetService.FetchPlanetAsync(Data.PlanetId));
+
+        if (infoTask is not null)
         {
-            _planet = await Client.PlanetService.FetchPlanetAsync(Data.PlanetId);
-            if (_planet is not null)
+            var info = await infoTask;
+            if (info.Success && info.Data is not null)
             {
-                _planet.Updated += OnPlanetUpdated;
-                _planet.Members.Changed += OnMembersChanged;
-
-                var fetchedCount = await _planet.FetchMemberCountAsync();
-                if (fetchedCount is not null)
-                    _memberCount = fetchedCount.Value;
-                BuildPlanetInfo();
-
-                // The controlled-render base gates ShouldRender after first
-                // paint, so the fetched count needs an explicit ReRender or
-                // the stale cached count stays on screen
-                await ReRender();
+                _activeCount = info.Data.ActiveCount;
+                if (_planet is null)
+                {
+                    _planetInfo = info.Data;
+                    _memberCount = info.Data.MemberCount;
+                }
             }
         }
+
+        if (_planet is not null)
+        {
+            var fetchedCount = await _planet.FetchMemberCountAsync();
+            if (fetchedCount is not null)
+                _memberCount = fetchedCount.Value;
+            BuildPlanetInfo();
+        }
+
+        // The controlled-render base gates ShouldRender after first
+        // paint, so the fetched counts need an explicit ReRender or
+        // the stale cached values stay on screen
+        await ReRender();
+    }
+
+    private void AttachPlanet(Planet planet)
+    {
+        if (planet is null || _planet is not null)
+            return;
+
+        _planet = planet;
+        _planet.Updated += OnPlanetUpdated;
+        _planet.Members.Changed += OnMembersChanged;
+    }
+
+    private bool IsJoined(long planetId)
+    {
+        var planets = Client.PlanetService.JoinedPlanets;
+        for (var i = 0; i < planets.Count; i++)
+        {
+            if (planets[i].Id == planetId)
+                return true;
+        }
+        return false;
     }
 
     private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData)
@@ -60,8 +150,92 @@ else
         if (_planet is null)
             return;
 
-        _planetInfo = _planet.ToListInfo();
-        _planetInfo.MemberCount = _memberCount;
+        var info = _planet.ToListInfo();
+        info.MemberCount = _memberCount;
+        info.ActiveCount = _activeCount;
+        info.NodeDomain ??= Data?.NodeDomain;
+        if (info.Tags.Count == 0 && Data?.Tags is { Count: > 0 })
+            info.Tags = Data.Tags;
+
+        _planetInfo = info;
+    }
+
+    private async Task JoinAsync()
+    {
+        if (_joining || _planetInfo is null)
+            return;
+
+        var planetId = _planetInfo.PlanetId;
+
+        // Community-hosted planets need the first-contact warning and the
+        // federated join flow, which live on the discover landing page.
+        if (!string.IsNullOrWhiteSpace(_planetInfo.NodeDomain))
+        {
+            Navigation.NavigateTo($"/D/{planetId}");
+            return;
+        }
+
+        _joining = true;
+        _joinError = null;
+        await ReRender();
+
+        TaskResult<PlanetMember> result;
+        try
+        {
+            result = await Client.PlanetService.JoinPlanetAsync(planetId);
+        }
+        finally
+        {
+            _joining = false;
+        }
+
+        if (!result.Success)
+        {
+            _joinError = result.Message ?? "Failed to join planet.";
+            await ReRender();
+            return;
+        }
+
+        _isMember = true;
+        AttachPlanet(await Client.PlanetService.FetchPlanetAsync(planetId));
+        BuildPlanetInfo();
+        await ReRender();
+        await OpenPlanetAsync();
+    }
+
+    private async Task OpenPlanetAsync()
+    {
+        var planet = _planet ?? await Client.PlanetService.FetchPlanetAsync(_planetInfo.PlanetId);
+
+        WindowContent content = null;
+        if (planet is not null)
+        {
+            try
+            {
+                content = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(planet);
+            }
+            catch (Exception e)
+            {
+                Client.Logger.Log<PlanetInfoWindowComponent>($"Opening the planet failed: {e.Message}", "red");
+            }
+        }
+
+        if (content is null)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Failed to open planet",
+                $"Error accessing {_planetInfo.Name}", ToastProgressState.Failure));
+            return;
+        }
+
+        await WindowService.OpenWindowAtFocused(content);
+    }
+
+    private async Task OpenRulesAsync()
+    {
+        if (_planet is null)
+            return;
+
+        await WindowService.OpenWindowAtFocused(PlanetRulesWindowComponent.GetDefaultContent(_planet));
     }
 
     public class Content : WindowContent<PlanetInfoWindowComponent, PlanetListInfo>
@@ -79,7 +253,7 @@ else
             return json;
         }
     }
-    
+
     public static WindowContent<PlanetInfoWindowComponent, PlanetListInfo> GetDefaultContent(PlanetListInfo planetInfo)
     {
         return new Content()

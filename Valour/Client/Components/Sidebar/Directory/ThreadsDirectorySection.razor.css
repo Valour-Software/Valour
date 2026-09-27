@@ -9,15 +9,15 @@
     white-space: nowrap;
     height: 27px;
     padding: 6px 8px 4px 6px;
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--text-secondary);
     transition: color var(--duration-fast) var(--ease-standard);
-    background-color: var(--main-1);
+    background-color: var(--surface-canvas);
     z-index: 1;
 }
 
 .planet-threads:hover {
-    background-color: var(--main-3);
-    color: var(--font-color);
+    background-color: var(--surface-raised);
+    color: var(--text-primary);
 }
 
 .planet-pseudo-icon {
@@ -42,7 +42,7 @@
     background: transparent;
     border: none;
     padding: 2px 4px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-tertiary);
     cursor: pointer;
     font-size: var(--font-size-sm);
     line-height: var(--line-height-none);
@@ -52,12 +52,12 @@
 }
 
 .threads-sort:hover {
-    color: var(--font-color);
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    background: var(--surface-hover);
 }
 
 .threads-sort.active {
-    color: var(--v-cyan);
+    color: var(--text-primary);
 }
 
 .planet-threads .name {

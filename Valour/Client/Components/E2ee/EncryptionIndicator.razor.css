@@ -2,11 +2,12 @@
     display: grid;
     place-items: center;
     padding: var(--space-1) var(--space-2);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     background: none;
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .encryption-btn.on {
@@ -14,5 +15,5 @@
 }
 
 .encryption-btn:hover {
-    background-color: var(--slight-tint);
+    background-color: var(--surface-hover);
 }

@@ -30,7 +30,7 @@
                         <div class="method-copy">
                             <span class="method-name">
                                 @(ThisDeviceKey?.DisplayName ?? _deviceKeys.DeviceName)
-                                <span class="badge badge-primary">This device</span>
+                                <span class="status-badge">This device</span>
                             </span>
                             <span class="method-meta">@(ThisDeviceKey is not null ? LastUsed(ThisDeviceKey) : _deviceKeys.IsAvailable ? "Off" : "Unavailable")</span>
                         </div>

@@ -1,7 +1,7 @@
 .token-info-preview {
-    background: var(--surface-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     padding: 1rem;
     margin: 1rem 0;
 }
@@ -28,7 +28,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: var(--font-size-md);
+    gap: var(--space-3);
+    font-size: var(--font-size-sm);
     margin-bottom: 0.25rem;
 }
 
@@ -40,4 +41,10 @@
 .token-details span:last-child {
     color: var(--text-primary);
     text-align: right;
+}
+
+.token-date {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
 }

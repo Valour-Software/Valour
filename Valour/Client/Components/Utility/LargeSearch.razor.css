@@ -7,141 +7,85 @@
 
 .search-box {
     position: relative;
-    max-width: 500px;
-    width: 100%;
     display: flex;
     align-items: center;
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-xl);
-    box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    max-width: 500px;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--rim-light);
     overflow: hidden;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        box-shadow var(--duration-fast) var(--ease-standard);
 }
 
 .search-box:hover:not(:focus-within) {
-    border-color: var(--medium-tint);
-    box-shadow:
-        0 6px 20px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-color: color-mix(in srgb, var(--tint) 22%, transparent);
 }
 
 .search-box:focus-within {
     border-color: var(--color-primary);
-    box-shadow:
-        0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent),
-        0 6px 24px color-mix(in srgb, var(--color-primary) 25%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
+    box-shadow: var(--focus-ring);
 }
 
 .search-icon {
     position: absolute;
-    left: 1rem;
-    color: var(--font-alt-color);
-    font-size: var(--font-size-lg);
+    left: 0.9rem;
     z-index: 1;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-md);
     pointer-events: none;
 }
 
 .search-input {
     width: 100%;
-    padding: 1rem 1rem 1rem 3rem;
+    height: 42px;
+    padding: 0 2.75rem;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
     background: transparent;
     border: none;
     outline: none;
-    color: var(--font-color);
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-regular);
 }
 
 .search-input::placeholder {
-    color: var(--font-alt-color);
-    opacity: 0.7;
+    color: var(--text-tertiary);
 }
 
 .search-clear {
     position: absolute;
-    right: 1rem;
-    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-4) 100%);
-    border: 1px solid var(--slight-tint);
-    color: var(--font-alt-color);
-    font-size: var(--font-size-md);
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: var(--radius-full);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    right: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-md);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
 }
 
 .search-clear:hover {
-    background: linear-gradient(135deg, var(--color-danger) 0%, #a84848 100%);
-    border-color: var(--color-danger);
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-danger) 30%, transparent);
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
 }
 
 .search-loading {
     position: absolute;
-    right: 1rem;
-    color: var(--color-primary);
-    font-size: var(--font-size-xl);
+    right: 0.9rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
+    color: var(--text-tertiary);
 }
 
 .search-loading .spin {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-@media (max-width: 768px) {
-    .search-container {
-        margin: 0;
-        padding: 0;
-    }
-
-    .search-box {
-        max-width: 100%;
-        border-radius: var(--radius-md);
-    }
-
-    .search-input {
-        padding: 0.875rem 0.875rem 0.875rem 2.75rem;
-        font-size: var(--font-size-md);
-    }
-
-    .search-icon {
-        left: 0.875rem;
-        font-size: var(--font-size-md);
-    }
-
-    .search-clear {
-        right: 0.75rem;
-        font-size: var(--font-size-md);
-        width: 1.75rem;
-        height: 1.75rem;
-    }
-
-    .search-loading {
-        right: 0.75rem;
-        font-size: var(--font-size-md);
-        width: 1.75rem;
-        height: 1.75rem;
-    }
+    animation: spinner 0.8s linear infinite;
 }

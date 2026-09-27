@@ -71,6 +71,12 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
     /// The number of members in the planet
     /// </summary>
     public int MemberCount { get; set; }
+
+    /// <summary>
+    /// Members who connected in the last 15 minutes, or -1 when the planet's host
+    /// does not report it.
+    /// </summary>
+    public int ActiveCount { get; set; } = -1;
     
     /// <summary>
     /// The version of the planet

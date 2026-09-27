@@ -4,30 +4,27 @@
 }
 
 .planet-name {
-    margin: 0;
-    margin-left: 8px;
-    vertical-align: top;
     display: inline-block;
-    font-family: var(--font-family-app);
-    font-style: normal;
-    font-weight: var(--font-weight-regular);
-    font-size: var(--font-size-md);
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-base);
-    color: #FFFFFF;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .planet {
     position: relative;
-    margin-right: auto;
-    margin-left: auto;
-    margin-bottom: 4px;
+    margin: 0 auto 2px;
 }
 
-/* Open/close: same grid-rows expand used by the main menu categories */
 .channel-list {
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows var(--duration-slow) var(--ease-out-expo);
+    transition: grid-template-rows var(--duration-slow) var(--ease-standard);
 }
 
 .channel-list.open {
@@ -39,106 +36,151 @@
     overflow: hidden;
 }
 
-/* Staggered slide-in of rows when the planet opens */
-.list-wrapper ::deep > * {
-    opacity: 0;
-    transform: translateX(-12px);
-}
-
-.channel-list.open .list-wrapper ::deep > * {
-    animation: dir-item-slide var(--duration-slow) var(--ease-out-expo) both;
-}
-
-.channel-list.open .list-wrapper ::deep > :nth-child(1) { animation-delay: 30ms; }
-.channel-list.open .list-wrapper ::deep > :nth-child(2) { animation-delay: 60ms; }
-.channel-list.open .list-wrapper ::deep > :nth-child(3) { animation-delay: 90ms; }
-.channel-list.open .list-wrapper ::deep > :nth-child(4) { animation-delay: 120ms; }
-.channel-list.open .list-wrapper ::deep > :nth-child(5) { animation-delay: 150ms; }
-.channel-list.open .list-wrapper ::deep > :nth-child(6) { animation-delay: 180ms; }
-.channel-list.open .list-wrapper ::deep > :nth-child(7) { animation-delay: 210ms; }
-.channel-list.open .list-wrapper ::deep > :nth-child(n + 8) { animation-delay: 240ms; }
-
-/* Note: keyframes must be defined in this file — the scoped CSS compiler
-   renames them per-file, so they can't be shared across .razor.css files. */
-@keyframes dir-item-slide {
-    from {
-        opacity: 0;
-        transform: translateX(-12px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-
-.header-wrapper {
-}
-
 .header {
+    position: relative;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 8px;
-    border-radius: var(--radius-md);
+    gap: 8px;
+    height: 48px;
+    padding: 0 10px;
+    overflow: hidden;
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+}
+
+.header-sky {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.header-sky ::deep canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.header-sky::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--surface-canvas) 80%, transparent) 20%, transparent 80%);
 }
 
 .header .right,
 .header .left {
+    position: relative;
     display: flex;
     flex-direction: row;
     align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.header .chevron {
+    color: var(--text-secondary);
+    font-size: 11px;
+    transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.header .chevron.closed {
+    transform: rotate(-90deg);
+}
+
+.planet-stats {
+    display: flex;
+    gap: 14px;
+    padding: 8px 10px 4px;
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+}
+
+.planet-stats > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.planet-stats .dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--line-strong);
+    border-radius: var(--radius-full);
+}
+
+.planet-stats .live .dot {
+    background-color: var(--color-success);
 }
 
 .header .right {
-    gap: 8px;
+    flex: none;
+    gap: 6px;
+    height: 28px;
+    padding: 0 6px;
+    background-color: color-mix(in srgb, var(--surface-canvas) 72%, transparent);
+    border-radius: var(--radius-md);
 }
 
 .header .right .notif-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--color-danger);
-    border-radius: var(--radius-full);
     min-width: 16px;
     height: 16px;
-    padding: 0 4px;
+    padding: 0 5px;
+    background-color: var(--color-primary);
+    border-radius: var(--radius-full);
 }
 
 .header .right .notif-badge span {
-    font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-bold);
-    color: white;
+    color: var(--color-primary-contrast);
+    font-family: var(--font-family-mono);
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-none);
 }
 
 .header .edit-button {
-    transition: transform 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    transition: color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .header .edit-button:hover {
-    transform: rotate(45deg) scale(1.1);
+    color: var(--text-primary);
+    background-color: var(--surface-active);
 }
 
 .planet-about,
 .planet-rules,
 .planet-events {
-    cursor: pointer;
     position: relative;
-    border-radius: var(--radius-md);
-    white-space: nowrap;
     height: 27px;
     padding: 6px 8px 4px 6px;
-    color: rgba(255, 255, 255, 0.65);
-    transition: color var(--duration-fast) var(--ease-standard);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .planet-about:hover,
 .planet-rules:hover,
 .planet-events:hover {
-    background: rgba(255, 255, 255, 0.075);
-    color: var(--font-color);
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
 }
 
 .planet-pseudo-icon {
@@ -146,58 +188,44 @@
     top: 50%;
     left: 6px;
     transform: translateY(-50%);
-    font-size: var(--font-size-md);
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
     line-height: var(--line-height-none);
 }
 
 .planet-about .name,
 .planet-rules .name,
 .planet-events .name {
-    font-family: var(--font-family-app);
-    font-style: normal;
-    font-weight: var(--font-weight-regular);
-    font-size: var(--font-size-sm);
     display: inline-block;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
     max-width: calc(100% - 24px);
     margin: -2px 0 0 24px;
+    overflow: hidden;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-regular);
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .planet .header:hover {
-    background: rgba(255, 255, 255, 0.075);
-}
-
-.planet .header:active {
-    background: rgba(255, 255, 255, 0.125);
+    border-color: var(--line-strong);
 }
 
 .planet .channel-list {
     margin-left: 2px !important;
 }
 
-.channel-list .v-gradient-underline {
-}
-
 .list-wrapper {
-    padding-left: 2px;
-    padding-right: 2px;
-    padding-bottom: 10px;
+    padding: 2px 2px 10px;
 }
 
-.custom-media-icon {
-    font-size: 0.7em;
-    color: var(--color-warning, #e0a030);
-    opacity: 0.8;
-    margin-left: 4px;
-    align-self: center;
+.channel-list .v-gradient-underline {
+    display: none;
 }
 
+.custom-media-icon,
 .community-host-icon {
-    font-size: 0.75em;
-    color: var(--color-warning, #e0a030);
-    opacity: 0.9;
-    margin-left: 5px;
     align-self: center;
+    margin-left: 6px;
+    color: var(--color-warning);
+    font-size: 0.75em;
 }

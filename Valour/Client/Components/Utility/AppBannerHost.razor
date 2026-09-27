@@ -9,7 +9,7 @@
             <div class="banner-icon"><i class="bi bi-arrow-up-circle-fill"></i></div>
             <div class="banner-copy"><strong>Valour needs an update</strong><span>This version can no longer send messages. Refresh, or update the app from your app store.</span></div>
             <div class="banner-actions">
-                <button class="banner-action refresh-action" @onclick="RefreshAsync"><i class="bi bi-arrow-clockwise"></i><span>Refresh</span></button>
+                <button class="v-btn primary small banner-action refresh-action" @onclick="RefreshAsync"><i class="bi bi-arrow-clockwise"></i><span>Refresh</span></button>
             </div>
         </section>
     }
@@ -19,7 +19,7 @@
             <div class="banner-icon"><i class="bi bi-stars"></i></div>
             <div class="banner-copy"><strong>A new Valour update is ready</strong><span>Refresh to switch to the latest version.</span></div>
             <div class="banner-actions">
-                <button class="banner-action refresh-action" @onclick="RefreshAsync"><i class="bi bi-arrow-clockwise"></i><span>Refresh</span></button>
+                <button class="v-btn primary small banner-action refresh-action" @onclick="RefreshAsync"><i class="bi bi-arrow-clockwise"></i><span>Refresh</span></button>
                 <button class="icon-action dismiss-action" title="Dismiss" aria-label="Dismiss update" @onclick="(() => Banners.DismissUpdate())"><i class="bi bi-x-lg"></i></button>
             </div>
         </section>

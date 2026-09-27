@@ -2,49 +2,44 @@
 @inject ChannelService ChannelService
 @inject ValourClient Client
 
-<section>
-    <img alt="escape" class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
-    <div class="top-section">
-        <h2 class="title">Create</h2>
-        
-        <span id="image-span" style="color:white; text-align: center">@_errorSpan</span>
-
-        <div asp-validation-summary="All" class="text-info"></div>
-        <div class="form-group mt-2 new-input-style">
+<BasicModalLayout Title="@Title" Icon="@Icon" MaxWidth="480px" MinWidth="min(90vw, 360px)">
+    <MainArea>
+        <div class="form-group create-name">
             <label>Name</label>
-            <input class="form-control" placeholder="Insert Name" @bind-value="@_name" />
+            <input class="v-input" placeholder="Name" @bind-value="@_name" />
         </div>
-        <div style="margin-top:20px;">
-            <img class="lock-icon" src="_content/Valour.Client/media/lock-icon.svg">
-            <div class="perm-list-name mb-1">
-                Private
-            </div>
-            <div type="button" style="float: right">
+
+        @if (!string.IsNullOrWhiteSpace(_errorSpan))
+        {
+            <p class="create-error">@_errorSpan</p>
+        }
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title"><i class="bi bi-lock-fill"></i> Private</span>
                 <label class="switch">
                     <input type="checkbox" @onclick="PrivateSwitch" checked="@_isPrivate">
                     <span class="slider round"></span>
                 </label>
             </div>
-        </div>
-    </div>
+            <p class="toggle-description">Only the roles you choose can see this.</p>
 
-    @if (_isPrivate) {
-        <div class="private">
-            <div class="inner-private">
-                <label style="margin-top: 12px;">Who has access to this?</label>
-                <div class="roles-box">
-                    @foreach (PlanetRole role in _roles)
-                    {
-                        <div class="role">
-                            <div class="role-label">
-                                <RolePill Role="role" />
-                            </div>
-                            <div type="button">
+            @if (_isPrivate)
+            {
+                <div class="toggle-content">
+                    <div class="roles-label">Who has access</div>
+                    <div class="roles-box">
+                        @foreach (PlanetRole role in _roles)
+                        {
+                            <div class="role">
+                                <div class="role-label">
+                                    <RolePill Role="role" />
+                                </div>
                                 <label class="switch">
                                     @if (role.GetAuthority() == MyAuthority)
                                     {
                                         <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@_selectedRoles[role]" disabled>
-                                        <span class="slider round" cursor: not-allowed;></span>
+                                        <span class="slider round locked"></span>
                                     }
                                     else
                                     {
@@ -52,31 +47,20 @@
                                         <span class="slider round"></span>
                                     }
                                 </label>
-                            </div> 
-                        </div>
-                    }
+                            </div>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
         </div>
-    }
-    
-    @if (_isPrivate)
-    {
-        <div class="form-group mt-4 bottom" style="margin-top: 0px !important;">
-            <center>
-                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
-            </center>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="ClickEscape">Cancel</button>
+            <button class="v-btn primary" @onclick="OnClickSubmit">Create</button>
         </div>
-    }
-    else
-    {
-        <div class="form-group mt-4 bottom">
-            <center>
-                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
-            </center>
-        </div>
-    }
-</section>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 
@@ -97,6 +81,22 @@
     bool _isPrivate = false;
 
     uint MyAuthority { get; set; }
+
+    private string Title => Data.ChannelType switch
+    {
+        ChannelTypeEnum.PlanetCategory => "Create category",
+        ChannelTypeEnum.PlanetVoice => "Create voice channel",
+        ChannelTypeEnum.PlanetVideo => "Create video channel",
+        _ => "Create channel"
+    };
+
+    private string Icon => Data.ChannelType switch
+    {
+        ChannelTypeEnum.PlanetCategory => "folder-plus",
+        ChannelTypeEnum.PlanetVoice => "mic-fill",
+        ChannelTypeEnum.PlanetVideo => "camera-video-fill",
+        _ => "plus-circle"
+    };
     
     private void ClickEscape(MouseEventArgs e)
     {
@@ -137,7 +137,7 @@
         // Require a name
         if (string.IsNullOrWhiteSpace(_name))
         {
-            _errorSpan = "Please input a category name!";
+            _errorSpan = "Please enter a name.";
             return;
         }
 

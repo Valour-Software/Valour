@@ -30,7 +30,7 @@
         {
             <div class="toggle-item">
                 <div class="toggle-header">
-                    <span class="toggle-title">Use Vanity URL as Invite</span>
+                    <span class="toggle-title">Use vanity URL as invite</span>
                     <label class="switch">
                         <input type="checkbox" @oninput="OnCheckVanityInvite" checked="@vanityInviteValue" disabled="@string.IsNullOrWhiteSpace(Planet.Vanity)" />
                         <span class="slider round"></span>
@@ -81,7 +81,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Not Safe For Work</span>
+                <span class="toggle-title">Not safe for work</span>
                 <label class="switch">
                     <input type="checkbox" @oninput="OnCheckNsfw" checked="@nsfwValue" />
                     <span class="slider round"></span>
@@ -95,7 +95,7 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-envelope-plus-fill"></i>
-            Create Invite
+            Create invite
         </h3>
 
         <CreateInviteLink Planet="Planet" />
@@ -104,7 +104,7 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-envelope-paper-heart-fill"></i>
-            Invite Links
+            Invite links
         </h3>
 
         @if (!Planet.Invites.Any() && !HasVanityInvite)
@@ -132,7 +132,7 @@
                             <button class="v-btn small" title="Copy invite link" @onclick="CopyVanityInviteLink">
                                 <i class="bi bi-clipboard"></i> Copy
                             </button>
-                            <button class="v-btn small danger" title="Turn off the Use Vanity URL as Invite toggle" @onclick="DisableVanityInvite">
+                            <button class="v-btn small danger" title="Turn off the Use vanity URL as invite toggle" @onclick="DisableVanityInvite">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>

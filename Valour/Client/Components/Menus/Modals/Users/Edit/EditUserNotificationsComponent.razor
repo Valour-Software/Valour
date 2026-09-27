@@ -20,10 +20,10 @@
         {
             <div class="toggle-item">
                 <div class="toggle-header">
-                    <span class="toggle-title">Enable Push Notifications</span>
+                    <span class="toggle-title">Enable push notifications</span>
                     @if (_notificationsBlocked)
                     {
-                        <VButton Variant="secondary" Size="sm" OnClick="@OnOpenSettingsClick">Go to Settings</VButton>
+                        <VButton Variant="secondary" Size="sm" OnClick="@OnOpenSettingsClick">Go to settings</VButton>
                     }
                     else
                     {
@@ -48,7 +48,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Notification Volume</span>
+                <span class="toggle-title">Notification volume</span>
                 <span class="volume-value">@_notificationVolume%</span>
             </div>
             <p class="toggle-description">Adjusts notification sound loudness.</p>
@@ -72,7 +72,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Activity Notification Frequency</span>
+                <span class="toggle-title">Activity notification frequency</span>
             </div>
             <p class="toggle-description">
                 How often a busy channel may notify you about non-ping activity.

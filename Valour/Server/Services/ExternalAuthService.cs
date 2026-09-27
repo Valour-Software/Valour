@@ -477,7 +477,7 @@ public class ExternalAuthService
         var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)));
         var html =
             "<!doctype html><html><head><meta charset=\"utf-8\"><title>Valour</title></head>" +
-            "<body style=\"background:#040d14;color:#fff;font-family:sans-serif\"><p>" +
+            "<body style=\"margin:0;padding:48px 24px;background:#0a0d12;color:#e7ebf1;font:15px/1.6 'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif\"><p>" +
             System.Net.WebUtility.HtmlEncode(message) + "</p>" +
             $"<script>{script}</script></body></html>";
 
@@ -487,7 +487,7 @@ public class ExternalAuthService
     private static IResult PlainPage(string message) =>
         new PageResult(
             "<!doctype html><html><head><meta charset=\"utf-8\"><title>Valour</title></head>" +
-            "<body style=\"background:#040d14;color:#fff;font-family:sans-serif\"><p>" +
+            "<body style=\"margin:0;padding:48px 24px;background:#0a0d12;color:#e7ebf1;font:15px/1.6 'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif\"><p>" +
             System.Net.WebUtility.HtmlEncode(message) + "</p></body></html>",
             "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
 

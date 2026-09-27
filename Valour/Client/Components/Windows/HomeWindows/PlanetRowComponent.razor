@@ -4,29 +4,35 @@
 @inject PlanetService PlanetService
 @inject UnreadService UnreadService
 
-<button class="planet-row" type="button" aria-label="@Planet.Name" @onclick="OnClick" @oncontextpress="OnContextPress">
-    <div class="left">
-        <PlanetIcon Planet="@Planet" Size="36" Unread="@_isUnread"/>
-        <div class="info">
-            <span class="name">@Planet.Name</span>
-            @if (!string.IsNullOrWhiteSpace(Planet.Description))
-            {
-                <span class="description">@Planet.Description</span>
-            }
-        </div>
-    </div>
-    <div class="right">
-        @if (Planet.Nsfw)
+<button class="planet-row @(_isUnread ? "unread" : "")" type="button" aria-label="@Planet.Name" @onclick="OnClick" @oncontextpress="OnContextPress">
+    <PlanetIcon Planet="@Planet" Size="32" Lights="@IconLights" />
+    <span class="info">
+        <span class="name">@Planet.Name</span>
+        @if (_activeCount > 0)
         {
-            <span class="nsfw-tag">NSFW</span>
+            <span class="meta live"><span class="dot"></span>@_activeCount active</span>
         }
-        @if (_notificationCount > 0)
+        else if (_activeCount == 0)
         {
-            <div class="notif-badge">
-                <span>@(_notificationCount > 9 ? "9+" : _notificationCount)</span>
-            </div>
+            <span class="meta"><span class="dot"></span>quiet</span>
         }
-    </div>
+        else if (!string.IsNullOrWhiteSpace(Planet.Description))
+        {
+            <span class="description">@Planet.Description</span>
+        }
+    </span>
+    @if (Planet.Nsfw)
+    {
+        <span class="nsfw-tag">NSFW</span>
+    }
+    @if (_notificationCount > 0)
+    {
+        <span class="count">@(_notificationCount > 99 ? "99+" : _notificationCount)</span>
+    }
+    else if (_isUnread)
+    {
+        <span class="unread-dot" aria-label="Unread"></span>
+    }
 </button>
 
 @code {
@@ -62,6 +68,14 @@
 
     private bool _isUnread;
     private int _notificationCount;
+    private int _activeCount = -1;
+
+    private double IconLights => _activeCount switch
+    {
+        < 0 => 0.6,
+        0 => 0.1,
+        _ => Math.Min(1.5, 0.35 + Math.Log10(_activeCount + 1) * 0.5)
+    };
     private bool _selfManaged;
 
     protected override void OnInitialized()
@@ -76,6 +90,7 @@
 
     protected override void OnParametersSet()
     {
+        _activeCount = PlanetService.GetActiveCount(Planet.Id);
         if (!_selfManaged)
         {
             _isUnread = IsUnread;

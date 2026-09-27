@@ -2,3 +2,8 @@
     color: var(--color-warning);
     font-size: var(--font-size-sm);
 }
+
+.bot-id {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+}

@@ -1,7 +1,5 @@
-/* Layout and styling live in ThreadCommentDisplay; only app-specific bits here */
-
 .deleted-author {
-    color: color-mix(in srgb, var(--font-color) 40%, transparent) !important;
+    color: var(--text-tertiary) !important;
     font-style: italic;
 }
 
@@ -10,7 +8,7 @@
 }
 
 .load-replies:disabled {
-    color: color-mix(in srgb, var(--font-color) 40%, transparent);
+    color: var(--text-tertiary);
     cursor: default;
     text-decoration: none;
 }

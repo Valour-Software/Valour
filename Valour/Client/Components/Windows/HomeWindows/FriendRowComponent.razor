@@ -6,21 +6,25 @@
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
 
-<div class="friend-row" @onclick="OnClick" @oncontextpress="OnContextMenu">
+<div class="friend-row @(_isUnread || _notificationCount > 0 ? "unread" : "") @(_isOffline ? "offline" : "")" @onclick="OnClick" @oncontextpress="OnContextMenu">
     <div class="left">
-        <img alt="@Friend.Name" src="@_avatarUrl" class="row-avatar" />
-        <span class="name">@Friend.Name</span>
+        <UserAvatar User="@Friend" Size="32" ShowState="true"/>
+        <span class="info">
+            <span class="name">@Friend.Name</span>
+            @if (!string.IsNullOrWhiteSpace(_statusText))
+            {
+                <span class="status">@_statusText</span>
+            }
+        </span>
     </div>
     <div class="right">
         @if (_notificationCount > 0)
         {
-            <div class="unread-badge notification">
-                <span>@(_notificationCount > 9 ? "9+" : _notificationCount)</span>
-            </div>
+            <span class="count">@(_notificationCount > 99 ? "99+" : _notificationCount)</span>
         }
         else if (_isUnread)
         {
-            <div class="unread-badge"></div>
+            <span class="unread-dot" aria-label="Unread"></span>
         }
     </div>
 </div>
@@ -35,17 +39,43 @@
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
 
-    private string _avatarUrl;
-    private string _fallbackAvatarUrl;
     private bool _isUnread;
     private int _notificationCount;
+    private bool _isOffline;
+    private string _statusText;
 
     protected override void OnInitialized()
     {
-        _avatarUrl = Friend.GetAvatar(AvatarFormat.Webp64);
-        _fallbackAvatarUrl = Friend.GetFailedAvatar();
+        CalculateStatus();
 
+        Friend.Updated += OnFriendUpdated;
         HomeWindowComponent.OnRerenderFriendCards += Refresh;
+    }
+
+    private void CalculateStatus()
+    {
+        var state = Friend.UserState;
+        _isOffline = state.Value == UserState.Offline.Value;
+
+        if (!string.IsNullOrWhiteSpace(Friend.Status))
+            _statusText = Friend.Status;
+        else
+            _statusText = _isOffline ? null : state.Name;
+    }
+
+    private void OnFriendUpdated(ModelUpdatedEvent<User> eventData)
+    {
+        if (!eventData.Changes.On(x => x.UserStateCode) &&
+            !eventData.Changes.On(x => x.TimeLastActive) &&
+            !eventData.Changes.On(x => x.Status) &&
+            !eventData.Changes.On(x => x.Name))
+            return;
+
+        InvokeAsync(() =>
+        {
+            CalculateStatus();
+            StateHasChanged();
+        });
     }
 
     private void OnContextMenu(ContextPressEventArgs e)
@@ -67,6 +97,7 @@
             if (channel is null)
             {
                 _isUnread = false;
+                _notificationCount = 0;
             }
             else
             {
@@ -80,6 +111,7 @@
 
     public void Dispose()
     {
+        Friend.Updated -= OnFriendUpdated;
         HomeWindowComponent.OnRerenderFriendCards -= Refresh;
     }
 

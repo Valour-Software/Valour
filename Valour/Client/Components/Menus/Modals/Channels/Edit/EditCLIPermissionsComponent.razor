@@ -37,7 +37,7 @@
         <div class="form-group">
             <label>Editing permissions for</label>
             <select @key="@("perm-role-select")" class="v-input role-select" @onchange="OnRoleSelect"
-                    style="color: @(_selectedRole?.Color ?? "var(--font-color)")">
+                    style="color: @(_selectedRole?.Color ?? "var(--text-primary)")">
 
                 @{
                     int options = 0;
@@ -55,7 +55,7 @@
 
                     options++;
 
-                    <option value="@role.Id" style="color: @role.Color; background-color: var(--main-1)">@role.Name</option>
+                    <option value="@role.Id" style="color: @role.Color; background-color: var(--surface-raised)">@role.Name</option>
                 }
             </select>
         </div>
@@ -85,7 +85,7 @@ else if (_selectedRole is not null)
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Inherit Category Permissions</span>
+                <span class="toggle-title">Inherit category permissions</span>
                 <label class="switch">
                     <input type="checkbox" @onclick="SwitchInherit" checked="@Target.InheritsPerms">
                     <span class="slider round"></span>
@@ -133,7 +133,7 @@ else if (_selectedRole is not null)
     @if (_changed)
     {
         <div class="actions">
-            <button class="v-btn primary" @onclick="@OnSaveChanges">Save Changes</button>
+            <button class="v-btn primary" @onclick="@OnSaveChanges">Save changes</button>
         </div>
         <ResultLabel Result="@_saveResult" />
     }

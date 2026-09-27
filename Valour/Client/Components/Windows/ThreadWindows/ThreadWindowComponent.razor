@@ -96,7 +96,7 @@
 
                         @if (_hasMore)
                         {
-                            <button class="load-more" disabled="@_isLoading" @onclick="@LoadMoreAsync">
+                            <button class="v-btn load-more" disabled="@_isLoading" @onclick="@LoadMoreAsync">
                                 @(_isLoading ? "Loading..." : "Load more comments")
                             </button>
                         }

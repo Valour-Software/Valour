@@ -53,7 +53,7 @@
                             <code>@node.Domain</code>, ensure its public HTTPS descriptor is live, then verify it.
                         </p>
                         <textarea class="v-input" rows="2" readonly>@node.Challenge</textarea>
-                        <button class="v-btn primary mt-2" @onclick="() => VerifyNodeAsync(node.Domain)" disabled="@_busy">Verify server</button>
+                        <button class="v-btn mt-2" @onclick="() => VerifyNodeAsync(node.Domain)" disabled="@_busy">Verify server</button>
                     }
                     else if (node.Status == "Active" && !node.AllowsPublicMigrations)
                     {
@@ -146,7 +146,7 @@
                     }
                     else
                     {
-                        <button class="v-btn primary" @onclick="() => AcceptDomainAsync(membership.NodeDomain)" disabled="@_busy">
+                        <button class="v-btn" @onclick="() => AcceptDomainAsync(membership.NodeDomain)" disabled="@_busy">
                             Review and accept server
                         </button>
                     }

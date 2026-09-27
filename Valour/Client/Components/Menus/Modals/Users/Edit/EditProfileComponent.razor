@@ -29,12 +29,12 @@
             <div class="avatar-info">
                 <label for="avatar-upload" class="v-btn secondary">
                     <i class="bi bi-upload"></i>
-                    Upload Image
+                    Upload image
                 </label>
                 <p class="helper-text">PNG, JPG, GIF, or WEBP. Square images look best.</p>
                 <ResultLabel Result="@_pfpChangeResult" />
             </div>
-            <div style="display:none">
+            <div class="file-input-host">
                 <InputFile OnChange="@LoadAvatarFile" accept=".png,.jpg,.jpeg,.gif,.webp" id="avatar-upload"></InputFile>
             </div>
         </div>
@@ -44,7 +44,7 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-pencil-square"></i>
-            Profile Details
+            Profile details
         </h3>
 
         <div class="preview">
@@ -52,25 +52,25 @@
         </div>
 
         <div class="form-group">
-            <label>Status Message</label>
+            <label>Status message</label>
             <div class="input-group">
                 <input class="v-input" placeholder="Choose a status..." @bind="_status" />
-                <VButton Variant="primary" OnClick="@OnStatusApply">Apply</VButton>
+                <VButton Variant="secondary" OnClick="@OnStatusApply">Apply</VButton>
             </div>
             <ResultLabel Result="@_statusChangeResult" />
         </div>
 
         <div class="form-group">
-            <label>Status Code</label>
+            <label>Status</label>
             <div class="input-group">
                 <InputSelect class="v-input" @bind-Value="_statusCode">
                     <option value="0">Automatic</option>
                     <option value="4">Online</option>
                     <option value="2">Away</option>
-                    <option value="3">Do Not Disturb</option>
+                    <option value="3">Do not disturb</option>
                     <option value="1">Offline</option>
                 </InputSelect>
-                <VButton Variant="primary" OnClick="@OnStatusCodeApply">Apply</VButton>
+                <VButton Variant="secondary" OnClick="@OnStatusCodeApply">Apply</VButton>
             </div>
             <ResultLabel Result="@_statusCodeChangeResult" />
         </div>
@@ -86,7 +86,7 @@
         </div>
 
         <div class="actions">
-            <VButton Variant="primary" OnClick="@OnClickSaveAsync">Save Changes</VButton>
+            <VButton Variant="primary" OnClick="@OnClickSaveAsync">Save changes</VButton>
         </div>
 
         <ResultLabel Result="@_result" />
@@ -100,7 +100,7 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-star-fill"></i>
-                Stargazer Badge
+                Stargazer badge
             </h3>
 
             <div class="star-preview">
@@ -112,18 +112,18 @@
             {
                 <div class="color-pickers">
                     <div class="color-picker-item">
-                        <span class="v-span">Gradient Start</span>
+                        <span class="v-span">Gradient start</span>
                         <ColorPickerComponent StartColor="@_starPreviewColor1" OnColorChange="@(async (color) => { _starColor1 = color; _starPreviewColor1 = color; StateHasChanged(); })" />
                     </div>
                     <div class="color-picker-item">
-                        <span class="v-span">Gradient End</span>
+                        <span class="v-span">Gradient end</span>
                         <ColorPickerComponent StartColor="@_starPreviewColor2" OnColorChange="@(async (color) => { _starColor2 = color; _starPreviewColor2 = color; StateHasChanged(); })" />
                     </div>
                 </div>
 
                 <div class="actions">
-                    <VButton Variant="primary" OnClick="@OnSaveStarColors">Save Star Colors</VButton>
-                    <VButton Variant="secondary" OnClick="@OnResetStarColors">Reset to Default</VButton>
+                    <VButton Variant="primary" OnClick="@OnSaveStarColors">Save star colors</VButton>
+                    <VButton Variant="secondary" OnClick="@OnResetStarColors">Reset to default</VButton>
                 </div>
                 <ResultLabel Result="@_starColorResult" />
             }
@@ -145,7 +145,7 @@
         {
             <div class="toggle-item">
                 <div class="toggle-header">
-                    <span class="toggle-title">Gradient Borders</span>
+                    <span class="toggle-title">Gradient borders</span>
                     <label class="switch">
                         <input type="checkbox" disabled>
                         <span class="slider round"></span>
@@ -158,7 +158,7 @@
         {
             <div class="toggle-item">
                 <div class="toggle-header">
-                    <span class="toggle-title">Gradient Borders</span>
+                    <span class="toggle-title">Gradient borders</span>
                     <label class="switch">
                         <input type="checkbox" @onclick="OnGradientClick" checked="@_isGradientEnabled" disabled="@_isGradientBlocked">
                         <span class="slider round"></span>
@@ -171,7 +171,7 @@
                     <div class="toggle-content">
                         <div class="toggle-item">
                             <div class="toggle-header">
-                                <span class="toggle-title">Animate Gradient</span>
+                                <span class="toggle-title">Animate gradient</span>
                                 <label class="switch">
                                     <input type="checkbox" @onclick="OnAnimClick" checked="@_isAnimEnabled" disabled="@_isAnimBlocked">
                                     <span class="slider round"></span>
@@ -218,7 +218,7 @@
         </div>
 
         <div class="actions">
-            <VButton Variant="primary" OnClick="@OnClickSaveAsync">Save Changes</VButton>
+            <VButton Variant="primary" OnClick="@OnClickSaveAsync">Save changes</VButton>
         </div>
 
         <ResultLabel Result="@_result" />
@@ -228,14 +228,14 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-image"></i>
-            Background Image
+            Background image
         </h3>
 
         @if (Client.Me.Subscription is null)
         {
             <div class="toggle-item">
                 <div class="toggle-header">
-                    <span class="toggle-title">Custom Background Image</span>
+                    <span class="toggle-title">Custom background image</span>
                     <label class="switch">
                         <input type="checkbox" disabled>
                         <span class="slider round"></span>
@@ -248,23 +248,23 @@
         {
             <div class="toggle-item">
                 <div class="toggle-header">
-                    <span class="toggle-title">Custom Background Image</span>
+                    <span class="toggle-title">Custom background image</span>
                     <label class="switch">
                         <input type="checkbox" checked="@_isCustomBackgroundEnabled" @onclick="OnCustomBackgroundClick">
                         <span class="slider round"></span>
                     </label>
                 </div>
-                <p class="toggle-description">Choose a custom (safe for work) 300x400 image as your background!</p>
+                <p class="toggle-description">Choose a custom (safe for work) 300x400 image as your background.</p>
 
                 @if (_isCustomBackgroundEnabled)
                 {
                     <div class="toggle-content custom-file-input">
                         <label for="bg-upload" class="v-btn secondary">
                             <i class="bi bi-upload"></i>
-                            Upload Background
+                            Upload background
                         </label>
-                        <p class="helper-text">PNG, JPG, or GIF. Up to 10mb.</p>
-                        <div style="display:none">
+                        <p class="helper-text">PNG, JPG, or GIF. Up to 10 MB.</p>
+                        <div class="file-input-host">
                             <InputFile OnChange="LoadBackgroundImage" AdditionalAttributes="@_bgInputAttributes"></InputFile>
                         </div>
                     </div>
@@ -285,8 +285,8 @@
         <div class="form-group">
             <label>Tag</label>
             <div class="input-group">
-                <input class="v-input" placeholder="Tag" @bind="@_tag" maxlength="4" disabled="@(Client.Me.Subscription is null)" />
-                <VButton Variant="primary" OnClick="@OnTagApply" Disabled="@(Client.Me.Subscription is null)">Apply</VButton>
+                <input class="v-input tag-input" placeholder="Tag" @bind="@_tag" maxlength="4" disabled="@(Client.Me.Subscription is null)" />
+                <VButton Variant="secondary" OnClick="@OnTagApply" Disabled="@(Client.Me.Subscription is null)">Apply</VButton>
             </div>
             @if (Client.Me.Subscription is null) {
                 <p class="helper-text">You need Stargazer to change your tag.</p>
@@ -295,8 +295,8 @@
         </div>
 
         <div class="actions">
-            <VButton Variant="secondary" OnClick="@OnClickChangeUsername">Change Username</VButton>
-            <VButton Variant="danger" OnClick="@OnClickDeleteAccount">Delete Account</VButton>
+            <VButton Variant="secondary" OnClick="@OnClickChangeUsername">Change username</VButton>
+            <VButton Variant="danger" OnClick="@OnClickDeleteAccount">Delete account</VButton>
         </div>
     </div>
 

@@ -1,8 +1,8 @@
 .dash-chart {
     width: 100%;
     background: transparent;
-    font-family: var(--font-family-app, sans-serif);
-    color: var(--font-color, #ffffff);
+    font-family: var(--font-family-app);
+    color: var(--text-primary);
 }
 
 .chart-header {
@@ -14,9 +14,11 @@
 }
 
 .chart-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--font-color, #ffffff);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
     flex: 1 1 auto;
     min-width: 0;
     white-space: nowrap;
@@ -40,34 +42,41 @@
 .legend-swatch {
     width: 8px;
     height: 8px;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
 }
 
 .legend-name {
-    font-size: 11px;
-    color: var(--font-color-mid, #aaaaaa);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
 }
 
 .chart-table-toggle {
     background: transparent;
     border: none;
-    padding: 3px 5px;
-    border-radius: 4px;
-    color: var(--font-alt-color, #7a7a7a);
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     line-height: 1;
     flex: 0 0 auto;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
 }
 
 .chart-table-toggle:hover {
-    color: var(--font-color, #ffffff);
-    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
 }
 
 .chart-table-toggle.active {
-    color: var(--font-color, #ffffff);
-    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    background-color: var(--surface-active);
+}
+
+.chart-table-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .chart-table-toggle:disabled {
@@ -101,13 +110,13 @@
 }
 
 .gridline {
-    stroke: rgba(255, 255, 255, 0.07);
+    stroke: var(--line);
     stroke-width: 1;
     pointer-events: none;
 }
 
 .axis-baseline {
-    stroke: rgba(255, 255, 255, 0.14);
+    stroke: var(--line-strong);
     stroke-width: 1;
     pointer-events: none;
 }
@@ -129,11 +138,11 @@
     z-index: 5;
     pointer-events: none;
     transform: translateX(10px);
-    background: var(--main-1, #040d14);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
     padding: 7px 10px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-overlay);
     min-width: 110px;
     white-space: nowrap;
 }
@@ -143,8 +152,10 @@
 }
 
 .tooltip-time {
-    font-size: 11px;
-    color: var(--font-color-mid, #aaaaaa);
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-size-2xs);
+    color: var(--text-tertiary);
     margin-bottom: 4px;
 }
 
@@ -152,7 +163,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    line-height: 1.6;
+    line-height: var(--line-height-loose);
 }
 
 .tooltip-key {
@@ -167,38 +178,43 @@
 }
 
 .tooltip-value {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--font-color, #ffffff);
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
 }
 
 .tooltip-name {
-    font-size: 11px;
-    color: var(--font-color-mid, #aaaaaa);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
 }
 
 .chart-empty {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    color: var(--font-alt-color, #7a7a7a);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-md);
 }
 
 .chart-table-wrap {
     overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 6px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
 }
 
 .chart-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
 }
 
 .chart-table th,
 .chart-table td {
+    border: none;
     padding: 5px 10px;
     text-align: left;
     white-space: nowrap;
@@ -207,23 +223,29 @@
 .chart-table th {
     position: sticky;
     top: 0;
-    background: var(--main-2, #0b151d);
-    color: var(--font-color-mid, #aaaaaa);
-    font-weight: 500;
-    font-size: 11px;
+    background-color: var(--surface-raised);
+    color: var(--text-tertiary);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-2xs);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
+    border-bottom: 1px solid var(--line);
     z-index: 1;
 }
 
 .chart-table td {
-    color: var(--font-color, #ffffff);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-top: 1px solid var(--line);
 }
 
 .chart-table td:first-child {
-    color: var(--font-color-mid, #aaaaaa);
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .chart-table .num {
     text-align: right;
+    font-family: var(--font-family-mono);
     font-variant-numeric: tabular-nums;
 }

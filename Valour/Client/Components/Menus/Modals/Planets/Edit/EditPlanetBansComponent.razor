@@ -5,7 +5,7 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-shield-fill-exclamation"></i>
-            Active Bans
+            Active bans
         </h3>
 
         <QueryTable
@@ -57,12 +57,12 @@
             {
                 Name = "Created",
                 SortField = "created",
-                RenderFragment = row => @<span>@row.Row.TimeCreated.ToLocalTime().ToShortDateString()</span>
+                RenderFragment = row => @<span class="mono">@row.Row.TimeCreated.ToLocalTime().ToShortDateString()</span>
             },
             new()
             {
                 Name = "Expires",
-                RenderFragment = row => @<span>@(row.Row.Permanent ? "Never" : row.Row.TimeExpires?.ToLocalTime().ToShortDateString())</span>
+                RenderFragment = row => @<span class="@(row.Row.Permanent ? "" : "mono")">@(row.Row.Permanent ? "Never" : row.Row.TimeExpires?.ToLocalTime().ToShortDateString())</span>
             },
             new()
             {

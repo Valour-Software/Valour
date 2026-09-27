@@ -2,7 +2,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    font-size: var(--font-size-sm, 14px);
+    font-size: var(--font-size-sm);
     user-select: none;
 }
 
@@ -11,16 +11,18 @@
     align-items: center;
     gap: 8px;
     padding: 6px 10px;
-    border-radius: var(--radius-xs, 4px);
-    color: var(--font-color, #eee);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
     text-decoration: none;
     cursor: pointer;
     line-height: 1.3;
-    transition: background-color 0.12s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
 }
 
 .dt-row:hover {
-    background-color: var(--slight-tint, rgba(255, 255, 255, 0.05));
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
 }
 
 .dt-title {
@@ -31,19 +33,18 @@
 
 .dt-icon {
     flex-shrink: 0;
-    opacity: 0.65;
+    color: var(--text-tertiary);
     font-size: 13px;
 }
 
 .dt-page.active {
-    background-color: var(--slight-tint, rgba(255, 255, 255, 0.05));
-    color: var(--color-primary, #00faff);
-    font-weight: 600;
+    background-color: var(--surface-raised);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
 }
 
 .dt-page.active .dt-icon {
-    opacity: 1;
-    color: var(--color-primary, #00faff);
+    color: var(--planet-light);
 }
 
 .dt-folder {
@@ -51,7 +52,8 @@
 }
 
 .dt-folder-row {
-    font-weight: 600;
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
     list-style: none;
 }
 
@@ -62,8 +64,8 @@
 .dt-chevron {
     flex-shrink: 0;
     font-size: 11px;
-    opacity: 0.65;
-    transition: transform 0.15s ease;
+    color: var(--text-tertiary);
+    transition: transform var(--duration-fast) var(--ease-standard);
 }
 
 .dt-folder[open] > .dt-folder-row .dt-chevron {
@@ -73,7 +75,7 @@
 .dt-children {
     margin-left: 12px;
     padding-left: 8px;
-    border-left: 1px solid var(--medium-tint, rgba(255, 255, 255, 0.1));
+    border-left: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     gap: 2px;

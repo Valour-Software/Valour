@@ -50,15 +50,15 @@
             <div class="bottom-actions">
                 <button class="action-btn" @onclick="OnClickCreatePlanet">
                     <i class="bi bi-plus-circle"></i>
-                    <span>Create a Planet</span>
+                    <span>Create a planet</span>
                 </button>
                 <button class="action-btn" @onclick="OnClickDiscover">
                     <i class="bi bi-compass"></i>
-                    <span>Discover Planets</span>
+                    <span>Discover planets</span>
                 </button>
                 <button class="action-btn" @onclick="OnClickGetStarted">
                     <i class="bi bi-stars"></i>
-                    <span>Get Started</span>
+                    <span>Get started</span>
                 </button>
             </div>
         </TabOne>
@@ -108,7 +108,7 @@
             <div class="bottom-actions">
                 <button class="action-btn" @onclick="OnClickAddFriend">
                     <i class="bi bi-person-plus"></i>
-                    <span>Manage Friends</span>
+                    <span>Manage friends</span>
                     @if (FriendService.IncomingRequests.Count > 0)
                     {
                         <span class="inline-badge">@FriendService.IncomingRequests.Count</span>

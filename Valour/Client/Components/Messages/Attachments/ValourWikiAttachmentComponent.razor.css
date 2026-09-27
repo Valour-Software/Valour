@@ -5,18 +5,18 @@
     max-width: 420px;
     padding: 10px 14px;
     margin: 8px 0;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     min-width: 0;
     transition: border-color var(--duration-fast) var(--ease-standard),
-                background var(--duration-fast) var(--ease-standard);
+                background-color var(--duration-fast) var(--ease-standard);
 }
 
 .valour-doc-preview:hover {
-    border-color: color-mix(in srgb, var(--v-cyan) 45%, transparent);
-    background: var(--main-4);
+    border-color: var(--line-strong);
+    background-color: var(--surface-hover);
 }
 
 .vdp-icon {
@@ -25,10 +25,10 @@
     justify-content: center;
     width: 34px;
     height: 34px;
-    border-radius: var(--radius-s);
-    background: color-mix(in srgb, var(--v-cyan) 10%, transparent);
-    color: var(--v-cyan);
-    font-size: 16px;
+    border-radius: var(--radius-md);
+    background-color: var(--surface-hover);
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
     flex-shrink: 0;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .vdp-title {
-    color: var(--font-color);
+    color: var(--text-primary);
     font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);
     overflow: hidden;
@@ -50,7 +50,7 @@
 }
 
 .vdp-sub {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -59,15 +59,12 @@
 
 .vdp-arrow {
     flex-shrink: 0;
-    font-size: 12px;
-    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
     opacity: 0;
-    transform: translateX(-4px);
-    transition: opacity var(--duration-fast) var(--ease-standard),
-                transform var(--duration-fast) var(--ease-standard);
+    transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .valour-doc-preview:hover .vdp-arrow {
     opacity: 1;
-    transform: none;
 }

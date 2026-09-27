@@ -1,5 +1,5 @@
 .klipy-bg {
-    padding: 20px;
+    padding: 16px;
     max-width: 400px;
     width: 90%;
     height: 600px;
@@ -7,18 +7,10 @@
     position: absolute;
     right: 20px;
     bottom: 20px;
-    background-color: var(--main-2);
-    border-radius: var(--radius-xl);
-    border: 5px solid var(--main-4);
-    box-shadow: black 0 0 15px;
-}
-
-.klipy-bg input {
-    background: var(--main-4);
-    border: 1px solid #030B11;
-    border-radius: var(--radius-md);
-    color: #ffffff;
-    padding: 5px 9px;
+    background-color: var(--surface-overlay);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-overlay), var(--rim-light);
 }
 
 .klipy-header {
@@ -57,31 +49,51 @@
     border-radius: var(--radius-lg);
     margin-bottom: 10px;
     margin-right: 10px;
-    border: var(--main-4) 5px solid;
+    border: 5px solid var(--surface-overlay);
+    transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .masonry-cell .favorite {
     position: absolute;
     left: 15px;
     top: 15px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    background-color: var(--scrim);
+    border-radius: var(--radius-full);
     opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .masonry-cell:hover .favorite {
-    opacity: 0.6;
-    text-shadow: black 0 0 6px;
+    opacity: 1;
 }
 
 .masonry-root .masonry-cell:hover .item {
-    border: 5px solid var(--color-primary);
+    border-color: var(--line-strong);
 }
 
 .masonry-cell h2 {
     position: absolute;
     right: 26px;
-    top: 10px;
-    font-size: var(--font-size-md);
-    text-shadow: -2px -2px 0 #000, 0 -2px 0 #000, 2px -2px 0 #000, 2px 0 0 #000, 2px 2px 0 #000, 0 2px 0 #000, -2px 2px 0 #000, -2px 0 0 #000;
+    top: 14px;
+    margin: 0;
+    padding: 3px 8px;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0;
+    background-color: var(--scrim);
+    border-radius: var(--radius-sm);
+}
+
+.masonry-cell h2 i {
+    font-size: var(--font-size-xs);
 }
 
 .klipy-branding {
@@ -92,6 +104,6 @@
 }
 
 .klipy-error {
-    color: var(--bs-danger);
+    color: var(--color-danger);
     padding: 8px;
 }

@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var headerOverlay = ViewData["HeaderOverlay"] is true;
+    var path = Context.Request.Path.Value ?? "/";
+    var inPolicies = LegalDocumentLibrary.All.Any(document => document.Path == path) || path == "/delete-account/";
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
-    
     <meta charset="utf-8"/>
     <meta name="robots" content="index, follow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -27,7 +27,7 @@
 
         /* Description */
         ViewData.TryGetValue("Description", out var description);
-        description ??= "Join the movement for a more flexible, transparent, and open platform made by communities for communities.";
+        description ??= "Valour is an open-source community platform with end-to-end encrypted chat, threads, wikis and voice.";
         <meta name="description" content="@description">
         <meta property="og:description" content="@description">
         <meta name="twitter:description" content="@description">
@@ -98,122 +98,83 @@
         """;
     }
     @Html.Raw(structuredData)
-    <meta name="msapplication-TileColor" content="#2d89ef">
-    <meta name="theme-color" content="#00FAFF">
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <meta name="msapplication-TileColor" content="#0a0d12">
+    <meta name="theme-color" content="#0a0d12">
+    <link rel="preload" href="/css/fonts/instrument-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/css/bootstrap-icons.css"/>
     <link rel="stylesheet" href="/css/site.css"/>
 </head>
 <body>
-    <!-- Enhanced Background Elements -->
-    <div class="bg-gradient-1"></div>
-    <div class="bg-gradient-2"></div>
-    <div class="bg-gradient-3"></div>
-    <div class="noise-overlay"></div>
-    
-    <!-- Accent Lines -->
-    <div class="accent-line accent-line-1"></div>
-    <div class="accent-line accent-line-2"></div>
-    <div class="accent-line accent-line-3"></div>
-    
-    <header class="site-header">
-        <div class="container">
-            <nav class="navbar navbar-expand-lg">
-                <a class="navbar-brand" href="/">
-                    <img src="/media/logo/logo-64.png" alt="Valour" />
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
-                    <i class="bi bi-list"></i>
-                </button>
-                
-                <div class="collapse navbar-collapse" id="navbarMain">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link" href="https://app.valour.gg">App</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/#download">Download</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/privacy/">Privacy</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/faq/">FAQ</a>
-                        </li>
-                    </ul>
-                    
-                    <div class="nav-actions">
-                        <a href="https://app.valour.gg" class="btn btn-gradient btn-sm">
-                            Open on Web <i class="bi bi-arrow-right"></i>
-                        </a>
-                    </div>
-                </div>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header @(headerOverlay ? "overlay" : null)">
+        <div class="container header-inner">
+            <a class="brand" href="/" aria-label="Valour home">
+                <partial name="_VictorMark" />
+                <span>Valour</span>
+            </a>
+
+            <button class="menu-toggle" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Menu" data-menu-toggle>
+                <i class="bi bi-list" aria-hidden="true"></i>
+            </button>
+
+            <nav class="site-nav" id="site-nav" aria-label="Main">
+                <a href="/#features">Features</a>
+                <a href="/#download">Download</a>
+                <a href="/faq/" aria-current="@(path == "/faq/" ? "page" : null)">FAQ</a>
+                <a href="/privacy/" aria-current="@(inPolicies ? "page" : null)">Policies</a>
+                <a href="https://github.com/Valour-Software/Valour">Source</a>
+                <a class="btn btn-primary btn-sm" href="https://app.valour.gg">Open Valour</a>
             </nav>
         </div>
     </header>
 
-    <div class="@(ViewData.TryGetValue("main-class", out var mainClass) ? mainClass : "main-content")">
+    <main id="main" class="@(ViewData.TryGetValue("main-class", out var mainClass) ? mainClass : "main-content")">
         @RenderBody()
-    </div>
+    </main>
 
     <footer class="site-footer">
+        <img class="footer-victor" src="/media/victor/victor-peeking.svg" alt="" width="120" height="120" loading="lazy" draggable="false" />
         <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-4 mb-md-0">
-                    <h5>Valour</h5>
-                    <p>A more flexible, transparent, and open platform made by communities for communities.</p>
-                    <div class="social-links">
-                        <a href="https://github.com/Valour-Software/Valour" target="_blank"><i class="bi bi-github"></i></a>
-                        <a href="https://twitter.com/valourapp" target="_blank"><i class="bi bi-twitter-x"></i></a>
-                        <a href="https://discord.gg/qTMyJa4trF" target="_blank"><i class="bi bi-discord"></i></a>
-                    </div>
+            <div class="footer-grid">
+                <div class="footer-about">
+                    <a class="brand" href="/" aria-label="Valour home">
+                        <partial name="_VictorMark" />
+                        <span>Valour</span>
+                    </a>
+                    <p>Open-source community chat with end-to-end encryption. Made by Valour Software LLC and its contributors.</p>
                 </div>
-                <div class="col-md-2 mb-4 mb-md-0">
-                    <h5>Platform</h5>
-                    <ul class="footer-links">
-                        <li><a href="https://app.valour.gg">Open on Web</a></li>
-                        <li><a href="https://github.com/Valour-Software/Valour/releases/latest/download/ValourLauncher.exe" data-download="windows">Download for Windows</a></li>
-                        <li><a href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk" data-download="android">Download for Android</a></li>
-                        <li><a href="#features">Features</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2 mb-4 mb-md-0">
-                    <h5>Resources</h5>
-                    <ul class="footer-links">
-                        <li><a href="https://app.valour.gg/swagger/index.html">Documentation</a></li>
-                        <li><a href="https://app.valour.gg/swagger/index.html">API</a></li>
-                        <li><a href="#">Community</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2 mb-4 mb-md-0">
-                    <h5>Company</h5>
-                    <ul class="footer-links">
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="/privacy/">Privacy Policy</a></li>
-                        <li><a href="/terms/">Terms of Service</a></li>
-                        <li><a href="/rules/">Platform Rules</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2">
-                    <h5>Support</h5>
-                    <ul class="footer-links">
-                        <li><a href="#">Help Center</a></li>
-                        <li><a href="mailto:support@valour.gg">Contact Us</a></li>
-                        <li><a href="/faq/">FAQ</a></li>
-                        <li><a href="/delete-account/">Delete Your Account</a></li>
-                    </ul>
-                </div>
+                <nav class="footer-column" aria-label="Valour">
+                    <h2>Valour</h2>
+                    <a href="https://app.valour.gg">Open Valour</a>
+                    <a href="/#download">Download</a>
+                    <a href="/faq/">FAQ</a>
+                    <a href="https://app.valour.gg/swagger/index.html">API reference</a>
+                    <a href="https://github.com/Valour-Software/Valour">Source code</a>
+                </nav>
+                <nav class="footer-column" aria-label="Policies">
+                    <h2>Policies</h2>
+                    <a href="/privacy/">Privacy Policy</a>
+                    <a href="/terms/">Terms of Service</a>
+                    <a href="/rules/">Platform Rules</a>
+                    <a href="/rules/economy/">Economy Rules</a>
+                    <a href="/delete-account/">Delete your account</a>
+                </nav>
+                <nav class="footer-column" aria-label="Contact">
+                    <h2>Contact</h2>
+                    <a href="mailto:support@valour.gg">support@valour.gg</a>
+                    <a href="https://discord.gg/qTMyJa4trF">Discord</a>
+                    <a href="https://x.com/valourapp">X</a>
+                    <a href="https://github.com/Valour-Software/Valour/issues">Report an issue</a>
+                </nav>
             </div>
             <div class="footer-bottom">
-                <p>&copy; @DateTime.Now.Year Valour Software. All rights reserved.</p>
+                <span>&copy; @DateTime.Now.Year Valour Software LLC</span>
+                <span>AGPL-3.0</span>
             </div>
         </div>
     </footer>
 
-    <script src="/lib/jquery/dist/jquery.min.js"></script>
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/main.js"></script>
     <script src="/js/download.js"></script>
     @await RenderSectionAsync("Scripts", required: false)

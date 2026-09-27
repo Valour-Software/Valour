@@ -7,7 +7,7 @@
         <div><strong>@(string.IsNullOrWhiteSpace(_title) ? "Banner preview" : _title)</strong><span>@(string.IsNullOrWhiteSpace(_message) ? "Your message will appear here." : _message)</span></div>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 0.5em;">
+    <div class="banner-form">
         <label>Type</label>
         <InputSelect class="v-input" @bind-Value="_kind">
             <option value="@PlatformBannerKind.Information">Information</option>

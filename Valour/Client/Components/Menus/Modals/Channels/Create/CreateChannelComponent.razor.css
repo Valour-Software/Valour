@@ -1,28 +1,32 @@
-section {
-    background-color: var(--main-2);
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
+.create-name {
+    margin-bottom: 0;
 }
 
-.title {
-    text-align: center;
+.create-error {
+    margin: 0;
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
 }
 
-.enter-info {
-    color: rgba(255, 255, 255, 0.75);
+.toggle-title i {
+    margin-right: 0.35em;
+    color: var(--text-tertiary);
 }
 
-.enter-box {
-    background: #192630;
-    border: 1px solid #030B11;
-    box-sizing: border-box;
-    border-radius: var(--radius-md);
+.roles-label {
+    margin-bottom: 0.5rem;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
 }
 
 .roles-box {
-    background: #192630;
-    width:100%;
-    border-radius: var(--radius-md);
-    margin-top:12px;
+    display: flex;
+    flex-direction: column;
+    max-height: 280px;
+    overflow-y: auto;
 }
 
 .roles-box .role {
@@ -30,79 +34,18 @@ section {
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    padding: 6px 9px;
+    padding: 6px 0;
+}
+
+.roles-box .role + .role {
+    border-top: 1px solid var(--line);
 }
 
 .role-label {
     min-width: 0;
 }
 
-@media only screen and (min-width: 800px) {
-    section {
-        width: 512px;
-    }
-}
-section {
-    max-height: 760px;
-}
-
-.top-section {
-    margin-left: 45px;
-    margin-right: 45px;
-    margin-top: 26px;
-}
-
-.top-section .title {
-    font-size: var(--font-size-4xl);
-    font-weight: var(--font-weight-bold);
-    line-height: var(--line-height-tight);
-}
-
-.escape-button {
-    position: relative;
-    top: 20px;
-    left: 93%;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.bottom {
-    height: 95px;
-    width: 100%;
-    background-color: var(--main-4);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
-.bottom button {
-    width: 135px;
-    height: 50px;
-    font-size: var(--font-size-xs);
-    margin-top: 27px !important;
-    margin-bottom: 18px;
-    background-color: var(--main-4);
-    border: none;
-    font-size: var(--font-size-md);
-    border-radius: var(--radius-md);
-}
-
-.lock-icon {
-    width: 10.875px;
-    height: 16.125px;
-    position: relative;
-    vertical-align: unset;
-    top: 2px;
-    opacity: 0.75;
-}
-
-.private {
-    background-color: var(--main-3);
-    margin-top: 8px;
-}
-
-.inner-private {
-    margin-left: 45px;
-    margin-right: 45px;
-    padding-bottom: 18px;
-    padding-top: 4px;
+.slider.locked {
+    cursor: not-allowed;
+    opacity: 0.6;
 }

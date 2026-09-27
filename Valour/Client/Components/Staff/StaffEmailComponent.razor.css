@@ -1,0 +1,36 @@
+.staff-email {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 640px;
+}
+
+.staff-email-help {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.staff-email-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+}
+
+.staff-email-form .v-btn {
+    align-self: flex-start;
+}
+
+.staff-email-result {
+    display: block;
+    margin-top: 0.5em;
+    font-size: var(--font-size-sm);
+}
+
+.text-info {
+    color: var(--color-primary);
+}
+
+.text-danger {
+    color: var(--color-danger);
+}

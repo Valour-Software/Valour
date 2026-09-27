@@ -6,12 +6,13 @@
     word-break: initial;
     padding: 2px;
     border-radius: var(--radius-md);
-    transition: background 0.15s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard);
     cursor: pointer;
 }
 
 .user-info:hover {
-    background: var(--main-4);
+    --avatar-cutout: var(--surface-hover);
+    background: var(--surface-hover);
 }
 
 .left-block {
@@ -29,7 +30,7 @@
     min-width: 32px;
     min-height: 32px;
     
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
     margin: 6px;
     background-position: center;
     background-size: cover;
@@ -51,8 +52,8 @@
 }
 
 .username {
-    font-family: var(--font-family-app);
     font-style: normal;
+    font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);
     text-overflow: ellipsis;
     overflow: hidden;
@@ -67,7 +68,7 @@
 
 .status {
     font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     margin: 0;
     overflow: hidden;
     text-align: left;

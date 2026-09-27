@@ -1,46 +1,39 @@
 .planet-icon {
     position: relative;
+    flex: 0 0 auto;
     width: var(--planet-icon-size, 36px);
     height: var(--planet-icon-size, 36px);
-    flex: 0 0 auto;
+    background-color: var(--surface-hover);
     border-radius: var(--radius-full);
-    background: linear-gradient(135deg, var(--main-3), var(--main-4));
+}
+
+.planet-icon.globe {
+    background-color: transparent;
 }
 
 .planet-icon ::deep .planet-icon-img {
+    display: block;
     width: 100%;
     height: 100%;
-    border-radius: var(--radius-full);
     object-fit: cover;
-    display: block;
+    border-radius: var(--radius-full);
 }
 
-.planet-icon-img.text-icon {
-    background-color: var(--main-4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: var(--font-weight-bold);
-    font-family: var(--font-family-app);
-    color: var(--font-color);
-    user-select: none;
+.planet-icon ::deep .planet-globe {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .planet-icon.unread::after {
     content: '';
     position: absolute;
-    inset: -4px;
+    top: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--text-primary);
+    border: 2px solid var(--surface-canvas);
     border-radius: var(--radius-full);
-    padding: 1px;
-    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
-    -webkit-mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask-composite: xor;
     pointer-events: none;
-}
-
-.planet-icon.unread ::deep .planet-icon-img {
-    box-shadow: 0 0 10px color-mix(in srgb, var(--v-cyan) 25%, transparent);
 }

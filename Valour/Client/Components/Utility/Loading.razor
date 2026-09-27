@@ -1,10 +1,8 @@
 ﻿@implements IAsyncDisposable
 
-<div class="loading-container">
+<div class="loading-container @(Spin ? "compact" : "")">
     <div class="loading-center">
-        <div class="@(Spin ? "spin" : "")">
-            <img alt="Valour logo" src="@Logos.RoundWebp256" class="loading-logo color-shift"/>
-        </div>
+        <img alt="" src="_content/Valour.Client/media/victor/victor-astronaut.svg" class="loading-logo color-shift" draggable="false"/>
         <p class="loading-title">@Title</p>
         <p class="loading-subtext">@Subtext</p>
     </div>
@@ -13,24 +11,19 @@
 @code {
     #nullable enable
 
-    private static string[] _loadingBlurbs = [
-        "Reticulating splines...",
-        "Fetching Victor treats...",
-        "Surviving Tsunamis...",
-        "Hacking the mainframe...",
-        "Creating Potato revolution...",
-        "Preaching Vooperism...",
-        "Saving your data from D*****d...",
-        "Optimizing Gamer-9000 engine...",
-        "Finding new interns...",
-        "Solving the halting problem...",
-        "Debugging the debugger...",
-        "Fighting the AI uprising...",
-        "Mourning New Vooperis...",
-        "Simulating Empires...",
-        "Pretending to work...",
-        "Not Slacking...",
-        "Drop-kicking bugs...",
+    private static readonly string[] _loadingBlurbs = [
+        "reticulating splines",
+        "fetching victor treats",
+        "surviving tsunamis",
+        "hacking the mainframe",
+        "preaching vooperism",
+        "finding new interns",
+        "solving the halting problem",
+        "debugging the debugger",
+        "simulating empires",
+        "pretending to work",
+        "not slacking",
+        "drop-kicking bugs",
     ];
     
     [Parameter]
@@ -39,6 +32,9 @@
     [Parameter]
     public string? Subtext { get; set; }
     
+    /// <summary>
+    /// Uses the smaller layout meant for loading inside a window.
+    /// </summary>
     [Parameter]
     public bool Spin { get; set; }
     

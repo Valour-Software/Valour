@@ -13,15 +13,15 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     gap: 12px;
     transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .invite-card:hover {
-    border-color: var(--medium-tint);
+    border-color: var(--line-strong);
 }
 
 .invite-info {
@@ -34,7 +34,7 @@
 .invite-code {
     font-family: var(--font-family-mono);
     font-size: var(--font-size-md);
-    color: var(--font-color);
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -42,11 +42,12 @@
 
 .invite-meta {
     font-size: var(--font-size-xs);
-    color: var(--font-color-mid);
+    color: var(--text-tertiary);
     display: flex;
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .separator {
@@ -75,10 +76,11 @@
     align-items: center;
     gap: 8px;
     padding: 24px;
-    color: var(--font-color-mid);
-    font-size: var(--font-size-md);
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
 }
 
 .empty-state i {
+    margin-bottom: 0;
     font-size: var(--font-size-2xl);
 }

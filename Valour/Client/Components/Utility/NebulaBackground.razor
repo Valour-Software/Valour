@@ -1,13 +1,7 @@
 <div class="complex-nebula-container">
-    <div class="stars-small"></div>
-    <div class="stars-medium"></div>
-    <div class="stars-large"></div>
-    <div class="twinkling-stars"></div>
-    <div class="nebula-layer-1"></div>
-    <div class="nebula-layer-2"></div>
-    <div class="nebula-layer-3"></div>
-    <div class="nebula-layer-4"></div>
-    <div class="cosmic-dust"></div>
+    <div class="nebula-sky-layer">
+        <NebulaSky Seed="@Seed" Palette="@Palette" Intensity="@Intensity" Scale="2.4" FocusX="0.7" FocusY="0.35" Spread="0.42" />
+    </div>
     <div class="nebula-content @ContentClasses">
         @ChildContent
     </div>
@@ -17,4 +11,16 @@
     #nullable enable
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public string? ContentClasses { get; set; }
+
+    /// <summary>
+    /// Seeds the sky. Brand surfaces keep the default.
+    /// </summary>
+    [Parameter] public string Seed { get; set; } = "valour";
+
+    /// <summary>
+    /// A palette name from nebula.js; the brand palette by default.
+    /// </summary>
+    [Parameter] public string? Palette { get; set; } = "valour";
+
+    [Parameter] public double Intensity { get; set; } = 1.2;
 }

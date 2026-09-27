@@ -1,11 +1,11 @@
 @inherits WindowContentComponent<ModToolsWindowData>
 
-<h4 class="title">Mod Tools for @(Data.Staff ? "Staff" : Data.Planet.Name)</h4>
+<h4 class="title">Mod tools for @(Data.Staff ? "Staff" : Data.Planet.Name)</h4>
 
 <div class="table-wrapper">
     @if (Data.Staff)
     {
-        <TabContainerComponent Titles="@_staffTabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
+        <TabContainerComponent Titles="@_staffTabs" MaxHeight="100%" ContentStyle="background-color: var(--surface-canvas); padding: 1em">
             <TabOne>
                 <StaffUserQueryTable />
             </TabOne>
@@ -22,7 +22,7 @@
     }
     else
     {
-        <TabContainerComponent Titles="@_tabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
+        <TabContainerComponent Titles="@_tabs" MaxHeight="100%" ContentStyle="background-color: var(--surface-canvas); padding: 1em">
             <TabOne>
             </TabOne>
             <TabTwo>

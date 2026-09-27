@@ -60,56 +60,28 @@
         return 'web';
     }
 
-    function setPrimaryButton(button) {
-        button.classList.remove('btn-outline');
-        button.classList.add('btn-gradient');
-    }
-
-    function setSecondaryButton(button) {
-        button.classList.remove('btn-gradient');
-        button.classList.add('btn-outline');
-    }
-
+    // Shows the download that fits the visitor's device next to the web app
+    // button. Devices without a native app get a link to every download instead.
     function setupDownloadPicker() {
         const picker = document.querySelector('[data-download-picker]');
         if (!picker) return;
 
         const currentPlatform = detectPlatform();
         const options = picker.querySelectorAll('[data-platform-option]');
-        const showAllButton = picker.querySelector('[data-show-downloads]');
-        const note = picker.querySelector('[data-platform-note]');
-        const labels = {
-            windows: 'Recommended for Windows',
-            android: 'Recommended for Android',
-            web: 'No native app for this device yet'
+        const note = document.querySelector('[data-platform-note]');
+        const notes = {
+            windows: 'Recommended for Windows. Also on Android and in the browser.',
+            android: 'Recommended for Android. Also on Windows and in the browser.',
+            web: 'Works in any modern browser. Apps for Windows and Android.'
         };
-
-        picker.classList.add('is-filtered');
 
         options.forEach((option) => {
             const isCurrent = option.getAttribute('data-platform-option') === currentPlatform;
             option.classList.toggle('is-hidden', !isCurrent);
-            if (isCurrent) {
-                setPrimaryButton(option);
-            } else {
-                setSecondaryButton(option);
-            }
         });
 
         if (note) {
-            note.textContent = labels[currentPlatform];
-        }
-
-        if (showAllButton) {
-            showAllButton.addEventListener('click', function () {
-                picker.classList.add('show-all');
-                options.forEach((option) => option.classList.remove('is-hidden'));
-                showAllButton.remove();
-
-                if (note) {
-                    note.textContent = 'All download options';
-                }
-            });
+            note.textContent = notes[currentPlatform];
         }
     }
 

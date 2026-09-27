@@ -2,26 +2,21 @@
     position: fixed;
     inset: 0;
     z-index: 4000;
-    background: rgba(4, 6, 12, 0.72);
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    animation: coach-fade-in 0.3s ease;
+    background-color: var(--scrim);
+    animation: coach-fade-in var(--duration-slow) var(--ease-standard);
 }
 
-/* Glowing strip on the actual edge they should swipe from */
 .coach-edge {
     position: absolute;
     left: 0;
-    top: 0;
-    bottom: 0;
-    width: 5px;
-    background: linear-gradient(180deg,
-        transparent,
-        var(--color-primary) 30%,
-        var(--color-primary) 70%,
-        transparent);
-    animation: coach-edge-pulse 1.8s ease-in-out infinite;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    background-color: var(--color-primary);
+    border-radius: 0 var(--radius-full) var(--radius-full) 0;
 }
 
 .coach-body {
@@ -38,50 +33,45 @@
     align-items: center;
     font-size: 64px;
     line-height: 1;
-    color: var(--color-primary);
+    color: var(--text-primary);
 }
 
-/* Chevron train marching right */
 .coach-arrow i {
     margin-left: -34px;
-    animation: coach-march 1.4s ease-in-out infinite;
 }
 
 .coach-arrow i:first-child {
     margin-left: 0;
 }
 
-.coach-arrow .c2 { animation-delay: 0.15s; }
-.coach-arrow .c3 { animation-delay: 0.3s; }
+.coach-arrow .c1 { opacity: 0.3; }
+.coach-arrow .c2 { opacity: 0.6; }
 
 .coach-title {
     margin: 8px 0 0 0;
+    color: var(--text-primary);
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
-    color: white;
+    letter-spacing: var(--letter-spacing-display);
 }
 
 .coach-text {
     margin: 0;
+    color: var(--text-secondary);
     font-size: var(--font-size-md);
-    color: rgba(255, 255, 255, 0.85);
 }
 
 .coach-btn {
     margin-top: 16px;
 }
 
-@keyframes coach-march {
-    0%, 100% { transform: translateX(0); opacity: 0.35; }
-    50% { transform: translateX(18px); opacity: 1; }
-}
-
-@keyframes coach-edge-pulse {
-    0%, 100% { opacity: 0.4; box-shadow: 0 0 6px 0 var(--color-primary); }
-    50% { opacity: 1; box-shadow: 0 0 18px 2px var(--color-primary); }
-}
-
 @keyframes coach-fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .swipe-coach {
+        animation: none;
+    }
 }

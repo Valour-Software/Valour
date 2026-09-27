@@ -1,8 +1,9 @@
 .stock-mention {
     display: flex;
     gap: 4px;
-    color: #6ed25a;
-    font-weight: var(--font-weight-extrabold);
+    color: var(--color-success);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
     margin-bottom: 2px;
 }

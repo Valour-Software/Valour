@@ -13,10 +13,10 @@
         <div class="template-publication">
             <i aria-hidden="true" class="bi bi-globe2"></i>
             <div>
-                <strong>Published · revision @_status.Revision</strong>
-                <p>@_status.PublishedMapCount maps · @(_status.IsBuiltIn ? "Valour starter world" : $"Published by {_status.PublishedBy} on {_status.PublishedAt?.ToLocalTime():g}")</p>
+                <strong>Published · revision <span class="template-number">@_status.Revision</span></strong>
+                <p><span class="template-number">@_status.PublishedMapCount</span> maps · @(_status.IsBuiltIn ? "Valour starter world" : $"Published by {_status.PublishedBy} on {_status.PublishedAt?.ToLocalTime():g}")</p>
             </div>
-            <button class="v-btn" disabled="@_busy" @onclick="LoadAsync" aria-label="Refresh template status"><i aria-hidden="true" class="bi bi-arrow-clockwise"></i></button>
+            <button class="v-btn tertiary" disabled="@_busy" @onclick="LoadAsync" aria-label="Refresh template status"><i aria-hidden="true" class="bi bi-arrow-clockwise"></i></button>
         </div>
         <section class="template-section">
             <span class="template-eyebrow">1 · Draft</span>
@@ -35,7 +35,7 @@
                 <button class="v-btn" disabled="@(_busy || _planetId == 0 || _planetId == _status.DraftPlanetId)" @onclick="SelectDraftAsync">Use as draft</button>
                 @if (_status.DraftPlanetId is not null)
                 {
-                    <button class="v-btn primary" disabled="@_busy" @onclick="OpenDraftAsync"><i aria-hidden="true" class="bi bi-hammer"></i> Edit &amp; preview draft</button>
+                    <button class="v-btn" disabled="@_busy" @onclick="OpenDraftAsync"><i aria-hidden="true" class="bi bi-hammer"></i> Edit &amp; preview draft</button>
                 }
             </div>
         </section>
@@ -60,7 +60,7 @@
     }
     else if (_busy)
     {
-        <p role="status">Loading template…</p>
+        <p class="template-status" role="status">Loading template…</p>
     }
     <ResultLabel Result="@_result" />
 </div>

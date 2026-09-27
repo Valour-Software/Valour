@@ -4,80 +4,56 @@
 @inject ValourClient Client
 @inject OauthService OauthService
 
-@if (finishedAuth)
-{
-    <br />
-    <div style="text-align: center;">
-        <h4>You have authorized the application.</h4>
-        <h5>You can close this page.</h5>
-    </div>
-    return;
-}
-
-@if (isError) {
-    <br />
-    <div style="text-align: center;">
-        <h4>Whoops! We have an issue.</h4>
-        <p class="m-2">@errorString</p>
-    </div>
-    return;
-}
-
-@if (App is null){
-    <br />
-    <div style="text-align: center;">
-        <h4>Loading!</h4>
-        <p class="m-2">We promise it's worth the wait.</p>
-    </div>
-    return;
-}
-
-<body class="login-background">
-    <div class="popup-box">
-        <div class="col-md-12">
-            <section>
-                <h3 class="invite-title">@Client.Me.Name,</h3>
-                <h2 class="invite-title">Do you authorize</h2>
-                <div style="text-align: center">
-                    <h3 class="text-info invite-name">@App.Name</h3>
-                    &nbsp;
-                    <h3 class="invite-name">to</h3>
-                </div>
-
-                <div style="text-align: center;">
-                    <img class="app-icon" src="@App.ImageUrl" />
-                </div>
-
-                <ul>
-                    @for (int i = 0; i < UserPermissions.Permissions.Length; i++){
-                        if ((UserPermissions.Permissions[i].Value & scope) == UserPermissions.Permissions[i].Value){
-
-                            var perm = UserPermissions.Permissions[i];
-
-                            <li class="mb-4">
-                                <h5>@perm.Name</h5>
-                                <p>@perm.Description</p>
-                            </li>
-                        }
-                    }
-                </ul>
-
-                
-
-                <br />
-
-                <span class="text-info center-text" style="text-align:center">@infoSpan</span>
-                <span class="text-danger center-text" style="text-align:center">@errorSpan</span>
-
-                <div style="text-align: center;">
-                    <button class='btn v-btn' @onclick='OnAuthorizeAsync'>Authorize</button>
-                </div>
-            </section>
+<SignInShell>
+    @if (finishedAuth)
+    {
+        <h1 class="headline">You're all set.</h1>
+        <p class="lede">The app has been authorized. You can close this page.</p>
+    }
+    else if (isError)
+    {
+        <h1 class="headline">Something went wrong.</h1>
+        <p class="lede">@errorString</p>
+    }
+    else if (App is null)
+    {
+        <Loading Title="Loading" Subtext="Checking the app's details..." Spin="true" />
+    }
+    else
+    {
+        <div class="oauth-app">
+            <img class="app-icon" src="@App.ImageUrl" alt="" />
+            <span class="oauth-arrow" aria-hidden="true"><i class="bi bi-arrow-left-right"></i></span>
+            <Victor Color="currentColor" Style="width: 40px; height: 40px;" />
         </div>
-    </div>
-</body>
+        <h1 class="headline">Authorize @App.Name?</h1>
+        <p class="lede">Signed in as <strong>@Client.Me.Name</strong>. @App.Name is asking to:</p>
 
+        <ul class="oauth-scopes">
+            @for (int i = 0; i < UserPermissions.Permissions.Length; i++)
+            {
+                if ((UserPermissions.Permissions[i].Value & scope) == UserPermissions.Permissions[i].Value)
+                {
+                    var perm = UserPermissions.Permissions[i];
+                    <li>
+                        <i class="bi bi-check2" aria-hidden="true"></i>
+                        <div>
+                            <span class="scope-name">@perm.Name</span>
+                            <span class="scope-description">@perm.Description</span>
+                        </div>
+                    </li>
+                }
+            }
+        </ul>
 
+        <span class="text-info">@infoSpan</span>
+        <span class="text-danger">@errorSpan</span>
+
+        <div class="sign-in-actions">
+            <button class="v-btn primary" @onclick="OnAuthorizeAsync">Authorize</button>
+        </div>
+    }
+</SignInShell>
 
 @code {
     [Parameter]

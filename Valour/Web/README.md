@@ -27,6 +27,16 @@ the site, to change a policy.
 explains how to delete an account and what is kept afterwards. Google Play links
 to it from the app listing, so keep it in step with `UserService.HardDelete`.
 
+## Skies, planets and fonts
+
+The homepage draws its nebula skies and planets with the same generators the app
+uses. `wwwroot/js/sky/` holds copies of `nebula.js`, `planet.js`, `sky-jobs.js` and
+`sky-worker.js` from `Valour/Client/wwwroot/js/`, and `wwwroot/js/sky.js` renders
+every canvas that has a `data-sky` or `data-planet` attribute. The Instrument Sans,
+JetBrains Mono and Bootstrap Icons fonts in `wwwroot/css/fonts/` and the Victor
+illustrations in `wwwroot/media/victor/` are also copies from the client. The site
+is exported as static files, so copy these again after changing the originals.
+
 ## Cloudflare Pages
 
 The website's Pages project uses these settings:

@@ -38,10 +38,12 @@ with `ReRender()`. Use the normal Blazor render path for other component bases.
 
 ## Styling
 
-Put global styles in `Client/wwwroot/css/globals.css` and component styles in the
-component's `.razor.css` file. Use CSS classes and the existing variables rather
-than inline styles. The variables at the top of `globals.css` define the palette;
-`v-` colors are vibrant and `p-` colors are pastel.
+Follow [the design language](../Docs/DesignLanguage.md). Put global styles in
+`Client/wwwroot/css/globals.css` and component styles in the component's
+`.razor.css` file. Use CSS classes and the semantic variables (`--surface-*`,
+`--text-*`, `--line`, `--color-*`) rather than inline styles or literal colors. The
+`--main-*`, `v-` and `p-` variables remain for theme compatibility; do not use them
+in new CSS.
 
 Use existing form and button classes such as `form-group`, `input-group`,
 `basic-modal-buttons`, and `v-btn` with its `primary`, `secondary`, or `danger`

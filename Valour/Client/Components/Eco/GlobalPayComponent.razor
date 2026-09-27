@@ -4,17 +4,16 @@
 
 @if (!string.IsNullOrWhiteSpace(_transactionId))
 {
-    <h5>Success!</h5>
-    <br />
-    
+    <h5 class="pay-title">Payment sent</h5>
+
     <div class="selected-preview">
-        <p>Transaction ID:</p>
-        <p>@_transactionId</p>
+        <p class="field-label">Transaction ID</p>
+        <p class="transaction-id">@_transactionId</p>
     </div>
     
     @if (Input is not null)
     {
-        <button @onclick="@OnClickReceipt" class="v-btn" style="width: 100%; margin-top: 1em">Send Receipt in Chat</button>
+        <button @onclick="@OnClickReceipt" class="v-btn large pay-action">Send receipt in chat</button>
     }
 
     return;
@@ -22,15 +21,16 @@
 
 @if (_globalAccount is not null)
 {
-    <h5 style="text-align: center">You have <span class="valour-credits-text">@_globalCurrency.Format(_globalAccount.BalanceValue)</span></h5>
+    <h5 class="pay-balance">You have <span class="valour-credits-text amount">@_globalCurrency.Format(_globalAccount.BalanceValue)</span></h5>
                                                                                                                                          
-    <p class="select-title">Select Amount</p>
+    <p class="select-title">Amount</p>
     <div class="input-row">
-        <input @oninput="@AmountChanged" style="width: 90%" class="v-input" placeholder="Enter Amount" />
+        <input @oninput="@AmountChanged" class="v-input amount-input" placeholder="Enter amount" />
         <span class="valour-credits-text">VC</span>
     </div>
     
-    <input @oninput="@OnEnterUsername" style="width: 90%" class="v-input" placeholder="Enter Name#TAG" value="@StartValue" type="text"/>
+    <p class="select-title">Recipient</p>
+    <input @oninput="@OnEnterUsername" class="v-input" placeholder="Enter name#tag" value="@StartValue" type="text"/>
     if (_targetAccountData is null)
     {
         if (string.IsNullOrWhiteSpace(_errorSpan))
@@ -50,7 +50,7 @@
         
         if (string.IsNullOrWhiteSpace(_errorSpan))
         {
-            <button @onclick="OnClickSend" class="v-btn" style="width: 100%; margin-top: 1em">Send <span class="valour-credits-text">@_globalCurrency.Format(_amount)</span></button>
+            <button @onclick="OnClickSend" class="v-btn primary large pay-action">Send <span class="amount">@_globalCurrency.Format(_amount)</span></button>
         }
         else
         {
@@ -60,26 +60,26 @@
 }
 else if (_loading)
 {
-    <h6 class="p-4">Loading account info...</h6>
+    <p class="pay-status">Loading account info...</p>
 }
 else
 {
-    <h6 class="p-4">You don't have a global eco account.</h6>
+    <p class="pay-status">You don't have a global eco account.</p>
     
     @if (!string.IsNullOrWhiteSpace(_errorSpan))
     {
         @_errorFragment(_errorSpan)
     }
     
-    <button class="v-btn" style="width: 100%" @onclick="@OnClickCreateAccount">Create Account</button>
+    <button class="v-btn primary large" @onclick="@OnClickCreateAccount">Create account</button>
     
-    <p style="margin-top: 1em">By creating an eco account, you agree to follow the <a href="https://valour.gg/rules/economy/" target="_blank" rel="noopener noreferrer">Platform Eco Rules</a></p>
+    <p class="pay-note">By creating an eco account, you agree to follow the <a href="https://valour.gg/rules/economy/" target="_blank" rel="noopener noreferrer">Platform Eco Rules</a>.</p>
 }
 
 @code {
 
     private RenderFragment<string> _errorFragment = (error) =>
-        @<p style="color: var(--color-danger); text-align: center; margin-top: 1em">@error</p>;
+        @<p class="pay-error">@error</p>;
 
     [Parameter]
     public InputComponent Input { get; set; }

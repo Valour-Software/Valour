@@ -397,13 +397,13 @@ public class UserService
             string link = $"{PublicLinks.GetAppBaseUrl(ctx.Request)}/RecoverPassword/{recoveryCode}";
 
             string bodyContent = $@"
-            <h1 style='color: #333;'>Password Reset</h1>
-            <p style='color: #666;'>Hello,</p>
-            <p style='color: #666;'>You have requested a password reset for your account. To reset your password, please click the button below:</p>
-            <a href='{link}' style='display: inline-block; padding: 10px 20px; background-color: #3498db; color: #fff; text-decoration: none; border-radius: 3px;'>Reset Password</a>
-            <p style='color: #666;'>If you are unable to click the button, you can also copy and paste the following link into your browser:</p>
-            <p style='color: #666;'><a href='{link}'>{link}</a></p>
-            <p style='color: #666;'>Thank you,<br>Valour Team</p>";
+            <h1 style='{EmailTemplateHelper.HeadingStyle}'>Password Reset</h1>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>Hello,</p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>You have requested a password reset for your account. To reset your password, please click the button below:</p>
+            <a href='{link}' style='{EmailTemplateHelper.ButtonStyle}'>Reset Password</a>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>If you are unable to click the button, you can also copy and paste the following link into your browser:</p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'><a href='{link}' style='{EmailTemplateHelper.LinkStyle}'>{link}</a></p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>Thank you,<br>Valour Team</p>";
 
             string emsg = EmailTemplateHelper.WrapInTemplate(bodyContent);
 

@@ -1,20 +1,21 @@
 ﻿.tooltip {
     position: fixed;
-    background-color: var(--main-1);
-    color: var(--font-color);
+    max-width: 220px;
+    padding: 5px 8px;
+    color: var(--text-primary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-base);
     text-align: center;
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--slight-tint);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     white-space: normal;
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-overlay);
     z-index: 999999999;
     opacity: 0;
-    transition: opacity 0.1s ease-in-out;
-    font-size: var(--font-size-sm);
-    font-family: var(--font-family-app);
-    max-width: 200px;
     pointer-events: none;
+    transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .tooltip.show { opacity: 1; }

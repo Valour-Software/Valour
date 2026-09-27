@@ -6,20 +6,20 @@
     min-width: 220px;
     max-width: 320px;
     padding: 10px 12px;
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    color: var(--font-color);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
     text-decoration: none;
     transition: background-color var(--duration-fast) var(--ease-standard),
                 border-color var(--duration-fast) var(--ease-standard);
 }
 
 a.file-card:hover {
-    background-color: var(--main-4);
-    border-color: var(--medium-tint);
+    background-color: var(--surface-hover);
+    border-color: var(--line-strong);
     text-decoration: none;
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .file-tile {
@@ -27,14 +27,12 @@ a.file-card:hover {
     height: 38px;
     flex: 0 0 auto;
     border-radius: var(--radius-sm);
-    background: linear-gradient(135deg,
-        color-mix(in srgb, var(--v-cyan) 16%, var(--main-4)),
-        color-mix(in srgb, var(--v-purple) 16%, var(--main-4)));
+    background-color: var(--surface-hover);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: var(--font-size-lg);
-    color: var(--font-color);
+    color: var(--text-secondary);
 }
 
 .file-info {
@@ -54,12 +52,13 @@ a.file-card:hover {
 
 .file-meta {
     font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-tertiary);
 }
 
 .download-icon {
     flex: 0 0 auto;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     opacity: 0.5;
     transition: opacity var(--duration-fast) var(--ease-standard),
                 color var(--duration-fast) var(--ease-standard);
@@ -67,21 +66,21 @@ a.file-card:hover {
 
 a.file-card:hover .download-icon {
     opacity: 1;
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
-/* Missing / deleted attachment tombstone */
 .file-card.missing {
     background-color: transparent;
     border-style: dashed;
+    border-color: var(--line-strong);
 }
 
 .file-card.missing .file-tile {
-    background: var(--main-3);
-    color: var(--font-alt-color);
+    background-color: var(--surface-raised);
+    color: var(--text-tertiary);
 }
 
 .file-card.missing .file-name {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-style: italic;
 }

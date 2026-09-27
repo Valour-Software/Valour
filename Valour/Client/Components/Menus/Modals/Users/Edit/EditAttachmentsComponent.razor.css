@@ -22,17 +22,24 @@
     width: auto;
     padding: 0 2rem 0 0.75rem;
     font-size: var(--font-size-sm);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
 }
 
 .attachments-note,
 .empty-state {
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    background: var(--main-3);
-    color: var(--font-alt-color);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-raised);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
     padding: 0.85rem 1rem;
+}
+
+.empty-state {
+    text-align: left;
+    background-color: transparent;
+    border-style: dashed;
+    border-color: var(--line-strong);
 }
 
 .attachments-grid {
@@ -46,9 +53,9 @@
     gap: 0.9rem;
     align-items: stretch;
     padding: 1rem;
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    background: var(--main-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-raised);
 }
 
 .attachment-preview {
@@ -56,9 +63,9 @@
     place-items: center;
     min-height: 112px;
     overflow: hidden;
-    border: 1px solid var(--main-4);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background: var(--main-4);
+    background-color: var(--surface-canvas);
 }
 
 .attachment-preview img,
@@ -82,8 +89,8 @@
     height: 56px;
     margin-top: 0.9rem;
     border-radius: var(--radius-md);
-    background: var(--main-4);
-    color: var(--font-color);
+    background-color: var(--surface-hover);
+    color: var(--text-secondary);
     font-size: var(--font-size-2xl);
 }
 
@@ -93,8 +100,8 @@
     width: 48px;
     height: 48px;
     border-radius: var(--radius-md);
-    background: var(--main-4);
-    color: var(--font-color);
+    background-color: var(--surface-hover);
+    color: var(--text-secondary);
     font-size: var(--font-size-2xl);
 }
 
@@ -107,22 +114,28 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
 }
 
 .attachment-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem 0.75rem;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
+}
+
+.attachment-meta .numeric {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
 }
 
 .attachment-hash {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
 }

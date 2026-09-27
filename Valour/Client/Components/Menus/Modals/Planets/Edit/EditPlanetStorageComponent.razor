@@ -4,7 +4,7 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-hdd-network"></i>
-            Bring Your Own Storage
+            Bring your own storage
         </h3>
 
         <p class="toggle-description">
@@ -21,12 +21,15 @@
 
         @if (_loading)
         {
-            <p>Loading...</p>
+            <div class="loading-state">
+                <div class="loading-indicator"></div>
+                <span>Loading...</span>
+            </div>
         }
         else
         {
             <div class="form-group mt-2 new-input-style">
-                <label>S3 Endpoint (https)</label>
+                <label>S3 endpoint (https)</label>
                 <input class="form-control" placeholder="https://s3.example.com" @bind-value="_endpoint" />
             </div>
             <div class="form-group mt-2 new-input-style">
@@ -38,21 +41,21 @@
                 <input class="form-control" placeholder="auto" @bind-value="_region" />
             </div>
             <div class="form-group mt-2 new-input-style">
-                <label>Public Base URL (https)</label>
+                <label>Public base URL (https)</label>
                 <input class="form-control" placeholder="https://media.example.com" @bind-value="_publicBaseUrl" />
             </div>
             <div class="form-group mt-2 new-input-style">
-                <label>Access Key @(_hasExisting ? "(leave blank to keep current)" : "")</label>
+                <label>Access key @(_hasExisting ? "(leave blank to keep current)" : "")</label>
                 <input class="form-control" type="password" autocomplete="off" @bind-value="_accessKey" />
             </div>
             <div class="form-group mt-2 new-input-style">
-                <label>Secret Key @(_hasExisting ? "(leave blank to keep current)" : "")</label>
+                <label>Secret key @(_hasExisting ? "(leave blank to keep current)" : "")</label>
                 <input class="form-control" type="password" autocomplete="off" @bind-value="_secretKey" />
             </div>
 
-            <div style="margin-top: 16px;">
-                <div class="perm-list-name mb-1" style="display: inline-block;">Enabled</div>
-                <div type="button" style="float: right">
+            <div class="toggle-item mt-3">
+                <div class="toggle-header">
+                    <span class="toggle-title">Enabled</span>
                     <label class="switch">
                         <input type="checkbox" @bind="_enabled">
                         <span class="slider round"></span>
@@ -60,9 +63,9 @@
                 </div>
             </div>
 
-            <div class="mt-4">
-                <button class="v-btn" @onclick="OnSaveAsync" disabled="@_busy">Save</button>
-                <button class="v-btn" @onclick="OnProbeAsync" disabled="@(_busy || !_hasExisting)">Test Connection</button>
+            <div class="actions">
+                <button class="v-btn primary" @onclick="OnSaveAsync" disabled="@_busy">Save</button>
+                <button class="v-btn secondary" @onclick="OnProbeAsync" disabled="@(_busy || !_hasExisting)">Test connection</button>
                 @if (_hasExisting)
                 {
                     <button class="v-btn danger" @onclick="OnClearAsync" disabled="@_busy">Remove</button>
@@ -75,11 +78,13 @@
                     Status:
                     @if (_verifiedAt is not null)
                     {
-                        <span style="color: var(--p-cyan);">verified @_verifiedAt?.ToLocalTime().ToString("g")</span>
+                        <span class="status-badge enabled">Verified</span>
+                        @_verifiedAt?.ToLocalTime().ToString("g")
                     }
                     else
                     {
-                        <span class="v-text-red">not verified — run Test Connection</span>
+                        <span class="status-badge">Not verified</span>
+                        <span>Run Test connection to check it.</span>
                     }
                 </p>
             }

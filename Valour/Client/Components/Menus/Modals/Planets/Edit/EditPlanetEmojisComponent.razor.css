@@ -5,6 +5,9 @@
 
 .usage-badge {
     margin-left: auto;
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
 }
 
 .emoji-warning {
@@ -23,9 +26,9 @@
     align-items: flex-start;
     justify-content: space-between;
     padding: 14px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--slight-tint);
-    background-color: var(--main-3);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background-color: var(--surface-raised);
 }
 
 .emoji-inputs {
@@ -54,10 +57,10 @@
 
 .emoji-file-name {
     grid-column: 1 / -1;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
-    background-color: var(--main-1);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     padding: 7px 10px;
     overflow: hidden;
@@ -81,24 +84,22 @@
     align-items: center;
     gap: 12px;
     padding: 11px 12px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--slight-tint);
-    background-color: var(--main-3);
-    transition: border-color var(--duration-fast) var(--ease-standard),
-                transform var(--duration-fast) var(--ease-standard);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background-color: var(--surface-raised);
+    transition: border-color var(--duration-fast) var(--ease-standard);
     min-width: 0;
 }
 
 .emoji-card:hover {
-    border-color: var(--medium-tint);
-    transform: translateY(-1px);
+    border-color: var(--line-strong);
 }
 
 .emoji-preview {
     width: 40px;
     height: 40px;
     border-radius: var(--radius-md);
-    background-color: var(--main-1);
+    background-color: var(--surface-canvas);
     padding: 4px;
     image-rendering: auto;
     flex-shrink: 0;
@@ -129,11 +130,11 @@
 
 .emoji-empty {
     margin: 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     padding: 16px;
-    border-radius: var(--radius-md);
-    border: 1px dashed var(--medium-tint);
-    background-color: var(--main-3);
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--line-strong);
+    background-color: transparent;
 }
 
 @media (max-width: 760px) {

@@ -2,7 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: var(--main-2);
+    background-color: var(--surface-base);
     font-family: var(--font-family-app);
 }
 
@@ -17,19 +17,13 @@
     margin: 0 auto;
     padding: var(--space-2) var(--space-3) var(--space-4) var(--space-3);
     box-sizing: border-box;
-    /* Forward shared-axis entrance: opening a thread always navigates
-       "deeper" from a feed, so the page slides in from the right. The
-       back button sets SlideBack on the feed so it answers with the
-       mirrored slide. Page-level navigation gets a longer duration than
-       the 200ms token - ease-out-expo front-loads its motion, so short
-       durations read as a pop instead of a slide. */
-    animation: thread-nav-in 0.45s var(--ease-out-expo) both;
+    animation: thread-nav-in var(--duration-slow) var(--ease-standard) both;
 }
 
 @keyframes thread-nav-in {
     from {
         opacity: 0;
-        transform: translateX(56px);
+        transform: translateX(12px);
     }
     to {
         opacity: 1;
@@ -37,16 +31,9 @@
     }
 }
 
-/* Used by comments below; keyframes are per-file under scoped CSS */
 @keyframes thread-in {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .comment-skeletons {
@@ -55,9 +42,6 @@
     gap: var(--space-2);
     margin-top: var(--space-4);
 }
-
-.comment-skeletons ::deep .skel-card:nth-child(2) { animation-delay: 70ms; }
-.comment-skeletons ::deep .skel-card:nth-child(3) { animation-delay: 140ms; }
 
 .thread-topbar {
     margin-bottom: var(--space-1);
@@ -70,7 +54,7 @@
     background: none;
     border: none;
     padding: var(--space-1) 0;
-    color: color-mix(in srgb, var(--font-color) 60%, transparent);
+    color: var(--text-secondary);
     font-size: var(--font-size-sm);
     font-family: var(--font-family-app);
     cursor: pointer;
@@ -78,7 +62,7 @@
 }
 
 .back-btn:hover {
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .thread-loading {
@@ -88,31 +72,31 @@
     justify-content: center;
     gap: var(--space-2);
     height: 100%;
-    color: color-mix(in srgb, var(--font-color) 60%, transparent);
+    color: var(--text-tertiary);
 }
 
 .thread-loading i {
-    font-size: 42px;
+    font-size: var(--font-size-5xl);
 }
 
-/* Live chat CTA: thin cyan-purple gradient ring between post and comments */
-
 .live-cta {
+    display: flex;
+    align-items: center;
     width: 100%;
     margin-top: var(--space-3);
-    padding: 1px;
-    border: none;
-    border-radius: var(--radius-full);
-    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    padding: 0;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--rim-light);
     cursor: pointer;
-    box-shadow: 0 1px 10px color-mix(in srgb, var(--color-primary) 10%, transparent);
-    transition: box-shadow var(--duration-base) var(--ease-standard);
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard);
 }
 
 .live-cta:hover {
-    box-shadow:
-        0 2px 14px color-mix(in srgb, var(--color-primary) 22%, transparent),
-        0 2px 14px color-mix(in srgb, var(--color-secondary) 16%, transparent);
+    background-color: var(--surface-hover);
+    border-color: var(--line-strong);
 }
 
 .live-cta-inner {
@@ -120,16 +104,10 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    padding: 6px 14px;
-    border-radius: var(--radius-full);
-    background: var(--main-2);
+    width: 100%;
+    padding: var(--space-2) var(--space-4);
     font-family: var(--font-family-app);
     font-size: var(--font-size-sm);
-    transition: background-color var(--duration-base) var(--ease-standard);
-}
-
-.live-cta:hover .live-cta-inner {
-    background: color-mix(in srgb, var(--main-2) 88%, var(--color-primary));
 }
 
 .live-cta-left {
@@ -140,7 +118,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: color-mix(in srgb, var(--font-color) 80%, transparent);
+    color: var(--text-secondary);
 }
 
 .live-dot {
@@ -149,7 +127,6 @@
     height: 8px;
     border-radius: var(--radius-full);
     background-color: var(--color-success);
-    box-shadow: 0 0 6px color-mix(in srgb, var(--color-success) 60%, transparent);
     animation: live-pulse 2.5s ease-in-out infinite;
 }
 
@@ -163,16 +140,8 @@
     align-items: center;
     gap: var(--space-1);
     flex-shrink: 0;
-    color: color-mix(in srgb, var(--color-primary) 70%, white);
+    color: var(--color-primary);
     font-weight: var(--font-weight-medium);
-}
-
-.live-cta-right i {
-    transition: transform var(--duration-fast) var(--ease-standard);
-}
-
-.live-cta:hover .live-cta-right i {
-    transform: translateX(2px);
 }
 
 @media (max-width: 600px) {
@@ -181,17 +150,12 @@
     }
 }
 
-/* Comments: card surface matching the post card above */
-
 .comments-section {
     margin-top: var(--space-3);
     padding: var(--space-3) var(--space-4);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-lg);
-    box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .locked-notice {
@@ -202,7 +166,7 @@
     border-radius: var(--radius-md);
     background-color: var(--color-danger-soft);
     border: 1px solid var(--color-danger-border);
-    color: color-mix(in srgb, var(--font-color) 80%, transparent);
+    color: var(--text-secondary);
     font-size: var(--font-size-sm);
 }
 
@@ -216,26 +180,20 @@
     justify-content: space-between;
     margin-top: var(--space-2);
     padding-bottom: var(--space-1);
-    border-bottom: 1px solid color-mix(in srgb, var(--font-color) 8%, transparent);
+    border-bottom: 1px solid var(--line);
 }
 
 .comments-header h4 {
     margin: 0;
     font-size: var(--font-size-md);
     font-weight: var(--font-weight-semibold);
-    color: var(--font-color);
+    letter-spacing: normal;
+    color: var(--text-primary);
 }
-
-/* Comments slide in as they load; later replies inherit the base delay */
 
 .comments-section ::deep .comment-wrap {
-    animation: thread-in 0.35s var(--ease-standard) both;
+    animation: thread-in var(--duration-base) var(--ease-standard) both;
 }
-
-.comments-section ::deep .comment-wrap:nth-child(1) { animation-delay: 30ms; }
-.comments-section ::deep .comment-wrap:nth-child(2) { animation-delay: 70ms; }
-.comments-section ::deep .comment-wrap:nth-child(3) { animation-delay: 110ms; }
-.comments-section ::deep .comment-wrap:nth-child(n + 4) { animation-delay: 140ms; }
 
 .comment-sort {
     width: 110px;
@@ -253,7 +211,7 @@
     align-items: center;
     gap: var(--space-1);
     padding: var(--space-6) 0;
-    color: color-mix(in srgb, var(--font-color) 50%, transparent);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -266,32 +224,8 @@
 }
 
 .load-more {
-    display: block;
     width: 100%;
     margin-top: var(--space-3);
-    padding: var(--space-1) var(--space-2);
-    background: color-mix(in srgb, var(--font-color) 4%, transparent);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-full);
-    color: color-mix(in srgb, var(--font-color) 70%, transparent);
-    font-size: var(--font-size-sm);
-    font-family: var(--font-family-app);
-    cursor: pointer;
-    transition: border-color var(--duration-fast) var(--ease-standard),
-                background-color var(--duration-fast) var(--ease-standard),
-                color var(--duration-fast) var(--ease-standard);
-}
-
-.load-more:hover {
-    background: color-mix(in srgb, var(--font-color) 8%, transparent);
-    border-color: var(--color-primary-border);
-    color: var(--font-color);
-}
-
-.load-more:disabled {
-    color: color-mix(in srgb, var(--font-color) 40%, transparent);
-    border-color: color-mix(in srgb, var(--font-color) 15%, transparent);
-    cursor: default;
 }
 
 @media (max-width: 600px) {

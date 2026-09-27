@@ -1,9 +1,10 @@
 ﻿.header-row {
     width: 100%;
-    min-height: 32px;
-    max-height: 32px;
-    background-color: var(--main-2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    min-height: 44px;
+    max-height: 44px;
+    gap: 12px;
+    background-color: var(--surface-base);
+    border-bottom: 1px solid var(--line);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -11,11 +12,45 @@
     
     z-index: 50;
     
-    padding: 0 14px 0 14px;
+    padding: 0 12px 0 18px;
 }
 
 .header-row .h-left {
-    
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.h-title {
+    display: flex;
+    align-items: center;
+    flex: none;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.h-title i {
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}
+
+.h-name {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
+    white-space: nowrap;
+}
+
+.h-topic {
+    min-width: 0;
+    padding-left: 12px;
+    overflow: hidden;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    border-left: 1px solid var(--line-strong);
 }
 
 .header-row .h-center {
@@ -62,12 +97,17 @@
     width: 0;
     padding-left: 0;
     padding-right: 0;
+    border-color: transparent;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .header-row .h-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 4px;
+    flex: none;
 }
 
 .h-right ::deep .search-btn,
@@ -75,15 +115,20 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 30px;
+    height: 30px;
     cursor: pointer;
-    font-size: var(--font-size-lg);
-    color: var(--strong-tint);
-    transition: color var(--duration-fast) var(--ease-standard);
+    font-size: var(--font-size-md);
+    color: var(--text-tertiary);
+    border-radius: var(--radius-md);
+    transition: color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .h-right ::deep .search-btn:hover,
 .h-right ::deep .members-btn:hover {
-    color: var(--font-color);
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
 }
 
 /* Covers entire page behind results for unclick */
@@ -98,14 +143,12 @@
 
 .search-results {
     position: absolute;
-    top: 32px;
+    top: 40px;
     left: 50%;
     transform: translateX(-50%);
     width: min(70vw, 400px);
-    background-color: var(--modal-medium);
     z-index: 101;
-    border-radius: var(--radius-md);
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-lg);
 }
 
 .results-scroll {
@@ -114,7 +157,7 @@
 }
 
 ::deep .results-scroll .search-result-item {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--line);
 }
 
 ::deep .results-scroll .search-result-item .message {
@@ -124,15 +167,12 @@
 ::deep .results-scroll .jump-to-message {
     padding: 4px 12px 8px;
     font-size: var(--font-size-xs);
-    color: var(--color-primary);
+    color: var(--link-color);
     cursor: pointer;
     text-align: right;
-    opacity: 0.7;
-    transition: opacity 0.15s;
 }
 
 ::deep .results-scroll .jump-to-message:hover {
-    opacity: 1;
     text-decoration: underline;
 }
 

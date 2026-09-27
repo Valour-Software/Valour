@@ -40,15 +40,22 @@
 }
 
 .message .reactions .reaction {
-    padding: 3px 6px;
-    border: 1px solid var(--main-4);
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    border-radius: var(--radius-md);
+    gap: 5px;
+    height: 26px;
+    padding: 0 9px;
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
     cursor: pointer;
-    gap: 4px;
-    font-size: var(--font-size-md);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .message .reactions .reaction * {
@@ -57,16 +64,18 @@
 }
 
 .message .reactions .reaction.added {
-    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background-color: var(--color-primary-soft);
+    border-color: var(--color-primary-border);
 }
 
 .message .reactions .reaction:hover {
-    border-color: var(--color-secondary);
+    border-color: var(--line-strong);
 }
 
 .message .reactions .reaction.new {
     /* Pop-in animation */
-    animation: pop-in 0.2s ease-in-out;
+    animation: pop-in var(--duration-base) var(--ease-standard);
 }
 
 .reaction-tooltip-users {
@@ -82,7 +91,7 @@
 
 .reaction-tooltip-more {
     white-space: nowrap;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -110,14 +119,13 @@
 }
 
 .message .content {
-    font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: var(--font-weight-light);
-    font-size: var(--font-size-md);
-    line-height: var(--line-height-base);
-    color: var(--font-color);
+    font-weight: var(--font-weight-regular);
+    font-size: 15px;
+    line-height: var(--line-height-relaxed);
+    color: var(--text-primary);
     margin: 0px;
-    word-break: break-all;
+    overflow-wrap: anywhere;
     user-select: text;
     overflow: hidden;
 }
@@ -131,10 +139,10 @@
     display: inline-block;
     margin-left: 6px;
     padding: 1px 5px;
-    border: 1px solid var(--main-4);
-    border-radius: var(--radius-sm);
-    color: var(--font-alt-color);
-    font-size: var(--font-size-xs);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-xs);
+    color: var(--text-tertiary);
+    font-size: var(--font-size-2xs);
     line-height: 1.2;
     vertical-align: middle;
 }
@@ -147,9 +155,10 @@
 
 .message .reply {
     border-top: 0;
-    border-left: 3px var(--medium-tint) solid;
-    background-color: var(--main-2);
-    border-radius: var(--radius-md);
+    border-left: 2px var(--line-strong) solid;
+    background-color: transparent;
+    border-radius: 0;
+    color: var(--text-secondary);
     margin-top: 5px;
     margin-bottom: 5px;
     width: fit-content;
@@ -157,16 +166,12 @@
 }
 
 .message.mentioned {
-    border-left: 2px solid var(--color-warning);
-    background: var(--color-warning-soft);
-}
-
-.mentioned .content {
-    margin-left: -2px !important;
+    background: var(--color-primary-soft);
+    box-shadow: inset 2px 0 0 var(--color-primary);
 }
 
 .message:hover {
-    background-color: var(--slight-tint);
+    background-color: color-mix(in srgb, var(--tint) 3%, transparent);
 }
 
 .ping-box {
@@ -177,7 +182,6 @@
 }
 
 .message .ping {
-    font-family: var(--font-family-app);
     font-style: normal;
     font-weight: var(--font-weight-medium);
     font-size: var(--font-size-xl);
@@ -185,7 +189,7 @@
 }
 
 .message.ping {
-    background: color-mix(in srgb, var(--color-danger) 24%, transparent);
+    background: var(--color-danger-soft);
 }
 
 .message.first {
@@ -197,11 +201,10 @@
     width: 100%;
     display: flex;
     justify-content: center;
-    padding-bottom: 8px;
 }
 
 .message .avatar-stack ::deep .user-avatar {
-    margin-top: 3px;
+    margin-top: 2px;
 }
 
 .message .name-role-holder {
@@ -215,9 +218,9 @@
 
 .message .author-name {
     display: inline-block;
-    font-family: var(--font-family-app);
     font-style: normal;
-    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    font-size: 14.5px;
     line-height: var(--line-height-tight);
     margin: 0;
     vertical-align: top;
@@ -234,15 +237,13 @@
 }
 
 .message .role-name {
-    color: var(--font-color);
-    opacity: 0.3;
-    font-style: italic;
+    color: var(--text-tertiary);
     margin: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
     padding-right: 2px;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     min-width: 0;
 }
 
@@ -268,11 +269,12 @@
 }
 
 .message .time {
-    font-family: var(--font-family-app);
+    font-family: var(--font-family-mono);
     font-style: normal;
     font-weight: var(--font-weight-regular);
-    font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-tertiary);
     display: none;
     text-align: center;
 }
@@ -286,8 +288,9 @@
     line-height: calc(var(--font-size-md) * var(--line-height-base));
 }
 
-.message:hover > .content-holder > .name-role-holder > .time {
+.message > .content-holder > .name-role-holder > .time {
     display: block;
+    margin-left: 4px;
 }
 
 .message.minimal:hover > .left-info > .time-container > .time {
@@ -296,7 +299,7 @@
 
 /* Preview Message and Replies */
 .edit {
-    background-color: color-mix(in srgb, var(--color-secondary) 10%, transparent) !important;
+    background-color: var(--color-primary-soft) !important;
 }
 
 .edit-flag {
@@ -306,7 +309,7 @@
 }
 
 .edited-flag {
-    color: var(--font-color-mid);
+    color: var(--text-tertiary);
     margin: 0;
     font-size: var(--font-size-xs);
 }
@@ -331,7 +334,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: rgba(0, 0, 0, 0.5) !important;
+    background-color: var(--scrim) !important;
 }
 
 .reply-x {
@@ -356,9 +359,9 @@
     min-height: 120px;
     padding: 16px;
     border-radius: var(--radius-md);
-    background-color: rgba(255, 255, 255, 0.08);
-    color: white;
-    font-weight: 600;
+    background-color: var(--surface-hover);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
 }
 
@@ -379,36 +382,32 @@
     padding: 0;
     border: none;
     border-radius: var(--radius-full);
-    background: rgba(15, 15, 15, 0.82);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    background: var(--scrim);
+    box-shadow: var(--shadow-overlay);
     cursor: pointer;
 }
 
-.attachment-remove-btn img {
-    width: 22px;
-    height: 22px;
+.attachment-remove-btn i {
+    color: var(--text-primary);
+    font-size: 18px;
     pointer-events: none;
 }
 
 .attachment-remove-btn:hover {
-    background: rgba(185, 36, 36, 0.92);
-}
-
-.attachment-remove-btn:active {
-    transform: scale(0.96);
+    background: var(--color-danger);
 }
 
 /* Highlighted message (e.g. from notification navigation) */
 .message.highlighted {
-    animation: message-highlight-flash 3s ease-out;
+    animation: message-highlight-flash 3s var(--ease-standard);
 }
 
 @keyframes message-highlight-flash {
     0% {
-        background-color: rgba(100, 180, 255, 0.35);
+        background-color: color-mix(in srgb, var(--color-primary) 24%, transparent);
     }
     50% {
-        background-color: rgba(100, 180, 255, 0.2);
+        background-color: var(--color-primary-soft);
     }
     100% {
         background-color: transparent;
@@ -427,13 +426,13 @@
    The slide must come from the left/top: downward transform overflow
    inflates scrollHeight and makes the bottom-pinned scroll bounce. */
 .message.message-enter {
-    animation: message-enter var(--duration-base) var(--ease-out-expo) both;
+    animation: message-enter var(--duration-base) var(--ease-standard) both;
 }
 
 @keyframes message-enter {
     from {
         opacity: 0;
-        transform: translateX(-12px);
+        transform: translateX(-4px);
     }
     to {
         opacity: 1;
@@ -447,8 +446,8 @@
     gap: var(--space-2);
     padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
-    color: var(--font-alt-color);
-    background-color: var(--slight-tint);
+    color: var(--text-tertiary);
+    background-color: var(--line);
     font-size: var(--font-size-sm);
     font-style: italic;
 }
@@ -464,7 +463,7 @@
 
 .notice-action {
     padding: 0;
-    color: var(--color-primary);
+    color: var(--link-color);
     background: none;
     border: none;
     font-style: normal;
@@ -475,7 +474,7 @@
 .sealed-label {
     margin-left: 6px;
     font-size: 0.75em;
-    color: var(--font-alt-color, #999);
+    color: var(--text-tertiary);
     white-space: nowrap;
 }
 

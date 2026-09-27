@@ -6,6 +6,8 @@
 .issued-badge {
     margin-left: auto;
     text-transform: none;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 .currency-grid {

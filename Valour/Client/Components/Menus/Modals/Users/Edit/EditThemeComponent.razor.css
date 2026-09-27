@@ -50,25 +50,17 @@
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
-    background-color: var(--main-3);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--slight-tint);
-    box-shadow: none;
+    background-color: var(--surface-raised);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    transition: border-color var(--duration-fast) var(--ease-standard),
-        transform var(--duration-fast) var(--ease-standard);
-}
-
-.theme-img::before {
-    display: none;
+    transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .theme-img:hover {
-    border-color: var(--medium-tint);
-    transform: none;
-    box-shadow: none;
+    border-color: var(--line-strong);
 }
 
 .victor-placeholder {
@@ -95,10 +87,6 @@
     margin-top: 1rem;
     margin-bottom: 0;
     padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
 }
 
 .color-pill {
@@ -111,24 +99,20 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.75rem 3.75rem 0.75rem 0.9rem;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    box-shadow: none;
     transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .color-pill:hover {
-    transform: none;
-    border-color: var(--medium-tint);
-    box-shadow: none;
+    border-color: var(--line-strong);
 }
 
 .color-pill span {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    color: var(--font-color);
-    text-shadow: none;
+    color: var(--text-primary);
 }
 
 ::deep .pickr-button {
@@ -138,7 +122,7 @@
     width: 48px;
     height: 100%;
     background-color: var(--pcr-color);
-    border-left: 1px solid var(--slight-tint);
+    border-left: 1px solid var(--line);
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
     transition: none;
 }
@@ -162,8 +146,8 @@
     gap: 0.75rem;
     align-items: center;
     padding: 0.75rem;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
 }
 
@@ -172,8 +156,8 @@
     width: 48px;
     height: 48px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--slight-tint);
-    background: var(--main-4);
+    border: 1px solid var(--line);
+    background-color: var(--surface-hover);
 }
 
 .asset-preview {
@@ -184,7 +168,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--font-color);
+    color: var(--text-secondary);
     font-size: var(--font-size-2xl);
 }
 
@@ -212,7 +196,8 @@
 }
 
 .asset-info code {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
 }
 
@@ -238,7 +223,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -257,10 +242,6 @@
     gap: 1rem;
     margin-bottom: 0;
     padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
 }
 
 .create-theme-card {
@@ -276,52 +257,47 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1.5rem;
-    background: var(--main-3);
-    color: var(--font-color);
-    border: 1px dashed var(--medium-tint);
-    border-radius: var(--radius-md);
-    box-shadow: none;
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     text-align: center;
     font-family: var(--font-family-app);
     transition: border-color var(--duration-fast) var(--ease-standard),
-        background-color var(--duration-fast) var(--ease-standard),
-        transform var(--duration-fast) var(--ease-standard);
-}
-
-.create-theme-card::before {
-    display: none;
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .create-theme-card:hover {
-    transform: none;
-    background: var(--main-4);
-    border-color: var(--color-primary);
-    box-shadow: none;
+    background-color: var(--surface-raised);
+    border-color: color-mix(in srgb, var(--tint) 22%, transparent);
+}
+
+.create-theme-card:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .create-theme-icon {
-    color: var(--color-primary);
+    color: var(--text-tertiary);
     font-size: var(--font-size-4xl);
     margin: 0;
 }
 
 .create-theme-title {
     margin: 0;
-    color: var(--font-color);
+    color: var(--text-primary);
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-base);
-    text-shadow: none;
 }
 
 .create-theme-description {
     margin: 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-regular);
     line-height: var(--line-height-base);
-    text-shadow: none;
 }
 
 .create-theme-btn {
@@ -330,37 +306,18 @@
     gap: 0.5rem;
     margin-top: 0.25rem;
     padding: 0.55rem 0.9rem;
-    color: var(--font-color);
-    background: var(--color-primary-soft);
-    border: 1px solid var(--color-primary-border);
+    color: var(--text-primary);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-md);
+    box-shadow: var(--rim-light);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    letter-spacing: normal;
-    text-transform: none;
-    box-shadow: none;
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
-.create-theme-btn::before {
-    display: none;
-}
-
-.create-theme-card:hover .create-theme-btn,
-.create-theme-btn:hover,
-.create-theme-btn:focus {
-    background: var(--color-primary-soft);
-    border-color: var(--color-primary-border);
-    transform: none;
-    box-shadow: none;
-}
-
-.theme-section,
-.search-title,
-.button-row,
-.theme-container {
-    background: transparent;
-    border: none;
-    box-shadow: none;
+.create-theme-card:hover .create-theme-btn {
+    background-color: var(--surface-hover);
 }
 
 @media (max-width: 768px) {
@@ -388,6 +345,7 @@
         max-width: 100%;
     }
 }
+
 .carousel-section {
     min-width: 0;
     margin-top: .5rem;

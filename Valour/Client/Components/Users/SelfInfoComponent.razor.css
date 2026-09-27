@@ -1,34 +1,35 @@
 .self-info {
     display: flex;
     flex-direction: row;
+    align-items: center;
     justify-content: space-between;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-bottom: 5px;
-    padding-top: 5px;
+    gap: 8px;
+    padding: 8px 10px 8px 12px;
+    border-top: 1px solid var(--line);
 }
 
 .settings-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    color: var(--text-tertiary);
     background: none;
     border: none;
-    
-    height: 100%;
-    aspect-ratio: 1/1;
-    border-radius: var(--radius-sm);
-}
- 
-.settings-button:hover .settings-icon, .settings-button:focus .settings-icon { 
-    transform: rotate(45deg) scale(1.1); 
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
 }
 
-.settings-button:focus {
-    outline: solid var(--main-4);
+.settings-button:hover {
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
 }
 
 .settings-button .settings-icon {
-    height: 16px;
-    width: 16px;
-    
-    aspect-ratio: 1/1;
-    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    font-size: var(--font-size-md);
+    line-height: 1;
 }

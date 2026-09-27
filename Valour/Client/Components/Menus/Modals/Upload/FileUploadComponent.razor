@@ -9,7 +9,7 @@
     return;
 }
 
-<BasicModalLayout Title="Upload File" Icon="cloud-upload-fill" MaxWidth="600px">
+<BasicModalLayout Title="Upload file" Icon="cloud-upload-fill" MaxWidth="600px">
     <MainArea>
         <div class="attachment-holder">
             @if (_loaded)
@@ -63,7 +63,7 @@
         <div class="basic-modal-buttons">
             @if (_isUploading)
             {
-                <button @onclick="@OnClickCancelUpload" class="v-btn danger">Cancel Upload</button>
+                <button @onclick="@OnClickCancelUpload" class="v-btn danger">Cancel upload</button>
             }
             else
             {

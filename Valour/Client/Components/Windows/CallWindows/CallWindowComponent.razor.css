@@ -25,16 +25,17 @@
     flex: 0 0 6px;
     cursor: row-resize;
     background: transparent;
-    transition: background-color 0.15s ease;
-    border-top: 1px solid var(--slight-tint);
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+    border-top: 1px solid var(--line);
     border-bottom: 1px solid transparent;
 }
 
 .call-window-splitter:hover,
 .call-window-layout.dragging .call-window-splitter {
-    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
-    border-top-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
-    border-bottom-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+    background-color: var(--surface-hover);
+    border-top-color: var(--line-strong);
+    border-bottom-color: var(--line-strong);
 }
 
 .call-window-bottom {
@@ -53,8 +54,8 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: var(--font-alt-color);
-    opacity: 0.75;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
     text-align: center;
     padding: 12px;
 }

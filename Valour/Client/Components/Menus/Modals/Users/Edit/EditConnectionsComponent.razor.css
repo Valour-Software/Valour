@@ -11,8 +11,8 @@
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
 }
 
 .method-row {
@@ -23,7 +23,7 @@
 
 .method-row > i {
     font-size: var(--font-size-xl);
-    color: var(--color-primary);
+    color: var(--text-secondary);
 }
 
 .method-row > i.method-google {
@@ -48,7 +48,7 @@
 }
 
 .method-meta {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
     overflow: hidden;
     text-overflow: ellipsis;

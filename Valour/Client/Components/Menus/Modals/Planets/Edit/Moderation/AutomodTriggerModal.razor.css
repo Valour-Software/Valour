@@ -1,10 +1,10 @@
 .action-empty {
     margin: 0.5rem 0;
     padding: 16px;
-    border-radius: var(--radius-md);
-    border: 1px dashed var(--medium-tint);
-    background-color: var(--main-3);
-    color: var(--font-alt-color);
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--line-strong);
+    background-color: transparent;
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -21,9 +21,9 @@
     justify-content: space-between;
     gap: 12px;
     padding: 10px 14px;
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
 }
 
 .action-info {
@@ -44,7 +44,7 @@
     gap: 6px;
     flex-wrap: wrap;
     font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .action-message {

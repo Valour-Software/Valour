@@ -7,13 +7,13 @@
 }
 
 ::deep .settings-button:hover {
-    background-color: var(--main-4);
+    background-color: var(--surface-hover);
 }
 
 ::deep .settings-button.active {
-    background-color: var(--main-4);
+    background-color: var(--surface-hover);
 }
 
 ::deep .settings-button:hover.active {
-    background-color: var(--main-4);
+    background-color: var(--surface-hover);
 }

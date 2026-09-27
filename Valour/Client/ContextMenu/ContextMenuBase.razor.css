@@ -10,25 +10,16 @@
 }
 
 .context {
-    color: white;
     position: absolute;
-    padding: 6px;
-    border-radius: var(--radius-lg);
+    min-width: 180px;
+    padding: 4px;
+    color: var(--text-primary);
     white-space: nowrap;
-}
-
-.context::before {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    margin-left: -6px;
-    margin-top: -6px;
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-lg);
-    background-color: #000000aa;
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
-    z-index: -1;
+    box-shadow: var(--shadow-overlay), var(--rim-light);
+    animation: context-in var(--duration-fast) var(--ease-standard);
 }
 
 .mobile .context {
@@ -36,21 +27,37 @@
     left: 0 !important;
     right: 0 !important;
     top: unset !important;
-    border-radius: 0 !important;
-    animation: slide-in 0.2s ease-in-out;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+    border-bottom: none;
+    animation: context-sheet-in var(--duration-base) var(--ease-standard);
 }
 
-.mobile .context:has(.sub-open){
+.mobile .context:has(.sub-open) {
     /* it's crazy but it works */
     height: 0;
 }
 
-@keyframes slide-in {
-    0% {
+@keyframes context-in {
+    from {
         opacity: 0;
+        transform: translateY(-2px);
     }
 
-    100% {
+    to {
         opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes context-sheet-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
     }
 }

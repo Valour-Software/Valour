@@ -38,6 +38,13 @@ public class BootstrapApi
             .Where(x => x.UserId == userId && planetIds.Contains(x.PlanetId))
             .Select(x => x.ToModel())
             .ToListAsync();
+        var activeSince = DateTime.UtcNow.AddMinutes(-15);
+        var planetActivity = await db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => planetIds.Contains(x.PlanetId) && !x.IsDeleted && x.TimeLastConnected > activeSince)
+            .GroupBy(x => x.PlanetId)
+            .Select(x => new { PlanetId = x.Key, Count = x.Count() })
+            .ToDictionaryAsync(x => x.PlanetId, x => x.Count);
         var memberships = await federationJoinService.GetMembershipsAsync(userId);
         var gifFavorites = await userService.GetGifFavoritesAsync(userId);
         var channelFavorites = await channelFavoriteService.GetForUserAsync(userId);
@@ -58,6 +65,7 @@ public class BootstrapApi
             blocks,
             planets,
             myPlanetMembers,
+            planetActivity,
             federatedMemberships = memberships,
             gifFavorites,
             channelFavorites,

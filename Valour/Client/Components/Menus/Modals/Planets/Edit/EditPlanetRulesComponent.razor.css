@@ -24,15 +24,15 @@
     display: grid;
     grid-template-columns: minmax(15rem, 0.75fr) minmax(0, 1.6fr);
     min-height: 24rem;
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    background: var(--main-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-base);
     overflow: hidden;
 }
 
 .rules-list {
-    border-right: 1px solid var(--slight-tint);
-    background: rgba(0, 0, 0, 0.12);
+    border-right: 1px solid var(--line);
+    background-color: var(--surface-canvas);
     overflow-y: auto;
 }
 
@@ -45,27 +45,32 @@
     gap: 0.5rem;
     padding: 0.45rem 0.65rem;
     border: none;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
     border-radius: 0;
     background: transparent;
-    color: var(--font-color);
+    color: var(--text-primary);
     text-align: left;
     cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .rule-row:last-child {
     border-bottom: none;
 }
 
-.rule-row:hover,
+.rule-row:hover {
+    background-color: var(--surface-hover);
+}
+
 .rule-row.active {
-    background: var(--slight-tint);
+    background-color: var(--surface-raised);
 }
 
 .rule-position {
-    color: var(--color-primary);
-    font-weight: var(--font-weight-bold);
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
 }
 
 .rule-title {
@@ -85,14 +90,23 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
-    background: var(--main-2);
-    color: var(--font-color);
+    background-color: var(--surface-raised);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
+}
+
+.rule-actions button:hover:not(:disabled) {
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
 }
 
 .rule-actions button:disabled {
     opacity: 0.35;
+    cursor: default;
 }
 
 .rule-editor {
@@ -115,10 +129,10 @@
 }
 
 .rule-preview {
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
     padding: 0.85rem;
-    background: rgba(0, 0, 0, 0.14);
+    background-color: var(--surface-canvas);
     max-height: 16rem;
     overflow-y: auto;
 }
@@ -137,7 +151,7 @@
 
 .rule-empty-editor,
 .rules-muted {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .rules-empty-panel {
@@ -148,26 +162,26 @@
     justify-content: center;
     gap: 0.45rem;
     padding: 1.5rem;
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    background: var(--main-1);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-lg);
+    color: var(--text-tertiary);
     text-align: center;
 }
 
 .rules-empty-panel i {
-    color: var(--font-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-3xl);
 }
 
 .rules-empty-panel h4 {
     margin: 0;
     font-size: var(--font-size-md);
-    color: var(--font-color);
+    color: var(--text-secondary);
 }
 
 .rules-empty-panel p {
     margin: 0;
-    color: var(--font-color);
+    color: var(--text-tertiary);
 }
 
 .rule-empty-editor {
@@ -177,7 +191,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border: 1px dashed var(--slight-tint);
+    border: 1px dashed var(--line-strong);
     border-radius: var(--radius-md);
 }
 
@@ -199,7 +213,7 @@
 
     .rules-list {
         border-right: none;
-        border-bottom: 1px solid var(--slight-tint);
+        border-bottom: 1px solid var(--line);
         min-height: 12rem;
         max-height: 34vh;
     }

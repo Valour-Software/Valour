@@ -11,7 +11,7 @@
 <div class="tileset-tool">
     <div class="tool-topbar">
         <div class="tool-title-block">
-            <div class="tool-title">Tileset Definition</div>
+            <div class="tool-title">Tileset definition</div>
             <div class="tool-subtitle">@(_selection.Width)x@(_selection.Height) at @_selection.X,@_selection.Y</div>
             @if (!string.IsNullOrWhiteSpace(_importStatus))
             {
@@ -86,7 +86,7 @@
                     @foreach (var terrain in _terrains)
                     {
                         <div class="terrain-row">
-                            <input class="field-input" placeholder="key" @bind="terrain.Key" @bind:event="oninput" />
+                            <input class="field-input mono" placeholder="key" @bind="terrain.Key" @bind:event="oninput" />
                             <input class="field-input" placeholder="name" @bind="terrain.Name" @bind:event="oninput" />
                             <input class="field-input" type="number" title="Priority" @bind="terrain.Priority" />
                             <button class="icon-btn mini-btn" title="Remove terrain" @onclick="() => RemoveTerrain(terrain)">
@@ -97,9 +97,9 @@
                 </div>
 
                 <div class="panel-actions">
-                    <button class="primary-action" @onclick="AddTerrain">
+                    <button class="v-btn primary primary-action" @onclick="AddTerrain">
                         <i aria-hidden="true" class="bi bi-plus-lg"></i>
-                        <span>Add Terrain</span>
+                        <span>Add terrain</span>
                     </button>
                 </div>
             }
@@ -127,7 +127,7 @@
                             Auto
                         </button>
                     </div>
-                    <input class="field-input" value="@_draft.Key" @oninput="OnKeyChanged" />
+                    <input class="field-input mono" value="@_draft.Key" @oninput="OnKeyChanged" />
 
                     <label class="field-label">Group</label>
                     <input class="field-input" value="@_draft.GroupKey" @oninput="OnGroupChanged" />
@@ -170,7 +170,7 @@
                                 <input class="field-input" type="number" min="0" max="@_draft.Height" @bind="_draft.FootprintHeight" />
                             </div>
                         </div>
-                        <small>Ground contact in tiles, anchored to the sprite's bottom. Zero keeps the existing automatic footprint.</small>
+                        <div class="hint-text">Ground contact in tiles, anchored to the sprite's bottom. Zero keeps the existing automatic footprint.</div>
                         <label class="field-label">Place on</label>
                         <select class="field-input" @bind="_draft.PlacementLayer">
                             <option value="Furniture">Floor (furniture)</option>
@@ -182,7 +182,7 @@
                 }
 
                 <div class="panel-section">
-                    <div class="section-title">Terrain Ruleset</div>
+                    <div class="section-title">Terrain ruleset</div>
                     <label class="field-label">Terrain</label>
                     <input class="field-input" list="@_terrainDatalistId" placeholder="none"
                            @bind="_draft.TerrainKey" @bind:event="oninput" />
@@ -275,17 +275,17 @@
                 </div>
 
                 <div class="panel-actions">
-                    <button class="primary-action" @onclick="SaveDefinition">
+                    <button class="v-btn primary primary-action" @onclick="SaveDefinition">
                         <i aria-hidden="true" class="bi bi-plus-lg"></i>
                         <span>Save</span>
                     </button>
-                    <button class="secondary-action" @onclick="ClearDraft">
+                    <button class="v-btn secondary-action" title="Clear draft" @onclick="ClearDraft">
                         <i aria-hidden="true" class="bi bi-x-lg"></i>
                     </button>
-                    <button class="secondary-action danger-action" disabled="@(!HasSelectedSavedDefinition)" @onclick="DeleteSelectedDefinition">
+                    <button class="v-btn danger secondary-action danger-action" title="Delete definition" disabled="@(!HasSelectedSavedDefinition)" @onclick="DeleteSelectedDefinition">
                         <i aria-hidden="true" class="bi bi-trash"></i>
                     </button>
-                    <button class="secondary-action" @onclick="CopyJsonAsync">
+                    <button class="v-btn secondary-action" title="Copy JSON" @onclick="CopyJsonAsync">
                         <i aria-hidden="true" class="bi bi-clipboard"></i>
                     </button>
                 </div>
@@ -315,7 +315,7 @@
                                     Auto
                                 </button>
                             </div>
-                            <input class="field-input" value="@_brushDraft.Key" @oninput="OnBrushKeyChanged" />
+                            <input class="field-input mono" value="@_brushDraft.Key" @oninput="OnBrushKeyChanged" />
                         </div>
                         <div>
                             <label class="field-label">Size</label>
@@ -324,7 +324,7 @@
                     </div>
 
                     <div class="selected-brush-tile">
-                        <div class="section-title">Selected Tile</div>
+                        <div class="section-title">Selected tile</div>
                         <div class="selected-brush-preview"
                              style="@GetDefinitionPreviewStyle(SelectedBrushPreviewDefinition, 48)"
                              title="@SelectedBrushTileLabel"></div>
@@ -351,14 +351,14 @@
                 </div>
 
                 <div class="panel-actions">
-                    <button class="primary-action" @onclick="SaveBrush">
+                    <button class="v-btn primary primary-action" @onclick="SaveBrush">
                         <i aria-hidden="true" class="bi bi-brush"></i>
-                        <span>Save Brush</span>
+                        <span>Save brush</span>
                     </button>
-                    <button class="secondary-action" @onclick="ClearBrushDraft">
+                    <button class="v-btn secondary-action" title="Clear brush" @onclick="ClearBrushDraft">
                         <i aria-hidden="true" class="bi bi-x-lg"></i>
                     </button>
-                    <button class="secondary-action" @onclick="RegenerateBrushKey">
+                    <button class="v-btn secondary-action" title="Regenerate brush key" @onclick="RegenerateBrushKey">
                         <i aria-hidden="true" class="bi bi-magic"></i>
                     </button>
                 </div>
@@ -384,15 +384,15 @@
             </div>
         </div>
         <input class="field-input package-name-input" aria-label="Package name" @bind="_packageName" />
-        <button class="primary-action" disabled="@(!_sourceReady)" @onclick="BuildPackageAsync">
+        <button class="v-btn primary-action" disabled="@(!_sourceReady)" @onclick="BuildPackageAsync">
             <i aria-hidden="true" class="bi bi-box-seam"></i>
             <span>Build</span>
         </button>
-        <button class="secondary-action" disabled="@(_packageResult is null)" @onclick='() => DownloadPackageFileAsync("image")'>
+        <button class="v-btn secondary-action" disabled="@(_packageResult is null)" @onclick='() => DownloadPackageFileAsync("image")'>
             <i aria-hidden="true" class="bi bi-image"></i>
             <span>Atlas</span>
         </button>
-        <button class="secondary-action" disabled="@(_packageResult is null)" @onclick='() => DownloadPackageFileAsync("manifest")'>
+        <button class="v-btn secondary-action" disabled="@(_packageResult is null)" @onclick='() => DownloadPackageFileAsync("manifest")'>
             <i aria-hidden="true" class="bi bi-filetype-json"></i>
             <span>Manifest</span>
         </button>
@@ -401,7 +401,7 @@
     <div class="package-summary">
         @if (_packageResult is not null)
         {
-            <span>@($"{_packageResult.RegionCount} regions · {_packageResult.AtlasWidth} × {_packageResult.AtlasHeight} · {FormatBytes(_packageResult.ImageBytes)}")</span>
+            <span class="package-stats">@($"{_packageResult.RegionCount} regions · {_packageResult.AtlasWidth} × {_packageResult.AtlasHeight} · {FormatBytes(_packageResult.ImageBytes)}")</span>
         }
         else
         {

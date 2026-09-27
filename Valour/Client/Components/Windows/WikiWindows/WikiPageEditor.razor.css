@@ -16,7 +16,8 @@
 
 .de-header h2 {
     margin: 0;
-    font-size: 20px;
+    font-size: var(--font-size-xl);
+    letter-spacing: var(--letter-spacing-tight);
 }
 
 .de-header-actions {
@@ -30,18 +31,27 @@
     gap: 10px;
     padding: 10px 14px;
     border-radius: var(--radius-md);
-    font-size: 13.5px;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
     flex-wrap: wrap;
 }
 
 .de-banner.warning {
-    background: color-mix(in srgb, var(--color-warning, #e6c463) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-warning, #e6c463) 40%, transparent);
+    background-color: var(--color-warning-soft);
+    border: 1px solid var(--color-warning-border);
+}
+
+.de-banner.warning > i {
+    color: var(--color-warning);
 }
 
 .de-banner.danger {
-    background: color-mix(in srgb, var(--color-danger, #e66363) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-danger, #e66363) 40%, transparent);
+    background-color: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
+}
+
+.de-banner.danger > i {
+    color: var(--color-danger);
 }
 
 .de-banner-actions {
@@ -65,23 +75,25 @@
 .de-field label {
     width: 44px;
     flex-shrink: 0;
-    font-size: 13px;
-    color: var(--font-alt-color);
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
 }
 
 .de-field .v-input {
     flex: 1;
     min-width: 0;
+    margin-bottom: 0;
 }
 
 .de-slug {
     font-family: var(--font-family-mono);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
 }
 
 .de-url-preview {
-    font-size: 12px;
-    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
     font-family: var(--font-family-mono);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -93,14 +105,17 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13.5px;
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
     cursor: pointer;
     user-select: none;
 }
 
 .de-publish-hint {
-    color: var(--font-alt-color);
-    font-size: 12px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-regular);
 }
 
 .de-toolbar {
@@ -113,20 +128,21 @@
     display: none;
 }
 
-/* Write/Preview segmented control only appears when the split collapses */
 .de-tabs {
     display: none;
 }
 
 .de-counter {
     margin-left: auto;
-    font-size: 12px;
-    color: var(--font-alt-color);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-tertiary);
 }
 
 .de-counter.warn {
-    color: var(--color-warning, #e6c463);
-    font-weight: 600;
+    color: var(--color-warning);
+    font-weight: var(--font-weight-semibold);
 }
 
 .de-split {
@@ -139,33 +155,39 @@
 
 .de-textarea {
     resize: none;
-    background: var(--main-1);
-    border: 1px solid var(--medium-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-md);
-    color: var(--font-color);
+    color: var(--text-primary);
     font-family: var(--font-family-mono);
-    font-size: 13.5px;
-    line-height: 1.6;
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-loose);
     padding: 14px;
     outline: none;
     min-height: 0;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.de-textarea::placeholder {
+    color: var(--text-tertiary);
 }
 
 .de-textarea:focus {
-    border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
 }
 
 .de-preview {
     overflow-y: auto;
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
     padding: 14px;
     min-height: 0;
-    font-size: 15px;
-    line-height: 1.7;
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-loose);
 }
-
-/* Narrow: collapse the split into Write/Preview tabs */
 
 @container doc-editor (max-width: 640px) {
     .de-tabs {

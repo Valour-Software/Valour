@@ -23,7 +23,7 @@
             @if (_canManage)
             {
                 <button class="v-btn primary" @onclick="ToggleCompose">
-                    <i class="bi bi-plus-lg"></i> New Event
+                    <i class="bi bi-plus-lg"></i> New event
                 </button>
             }
         </div>
@@ -44,7 +44,7 @@
                 }
                 <div class="compose-actions">
                     <button class="v-btn" @onclick="ToggleCompose">Cancel</button>
-                    <button class="v-btn primary" @onclick="SaveEventAsync">@(_editingId is null ? "Create Event" : "Save Changes")</button>
+                    <button class="v-btn primary" @onclick="SaveEventAsync">@(_editingId is null ? "Create event" : "Save changes")</button>
                 </div>
             </div>
         }
@@ -111,7 +111,7 @@
                         }
                     </div>
                     <div class="event-actions">
-                        <button class="v-btn going-btn @(planetEvent.SelfGoing ? "primary" : "")"
+                        <button class="v-btn going-btn @(planetEvent.SelfGoing ? "going" : "")"
                                 @onclick="() => ToggleGoingAsync(planetEvent)">
                             <i class="bi @(planetEvent.SelfGoing ? "bi-check-circle-fill" : "bi-person-plus")"></i>
                             @(planetEvent.SelfGoing ? "Going" : "Join")

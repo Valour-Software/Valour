@@ -2,34 +2,31 @@
     width: 100%;
 }
 
-/* Collapsed: compose bar on the same card surface as posts, with the
-   app's tertiary gradient pill as the action */
-
 .compose-cta {
     display: flex;
     align-items: center;
     gap: var(--space-2);
     width: 100%;
     padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-full);
-    box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--rim-light);
     cursor: pointer;
     box-sizing: border-box;
     font-family: var(--font-family-app);
+    animation: cta-in var(--duration-slow) var(--ease-standard);
     transition: border-color var(--duration-fast) var(--ease-standard),
-                box-shadow var(--duration-fast) var(--ease-standard);
+                background-color var(--duration-fast) var(--ease-standard);
 }
 
 .compose-cta:hover {
-    border-color: var(--color-primary-border);
-    box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        0 0 12px color-mix(in srgb, var(--color-primary) 8%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-color: var(--line-strong);
+}
+
+@keyframes cta-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .cta-avatar {
@@ -47,65 +44,45 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: color-mix(in srgb, var(--font-color) 45%, transparent);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
-/* Matches .v-btn.tertiary, the app's gradient action button */
 .cta-post {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
     padding: 6px 14px;
-    border-radius: var(--radius-full);
-    background: linear-gradient(135deg, var(--color-primary-dimmed) 0%, var(--color-secondary-dimmed) 100%);
-    color: white;
+    border-radius: var(--radius-md);
+    background-color: var(--color-primary);
+    color: var(--color-primary-contrast);
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    box-shadow:
-        0 2px 12px color-mix(in srgb, var(--color-accent) 30%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    transition: box-shadow var(--duration-fast) var(--ease-standard),
-                transform var(--duration-fast) var(--ease-standard);
+    font-weight: var(--font-weight-semibold);
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .compose-cta:hover .cta-post {
-    transform: translateY(-1px);
-    box-shadow:
-        0 4px 16px color-mix(in srgb, var(--color-secondary) 40%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background-color: color-mix(in srgb, var(--color-primary) 86%, white);
 }
-
-/* Expanded: card surface matching thread posts */
 
 .compose-card {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
-    background-color: var(--main-3);
-    border: 1px solid var(--color-primary-border);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-lg);
-    box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        0 0 16px color-mix(in srgb, var(--color-primary) 8%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.03);
     transform-origin: top center;
-    /* Same bottom-sheet pattern as the mobile emoji picker: growing
-       max-height makes the editor slide open out of the compose bar.
-       overflow:hidden lives in the keyframes so it only clips while
-       animating - dropdowns inside the form must overflow afterwards. */
-    /* ease-out-expo at short durations finishes almost instantly;
-       the sheet needs time for the slide-open to read */
-    animation: compose-rise 0.4s var(--ease-standard);
+    animation: compose-rise var(--duration-slow) var(--ease-standard);
 }
 
 @keyframes compose-rise {
     from {
         max-height: 0;
         opacity: 0;
-        transform: translateY(-16px);
+        transform: translateY(-4px);
         overflow: hidden;
     }
     to {
@@ -116,8 +93,6 @@
     }
 }
 
-/* While closing, the card stays rendered with this class until the
-   animation completes (ThreadComposeInline removes it after 300ms). */
 .compose-card.closing {
     animation: compose-drop var(--duration-slow) var(--ease-standard) both;
     pointer-events: none;
@@ -133,26 +108,12 @@
     to {
         max-height: 0;
         opacity: 0;
-        transform: translateY(-16px);
+        transform: translateY(-4px);
         overflow: hidden;
         padding-top: 0;
         padding-bottom: 0;
         border-width: 0;
         margin-bottom: 0;
-    }
-}
-
-/* The bar fades back in as the card collapses above it */
-.compose-cta {
-    animation: cta-in 0.35s var(--ease-standard);
-}
-
-@keyframes cta-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
     }
 }
 
@@ -163,7 +124,12 @@
     margin: 0;
     font-size: var(--font-size-md);
     font-weight: var(--font-weight-semibold);
-    color: var(--font-color);
+    letter-spacing: normal;
+    color: var(--text-primary);
+}
+
+.compose-card-header h4 i {
+    color: var(--text-tertiary);
 }
 
 @media (max-width: 600px) {

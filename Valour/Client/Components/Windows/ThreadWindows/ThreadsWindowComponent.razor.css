@@ -1,15 +1,11 @@
-/* Backward shared-axis entrance (mirrors the thread view's slide-in
-   from the right), played when arriving via a thread's back button */
 .threads-window.nav-back {
-    /* Longer than the duration tokens - page navigation needs room for
-       the slide to actually be perceived (see thread-nav-in) */
-    animation: feed-nav-back 0.45s var(--ease-out-expo) both;
+    animation: feed-nav-back var(--duration-slow) var(--ease-standard) both;
 }
 
 @keyframes feed-nav-back {
     from {
         opacity: 0;
-        transform: translateX(-56px);
+        transform: translateX(-12px);
     }
     to {
         opacity: 1;
@@ -22,7 +18,7 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
-    background-color: var(--main-2);
+    background-color: var(--surface-base);
     font-family: var(--font-family-app);
 }
 
@@ -36,8 +32,7 @@
     position: sticky;
     top: 0;
     z-index: 5;
-    background: color-mix(in srgb, var(--main-2) 92%, transparent);
-    backdrop-filter: blur(8px);
+    background-color: var(--surface-base);
     padding: var(--space-2) var(--space-3) 0 var(--space-3);
 }
 
@@ -46,29 +41,7 @@
     display: block;
     height: 1px;
     margin: var(--space-2) calc(-1 * var(--space-3)) 0 calc(-1 * var(--space-3));
-    background-image: linear-gradient(to right, var(--v-cyan), var(--v-purple));
-    opacity: 0.45;
-}
-
-.title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-}
-
-.title-row h2 {
-    margin: 0;
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
-    color: var(--font-color);
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-.title-row h2 i {
-    color: var(--color-primary);
+    background-color: var(--line);
 }
 
 .controls-row {
@@ -115,53 +88,14 @@
     font-size: 18px;
     width: 20px;
     text-align: center;
-    color: var(--color-primary);
-}
-
-.refresh-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    padding: 6px 10px;
-    background-color: var(--main-3);
-    border: 1px solid color-mix(in srgb, var(--font-color) 10%, transparent);
-    border-radius: var(--radius-full);
-    color: color-mix(in srgb, var(--font-color) 65%, transparent);
-    font-size: var(--font-size-sm);
-    font-family: var(--font-family-app);
-    font-weight: var(--font-weight-medium);
-    cursor: pointer;
-    transition: border-color var(--duration-fast) var(--ease-standard),
-                color var(--duration-fast) var(--ease-standard),
-                background-color var(--duration-fast) var(--ease-standard),
-                box-shadow var(--duration-fast) var(--ease-standard);
-}
-
-.refresh-btn:hover {
-    color: var(--font-color);
-    border-color: color-mix(in srgb, var(--font-color) 25%, transparent);
-}
-
-.refresh-btn:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-
-.refresh-btn.has-new {
-    background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-accent-soft) 100%);
-    border-color: var(--color-primary-border);
-    color: color-mix(in srgb, var(--color-primary) 70%, white);
-    box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary) 15%, transparent);
-    animation: refresh-pop var(--duration-slow) var(--ease-spring);
-}
-
-@keyframes refresh-pop {
-    from { transform: scale(0.9); }
-    to { transform: none; }
+    color: var(--text-secondary);
 }
 
 .refresh-btn .new-count {
     white-space: nowrap;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
 }
 
 .refresh-btn .spinning {
@@ -172,46 +106,6 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
-
-.sort-tabs {
-    display: flex;
-    gap: var(--space-1);
-    background-color: var(--main-3);
-    border-radius: var(--radius-full);
-    padding: 3px;
-    border: 1px solid color-mix(in srgb, var(--font-color) 10%, transparent);
-}
-
-.sort-tab {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
-    background: none;
-    border: none;
-    border-radius: var(--radius-full);
-    color: color-mix(in srgb, var(--font-color) 65%, transparent);
-    font-size: var(--font-size-sm);
-    font-family: var(--font-family-app);
-    font-weight: var(--font-weight-medium);
-    padding: 4px 12px;
-    cursor: pointer;
-    transition: all var(--duration-fast) var(--ease-standard);
-}
-
-.sort-tab:hover {
-    color: var(--font-color);
-    background: var(--slight-tint);
-}
-
-.sort-tab.active {
-    background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-accent-soft) 100%);
-    color: color-mix(in srgb, var(--color-primary) 70%, white);
-    box-shadow:
-        inset 0 0 0 1px var(--color-primary-border),
-        0 0 10px color-mix(in srgb, var(--color-primary) 12%, transparent);
-}
-
-/* Feed: spaced cards on the window background */
 
 .threads-feed {
     display: flex;
@@ -231,33 +125,14 @@
     gap: var(--space-3);
 }
 
-/* Staggered entrance for cards, matching the sidebar directory feel.
-   Keyframes must live in this file - the scoped CSS compiler renames
-   them per-file, so they can't be shared across .razor.css files. */
-
 .threads-feed ::deep .thread-card-wrap {
-    animation: feed-card-in 0.35s var(--ease-standard) both;
+    animation: feed-card-in var(--duration-base) var(--ease-standard) both;
 }
-
-.threads-feed ::deep .thread-card-wrap:nth-child(1) { animation-delay: 30ms; }
-.threads-feed ::deep .thread-card-wrap:nth-child(2) { animation-delay: 70ms; }
-.threads-feed ::deep .thread-card-wrap:nth-child(3) { animation-delay: 110ms; }
-.threads-feed ::deep .thread-card-wrap:nth-child(4) { animation-delay: 150ms; }
-.threads-feed ::deep .thread-card-wrap:nth-child(5) { animation-delay: 190ms; }
-.threads-feed ::deep .thread-card-wrap:nth-child(n + 6) { animation-delay: 230ms; }
 
 @keyframes feed-card-in {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
-
-/* Loading skeletons share the feed's card rhythm */
 
 .feed-skeletons {
     display: flex;
@@ -265,43 +140,31 @@
     gap: var(--space-3);
 }
 
-.feed-skeletons ::deep .skel-card:nth-child(2) { animation-delay: 70ms; }
-.feed-skeletons ::deep .skel-card:nth-child(3) { animation-delay: 140ms; }
-
 .feed-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-8) var(--space-4);
-    color: color-mix(in srgb, var(--font-color) 70%, transparent);
+    padding: var(--space-7) var(--space-4);
+    color: var(--text-tertiary);
     text-align: center;
-    animation: feed-card-in 0.4s var(--ease-standard) both;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-lg);
 }
 
 .feed-empty i {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 88px;
-    height: 88px;
-    font-size: 40px;
-    color: var(--color-primary);
-    background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-accent-soft) 100%);
-    border: 1px solid var(--color-primary-border);
-    border-radius: var(--radius-full);
-    box-shadow: 0 0 24px color-mix(in srgb, var(--color-primary) 12%, transparent);
-    margin-bottom: var(--space-2);
+    font-size: var(--font-size-3xl);
+    color: var(--text-tertiary);
 }
 
 .feed-empty h3 {
     margin: 0;
-    color: var(--font-color);
+    color: var(--text-primary);
     font-size: var(--font-size-lg);
+    letter-spacing: normal;
 }
 
 .feed-empty p {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--font-size-sm);
 }
-

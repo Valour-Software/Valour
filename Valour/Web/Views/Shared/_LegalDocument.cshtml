@@ -3,11 +3,11 @@
     var current = Model.Document.Path;
 }
 
-<div class="container legal-page">
-    <div class="legal-layout">
+<div class="container doc-page">
+    <div class="doc-layout">
         <partial name="_LegalNav" model="current" />
 
-        <article class="legal-document">
+        <article class="prose">
             @Html.Raw(Model.Html)
 
             <p class="legal-source">

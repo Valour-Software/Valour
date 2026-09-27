@@ -3,6 +3,17 @@
 
 <div class="header-row">
     <div class="h-left">
+        @if (!string.IsNullOrWhiteSpace(Channel?.Name))
+        {
+            <div class="h-title">
+                <i class="bi @(Channel.PlanetId is null ? "bi-at" : "bi-chat-left")" aria-hidden="true"></i>
+                <span class="h-name">@Channel.Name</span>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Channel.Description))
+            {
+                <span class="h-topic">@Channel.Description</span>
+            }
+        }
         <ChannelWatchingComponent Channel="@Channel" ParentComponent="@ChatComponent" />
     </div>
     <div class="h-center">
@@ -24,7 +35,7 @@
             <TooltipTrigger Position="left">
                 <ChildContent>
                     <button @onclick="() => StartCall(DirectCallKind.Audio)" disabled="@_startingCall" class="members-btn call-btn">
-                        <i class="bi bi-telephone-fill"></i>
+                        <i class="bi bi-telephone"></i>
                     </button>
                 </ChildContent>
                 <TooltipContent><span>Start voice call</span></TooltipContent>
@@ -32,7 +43,7 @@
             <TooltipTrigger Position="left">
                 <ChildContent>
                     <button @onclick="() => StartCall(DirectCallKind.Video)" disabled="@_startingCall" class="members-btn call-btn">
-                        <i class="bi bi-camera-video-fill"></i>
+                        <i class="bi bi-camera-video"></i>
                     </button>
                 </ChildContent>
                 <TooltipContent><span>Start video call</span></TooltipContent>
@@ -53,7 +64,7 @@
         <TooltipTrigger Position="left">
             <ChildContent>
                 <div @onclick="@OnClickMembers" type="button" tabindex="0" class="members-btn">
-                    <i class="bi bi-people-fill"></i>
+                    <i class="bi bi-people"></i>
                 </div>
             </ChildContent>
             <TooltipContent>

@@ -22,8 +22,8 @@
     text-align: center;
     padding: 8px;
     border-radius: var(--radius-md);
-    background-color: rgba(0, 0, 0, 0.35);
-    color: white;
-    font-weight: 600;
+    background-color: color-mix(in srgb, var(--surface-canvas) 40%, transparent);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
 }

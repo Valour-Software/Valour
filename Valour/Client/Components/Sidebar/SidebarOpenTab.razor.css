@@ -1,23 +1,29 @@
 ﻿.open-tab {
     position: absolute;
-    width: 10px;
-    height: 26px;
-    top: 10px;
-    color: black;
-    font-size: 0;
-    line-height: 43px;
-    background-color: white;
+    top: 12px;
     left: 100%;
-    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-    opacity: 0.1;
+    width: 8px;
+    height: 28px;
+    color: var(--text-primary);
+    font-size: 0;
+    line-height: 28px;
+    text-align: center;
+    background-color: var(--surface-hover);
+    border: 1px solid var(--line-strong);
+    border-left: none;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
     cursor: pointer;
-    transition: left 0.5s ease-in-out, width 0.2s ease-in-out, font-size 0.2s ease-in-out;
+    transition: left 0.4s var(--ease-standard),
+        width var(--duration-base) var(--ease-standard),
+        font-size var(--duration-base) var(--ease-standard);
 }
 
 .open-tab.flip {
     left: auto;
     right: 100%;
-    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    border-left: 1px solid var(--line-strong);
+    border-right: none;
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 
 .mobile .open-tab {
@@ -25,8 +31,6 @@
 }
 
 .open-tab:hover {
-    opacity: 0.4;
-    width: 30px;
-    font-size: var(--font-size-2xl);
-    line-height: 26px;
+    width: 26px;
+    font-size: var(--font-size-lg);
 }

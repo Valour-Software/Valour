@@ -7,8 +7,8 @@
 
 .verify-user-help {
     margin: 0;
-    color: var(--font-alt-color);
-    font-size: var(--font-size-md);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
 }
 
 .verify-user-row {
@@ -27,4 +27,12 @@
         flex-direction: column;
         align-items: stretch;
     }
+}
+
+.text-info {
+    color: var(--color-primary);
+}
+
+.text-danger {
+    color: var(--color-danger);
 }

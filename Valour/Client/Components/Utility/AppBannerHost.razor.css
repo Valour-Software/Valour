@@ -18,42 +18,52 @@
     align-items: center;
     gap: .8rem;
     padding: .75rem .8rem;
-    color: var(--font-color);
-    background: color-mix(in srgb, var(--main-2) 94%, transparent);
-    border: 1px solid var(--slight-tint);
-    border-radius: 14px;
-    box-shadow: 0 12px 38px rgba(0, 0, 0, .32);
-    backdrop-filter: blur(18px);
+    color: var(--text-primary);
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-overlay), var(--rim-light);
 }
 
-.app-banner.update { border-color: color-mix(in srgb, var(--color-primary) 50%, var(--slight-tint)); }
-.app-banner.kind-warning { border-color: color-mix(in srgb, #f4b740 62%, var(--slight-tint)); }
-.app-banner.kind-critical { border-color: color-mix(in srgb, var(--color-danger) 68%, var(--slight-tint)); }
+.app-banner.update { border-color: var(--color-primary-border); }
+.app-banner.kind-warning { border-color: var(--color-warning-border); }
+.app-banner.kind-critical { border-color: var(--color-danger-border); }
 
 .banner-icon {
     display: grid;
     place-items: center;
     width: 36px;
     height: 36px;
-    border-radius: 10px;
-    background: var(--main-3);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-primary-soft);
     color: var(--color-primary);
 }
 
-.kind-warning .banner-icon { color: #f4b740; }
-.kind-critical .banner-icon { color: var(--color-danger); }
+.kind-warning .banner-icon {
+    background-color: var(--color-warning-soft);
+    color: var(--color-warning);
+}
+
+.kind-critical .banner-icon {
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
+}
 
 .banner-copy {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    line-height: 1.25;
+    line-height: var(--line-height-snug);
 }
 
-.banner-copy strong { font-size: .9rem; }
+.banner-copy strong {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
 .banner-copy span {
-    color: var(--font-alt-color);
-    font-size: .8rem;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
@@ -64,52 +74,26 @@
     gap: .4rem;
 }
 
-.banner-action,
-.icon-action {
-    min-height: 34px;
-    border: 1px solid transparent;
-    border-radius: 9px;
-    cursor: pointer;
-    transition: background-color var(--duration-fast) var(--ease-standard),
-                border-color var(--duration-fast) var(--ease-standard),
-                color var(--duration-fast) var(--ease-standard);
-}
-
-.banner-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: .4rem;
-    padding: .38rem .7rem;
-    font-size: .8rem;
-    font-weight: 650;
-    line-height: 1;
-    color: color-mix(in srgb, var(--color-primary) 48%, white);
-    background: color-mix(in srgb, var(--color-primary) 10%, var(--main-3));
-    border-color: color-mix(in srgb, var(--color-primary) 32%, var(--slight-tint));
-}
-
-.banner-action:hover {
-    color: color-mix(in srgb, var(--color-primary) 36%, white);
-    background: color-mix(in srgb, var(--color-primary) 22%, var(--main-4));
-    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--medium-tint));
-}
-
 .icon-action {
     width: 34px;
+    height: 34px;
     display: grid;
     place-items: center;
     padding: 0;
-    color: var(--font-alt-color);
-    background: var(--main-3);
+    color: var(--text-tertiary);
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
 }
 
 .icon-action:hover {
-    color: var(--font-color);
-    background: var(--main-4);
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
 }
 
-.banner-action:focus-visible,
 .icon-action:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
@@ -141,8 +125,6 @@
         align-self: center;
     }
 
-    .banner-copy span { font-size: .75rem; }
-
     .banner-actions { display: contents; }
 
     .refresh-action {
@@ -167,8 +149,5 @@
     .icon-action {
         width: 32px;
         height: 32px;
-        min-height: 32px;
     }
-
-    .banner-copy strong { font-size: .84rem; }
 }

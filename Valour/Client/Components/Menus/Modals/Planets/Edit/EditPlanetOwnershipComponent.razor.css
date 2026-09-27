@@ -1,9 +1,73 @@
-.ownership-page { max-width:620px; }
-.warning-card, .mfa-required { display:flex; gap:.9rem; padding:1rem; border-radius:var(--radius-md); border:1px solid color-mix(in srgb, var(--color-danger) 38%, transparent); background:color-mix(in srgb, var(--color-danger) 9%, var(--main-2)); margin-bottom:1.25rem; }
-.warning-card > i { color:var(--color-danger); font-size:1.35rem; }
-.warning-card p, .mfa-required p, .helper { color:var(--font-alt-color); margin:.25rem 0 0; font-size:.84rem; }
-.transfer-form { display:flex; flex-direction:column; gap:.65rem; }
-.transfer-form label { font-size:.85rem; font-weight:600; margin-top:.4rem; }
-.transfer-form .v-button { align-self:flex-start; margin-top:.8rem; }
-.code-input { max-width:190px; letter-spacing:.18em; font-variant-numeric:tabular-nums; }
-.member-search { display:flex; gap:.55rem; }.member-search .v-input { flex:1; min-width:0; }
+.ownership-page {
+    max-width: 620px;
+}
+
+.warning-card,
+.mfa-required {
+    display: flex;
+    gap: 0.9rem;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    color: var(--text-primary);
+    background-color: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-lg);
+}
+
+.mfa-required {
+    flex-direction: column;
+    gap: 0;
+    background-color: var(--color-warning-soft);
+    border-color: var(--color-warning-border);
+}
+
+.warning-card > i {
+    color: var(--color-danger);
+    font-size: var(--font-size-xl);
+}
+
+.warning-card p,
+.mfa-required p,
+.helper {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.helper {
+    color: var(--text-tertiary);
+}
+
+.transfer-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.transfer-form label {
+    margin-top: 0.4rem;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.transfer-form .v-button {
+    align-self: flex-start;
+    margin-top: 0.8rem;
+}
+
+.code-input {
+    max-width: 190px;
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.18em;
+}
+
+.member-search {
+    display: flex;
+    gap: 0.55rem;
+}
+
+.member-search .v-input {
+    flex: 1;
+    min-width: 0;
+}

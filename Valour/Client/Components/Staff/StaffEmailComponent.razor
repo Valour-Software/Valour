@@ -1,12 +1,12 @@
 @inject StaffService StaffService
 
-<div class="verify-user-container">
-    <h5>Send Mass Email</h5>
-    <p class="verify-user-help">
+<div class="staff-email">
+    <h5>Send mass email</h5>
+    <p class="staff-email-help">
         Send an email to all verified users. This action cannot be undone.
     </p>
 
-    <div style="display: flex; flex-direction: column; gap: 0.5em;">
+    <div class="staff-email-form">
         <input class="v-input"
                placeholder="Subject"
                @bind-value="_subject" />
@@ -17,13 +17,13 @@
         <button class="v-btn primary"
                 disabled="@_isSubmitting"
                 @onclick="OnSendClicked">
-            Send to All Verified Users
+            Send to all verified users
         </button>
     </div>
 
     @if (_result is not null)
     {
-        <span class="@(_result.Success ? "text-info" : "text-danger")" style="margin-top: 0.5em; display: block;">@_result.Message</span>
+        <span class="staff-email-result @(_result.Success ? "text-info" : "text-danger")">@_result.Message</span>
     }
 </div>
 

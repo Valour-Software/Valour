@@ -4,19 +4,20 @@
 }
 
 .success-icon {
-    font-size: var(--font-size-6xl);
+    font-size: var(--font-size-5xl);
     color: var(--color-success);
     margin-bottom: 0.5rem;
 }
 
 .success-section h4 {
     margin: 0 0 0.5rem 0;
-    color: var(--font-color);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
 }
 
 .warning-text {
     color: var(--color-warning);
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
     margin: 0;
 }
 

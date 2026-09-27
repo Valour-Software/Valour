@@ -1,124 +1,179 @@
-@using System.Text
 @using Valour.Client.Messages
 @inherits ComponentBase
 
 @if (PlanetInfo is not null)
 {
-    <div class="planet-info-display @(IsFullPage ? "full-page" : "")">
-        <div class="planet-info-header">
-            <div class="planet-icon-section">
-                <div class="planet-icon-container">
-                    @if (!string.IsNullOrWhiteSpace(_iconText))
-                    {
-                        <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
-                        <div class="icon-text-overlay">
-                            <span class="icon-text" style="font-size:@GetShortCodeFontSize(_iconText.Length)">
-                                @_iconText
-                            </span>
-                        </div>
-                    }
-                    else
-                    {
-                        <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
-                    }
+    <div class="planet-info-display @(IsFullPage ? "full-page" : null)">
+        <section class="planet-hero">
+            <div class="planet-hero-sky" aria-hidden="true">
+                @if (_backgroundUrl is not null)
+                {
+                    <img class="planet-hero-background" src="@_backgroundUrl" alt="" />
+                }
+                else
+                {
+                    <NebulaSky Seed="@_seed" Intensity="1.3" Scale="1.6" FocusX="0.72" FocusY="0.42" Spread="0.55" />
+                }
+                <div class="planet-hero-globe">
+                    <PlanetGlobe Seed="@_seed" Lights="@_lights" Radius="0.34" CenterX="0.5" CenterY="0.5" />
                 </div>
+                <div class="planet-hero-scrim"></div>
             </div>
-            
-            <div class="planet-details">
-                <h1 class="planet-title">@PlanetInfo.Name</h1>
-                <div class="planet-stats">
-                    <div class="stat-item">
-                        <i class="bi bi-people-fill"></i>
-                        <span class="stat-value">@PlanetInfo.MemberCount.ToString("N0")</span>
-                        <span class="stat-label">Members</span>
-                    </div>
-                    @if (PlanetInfo.Nsfw)
-                    {
-                        <div class="stat-item nsfw">
-                            <i class="bi bi-exclamation-octagon-fill"></i>
-                            <span class="stat-label">NSFW</span>
-                        </div>
-                    }
-                    <div class="stat-item">
-                        <i class="bi bi-tags-fill"></i>
-                        <span class="stat-value">@_tagSlugs.Count</span>
-                        <span class="stat-label">Tags</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="planet-content">
-            @if (!string.IsNullOrWhiteSpace(PlanetInfo.Description))
-            {
-                <div class="planet-description">
-                    <h3 class="section-title">About</h3>
-                    <div class="description-text">
+
+            <div class="planet-hero-content">
+                <span class="planet-hero-eyebrow">@_palette &middot; @PlanetInfo.Name</span>
+
+                @if (PlanetInfo.HasCustomIcon)
+                {
+                    <img class="planet-hero-icon" src="@_iconUrl" alt="@PlanetInfo.Name" />
+                }
+
+                <h1 class="planet-hero-name">@PlanetInfo.Name</h1>
+
+                @if (_showDescriptionInHero)
+                {
+                    <div class="planet-hero-description">
                         @((MarkupString)MarkdownManager.GetHtml(PlanetInfo.Description))
                     </div>
+                }
+
+                @if (Notices is not null)
+                {
+                    <div class="planet-hero-notices">
+                        @Notices
+                    </div>
+                }
+
+                @if (Actions is not null)
+                {
+                    <div class="planet-hero-actions">
+                        @Actions
+                    </div>
+                }
+            </div>
+        </section>
+
+        <div class="planet-stats">
+            <div class="planet-stat @(_showActive ? null : "wide")"
+                 title="@(_isCommunityHosted ? $"As reported by {PlanetInfo.NodeDomain}, not verified by Valour" : null)">
+                <span class="planet-stat-value">@PlanetInfo.MemberCount.ToString("N0")</span>
+                <span class="planet-stat-label">@(PlanetInfo.MemberCount == 1 ? "member" : "members")</span>
+            </div>
+
+            @if (_showActive)
+            {
+                <div class="planet-stat">
+                    <span class="planet-stat-value">
+                        @if (PlanetInfo.ActiveCount > 0)
+                        {
+                            <span class="planet-stat-dot"></span>
+                        }
+                        @PlanetInfo.ActiveCount.ToString("N0")
+                    </span>
+                    <span class="planet-stat-label">active right now</span>
                 </div>
             }
-            
-            @if (_tagSlugs.Count > 0)
+
+            @if (_tagNames.Count > 0 || PlanetInfo.Nsfw || _isCommunityHosted)
             {
-                <div class="planet-tags-section">
-                    <h3 class="section-title">Tags</h3>
-                    <div class="tags-container">
-                        @foreach (var tag in _tagSlugs)
+                <div class="planet-stat tags">
+                    <div class="planet-chips">
+                        @if (PlanetInfo.Nsfw)
                         {
-                            <ValourPill Text="@tag.ToUpper()"
-                                        Variant="soft"
-                                        Tone="accent" />
+                            <span class="planet-chip danger">NSFW</span>
+                        }
+                        @if (_isCommunityHosted)
+                        {
+                            <span class="planet-chip warning" title="@($"Hosted by {PlanetInfo.NodeDomain}, not by Valour")">Community-hosted</span>
+                        }
+                        @foreach (var tag in _tagNames)
+                        {
+                            <span class="planet-chip">@tag</span>
                         }
                     </div>
                 </div>
             }
         </div>
+
+        @if (_showAboutSection)
+        {
+            <section class="planet-about">
+                <h3 class="planet-about-label">About</h3>
+                <div class="planet-about-text">
+                    @((MarkupString)MarkdownManager.GetHtml(PlanetInfo.Description))
+                </div>
+            </section>
+        }
     </div>
 }
 @code {
+    /// <summary>
+    /// Descriptions up to this length on a single line are shown in the hero.
+    /// Longer ones get their own section on a solid surface, because a sky must
+    /// not sit behind dense text.
+    /// </summary>
+    private const int HeroDescriptionLimit = 280;
+
     [Parameter] public ISharedPlanetListInfo PlanetInfo { get; set; }
     [Parameter] public bool IsFullPage { get; set; } = false;
 
+    /// <summary>
+    /// Buttons shown in the hero under the description.
+    /// </summary>
+    [Parameter] public RenderFragment Actions { get; set; }
+
+    /// <summary>
+    /// Warnings and status text shown in the hero above the actions.
+    /// </summary>
+    [Parameter] public RenderFragment Notices { get; set; }
+
+    private string _seed;
+    private string _palette;
+    private double _lights;
+    private string _backgroundUrl;
     private string _iconUrl;
-    private string _iconText = string.Empty;
-    private readonly List<string> _tagSlugs = new();
-    
+    private bool _isCommunityHosted;
+    private bool _showActive;
+    private bool _showDescriptionInHero;
+    private bool _showAboutSection;
+    private readonly List<string> _tagNames = new();
+
     protected override void OnParametersSet()
     {
-        _iconText = string.Empty;
-
         if (PlanetInfo is null)
             return;
 
+        _seed = PlanetInfo.PlanetId.ToString();
+        _palette = NebulaPalettes.PaletteFor(_seed);
+        _showActive = PlanetInfo.ActiveCount >= 0;
+        _lights = _showActive
+            ? PlanetGlobe.LightsFor(PlanetInfo.MemberCount, PlanetInfo.ActiveCount)
+            : 0.6;
+        _backgroundUrl = PlanetInfo.HasCustomBackground
+            ? ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp)
+            : null;
         _iconUrl = PlanetInfo.HasAnimatedIcon
             ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
             : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
-        
-        if (!PlanetInfo.HasCustomIcon)
-        {
-            _iconText = ISharedPlanet.GetCommunityShortCode(PlanetInfo);
-        }
+        _isCommunityHosted = !string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain);
 
+        var description = PlanetInfo.Description?.Trim() ?? string.Empty;
+        var hasDescription = description.Length > 0;
+        _showDescriptionInHero = hasDescription &&
+                                 description.Length <= HeroDescriptionLimit &&
+                                 !description.Contains('\n');
+        _showAboutSection = hasDescription && !_showDescriptionInHero;
+
+        _tagNames.Clear();
         var tags = PlanetInfo.GetTagsGeneric();
+        if (tags is null)
+            return;
 
-        _tagSlugs.Clear();
-        if (tags != null && tags.Count > 0)
+        foreach (var tag in tags.Take(10))
         {
-            // Use the pre-loaded tags
-            foreach (var tag in tags.Take(10))
-            {
-                if (!string.IsNullOrWhiteSpace(tag.Slug) && !_tagSlugs.Contains(tag.Slug))
-                    _tagSlugs.Add(tag.Slug);
-            }
+            var name = string.IsNullOrWhiteSpace(tag.Name) ? tag.Slug : tag.Name;
+            if (!string.IsNullOrWhiteSpace(name) && !_tagNames.Contains(name))
+                _tagNames.Add(name);
         }
     }
-    
-    private static string GetShortCodeFontSize(int length) => length switch
-    {
-        <= 2 => "2.2em",
-        3 => "1.55em",
-        4 => "1.18em",
-        _ => "1em"
-    };
 }
