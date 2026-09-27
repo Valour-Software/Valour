@@ -1,20 +1,34 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
 
 namespace Valour.WindowsLauncher;
 
+/// <summary>
+/// Downloads the latest Windows app archive from GitHub releases, installs it
+/// under %LocalAppData%\Valour\Launcher\app, and starts it. The launcher also
+/// keeps a copy of itself at a fixed path so the app can restart through it to
+/// apply updates.
+/// </summary>
 internal static class Program
 {
     private const string LatestReleaseApiUrl = "https://api.github.com/repos/Valour-Software/Valour/releases/latest";
-    private const string ReleaseAssetName = "Valour-full.zip";
-    private const string ReleaseExecutableName = "Valour-full.exe";
-    private const string LatestTagFileName = "latest-release-tag.txt";
-    private static readonly byte[] PayloadMarker = Encoding.ASCII.GetBytes("VALOURP1");
+    private const string AppArchiveAssetName = "Valour-windows-x64.zip";
+    private const string AppExecutableName = "Valour.exe";
+    private const string InstalledMarkerFileName = ".installed";
+    private const string CurrentTagFileName = "current-app-tag.txt";
+    private const string InstalledLauncherFileName = "ValourLauncher.exe";
+
+    // Earlier launchers shipped the app inside "Valour-full.exe" and installed
+    // it to versions\<payload hash>. Those launchers are still in use, so the
+    // format is still published, and its installs serve as an offline fallback.
+    private const string LegacyInstallDirectoryName = "versions";
+    private const string LegacyInstalledMarkerFileName = ".payload";
+    private static readonly byte[] LegacyPayloadMarker = Encoding.ASCII.GetBytes("VALOURP1");
+
     private static readonly HttpClient GitHubClient = CreateGitHubClient();
 
     [STAThread]
@@ -72,36 +86,16 @@ internal static class Program
             "Launcher");
         Directory.CreateDirectory(launcherRoot);
 
+        TryInstallLauncherCopy(launcherPath, Path.Combine(launcherRoot, InstalledLauncherFileName));
+
         statusWindow.SetStatus("Checking for updates...");
-        var effectiveLauncherPath = await ResolveLauncherPathAsync(launcherPath, launcherRoot, statusWindow)
-            .ConfigureAwait(false);
-
-        var payloadPath = Path.Combine(launcherRoot, "payload.zip");
-        statusWindow.SetStatus("Preparing application files...", 0);
-
-        var payloadHash = await Task.Run(
-                () => ExtractPayloadToArchive(
-                    effectiveLauncherPath,
-                    payloadPath,
-                    percent => statusWindow.SetStatus("Preparing application files...", percent)))
-            .ConfigureAwait(false);
-
-        var installRoot = Path.Combine(launcherRoot, "versions");
-        var installDir = Path.Combine(installRoot, payloadHash);
-        var appPath = Path.Combine(installDir, "Valour.exe");
-
-        if (!File.Exists(appPath) || !File.Exists(Path.Combine(installDir, ".payload")))
-        {
-            statusWindow.SetStatus("Installing update...");
-            await Task.Run(() => InstallPayload(payloadPath, installDir, payloadHash)).ConfigureAwait(false);
-        }
-
-        CleanupOldInstalls(installRoot, installDir);
+        var appPath = await ResolveAppPathAsync(launcherPath, launcherRoot, statusWindow).ConfigureAwait(false);
 
         statusWindow.SetStatus("Launching Valour...");
         var psi = new ProcessStartInfo(appPath)
         {
-            UseShellExecute = false
+            UseShellExecute = false,
+            WorkingDirectory = Path.GetDirectoryName(appPath)!
         };
 
         foreach (var arg in args)
@@ -113,142 +107,326 @@ internal static class Program
         return 0;
     }
 
-    private static async Task<string> ResolveLauncherPathAsync(
-        string currentLauncherPath,
+    private static async Task<string> ResolveAppPathAsync(
+        string launcherPath,
         string launcherRoot,
-        LauncherStatusWindow? statusWindow)
+        LauncherStatusWindow statusWindow)
     {
-        var releaseRoot = Path.Combine(launcherRoot, "releases");
-        Directory.CreateDirectory(releaseRoot);
-
-        var latestTagPath = Path.Combine(launcherRoot, LatestTagFileName);
-        var fallbackPath = GetFallbackLauncherPath(currentLauncherPath, releaseRoot, latestTagPath);
+        var appRoot = Path.Combine(launcherRoot, "app");
+        Directory.CreateDirectory(appRoot);
+        var currentTagPath = Path.Combine(launcherRoot, CurrentTagFileName);
 
         try
         {
             var latestRelease = await FetchLatestReleaseAssetAsync().ConfigureAwait(false);
             if (latestRelease is null)
             {
-                if (HasEmbeddedPayloadTrailer(fallbackPath))
-                {
-                    statusWindow?.SetStatus("Could not check updates. Launching cached version.");
-                    return fallbackPath;
-                }
-
-                throw new InvalidOperationException("No runnable local version is available.");
+                return FindFallbackAppPath(launcherRoot, appRoot, currentTagPath, "Could not check updates. Launching installed version.", statusWindow);
             }
 
-            var cachedReleasePath = GetReleaseExecutablePath(releaseRoot, latestRelease.Tag);
-            if (File.Exists(cachedReleasePath) && HasEmbeddedPayloadTrailer(cachedReleasePath))
+            var installDir = Path.Combine(appRoot, SanitizePathSegment(latestRelease.Tag));
+            if (!IsInstalled(installDir))
             {
-                TryWriteLatestTag(latestTagPath, latestRelease.Tag);
-                CleanupOldReleaseCaches(releaseRoot, cachedReleasePath);
-                statusWindow?.SetStatus("Already up to date.", 100);
-                return cachedReleasePath;
+                await DownloadAndInstallAsync(latestRelease, launcherPath, appRoot, installDir, statusWindow)
+                    .ConfigureAwait(false);
             }
-
-            if (HasEmbeddedPayloadTrailer(currentLauncherPath) && IsLauncherVersionMatch(currentLauncherPath, latestRelease.Tag))
+            else
             {
-                var seededReleasePath = SeedReleaseCacheFromCurrent(currentLauncherPath, cachedReleasePath);
-                TryWriteLatestTag(latestTagPath, latestRelease.Tag);
-                CleanupOldReleaseCaches(releaseRoot, seededReleasePath);
-                statusWindow?.SetStatus("Local version matches latest. Skipping download.", 100);
-                return seededReleasePath;
+                statusWindow.SetStatus("Already up to date.", 100);
             }
 
-            statusWindow?.SetStatus("Downloading update...", 0);
-            var downloadedPath = await DownloadReleaseExecutableAsync(latestRelease, cachedReleasePath, statusWindow)
-                .ConfigureAwait(false);
-            TryWriteLatestTag(latestTagPath, latestRelease.Tag);
-            CleanupOldReleaseCaches(releaseRoot, downloadedPath);
-            return downloadedPath;
+            TryWriteText(currentTagPath, latestRelease.Tag);
+            CleanupOldInstalls(appRoot, installDir);
+            return Path.Combine(installDir, AppExecutableName);
         }
         catch (Exception ex)
         {
             Debug.WriteLine(ex);
-            if (HasEmbeddedPayloadTrailer(fallbackPath))
+
+            try
             {
-                statusWindow?.SetStatus("Using fallback build.");
-                return fallbackPath;
+                return FindFallbackAppPath(launcherRoot, appRoot, currentTagPath, "Update failed. Launching installed version.", statusWindow);
+            }
+            catch (InvalidOperationException)
+            {
+                // Report the update failure rather than the missing fallback.
             }
 
             throw;
         }
     }
 
-    private static bool IsLauncherVersionMatch(string launcherPath, string releaseTag)
+    private static string FindFallbackAppPath(
+        string launcherRoot,
+        string appRoot,
+        string currentTagPath,
+        string message,
+        LauncherStatusWindow statusWindow)
     {
-        var launcherVersion = TryReadLauncherVersion(launcherPath);
-        if (string.IsNullOrWhiteSpace(launcherVersion))
+        string? fallbackDir = null;
+
+        var currentTag = TryReadText(currentTagPath);
+        if (!string.IsNullOrWhiteSpace(currentTag))
         {
-            return false;
+            var currentDir = Path.Combine(appRoot, SanitizePathSegment(currentTag));
+            if (IsInstalled(currentDir))
+            {
+                fallbackDir = currentDir;
+            }
         }
 
-        var normalizedLocal = NormalizeVersion(launcherVersion);
-        var normalizedRemote = NormalizeVersion(releaseTag);
+        fallbackDir ??= FindNewestInstall(appRoot, InstalledMarkerFileName)
+            ?? FindNewestInstall(Path.Combine(launcherRoot, LegacyInstallDirectoryName), LegacyInstalledMarkerFileName);
 
-        return !string.IsNullOrWhiteSpace(normalizedLocal) &&
-               !string.IsNullOrWhiteSpace(normalizedRemote) &&
-               string.Equals(normalizedLocal, normalizedRemote, StringComparison.OrdinalIgnoreCase);
+        if (fallbackDir is null)
+        {
+            throw new InvalidOperationException("No runnable local version is available.");
+        }
+
+        statusWindow.SetStatus(message);
+        return Path.Combine(fallbackDir, AppExecutableName);
     }
 
-    private static string? TryReadLauncherVersion(string launcherPath)
+    private static string? FindNewestInstall(string root, string markerFileName)
     {
-        try
-        {
-            var versionInfo = FileVersionInfo.GetVersionInfo(launcherPath);
-            return FirstNonEmpty(versionInfo.ProductVersion, versionInfo.FileVersion);
-        }
-        catch
+        if (!Directory.Exists(root))
         {
             return null;
         }
+
+        return Directory
+            .GetDirectories(root)
+            .Where(dir => File.Exists(Path.Combine(dir, markerFileName)) && File.Exists(Path.Combine(dir, AppExecutableName)))
+            .OrderByDescending(dir => File.GetLastWriteTimeUtc(Path.Combine(dir, markerFileName)))
+            .FirstOrDefault();
     }
 
-    private static string FirstNonEmpty(params string?[] values)
+    private static bool IsInstalled(string installDir)
     {
-        foreach (var value in values)
-        {
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                return value.Trim();
-            }
-        }
-
-        return string.Empty;
+        return File.Exists(Path.Combine(installDir, InstalledMarkerFileName)) &&
+               File.Exists(Path.Combine(installDir, AppExecutableName));
     }
 
-    private static string NormalizeVersion(string value)
+    private static async Task DownloadAndInstallAsync(
+        GitHubReleaseAsset releaseAsset,
+        string launcherPath,
+        string appRoot,
+        string installDir,
+        LauncherStatusWindow statusWindow)
     {
-        var trimmed = value.Trim();
-        if (trimmed.StartsWith("v", StringComparison.OrdinalIgnoreCase))
-        {
-            trimmed = trimmed[1..];
-        }
+        var suffix = Guid.NewGuid().ToString("N");
+        var archivePath = Path.Combine(appRoot, ".download-" + suffix + ".zip");
+        var stagingDir = Path.Combine(appRoot, ".staging-" + suffix);
 
-        var separatorIndex = trimmed.IndexOfAny(new[] { '+', '-', ' ' });
-        if (separatorIndex > 0)
+        try
         {
-            trimmed = trimmed[..separatorIndex];
-        }
+            statusWindow.SetStatus("Downloading update...", 0);
+            await DownloadFileAsync(releaseAsset.DownloadUrl, archivePath, statusWindow).ConfigureAwait(false);
 
-        if (Version.TryParse(trimmed, out var parsed))
-        {
-            var parts = new List<int> { parsed.Major, parsed.Minor };
-            if (parsed.Build >= 0)
+            statusWindow.SetStatus("Installing update...");
+            await Task.Run(() => ZipFile.ExtractToDirectory(archivePath, stagingDir, overwriteFiles: true))
+                .ConfigureAwait(false);
+
+            statusWindow.SetStatus("Verifying update...");
+            VerifyAppSignature(Path.Combine(stagingDir, AppExecutableName), launcherPath);
+
+            File.WriteAllText(Path.Combine(stagingDir, InstalledMarkerFileName), releaseAsset.Tag);
+
+            if (IsInstalled(installDir))
             {
-                parts.Add(parsed.Build);
+                return;
             }
 
-            if (parsed.Revision >= 0)
+            if (Directory.Exists(installDir))
             {
-                parts.Add(parsed.Revision);
+                DeleteInstall(installDir);
             }
 
-            return string.Join('.', parts);
+            Directory.Move(stagingDir, installDir);
+        }
+        catch when (IsInstalled(installDir))
+        {
+            // Another launcher instance finished installing the same release.
+        }
+        finally
+        {
+            TryDeleteFile(archivePath);
+            if (Directory.Exists(stagingDir))
+            {
+                TryDeleteDirectory(stagingDir);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Requires the downloaded app to carry a valid Authenticode signature from
+    /// the same publisher that signed this launcher. Unsigned development builds
+    /// of the launcher skip the check.
+    /// </summary>
+    private static void VerifyAppSignature(string appPath, string launcherPath)
+    {
+        if (!File.Exists(appPath))
+        {
+            throw new InvalidDataException("Downloaded update does not contain Valour.exe.");
         }
 
-        return trimmed;
+        var expectedPublisher = Authenticode.TryGetSignerSubject(launcherPath);
+        if (expectedPublisher is null)
+        {
+            return;
+        }
+
+        if (!Authenticode.IsSignatureValid(appPath))
+        {
+            throw new InvalidDataException("Downloaded update is not validly signed.");
+        }
+
+        var actualPublisher = Authenticode.TryGetSignerSubject(appPath);
+        if (!string.Equals(actualPublisher, expectedPublisher, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException($"Downloaded update is signed by an unexpected publisher: {actualPublisher}");
+        }
+    }
+
+    private static async Task DownloadFileAsync(string url, string destinationPath, LauncherStatusWindow statusWindow)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var response = await GitHubClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        var totalBytes = response.Content.Headers.ContentLength;
+
+        await using var downloadStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+        await using var destinationStream = File.Create(destinationPath);
+
+        var buffer = new byte[1024 * 128];
+        long downloaded = 0;
+        var lastPercent = -1;
+
+        while (true)
+        {
+            var read = await downloadStream.ReadAsync(buffer.AsMemory(0, buffer.Length)).ConfigureAwait(false);
+            if (read <= 0)
+            {
+                break;
+            }
+
+            await destinationStream.WriteAsync(buffer.AsMemory(0, read)).ConfigureAwait(false);
+            downloaded += read;
+
+            if (totalBytes is > 0)
+            {
+                var percent = Math.Clamp((int)(downloaded * 100 / totalBytes.Value), 0, 100);
+                if (percent != lastPercent)
+                {
+                    statusWindow.SetStatus("Downloading update...", percent);
+                    lastPercent = percent;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Copies this launcher to a fixed path that the app uses to restart for
+    /// updates. When running from a legacy "Valour-full.exe", only the signed
+    /// launcher portion is copied, which leaves an intact signature.
+    /// </summary>
+    private static void TryInstallLauncherCopy(string launcherPath, string installedLauncherPath)
+    {
+        try
+        {
+            if (string.Equals(
+                    Path.GetFullPath(launcherPath),
+                    Path.GetFullPath(installedLauncherPath),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            using var source = File.OpenRead(launcherPath);
+            var launcherLength = GetLauncherImageLength(source);
+
+            if (File.Exists(installedLauncherPath) &&
+                new FileInfo(installedLauncherPath).Length == launcherLength &&
+                FileVersionInfo.GetVersionInfo(installedLauncherPath).ProductVersion ==
+                FileVersionInfo.GetVersionInfo(launcherPath).ProductVersion)
+            {
+                return;
+            }
+
+            var tempPath = installedLauncherPath + ".tmp-" + Guid.NewGuid().ToString("N");
+            try
+            {
+                source.Seek(0, SeekOrigin.Begin);
+                using (var destination = File.Create(tempPath))
+                {
+                    CopyBytes(source, destination, launcherLength);
+                }
+
+                File.Move(tempPath, installedLauncherPath, overwrite: true);
+            }
+            finally
+            {
+                TryDeleteFile(tempPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            // The app falls back to other update paths when no launcher copy exists.
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Returns the length of the launcher executable, excluding any legacy app
+    /// payload that was appended to it.
+    /// </summary>
+    private static long GetLauncherImageLength(Stream stream)
+    {
+        var signedLength = Authenticode.GetSignedImageLength(stream);
+        if (signedLength is not null)
+        {
+            return signedLength.Value;
+        }
+
+        var trailerLength = sizeof(long) + LegacyPayloadMarker.Length;
+        if (stream.Length <= trailerLength)
+        {
+            return stream.Length;
+        }
+
+        var trailer = new byte[trailerLength];
+        stream.Seek(-trailerLength, SeekOrigin.End);
+        stream.ReadExactly(trailer);
+        if (!trailer.AsSpan(sizeof(long)).SequenceEqual(LegacyPayloadMarker))
+        {
+            return stream.Length;
+        }
+
+        var payloadLength = BitConverter.ToInt64(trailer, 0);
+        if (payloadLength <= 0 || payloadLength > stream.Length - trailerLength)
+        {
+            return stream.Length;
+        }
+
+        return stream.Length - trailerLength - payloadLength;
+    }
+
+    private static void CopyBytes(Stream source, Stream destination, long count)
+    {
+        var buffer = new byte[1024 * 1024];
+        var remaining = count;
+        while (remaining > 0)
+        {
+            var read = source.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+            if (read <= 0)
+            {
+                throw new EndOfStreamException("Unexpected end of launcher data.");
+            }
+
+            destination.Write(buffer, 0, read);
+            remaining -= read;
+        }
     }
 
     private static string GetFailureMessage(Exception ex)
@@ -264,45 +442,6 @@ internal static class Program
         }
 
         return "Failed to start Valour.";
-    }
-
-    private static string SeedReleaseCacheFromCurrent(string currentLauncherPath, string cachedReleasePath)
-    {
-        try
-        {
-            var releaseDir = Path.GetDirectoryName(cachedReleasePath)
-                ?? throw new InvalidOperationException("Release cache path is invalid.");
-            Directory.CreateDirectory(releaseDir);
-
-            File.Copy(currentLauncherPath, cachedReleasePath, overwrite: true);
-            return HasEmbeddedPayloadTrailer(cachedReleasePath)
-                ? cachedReleasePath
-                : currentLauncherPath;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex);
-            return currentLauncherPath;
-        }
-    }
-
-    private static string GetFallbackLauncherPath(string currentLauncherPath, string releaseRoot, string latestTagPath)
-    {
-        if (HasEmbeddedPayloadTrailer(currentLauncherPath))
-        {
-            return currentLauncherPath;
-        }
-
-        var latestTag = TryReadLatestTag(latestTagPath);
-        if (string.IsNullOrWhiteSpace(latestTag))
-        {
-            return currentLauncherPath;
-        }
-
-        var cachedPath = GetReleaseExecutablePath(releaseRoot, latestTag);
-        return File.Exists(cachedPath) && HasEmbeddedPayloadTrailer(cachedPath)
-            ? cachedPath
-            : currentLauncherPath;
     }
 
     private static async Task<GitHubReleaseAsset?> FetchLatestReleaseAssetAsync()
@@ -337,13 +476,8 @@ internal static class Program
 
         foreach (var asset in assetsElement.EnumerateArray())
         {
-            if (!asset.TryGetProperty("name", out var nameElement))
-            {
-                continue;
-            }
-
-            var name = nameElement.GetString();
-            if (!string.Equals(name, ReleaseAssetName, StringComparison.OrdinalIgnoreCase))
+            if (!asset.TryGetProperty("name", out var nameElement) ||
+                !string.Equals(nameElement.GetString(), AppArchiveAssetName, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -359,233 +493,58 @@ internal static class Program
                 continue;
             }
 
-            return new GitHubReleaseAsset(tag, name, downloadUrl);
+            return new GitHubReleaseAsset(tag, downloadUrl);
         }
 
         return null;
     }
 
-    private static async Task<string> DownloadReleaseExecutableAsync(
-        GitHubReleaseAsset releaseAsset,
-        string destinationPath,
-        LauncherStatusWindow? statusWindow)
+    private static HttpClient CreateGitHubClient()
     {
-        var destinationDir = Path.GetDirectoryName(destinationPath)
-            ?? throw new InvalidOperationException("Release destination directory is invalid.");
-
-        Directory.CreateDirectory(destinationDir);
-
-        var tempPath = destinationPath + ".download-" + Guid.NewGuid().ToString("N");
-        try
+        // Responses are read with ResponseHeadersRead, so the timeout bounds
+        // reaching GitHub but not the length of a download.
+        var client = new HttpClient
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, releaseAsset.DownloadUrl);
-            using var response = await GitHubClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
+            Timeout = TimeSpan.FromSeconds(12)
+        };
 
-            var totalBytes = response.Content.Headers.ContentLength;
-            if (totalBytes is null or <= 0)
-            {
-                statusWindow?.SetStatus("Downloading update...");
-            }
-
-            await using (var downloadStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-            await using (var destinationStream = File.Create(tempPath))
-            {
-                var buffer = new byte[1024 * 128];
-                long downloaded = 0;
-                var lastPercent = -1;
-
-                while (true)
-                {
-                    var read = await downloadStream.ReadAsync(buffer.AsMemory(0, buffer.Length)).ConfigureAwait(false);
-                    if (read <= 0)
-                    {
-                        break;
-                    }
-
-                    await destinationStream.WriteAsync(buffer.AsMemory(0, read)).ConfigureAwait(false);
-                    downloaded += read;
-
-                    if (totalBytes is > 0)
-                    {
-                        var percent = (int)(downloaded * 100 / totalBytes.Value);
-                        percent = Math.Clamp(percent, 0, 100);
-                        if (percent != lastPercent)
-                        {
-                            statusWindow?.SetStatus("Downloading update...", percent);
-                            lastPercent = percent;
-                        }
-                    }
-                }
-            }
-
-            statusWindow?.SetStatus("Verifying update...");
-            var extractedExecutablePath = tempPath + ".exe";
-            if (releaseAsset.IsZipAsset)
-            {
-                ExtractReleaseExecutableFromArchive(tempPath, extractedExecutablePath);
-            }
-            else
-            {
-                File.Move(tempPath, extractedExecutablePath, overwrite: true);
-            }
-
-            if (!HasEmbeddedPayloadTrailer(extractedExecutablePath))
-            {
-                throw new InvalidDataException("Downloaded release asset does not contain a valid launcher payload.");
-            }
-
-            File.Move(extractedExecutablePath, destinationPath, overwrite: true);
-            return destinationPath;
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                try
-                {
-                    File.Delete(tempPath);
-                }
-                catch
-                {
-                    // Ignore temporary cleanup failures.
-                }
-            }
-
-            var extractedExecutablePath = tempPath + ".exe";
-            if (File.Exists(extractedExecutablePath))
-            {
-                try
-                {
-                    File.Delete(extractedExecutablePath);
-                }
-                catch
-                {
-                    // Ignore temporary cleanup failures.
-                }
-            }
-        }
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ValourLauncher", "1.0"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        return client;
     }
 
-    private static string GetReleaseExecutablePath(string releaseRoot, string tag)
+    private static void CleanupOldInstalls(string appRoot, string currentInstallDir)
     {
-        return Path.Combine(releaseRoot, SanitizePathSegment(tag), ReleaseExecutableName);
-    }
-
-    private static void ExtractReleaseExecutableFromArchive(string archivePath, string destinationPath)
-    {
-        using var archive = ZipFile.OpenRead(archivePath);
-
-        ZipArchiveEntry? executableEntry = null;
-        foreach (var entry in archive.Entries)
+        foreach (var dir in Directory.GetDirectories(appRoot))
         {
-            if (string.IsNullOrWhiteSpace(entry.Name))
-            {
-                continue;
-            }
-
-            if (string.Equals(entry.Name, ReleaseExecutableName, StringComparison.OrdinalIgnoreCase))
-            {
-                executableEntry = entry;
-                break;
-            }
-        }
-
-        if (executableEntry is null)
-        {
-            throw new InvalidDataException("Downloaded release archive does not contain a launcher executable.");
-        }
-
-        var destinationDir = Path.GetDirectoryName(destinationPath);
-        if (!string.IsNullOrWhiteSpace(destinationDir))
-        {
-            Directory.CreateDirectory(destinationDir);
-        }
-
-        using var entryStream = executableEntry.Open();
-        using var destinationStream = File.Create(destinationPath);
-        entryStream.CopyTo(destinationStream);
-    }
-
-    private static void CleanupOldReleaseCaches(string releaseRoot, string currentReleaseExecutablePath)
-    {
-        if (!Directory.Exists(releaseRoot))
-        {
-            return;
-        }
-
-        var currentReleaseDir = Path.GetDirectoryName(currentReleaseExecutablePath);
-        if (string.IsNullOrWhiteSpace(currentReleaseDir))
-        {
-            return;
-        }
-
-        var normalizedReleaseRoot = NormalizePath(releaseRoot);
-        var normalizedCurrentDir = NormalizePath(currentReleaseDir);
-        if (!IsPathWithinRoot(normalizedCurrentDir, normalizedReleaseRoot))
-        {
-            return;
-        }
-
-        foreach (var dir in Directory.GetDirectories(releaseRoot))
-        {
-            if (string.Equals(dir, currentReleaseDir, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(dir, currentInstallDir, StringComparison.OrdinalIgnoreCase) ||
+                Path.GetFileName(dir).StartsWith(".staging-", StringComparison.Ordinal))
             {
                 continue;
             }
 
             try
             {
-                Directory.Delete(dir, recursive: true);
+                DeleteInstall(dir);
             }
             catch
             {
-                // Ignore cleanup failures (usually locked files from active process).
+                // Ignore cleanup failures (usually locked files from an exiting app).
             }
         }
     }
 
-    private static string NormalizePath(string path)
+    private static void DeleteInstall(string installDir)
     {
-        return Path
-            .GetFullPath(path)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-    }
-
-    private static bool IsPathWithinRoot(string candidatePath, string rootPath)
-    {
-        return string.Equals(candidatePath, rootPath, StringComparison.OrdinalIgnoreCase) ||
-               candidatePath.StartsWith(rootPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string? TryReadLatestTag(string latestTagPath)
-    {
-        try
+        // Remove the marker first so a partially deleted install is never
+        // chosen as a fallback.
+        var markerPath = Path.Combine(installDir, InstalledMarkerFileName);
+        if (File.Exists(markerPath))
         {
-            if (!File.Exists(latestTagPath))
-            {
-                return null;
-            }
+            File.Delete(markerPath);
+        }
 
-            var value = File.ReadAllText(latestTagPath).Trim();
-            return string.IsNullOrWhiteSpace(value) ? null : value;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static void TryWriteLatestTag(string latestTagPath, string tag)
-    {
-        try
-        {
-            File.WriteAllText(latestTagPath, tag.Trim());
-        }
-        catch
-        {
-            // Ignore state write failures.
-        }
+        Directory.Delete(installDir, recursive: true);
     }
 
     private static string SanitizePathSegment(string value)
@@ -601,181 +560,62 @@ internal static class Program
         return builder.Length == 0 ? "unknown" : builder.ToString();
     }
 
-    private static bool HasEmbeddedPayloadTrailer(string launcherPath)
+    private static string? TryReadText(string path)
     {
         try
         {
-            using var launcherStream = File.Open(launcherPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            var trailerLength = sizeof(long) + PayloadMarker.Length;
-            if (launcherStream.Length <= trailerLength)
+            if (!File.Exists(path))
             {
-                return false;
+                return null;
             }
 
-            var markerBuffer = new byte[PayloadMarker.Length];
-            launcherStream.Seek(-PayloadMarker.Length, SeekOrigin.End);
-            ReadExactly(launcherStream, markerBuffer);
-            if (!markerBuffer.AsSpan().SequenceEqual(PayloadMarker))
-            {
-                return false;
-            }
-
-            var lengthBuffer = new byte[sizeof(long)];
-            launcherStream.Seek(-trailerLength, SeekOrigin.End);
-            ReadExactly(launcherStream, lengthBuffer);
-            var payloadLength = BitConverter.ToInt64(lengthBuffer, 0);
-            return payloadLength > 0 && payloadLength <= launcherStream.Length - trailerLength;
+            var value = File.ReadAllText(path).Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
         }
         catch
         {
-            return false;
+            return null;
         }
     }
 
-    private static HttpClient CreateGitHubClient()
+    private static void TryWriteText(string path, string value)
     {
-        var client = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(12)
-        };
-
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ValourLauncher", "1.0"));
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-        return client;
-    }
-
-    private static string ExtractPayloadToArchive(string launcherPath, string payloadOutputPath, Action<int>? progress)
-    {
-        using var launcherStream = File.OpenRead(launcherPath);
-        var trailerLength = sizeof(long) + PayloadMarker.Length;
-        if (launcherStream.Length <= trailerLength)
-        {
-            throw new InvalidDataException("Launcher payload trailer is missing.");
-        }
-
-        var markerBuffer = new byte[PayloadMarker.Length];
-        launcherStream.Seek(-PayloadMarker.Length, SeekOrigin.End);
-        ReadExactly(launcherStream, markerBuffer);
-        if (!markerBuffer.AsSpan().SequenceEqual(PayloadMarker))
-        {
-            throw new InvalidDataException("Launcher payload marker not found.");
-        }
-
-        var lengthBuffer = new byte[sizeof(long)];
-        launcherStream.Seek(-trailerLength, SeekOrigin.End);
-        ReadExactly(launcherStream, lengthBuffer);
-        var payloadLength = BitConverter.ToInt64(lengthBuffer, 0);
-        if (payloadLength <= 0 || payloadLength > launcherStream.Length - trailerLength)
-        {
-            throw new InvalidDataException("Launcher payload length is invalid.");
-        }
-
-        var payloadStart = launcherStream.Length - trailerLength - payloadLength;
-        launcherStream.Seek(payloadStart, SeekOrigin.Begin);
-
-        using var payloadStream = File.Create(payloadOutputPath);
-        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        var buffer = new byte[1024 * 1024];
-        long remaining = payloadLength;
-        var lastPercent = -1;
-
-        while (remaining > 0)
-        {
-            var toRead = (int)Math.Min(buffer.Length, remaining);
-            var read = launcherStream.Read(buffer, 0, toRead);
-            if (read <= 0)
-            {
-                throw new EndOfStreamException("Unexpected end of payload data.");
-            }
-
-            payloadStream.Write(buffer, 0, read);
-            hasher.AppendData(buffer, 0, read);
-            remaining -= read;
-
-            var extracted = payloadLength - remaining;
-            var percent = (int)(extracted * 100 / payloadLength);
-            percent = Math.Clamp(percent, 0, 100);
-            if (percent != lastPercent)
-            {
-                progress?.Invoke(percent);
-                lastPercent = percent;
-            }
-        }
-
-        progress?.Invoke(100);
-        return Convert.ToHexString(hasher.GetHashAndReset());
-    }
-
-    private static void InstallPayload(string payloadPath, string installDir, string payloadHash)
-    {
-        var tempDir = installDir + ".tmp-" + Guid.NewGuid().ToString("N");
-        Directory.CreateDirectory(tempDir);
-
         try
         {
-            ZipFile.ExtractToDirectory(payloadPath, tempDir, overwriteFiles: true);
-            File.WriteAllText(Path.Combine(tempDir, ".payload"), payloadHash);
-
-            if (Directory.Exists(installDir))
-            {
-                Directory.Delete(installDir, recursive: true);
-            }
-
-            Directory.Move(tempDir, installDir);
+            File.WriteAllText(path, value.Trim());
         }
         catch
         {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
-
-            throw;
+            // Ignore state write failures.
         }
     }
 
-    private static void CleanupOldInstalls(string installRoot, string currentInstallDir)
+    private static void TryDeleteFile(string path)
     {
-        if (!Directory.Exists(installRoot))
+        try
         {
-            return;
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
         }
-
-        foreach (var dir in Directory.GetDirectories(installRoot))
+        catch
         {
-            if (string.Equals(dir, currentInstallDir, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            try
-            {
-                Directory.Delete(dir, recursive: true);
-            }
-            catch
-            {
-                // Ignore cleanup failures (usually locked files from active process).
-            }
+            // Ignore temporary cleanup failures.
         }
     }
 
-    private static void ReadExactly(Stream stream, byte[] buffer)
+    private static void TryDeleteDirectory(string path)
     {
-        var offset = 0;
-        while (offset < buffer.Length)
+        try
         {
-            var read = stream.Read(buffer, offset, buffer.Length - offset);
-            if (read <= 0)
-            {
-                throw new EndOfStreamException("Unexpected end of stream.");
-            }
-
-            offset += read;
+            Directory.Delete(path, recursive: true);
+        }
+        catch
+        {
+            // Ignore temporary cleanup failures.
         }
     }
 
-    private sealed record GitHubReleaseAsset(string Tag, string Name, string DownloadUrl)
-    {
-        public bool IsZipAsset => Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
-    }
+    private sealed record GitHubReleaseAsset(string Tag, string DownloadUrl);
 }

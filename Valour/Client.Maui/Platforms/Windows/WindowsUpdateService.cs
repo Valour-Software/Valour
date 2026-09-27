@@ -11,8 +11,13 @@ namespace Valour.Client.Maui;
 /// </summary>
 public sealed class WindowsUpdateService : INativeUpdateService
 {
-    private const string ReleaseExecutableName = "Valour-full.exe";
-    private const string LatestTagFileName = "latest-release-tag.txt";
+    private const string InstalledLauncherFileName = "ValourLauncher.exe";
+
+    // Launchers from before 0.9.9 cache the app inside "Valour-full.exe"
+    // instead of installing a launcher copy. Running that file starts the
+    // current launcher code, which then installs its own copy.
+    private const string LegacyReleaseExecutableName = "Valour-full.exe";
+    private const string LegacyLatestTagFileName = "latest-release-tag.txt";
 
     public string CurrentVersion => AppInfo.Current.VersionString;
 
@@ -67,9 +72,14 @@ public sealed class WindowsUpdateService : INativeUpdateService
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Valour",
                 "Launcher");
+
+            var installedLauncher = Path.Combine(launcherRoot, InstalledLauncherFileName);
+            if (File.Exists(installedLauncher))
+                return installedLauncher;
+
             var releasesRoot = Path.Combine(launcherRoot, "releases");
 
-            var latestTagPath = Path.Combine(launcherRoot, LatestTagFileName);
+            var latestTagPath = Path.Combine(launcherRoot, LegacyLatestTagFileName);
             if (File.Exists(latestTagPath))
             {
                 var latestTag = File.ReadAllText(latestTagPath).Trim();
@@ -78,7 +88,7 @@ public sealed class WindowsUpdateService : INativeUpdateService
                     var taggedLauncher = Path.Combine(
                         releasesRoot,
                         SanitizePathSegment(latestTag),
-                        ReleaseExecutableName);
+                        LegacyReleaseExecutableName);
                     if (File.Exists(taggedLauncher))
                         return taggedLauncher;
                 }
@@ -88,7 +98,7 @@ public sealed class WindowsUpdateService : INativeUpdateService
                 return null;
 
             return Directory
-                .EnumerateFiles(releasesRoot, ReleaseExecutableName, SearchOption.AllDirectories)
+                .EnumerateFiles(releasesRoot, LegacyReleaseExecutableName, SearchOption.AllDirectories)
                 .OrderByDescending(File.GetLastWriteTimeUtc)
                 .FirstOrDefault();
         }

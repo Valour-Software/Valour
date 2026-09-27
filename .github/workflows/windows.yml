@@ -29,7 +29,7 @@ jobs:
         # shared with other platform workflows, and a failed run must not block
         # rebuilding the same version after a fix is pushed.
         ASSETS=$(gh release view "v$CURRENT" --json assets -q '.assets[].name' 2>/dev/null || true)
-        if echo "$ASSETS" | grep -qx 'Valour-full.zip' && echo "$ASSETS" | grep -qx 'ValourLauncher.exe'; then
+        if echo "$ASSETS" | grep -qx 'Valour-windows-x64.zip' && echo "$ASSETS" | grep -qx 'Valour-full.zip' && echo "$ASSETS" | grep -qx 'ValourLauncher.exe'; then
           echo "Release v$CURRENT already has Windows assets, skipping build"
           echo "changed=false" >> $GITHUB_OUTPUT
         else
@@ -109,9 +109,22 @@ jobs:
           throw "Launcher icon was not found."
         }
 
-    - name: Create payload archive
+    - name: Sign app executable
+      uses: sslcom/esigner-codesign@develop
+      with:
+        command: sign
+        username: ${{ secrets.ES_USERNAME }}
+        password: ${{ secrets.ES_PASSWORD }}
+        credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+        totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+        file_path: ${{ github.workspace }}/artifacts/windows/Valour.exe
+        override: true
+
+    # The launcher refuses to install an app archive whose Valour.exe is not
+    # signed by the launcher's own publisher.
+    - name: Create app archive
       shell: pwsh
-      run: Compress-Archive -Path ./artifacts/windows/* -DestinationPath ./artifacts/valour-payload.zip -Force
+      run: Compress-Archive -Path ./artifacts/windows/* -DestinationPath ./artifacts/Valour-windows-x64.zip -Force
 
     - name: Publish launcher
       run: >
@@ -122,12 +135,6 @@ jobs:
         -p:InformationalVersion=v${{ needs.check-version.outputs.version }}
         -o ./artifacts/launcher
 
-    # Signing must happen BEFORE the payload is appended: the launcher locates its
-    # payload via a trailer at the very end of the file, and Authenticode places the
-    # certificate table there too. Signing first keeps the trailer last, and the
-    # signature remains valid because Authenticode excludes data appended after the
-    # certificate table. Both ValourLauncher.exe and Valour-full.exe are copies of
-    # this signed binary, so one signing covers both release artifacts.
     - name: Sign launcher executable
       uses: sslcom/esigner-codesign@develop
       with:
@@ -139,26 +146,20 @@ jobs:
         file_path: ${{ github.workspace }}/artifacts/launcher/Valour.exe
         override: true
 
-    - name: Verify signature
+    - name: Create release files
       shell: pwsh
       run: |
-        $sig = Get-AuthenticodeSignature -FilePath "./artifacts/launcher/Valour.exe"
-        Write-Host "Signature status: $($sig.Status)"
-        Write-Host "Signer: $($sig.SignerCertificate.Subject)"
-        if ($sig.Status -ne "Valid") {
-          throw "Launcher executable is not validly signed: $($sig.StatusMessage)"
-        }
+        Copy-Item ./artifacts/launcher/Valour.exe ./artifacts/ValourLauncher.exe -Force
 
-    - name: Build release executable
-      shell: pwsh
-      run: |
-        $launcherPath = Join-Path $PWD "artifacts/launcher/Valour.exe"
-        $payloadPath = Join-Path $PWD "artifacts/valour-payload.zip"
-        $launcherOutputPath = Join-Path $PWD "artifacts/ValourLauncher.exe"
+        # Launchers from before 0.9.9 download Valour-full.zip, which holds the
+        # launcher with the app archive appended, followed by the payload length
+        # and a "VALOURP1" marker. Appending data after signing invalidates the
+        # launcher's signature on this file. Those launchers only extract the
+        # payload and never run this file, and the Valour.exe inside the payload
+        # is signed. Newer launchers use Valour-windows-x64.zip instead.
         $outputPath = Join-Path $PWD "artifacts/Valour-full.exe"
-
-        Copy-Item $launcherPath $launcherOutputPath -Force
-        Copy-Item $launcherPath $outputPath -Force
+        $payloadPath = Join-Path $PWD "artifacts/Valour-windows-x64.zip"
+        Copy-Item ./artifacts/launcher/Valour.exe $outputPath -Force
 
         $payloadLength = (Get-Item $payloadPath).Length
         $lengthBytes = [System.BitConverter]::GetBytes([Int64]$payloadLength)
@@ -172,19 +173,21 @@ jobs:
         $payloadStream.Dispose()
         $outStream.Dispose()
 
-        if (!(Test-Path $outputPath)) {
-          throw "Final full release executable was not created."
-        }
-        if (!(Test-Path $launcherOutputPath)) {
-          throw "Final launcher executable was not created."
-        }
+        Compress-Archive -Path $outputPath -DestinationPath ./artifacts/Valour-full.zip -Force
 
-    - name: Zip full release executable
+    # Check the files exactly as they are uploaded, after all packaging steps.
+    - name: Verify signatures
       shell: pwsh
       run: |
-        Compress-Archive -Path ./artifacts/Valour-full.exe -DestinationPath ./artifacts/Valour-full.zip -Force
-        if (!(Test-Path "./artifacts/Valour-full.zip")) {
-          throw "Final full release archive was not created."
+        $verifyDir = "./artifacts/verify"
+        Expand-Archive ./artifacts/Valour-windows-x64.zip -DestinationPath $verifyDir -Force
+
+        foreach ($path in @("./artifacts/ValourLauncher.exe", "$verifyDir/Valour.exe")) {
+          $sig = Get-AuthenticodeSignature -FilePath $path
+          Write-Host "${path}: $($sig.Status) ($($sig.SignerCertificate.Subject))"
+          if ($sig.Status -ne "Valid") {
+            throw "$path is not validly signed: $($sig.StatusMessage)"
+          }
         }
 
     - name: Create or update GitHub Release
@@ -193,6 +196,7 @@ jobs:
         tag_name: v${{ needs.check-version.outputs.version }}
         name: Valour v${{ needs.check-version.outputs.version }}
         files: |
+          ./artifacts/Valour-windows-x64.zip
           ./artifacts/Valour-full.zip
           ./artifacts/ValourLauncher.exe
       env:
