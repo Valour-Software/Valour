@@ -44,12 +44,16 @@
 
 .h-topic {
     min-width: 0;
-    padding-left: 12px;
     overflow: hidden;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     font-size: var(--font-size-sm);
     white-space: nowrap;
     text-overflow: ellipsis;
+}
+
+.h-title + .h-topic {
+    padding-left: 12px;
+    color: var(--text-tertiary);
     border-left: 1px solid var(--line-strong);
 }
 

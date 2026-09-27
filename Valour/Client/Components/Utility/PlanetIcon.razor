@@ -1,4 +1,5 @@
 @* Circular planet icon. Planets without a custom icon show their generated globe. *@
+@implements IDisposable
 
 @if (Planet is null)
 {
@@ -48,13 +49,46 @@
 
     private string _iconUrl;
     private string _seed;
+    private Planet _observed;
 
     protected override void OnParametersSet()
     {
+        if (!ReferenceEquals(_observed, Planet))
+        {
+            if (_observed is not null)
+                _observed.Updated -= OnPlanetUpdated;
+
+            _observed = Planet;
+
+            if (_observed is not null)
+                _observed.Updated += OnPlanetUpdated;
+        }
+
         if (Planet is null)
             return;
 
-        _seed = Planet.Id.ToString();
+        _seed = NebulaPalettes.WorldSeed(Planet);
         _iconUrl = Planet.HasCustomIcon ? Planet.GetIconUrl(Format) : null;
+    }
+
+    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData)
+    {
+        if (eventData.Changes is not null && !eventData.Changes.On(x => x.WorldVariant))
+            return;
+
+        _ = InvokeAsync(() =>
+        {
+            if (Planet is null)
+                return;
+
+            _seed = NebulaPalettes.WorldSeed(Planet);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_observed is not null)
+            _observed.Updated -= OnPlanetUpdated;
     }
 }

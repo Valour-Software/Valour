@@ -5,10 +5,14 @@
     <div class="h-left">
         @if (!string.IsNullOrWhiteSpace(Channel?.Name))
         {
-            <div class="h-title">
-                <i class="bi @(Channel.PlanetId is null ? "bi-at" : "bi-chat-left")" aria-hidden="true"></i>
-                <span class="h-name">@Channel.Name</span>
-            </div>
+            @* On desktop the window's tab already shows the channel name *@
+            @if (DeviceInfo.IsMobile)
+            {
+                <div class="h-title">
+                    <i class="bi @(Channel.PlanetId is null ? "bi-at" : "bi-chat-left")" aria-hidden="true"></i>
+                    <span class="h-name">@Channel.Name</span>
+                </div>
+            }
             @if (!string.IsNullOrWhiteSpace(Channel.Description))
             {
                 <span class="h-topic">@Channel.Description</span>

@@ -38,6 +38,7 @@ public static class PlanetMapper
             Vanity = planet.Vanity,
             VanityInviteEnabled = planet.VanityInviteEnabled,
             ActivityNotificationCadence = planet.ActivityNotificationCadence,
+            WorldVariant = planet.WorldVariant,
             EncryptionMode = planet.EncryptionMode,
             EncryptionSharesHistory = planet.EncryptionSharesHistory,
             Tags = planet.Tags?.Select(x => x.ToModel()).ToList() ?? new ()
@@ -72,6 +73,7 @@ public static class PlanetMapper
         dbPlanet.PublicWiki = planet.PublicWiki;
         dbPlanet.EnableCalendar = planet.EnableCalendar;
         dbPlanet.ActivityNotificationCadence = planet.ActivityNotificationCadence;
+        dbPlanet.WorldVariant = planet.WorldVariant;
         dbPlanet.VanityInviteEnabled = planet.VanityInviteEnabled;
         // Encryption settings are also not copied: they change only through
         // PlanetEncryptionService, which enforces their one-way rules.

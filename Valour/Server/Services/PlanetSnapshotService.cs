@@ -140,6 +140,7 @@ public class PlanetSnapshotService
                 PublicWiki = planet.PublicWiki,
                 Vanity = planet.Vanity,
                 Version = planet.Version,
+                WorldVariant = planet.WorldVariant,
                 TagIds = tagIds,
                 EncryptionMode = planet.EncryptionMode,
                 EncryptionSharesHistory = planet.EncryptionSharesHistory,
@@ -418,7 +419,7 @@ public class PlanetSnapshotService
                 SelfHostedVoice = p.SelfHostedVoice,
                 EnableThreads = p.EnableThreads, PublicThreads = p.PublicThreads,
                 PinnedThreadId = p.PinnedThreadId, EnableWiki = p.EnableWiki, EnableVillage = p.EnableVillage, PublicWiki = p.PublicWiki,
-                Vanity = p.Vanity, Version = p.Version, IsDeleted = false,
+                Vanity = p.Vanity, Version = p.Version, WorldVariant = p.WorldVariant, IsDeleted = false,
                 Tags = tags, EncryptionMode = p.EncryptionMode, EncryptionSharesHistory = p.EncryptionSharesHistory,
             });
 

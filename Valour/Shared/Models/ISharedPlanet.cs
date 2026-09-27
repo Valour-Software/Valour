@@ -167,6 +167,13 @@ public interface ISharedPlanet : ISharedModel<long>
     /// </summary>
     ChannelActivityCadence ActivityNotificationCadence { get; set; }
     
+    /// <summary>
+    /// Selects which generated world (sky, globe, and planet light) the planet
+    /// shows. 0 is the world derived from the id alone; regenerating the planet
+    /// in its settings picks another value.
+    /// </summary>
+    byte WorldVariant { get; set; }
+
     private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
     {
         { IconFormat.Webp64, "64.webp" },

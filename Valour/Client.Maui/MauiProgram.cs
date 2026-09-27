@@ -23,6 +23,13 @@ public static class MauiProgram
     {
         SentryGate.IsEnabled = ReadLocalErrorReportingPreference();
 
+#if WINDOWS
+        // WebView2 paints white until the page draws. Starting it on the app's canvas
+        // color means the window goes straight from ink to the loading scene. The
+        // value is AARRGGBB and must be set before any WebView2 is created.
+        Environment.SetEnvironmentVariable("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF0A0D12");
+#endif
+
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
@@ -57,6 +64,7 @@ public static class MauiProgram
             webView.Settings.MediaPlaybackRequiresUserGesture = false;
             webView.Settings.SetSupportMultipleWindows(true);
             webView.SetWebChromeClient(new AudioPermissionChromeClient());
+            webView.SetBackgroundColor(MainActivity.InkColor);
 
             // This mapping runs after MAUI installs its own WebViewClient, so we
             // can wrap it to recover when Android kills the WebView renderer

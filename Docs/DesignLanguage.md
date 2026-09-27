@@ -166,7 +166,7 @@ field is computed in a Web Worker at reduced resolution, so it does not block th
 interface. If workers are unavailable, it is computed on the main thread in slices
 of a few milliseconds.
 
-Skies are deterministic. The `Seed` parameter (a planet's id for planet skies)
+Skies are deterministic. The `Seed` parameter (a planet's world seed for planet skies)
 decides the shape, and the palette decides the colors. Finished skies are cached per
 seed, palette, and size for the session, and sizes snap to 64-pixel steps so small
 layout changes reuse the cache.
@@ -201,13 +201,26 @@ generator is in [planet.js](../Valour/Client/wwwroot/js/planet.js).
 
 ### How a planet is derived
 
-Nothing about a planet is stored. `planetGenome` derives it from the planet's id, so
-the same planet looks the same on every device and no two planets are alike:
+Only one small number about a planet's appearance is stored: its world variant.
+`planetGenome` derives everything else from a seed built from the planet's id and
+that variant, so the same planet looks the same on every device and no two planets
+are alike. `NebulaPalettes.WorldSeed` builds the seed. Variant 0 is the original
+world and uses the id alone; other variants append `~` and the variant number, as
+in `12215159187308544~3`. Every place that draws a planet, its sky, or its planet
+light uses this seed, so they change together.
+
+People with the Manage permission can pick a different world in the planet's Info
+settings. Regenerate previews the next variant, cycling from 1 to 255, and Reset to
+original returns to variant 0. Nothing changes until they save, which goes through
+the ordinary planet update. Open clients receive the change as a planet update and
+redraw the globe, sky, and icon.
+
+The seed decides:
 
 - **Kind of world.** One of seven: continents, ocean, desert, gas giant, ice, bare
   rock, or lava. Gas giants and continents are the most common.
 - **Colors.** The planet uses the same palette as its sky (see
-  [Palettes](#palettes)), turned by an offset taken from the id, so the planet
+  [Palettes](#palettes)), turned by an offset taken from the seed, so the planet
   and its sky belong together without planets sharing a color scheme. Hues
   between yellow-green and green are pushed aside because they turn muddy at low
   saturation.
@@ -235,7 +248,7 @@ sunlight; lighting from behind leaves a crescent with the night side facing you.
 
 A planet renders into a transparent layer, so it can sit over any sky or image. The
 work runs in the same Web Worker as the skies ([sky-jobs.js](../Valour/Client/wwwroot/js/sky-jobs.js)),
-and finished planets are cached by id, radius, and light level. Light levels are
+and finished planets are cached by seed, radius, and light level. Light levels are
 rounded to tenths so that small changes in the active count reuse the cache.
 
 Server-rendered pages and C# code that need a planet's colors, such as its planet

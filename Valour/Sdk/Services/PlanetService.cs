@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
@@ -1013,6 +1014,29 @@ public class PlanetService : ServiceBase
 
     public Task<TaskResult> SavePlanetListLayoutAsync(SavePlanetListLayoutRequest request) =>
         _client.PrimaryNode.PostAsync("api/users/me/planet-list-layout", request);
+
+    /// <summary>
+    /// Changes which generated world the planet shows, through the ordinary
+    /// planet update. The request carries the cached planet with only the
+    /// variant replaced, and the response is synchronized into the cache, so
+    /// the planet's Updated event reports the change even before the realtime
+    /// update arrives.
+    /// </summary>
+    public async Task<TaskResult<Planet>> SetWorldVariantAsync(Planet planet, byte worldVariant)
+    {
+        var node = planet.Node;
+        if (node is null)
+            return TaskResult<Planet>.FromFailure("The planet's node is unavailable. Reconnect and try again.");
+
+        var body = JsonSerializer.SerializeToNode(planet, JsonSerializerOptions.Web)!.AsObject();
+        body["worldVariant"] = worldVariant;
+
+        var result = await node.PutAsyncWithResponse<Planet>(planet.IdRoute, body);
+        if (!result.Success || result.Data is null)
+            return result;
+
+        return TaskResult<Planet>.FromData(result.Data.Sync(_client));
+    }
 
     public async Task<TaskResult> SetVanityAsync(Planet planet, string name)
     {

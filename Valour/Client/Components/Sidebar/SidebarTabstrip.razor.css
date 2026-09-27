@@ -32,7 +32,6 @@
 
 .mobile .tabstrip {
     min-height: 50px;
-    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .tabstrip .item {
@@ -74,15 +73,15 @@
 
 .tabstrip .icon-holder .notif-badge {
     position: absolute;
-    top: 2px;
-    right: -11px;
+    top: 3px;
+    left: calc(50% + 4px);
     z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
+    min-width: 10px;
+    height: 14px;
+    padding: 0 3px;
     background-color: var(--color-primary);
     border: 2px solid var(--surface-canvas);
     border-radius: var(--radius-full);
@@ -92,7 +91,7 @@
 .tabstrip .icon-holder .notif-badge span {
     color: var(--color-primary-contrast);
     font-family: var(--font-family-mono);
-    font-size: 10px;
+    font-size: 9px;
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-none);
 }

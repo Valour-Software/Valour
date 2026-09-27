@@ -10,6 +10,7 @@ public class NebulaPaletteTests
     [InlineData("12215159187308544", 1317615479u, "tarantula")]
     [InlineData("47213464583929856", 3563017055u, "tarantula")]
     [InlineData("planet-7", 3238120247u, "veil")]
+    [InlineData("12215159187308544~1", 1301529070u, "eagle")]
     [InlineData("", 2166136261u, "orion")]
     public void MatchesTheJavaScriptPalettes(string seed, uint hash, string palette)
     {
@@ -20,7 +21,24 @@ public class NebulaPaletteTests
     [Fact]
     public void PlanetIdsUseTheirDecimalForm()
     {
-        Assert.Equal(NebulaPalettes.PaletteFor("12215159187308544"), NebulaPalettes.PaletteFor(12215159187308544L));
+        Assert.Equal(NebulaPalettes.PaletteFor("12215159187308544"), NebulaPalettes.PaletteFor(12215159187308544L, 0));
+    }
+
+    [Fact]
+    public void TheOriginalWorldIsSeededByTheIdAlone()
+    {
+        Assert.Equal("12215159187308544", NebulaPalettes.WorldSeed(12215159187308544L, 0));
+        Assert.Equal("12215159187308544~1", NebulaPalettes.WorldSeed(12215159187308544L, 1));
+        Assert.Equal("12215159187308544~255", NebulaPalettes.WorldSeed(12215159187308544L, 255));
+        Assert.Equal(NebulaPalettes.PlanetLight("12215159187308544~1"), NebulaPalettes.PlanetLight(12215159187308544L, 1));
+    }
+
+    [Fact]
+    public void RegeneratingCyclesWithoutReturningToTheOriginal()
+    {
+        Assert.Equal(1, NebulaPalettes.NextWorldVariant(0));
+        Assert.Equal(2, NebulaPalettes.NextWorldVariant(1));
+        Assert.Equal(1, NebulaPalettes.NextWorldVariant(255));
     }
 
     [Fact]

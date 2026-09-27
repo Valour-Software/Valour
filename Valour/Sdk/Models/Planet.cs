@@ -319,6 +319,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public ChannelActivityCadence ActivityNotificationCadence { get; set; } = ChannelActivityCadence.Standard;
 
+    /// <summary>
+    /// Selects which generated world the planet shows. 0 is the world derived from the id alone.
+    /// </summary>
+    public byte WorldVariant { get; set; }
+
     public List<PlanetTag> Tags { get; set; }
 
     internal void SetMyMember(PlanetMember member)

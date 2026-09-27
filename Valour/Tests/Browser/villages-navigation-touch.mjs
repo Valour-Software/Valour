@@ -10,13 +10,14 @@ page.on('pageerror',error=>errors.push(error.message));
 await page.route('http://navigation-touch.test/**',async route=>{
  const path=new URL(route.request().url()).pathname;
  if(path==='/sidebar.js')return route.fulfill({contentType:'text/javascript',body:await readFile(resolve(import.meta.dirname,'../../Client/Components/Sidebar/Sidebar.razor.js'))});
+ if(path==='/context-press.js')return route.fulfill({contentType:'text/javascript',body:await readFile(resolve(import.meta.dirname,'../../Client/wwwroot/js/contextPressEvent.js'))});
  assert.equal(path,'/');
- await route.fulfill({contentType:'text/html',body:'<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;min-height:100vh}canvas{display:block;width:320px;height:240px;touch-action:none}aside{position:fixed;inset:0 auto 0 0;width:100vw;transform:translateX(-100%);background:#182431}button{position:absolute;top:500px;left:0;width:44px;height:44px}</style><canvas></canvas><button class="sidebar-toggle">Menu</button><aside id="sidebar"></aside>'});
+ await route.fulfill({contentType:'text/html',body:`<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;min-height:100vh}.mainrow{position:fixed;inset:0}canvas{display:block;width:320px;height:240px;touch-action:none}aside{position:fixed;inset:0 auto 0 0;width:100vw;transform:translateX(-100%);background:#182431;z-index:2}button{position:absolute;top:500px;left:0;width:44px;height:44px}#code{position:absolute;top:250px;left:100px;width:200px;height:60px;margin:0;overflow-x:auto}#chat{position:absolute;top:390px;left:0;width:100%;height:100px;overflow-y:auto}#message{height:600px}#editor{position:absolute;top:560px;left:0;width:100%;height:40px}#modal{display:none;position:fixed;inset:0;z-index:3}</style><div class="mobile"><div class="mainrow"><canvas></canvas><button class="sidebar-toggle">Menu</button><pre id="code">${'code '.repeat(80)}</pre><div id="chat"><div id="message">message</div></div><div id="editor" contenteditable="true"></div><aside id="sidebar"></aside></div><div id="modal"></div></div><script src="/context-press.js"></script>`});
 });
 const record=name=>{checks.push(name);console.log(`PASS ${name}`);};
 try{
  await page.goto('http://navigation-touch.test/');
- await page.evaluate(async()=>{const {init}=await import('/sidebar.js');window.opened=0;window.sidebarRuntime=init({invokeMethodAsync:async()=>window.opened++},'sidebar');});
+ await page.evaluate(async()=>{const {init}=await import('/sidebar.js');window.opened=0;window.sidebarRuntime=init({invokeMethodAsync:async()=>window.opened++},'sidebar');window.presses=0;window.clicks=0;const message=document.getElementById('message');message.addEventListener('contextpress',()=>window.presses++);message.addEventListener('click',()=>window.clicks++);});
  const cdp=await context.newCDPSession(page);
  const swipe=async(x1,y1,x2,y2)=>{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:x1,y:y1,id:1}]});
@@ -24,6 +25,44 @@ try{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(60);
  };
  const isOpen=()=>page.locator('aside').getAttribute('data-mobile-open');
+ const slowSwipe=async(x1,y1,x2,y2)=>{
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:x1,y:y1,id:1}]});
+  for(let i=1;i<=6;i++){await page.waitForTimeout(100);await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x1+(x2-x1)*i/6,y:y1+(y2-y1)*i/6,id:1}]});}
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(80);
+ };
+ const counts=()=>page.evaluate(()=>({presses:window.presses,clicks:window.clicks}));
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:150,y:440,id:1}]});
+ await page.waitForTimeout(600);
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(80);
+ assert.equal((await counts()).presses,1);
+ const heldClicks=(await counts()).clicks;
+ await page.touchscreen.tap(150,440);await page.waitForTimeout(80);
+ assert.deepEqual(await counts(),{presses:1,clicks:heldClicks+1});
+ record('A held message still long-presses and a tap still clicks');
+ await slowSwipe(150,470,330,440);
+ assert.equal(await isOpen(),'true');
+ assert.deepEqual(await counts(),{presses:1,clicks:heldClicks+1});
+ assert.equal(await page.evaluate(()=>document.getElementById('chat').scrollTop),0);
+ await swipe(385,350,220,350);assert.equal(await isOpen(),'false');
+ record('A slow rightward swipe from mid-screen opens without a long press, click or chat scroll');
+ await swipe(300,440,150,440);assert.equal(await isOpen(),'false');
+ assert.equal(await page.locator('aside').evaluate(element=>element.style.transform),'');
+ await swipe(150,400,250,480);assert.equal(await isOpen(),'false');
+ record('Leftward and diagonal swipes on messages leave the sidebar alone');
+ await page.evaluate(()=>{document.getElementById('code').scrollLeft=60;});
+ await swipe(200,280,340,280);assert.equal(await isOpen(),'false');
+ assert.ok(await page.evaluate(()=>document.getElementById('code').scrollLeft)<60);
+ await page.evaluate(()=>{document.getElementById('code').scrollLeft=0;});
+ await swipe(200,280,340,280);assert.equal(await isOpen(),'true');
+ await swipe(385,350,220,350);assert.equal(await isOpen(),'false');
+ record('A horizontal scroller keeps rightward swipes until it reaches its start');
+ await swipe(150,580,330,580);assert.equal(await isOpen(),'false');
+ await page.evaluate(()=>{document.getElementById('modal').style.display='block';});
+ await swipe(150,350,330,350);assert.equal(await isOpen(),'false');
+ await page.evaluate(()=>{document.getElementById('modal').style.display='';document.querySelector('.mobile').classList.remove('mobile');});
+ await swipe(150,350,330,350);assert.equal(await isOpen(),'false');
+ await page.evaluate(()=>{document.querySelector('div').classList.add('mobile');});
+ record('Editable text, overlays and the desktop layout do not start the swipe');
  await swipe(5,350,150,350);assert.equal(await isOpen(),'true');
  assert.equal(await page.locator('.sidebar-toggle').getAttribute('aria-expanded'),'true');
  await swipe(385,350,220,350);assert.equal(await isOpen(),'false');

@@ -1,3 +1,5 @@
+using Valour.Shared.Models;
+
 namespace Valour.Client.Utility;
 
 /// <summary>
@@ -13,6 +15,25 @@ public static class NebulaPalettes
     /// </summary>
     public static readonly string[] PlanetPalettes =
         ["carina", "eagle", "rosette", "crab", "helix", "veil", "lagoon", "orion", "tarantula"];
+
+    /// <summary>
+    /// The seed a planet's sky, globe, and planet light are generated from. The
+    /// original world (variant 0) is seeded by the id alone, so planets that were
+    /// never regenerated keep the world they always had.
+    /// </summary>
+    public static string WorldSeed(long planetId, byte worldVariant) =>
+        worldVariant == 0 ? planetId.ToString() : $"{planetId}~{worldVariant}";
+
+    public static string WorldSeed(ISharedPlanet planet) => WorldSeed(planet.Id, planet.WorldVariant);
+
+    public static string WorldSeed(ISharedPlanetListInfo planet) => WorldSeed(planet.PlanetId, planet.WorldVariant);
+
+    /// <summary>
+    /// The variant that regenerating a planet moves to. It cycles through 1 to
+    /// 255 and never returns to the original world, which is chosen explicitly.
+    /// </summary>
+    public static byte NextWorldVariant(byte worldVariant) =>
+        worldVariant == byte.MaxValue ? (byte)1 : (byte)(worldVariant + 1);
 
     /// <summary>
     /// FNV-1a over the UTF-16 code units of the seed, matching hashSeed in nebula.js.
@@ -32,7 +53,8 @@ public static class NebulaPalettes
     public static string PaletteFor(string seed) =>
         PlanetPalettes[HashSeed(seed) % (uint)PlanetPalettes.Length];
 
-    public static string PaletteFor(long planetId) => PaletteFor(planetId.ToString());
+    public static string PaletteFor(long planetId, byte worldVariant) =>
+        PaletteFor(WorldSeed(planetId, worldVariant));
 
     /// <summary>
     /// OKLCH hues for each palette as [outer envelope, body, bright core],
@@ -58,5 +80,6 @@ public static class NebulaPalettes
     /// </summary>
     public static string PlanetLight(string seed) => $"oklch(0.82 0.1 {Hues[PaletteFor(seed)][2]})";
 
-    public static string PlanetLight(long planetId) => PlanetLight(planetId.ToString());
+    public static string PlanetLight(long planetId, byte worldVariant) =>
+        PlanetLight(WorldSeed(planetId, worldVariant));
 }

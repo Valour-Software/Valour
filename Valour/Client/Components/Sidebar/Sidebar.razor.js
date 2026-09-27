@@ -1,5 +1,22 @@
 const disposers = new Set();
 
+// Horizontal travel that claims a swipe, and how strongly it must dominate vertical travel
+const lockDistance = 12;
+const lockRatio = 1.5;
+const ignoredTargets = 'canvas, input, textarea, select, button, [role="button"], [contenteditable]:not([contenteditable="false"]), .video-fullscreen-backdrop';
+
+// True when the element or an ancestor can still scroll horizontally in the direction a swipe
+// would move its content, so the swipe belongs to that scroller instead of the sidebar
+const canScrollX = (element, fingerDirection) => {
+    for (let node = element; node && node.nodeType === 1; node = node.parentElement) {
+        if (node.scrollWidth <= node.clientWidth + 1) continue;
+        const overflow = getComputedStyle(node).overflowX;
+        if (overflow !== 'auto' && overflow !== 'scroll') continue;
+        if (fingerDirection > 0 ? node.scrollLeft > 0 : node.scrollLeft + node.clientWidth < node.scrollWidth - 1) return true;
+    }
+    return false;
+};
+
 export function init(ref, id) {
     const sidebar = document.getElementById(id);
     if (!sidebar) return null;
@@ -26,10 +43,17 @@ export function init(ref, id) {
     };
     const onTouchStart = (event) => {
         if (gesture) cancelGesture();
-        if (event.touches.length !== 1 || event.target.closest?.('canvas, input, textarea, select, button, [role="button"]')) return;
+        const target = event.target;
+        if (event.touches.length !== 1 || !target?.closest || !sidebar.closest('.mobile')) return;
         const touch = event.touches[0];
         const width = sidebar.getBoundingClientRect().width;
-        if ((!open && touch.clientX > 24) || (open && touch.clientX < width - 80)) return;
+        if (open) {
+            if (touch.clientX < width - 80 || target.closest(ignoredTargets) || canScrollX(target, -1)) return;
+        } else {
+            // Opening starts anywhere in the main layout, which excludes modals, menus and popups above it
+            const layout = sidebar.closest('.mainrow') ?? document.body;
+            if (!layout.contains(target) || target.closest(ignoredTargets) || canScrollX(target, 1)) return;
+        }
         gesture = { id: touch.identifier, x: touch.clientX, y: touch.clientY, width, offset: open ? 0 : -width, dragging: false };
     };
     const onTouchMove = (event) => {
@@ -39,8 +63,10 @@ export function init(ref, id) {
         if (!touch) return cancelGesture();
         const dx = touch.clientX - gesture.x, dy = touch.clientY - gesture.y;
         if (!gesture.dragging) {
-            if (Math.abs(dy) > Math.abs(dx)) return cancelGesture();
-            if (Math.abs(dx) < 8) return;
+            const distanceX = Math.abs(dx), distanceY = Math.abs(dy);
+            if (distanceX <= lockDistance && distanceY <= lockDistance) return;
+            const towardToggle = open ? dx < 0 : dx > 0;
+            if (event.defaultPrevented || !towardToggle || distanceX < distanceY * lockRatio) return cancelGesture();
             gesture.dragging = true;
             sidebar.style.transition = 'none';
         }
@@ -53,8 +79,11 @@ export function init(ref, id) {
         const touch = [...event.changedTouches].find(item => item.identifier === gesture.id);
         if (!touch) return;
         const dx = touch.clientX - gesture.x;
-        const nextOpen = gesture.dragging && Math.abs(dx) >= Math.min(80, gesture.width * 0.2) ? dx > 0 : open;
+        const dragged = gesture.dragging;
+        const nextOpen = dragged && Math.abs(dx) >= Math.min(80, gesture.width * 0.2) ? dx > 0 : open;
         gesture = null;
+        // A finished swipe must not also produce a click on whatever was under the finger
+        if (dragged && event.cancelable) event.preventDefault();
         setSidebarOpen(nextOpen);
     };
     const clearInlineTransform = () => {
@@ -79,7 +108,7 @@ export function init(ref, id) {
 
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchend', onTouchEnd, { passive: false });
     window.addEventListener('touchcancel', cancelGesture);
     window.addEventListener('resize', cancelGesture);
     window.toggleSidebar = toggleOpen;

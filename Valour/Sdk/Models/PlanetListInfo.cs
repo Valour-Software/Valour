@@ -84,6 +84,11 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
     public int Version { get; set; }
     
     /// <summary>
+    /// Selects which generated world the planet shows
+    /// </summary>
+    public byte WorldVariant { get; set; }
+
+    /// <summary>
     /// List of tag IDs associated with the planet
     /// </summary>
     public List<long> TagIds { get; set; } = new();
@@ -119,6 +124,7 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
             SelfHostedVoice = planet.SelfHostedVoice,
             Discoverable = planet.Discoverable,
             Version = planet.Version,
+            WorldVariant = planet.WorldVariant,
             TagIds = new List<long>() // Tags are not included in this model
         };
     }

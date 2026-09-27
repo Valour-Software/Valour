@@ -60,6 +60,7 @@ test('palette choices match the values pinned in NebulaPaletteTests', () => {
         ['12215159187308544', 1317615479, 'tarantula'],
         ['47213464583929856', 3563017055, 'tarantula'],
         ['planet-7', 3238120247, 'veil'],
+        ['12215159187308544~1', 1301529070, 'eagle'],
         ['', 2166136261, 'orion']
     ];
     for (const [seed, hash, palette] of vectors) {

@@ -14,12 +14,16 @@ namespace Valour.Client.Maui;
 
 // SingleTop ensures a notification tap reuses the running activity (delivering the
 // payload to OnNewIntent) instead of stacking a second instance.
-[Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop,
+[Activity(Theme = "@style/Valour.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop,
     ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode |
                            ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
     private static bool _notificationTapHooked;
+
+    // The app's canvas color, so the window, system bars and WebView match the
+    // loading scene before it draws.
+    internal static readonly Android.Graphics.Color InkColor = Android.Graphics.Color.ParseColor("#0A0D12");
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
@@ -46,13 +50,21 @@ public class MainActivity : MauiAppCompatActivity
             return;
 
         // The window background shows through transparent system bars
-        Window.DecorView.SetBackgroundColor(Android.Graphics.Color.Black);
+        Window.DecorView.SetBackgroundColor(InkColor);
+
+        // Keep the navigation bar on the canvas color with light icons, instead of
+        // the light contrast scrim Android adds behind three-button navigation.
+        if (OperatingSystem.IsAndroidVersionAtLeast(29))
+            Window.NavigationBarContrastEnforced = false;
+        var insetsController = WindowCompat.GetInsetsController(Window, Window.DecorView);
+        insetsController.AppearanceLightNavigationBars = false;
+        insetsController.AppearanceLightStatusBars = false;
 
         // Pad content away from system bars so they never overlap the app UI
         var content = FindViewById(Android.Resource.Id.Content);
         if (content is not null)
         {
-            content.SetBackgroundColor(Android.Graphics.Color.Black);
+            content.SetBackgroundColor(InkColor);
             ViewCompat.SetOnApplyWindowInsetsListener(content, new SystemBarsPaddingListener());
         }
     }
@@ -165,7 +177,7 @@ public class MainActivity : MauiAppCompatActivity
             if (insets is null)
                 return CreateEmptyInsets();
 
-            view.SetBackgroundColor(Android.Graphics.Color.Black);
+            view.SetBackgroundColor(InkColor);
 
             var bars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
             if (bars is null)

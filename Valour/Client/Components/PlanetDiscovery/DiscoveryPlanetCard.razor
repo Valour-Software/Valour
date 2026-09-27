@@ -78,7 +78,7 @@
 
     protected override void OnParametersSet()
     {
-        _seed = PlanetInfo.PlanetId.ToString();
+        _seed = NebulaPalettes.WorldSeed(PlanetInfo);
         _lights = PlanetInfo.ActiveCount >= 0
             ? PlanetGlobe.LightsFor(PlanetInfo.MemberCount, PlanetInfo.ActiveCount)
             : 0.6;
