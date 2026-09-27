@@ -81,6 +81,11 @@ public class PlanetListInfo : ServerModel<long>, ISharedPlanetListInfo
     public int Version { get; set; }
     
     /// <summary>
+    /// Selects which generated world the planet shows
+    /// </summary>
+    public byte WorldVariant { get; set; }
+
+    /// <summary>
     /// List of full tag objects associated with the planet
     /// </summary>
     public List<PlanetTag> Tags { get; set; } = new();

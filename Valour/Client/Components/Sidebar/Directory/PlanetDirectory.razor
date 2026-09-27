@@ -148,9 +148,10 @@
     protected override async Task OnInitializedAsync()
     {
         Planet.Channels.Changed += OnChannelsChanged;
+        Planet.Updated += OnPlanetUpdated;
         UnreadService.PlanetUnreadChanged += OnPlanetUnreadChanged;
 
-        _seed = Planet.Id.ToString();
+        _seed = NebulaPalettes.WorldSeed(Planet);
         _activeCount = PlanetService.GetActiveCount(Planet.Id);
         _ = LoadMemberCountAsync();
 
@@ -210,6 +211,18 @@
         var insideCategory = string.Equals(zone, "inside", StringComparison.Ordinal);
         var placeBefore = string.Equals(zone, "before", StringComparison.Ordinal);
         await DragManager.MoveChannelAsync(source, destination, placeBefore, insideCategory);
+    }
+
+    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData)
+    {
+        if (eventData.Changes is not null && !eventData.Changes.On(x => x.WorldVariant))
+            return;
+
+        InvokeAsync(() =>
+        {
+            _seed = NebulaPalettes.WorldSeed(Planet);
+            StateHasChanged();
+        });
     }
 
     private void OnPlanetUnreadChanged(long planetId)
@@ -355,6 +368,7 @@
     void IDisposable.Dispose()
     {
         Planet.Channels.Changed -= OnChannelsChanged;
+        Planet.Updated -= OnPlanetUpdated;
         UnreadService.PlanetUnreadChanged -= OnPlanetUnreadChanged;
     }
 

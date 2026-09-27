@@ -142,6 +142,11 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// </summary>
     public ChannelActivityCadence ActivityNotificationCadence { get; set; } = ChannelActivityCadence.Standard;
 
+    /// <summary>
+    /// Selects which generated world the planet shows. 0 is the world derived from the id alone.
+    /// </summary>
+    public byte WorldVariant { get; set; }
+
     public List<PlanetTag> Tags { get; set; } = new();
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>

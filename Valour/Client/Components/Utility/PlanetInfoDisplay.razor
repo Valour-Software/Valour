@@ -146,7 +146,7 @@
         if (PlanetInfo is null)
             return;
 
-        _seed = PlanetInfo.PlanetId.ToString();
+        _seed = NebulaPalettes.WorldSeed(PlanetInfo);
         _showActive = PlanetInfo.ActiveCount >= 0;
         _lights = _showActive
             ? PlanetGlobe.LightsFor(PlanetInfo.MemberCount, PlanetInfo.ActiveCount)

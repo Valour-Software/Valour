@@ -10,6 +10,12 @@ test('a planet id always produces the same genome', () => {
     assert.notDeepEqual(planetGenome('12215159187308544'), planetGenome('12215159187308545'));
 });
 
+test('each world variant of a planet produces a different genome', () => {
+    const variants = ['12215159187308544', ...Array.from({ length: 20 }, (_, i) => `12215159187308544~${i + 1}`)];
+    const signatures = new Set(variants.map(seed => JSON.stringify(planetGenome(seed))));
+    assert.equal(signatures.size, variants.length);
+});
+
 test('genomes cover every kind of world and vary continuously', () => {
     const genomes = ids.map(planetGenome);
     for (const kind of PLANET_KINDS)

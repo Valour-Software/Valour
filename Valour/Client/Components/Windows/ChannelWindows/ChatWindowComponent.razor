@@ -44,7 +44,7 @@
                     {
                         <div class="channel-start">
                             <SkyMoment Pose="SkyMoment.VictorPose.Peeking" Banner="true" Height="150"
-                                       Seed="@(Channel.PlanetId?.ToString() ?? Channel.Id.ToString())"
+                                       Seed="@ChannelStartSeed"
                                        Eyebrow="@ChannelStartEyebrow"
                                        Title="@ChannelStartTitle"
                                        Description="@ChannelStartDescription" />
@@ -139,6 +139,12 @@
     // True once the oldest message of the channel is on screen, so the start of
     // the channel can be shown above it.
     private bool _reachedStart;
+
+    private string ChannelStartSeed => Channel.PlanetId is null
+        ? Channel.Id.ToString()
+        : Channel.Planet is { } planet
+            ? NebulaPalettes.WorldSeed(planet)
+            : Channel.PlanetId.Value.ToString();
 
     private string ChannelStartEyebrow => Channel?.PlanetId is null
         ? "Direct message"

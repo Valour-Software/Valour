@@ -2313,7 +2313,6 @@ blockquote {
 }
 
 .mobile .emoji-mart-wrapper-custom em-emoji-picker {
-    display: block;
     width: 100vw;
     max-width: 100%;
 }

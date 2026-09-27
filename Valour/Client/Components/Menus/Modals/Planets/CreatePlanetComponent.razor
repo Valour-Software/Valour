@@ -206,7 +206,7 @@
 
     private async Task FinishAsync(Planet created)
     {
-     _createdSeed = created.Id.ToString();
+     _createdSeed = NebulaPalettes.WorldSeed(created);
      _createdName = created.Name;
      _showWelcome = true;
      StateHasChanged();

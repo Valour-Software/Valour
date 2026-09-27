@@ -21,7 +21,8 @@
     // switch to pointer events or touch events if using a touch screen
     const mouseDown = 'touchstart';
     const mouseUp = 'touchend';
-    const mouseMove = hasPointerEvents ? 'pointermove' : isTouch ? 'touchmove' : 'mousemove';
+    // touchmove keeps firing while another gesture (such as the sidebar swipe) prevents scrolling
+    const mouseMove = 'touchmove';
     const mouseLeave = hasPointerEvents ? 'pointerleave' : isTouch ? 'touchleave' : 'mouseleave';
 
     // track number of pixels the mouse moves during long press
@@ -29,6 +30,11 @@
     let startY = 0; // mouse y position when timer started
     const maxDiffX = 10; // max number of X pixels the mouse can move during long press before it is canceled
     const maxDiffY = 10; // max number of Y pixels the mouse can move during long press before it is canceled
+
+    // state of the current touch sequence, used to filter the native contextmenu event
+    let touchActive = false;
+    let touchMoved = false;
+    let pressFired = false;
 
     // patch CustomEvent to allow constructor creation (IE/Chrome)
     if (typeof window.CustomEvent !== 'function') {
@@ -194,7 +200,10 @@
         }
         else {
             // start the timer
-            timer = requestTimeout(fireLongPressEvent.bind(el, e), longPressDelayInMs);
+            timer = requestTimeout(function () {
+                pressFired = true;
+                fireLongPressEvent.call(el, e);
+            }, longPressDelayInMs);
         }
     }
 
@@ -225,12 +234,31 @@
      * @returns {void}
      */
     function mouseDownHandler(e) {
-        startX = e.clientX;
-        startY = e.clientY;
+        // a second finger means a pinch or multi-finger gesture, not a long press
+        if (e.touches.length !== 1) {
+            touchMoved = true;
+            clearLongPressTimer(e);
+            return;
+        }
+
+        touchActive = true;
+        touchMoved = false;
+        pressFired = false;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
         startLongPressTimer(e);
+    }
+
+    function touchEndHandler(e) {
+        clearLongPressTimer(e);
+        if (e.touches.length === 0) touchActive = false;
     }
     
     function contextMenuHandler(e) {
+        // Android WebViews report a touch long press as a native contextmenu event too. Ignore it
+        // when the touch moved (a swipe or scroll) or the long press timer already fired for it
+        if ((touchActive || e.pointerType === 'touch') && (touchMoved || pressFired)) return;
+
         startX = e.clientX;
         startY = e.clientY;
         startLongPressTimer(e, true);
@@ -242,12 +270,16 @@
      * @returns {void}
      */
     function mouseMoveHandler(e) {
+        const touch = e.touches[0];
+        if (!touch) return;
+
         // calculate total number of pixels the pointer has moved
-        const diffX = Math.abs(startX - e.clientX);
-        const diffY = Math.abs(startY - e.clientY);
+        const diffX = Math.abs(startX - touch.clientX);
+        const diffY = Math.abs(startY - touch.clientY);
 
         // if pointer has moved more than allowed, cancel the long-press timer and therefore the event
         if (diffX >= maxDiffX || diffY >= maxDiffY) {
+            touchMoved = true;
             clearLongPressTimer(e);
         }
     }
@@ -277,7 +309,8 @@
     }
 
     // hook events that clear a pending long press event
-    document.addEventListener(mouseUp, clearLongPressTimer, true);
+    document.addEventListener(mouseUp, touchEndHandler, true);
+    document.addEventListener('touchcancel', touchEndHandler, true);
     document.addEventListener(mouseLeave, clearLongPressTimer, true);
     document.addEventListener(mouseMove, mouseMoveHandler, true);
     document.addEventListener('wheel', clearLongPressTimer, true);

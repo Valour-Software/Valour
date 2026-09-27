@@ -192,6 +192,10 @@
     background: var(--color-danger-soft);
 }
 
+.message:not(.minimal):not(.reply) + .message:not(.minimal) {
+    margin-top: 14px;
+}
+
 .message.first {
     margin-top: 41px;
 }

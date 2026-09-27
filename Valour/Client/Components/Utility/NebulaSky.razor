@@ -5,8 +5,9 @@
 
 @code {
     /// <summary>
-    /// Makes the sky deterministic. Planets pass their id so each one keeps the
-    /// same sky everywhere it appears.
+    /// Makes the sky deterministic. Planets pass their world seed from
+    /// <see cref="NebulaPalettes.WorldSeed(long, byte)"/> so each one keeps the same
+    /// sky everywhere it appears.
     /// </summary>
     [Parameter]
     public string Seed { get; set; } = "valour";

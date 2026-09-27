@@ -77,5 +77,10 @@ public interface ISharedPlanetListInfo : ISharedModel<long>
     /// </summary>
     int Version { get; set; }
 
+    /// <summary>
+    /// Selects which generated world the planet shows. See <see cref="ISharedPlanet.WorldVariant"/>.
+    /// </summary>
+    byte WorldVariant { get; set; }
+
     public List<ISharedPlanetTag> GetTagsGeneric();
 }

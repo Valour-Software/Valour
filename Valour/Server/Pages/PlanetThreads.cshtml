@@ -50,7 +50,7 @@
     }
 </head>
 <body>
-<div class="pt-page" style="@(Model.Planet is null ? null : $"--planet-light: {NebulaPalettes.PlanetLight(Model.Planet.Id)}")">
+<div class="pt-page" style="@(Model.Planet is null ? null : $"--planet-light: {NebulaPalettes.PlanetLight(Model.Planet.Id, Model.Planet.WorldVariant)}")">
     <header class="pt-topbar">
         <a class="pt-brand" href="/">
             <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>

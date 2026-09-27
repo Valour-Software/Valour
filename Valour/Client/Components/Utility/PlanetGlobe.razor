@@ -5,8 +5,9 @@
 
 @code {
     /// <summary>
-    /// The planet's id. Everything about the world (its kind, colors, surface,
-    /// rings and moons) is derived from it, so a planet looks the same everywhere.
+    /// The planet's world seed from <see cref="NebulaPalettes.WorldSeed(long, byte)"/>.
+    /// Everything about the world (its kind, colors, surface, rings and moons) is
+    /// derived from it, so a planet looks the same everywhere.
     /// </summary>
     [Parameter]
     public string Seed { get; set; }

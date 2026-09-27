@@ -36,7 +36,7 @@ def save(image, size, path):
         resized.save(path, optimize=True)
 
 
-def android_foreground(scale=0.85):
+def android_foreground(scale=1.12):
     parts = json.loads((Path(__file__).parent / "victor-parts.json").read_text())
     face, far, eye_left, eye_right, nose, body, bow_left, bow_knot, bow_right = parts
     x = 512 - CENTER_OF_MASS[0] * scale

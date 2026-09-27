@@ -20,7 +20,7 @@
                         @if (item.Name == "Notifications" && _totalNotifications > 0)
                         {
                             <div class="notif-badge">
-                                <span>@_totalNotifications</span>
+                                <span>@(_totalNotifications > 99 ? "99+" : _totalNotifications)</span>
                             </div>
                         }
                     </div>

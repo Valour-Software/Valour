@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launch window matches the first frame of the loading scene, so the handoff
+     from the system splash to the app has no visible change. -->
+<resources>
+    <color name="valour_ink">#0A0D12</color>
+
+    <style name="Valour.SplashTheme" parent="Maui.SplashTheme">
+        <item name="android:windowBackground">@color/valour_ink</item>
+        <item name="android:statusBarColor">@color/valour_ink</item>
+        <item name="android:navigationBarColor">@color/valour_ink</item>
+    </style>
+</resources>
