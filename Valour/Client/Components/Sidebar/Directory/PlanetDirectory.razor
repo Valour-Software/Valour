@@ -12,7 +12,6 @@
 <div 
     class="@GetCssClass()" 
     id="list-@Planet.Id"
-    style="--planet-light: @NebulaPalettes.PlanetLight(Planet.Id)"
     @oncontextpress="@OnContextPress">
     <div class="header-wrapper" style="cursor:pointer" id="list-inner-@Planet.Id">
         <div @onclick='@OnClick' class="header @(_hasUnread ? "unread" : "")" @ondragover:preventDefault="true">

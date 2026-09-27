@@ -2199,6 +2199,15 @@ blockquote {
     height: 100%;
 }
 
+#boot-scene .boot-flight {
+    opacity: 0;
+    transition: opacity 1.8s var(--ease-standard);
+}
+
+#boot-scene .boot-flight.live {
+    opacity: 1;
+}
+
 #boot-scene .boot-sky {
     opacity: 0;
     transform: scale(calc(1.14 - var(--boot-p) * 0.14));

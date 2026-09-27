@@ -66,7 +66,11 @@ function startFlight(canvas, reducedMotion) {
 function start(root) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const line = root.querySelector('.boot-line');
-    const flight = startFlight(root.querySelector('.boot-flight'), reducedMotion);
+    const flightCanvas = root.querySelector('.boot-flight');
+    const flight = startFlight(flightCanvas, reducedMotion);
+    // The stars fade in from when they start moving, not from the first paint,
+    // which can come well before this script loads on a slow connection.
+    requestAnimationFrame(() => requestAnimationFrame(() => flightCanvas.classList.add('live')));
 
     let sky = null, planet = null;
     try {

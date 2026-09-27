@@ -21,7 +21,10 @@
             </div>
 
             <div class="planet-hero-content">
-                <span class="planet-hero-eyebrow">@_palette &middot; @PlanetInfo.Name</span>
+                @if (_tagNames.Count > 0)
+                {
+                    <span class="planet-hero-eyebrow">@string.Join(" · ", _tagNames.Take(HeroTagCount))</span>
+                }
 
                 @if (PlanetInfo.HasCustomIcon)
                 {
@@ -74,7 +77,7 @@
                 </div>
             }
 
-            @if (_tagNames.Count > 0 || PlanetInfo.Nsfw || _isCommunityHosted)
+            @if (_tagNames.Count > HeroTagCount || PlanetInfo.Nsfw || _isCommunityHosted)
             {
                 <div class="planet-stat tags">
                     <div class="planet-chips">
@@ -86,7 +89,7 @@
                         {
                             <span class="planet-chip warning" title="@($"Hosted by {PlanetInfo.NodeDomain}, not by Valour")">Community-hosted</span>
                         }
-                        @foreach (var tag in _tagNames)
+                        @foreach (var tag in _tagNames.Skip(HeroTagCount))
                         {
                             <span class="planet-chip">@tag</span>
                         }
@@ -128,7 +131,7 @@
     [Parameter] public RenderFragment Notices { get; set; }
 
     private string _seed;
-    private string _palette;
+    private const int HeroTagCount = 3;
     private double _lights;
     private string _backgroundUrl;
     private string _iconUrl;
@@ -144,7 +147,6 @@
             return;
 
         _seed = PlanetInfo.PlanetId.ToString();
-        _palette = NebulaPalettes.PaletteFor(_seed);
         _showActive = PlanetInfo.ActiveCount >= 0;
         _lights = _showActive
             ? PlanetGlobe.LightsFor(PlanetInfo.MemberCount, PlanetInfo.ActiveCount)

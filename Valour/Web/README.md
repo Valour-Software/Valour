@@ -37,6 +37,14 @@ JetBrains Mono and Bootstrap Icons fonts in `wwwroot/css/fonts/` and the Victor
 illustrations in `wwwroot/media/victor/` are also copies from the client. The site
 is exported as static files, so copy these again after changing the originals.
 
+## Discord comparison
+
+`/discord-alternative/` (`Views/Home/DiscordAlternative.cshtml`) compares Valour
+with Discord and explains how to move a server. The Discord column describes
+another company's product at a point in time, and the page shows when it was
+last checked. Review the table, the "Before you move" list, and the date whenever
+Discord or Valour changes encryption, age checks, ads, pricing, or importing.
+
 ## Cloudflare Pages
 
 The website's Pages project uses these settings:

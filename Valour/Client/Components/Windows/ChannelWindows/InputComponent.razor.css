@@ -17,7 +17,7 @@
 }
 
 .textbox:focus-within {
-    border-color: color-mix(in srgb, var(--planet-light) 45%, var(--line-strong));
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--line-strong));
 }
 
 .textbox-wrapper {

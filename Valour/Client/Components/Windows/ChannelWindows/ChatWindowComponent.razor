@@ -142,7 +142,7 @@
 
     private string ChannelStartEyebrow => Channel?.PlanetId is null
         ? "Direct message"
-        : $"{NebulaPalettes.PaletteFor(Channel.PlanetId.Value)} · {Channel.Planet?.Name}";
+        : Channel.Planet?.Name;
 
     private string ChannelStartTitle => Channel?.PlanetId is null
         ? "The start of your conversation"

@@ -443,18 +443,18 @@
 .encryption-notice {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-sm);
+    gap: 8px;
     color: var(--text-tertiary);
-    background-color: var(--line);
     font-size: var(--font-size-sm);
-    font-style: italic;
+}
+
+.encryption-notice i {
+    font-size: 12px;
+    opacity: 0.8;
 }
 
 .encryption-notice.invalid {
     color: var(--color-danger);
-    background-color: var(--color-danger-soft);
 }
 
 .encryption-notice.unverified i {

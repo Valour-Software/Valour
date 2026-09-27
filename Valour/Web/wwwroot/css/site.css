@@ -472,6 +472,16 @@ canvas {
     }
 }
 
+.hero-eyebrow {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+    font-size: 13px;
+    letter-spacing: var(--letter-spacing-label);
+    text-transform: uppercase;
+    text-shadow: 0 0 16px rgb(0 0 0 / 0.8);
+}
+
 .hero-lede {
     max-width: 440px;
     margin-bottom: 36px;
@@ -554,6 +564,10 @@ canvas {
     background-color: var(--line);
 }
 
+.feature-grid.four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .feature {
     padding: 28px 28px 32px;
     background-color: var(--surface-canvas);
@@ -624,6 +638,51 @@ canvas {
 }
 
 .principle p {
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.principle-link {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.principle-link i {
+    margin-left: 4px;
+    font-size: 12px;
+}
+
+.step-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.step {
+    padding-top: 20px;
+    border-top: 1px solid var(--line-strong);
+}
+
+.step-number {
+    display: block;
+    margin-bottom: 14px;
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+}
+
+.step h3 {
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.step p {
     color: var(--text-secondary);
     font-size: 15px;
     line-height: 1.55;
@@ -1111,6 +1170,45 @@ canvas {
     color: var(--text-secondary);
 }
 
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.table-scroll {
+    overflow-x: auto;
+    margin-bottom: 12px;
+}
+
+.prose .compare-table {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.prose .compare-table th[scope="row"] {
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: left;
+}
+
+.prose .compare-table td:nth-child(2) {
+    color: var(--text-primary);
+}
+
+.prose .compare-table td:nth-child(3) {
+    color: var(--text-secondary);
+}
+
+.prose .table-note {
+    color: var(--text-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+}
+
 .doc-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1190,7 +1288,9 @@ canvas {
 }
 
 @media (max-width: 1100px) {
-
+    .feature-grid.four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 
     .principle-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1239,7 +1339,9 @@ canvas {
     }
 
     .feature-grid,
-    .download-grid {
+    .feature-grid.four,
+    .download-grid,
+    .step-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 

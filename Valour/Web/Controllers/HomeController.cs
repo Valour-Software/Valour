@@ -60,6 +60,12 @@ public class HomeController : Controller
         return View();
     }
 
+    [HttpGet("/discord-alternative")]
+    public IActionResult DiscordAlternative()
+    {
+        return View();
+    }
+
     [HttpGet("/texas")]
     public IActionResult Texas()
     {

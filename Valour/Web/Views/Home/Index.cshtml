@@ -1,7 +1,7 @@
 ﻿@{
-    ViewData["Title"] = "Valour: The Open-Source Community Platform";
-    ViewData["Description"] = "Open-source chat, threads, wikis and voice for your community. Messages are end-to-end encrypted, with no ads, no data selling and no ID checks.";
-    ViewData["Keywords"] = "Community Platform, Discord Alternative, Open Source Chat, End-to-End Encryption, Privacy, No ID Verification, Self-Hosted Chat, Threads, Community Wiki, Voice Chat, Federation";
+    ViewData["Title"] = "Valour: The Encrypted, Open-Source Discord Alternative";
+    ViewData["Description"] = "Chat, voice, threads and wikis for your community. Messages are end-to-end encrypted, with no ads and no ID checks. Import your Discord server in minutes.";
+    ViewData["Keywords"] = "Discord alternative, encrypted Discord alternative, open source Discord alternative, Discord alternative without ID verification, end-to-end encrypted community chat, self-hosted chat, community platform, voice chat";
     ViewData["main-class"] = "home";
     ViewData["HeaderOverlay"] = true;
 
@@ -22,30 +22,59 @@
 
     var features = new (string Icon, string Title, string Text)[]
     {
-        ("bi-chat-left-text", "Chat", "Channels, direct messages and group chats. Open several windows side by side, even from different communities."),
+        ("bi-chat-left-text", "Chat", "Channels, direct messages and group chats, with replies, reactions, spoilers and link previews. Keep several conversations open side by side."),
+        ("bi-camera-video", "Voice and video", "Voice and video channels to hang out in, and calls with friends or groups of up to 25, with screen sharing."),
+        ("bi-shield-check", "Roles and moderation", "Roles with detailed permissions, automod, bans, reports and an audit log, so moderators have what they need."),
         ("bi-chat-square-text", "Threads", "A feed of posts sorted by hot, new and top, for discussions that should not scroll away."),
-        ("bi-journal-text", "Wikis", "Pages with revisions and search, published to the web at your community's own address."),
-        ("bi-mic", "Voice", "Voice channels to hang out in, and direct calls with friends and small groups."),
-        ("bi-shield-lock", "Encryption", "Every chat message is encrypted on your device. The server stores and relays ciphertext it cannot read."),
-        ("bi-code-slash", "Bots and API", "Bots, incoming webhooks and a documented API, so your community can build its own tools.")
+        ("bi-journal-text", "Wikis", "Pages with revision history and search, for rules, guides and everything your community keeps explaining."),
+        ("bi-calendar-event", "Events", "A shared calendar with RSVPs and reminders, so people know when game night starts."),
+        ("bi-robot", "Bots and integrations", "Bots, incoming webhooks and interactive embeds with buttons, forms and live updates."),
+        ("bi-palette", "Themes", "Restyle Valour with the theme editor or your own CSS, and share your themes with others.")
     };
 
-    var planetPoints = new (string Title, string Text)[]
+    var switchSteps = new (string Title, string Text)[]
     {
-        ("Channels and roles", "Group channels into categories, and decide who can read, post or manage each one with roles and detailed permissions."),
-        ("Public or invite-only", "List your planet in Discover with tags so people can find it, or keep it private and let people in with invite links."),
-        ("Plans and events", "A shared calendar with reminders, so members know when the next game night or meeting starts."),
-        ("Bring your server", "Import a Discord server template to recreate its channels, categories, roles and permissions in a few clicks.")
+        ("Sign in with Discord", "Create your account with your Discord login, or with an email address. There is nothing to verify beyond your email."),
+        ("Import your server", "Save your Discord server as a template and paste its link into Valour. Channels, categories, roles and permissions come across."),
+        ("Invite your members", "Share an invite link. Members can sign in with Discord too, so joining takes a few seconds.")
     };
 
-    var principles = new (string Title, string Text)[]
+    var extras = new (string Icon, string Title, string Text)[]
     {
-        ("Encrypted end to end", "Direct messages, group chats and every planet channel are encrypted on your devices. Threads and wiki pages are public on purpose, so people can find them on the web."),
-        ("Open source", "The client and the server are published under the AGPL. Read the code, send a fix, or run your own instance with Docker."),
-        ("No ads, nothing to sell", "Valour is free to use. Optional Stargazer subscriptions pay for the servers, not advertisers or data brokers."),
-        ("An email is enough", "Signing up takes an email address. We do not ask for a phone number, a government ID or a face scan.")
+        ("bi-search", "Found on the web", "Public threads and wikis get their own pages that search engines index, so people can find your community from a search, not only from an invite."),
+        ("bi-houses", "Villages", "Give your planet a small 2D world. Members walk around, talk with voice that fades with distance, and step into buildings that open channels."),
+        ("bi-hdd-network", "Your own infrastructure", "Store your planet's uploads in your own storage and run its calls on your own voice server, or run all of Valour yourself with Docker.")
     };
+
+    var principles = new (string Title, string Text, string LinkText, string LinkUrl)[]
+    {
+        ("Encrypted end to end", "Messages in direct chats, group chats and planet channels are encrypted on your devices before they are sent. Threads and wikis are public on purpose.", "How encryption works", "https://github.com/Valour-Software/Valour/blob/main/Docs/EndToEndEncryption.md"),
+        ("No ID checks", "Sign up with an email, Google or Discord. We never ask for a phone number, a government ID or a face scan.", "Why we paused Texas sign-ups", "/texas/"),
+        ("Open source", "The client and server are published under the AGPL. Read the code, send a fix, or run your own instance.", "Source on GitHub", "https://github.com/Valour-Software/Valour"),
+        ("No ads, nothing to sell", "Valour is free. Optional Stargazer subscriptions from $4.99 a month pay for the servers, not advertisers or data brokers.", "Privacy Policy", "/privacy/")
+    };
+
+    var appJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "SoftwareApplication",
+        ["name"] = "Valour",
+        ["url"] = "https://valour.gg",
+        ["applicationCategory"] = "CommunicationApplication",
+        ["operatingSystem"] = "Web, Windows, Android",
+        ["description"] = "An open-source community platform with end-to-end encrypted chat, voice and video, threads, wikis and events.",
+        ["image"] = "https://valour.gg/media/twitter-card.png",
+        ["downloadUrl"] = "https://github.com/Valour-Software/Valour/releases/latest",
+        ["offers"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "Offer",
+            ["price"] = "0",
+            ["priceCurrency"] = "USD",
+        },
+    });
 }
+
+@Html.Raw($"<script type=\"application/ld+json\">{appJsonLd}</script>")
 
 <section class="hero">
     <div class="hero-sky" aria-hidden="true">
@@ -73,8 +102,9 @@
 
     <div class="container hero-inner">
         <div class="hero-copy">
+            <p class="hero-eyebrow">The encrypted, open-source Discord alternative</p>
             <h1 class="hero-title"><span>Communities you can see.</span> <em>Conversations only you can read.</em></h1>
-            <p class="hero-lede">Open-source chat, threads, wikis and voice for your community. Encrypted end to end, with no ads and nothing to sell.</p>
+            <p class="hero-lede">Chat, voice, threads and wikis for your community, with every message encrypted end to end. No ads, no ID checks, and your Discord server comes with you.</p>
             <div class="hero-actions" data-download-picker>
                 <a class="btn btn-primary btn-lg" href="https://app.valour.gg">Open Valour <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                 <a class="btn btn-secondary btn-lg"
@@ -102,15 +132,15 @@
     <div class="container">
         <header class="section-head">
             <p class="eyebrow">What Valour is</p>
-            <h2>Everything a community does, in one place.</h2>
-            <p class="section-lede">Talk in real time, keep longer discussions in threads, write down what matters in a wiki, and join voice when typing is too slow.</p>
+            <h2>Everything your server does, and a little more.</h2>
+            <p class="section-lede">Communities on Valour are called planets. Each one has channels, roles, voice and video, plus threads, a wiki and a calendar when you want them.</p>
         </header>
 
         <figure class="product-shot">
             <img src="/media/screens/valour-desktop.webp" alt="A Valour planet open on the desktop, with the channel list on the left and a conversation in the main window" width="1440" height="900" loading="lazy" />
         </figure>
 
-        <div class="feature-grid">
+        <div class="feature-grid four">
             @foreach (var feature in features)
             {
                 <div class="feature">
@@ -123,26 +153,49 @@
     </div>
 </section>
 
-<section id="planets" class="section">
+<section id="switch" class="section">
     <div class="container">
         <div class="planets-head">
             <header class="section-head">
-                <p class="eyebrow">Planets</p>
-                <h2>Every community is a planet.</h2>
-                <p class="section-lede">A planet holds everything a community needs: its channels, threads, wiki, calendar and voice rooms, and the people who run it.</p>
+                <p class="eyebrow">Moving from Discord</p>
+                <h2>Bring your server over in a few minutes.</h2>
+                <p class="section-lede">Your channels, roles and permissions come with you. Messages and members stay behind, so you start fresh with the same structure.</p>
             </header>
             <figure class="planets-victor" aria-hidden="true">
-                <img src="/media/victor/victor-telescope.svg" alt="" width="180" height="180" loading="lazy" draggable="false" />
-                <figcaption class="sky-caption">victor · planet spotting</figcaption>
+                <img src="/media/victor/victor-rocket.svg" alt="" width="180" height="180" loading="lazy" draggable="false" />
+                <figcaption class="sky-caption">victor · moving house</figcaption>
             </figure>
         </div>
 
-        <div class="principle-grid">
-            @foreach (var point in planetPoints)
+        <ol class="step-grid">
+            @for (var i = 0; i < switchSteps.Length; i++)
             {
-                <div class="principle">
-                    <h3>@point.Title</h3>
-                    <p>@point.Text</p>
+                <li class="step">
+                    <span class="step-number">0@(i + 1)</span>
+                    <h3>@switchSteps[i].Title</h3>
+                    <p>@switchSteps[i].Text</p>
+                </li>
+            }
+        </ol>
+        <p class="section-links">
+            <a href="/discord-alternative/">Compare Valour and Discord <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </p>
+    </div>
+</section>
+
+<section id="more" class="section">
+    <div class="container">
+        <header class="section-head">
+            <p class="eyebrow">Beyond chat</p>
+            <h2>Things your community can't do on Discord.</h2>
+        </header>
+        <div class="feature-grid three">
+            @foreach (var extra in extras)
+            {
+                <div class="feature">
+                    <i class="bi @extra.Icon" aria-hidden="true"></i>
+                    <h3>@extra.Title</h3>
+                    <p>@extra.Text</p>
                 </div>
             }
         </div>
@@ -161,13 +214,10 @@
                 <div class="principle">
                     <h3>@principle.Title</h3>
                     <p>@principle.Text</p>
+                    <a class="principle-link" href="@principle.LinkUrl">@principle.LinkText <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                 </div>
             }
         </div>
-        <p class="section-links">
-            <a href="https://github.com/Valour-Software/Valour">Source on GitHub <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
-            <a href="/privacy/">Privacy Policy <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
-        </p>
     </div>
 </section>
 
@@ -177,10 +227,10 @@
             <header class="section-head">
                 <p class="eyebrow">Download</p>
                 <h2>Use Valour anywhere.</h2>
-                <p class="section-lede">One account works in the browser and in the apps. Bring your existing community over with the built-in Discord importer.</p>
+                <p class="section-lede">One account works in the browser and in the apps. Apps for macOS and iOS are not available yet; the web app works on both.</p>
             </header>
             <figure class="download-victor" aria-hidden="true">
-                <img src="/media/victor/victor-rocket.svg" alt="" width="150" height="150" loading="lazy" draggable="false" />
+                <img src="/media/victor/victor-telescope.svg" alt="" width="150" height="150" loading="lazy" draggable="false" />
             </figure>
         </div>
 

@@ -13,7 +13,7 @@
 
 .brand {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 8px;
     min-width: 0;
     padding: 4px 6px;
@@ -28,6 +28,10 @@
 
 .brand:hover {
     background-color: var(--surface-hover);
+}
+
+.brand ::deep svg {
+    align-self: center;
 }
 
 .wordmark {

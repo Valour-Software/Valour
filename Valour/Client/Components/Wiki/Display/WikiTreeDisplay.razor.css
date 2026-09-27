@@ -44,7 +44,7 @@
 }
 
 .dt-page.active .dt-icon {
-    color: var(--planet-light);
+    color: var(--color-primary);
 }
 
 .dt-folder {

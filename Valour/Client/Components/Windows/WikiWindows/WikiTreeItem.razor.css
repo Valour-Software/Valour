@@ -67,7 +67,7 @@
     bottom: 3px;
     width: 2px;
     border-radius: var(--radius-full);
-    background-color: var(--planet-light);
+    background-color: var(--color-primary);
 }
 
 .dti-page.selected .dti-icon {

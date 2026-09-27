@@ -6,7 +6,7 @@
  @if (_showWelcome)
  {
   <SkyMoment Pose="SkyMoment.VictorPose.Peeking" Seed="@_createdSeed" Height="200" CssClass="welcome-state"
-             Eyebrow="@($"{NebulaPalettes.PaletteFor(_createdSeed)} · {_createdName}")"
+             Eyebrow="@_createdName"
              Title="We have landed"
              Description="Your planet is ready. Invite people and start the first conversation." />
  }

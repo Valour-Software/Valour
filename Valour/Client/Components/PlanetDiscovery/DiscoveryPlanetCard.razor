@@ -10,7 +10,10 @@
         else
         {
             <NebulaSky Seed="@_seed" Intensity="1.35" Scale="1.5" FocusX="0.35" FocusY="0.45" Spread="0.5" />
-            <span class="planet-card-sky-name">@_palette</span>
+        }
+        @if (_topics is not null)
+        {
+            <span class="planet-card-sky-name">@_topics</span>
         }
         <PlanetGlobe Seed="@_seed" Lights="@_lights" Radius="0.36" CenterX="0.8" CenterY="0.55" />
     </div>
@@ -46,10 +49,6 @@
                 {
                     <span class="planet-card-chip warning" title="@($"Hosted by {PlanetInfo.NodeDomain}, not by Valour")">Community-hosted</span>
                 }
-                else if (_tag is not null)
-                {
-                    <span class="planet-card-chip">@_tag</span>
-                }
             </span>
         </div>
 
@@ -69,19 +68,17 @@
     [Parameter] public bool HideActions { get; set; } = false;
 
     private string _seed;
-    private string _palette;
+    private string _topics;
     private double _lights;
     private string _backgroundUrl;
     private bool _isCommunityHosted;
     private string _iconUrl;
     private string _iconText = string.Empty;
-    private string _tag;
     private string _descText;
 
     protected override void OnParametersSet()
     {
         _seed = PlanetInfo.PlanetId.ToString();
-        _palette = NebulaPalettes.PaletteFor(_seed);
         _lights = PlanetInfo.ActiveCount >= 0
             ? PlanetGlobe.LightsFor(PlanetInfo.MemberCount, PlanetInfo.ActiveCount)
             : 0.6;
@@ -95,7 +92,8 @@
             : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
         _iconText = PlanetInfo.HasCustomIcon ? string.Empty : ISharedPlanet.GetCommunityShortCode(PlanetInfo);
 
-        _tag = PlanetInfo.Tags?.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.Name))?.Name;
+        var tags = PlanetInfo.Tags?.Where(t => !string.IsNullOrWhiteSpace(t.Name)).Select(t => t.Name).Take(2).ToList();
+        _topics = tags is { Count: > 0 } ? string.Join(" · ", tags) : null;
 
         var description = PlanetInfo.Description ?? string.Empty;
         _descText = description.Length < 100 ? description : description[..100] + "...";

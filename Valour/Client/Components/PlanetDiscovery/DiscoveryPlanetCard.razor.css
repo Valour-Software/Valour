@@ -46,7 +46,8 @@
     font-size: 10.5px;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    color: var(--text-tertiary);
+    color: rgb(215 225 240 / 0.72);
+    text-shadow: 0 0 8px rgb(0 0 0 / 0.8);
 }
 
 .planet-card-body {

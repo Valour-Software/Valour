@@ -421,7 +421,7 @@ a.pd-topbar-planet:hover {
 
 .pd-toc a:hover {
     color: var(--text-primary);
-    border-left-color: var(--planet-light);
+    border-left-color: var(--color-primary);
 }
 
 .pd-pager {

@@ -7,7 +7,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="@(ViewData["Robots"] as string ?? "index, follow")">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="icon" href="/favicon.ico"/>
 
@@ -34,7 +34,7 @@
 
         /* Keywords */
         ViewData.TryGetValue("Keywords", out var keywords);
-        keywords ??= "Gaming Community, Chat Platform, Content Creators, Live Streaming, Multiplayer Gaming, Social Gaming, Esports Chat, Open Source, Privacy, Private Chat";
+        keywords ??= "Discord alternative, community chat, end-to-end encrypted chat, open source chat, voice chat, community platform, privacy";
         <meta name="keywords" content="@keywords">
 
         /* Card Type */
@@ -121,6 +121,7 @@
             <nav class="site-nav" id="site-nav" aria-label="Main">
                 <a href="/#features">Features</a>
                 <a href="/#download">Download</a>
+                <a href="/discord-alternative/" aria-current="@(path == "/discord-alternative/" ? "page" : null)">Switch from Discord</a>
                 <a href="/faq/" aria-current="@(path == "/faq/" ? "page" : null)">FAQ</a>
                 <a href="/privacy/" aria-current="@(inPolicies ? "page" : null)">Policies</a>
                 <a href="https://github.com/Valour-Software/Valour">Source</a>
@@ -142,13 +143,15 @@
                         <partial name="_VictorMark" />
                         <span>Valour</span>
                     </a>
-                    <p>Open-source community chat with end-to-end encryption. Made by Valour Software LLC and its contributors.</p>
+                    <p>Open-source community chat with end-to-end encryption and no ID checks. Made by Valour Software LLC and its contributors.</p>
                 </div>
                 <nav class="footer-column" aria-label="Valour">
                     <h2>Valour</h2>
                     <a href="https://app.valour.gg">Open Valour</a>
                     <a href="/#download">Download</a>
+                    <a href="/discord-alternative/">Switch from Discord</a>
                     <a href="/faq/">FAQ</a>
+                    <a href="/texas/">Why we don't check IDs</a>
                     <a href="https://app.valour.gg/swagger/index.html">API reference</a>
                     <a href="https://github.com/Valour-Software/Valour">Source code</a>
                 </nav>

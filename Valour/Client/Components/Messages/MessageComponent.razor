@@ -307,7 +307,7 @@ else
         MessageDecryptionState.Invalid => "bi-shield-x",
         MessageDecryptionState.DeviceNotVerified => "bi-shield-lock",
         MessageDecryptionState.NeedsNewerVersion => "bi-arrow-up-circle",
-        _ => "bi-hourglass-split"
+        _ => "bi-lock-fill"
     };
 
     private string EncryptionNoticeText => _message.DecryptionState switch
@@ -318,7 +318,8 @@ else
         MessageDecryptionState.NeedsNewerVersion => _message.DecryptionError ?? "Update Valour to see this message.",
         MessageDecryptionState.WaitingForKey when ParamData?.ChatComponent?.AwaitingEncryptionAdmission == true =>
             "An admin needs to let you in to this private planet before you can read this.",
-        MessageDecryptionState.WaitingForKey => _message.DecryptionError ?? "Waiting for e2ee keys from another member...",
+        MessageDecryptionState.WaitingForKey when Minimal => "Encrypted message",
+        MessageDecryptionState.WaitingForKey => _message.DecryptionError ?? "Waiting for a member's device to share the key.",
         _ => "Encrypted message."
     };
 
