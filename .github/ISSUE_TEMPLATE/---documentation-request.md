@@ -1,8 +1,9 @@
 ---
 name: "\U0001F4DA Documentation Request"
 about: Request an edit to the documentation
-title: "\U0001F4DA Docs - <title for documentation request>"
+title: "<title for documentation request>"
 labels: Documentation, Needs Looking At
+type: Task
 assignees: ''
 
 ---
