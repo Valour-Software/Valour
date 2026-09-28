@@ -3,9 +3,12 @@
     const REPO = 'Valour-Software/Valour';
 
     // Maps a button's data-download value to the release asset file name.
+    // "linux" picks the build that matches the visitor's processor.
     const ASSETS = {
         windows: 'ValourLauncher.exe',
-        android: 'gg.valour.app-Signed.apk'
+        android: 'gg.valour.app-Signed.apk',
+        'linux-x86_64': 'Valour-linux-x86_64.flatpak',
+        'linux-aarch64': 'Valour-linux-aarch64.flatpak'
     };
 
     // GitHub redirects this URL to the matching asset on the latest release,
@@ -45,6 +48,27 @@
         link.remove();
     }
 
+    // Browsers only hint at the processor. Chromium reports it through client
+    // hints; Firefox includes it in navigator.platform. Anything else gets the
+    // x86_64 build, which covers most Linux desktops.
+    async function detectLinuxAsset() {
+        let architecture = '';
+        try {
+            if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+                const hints = await navigator.userAgentData.getHighEntropyValues(['architecture', 'bitness']);
+                architecture = hints.architecture || '';
+            }
+        } catch {
+            // Client hints are optional.
+        }
+        const text = `${architecture} ${navigator.platform || ''} ${navigator.userAgent}`.toLowerCase();
+        return /\b(arm|aarch64|armv8)/.test(text) ? ASSETS['linux-aarch64'] : ASSETS['linux-x86_64'];
+    }
+
+    function assetFor(platform) {
+        return platform === 'linux' ? detectLinuxAsset() : Promise.resolve(ASSETS[platform]);
+    }
+
     function detectPlatform() {
         const platform = [
             navigator.userAgentData && navigator.userAgentData.platform,
@@ -56,7 +80,10 @@
             .toLowerCase();
 
         if (platform.includes('android')) return 'android';
+        // ChromeOS reports Linux too, but runs the web app rather than Flatpaks.
+        if (platform.includes('cros')) return 'web';
         if (platform.includes('win')) return 'windows';
+        if (platform.includes('linux') || platform.includes('x11')) return 'linux';
         return 'web';
     }
 
@@ -70,9 +97,10 @@
         const options = picker.querySelectorAll('[data-platform-option]');
         const note = document.querySelector('[data-platform-note]');
         const notes = {
-            windows: 'Recommended for Windows. Also on Android and in the browser.',
-            android: 'Recommended for Android. Also on Windows and in the browser.',
-            web: 'Works in any modern browser. Apps for Windows and Android.'
+            windows: 'Recommended for Windows. Also on Linux, Android and in the browser.',
+            linux: 'Recommended for Linux, as a Flatpak. Also on Windows, Android and in the browser.',
+            android: 'Recommended for Android. Also on Windows, Linux and in the browser.',
+            web: 'Works in any modern browser. Apps for Windows, Linux and Android.'
         };
 
         options.forEach((option) => {
@@ -95,12 +123,12 @@
 
         buttons.forEach((btn) => {
             const platform = btn.getAttribute('data-download');
-            const assetName = ASSETS[platform];
-            if (!assetName) return;
+            if (platform !== 'linux' && !ASSETS[platform]) return;
+            const assetName = assetFor(platform);
 
             // No-JS / safety fallback target.
             if (btn.tagName === 'A') {
-                btn.setAttribute('href', fallbackUrl(assetName));
+                assetName.then((name) => btn.setAttribute('href', fallbackUrl(name)));
             }
 
             btn.addEventListener('click', async function (e) {
@@ -109,8 +137,8 @@
 
                 btn.classList.add('is-loading');
                 try {
-                    const release = await getLatestRelease();
-                    triggerDownload(resolveAssetUrl(release, assetName));
+                    const [release, name] = await Promise.all([getLatestRelease(), assetName]);
+                    triggerDownload(resolveAssetUrl(release, name));
                 } finally {
                     btn.classList.remove('is-loading');
                 }

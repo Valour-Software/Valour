@@ -719,7 +719,7 @@ canvas {
 
 .download-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
 }
 
@@ -764,6 +764,16 @@ canvas {
 
 .download-card p:not(.download-detail) {
     margin-bottom: 24px;
+}
+
+.download-card code {
+    color: var(--text-primary);
+    font-family: var(--font-family-mono);
+    font-size: 13px;
+}
+
+.download-card p a:hover {
+    color: var(--color-primary-hover);
 }
 
 .download-note {
@@ -1288,7 +1298,8 @@ canvas {
 }
 
 @media (max-width: 1100px) {
-    .feature-grid.four {
+    .feature-grid.four,
+    .download-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
