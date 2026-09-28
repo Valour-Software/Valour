@@ -218,7 +218,6 @@
     }
 
     // Details
-
     private string GetPublishedBadgeClass() =>
         Theme.Published ? "status-badge enabled" : "status-badge";
 
@@ -257,7 +256,6 @@
     }
 
     // Typography
-
     private void OnChangeFontFamily(ChangeEventArgs e)
     {
         Theme.FontFamily = e.Value?.ToString();
@@ -295,7 +293,6 @@
     }
 
     // Banner
-
     private readonly string _bannerUploadInputId = $"theme-banner-upload-{Guid.NewGuid():N}";
     private IBrowserFile _uploadedImage;
     private byte[] _uploadedImageBytes;
@@ -339,7 +336,6 @@
     }
 
     // Assets
-
     private List<ThemeAssetInfo> _themeAssets = new();
     private List<ThemeAssetInfo> _fontAssets = new();
     private string _newAssetName;

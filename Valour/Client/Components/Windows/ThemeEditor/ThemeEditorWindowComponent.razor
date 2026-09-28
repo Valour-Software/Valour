@@ -57,9 +57,8 @@
         _theme = content.Theme;
         _backupTheme = content.BackupTheme;
 
-        // A saved layout can restore this tab after a reload with no live edit
-        // session to attach to (the edit buffer never survives a reload) - close
-        // it rather than show a broken editor.
+        // A saved layout can restore this tab after a reload with no live edit session to attach to.
+        // The edit buffer never survives a reload, so close it rather than show a broken editor.
         if (_theme is null)
         {
             await WindowCtx.Tab.Component.CloseAsync();
