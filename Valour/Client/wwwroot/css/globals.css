@@ -1934,6 +1934,13 @@ blockquote {
     max-height: 900px !important;
 }
 
+.message .fragments a:not(.nohide) {
+    text-decoration: underline;
+}
+.message .fragments a:not(.nohide):not(:hover) {
+    text-decoration: none;
+}
+
 .message .fragments .youtube {
     max-width: 90%;
     display: block;
