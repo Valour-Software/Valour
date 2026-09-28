@@ -165,9 +165,8 @@
         await WindowCtx.Tab.Component.CloseAsync();
     }
 
-    // Closing the window without saving - including via its own X button -
-    // should revert the live preview to whatever theme was active before this
-    // editor opened, rather than leaving an unsaved/discarded edit visible.
+    // Closing the window without saving reverts the live preview
+    // to whatever theme was active before this editor opened.
     public void Dispose()
     {
         if (_theme is not null)
