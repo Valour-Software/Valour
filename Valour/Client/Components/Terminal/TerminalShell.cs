@@ -342,7 +342,6 @@ public sealed class TerminalShell : IAsyncDisposable
             new("date", "date", "print the date and time", CmdDate),
             new("echo", "echo [text]", "print text", CmdEcho),
             new("theme", "theme [name]", "change the terminal colors", CmdTheme),
-            new("victorsay", "victorsay <text>", "let Victor say something", CmdVictorsay, ["cowsay"]),
             new("fortune", "fortune", "a message from the deep field", CmdFortune),
             new("rocket", "rocket", "launch a rocket", CmdRocket, ["sl"]),
             new("clear", "clear", "clear the screen (or press Ctrl+L)", CmdClear, ["reset"]),
@@ -1190,44 +1189,6 @@ public sealed class TerminalShell : IAsyncDisposable
         _theme = match;
         await _host.SetThemeAsync(match);
         await PrintAsync(TermLine.Of($"theme set to {match}", "dim"));
-    }
-
-    private Task CmdVictorsay(List<string> args, CancellationToken ct)
-    {
-        var text = args.Count > 1 ? JoinArgs(args, 1) : "Hello, Valournaut! Nice terminal you've got.";
-        return PrintAsync(VictorSays(text));
-    }
-
-    private static List<TermLine> VictorSays(string text)
-    {
-        var rows = Wrap(text, 40).ToList();
-        var width = rows.Max(x => x.Length);
-        var lines = new List<TermLine> { TermLine.Of(" " + new string('_', width + 2)) };
-
-        for (var i = 0; i < rows.Count; i++)
-        {
-            var (l, r) = rows.Count == 1 ? ('<', '>') :
-                i == 0 ? ('/', '\\') :
-                i == rows.Count - 1 ? ('\\', '/') : ('|', '|');
-            lines.Add(TermLine.Of($"{l} {rows[i].PadRight(width)} {r}"));
-        }
-
-        lines.Add(TermLine.Of(" " + new string('-', width + 2)));
-
-        string[] victor =
-        [
-            "     \\     .-\"\"\"\"\"-.",
-            "      \\   /  _____  \\",
-            "         |  /     \\  |",
-            "         | |  o o  | |",
-            "         |  \\_____/  |",
-            "          \\_________/",
-            "          /|  [V]  |\\",
-            "         / |_______| \\",
-            "           _|  |  |_",
-        ];
-        lines.AddRange(victor.Select((x, i) => TermLine.Of(x, i < 2 ? null : "accent")));
-        return lines;
     }
 
     private static readonly string[] Fortunes =

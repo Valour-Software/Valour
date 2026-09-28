@@ -354,7 +354,8 @@
     opacity: 0.5;
 }
 
-.vos-root ::deep .vos-msg.vos-failed .vos-msg-body {
+/* Only the unsent text is struck through, not the reason it failed. */
+.vos-root ::deep .vos-msg.vos-failed .vos-msg-body > :not(.vos-err) {
     text-decoration: line-through;
     text-decoration-color: var(--vos-red);
 }
