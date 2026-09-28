@@ -1935,16 +1935,10 @@ blockquote {
 }
 
 .message .fragments a:not(.nohide) {
-    font-size: 0;
+    text-decoration: underline;
 }
-
-.message .fragments a:not(.nohide):after {
-    font-size: var(--font-size-md);
-    line-height: 0;
-    content: attr(href);
-    visibility: visible;
-    left: 55px;
-    vertical-align: central;
+.message .fragments a:not(.nohide):not(:hover) {
+    text-decoration: none;
 }
 
 .message .fragments .youtube {
