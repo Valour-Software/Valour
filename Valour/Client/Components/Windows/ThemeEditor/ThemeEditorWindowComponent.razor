@@ -1,5 +1,6 @@
 @inherits WindowContentComponentBase
 @implements IDisposable
+@inject ValourClient Client
 
 <div class="theme-editor-window">
     @if (_theme is not null)
@@ -33,7 +34,7 @@
             </div>
             <div class="theme-editor-window-actions">
                 <VButton Variant="secondary" OnClick="Preview">Preview</VButton>
-                <VButton Variant="primary" OnClick="SaveAsync">Save & Close</VButton>
+                <VButton Variant="primary" OnClick="SaveAsync">@(CanEditTheme ? "Save & Close" : "Make a copy")</VButton>
             </div>
         </div>
     }
@@ -96,10 +97,44 @@
     // EditThemeComponent, which is disposed the moment the settings modal
     // closes to open this window - invoking its methods after that would hit
     // a disposed component's StateHasChanged().
+    // Matches ThemeInfoSection's own Danger Zone gate: a theme can be saved
+    // only by its author, or if it hasn't been created yet.
+    private bool CanEditTheme => _theme is null || _theme.Id == 0 || _theme.AuthorId == Client.Me.Id;
+
+    private void ConfirmCopyTheme()
+    {
+        var modalData = new ConfirmModalComponent.ModalParams(
+            "Make a copy of this theme?",
+            "You can't edit a theme that isn't yours. This creates a new theme in your account with the same settings, which you can then customize freely.",
+            "Make a copy",
+            "Cancel",
+            CopyThemeAsync,
+            () => Task.CompletedTask
+        );
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+    }
+
+    private Task CopyThemeAsync()
+    {
+        _theme.Id = 0;
+        _theme.AuthorId = Client.Me.Id;
+        _theme.Name += " (Copy)";
+        _theme.Published = false;
+
+        return SaveAsync();
+    }
+
     private async Task SaveAsync()
     {
         if (_saving || _theme is null)
             return;
+
+        if (!CanEditTheme)
+        {
+            ConfirmCopyTheme();
+            return;
+        }
+
         _saving = true;
 
         var theme = _theme;
