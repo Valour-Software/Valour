@@ -5,7 +5,7 @@
 set -euo pipefail
 
 DEST=${1:?usage: fetch-source.sh <directory>}
-COMMIT=${WEBKIT_COMMIT:-$(cat "$(dirname "$0")/COMMIT")}
+COMMIT=${WEBKIT_COMMIT:-$(tr -d "[:space:]" < "$(dirname "$0")/COMMIT")}
 
 if [ ! -d "$DEST/.git" ]; then
     git init -q "$DEST"

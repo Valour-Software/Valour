@@ -2,9 +2,13 @@ name: Linux Build
 
 # Packages the Linux desktop app as a Flatpak bundle for each architecture and
 # attaches it to the version's release. WebKit comes prebuilt from the Linux
-# WebKit workflow; run that first when Tools/Linux/webkit-key.sh changes.
+# WebKit workflow, which starts this one when it publishes a new build.
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: [ Linux WebKit ]
+    types: [ completed ]
+    branches: [ main ]
   push:
     branches: [ main ]
     paths:
@@ -17,6 +21,7 @@ permissions:
 
 jobs:
   check-version:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
       version_changed: ${{ steps.check.outputs.changed }}
@@ -33,6 +38,15 @@ jobs:
         CURRENT=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' Valour/Client.Maui/Valour.Client.Maui.csproj)
         echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
         echo "webkit=$(Tools/Linux/webkit-key.sh)" >> "$GITHUB_OUTPUT"
+
+        WEBKIT=$(Tools/Linux/webkit-key.sh)
+        WEBKIT_ASSETS=$(gh release view "$WEBKIT" --json assets -q '.assets[].name' 2>/dev/null || true)
+        if ! echo "$WEBKIT_ASSETS" | grep -qx 'webkit-x86_64.tar.zst' || ! echo "$WEBKIT_ASSETS" | grep -qx 'webkit-aarch64.tar.zst'; then
+          # Linux WebKit starts this workflow again when it publishes the release.
+          echo "::warning::WebKit release $WEBKIT is not published yet, skipping the Linux build"
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
 
         ASSETS=$(gh release view "v$CURRENT" --json assets -q '.assets[].name' 2>/dev/null || true)
         if echo "$ASSETS" | grep -qx 'Valour-linux-x86_64.flatpak' && echo "$ASSETS" | grep -qx 'Valour-linux-aarch64.flatpak'; then
