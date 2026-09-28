@@ -55,7 +55,8 @@ public static class Program
             // flag is passed straight to media_playback_requires_user_gesture,
             // so it has the opposite meaning there.
             .SetMediaAutoplayEnabled(!OperatingSystem.IsLinux())
-            .RegisterWebMessageReceivedHandler(OnWebMessage);
+            .RegisterWebMessageReceivedHandler(OnWebMessage)
+            .RegisterWindowCreatedHandler((_, _) => LinuxWebView.DisableMockCaptureDevices());
 
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             Console.Error.WriteLine($"Unhandled exception: {e.ExceptionObject}");
