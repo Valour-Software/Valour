@@ -71,10 +71,6 @@
     private string NavClass(Section section) =>
         section == _section ? "theme-editor-nav-btn active" : "theme-editor-nav-btn";
 
-    // WindowContentComponentBase suppresses automatic re-rendering after the
-    // first render (see ControlledRenderComponentBase) - switching sections
-    // has to explicitly ask for a render via ReRender() or the click appears
-    // to do nothing.
     private async Task SetSectionAsync(Section section)
     {
         _section = section;
