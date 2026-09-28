@@ -15,6 +15,7 @@ use placeholder values; use private local settings when running a server or test
 
 - [Reactive models and real-time updates](ReactiveModelSystem.md)
 - [Design language](DesignLanguage.md)
+- [ValourOS terminal](ValourOSTerminal.md)
 - [End-to-end encryption](EndToEndEncryption.md)
 - [Sign-in methods](SignInMethods.md)
 - [API routing and authorization](../Valour/Docs/API_ROUTES.md)
