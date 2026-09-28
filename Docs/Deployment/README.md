@@ -216,5 +216,6 @@ only. Store test credentials privately.
 ## Native client uploads
 
 The API CORS policy allows the HTTPS WebView origins `https://0.0.0.0` and
-`https://0.0.0.1` used by the native clients. File uploads run inside the WebView
-and require these origins in addition to the configured web application origins.
+`https://0.0.0.1` used by the MAUI clients, and `app://localhost`, which the Linux
+desktop app serves its page from. File uploads run inside the web view and
+require these origins in addition to the configured web application origins.

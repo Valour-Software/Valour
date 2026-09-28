@@ -41,6 +41,12 @@ links and `window.open` calls that leave the app to the host, which opens them
 with `xdg-open` (or `open` on macOS), because the web view cannot hand
 navigation to the system browser by itself.
 
+File uploads are sent by the page itself with `XMLHttpRequest` so that they
+can report progress, which makes them cross-origin requests from
+`app://localhost`. The server's CORS policy allows that origin (see
+[native client uploads](../../Docs/Deployment/README.md#native-client-uploads)).
+A server without it rejects the upload before it starts.
+
 WebKitGTK has no inspector window unless one is opened by hand, so the page
 also sends console errors, console warnings, and uncaught exceptions to the
 host. Debug builds print them to standard error as `[web error]` and

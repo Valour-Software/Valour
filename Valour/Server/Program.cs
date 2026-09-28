@@ -342,6 +342,9 @@ public partial class Program
             $"https://{hosting.ApiHost}",
             "https://0.0.0.0",
             "https://0.0.0.1",
+            // The Linux desktop app serves its page from this custom scheme.
+            // Websites cannot use it, and its cookies stay in the app's web view.
+            "app://localhost",
         };
 
         if (isDevelopment)
