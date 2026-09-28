@@ -95,7 +95,8 @@ public static class MauiProgram
         builder.Services.AddScoped<IExternalAuthLauncher, AndroidExternalAuthLauncher>();
         builder.Services.AddSingleton<IDeviceKeyService, AndroidDeviceKeyService>();
 #elif WINDOWS
-        builder.Services.AddScoped<IExternalAuthLauncher, LoopbackExternalAuthLauncher>();
+        builder.Services.AddScoped<IExternalAuthLauncher>(_ =>
+            new LoopbackExternalAuthLauncher(uri => Launcher.Default.OpenAsync(uri)));
 #endif
 
         // Override the browser share service with the native OS share sheet

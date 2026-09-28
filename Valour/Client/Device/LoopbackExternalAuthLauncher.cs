@@ -2,17 +2,16 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
-using Valour.Client.Device;
 using Valour.Shared.Models;
 
-namespace Valour.Client.Maui;
+namespace Valour.Client.Device;
 
 /// <summary>
 /// Signs in with a provider in the default browser and receives the result on
-/// a temporary loopback port. The unpackaged Windows app can't register a URL
+/// a temporary loopback port. Desktop apps can't reliably register a URL
 /// scheme the way the Android app does.
 /// </summary>
-public class LoopbackExternalAuthLauncher : IExternalAuthLauncher
+public class LoopbackExternalAuthLauncher(Func<Uri, Task> openBrowser) : IExternalAuthLauncher
 {
     private static readonly TimeSpan MaxWait = TimeSpan.FromMinutes(10);
 
@@ -25,17 +24,17 @@ public class LoopbackExternalAuthLauncher : IExternalAuthLauncher
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
-        return new Launch(listener);
+        return new Launch(listener, openBrowser);
     }
 
-    private sealed class Launch(TcpListener listener) : ExternalAuthLaunch
+    private sealed class Launch(TcpListener listener, Func<Uri, Task> openBrowser) : ExternalAuthLaunch
     {
         public override int? LoopbackPort => ((IPEndPoint)listener.LocalEndpoint).Port;
 
         public override async Task<ExternalAuthResultResponse> WaitAsync(
             ExternalAuthBeginResponse begin, string verifier, CancellationToken cancellationToken)
         {
-            await Launcher.Default.OpenAsync(new Uri(begin.AuthorizationUrl));
+            await openBrowser(new Uri(begin.AuthorizationUrl));
 
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(MaxWait);

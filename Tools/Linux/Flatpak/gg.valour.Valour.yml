@@ -1,0 +1,56 @@
+# Packages the Linux desktop app. Two inputs are prepared beforehand, as the
+# linux-flatpak workflow does:
+#   webkit.tar.zst  WebKitGTK built by webkit.yml, from the linux-webkit workflow
+#   valour/         `dotnet publish Valour/Client.Photino -r linux-<arch>` output
+id: gg.valour.Valour
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: valour
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --device=all
+  - --filesystem=xdg-download
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.secrets
+build-options:
+  no-debuginfo: true
+modules:
+  - name: webkitgtk
+    buildsystem: simple
+    build-commands:
+      - cp -a . /app/
+      # flatpak-builder cannot move this archive's locale directories into the
+      # locale extension ("Invalid cross-device link"), so WebKit's own message
+      # translations are left out. Valour's interface text is not affected.
+      - rm -rf /app/share/locale
+    sources:
+      - type: archive
+        path: webkit.tar.zst
+        strip-components: 0
+
+  - name: valour
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/lib/valour
+      - cp -a valour/. /app/lib/valour/
+      - install -Dm755 valour.sh /app/bin/valour
+      - install -Dm644 gg.valour.Valour.desktop /app/share/applications/gg.valour.Valour.desktop
+      - install -Dm644 gg.valour.Valour.metainfo.xml /app/share/metainfo/gg.valour.Valour.metainfo.xml
+      - install -Dm644 gg.valour.Valour.png /app/share/icons/hicolor/512x512/apps/gg.valour.Valour.png
+    sources:
+      - type: dir
+        path: valour
+        dest: valour
+      - type: file
+        path: valour.sh
+      - type: file
+        path: gg.valour.Valour.desktop
+      - type: file
+        path: gg.valour.Valour.metainfo.xml
+      - type: file
+        path: gg.valour.Valour.png

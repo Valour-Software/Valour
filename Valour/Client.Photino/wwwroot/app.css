@@ -1,0 +1,63 @@
+h1:focus {
+    outline: none;
+}
+
+.invalid {
+    outline: 1px solid var(--color-danger);
+}
+
+.validation-message {
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+#blazor-error-ui {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 3rem calc(0.75rem + env(safe-area-inset-bottom)) 1.25rem;
+    color: var(--text-primary);
+    font-family: var(--font-family-app);
+    font-size: var(--font-size-sm);
+    background-color: var(--surface-overlay);
+    border-top: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-overlay);
+}
+
+#blazor-error-ui .reload {
+    margin-left: var(--space-2);
+    color: var(--link-color);
+    font-weight: var(--font-weight-semibold);
+}
+
+#blazor-error-ui .dismiss {
+    position: absolute;
+    top: 0.75rem;
+    right: 1rem;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+#blazor-error-ui .dismiss:hover {
+    color: var(--text-primary);
+}
+
+.status-bar-safe-area {
+    display: none;
+}
+
+@supports (-webkit-touch-callout: none) {
+    .status-bar-safe-area {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        width: 100%;
+        height: env(safe-area-inset-top);
+        background-color: var(--surface-canvas);
+    }
+}

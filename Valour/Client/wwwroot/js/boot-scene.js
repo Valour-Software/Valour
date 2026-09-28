@@ -37,7 +37,10 @@ if (root) start(root);
 function startFlight(canvas, reducedMotion) {
     const size = () => ({ width: canvas.clientWidth, height: canvas.clientHeight, ratio: Math.min(window.devicePixelRatio || 1, 2) });
 
-    if (typeof canvas.transferControlToOffscreen === 'function' && typeof Worker === 'function') {
+    // Hosts whose web view crashes when a worker draws to a transferred canvas
+    // set this flag, and the scene draws on the main thread instead.
+    const workersAllowed = !window.valourDisableOffscreenCanvasWorkers;
+    if (workersAllowed && typeof canvas.transferControlToOffscreen === 'function' && typeof Worker === 'function') {
         try {
             const worker = new Worker(new URL('./boot-flight-worker.js', import.meta.url), { type: 'module' });
             const offscreen = canvas.transferControlToOffscreen();

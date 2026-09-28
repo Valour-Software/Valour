@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Valour
+Comment=Encrypted, open-source chat for communities
+Exec=valour %U
+Icon=gg.valour.Valour
+Terminal=false
+Categories=Network;Chat;InstantMessaging;
+Keywords=chat;voice;community;encrypted;
+StartupWMClass=Valour
