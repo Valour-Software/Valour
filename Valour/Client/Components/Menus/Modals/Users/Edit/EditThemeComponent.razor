@@ -43,7 +43,7 @@
         <div class="editor-section">
             <div class="actions editor-actions">
                 <VButton Variant="secondary" Size="lg" OnClick="@CancelEdit">Cancel changes</VButton>
-                <VButton Variant="primary" Size="lg" OnClick="@ConfirmChangesAsync">Save theme</VButton>
+                <VButton Variant="primary" Size="lg" OnClick="@ConfirmChangesAsync">@(CanEditTheme ? "Save theme" : "Make a copy")</VButton>
             </div>
             <ResultLabel Result="@_editingResult"/>
         </div>
@@ -349,10 +349,43 @@ else
         StateHasChanged();
     }
 
+    // Matches ThemeInfoSection's own Danger Zone gate: a theme can be saved
+    // only by its author, or if it hasn't been created yet.
+    private bool CanEditTheme => _editingTheme is null || _editingTheme.Id == 0 || _editingTheme.AuthorId == Client.Me.Id;
+
+    private void ConfirmCopyTheme()
+    {
+        var modalData = new ConfirmModalComponent.ModalParams(
+            "Make a copy of this theme?",
+            "You can't edit a theme that isn't yours. This creates a new theme in your account with the same settings, which you can then customize freely.",
+            "Make a copy",
+            "Cancel",
+            CopyThemeAsync,
+            () => Task.CompletedTask
+        );
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+    }
+
+    private async Task CopyThemeAsync()
+    {
+        _editingTheme.Id = 0;
+        _editingTheme.AuthorId = Client.Me.Id;
+        _editingTheme.Name += " (Copy)";
+        _editingTheme.Published = false;
+
+        await ConfirmChangesAsync();
+    }
+
     private async Task ConfirmChangesAsync()
     {
         if (_editingTheme is null)
             return;
+
+        if (!CanEditTheme)
+        {
+            ConfirmCopyTheme();
+            return;
+        }
 
         // Prevent duplicate names for new themes only
         if (_editingTheme.Id == 0 && _myThemes != null && _myThemes.Any(t => t.Name == _editingTheme.Name))
