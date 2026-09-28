@@ -88,10 +88,6 @@
         ThemeComponent.Instance.Refresh();
     }
 
-    // Saves directly through the theme model rather than calling back into
-    // EditThemeComponent, which is disposed the moment the settings modal
-    // closes to open this window - invoking its methods after that would hit
-    // a disposed component's StateHasChanged().
     // Matches ThemeInfoSection's own Danger Zone gate: a theme can be saved
     // only by its author, or if it hasn't been created yet.
     private bool CanEditTheme => _theme is null || _theme.Id == 0 || _theme.AuthorId == Client.Me.Id;
