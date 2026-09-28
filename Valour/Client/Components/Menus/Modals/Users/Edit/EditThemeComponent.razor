@@ -169,7 +169,6 @@ else
         StateHasChanged();
     }
 
-
     private void ThemeChangedHandler()
     {
         InvokeAsync(StateHasChanged);
@@ -292,7 +291,6 @@ else
     {
         await ThemeComponent.Instance.UninstallThemeAsync();
     }
-
 
     public async Task OpenEditorWithTheme(Theme theme)
     {
