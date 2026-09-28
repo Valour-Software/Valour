@@ -22,6 +22,7 @@ and bowtie), so the icon can color each part.
 | `card.html` | The 1200 by 630 link preview image and the wordmark lockups |
 | `header.html` | The 1500 by 500 Twitter header. Add `?mock` to preview the profile picture on top |
 | `splash.html` | Victor for the native splash screen |
+| `image-not-found.html` | The 1200 by 600 placeholder shown when an image or theme banner fails to load |
 
 ## Rendering
 
@@ -58,3 +59,4 @@ before rebuilding to see a changed icon.
 | `twitter-header.png` | Twitter header |
 | `wordmark-dark.png`, `wordmark-light.png` | Icon and name for dark and light backgrounds |
 | `splash-victor.png` | Native splash screen |
+| `image-not-found.png` | Placeholder for images and theme banners that fail to load |

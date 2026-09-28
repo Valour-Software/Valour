@@ -69,6 +69,10 @@ await open('header.html');
 await page.locator('#h').screenshot({ path: join(out, 'twitter-header.png') });
 console.log('rendered twitter-header.png');
 
+await open('image-not-found.html');
+await page.locator('#nf').screenshot({ path: join(out, 'image-not-found.png') });
+console.log('rendered image-not-found.png');
+
 await page.setViewportSize({ width: 1024, height: 1024 });
 await open('splash.html');
 await page.screenshot({ path: join(out, 'splash-victor.png'), omitBackground: true });

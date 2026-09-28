@@ -87,6 +87,10 @@ def main():
         master(f"wordmark-{theme}.png").save(logo / "wide" / f"valour-wordmark-{theme}.png", optimize=True)
 
     save(master("social-avatar.png").convert("RGB"), 400, MASTERS / "social-avatar-400.png")
+
+    not_found = master("image-not-found.png").convert("RGB")
+    not_found.save(CLIENT / "media" / "image-not-found.webp", "WEBP", quality=88, method=6)
+    not_found.save(CLIENT / "media" / "image-not-found.png", optimize=True)
     print("exported")
 
 
