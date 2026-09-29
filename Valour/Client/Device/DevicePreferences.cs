@@ -10,6 +10,7 @@ public static class DevicePreferences
     public const string ErrorReportingEnabledStorageKey = "ErrorReportingEnabled";
     public const string ForceGpuAccelerationStorageKey = "ForceGpuAcceleration";
     public const string VillageHandheldControlsStorageKey = "VillageHandheldControls";
+    public const string MemberListVisibleStorageKey = "MemberListVisible";
 
     public static event Func<string?, Task>? OnMicrophoneDeviceIdChanged;
     public static event Func<string?, Task>? OnCameraDeviceIdChanged;
@@ -25,6 +26,12 @@ public static class DevicePreferences
     public static bool ErrorReportingEnabled { get; private set; }
     public static bool ForceGpuAcceleration { get; private set; }
     public static bool VillageHandheldControls { get; private set; }
+
+    /// <summary>
+    /// Whether channel windows open with the member list shown. Only desktop
+    /// layouts use it; on mobile the list covers the chat.
+    /// </summary>
+    public static bool MemberListVisible { get; private set; }
 
     public static async Task SetMicrophoneDeviceId(string? deviceId, IAppStorage localStorage)
     {
@@ -63,6 +70,12 @@ public static class DevicePreferences
         await localStorage.SetAsync(VillageHandheldControlsStorageKey, isEnabled);
     }
 
+    public static async Task SetMemberListVisible(bool isVisible, IAppStorage localStorage)
+    {
+        MemberListVisible = isVisible;
+        await localStorage.SetAsync(MemberListVisibleStorageKey, isVisible);
+    }
+
     public static async Task ApplyForceGpuAccelerationAsync(IJSRuntime jsRuntime)
     {
         await jsRuntime.InvokeVoidAsync("valourGpuAcceleration.setEnabled", ForceGpuAcceleration);
@@ -99,6 +112,9 @@ public static class DevicePreferences
 
         VillageHandheldControls = await localStorage.ContainsKeyAsync(VillageHandheldControlsStorageKey)
             && await localStorage.GetAsync<bool>(VillageHandheldControlsStorageKey);
+
+        MemberListVisible = await localStorage.ContainsKeyAsync(MemberListVisibleStorageKey)
+            && await localStorage.GetAsync<bool>(MemberListVisibleStorageKey);
 
         SentryGate.IsEnabled = ErrorReportingEnabled;
 
