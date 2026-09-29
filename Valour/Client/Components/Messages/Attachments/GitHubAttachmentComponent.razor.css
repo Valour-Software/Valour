@@ -1,0 +1,65 @@
+.gist-card {
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    color: inherit;
+    text-decoration: none;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.gist-card:hover {
+    border-color: var(--line-strong);
+}
+
+.gist-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--line);
+}
+
+.gist-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: var(--font-weight-semibold);
+}
+
+.gist-files {
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+}
+
+.gist-description {
+    padding: 8px 12px 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.gist-code {
+    margin: 0;
+    padding: 10px 12px;
+    max-height: 280px;
+    overflow: auto;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+    color: var(--text-primary);
+    white-space: pre;
+}
+
+.gist-more {
+    padding: 0 12px 10px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+}

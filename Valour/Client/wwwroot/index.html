@@ -3,7 +3,6 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
-    <title>Valour</title>
     <base href="/" />
     <link rel="apple-touch-icon" sizes="180x180" href="_content/Valour.Client/media/favicon/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="_content/Valour.Client/media/favicon/favicon-32x32.png">
@@ -13,8 +12,14 @@
     <link rel="preload" href="_content/Valour.Client/css/fonts/instrument-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <meta name="msapplication-TileColor" content="#0a0d12">
-    <meta name="description" content="Open-source community chat with end-to-end encryption. Channels, voice and video, threads and wikis, with no ads and no ID checks.">
     <meta name="keywords" content="Chat, Communication, Community, Gaming, Privacy, Open Source">
+
+    <!-- Shared links such as invites replace everything between these two
+         comments with their own tags (LinkPreviewMeta on the server, and the
+         Cloudflare Pages worker that cf-build writes). -->
+    <!-- link-preview -->
+    <title>Valour</title>
+    <meta name="description" content="Open-source community chat with end-to-end encryption. Channels, voice and video, threads and wikis, with no ads and no ID checks.">
 
     <!-- Open Graph -->
     <meta property="og:site_name" content="Valour">
@@ -32,6 +37,7 @@
     <meta name="twitter:image:alt" content="The Valour logo">
 
     <meta name="theme-color" content="#0a0d12">
+    <!-- /link-preview -->
     <link href="_content/Valour.Client/css/bundled.min.css?version=$(SHORTHASH)" rel="stylesheet" />
 </head>
 

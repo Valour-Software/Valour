@@ -21,10 +21,26 @@ public static class ShareUtils
     }
 
     public static string GetInviteShareUrl(NavigationManager nav, string inviteCode)
-        => $"{GetPublicBaseUri(nav).TrimEnd('/')}/I/{Uri.EscapeDataString(inviteCode)}";
+        => $"{GetShortLinkBaseUri(nav)}/i/{Uri.EscapeDataString(inviteCode)}";
 
     public static string GetDiscoverablePlanetShareUrl(NavigationManager nav, long planetId)
-        => $"{GetPublicBaseUri(nav).TrimEnd('/')}/D/{planetId}";
+        => $"{GetShortLinkBaseUri(nav)}/d/{planetId}";
+
+    private const string OfficialAppBaseUrl = "https://app.valour.gg";
+    private const string OfficialRootBaseUrl = "https://valour.gg";
+
+    /// <summary>
+    /// Base URI for invite and planet links. Links to the official app use the
+    /// shorter root domain, whose website redirects them into the app (see the
+    /// _redirects rules in Valour.Web). Other deployments keep their app origin.
+    /// </summary>
+    private static string GetShortLinkBaseUri(NavigationManager nav)
+    {
+        var baseUri = GetPublicBaseUri(nav).TrimEnd('/');
+        return string.Equals(baseUri, OfficialAppBaseUrl, StringComparison.OrdinalIgnoreCase)
+            ? OfficialRootBaseUrl
+            : baseUri;
+    }
 
     /// <summary>
     /// Builds the best link for a thread: the public server-rendered page on the

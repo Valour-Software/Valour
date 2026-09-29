@@ -1,5 +1,6 @@
 #nullable enable annotations
 
+using Valour.Server.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Valour.Server.Services;
@@ -54,7 +55,7 @@ public class PlanetInfoModel : PageModel
                 ["name"] = PlanetInfo.Name,
                 ["description"] = PlanetInfo.Description,
                 ["url"] = CanonicalUrl,
-                ["logo"] = ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256),
+                ["logo"] = LinkPreviewMeta.PlanetImageUrl(PlanetInfo),
                 ["memberOf"] = new Dictionary<string, object?>
                 {
                     ["@type"] = "Organization",

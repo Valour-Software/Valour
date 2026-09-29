@@ -14,7 +14,8 @@ public class ImageSizeFetcher
         string url,
         HttpClient? client = null,
         ILogger? logger = null,
-        int maxBytes = 32768)
+        int maxBytes = 32768,
+        CancellationToken cancellationToken = default)
     {
         if (!await OutboundUrlSafetyValidator.IsSafeAsync(url, logger))
             return null;
@@ -59,7 +60,7 @@ public class ImageSizeFetcher
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(rangeStart, rangeEnd);
 
-                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                     return null;
 
@@ -70,17 +71,20 @@ public class ImageSizeFetcher
                 var writeOffset = ignoredRange ? 0 : bytesFetched;
                 var readLimit = ignoredRange ? maxBytes : rangeEnd - rangeStart + 1;
 
-                await using var body = await response.Content.ReadAsStreamAsync();
-                var read = await ReadAtMostAsync(body, buffer.AsMemory(writeOffset, readLimit));
+                await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
+                var read = await ReadAtMostAsync(body, buffer.AsMemory(writeOffset, readLimit), cancellationToken);
                 if (read == 0)
                     break;
 
                 bytesFetched = writeOffset + read;
 
+                if (TryReadPngSize(buffer.AsSpan(0, bytesFetched), out var pngWidth, out var pngHeight))
+                    return (pngWidth, pngHeight, "PNG");
+
                 using var ms = new MemoryStream(buffer, 0, bytesFetched, writable: false, publiclyVisible: true);
                 try
                 {
-                    var info = await Image.IdentifyAsync(ms);
+                    var info = await Image.IdentifyAsync(ms, cancellationToken);
                     if (info is not null)
                         return (info.Width, info.Height, info.Metadata?.DecodedImageFormat?.Name);
                 }
@@ -113,12 +117,36 @@ public class ImageSizeFetcher
         return null;
     }
 
-    private static async Task<int> ReadAtMostAsync(Stream stream, Memory<byte> destination)
+    /// <summary>
+    /// Reads a PNG's size from its header, which is the first chunk and has
+    /// a fixed layout. ImageSharp checks the image data's checksum while
+    /// identifying a PNG, so it fails on the partial file read here whenever
+    /// the image data starts right after the header.
+    /// </summary>
+    public static bool TryReadPngSize(ReadOnlySpan<byte> data, out int width, out int height)
+    {
+        width = height = 0;
+        ReadOnlySpan<byte> signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        ReadOnlySpan<byte> header = [0x49, 0x48, 0x44, 0x52];
+        if (data.Length < 24 || !data.StartsWith(signature) || !data.Slice(12, 4).SequenceEqual(header))
+            return false;
+
+        var w = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(data.Slice(16, 4));
+        var h = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(data.Slice(20, 4));
+        if (w is 0 or > int.MaxValue || h is 0 or > int.MaxValue)
+            return false;
+
+        width = (int)w;
+        height = (int)h;
+        return true;
+    }
+
+    private static async Task<int> ReadAtMostAsync(Stream stream, Memory<byte> destination, CancellationToken cancellationToken)
     {
         var total = 0;
         while (total < destination.Length)
         {
-            var read = await stream.ReadAsync(destination[total..]);
+            var read = await stream.ReadAsync(destination[total..], cancellationToken);
             if (read == 0)
                 break;
 

@@ -1,19 +1,35 @@
 @inherits AttachmentComponent
-@inject IJSRuntime JsRuntime
+@using System.Text.RegularExpressions
 
-<span style="display: block; height: @(Attachment.Height)px; max-height: @(Attachment.Height)px; min-height: @(Attachment.Height)px; overflow:  hidden;">
-    <div class="reddit-embed" id="@_id">
-    </div>
-</span>
+@if (_embedPath is not null)
+{
+    <ProviderEmbedFrame Provider="reddit"
+                        EmbedId="@_embedPath"
+                        Src="@($"https://embed.reddit.com/{_embedPath}/?embed=true&theme=dark&ref_source=embed&ref=share")"
+                        Title="Post on Reddit"
+                        DefaultHeight="240"
+                        MaxWidth="640"/>
+}
 
 @code {
-    private readonly string _id = "reddit-embed-" + Guid.NewGuid().ToString();
+    // Posts and comments, the paths Reddit's embed pages accept.
+    private static readonly Regex PostPath = new(
+        @"^/(?:r|user)/[\w-]+/comments/\w+(?:/[^/?#]*)?(?:/\w+)?/?$",
+        RegexOptions.CultureInvariant);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private string _embedPath;
+
+    protected override void OnParametersSet()
     {
-        if (firstRender)
-        {
-            await JsRuntime.InvokeVoidAsync("injectReddit", _id, Attachment.Data);
-        }
+        _embedPath = null;
+
+        if (!Uri.TryCreate(Attachment?.Location, UriKind.Absolute, out var uri) ||
+            uri.Scheme != Uri.UriSchemeHttps ||
+            !(uri.Host.Equals("reddit.com", StringComparison.OrdinalIgnoreCase) ||
+              uri.Host.EndsWith(".reddit.com", StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        if (PostPath.IsMatch(uri.AbsolutePath))
+            _embedPath = uri.AbsolutePath.Trim('/');
     }
 }

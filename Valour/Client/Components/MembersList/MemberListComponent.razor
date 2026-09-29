@@ -1,5 +1,6 @@
 ﻿@inject PlanetService PlanetService
 @inject ValourClient Client
+@inject IAppStorage LocalStorage
 @implements IDisposable
 
 @if (!_visible)
@@ -129,7 +130,8 @@
     [Parameter]
     public Channel Channel { get; set; }
     
-    private bool _visible = false;
+    // Desktop windows open the list the way the user last left it.
+    private bool _visible = !DeviceInfo.IsMobile && DevicePreferences.MemberListVisible;
 
     public class DisplayItem
     {
@@ -541,6 +543,9 @@
     public void ToggleVisible()
     {
         _visible = !_visible;
+
+        if (!DeviceInfo.IsMobile)
+            _ = DevicePreferences.SetMemberListVisible(_visible, LocalStorage);
 
         if (_visible && _reloadPending && _planet is not null)
             BuildRoleLists(); // Also requests a render

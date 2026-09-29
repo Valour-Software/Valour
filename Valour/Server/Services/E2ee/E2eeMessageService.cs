@@ -483,9 +483,18 @@ public class E2eeMessageService
         }
 
         // Only parameter names are placed in the SQL; every value is a parameter.
+        // The matches are collected in a materialized CTE so the planner reads
+        // them from the GIN index ix_messages_search_terms. With ORDER BY and
+        // LIMIT in the same query it walks the primary key backwards instead,
+        // hoping to find matches early, and a rare term then scans the whole
+        // table and times out.
         var sql = $"""
-                   SELECT id AS "Value" FROM messages
-                   WHERE channel_id = @channel_id AND id < @before AND ({string.Join(" OR ", conditions)})
+                   WITH matches AS MATERIALIZED (
+                       SELECT id FROM messages
+                       WHERE channel_id = @channel_id AND ({string.Join(" OR ", conditions)})
+                   )
+                   SELECT id AS "Value" FROM matches
+                   WHERE id < @before
                    ORDER BY id DESC LIMIT @count
                    """;
         var ids = await _db.Database.SqlQueryRaw<long>(sql, parameters.ToArray()).ToListAsync();

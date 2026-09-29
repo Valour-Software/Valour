@@ -66,9 +66,12 @@ export async function toBitmap(canvas) {
     return typeof createImageBitmap === 'function' ? await createImageBitmap(canvas) : canvas;
 }
 
-// Sizes snap to 64px steps so small layout changes reuse cached images.
+// Sizes snap to 64px steps so small layout changes reuse cached images, and
+// stop at a size every browser can allocate for a canvas.
+const MAX_SKY_SIZE = 8192;
+
 export function snap(value) {
-    return Math.max(64, Math.ceil(value / 64) * 64);
+    return Math.min(MAX_SKY_SIZE, Math.max(64, Math.ceil(value / 64) * 64));
 }
 
 // Calls render when the element's size settles after a change.

@@ -54,4 +54,22 @@ public class ImageSizeFetcherTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(respond());
     }
+
+    [Fact]
+    public void TryReadPngSize_ReadsTheHeaderOfAPartialFile()
+    {
+        // Signature, IHDR length and type, then 1200 x 600, cut off before the image data.
+        byte[] data = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52,
+            0, 0, 0x04, 0xB0, 0, 0, 0x02, 0x58, 8, 2];
+
+        Assert.True(ImageSizeFetcher.TryReadPngSize(data, out var width, out var height));
+        Assert.Equal(1200, width);
+        Assert.Equal(600, height);
+    }
+
+    [Fact]
+    public void TryReadPngSize_RejectsOtherData()
+    {
+        Assert.False(ImageSizeFetcher.TryReadPngSize("GIF89a not a png at all!"u8, out _, out _));
+    }
 }

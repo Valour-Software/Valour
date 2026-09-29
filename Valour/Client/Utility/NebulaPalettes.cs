@@ -82,4 +82,37 @@ public static class NebulaPalettes
 
     public static string PlanetLight(long planetId, byte worldVariant) =>
         PlanetLight(WorldSeed(planetId, worldVariant));
+
+    /// <summary>
+    /// The planet's light as a hex color, for places that do not read OKLCH,
+    /// such as the theme-color that link previews on other sites use.
+    /// </summary>
+    public static string PlanetLightHex(long planetId, byte worldVariant) =>
+        OklchToHex(0.82, 0.1, Hues[PaletteFor(WorldSeed(planetId, worldVariant))][2]);
+
+    /// <summary>
+    /// Converts an OKLCH color to an sRGB hex string, clamping colors outside
+    /// the sRGB range.
+    /// </summary>
+    public static string OklchToHex(double lightness, double chroma, double hueDegrees)
+    {
+        var hue = hueDegrees * Math.PI / 180;
+        var a = chroma * Math.Cos(hue);
+        var b = chroma * Math.Sin(hue);
+
+        var l = Math.Pow(lightness + 0.3963377774 * a + 0.2158037573 * b, 3);
+        var m = Math.Pow(lightness - 0.1055613458 * a - 0.0638541728 * b, 3);
+        var s = Math.Pow(lightness - 0.0894841775 * a - 1.2914855480 * b, 3);
+
+        static int Channel(double linear)
+        {
+            var encoded = linear <= 0.0031308 ? 12.92 * linear : 1.055 * Math.Pow(linear, 1 / 2.4) - 0.055;
+            return (int)Math.Round(Math.Clamp(encoded, 0, 1) * 255);
+        }
+
+        var red = Channel(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
+        var green = Channel(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
+        var blue = Channel(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);
+        return $"#{red:x2}{green:x2}{blue:x2}";
+    }
 }

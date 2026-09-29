@@ -1,0 +1,15 @@
+@inherits AttachmentComponent
+
+@if (_src is not null)
+{
+    <AspectEmbedFrame Src="@_src" Title="Kick player"/>
+}
+
+@code {
+    private string _src;
+
+    protected override void OnParametersSet()
+    {
+        _src = GetTrustedEmbedSource("player.kick.com");
+    }
+}

@@ -1,4 +1,5 @@
-﻿@using global::Markdig.Blazor
+﻿@using Microsoft.AspNetCore.Components.Rendering
+@using global::Markdig.Blazor
 @using Valour.Client.Emojis
 @inject ValourClient Client
 @inject ContextMenuService ContextMenuService
@@ -85,55 +86,7 @@ else
         <div class="content">
             @if (_message.Attachments != null && AttachmentsVerified)
             {
-                @for (var i = 0; i < _message.Attachments.Count; i++)
-                {
-                    var id = i;
-                    var attachment = _message.Attachments[id];
-                    var par = new Dictionary<string, object>()
-                    {
-                        {"Attachment", attachment},
-                        {"Message", _message},
-                        {"MessageComponent", this}
-                    };
-
-                    if (attachment.Type == MessageAttachmentType.Image)
-                    {
-                        par["Clickable"] = !_ghost;
-                    }
-
-                    var componentType = attachment.GetComponentType();
-                    if (componentType is null)
-                        continue;
-
-                    // Image/Video handle their own blur-and-reveal. Everything else (embeds)
-                    // just doesn't mount its component until revealed,
-                    // since some of those are third-party iframes and we don't want
-                    // to ping Twitter/YouTube/etc. just because the message rendered.
-                    var isHiddenEmbedSpoiler = attachment.IsSpoiler &&
-                                                attachment.Type != MessageAttachmentType.Image &&
-                                                attachment.Type != MessageAttachmentType.Video &&
-                                                !(_revealedSpoilerAttachments?.Contains(id) ?? false);
-
-                    <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
-                        @if (_ghost && !_isInnerReply)
-                        {
-                            <button type="button" class="attachment-remove-btn" title="Remove attachment" aria-label="Remove attachment"
-                                    @onclick="() => OnRemoveAttachmentClick(id)" @onclick:stopPropagation="true">
-                                <i class="bi bi-trash3" aria-hidden="true"></i>
-                            </button>
-                        }
-                        @if (isHiddenEmbedSpoiler)
-                        {
-                            <div class="embed-spoiler-placeholder" @onclick="() => RevealSpoilerAttachment(id)" @onclick:stopPropagation="true">
-                                <span>Spoiler &mdash; click to reveal embed</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <DynamicComponent Type="componentType" Parameters="par"></DynamicComponent>
-                        }
-                    </div>
-                }
+                RenderAttachments(__builder, followingText: false);
             }
 
             @if (_message.AttachmentsWithheld)
@@ -162,6 +115,11 @@ else
             {
                 <span class="imported-flag" title="Imported from @_message.ImportSource">Imported</span>
             }
+
+            @if (_message.Attachments != null && AttachmentsVerified)
+            {
+                RenderAttachments(__builder, followingText: true);
+            }
         </div>
     </div>
     @if (_reactions is not null && _reactions.Count > 0)
@@ -175,7 +133,14 @@ else
                 <TooltipTrigger Position="top" OnShow="@(() => EnsureReactionUsersAsync(reaction.emoji))">
                     <ChildContent>
                         <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
-                            <img class="emoji" src="@GetReactionSrc(reaction.emoji)" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
+                            @if (GetReactionSrc(reaction.emoji) is { } reactionSrc)
+                            {
+                                <img class="emoji" src="@reactionSrc" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
+                            }
+                            else
+                            {
+                                <span class="emoji" role="img" aria-label="@reaction.emoji">@reaction.emoji</span>
+                            }
                             <span class="reaction-count">@reaction.count</span>
                         </div>
                     </ChildContent>
@@ -219,6 +184,75 @@ else
 </div>
 
 @code {
+    // Previews and cards made from links in the text follow the text, like
+    // the links they come from. Uploaded files lead the message.
+    private static bool FollowsText(MessageAttachment attachment) =>
+        attachment.Inline || attachment.Type == MessageAttachmentType.ValourInvite;
+
+    private void RenderAttachments(RenderTreeBuilder __builder, bool followingText)
+    {
+        @for (var i = 0; i < _message.Attachments.Count; i++)
+        {
+            var id = i;
+            var attachment = _message.Attachments[id];
+            if (FollowsText(attachment) != followingText)
+                continue;
+
+            var par = new Dictionary<string, object>()
+            {
+                {"Attachment", attachment},
+                {"Message", _message},
+                {"MessageComponent", this}
+            };
+
+            if (attachment.Type == MessageAttachmentType.Image)
+            {
+                par["Clickable"] = !_ghost;
+            }
+
+            var componentType = attachment.GetComponentType();
+            if (componentType is null)
+                continue;
+
+            // Image/Video handle their own blur-and-reveal. Everything else (embeds)
+            // just doesn't mount its component until revealed,
+            // since some of those are third-party iframes and we don't want
+            // to ping Twitter/YouTube/etc. just because the message rendered.
+            var isHiddenEmbedSpoiler = attachment.IsSpoiler &&
+                                        attachment.Type != MessageAttachmentType.Image &&
+                                        attachment.Type != MessageAttachmentType.Video &&
+                                        !(_revealedSpoilerAttachments?.Contains(id) ?? false);
+
+            // Provider posts and players set their own size, often
+            // taller than 410px (a post or a vertical video), so their
+            // wrapper does not cap and scroll them.
+            var sizesItself = attachment.Type is MessageAttachmentType.Twitter or MessageAttachmentType.Reddit
+                or MessageAttachmentType.Bluesky or MessageAttachmentType.Instagram or MessageAttachmentType.Threads
+                or MessageAttachmentType.TikTok or MessageAttachmentType.YouTube or MessageAttachmentType.Streamable
+                or MessageAttachmentType.AppleMusic or MessageAttachmentType.GitHub;
+
+            <div class="attachment-wrapper @(sizesItself ? "sizes-itself" : string.Empty)" @onclick="() => OnClickAttachment(id)">
+                @if (_ghost && !_isInnerReply)
+                {
+                    <button type="button" class="attachment-remove-btn" title="Remove attachment" aria-label="Remove attachment"
+                            @onclick="() => OnRemoveAttachmentClick(id)" @onclick:stopPropagation="true">
+                        <i class="bi bi-trash3" aria-hidden="true"></i>
+                    </button>
+                }
+                @if (isHiddenEmbedSpoiler)
+                {
+                    <div class="embed-spoiler-placeholder" @onclick="() => RevealSpoilerAttachment(id)" @onclick:stopPropagation="true">
+                        <span>Spoiler &mdash; click to reveal embed</span>
+                    </div>
+                }
+                else
+                {
+                    <DynamicComponent Type="componentType" Parameters="par"></DynamicComponent>
+                }
+            </div>
+        }
+    }
+
     
     public class Params
     {
@@ -410,8 +444,8 @@ else
     private List<(string emoji, int count)> _reactionsToRender = new();
     private bool _showAllReactions = false;
 
-    private string GetReactionSrc(string emoji) =>
-        EmojiSourceProvider.GetSrcUrlFromReaction(emoji, _message?.PlanetId);
+    private string? GetReactionSrc(string emoji) =>
+        EmojiSourceProvider.GetCustomSrcFromReaction(emoji, _message?.PlanetId);
 
     private string GetReactionAlt(string emoji) =>
         EmojiSourceProvider.GetAltFromReaction(emoji);

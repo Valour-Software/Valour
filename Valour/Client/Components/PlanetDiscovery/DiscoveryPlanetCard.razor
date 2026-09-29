@@ -56,7 +56,7 @@
         {
             <div class="planet-card-actions">
                 <button class="v-btn" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
-                <button class="v-btn primary" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
+                <button class="v-btn primary" disabled="@_joining" @onclick:stopPropagation="true" @onclick="@OnJoinClick">Join</button>
             </div>
         }
     </div>
@@ -75,6 +75,7 @@
     private string _iconUrl;
     private string _iconText = string.Empty;
     private string _descText;
+    private bool _joining;
 
     protected override void OnParametersSet()
     {
@@ -106,6 +107,24 @@
         4 => "10px",
         _ => "9px"
     };
+
+    private async Task OnJoinClick()
+    {
+        // A second click before the first join finishes would send a duplicate
+        // join request for the same planet.
+        if (_joining)
+            return;
+
+        _joining = true;
+        try
+        {
+            await OnJoin.InvokeAsync(PlanetInfo);
+        }
+        finally
+        {
+            _joining = false;
+        }
+    }
 
     private async Task OnInfoClick()
     {

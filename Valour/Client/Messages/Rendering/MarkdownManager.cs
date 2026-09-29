@@ -110,7 +110,6 @@ public static class MarkdownManager
         normalized = RoleMentionToken.Replace(normalized, "@role");
         normalized = CustomEmojiToken.Replace(normalized, ":$1:");
         normalized = ProtectStockTokens(normalized, out var stockTokens);
-        normalized = ProtectNativeEmoji(normalized, out var nativeEmoji);
 
         string text;
         try
@@ -122,8 +121,6 @@ public static class MarkdownManager
             text = normalized;
         }
 
-        for (var index = 0; index < nativeEmoji.Count; index++)
-            text = text.Replace(EmojiPlaceholder(index), nativeEmoji[index], StringComparison.Ordinal);
         for (var index = 0; index < stockTokens.Count; index++)
             text = text.Replace(StockPlaceholder(index), stockTokens[index], StringComparison.Ordinal);
 
@@ -135,27 +132,6 @@ public static class MarkdownManager
         var keepElements = Math.Max(0, maxLength - 1);
         var endIndex = keepElements == 0 ? 0 : elementStarts[keepElements];
         return text[..endIndex].TrimEnd() + "\u2026";
-    }
-
-    private static string ProtectNativeEmoji(string content, out List<string> emoji)
-    {
-        emoji = [];
-        var result = new StringBuilder(content.Length);
-        var elements = StringInfo.GetTextElementEnumerator(content);
-        while (elements.MoveNext())
-        {
-            var element = elements.GetTextElement();
-            if (!ContainsEmojiRune(element))
-            {
-                result.Append(element);
-                continue;
-            }
-
-            result.Append(EmojiPlaceholder(emoji.Count));
-            emoji.Add(element);
-        }
-
-        return result.ToString();
     }
 
     private static string ProtectStockTokens(string content, out List<string> stocks)
@@ -171,29 +147,5 @@ public static class MarkdownManager
         return result;
     }
 
-    private static string EmojiPlaceholder(int index) => $"VALOUREMOJITOKEN{index}END";
     private static string StockPlaceholder(int index) => $"VALOURSTOCKTOKEN{index}END";
-
-    private static bool ContainsEmojiRune(string element)
-    {
-        foreach (var rune in element.EnumerateRunes())
-        {
-            if (IsEmojiRune(rune))
-                return true;
-        }
-
-        return false;
-    }
-
-    private static bool IsEmojiRune(Rune rune)
-    {
-        var value = rune.Value;
-        return value is 0x00A9 or 0x00AE or 0x203C or 0x2049 or 0x2122 or 0x2139 or
-               0x3030 or 0x303D or 0x3297 or 0x3299 or 0xFE0F or 0x200D or 0x20E3 ||
-               value is >= 0x2190 and <= 0x21FF ||
-               value is >= 0x2300 and <= 0x23FF ||
-               value is >= 0x2600 and <= 0x27BF ||
-               value is >= 0x2B00 and <= 0x2BFF ||
-               value is >= 0x1F000 and <= 0x1FAFF;
-    }
 }

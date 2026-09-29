@@ -66,17 +66,20 @@ function ensureLibraryLoaded() {
     return libraryLoadPromise;
 }
 
+// Emoji are drawn by the system's emoji font, so pickers use emoji-mart's
+// 'native' set.
+const EMOJI_SET = 'native';
+
 // emoji-mart keeps a single global dataset shared by every picker and the search
-// index. It must be initialized exactly once, with the correct emoji set: spritesheet
-// sets (e.g. 'twitter') need the x/y coordinates that the 'native' dataset lacks.
-// Calling globalThis.EmojiMart.init concurrently with picker construction races two fetches
-// against each other and whichever resolves last wins, so callers must await this
-// before constructing a picker.
-async function ensureDataInitialized(set = null) {
+// index, and it must be initialized exactly once. Calling globalThis.EmojiMart.init
+// concurrently with picker construction races two fetches against each other and
+// whichever resolves last wins, so callers must await this before constructing a
+// picker.
+async function ensureDataInitialized() {
     await ensureLibraryLoaded();
 
     if (dataInitPromise === null) {
-        dataInitPromise = globalThis.EmojiMart.init({ set: set ?? 'twitter' });
+        dataInitPromise = globalThis.EmojiMart.init({ set: EMOJI_SET });
     }
 
     await dataInitPromise;
@@ -291,7 +294,7 @@ async function renderPicker(state) {
     // The picker's own connectedCallback also calls globalThis.EmojiMart.init with its props;
     // awaiting here guarantees the dataset already exists by then, so that call takes
     // the cheap "already initialized" path instead of racing a second data fetch.
-    await ensureDataInitialized(state.emojiSet);
+    await ensureDataInitialized();
 
     const stylesheet = await loadStylesheet();
 
@@ -310,7 +313,7 @@ async function renderPicker(state) {
     const pickerOptions = {
         onEmojiSelect: e => onEmojiSelect(state.id, state.ref, e),
         onClickOutside: e => onClickOutside(state.ref, e),
-        set: state.emojiSet,
+        set: EMOJI_SET,
         theme: 'dark',
         categoryIcons: { ...CATEGORY_ICONS },
         emojiButtonRadius: 'var(--radius-md)',
@@ -368,11 +371,10 @@ async function renderPicker(state) {
     state.picker = picker;
 }
 
-export function init(id, ref, emojiSet, custom = [], customCategoryIcon = '', customCategoryName = 'Planet') {
+export function init(id, ref, custom = [], customCategoryIcon = '', customCategoryName = 'Planet') {
     const state = {
         id,
         ref,
-        emojiSet,
         custom: Array.isArray(custom) ? custom : [],
         customCategoryId: 'custom',
         customCategoryIcon: asNonEmptyString(customCategoryIcon),

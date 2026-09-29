@@ -2,17 +2,7 @@
 
 @if (_src is not null)
 {
-    <div class="vimeo-container">
-        <iframe
-            class="vimeo-embed"
-            title="Vimeo embed"
-            src="@_src"
-            width="560"
-            height="315"
-            frameborder="0"
-            allowfullscreen>
-        </iframe>
-    </div>
+    <AspectEmbedFrame Src="@_src" Title="Vimeo video"/>
 }
 
 @code {

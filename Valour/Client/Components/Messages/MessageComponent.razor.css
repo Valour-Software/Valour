@@ -63,6 +63,10 @@
     user-select: none;
 }
 
+.message .reactions .reaction span.emoji {
+    font-size: 16px;
+}
+
 .message .reactions .reaction.added {
     color: var(--color-primary);
     background-color: var(--color-primary-soft);
@@ -353,6 +357,11 @@
     max-width: 410px;
     max-height: 410px;
     overflow: auto;
+}
+
+.attachment-wrapper.sizes-itself {
+    max-height: none;
+    overflow: visible;
 }
 
 .embed-spoiler-placeholder {

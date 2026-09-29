@@ -71,14 +71,15 @@
 
     private bool IsHiddenSpoiler => Attachment.IsSpoiler && !_revealed;
 
-    protected override async Task OnInitializedAsync()
-    {
-        _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
-        // Upload previews use a blob: URL, which the allowlist rejects.
-        if (string.IsNullOrWhiteSpace(_location) ||
-            (!Attachment.IsLocalPreview && !Valour.Shared.Utilities.SafeUrl.IsSafe(_location)))
-            _location = "_content/Valour.Client/media/image-not-found.webp";
+    // The display size is set before the first render, which happens while
+    // OnInitializedAsync waits for the signed URL, so the reserved space does
+    // not change when the URL arrives.
+    protected override void OnInitialized() => SetDisplaySize();
 
+    protected override void OnParametersSet() => SetDisplaySize();
+
+    private void SetDisplaySize()
+    {
         var width = Attachment.Width;
         var height = Attachment.Height;
 
@@ -105,8 +106,15 @@
             _width = width;
             _height = height;
         }
-        
-        base.OnInitialized();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
+        // Upload previews use a blob: URL, which the allowlist rejects.
+        if (string.IsNullOrWhiteSpace(_location) ||
+            (!Attachment.IsLocalPreview && !Valour.Shared.Utilities.SafeUrl.IsSafe(_location)))
+            _location = "_content/Valour.Client/media/image-not-found.webp";
     }
 
     private void OnClick()

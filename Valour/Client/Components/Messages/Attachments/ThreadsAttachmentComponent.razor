@@ -1,0 +1,25 @@
+@inherits AttachmentComponent
+@using System.Text.RegularExpressions
+
+@if (_src is not null)
+{
+    <ProviderEmbedFrame Provider="threads"
+                        EmbedId="@_src"
+                        Src="@_src"
+                        Title="Post on Threads"
+                        DefaultHeight="300"
+                        MaxWidth="550"/>
+}
+
+@code {
+    private static readonly Regex EmbedUrl = new(
+        @"^https://www\.threads\.com/@[A-Za-z0-9._]{1,30}/post/[A-Za-z0-9_-]{5,20}/embed$",
+        RegexOptions.CultureInvariant);
+
+    private string _src;
+
+    protected override void OnParametersSet()
+    {
+        _src = EmbedUrl.IsMatch(Attachment?.Location ?? string.Empty) ? Attachment.Location : null;
+    }
+}

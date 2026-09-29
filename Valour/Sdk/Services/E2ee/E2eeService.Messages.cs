@@ -1128,20 +1128,36 @@ public partial class E2eeService
     /// </summary>
     public async Task<List<Message>> SearchAsync(Channel channel, string query, int count = 25)
     {
+        var result = await SearchWithResultAsync(channel, query, count);
+        return result.Success ? result.Data : [];
+    }
+
+    /// <summary>
+    /// Searches an encrypted channel without collapsing a failed search into
+    /// an indistinguishable empty result.
+    /// </summary>
+    public async Task<TaskResult<List<Message>>> SearchWithResultAsync(Channel channel, string query, int count = 25)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return TaskResult<List<Message>>.FromData([]);
+
         var ring = await GetKeyRingAsync(channel);
-        if (ring is null || string.IsNullOrWhiteSpace(query))
-            return [];
+        if (ring is null)
+            return TaskResult<List<Message>>.FromFailure("This channel's keys could not be loaded.");
 
         // Each search key the channel used produces different terms, so the
         // query is hashed with every one this device can unlock, once for
         // messages members encrypted and once for messages the server sealed.
         // The sets are shuffled so the server cannot tell which is which.
         var termSets = new List<int[]>();
+        var unlockedAny = false;
         foreach (var indexGeneration in ring.IndexGenerations.Take(E2eeLimits.MaxSearchIndexGenerations))
         {
             var indexSecret = await GetSecretAsync(channel, indexGeneration);
             if (indexSecret is null)
                 continue;
+
+            unlockedAny = true;
 
             foreach (var key in new[] { indexSecret.IndexKey, indexSecret.SealedIndexKey })
             {
@@ -1153,22 +1169,31 @@ public partial class E2eeService
             }
         }
 
+        // A channel with no search keys yet has nothing indexed. When keys
+        // exist but none unlock, the device cannot search this channel.
+        if (ring.IndexGenerations.Count > 0 && !unlockedAny)
+            return TaskResult<List<Message>>.FromFailure(
+                $"{E2eeErrorCodes.SearchKeysUnavailable}: This device cannot unlock this channel's search keys yet.");
+
+        // A query of only short or common words has no terms to match
         if (termSets.Count == 0)
-            return [];
+            return TaskResult<List<Message>>.FromData([]);
 
         var shuffled = termSets.ToArray();
         Random.Shared.Shuffle(shuffled);
 
         var result = await channel.Node.PostAsyncWithResponse<List<Message>>(ChannelRoute(channel, "search"),
             new EncryptedSearchRequest { TermSets = shuffled.ToList(), Count = Math.Clamp(count * 2, 1, E2eeLimits.MaxSearchResults) });
-        if (!result.Success || result.Data is null)
-            return [];
+        if (!result.Success)
+            return TaskResult<List<Message>>.FromFailure(result);
+        if (result.Data is null)
+            return TaskResult<List<Message>>.FromFailure("The search returned no data.");
 
         await DecryptAllAsync(result.Data);
-        return result.Data
+        return TaskResult<List<Message>>.FromData(result.Data
             .Where(m => m.DecryptionState == MessageDecryptionState.Decrypted && SearchTerms.Matches(m.Content, query))
             .Take(count)
-            .ToList();
+            .ToList());
     }
 
     /// <summary>

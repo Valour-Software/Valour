@@ -130,8 +130,17 @@ public sealed class StaticSiteExporter
         """;
     }
 
+    // Invite and planet links can be shared on the root domain. They open in
+    // the app, and link previews follow the redirect to the app's own page,
+    // which describes the planet. 302 keeps browsers from caching the
+    // redirect, so these links can later move without breaking old shares.
     private static string BuildRedirects() =>
         """
+        /i/* https://app.valour.gg/i/:splat 302
+        /I/* https://app.valour.gg/i/:splat 302
+        /d/* https://app.valour.gg/d/:splat 302
+        /D/* https://app.valour.gg/d/:splat 302
+        /planet/* https://app.valour.gg/planet/:splat 302
         /discord-alternative /discord-alternative/ 301
         /faq /faq/ 301
         /privacy /privacy/ 301

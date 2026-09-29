@@ -1,141 +1,90 @@
 @inherits AttachmentComponent
+@using Valour.Sdk.Cdn
+@using Valour.Shared.Hosting
 
-@if (Attachment.OpenGraph != null)
-{
-    <a href="@Valour.Shared.Utilities.SafeUrl.Sanitize(Attachment.Location)" target="_blank" rel="noopener noreferrer" class="site-preview">
-        @if (!string.IsNullOrEmpty(Attachment.OpenGraph.Image))
+<a href="@_href" target="_blank" rel="noopener noreferrer ugc" class="link-card @(_largeImage ? "large" : "compact")">
+    <div class="link-card-text">
+        <div class="link-card-site">
+            @if (_icon is not null && !_iconFailed)
+            {
+                <img class="link-card-icon" src="@_icon" alt="" width="16" height="16" loading="lazy" @onerror="@(() => _iconFailed = true)" />
+            }
+            else
+            {
+                <i class="bi bi-globe2 link-card-icon" aria-hidden="true"></i>
+            }
+            <span class="link-card-site-name">@_siteName</span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(_openGraph?.Title))
         {
-            <div class="site-preview-image">
-                <img src="@Attachment.OpenGraph.Image" alt="@Attachment.OpenGraph.Title" loading="lazy" />
-            </div>
+            <span class="link-card-title">@_openGraph.Title</span>
         }
-        <div class="site-preview-content">
-            @if (!string.IsNullOrEmpty(Attachment.OpenGraph.SiteName))
+        @if (!string.IsNullOrWhiteSpace(_openGraph?.Description))
+        {
+            <span class="link-card-description">@_openGraph.Description</span>
+        }
+    </div>
+    @if (_image is not null)
+    {
+        @* The box keeps the image's shape (within limits) before it loads. A
+           failed image leaves the empty box rather than moving the card. *@
+        <div class="link-card-image" style="@_imageStyle">
+            @if (!_imageFailed)
             {
-                <span class="site-preview-site">@Attachment.OpenGraph.SiteName</span>
-            }
-            @if (!string.IsNullOrEmpty(Attachment.OpenGraph.Title))
-            {
-                <span class="site-preview-title">@Attachment.OpenGraph.Title</span>
-            }
-            @if (!string.IsNullOrEmpty(Attachment.OpenGraph.Description))
-            {
-                <span class="site-preview-description">@TruncateDescription(Attachment.OpenGraph.Description)</span>
+                <img src="@_image" alt="@(_openGraph.ImageAlt ?? string.Empty)" loading="lazy" decoding="async" @onerror="@(() => _imageFailed = true)" />
             }
         </div>
-    </a>
-}
-else
-{
-    <a href="@Valour.Shared.Utilities.SafeUrl.Sanitize(Attachment.Location)" target="_blank" rel="noopener noreferrer" class="site-preview site-preview-minimal">
-        <i class="bi bi-link-45deg"></i>
-        <span>@GetHostName()</span>
-    </a>
-}
-
-<style>
-    .site-preview {
-        display: flex;
-        flex-direction: column;
-        max-width: 400px;
-        background-color: var(--surface-raised);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        text-decoration: none;
-        color: inherit;
-        border: 1px solid var(--line);
-        transition: border-color var(--duration-fast) var(--ease-standard);
     }
-
-    .site-preview:hover {
-        border-color: var(--line-strong);
-    }
-
-    .site-preview-image {
-        width: 100%;
-        max-height: 200px;
-        overflow: hidden;
-    }
-
-    .site-preview-image img {
-        width: 100%;
-        height: auto;
-        object-fit: cover;
-    }
-
-    .site-preview-content {
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .site-preview-site {
-        font-size: var(--font-size-xs);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-tertiary);
-        text-transform: uppercase;
-        letter-spacing: var(--letter-spacing-label);
-    }
-
-    .site-preview-title {
-        font-size: var(--font-size-md);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-primary);
-        line-height: var(--line-height-base);
-    }
-
-    .site-preview-description {
-        font-size: var(--font-size-sm);
-        color: var(--text-secondary);
-        line-height: var(--line-height-base);
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .site-preview-minimal {
-        flex-direction: row;
-        align-items: center;
-        padding: 10px 14px;
-        gap: 8px;
-    }
-
-    .site-preview-minimal i {
-        font-size: var(--font-size-xl);
-        color: var(--text-tertiary);
-    }
-
-    .site-preview-minimal span {
-        color: var(--text-secondary);
-        font-size: var(--font-size-sm);
-    }
-</style>
+</a>
 
 @code {
-    private string TruncateDescription(string description)
+    // Pages ask for a large image with this card type; otherwise a wide,
+    // large image earns one too.
+    private const string LargeImageCard = "summary_large_image";
+    private const int MinLargeImageWidth = 300;
+
+    private OpenGraphData _openGraph;
+    private string _href;
+    private string _siteName;
+    private string _image;
+    private string _icon;
+    private string _imageStyle;
+    private bool _largeImage;
+    private bool _imageFailed;
+    private bool _iconFailed;
+
+    protected override void OnParametersSet()
     {
-        if (string.IsNullOrEmpty(description))
-            return description;
+        _openGraph = Attachment?.OpenGraph;
+        _href = Valour.Shared.Utilities.SafeUrl.Sanitize(Attachment?.Location);
 
-        const int maxLength = 150;
-        if (description.Length <= maxLength)
-            return description;
+        Uri.TryCreate(Attachment?.Location, UriKind.Absolute, out var link);
+        var host = link?.Host ?? string.Empty;
+        if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+            host = host[4..];
+        _siteName = string.IsNullOrWhiteSpace(_openGraph?.SiteName) ? host : _openGraph.SiteName;
 
-        return description.Substring(0, maxLength).TrimEnd() + "...";
+        // The server serves a page's images through its media proxy on the
+        // content CDN; anything else is not loaded, so readers never fetch
+        // images from the linked site.
+        _image = FromContentCdn(_openGraph?.Image);
+        _icon = FromContentCdn(_openGraph?.Icon);
+
+        var width = _openGraph?.ImageWidth ?? 0;
+        var height = _openGraph?.ImageHeight ?? 0;
+        var ratio = width > 0 && height > 0 ? (double)width / height : 1.91;
+
+        _largeImage = _image is not null && width >= MinLargeImageWidth &&
+                      (_openGraph.Card == LargeImageCard || (_openGraph.Card is null && ratio >= 1.3 && width >= 600));
+
+        // Very tall or very wide images are cropped to a sensible banner.
+        _imageStyle = _largeImage
+            ? $"aspect-ratio: {Math.Clamp(ratio, 1.0, 2.4).ToString(System.Globalization.CultureInfo.InvariantCulture)};"
+            : null;
     }
 
-    private string GetHostName()
-    {
-        try
-        {
-            var uri = new Uri(Attachment.Location);
-            return uri.Host;
-        }
-        catch
-        {
-            return Attachment.Location;
-        }
-    }
+    private static string FromContentCdn(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && MediaUriHelper.MatchesConfiguredOrigin(uri, ValourHosts.ContentCdnHost)
+            ? uri.AbsoluteUri
+            : null;
 }

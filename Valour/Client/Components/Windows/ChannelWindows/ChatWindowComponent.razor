@@ -66,7 +66,7 @@
                 </button>
                 <ControlledRenderWrapper @ref="@_reactionSelectorRenderWrapper">
                     <div class="reaction-selector-wrapper" style="bottom: @(_reactionSelectorTop); right: @(_reactionSelectorLeft);">
-                        <EmojiMart @ref="@_reactionSelector" EmojiSet="twitter" StartShown="false" OnClickOutside="@OnClickOutsideReactionPicker" OnEmojiClick="@OnReactionSelectedAsync"/>
+                        <EmojiMart @ref="@_reactionSelector" StartShown="false" OnClickOutside="@OnClickOutsideReactionPicker" OnEmojiClick="@OnReactionSelectedAsync"/>
                     </div>
                 </ControlledRenderWrapper>
             </div>
@@ -223,6 +223,7 @@
         BrowserUtils.Focused += OnBrowserFocused;
         BrowserUtils.Blurred += OnBrowserBlurred;
         WindowService.FocusedTabChanged += OnFocusedTabChanged;
+        Client.NotificationService.NotificationReceived += OnNotificationReceived;
         
         Channel.MessageReceived += OnReceiveMessage;
         Channel.MessageEdited += OnReceiveMessageEdit;
@@ -398,7 +399,33 @@
         }
 
         await ReRender();
+
+        // A target can arrive after setup already started loading recent history
+        if (succeeded && WindowCtx is Content { TargetMessageId: { } lateTarget } lateContent)
+        {
+            lateContent.TargetMessageId = null;
+            if (lateTarget != 0)
+                await LoadAroundMessageAsync(lateTarget);
+        }
+
         return succeeded;
+    }
+
+    /// <summary>
+    /// Loads the channel around a message and highlights it. While the channel
+    /// is still being set up, the message is kept as the target so setup loads
+    /// around it instead.
+    /// </summary>
+    public async Task ShowMessageAsync(long messageId)
+    {
+        if (_loading || _setupError is not null || Channel is null)
+        {
+            if (WindowCtx is Content content)
+                content.TargetMessageId = messageId;
+            return;
+        }
+
+        await LoadAroundMessageAsync(messageId);
     }
 
     private async Task RetrySetupAsync()
@@ -1779,6 +1806,23 @@
         await InvokeAsync(UpdateActiveViewingLeaseStateAsync);
     }
 
+    /// <summary>
+    /// Marks a reply or mention in this channel read when it arrives while the
+    /// user is looking at the latest messages. Messages mark their own
+    /// notification read when they first render, but the notification is
+    /// created after the message is relayed and usually arrives later.
+    /// </summary>
+    private void OnNotificationReceived(Notification notification)
+    {
+        if (notification.TimeRead is not null || notification.ChannelId != Channel?.Id)
+            return;
+
+        if (!_isCaughtUp || !IsActivelyVisibleToUser())
+            return;
+
+        _ = Client.NotificationService.MarkNotificationRead(notification, true);
+    }
+
     private bool IsActivelyVisibleToUser()
     {
         if (_disposed || _loading || Channel is null || !BrowserUtils.IsFocused)
@@ -2039,6 +2083,7 @@
         BrowserUtils.Focused -= OnBrowserFocused;
         BrowserUtils.Blurred -= OnBrowserBlurred;
         WindowService.FocusedTabChanged -= OnFocusedTabChanged;
+        Client.NotificationService.NotificationReceived -= OnNotificationReceived;
         
         if (Channel.PlanetId is not null)
         {

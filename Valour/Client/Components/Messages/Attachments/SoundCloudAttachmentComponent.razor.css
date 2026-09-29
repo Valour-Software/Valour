@@ -1,0 +1,8 @@
+.soundcloud-embed {
+    display: block;
+    width: 100%;
+    max-width: 560px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+}

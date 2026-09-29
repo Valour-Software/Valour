@@ -1,3 +1,5 @@
+using Valour.Shared.Utilities;
+
 namespace Valour.Client;
 
 public static class SentryGate
@@ -16,7 +18,23 @@ public static class SentryGate
             return inner.Count > 0 && inner.All(IsKnownFrameworkNoise);
         }
 
-        return IsSignalRStopRace(exception);
+        return IsSignalRStopRace(exception) ||
+               FrameworkNoise.IsSignalRClosedWriteFault(exception) ||
+               IsWindowsTitleBarFault(exception);
+    }
+
+    /// <summary>
+    /// Returns true for the E_INVALIDARG that MAUI's Windows window procedure
+    /// throws when it asks for the AppWindow of a window that is being torn
+    /// down while updating title bar visibility. The Windows host marks this
+    /// error handled, and the title bar keeps its current state.
+    /// </summary>
+    public static bool IsWindowsTitleBarFault(Exception? exception)
+    {
+        const int E_INVALIDARG = unchecked((int)0x80070057);
+
+        return exception is ArgumentException { HResult: E_INVALIDARG } &&
+               exception.StackTrace?.Contains("NavigationRootManager.SetTitleBarVisibility", StringComparison.Ordinal) == true;
     }
 
     // SignalR's WebSockets transport disposes its stop token source when it is

@@ -257,9 +257,10 @@
                 // Displays size images from this metadata - without it the
                 // attachment preview renders 0x0. Read dimensions from the
                 // uploaded URL rather than retaining a complete byte[] copy.
-                if (type == MessageAttachmentType.Image && url is not null)
+                if (type is MessageAttachmentType.Image or MessageAttachmentType.Video && url is not null)
                 {
-                    var size = await JsRuntime.InvokeAsync<int[]>("getImageSizeAsync", url);
+                    var size = await JsRuntime.InvokeAsync<int[]>(
+                        type == MessageAttachmentType.Image ? "getImageSizeAsync" : "getVideoSizeAsync", url);
                     if (size is { Length: 2 })
                     {
                         attachment.Width = size[0];

@@ -242,9 +242,13 @@ public class MessageService
         var attachments = message.Attachments?.Where(x => x is not null).ToList();
         if (attachments is not null)
         {
-            // Inline attachments are generated from message content on the server.
+            // Inline attachments and link preview data are generated from
+            // message content on the server, never taken from the client.
             foreach (var attachment in attachments)
+            {
                 attachment.Inline = false;
+                attachment.OpenGraph = null;
+            }
         }
 
         // The server cannot read encrypted text, so the sender lists the links
@@ -550,6 +554,8 @@ public class MessageService
         {
             // Inline previews are regenerated from the edited content below.
             attachments.RemoveAll(x => x.Inline);
+            foreach (var attachment in attachments)
+                attachment.OpenGraph = null;
         }
         
         // Handle new inline attachments. Encrypted edits list their links.
@@ -1092,6 +1098,14 @@ public class MessageService
                 var planetHostedResult = ValidatePlanetHostedAttachment(attachment, planetMediaBase);
                 if (!planetHostedResult.Success)
                     return planetHostedResult;
+            }
+            else if (attachment.Type == MessageAttachmentType.SitePreview)
+            {
+                // Link preview cards point at any web page, so only the ones the
+                // server built from the message's links are accepted. Client
+                // attachments reach this point with Inline cleared.
+                if (!attachment.Inline)
+                    return TaskResult.FromFailure("Link previews are created by the server.");
             }
             else
             {

@@ -70,6 +70,8 @@ public static class MediaUriHelper
             MessageAttachmentType.Vimeo => host == "player.vimeo.com",
             MessageAttachmentType.Twitch => host is "player.twitch.tv" or "clips.twitch.tv",
             MessageAttachmentType.Bluesky => host == "embed.bsky.app",
+            MessageAttachmentType.AppleMusic => host == "embed.music.apple.com",
+            MessageAttachmentType.Kick => host == "player.kick.com",
             _ => false
         };
     }

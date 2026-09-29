@@ -68,3 +68,17 @@
 .valour-doc-preview:hover .vdp-arrow {
     opacity: 1;
 }
+
+.valour-doc-preview.loading {
+    cursor: default;
+}
+
+.vdp-placeholder {
+    width: 60%;
+    border-radius: var(--radius-full);
+    background-color: var(--surface-hover);
+}
+
+.vdp-placeholder.short {
+    width: 35%;
+}

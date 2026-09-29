@@ -39,6 +39,10 @@ public static class MessageAttachmentExtensions
         typeof(EmbedAttachmentComponent),       // 25: Embed
         typeof(ValourThreadAttachmentComponent),// 26: ValourThread
         typeof(ValourWikiAttachmentComponent),  // 27: ValourWikiPage
+        typeof(ThreadsAttachmentComponent),     // 28: Threads
+        typeof(StreamableAttachmentComponent),  // 29: Streamable
+        typeof(AppleMusicAttachmentComponent),  // 30: AppleMusic
+        typeof(KickAttachmentComponent),        // 31: Kick
     };
 
     public static Type GetComponentType(this MessageAttachment attachment)

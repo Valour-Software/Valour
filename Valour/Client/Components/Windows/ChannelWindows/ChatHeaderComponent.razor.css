@@ -155,6 +155,33 @@
     border-radius: var(--radius-lg);
 }
 
+.search-results ::deep .sky-moment {
+    padding-bottom: 14px;
+}
+
+.search-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 18px 16px;
+    text-align: center;
+}
+
+.search-status-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.search-status-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.search-status .v-btn {
+    margin-top: 6px;
+}
+
 .results-scroll {
     max-height: 400px;
     overflow-y: auto;

@@ -9,10 +9,17 @@
         <ThreadCard Thread="@_thread" Preview="true" Clickable="true" ShowPlanet="false" ShowPresence="false" />
     </div>
 }
+else if (_loading)
+{
+    <div class="valour-thread-preview">
+        <ThreadCardSkeleton />
+    </div>
+}
 
 @code {
     private PlanetThread _thread;
     private long? _loadedThreadId;
+    private bool _loading;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -34,6 +41,7 @@
         if (_thread is not null && _loadedThreadId == route.ThreadId)
             return;
 
+        _loading = true;
         try
         {
             _thread = await Client.ThreadService.FetchThreadAsync(route.PlanetId.Value, route.ThreadId.Value);
@@ -43,6 +51,10 @@
         {
             Client.Logger?.Log("ValourThreadAttachment", "Failed to load thread preview: " + e.Message, "yellow");
             _thread = null;
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 }

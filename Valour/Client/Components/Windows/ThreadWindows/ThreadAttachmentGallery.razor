@@ -1,4 +1,5 @@
 @using Valour.Client.Components.Menus.Modals.Attachments
+@using Valour.Client.Messages
 @inject ValourClient Client
 
 @if (_visible.Count > 0)
@@ -46,6 +47,31 @@
     </div>
 }
 
+@if (_embeds.Count > 0)
+{
+    @* Embeds nested in an embedded thread preview are left out, so threads
+       that link to each other cannot nest without end. *@
+    <CascadingValue Name="ThreadEmbedNested" Value="true" IsFixed="true">
+        <div class="thread-embeds">
+            @foreach (var attachment in _embeds)
+            {
+                <div class="thread-embed" @onclick:stopPropagation="true">
+                    @if (attachment.IsSpoiler && !_revealedSpoilers.Contains(attachment))
+                    {
+                        <button type="button" class="embed-spoiler-placeholder" @onclick="@(() => _revealedSpoilers.Add(attachment))">
+                            Spoiler: click to reveal embed
+                        </button>
+                    }
+                    else
+                    {
+                        <DynamicComponent Type="@attachment.GetComponentType()" Parameters="@GetEmbedParameters(attachment)"/>
+                    }
+                </div>
+            }
+        </div>
+    </CascadingValue>
+}
+
 @code {
     private const int MaxVisible = 4;
 
@@ -65,14 +91,58 @@
     [Parameter]
     public bool Expandable { get; set; } = true;
 
+    /// <summary>
+    /// Shows only the first link embed, for compact post previews in feeds.
+    /// </summary>
+    [Parameter]
+    public bool FirstEmbedOnly { get; set; }
+
+    [CascadingParameter(Name = "ThreadEmbedNested")]
+    public bool Nested { get; set; }
+
+    /// <summary>
+    /// Link embeds are drawn in the post with the same components as chat,
+    /// instead of as tiles in the media grid.
+    /// </summary>
+    private static readonly HashSet<MessageAttachmentType> EmbedTypes =
+    [
+        MessageAttachmentType.SitePreview,
+        MessageAttachmentType.YouTube,
+        MessageAttachmentType.Vimeo,
+        MessageAttachmentType.Twitch,
+        MessageAttachmentType.TikTok,
+        MessageAttachmentType.Twitter,
+        MessageAttachmentType.Reddit,
+        MessageAttachmentType.Instagram,
+        MessageAttachmentType.Bluesky,
+        MessageAttachmentType.Spotify,
+        MessageAttachmentType.SoundCloud,
+        MessageAttachmentType.GitHub,
+        MessageAttachmentType.ValourThread,
+        MessageAttachmentType.ValourWikiPage,
+        MessageAttachmentType.Threads,
+        MessageAttachmentType.Streamable,
+        MessageAttachmentType.AppleMusic,
+        MessageAttachmentType.Kick,
+    ];
+
     private List<MessageAttachment> _visible = new();
+    private List<MessageAttachment> _embeds = new();
+    private readonly HashSet<MessageAttachment> _revealedSpoilers = new();
     private readonly Dictionary<MessageAttachment, string> _urls = new();
+    private Message _embedMessage;
 
     protected override async Task OnParametersSetAsync()
     {
-        _visible = Attachments?
-            .Where(x => x is not null && !x.Missing && x.Type != MessageAttachmentType.SitePreview)
-            .ToList() ?? new List<MessageAttachment>();
+        var attachments = Attachments?.Where(x => x is not null && !x.Missing).ToList() ?? new List<MessageAttachment>();
+        _visible = attachments.Where(x => !EmbedTypes.Contains(x.Type)).ToList();
+        _embeds = Nested
+            ? new List<MessageAttachment>()
+            : attachments.Where(x => EmbedTypes.Contains(x.Type)).Take(FirstEmbedOnly ? 1 : int.MaxValue).ToList();
+
+        // Thread and wiki previews read the planet from the message they belong to.
+        if (_embedMessage?.PlanetId != PlanetId)
+            _embedMessage = new Message(Client) { PlanetId = PlanetId };
 
         var node = Client.NodeService.GetKnownByPlanet(PlanetId) ?? Client.PrimaryNode;
 
@@ -86,6 +156,12 @@
                 _urls[attachment] = url;
         }
     }
+
+    private Dictionary<string, object> GetEmbedParameters(MessageAttachment attachment) => new()
+    {
+        { "Attachment", attachment },
+        { "Message", _embedMessage },
+    };
 
     private void OnClickItem(MessageAttachment attachment)
     {
