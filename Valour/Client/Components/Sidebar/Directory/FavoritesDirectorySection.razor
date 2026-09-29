@@ -22,7 +22,7 @@
                         var isLast = index == _channels.Count - 1;
 
                         <div class="tree-row @(isLast ? "last" : "")" depth="2">
-                            <div class="channel-wrapper" style="margin-left: 18px" depth="2"
+                            <div class="channel-wrapper" style="margin-left: 20px" depth="2"
                                  draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded ? "true" : "false")"
                                  @ondragover:preventDefault="true"
 
@@ -55,7 +55,7 @@
                                     }
                                     <div class="channel nested @(unread ? "unread" : "")">
                                         <i class="channel-icon bi-@icon.Name"
-                                           style="font-size: @icon.Size; transform: translateY(calc(-50% - -2px)); left: @icon.Left;"></i>
+                                           style="font-size: @icon.Size"></i>
                                         <div class="path" depth="2"></div>
                                         <p class="name">@channel.Name</p>
                                         @if (unread)
@@ -233,14 +233,14 @@
 
     #endregion
 
-    private readonly record struct FavoriteIcon(string Name, string Size, string Left);
+    private readonly record struct FavoriteIcon(string Name, string Size);
 
     private static FavoriteIcon GetIcon(Channel channel, bool unread) =>
         channel.ChannelType switch
         {
-            ChannelTypeEnum.PlanetVoice => new FavoriteIcon("music-note-beamed", "16px", "6px"),
-            ChannelTypeEnum.PlanetVideo => new FavoriteIcon(unread ? "camera-video-fill" : "camera-video", "16px", "6px"),
-            _ => new FavoriteIcon(unread ? "chat-left-fill" : "chat-left", "14px", "8px")
+            ChannelTypeEnum.PlanetVoice => new FavoriteIcon("music-note-beamed", "16px"),
+            ChannelTypeEnum.PlanetVideo => new FavoriteIcon(unread ? "camera-video-fill" : "camera-video", "16px"),
+            _ => new FavoriteIcon(unread ? "chat-left-fill" : "chat-left", "14px")
         };
 
     public void Dispose()
