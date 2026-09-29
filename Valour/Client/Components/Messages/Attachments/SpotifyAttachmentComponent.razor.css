@@ -1,0 +1,10 @@
+.spotify-container {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.spotify-embed {
+    display: block;
+    border: none;
+    border-radius: var(--radius-lg);
+}

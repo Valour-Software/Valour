@@ -17,12 +17,25 @@
         <i class="bi bi-chevron-right vdp-arrow"></i>
     </div>
 }
+else if (_loading)
+{
+    <div class="valour-doc-preview loading" aria-busy="true">
+        <div class="vdp-icon">
+            <i class="bi bi-journal-text"></i>
+        </div>
+        <div class="vdp-text">
+            <span class="vdp-title vdp-placeholder">&nbsp;</span>
+            <span class="vdp-sub vdp-placeholder short">&nbsp;</span>
+        </div>
+    </div>
+}
 
 @code {
     private Planet _planet;
     private PlanetWikiPage _doc;
     private long? _loadedPageId;
     private string _breadcrumb = string.Empty;
+    private bool _loading;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -44,6 +57,7 @@
         if (_doc is not null && _loadedPageId == route.PageId)
             return;
 
+        _loading = true;
         try
         {
             _planet = await Client.PlanetService.FetchPlanetAsync(route.PlanetId.Value);
@@ -60,6 +74,10 @@
         {
             Client.Logger?.Log("ValourDocAttachment", "Failed to load doc preview: " + e.Message, "yellow");
             _doc = null;
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 

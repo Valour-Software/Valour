@@ -114,9 +114,10 @@ else
                                                 attachment.Type != MessageAttachmentType.Video &&
                                                 !(_revealedSpoilerAttachments?.Contains(id) ?? false);
 
-                    // X and Reddit frames size themselves to their content,
+                    // Provider post frames size themselves to their content,
                     // so their wrapper does not cap and scroll them.
-                    var sizesItself = attachment.Type is MessageAttachmentType.Twitter or MessageAttachmentType.Reddit;
+                    var sizesItself = attachment.Type is MessageAttachmentType.Twitter or MessageAttachmentType.Reddit
+                        or MessageAttachmentType.Bluesky or MessageAttachmentType.Instagram;
 
                     <div class="attachment-wrapper @(sizesItself ? "sizes-itself" : string.Empty)" @onclick="() => OnClickAttachment(id)">
                         @if (_ghost && !_isInnerReply)

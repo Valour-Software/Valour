@@ -1,37 +1,80 @@
 @inherits AttachmentComponent
+@using System.Collections.Concurrent
+@using System.Text.Json
+@using System.Text.RegularExpressions
 
-@if (_src is not null)
+@if (_postPath is not null)
 {
-    <div class="bluesky-container">
-        <iframe
-            class="bluesky-embed"
-            src="@_src"
-            width="@(Attachment.Width > 0 ? Attachment.Width : 400)"
-            height="@(Attachment.Height > 0 ? Attachment.Height : 300)"
-            frameborder="0"
-            scrolling="no">
-        </iframe>
-    </div>
+    <ProviderEmbedFrame Provider="bluesky"
+                        EmbedId="@_postPath"
+                        Src="@($"https://embed.bsky.app/embed/{_postPath}?colorMode=dark")"
+                        Title="Post on Bluesky"
+                        DefaultHeight="300"
+                        MaxWidth="550"/>
 }
 
-<style>
-    .bluesky-container {
-        max-width: 400px;
-        border-radius: var(--radius-md);
-        overflow: hidden;
-    }
-
-    .bluesky-embed {
-        border: none;
-        border-radius: var(--radius-md);
-    }
-</style>
-
 @code {
-    private string _src;
+    // The embed page takes the post's AT URI: the account's DID and the post key.
+    private static readonly Regex EmbedUrl = new(
+        @"^https://embed\.bsky\.app/embed/(did:[a-z]+:[A-Za-z0-9._:%-]+)/app\.bsky\.feed\.post/([A-Za-z0-9]+)$",
+        RegexOptions.CultureInvariant);
 
-    protected override void OnParametersSet()
+    // Attachments stored before the server resolved DIDs name the account by
+    // handle, which the embed page does not accept.
+    private static readonly Regex HandleEmbedUrl = new(
+        @"^https://embed\.bsky\.app/embed/profile/([A-Za-z0-9.:-]+)/post/([A-Za-z0-9]+)/?$",
+        RegexOptions.CultureInvariant);
+
+    private static readonly HttpClient Http = new();
+    private static readonly ConcurrentDictionary<string, Task<string>> ResolvedHandles = new();
+
+    private string _postPath;
+    private string _location;
+
+    protected override async Task OnParametersSetAsync()
     {
-        _src = GetTrustedEmbedSource("embed.bsky.app");
+        if (Attachment?.Location == _location)
+            return;
+
+        _location = Attachment?.Location;
+        _postPath = null;
+
+        var match = EmbedUrl.Match(_location ?? string.Empty);
+        if (match.Success)
+        {
+            _postPath = $"{match.Groups[1].Value}/app.bsky.feed.post/{match.Groups[2].Value}";
+            return;
+        }
+
+        match = HandleEmbedUrl.Match(_location ?? string.Empty);
+        if (!match.Success)
+            return;
+
+        var actor = match.Groups[1].Value;
+        var did = actor.StartsWith("did:", StringComparison.Ordinal)
+            ? actor
+            : await ResolvedHandles.GetOrAdd(actor.ToLowerInvariant(), ResolveHandleAsync);
+
+        if (did is not null)
+            _postPath = $"{did}/app.bsky.feed.post/{match.Groups[2].Value}";
+    }
+
+    private static async Task<string> ResolveHandleAsync(string handle)
+    {
+        try
+        {
+            using var response = await Http.GetAsync(
+                $"https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle={Uri.EscapeDataString(handle)}");
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            using var body = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var did = body.RootElement.TryGetProperty("did", out var value) ? value.GetString() : null;
+            return did is not null && did.StartsWith("did:", StringComparison.Ordinal) ? did : null;
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            return null;
+        }
     }
 }

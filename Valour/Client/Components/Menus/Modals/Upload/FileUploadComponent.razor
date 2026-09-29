@@ -126,6 +126,17 @@
             _imageReady = false;
             await JsRuntime.InvokeVoidAsync("getImageSize", _blobUrl, _thisRef);
         }
+        else if (Data.Attachment.Type == MessageAttachmentType.Video)
+        {
+            // Stored with the attachment so viewers can reserve the video's
+            // space before it loads.
+            var size = await JsRuntime.InvokeAsync<int[]>("getVideoSizeAsync", _blobUrl);
+            if (size is { Length: 2 })
+            {
+                Data.Attachment.Width = size[0];
+                Data.Attachment.Height = size[1];
+            }
+        }
         
         _loaded = true;
     }

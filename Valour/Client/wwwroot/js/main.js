@@ -381,6 +381,29 @@ function getImageSizeAsync(url) {
     });
 }
 
+// Resolves to a video's [width, height] from its metadata, or [0, 0] when it
+// cannot be read in time (the upload then proceeds without a size).
+function getVideoSizeAsync(url) {
+    return new Promise((resolve) => {
+        const video = document.createElement("video");
+        let settled = false;
+        const finish = size => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            video.removeAttribute("src");
+            video.load();
+            resolve(size);
+        };
+        const timer = setTimeout(() => finish([0, 0]), 10000);
+        video.preload = "metadata";
+        video.muted = true;
+        video.onloadedmetadata = () => finish([video.videoWidth, video.videoHeight]);
+        video.onerror = () => finish([0, 0]);
+        video.src = url;
+    });
+}
+
 /* Useful functions for layout items */
 function determineFlip(element, safeWidth){
     if (!element?.parentElement)
@@ -644,8 +667,8 @@ function sanitizeEmbedHtml(html, provider) {
     return template.innerHTML;
 }
 
-// X and Reddit posts render as the provider's own embed page in a frame
-// (ProviderEmbedFrame.razor). The page reports its content height with
+// X, Reddit, Bluesky and Instagram posts render as the provider's own embed
+// page in a frame (ProviderEmbedFrame.razor). The page reports its content height with
 // postMessage, and the frame is sized from that. The last height seen for
 // each embed at each width is kept, so a revisited embed starts at its final
 // size instead of moving the layout when it loads.
@@ -662,6 +685,18 @@ const valourEmbedFrames = (() => {
             origin: "https://embed.reddit.com",
             readHeight(message) {
                 return message?.type === "resize.embed" ? message.data : undefined;
+            }
+        },
+        bluesky: {
+            origin: "https://embed.bsky.app",
+            readHeight(message) {
+                return message?.height;
+            }
+        },
+        instagram: {
+            origin: "https://www.instagram.com",
+            readHeight(message) {
+                return message?.type === "MEASURE" ? message.details?.height : undefined;
             }
         }
     };
