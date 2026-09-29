@@ -16,15 +16,14 @@ public class ProxyHandler
 {
     private readonly HttpClient _http;
     private readonly ILogger<ProxyHandler> _logger;
+    private readonly SitePreviewFetcher _sitePreviews;
     private static int _cleanupStarted;
 
-    // Cache for oEmbed responses (15 minute expiration)
+    // Cache for oEmbed responses (15 minute expiration). Links come from
+    // anyone who can post, so the caches stop growing at a fixed size.
     private static readonly ConcurrentDictionary<string, CachedOEmbed> _oembedCache = new();
     private static readonly TimeSpan OEmbedCacheExpiration = TimeSpan.FromMinutes(15);
-
-    // Cache for Open Graph data (15 minute expiration)
-    private static readonly ConcurrentDictionary<string, CachedOpenGraph> _openGraphCache = new();
-    private static readonly TimeSpan OpenGraphCacheExpiration = TimeSpan.FromMinutes(15);
+    private const int MaxCachedResponses = 5000;
 
     private class CachedOEmbed
     {
@@ -33,17 +32,11 @@ public class ProxyHandler
         public bool IsExpired => DateTime.UtcNow - CachedAt > OEmbedCacheExpiration;
     }
 
-    private class CachedOpenGraph
-    {
-        public OpenGraphData Data { get; set; }
-        public DateTime CachedAt { get; set; }
-        public bool IsExpired => DateTime.UtcNow - CachedAt > OpenGraphCacheExpiration;
-    }
-
     public ProxyHandler(HttpClient http, ILogger<ProxyHandler> logger)
     {
         _http = http;
         _logger = logger;
+        _sitePreviews = new SitePreviewFetcher(http, logger);
 
         // Start one cleanup loop for all ProxyHandler instances.
         if (Interlocked.Exchange(ref _cleanupStarted, 1) == 0)
@@ -60,9 +53,9 @@ public class ProxyHandler
             foreach (var key in expiredOEmbed)
                 _oembedCache.TryRemove(key, out _);
 
-            var expiredOg = _openGraphCache.Where(x => x.Value.IsExpired).Select(x => x.Key).ToList();
-            foreach (var key in expiredOg)
-                _openGraphCache.TryRemove(key, out _);
+            var expiredGists = _gistCache.Where(x => DateTime.UtcNow - x.Value.CachedAt >= GistCacheExpiration).Select(x => x.Key).ToList();
+            foreach (var key in expiredGists)
+                _gistCache.TryRemove(key, out _);
         }
     }
 
@@ -72,22 +65,24 @@ public class ProxyHandler
 
     public async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, ValourDb db)
     {
-        var urls = CdnUtils.UrlRegex.Matches(url);
+        // <url> is standard markdown for "link this, but don't embed it" -
+        // it still renders as a normal clickable link, it just shouldn't
+        // also generate a preview card here.
+        var matches = CdnUtils.UrlRegex.Matches(url)
+            .Where(match => !IsBracketed(url, match))
+            .Take(MaxUrlPreviewsPerMessage)
+            .ToList();
+
+        // Page previews are fetched together, so a message with several links
+        // waits for the slowest page rather than all of them in turn. The
+        // attachments are then built one at a time, since they share db.
+        foreach (var match in matches)
+            StartSitePreview(match.Value);
 
         List<MessageAttachment> attachments = null;
-        var attempted = 0;
 
-        foreach (Match match in urls)
+        foreach (var match in matches)
         {
-            // <url> is standard markdown for "link this, but don't embed it" -
-            // it still renders as a normal clickable link, it just shouldn't
-            // also generate a preview card here.
-            if (IsBracketed(url, match))
-                continue;
-
-            if (++attempted > MaxUrlPreviewsPerMessage)
-                break;
-
             var attachment = await GetAttachmentFromUrl(match.Value, db);
             if (attachment != null)
             {
@@ -102,6 +97,27 @@ public class ProxyHandler
         }
 
         return attachments;
+    }
+
+    private void StartSitePreview(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return;
+
+        var host = NormalizeHost(uri.Host);
+        if (ValourHosts.IsSelfHost(host) || CdnUtils.TryGetVirtualAttachmentType(host, out _) || IsMediaFileLink(uri))
+            return;
+
+        _ = _sitePreviews.GetAsync(WithoutFragment(uri));
+    }
+
+    /// <summary>
+    /// True when the link names a file by a media extension, such as .png.
+    /// </summary>
+    private static bool IsMediaFileLink(Uri uri)
+    {
+        var extension = Path.GetExtension(Path.GetFileName(uri.AbsolutePath)).ToLowerInvariant();
+        return CdnUtils.ExtensionToMimeType.TryGetValue(extension, out var mime) && mime is { Length: >= 4 };
     }
 
     private static bool IsBracketed(string url, Match match)
@@ -171,12 +187,18 @@ public class ProxyHandler
         var isVirtual = CdnUtils.TryGetVirtualAttachmentType(normalizedHost, out var virtualType);
         if (isVirtual)
         {
-            return await HandleVirtualAttachment(canonicalUrl, uri, virtualType, db);
+            var embed = await HandleVirtualAttachment(canonicalUrl, uri, virtualType, db);
+            if (embed is not null)
+                return embed;
         }
-        else
+        else if (IsMediaFileLink(uri))
         {
             return await HandleMediaAttachment(canonicalUrl, uri, db);
         }
+
+        // Pages with no embed of their own, including links on embed sites
+        // that no embed covers (such as a GitHub repository), get a card.
+        return await HandleSitePreviewAsync(WithoutFragment(uri), db);
     }
 
     /// <summary>
@@ -776,7 +798,8 @@ public class ProxyHandler
             };
 
             var data = System.Text.Json.JsonSerializer.Serialize(preview);
-            _gistCache[gistId] = (data, DateTime.UtcNow);
+            if (_gistCache.Count < MaxCachedResponses)
+                _gistCache[gistId] = (data, DateTime.UtcNow);
             return data;
         }
         catch (Exception ex)
@@ -929,119 +952,87 @@ public class ProxyHandler
 
     #endregion
 
-    #region Open Graph / Site Preview
+    #region Site Preview
 
     /// <summary>
-    /// Fetches Open Graph metadata for a URL to create a site preview
+    /// Builds a preview card for a web page that has no embed. The page's
+    /// images are served through the media proxy, so readers never load them
+    /// from the page's site.
     /// </summary>
-    public async Task<OpenGraphData> GetOpenGraphDataAsync(string url)
+    private async Task<MessageAttachment> HandleSitePreviewAsync(string url, ValourDb db)
     {
-        if (_openGraphCache.TryGetValue(url, out var cached) && !cached.IsExpired)
-            return cached.Data;
-
-        if (!await OutboundUrlSafetyValidator.IsSafeAsync(url, _logger))
+        var preview = await _sitePreviews.GetAsync(url);
+        if (preview is null)
             return null;
+
+        var openGraph = new OpenGraphData
+        {
+            Url = url,
+            Title = preview.Title,
+            Description = preview.Description,
+            SiteName = preview.SiteName,
+            Type = preview.Type,
+            Card = preview.Card,
+        };
+
+        if (preview.Image is not null)
+        {
+            openGraph.Image = await EnsureProxiedImageAsync(preview.Image, db);
+            if (openGraph.Image is not null)
+            {
+                openGraph.ImageWidth = preview.Image.Width;
+                openGraph.ImageHeight = preview.Image.Height;
+                openGraph.ImageAlt = preview.ImageAlt;
+            }
+        }
+
+        if (preview.Icon is not null)
+            openGraph.Icon = await EnsureProxiedImageAsync(preview.Icon, db);
+
+        return new MessageAttachment(MessageAttachmentType.SitePreview)
+        {
+            Location = url,
+            OpenGraph = openGraph,
+        };
+    }
+
+    /// <summary>
+    /// Registers an image with the media proxy (once per image) and returns
+    /// its proxy address on the content CDN.
+    /// </summary>
+    private async Task<string> EnsureProxiedImageAsync(SitePreviewImage image, ValourDb db)
+    {
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(image.Url))).ToLowerInvariant();
+        var id = hash + image.Extension;
 
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add("User-Agent", "Mozilla/5.0 (compatible; ValourBot/1.0)");
-
-            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            // Bound the read: the origin is user-chosen and may serve an
-            // enormous or slow body. OpenGraph tags are in the head anyway.
-            var html = await CdnLimits.ReadBoundedStringAsync(response.Content, CdnLimits.MaxHtmlScrapeBytes);
-            if (html is null)
-                return null;
-
-            var ogData = ParseOpenGraphTags(html, url);
-
-            if (ogData != null)
+            if (await db.CdnProxyItems.FindAsync(id) is null)
             {
-                _openGraphCache[url] = new CachedOpenGraph
+                await db.CdnProxyItems.AddAsync(new CdnProxyItem
                 {
-                    Data = ogData,
-                    CachedAt = DateTime.UtcNow
-                };
+                    Id = id,
+                    Origin = image.Url,
+                    MimeType = image.MimeType,
+                    Width = image.Width,
+                    Height = image.Height,
+                });
+                await db.SaveChangesAsync();
             }
-
-            return ogData;
         }
-        catch (Exception ex)
+        catch (DbUpdateException)
         {
-            _logger.LogWarning(ex, "Failed to fetch Open Graph data for {Url}", url);
-            return null;
+            // Another message registered the same image first.
+            db.ChangeTracker.Clear();
+            if (await db.CdnProxyItems.FindAsync(id) is null)
+                return null;
         }
+
+        return $"{ValourHosts.ContentCdnBaseUrl}/proxy/{id}";
     }
 
-    private static readonly Regex OgTagPattern = new(
-        @"<meta\s+(?:property|name)\s*=\s*[""'](?:og:|twitter:)(\w+)[""']\s+content\s*=\s*[""']([^""']*)[""']",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private static readonly Regex OgTagPatternReverse = new(
-        @"<meta\s+content\s*=\s*[""']([^""']*)[""']\s+(?:property|name)\s*=\s*[""'](?:og:|twitter:)(\w+)[""']",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private static readonly Regex TitlePattern = new(
-        @"<title[^>]*>([^<]+)</title>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private static readonly Regex DescriptionPattern = new(
-        @"<meta\s+name\s*=\s*[""']description[""']\s+content\s*=\s*[""']([^""']*)[""']",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private OpenGraphData ParseOpenGraphTags(string html, string url)
-    {
-        var data = new OpenGraphData { Url = url };
-
-        // Parse OG/Twitter meta tags
-        var tags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (Match match in OgTagPattern.Matches(html))
-        {
-            tags[match.Groups[1].Value] = HttpUtility.HtmlDecode(match.Groups[2].Value);
-        }
-
-        foreach (Match match in OgTagPatternReverse.Matches(html))
-        {
-            if (!tags.ContainsKey(match.Groups[2].Value))
-                tags[match.Groups[2].Value] = HttpUtility.HtmlDecode(match.Groups[1].Value);
-        }
-
-        // Map to OpenGraphData
-        data.Title = tags.GetValueOrDefault("title");
-        data.Description = tags.GetValueOrDefault("description");
-        data.Image = tags.GetValueOrDefault("image");
-        data.SiteName = tags.GetValueOrDefault("site_name");
-        data.Type = tags.GetValueOrDefault("type");
-
-        // Fallback to standard HTML tags
-        if (string.IsNullOrWhiteSpace(data.Title))
-        {
-            var titleMatch = TitlePattern.Match(html);
-            if (titleMatch.Success)
-                data.Title = HttpUtility.HtmlDecode(titleMatch.Groups[1].Value.Trim());
-        }
-
-        if (string.IsNullOrWhiteSpace(data.Description))
-        {
-            var descMatch = DescriptionPattern.Match(html);
-            if (descMatch.Success)
-                data.Description = HttpUtility.HtmlDecode(descMatch.Groups[1].Value);
-        }
-
-        // Make image URL absolute if relative
-        if (!string.IsNullOrWhiteSpace(data.Image) && !data.Image.StartsWith("http"))
-        {
-            var baseUri = new Uri(url);
-            data.Image = new Uri(baseUri, data.Image).ToString();
-        }
-
-        return data.IsValid ? data : null;
-    }
+    private static string WithoutFragment(Uri uri) =>
+        string.IsNullOrEmpty(uri.Fragment) ? uri.AbsoluteUri : new UriBuilder(uri) { Fragment = string.Empty }.Uri.AbsoluteUri;
 
     #endregion
 
@@ -1056,7 +1047,8 @@ public class ProxyHandler
 
         if (data != null)
         {
-            _oembedCache[originalUrl] = new CachedOEmbed
+            if (_oembedCache.Count < MaxCachedResponses)
+                _oembedCache[originalUrl] = new CachedOEmbed
             {
                 Data = data,
                 CachedAt = DateTime.UtcNow

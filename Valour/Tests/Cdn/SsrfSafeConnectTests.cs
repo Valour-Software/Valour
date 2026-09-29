@@ -76,6 +76,18 @@ public class SsrfSafeConnectTests
     }
 
     [Theory]
+    [InlineData("168.63.129.16")] // Azure platform endpoint
+    [InlineData("192.88.99.1")] // 6to4 relay anycast
+    [InlineData("100::1")] // discard-only
+    [InlineData("2001:2::1")] // benchmarking
+    [InlineData("2001:10::1")] // ORCHID
+    [InlineData("2001:20::1")] // ORCHIDv2
+    public void IsPublicAddress_BlocksSpecialPurposeRanges(string address)
+    {
+        Assert.False(OutboundUrlSafetyValidator.IsPublicAddress(IPAddress.Parse(address)));
+    }
+
+    [Theory]
     [InlineData("64:ff9b::808:808")] // NAT64 of 8.8.8.8
     [InlineData("2002:808:808::1")] // 6to4 of 8.8.8.8
     [InlineData("2606:4700:4700::1111")]

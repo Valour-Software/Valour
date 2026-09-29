@@ -102,8 +102,12 @@ public class ThreadService
         var attachments = thread.Attachments?.Where(x => x is not null).ToList();
         if (attachments is not null)
         {
+            // Inline attachments and link preview data come from the server.
             foreach (var attachment in attachments)
+            {
                 attachment.Inline = false;
+                attachment.OpenGraph = null;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(thread.Content))
@@ -1188,6 +1192,12 @@ public class ThreadService
             if (attachment.Missing)
             {
                 attachment.Location = Valour.Sdk.Models.MessageAttachment.MissingLocation;
+            }
+            else if (attachment.Type == MessageAttachmentType.SitePreview)
+            {
+                // Only the server builds link preview cards (see MessageService).
+                if (!attachment.Inline)
+                    return TaskResult.FromFailure("Link previews are created by the server.");
             }
             else
             {
