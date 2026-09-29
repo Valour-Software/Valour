@@ -223,6 +223,7 @@
         BrowserUtils.Focused += OnBrowserFocused;
         BrowserUtils.Blurred += OnBrowserBlurred;
         WindowService.FocusedTabChanged += OnFocusedTabChanged;
+        Client.NotificationService.NotificationReceived += OnNotificationReceived;
         
         Channel.MessageReceived += OnReceiveMessage;
         Channel.MessageEdited += OnReceiveMessageEdit;
@@ -1779,6 +1780,23 @@
         await InvokeAsync(UpdateActiveViewingLeaseStateAsync);
     }
 
+    /// <summary>
+    /// Marks a reply or mention in this channel read when it arrives while the
+    /// user is looking at the latest messages. Messages mark their own
+    /// notification read when they first render, but the notification is
+    /// created after the message is relayed and usually arrives later.
+    /// </summary>
+    private void OnNotificationReceived(Notification notification)
+    {
+        if (notification.TimeRead is not null || notification.ChannelId != Channel?.Id)
+            return;
+
+        if (!_isCaughtUp || !IsActivelyVisibleToUser())
+            return;
+
+        _ = Client.NotificationService.MarkNotificationRead(notification, true);
+    }
+
     private bool IsActivelyVisibleToUser()
     {
         if (_disposed || _loading || Channel is null || !BrowserUtils.IsFocused)
@@ -2039,6 +2057,7 @@
         BrowserUtils.Focused -= OnBrowserFocused;
         BrowserUtils.Blurred -= OnBrowserBlurred;
         WindowService.FocusedTabChanged -= OnFocusedTabChanged;
+        Client.NotificationService.NotificationReceived -= OnNotificationReceived;
         
         if (Channel.PlanetId is not null)
         {
