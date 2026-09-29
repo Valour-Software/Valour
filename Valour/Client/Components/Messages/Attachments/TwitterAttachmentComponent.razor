@@ -1,17 +1,26 @@
 @inherits AttachmentComponent
-@inject IJSRuntime JsRuntime
+@using System.Text.RegularExpressions
 
-<div class="twitter-embed" id="@_id">
-</div>
+@if (_postId is not null)
+{
+    <ProviderEmbedFrame Provider="twitter"
+                        EmbedId="@_postId"
+                        Src="@($"https://platform.twitter.com/embed/Tweet.html?id={_postId}&theme=dark&dnt=true&hideThread=true")"
+                        Title="Post on X"
+                        DefaultHeight="220"
+                        MaxWidth="550"/>
+}
 
 @code {
-    private readonly string _id = "twitter-embed-" + Guid.NewGuid().ToString();
+    private static readonly Regex PostUrl = new(
+        @"^https://(?:www\.|mobile\.)?(?:x|twitter)\.com/[A-Za-z0-9_]{1,15}/status(?:es)?/(\d{1,20})(?:[/?#]|$)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private string _postId;
+
+    protected override void OnParametersSet()
     {
-        if (firstRender)
-        {
-            await JsRuntime.InvokeVoidAsync("injectTwitter", _id, Attachment.Data);
-        }
+        var match = PostUrl.Match(Attachment?.Location ?? string.Empty);
+        _postId = match.Success ? match.Groups[1].Value : null;
     }
 }

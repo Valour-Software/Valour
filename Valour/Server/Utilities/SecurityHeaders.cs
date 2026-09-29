@@ -29,9 +29,6 @@ public static partial class SecurityHeaders
         "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/",
         "https://unpkg.com/@lottiefiles/lottie-player@2.0.12/",
         "https://s3.tradingview.com",
-        "https://platform.twitter.com",
-        "https://cdn.syndication.twimg.com",
-        "https://embed.reddit.com",
         "https://www.tiktok.com",
         "https://*.tiktokcdn.com",
         "https://*.tiktokcdn-us.com",
@@ -40,7 +37,8 @@ public static partial class SecurityHeaders
     ];
 
     // Iframe hosts for message embeds: main.js trustedEmbedIframeHosts, the
-    // attachment components' players, and the frames the embed widgets create.
+    // attachment components' players and provider pages (such as X and Reddit
+    // posts), and the frames the embed widgets create.
     private static readonly string[] EmbedFrameSources =
     [
         "https://www.youtube.com",
@@ -52,8 +50,6 @@ public static partial class SecurityHeaders
         "https://clips.twitch.tv",
         "https://www.tiktok.com",
         "https://platform.twitter.com",
-        "https://syndication.twitter.com",
-        "https://twitter.com",
         "https://www.instagram.com",
         "https://embed.bsky.app",
         "https://open.spotify.com",

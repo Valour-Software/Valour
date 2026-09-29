@@ -114,7 +114,11 @@ else
                                                 attachment.Type != MessageAttachmentType.Video &&
                                                 !(_revealedSpoilerAttachments?.Contains(id) ?? false);
 
-                    <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
+                    // X and Reddit frames size themselves to their content,
+                    // so their wrapper does not cap and scroll them.
+                    var sizesItself = attachment.Type is MessageAttachmentType.Twitter or MessageAttachmentType.Reddit;
+
+                    <div class="attachment-wrapper @(sizesItself ? "sizes-itself" : string.Empty)" @onclick="() => OnClickAttachment(id)">
                         @if (_ghost && !_isInnerReply)
                         {
                             <button type="button" class="attachment-remove-btn" title="Remove attachment" aria-label="Remove attachment"

@@ -492,8 +492,6 @@ function positionRelativeTo(id, x, y, corner) {
 }
 
 const trustedEmbedScriptHosts = new Set([
-    "platform.twitter.com",
-    "embed.reddit.com",
     "www.tiktok.com",
     "gist.github.com"
 ]);
@@ -507,8 +505,6 @@ const trustedEmbedIframeHosts = new Set([
     "player.twitch.tv",
     "clips.twitch.tv",
     "www.tiktok.com",
-    "platform.twitter.com",
-    "twitter.com",
     "www.instagram.com",
     "embed.bsky.app",
     "open.spotify.com",
@@ -534,8 +530,6 @@ const allowedEmbedAttributes = new Set([
 // for. Every other class is dropped so embed markup cannot borrow app styles
 // to draw overlays over the interface.
 const allowedEmbedClasses = {
-    twitter: new Set(["twitter-tweet", "twitter-video", "tw-align-left", "tw-align-center", "tw-align-right"]),
-    reddit: new Set(["reddit-embed-bq", "reddit-card"]),
     tiktok: new Set(["tiktok-embed"]),
     soundcloud: new Set(),
     github: new Set()
@@ -650,46 +644,132 @@ function sanitizeEmbedHtml(html, provider) {
     return template.innerHTML;
 }
 
-async function injectTwitter(id, data) {
-    const container = document.getElementById(id);
-    if (!container) {
-        return;
+// X and Reddit posts render as the provider's own embed page in a frame
+// (ProviderEmbedFrame.razor). The page reports its content height with
+// postMessage, and the frame is sized from that. The last height seen for
+// each embed at each width is kept, so a revisited embed starts at its final
+// size instead of moving the layout when it loads.
+const valourEmbedFrames = (() => {
+    const providers = {
+        twitter: {
+            origin: "https://platform.twitter.com",
+            readHeight(message) {
+                const call = message?.["twttr.embed"];
+                return call?.method === "twttr.private.resize" ? call.params?.[0]?.height : undefined;
+            }
+        },
+        reddit: {
+            origin: "https://embed.reddit.com",
+            readHeight(message) {
+                return message?.type === "resize.embed" ? message.data : undefined;
+            }
+        }
+    };
+
+    const storageKey = "embedFrameHeights";
+    const rememberedLimit = 300;
+    const frames = new Map();
+    let heights = null;
+    let listening = false;
+
+    function rememberedHeights() {
+        if (heights) {
+            return heights;
+        }
+
+        try {
+            heights = new Map(JSON.parse(localStorage.getItem(storageKey) ?? "[]"));
+        } catch {
+            heights = new Map();
+        }
+
+        return heights;
     }
-    
-    container.innerHTML = sanitizeEmbedHtml(data, "twitter");
-    
-    const twitterScriptSrc = "https://platform.twitter.com/widgets.js";
-    if (!isTrustedEmbedScriptSource(twitterScriptSrc)) {
-        return;
+
+    // Text wraps differently at each width, so heights are kept per width.
+    function heightKey(entry) {
+        const width = Math.round(entry.frame.clientWidth / 10) * 10;
+        return `${entry.provider}:${entry.embedId}:${width}`;
     }
 
-    let twitterScript = document.createElement('script');
-    twitterScript.src = twitterScriptSrc;
-    twitterScript.async = true;
-    twitterScript.charset = "utf-8";
-    container.appendChild(twitterScript);
-}
+    function remember(entry, height) {
+        const remembered = rememberedHeights();
+        const key = heightKey(entry);
+        remembered.delete(key);
+        remembered.set(key, height);
+        while (remembered.size > rememberedLimit) {
+            remembered.delete(remembered.keys().next().value);
+        }
 
-async function injectReddit(id, data) {
-    const container = document.getElementById(id);
-    if (!container) {
-        return;
+        try {
+            localStorage.setItem(storageKey, JSON.stringify([...remembered]));
+        } catch {
+            // Storage can be full or unavailable; sizing still works.
+        }
     }
 
-    container.setAttribute('data-embed-theme', 'dark');
-    container.innerHTML = sanitizeEmbedHtml(data, "reddit");
+    function parseMessage(data) {
+        if (typeof data !== "string") {
+            return data;
+        }
 
-    const redditScriptSrc = "https://embed.reddit.com/widgets.js";
-    if (!isTrustedEmbedScriptSource(redditScriptSrc)) {
-        return;
+        try {
+            return JSON.parse(data);
+        } catch {
+            return null;
+        }
     }
 
-    let redditScript = document.createElement('script');
-    redditScript.src = redditScriptSrc;
-    redditScript.async = true;
-    redditScript.charset = "utf-8";
-    container.appendChild(redditScript);
-}
+    function onMessage(event) {
+        for (const entry of frames.values()) {
+            if (entry.frame.contentWindow !== event.source) {
+                continue;
+            }
+
+            const provider = providers[entry.provider];
+            if (event.origin !== provider.origin) {
+                return;
+            }
+
+            const height = Math.ceil(Number(provider.readHeight(parseMessage(event.data))));
+            if (!Number.isFinite(height) || height < 40 || height > 5000) {
+                return;
+            }
+
+            entry.frame.style.height = `${height}px`;
+            entry.frame.classList.add("embed-sized");
+            remember(entry, height);
+            return;
+        }
+    }
+
+    return {
+        attach(handle, frame, provider, embedId) {
+            if (!frame || !Object.hasOwn(providers, provider)) {
+                return;
+            }
+
+            const entry = { frame, provider, embedId };
+            frames.set(handle, entry);
+
+            const known = rememberedHeights().get(heightKey(entry));
+            if (known) {
+                frame.style.height = `${known}px`;
+            }
+
+            if (!listening) {
+                window.addEventListener("message", onMessage);
+                listening = true;
+            }
+        },
+
+        detach(handle) {
+            frames.delete(handle);
+        }
+    };
+})();
+
+window.valourEmbedFrames = valourEmbedFrames;
 
 // Generic embed injection function for oEmbed-based embeds
 // Injects HTML content and optionally loads an external script. provider

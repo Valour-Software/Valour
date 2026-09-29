@@ -359,6 +359,11 @@
     overflow: auto;
 }
 
+.attachment-wrapper.sizes-itself {
+    max-height: none;
+    overflow: visible;
+}
+
 .embed-spoiler-placeholder {
     display: flex;
     align-items: center;
