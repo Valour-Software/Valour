@@ -399,7 +399,33 @@
         }
 
         await ReRender();
+
+        // A target can arrive after setup already started loading recent history
+        if (succeeded && WindowCtx is Content { TargetMessageId: { } lateTarget } lateContent)
+        {
+            lateContent.TargetMessageId = null;
+            if (lateTarget != 0)
+                await LoadAroundMessageAsync(lateTarget);
+        }
+
         return succeeded;
+    }
+
+    /// <summary>
+    /// Loads the channel around a message and highlights it. While the channel
+    /// is still being set up, the message is kept as the target so setup loads
+    /// around it instead.
+    /// </summary>
+    public async Task ShowMessageAsync(long messageId)
+    {
+        if (_loading || _setupError is not null || Channel is null)
+        {
+            if (WindowCtx is Content content)
+                content.TargetMessageId = messageId;
+            return;
+        }
+
+        await LoadAroundMessageAsync(messageId);
     }
 
     private async Task RetrySetupAsync()

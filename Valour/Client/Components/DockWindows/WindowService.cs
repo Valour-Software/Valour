@@ -236,6 +236,8 @@ public static class WindowService
 
         if (!RepresentsSameContent(mainWindow.Content, content))
             await mainWindow.SetContent(content);
+        else
+            await ShowTargetMessageAsync(mainWindow.Content, content);
 
         if (extraTabs.Count > 0)
             await MainDock.NotifyLayoutChanged();
@@ -304,7 +306,29 @@ public static class WindowService
             existingTab.Component?.NotifyNeedsReRender();
         }
 
+        await ShowTargetMessageAsync(existingTab.Content, content);
+
         return true;
+    }
+
+    /// <summary>
+    /// Reusing an open chat keeps its current scroll position, so the message the
+    /// caller asked to show (for example from a notification tap) is handed to the
+    /// open chat instead of being dropped with the requested content.
+    /// </summary>
+    private static Task ShowTargetMessageAsync(WindowContent existing, WindowContent requested)
+    {
+        if (existing is not ChatWindowComponent.Content existingChat ||
+            requested is not ChatWindowComponent.Content { TargetMessageId: { } messageId } ||
+            messageId == 0)
+            return Task.CompletedTask;
+
+        if (existingChat.ComponentBase is { } chat)
+            return chat.ShowMessageAsync(messageId);
+
+        // Not rendered yet: setup reads the target when it loads history
+        existingChat.TargetMessageId = messageId;
+        return Task.CompletedTask;
     }
 
     private static bool RepresentsSameContent(WindowContent existing, WindowContent requested)

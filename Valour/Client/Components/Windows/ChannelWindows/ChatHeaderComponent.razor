@@ -31,6 +31,38 @@
                 </div>
             </div>
         }
+        else if (_searchError is not null)
+        {
+            <div @onclick="@CloseSearch" class="search-backdrop"></div>
+            <div class="search-results glassy-modal">
+                <div class="search-status">
+                    @if (Client.E2eeService.Status != E2eeStatus.Ready)
+                    {
+                        <span class="search-status-title">Search needs this device verified</span>
+                        <span class="search-status-text">Messages are encrypted, so this device has to be approved before it can search them.</span>
+                    }
+                    else if (E2eeErrorCodes.Is(_searchError, E2eeErrorCodes.SearchKeysUnavailable))
+                    {
+                        <span class="search-status-title">Waiting for this channel's keys</span>
+                        <span class="search-status-text">Search works once a member's device shares the keys with this one.</span>
+                    }
+                    else
+                    {
+                        <span class="search-status-title">Search didn't go through</span>
+                        <span class="search-status-text">Check your connection and try again.</span>
+                        <button type="button" class="v-btn small" @onclick="@RetrySearch">Try again</button>
+                    }
+                </div>
+            </div>
+        }
+        else if (_searchEmpty)
+        {
+            <div @onclick="@CloseSearch" class="search-backdrop"></div>
+            <div class="search-results glassy-modal">
+                <SkyMoment Pose="SkyMoment.VictorPose.Telescope" Seed="message-search" Palette="orion" Height="140"
+                           Title="Nothing in sight" Description="No messages match your search." />
+            </div>
+        }
     </div>
     <div class="h-right">
         <EncryptionIndicator Channel="@Channel" />
@@ -173,6 +205,8 @@
     private bool _searchQueued = false;
 
     private List<Message> _searchResults = new();
+    private bool _searchEmpty;
+    private string _searchError;
 
     private async Task OnSearchChange(ChangeEventArgs e)
     {
@@ -185,29 +219,73 @@
 
         if (string.IsNullOrWhiteSpace(_search))
         {
-            _searchResults.Clear();
+            ClearSearchState();
             RequestRender();
-            
+
             return;
         }
-        
+
         if (_searchLoading)
         {
             _searchQueued = true;
             return;
         }
 
-        do
+        _searchLoading = true;
+        try
         {
-            _searchLoading = true;
-            _searchQueued = false;
+            do
+            {
+                _searchQueued = false;
+                var query = _search;
 
-            _searchResults = await Channel.SearchMessagesAsync(_search, 20);
-            
-            RequestRender();
-            await Task.Delay(100); // Require at least 200ms between searches
+                TaskResult<List<Message>> result;
+                try
+                {
+                    result = await Channel.SearchMessagesWithResultAsync(query, 20);
+                }
+                catch (Exception e)
+                {
+                    result = TaskResult<List<Message>>.FromFailure(e);
+                }
+
+                // The box was cleared or closed while this search ran
+                if (string.IsNullOrWhiteSpace(_search))
+                {
+                    ClearSearchState();
+                }
+                else if (result.Success)
+                {
+                    _searchResults = result.Data;
+                    _searchEmpty = result.Data.Count == 0;
+                    _searchError = null;
+                }
+                else
+                {
+                    Client.Logger.Log<ChatHeaderComponent>($"Message search failed: {result.Message}", "red");
+                    _searchResults = new();
+                    _searchEmpty = false;
+                    _searchError = result.Message;
+                }
+
+                RequestRender();
+                await Task.Delay(100); // Space out searches while typing
+            } while (_searchQueued);
+        }
+        finally
+        {
+            // A failure must never leave later searches queued forever
             _searchLoading = false;
-        } while (_searchQueued);
+        }
+    }
+
+    private Task RetrySearch() => OnMessageSearch(_search);
+
+    private void ClearSearchState()
+    {
+        _searchResults = new();
+        _searchEmpty = false;
+        _searchError = null;
     }
     
     private RenderFragment SearchMessagesFragment => builder =>
@@ -256,7 +334,7 @@
         _searchVisible = false;
         _storedSearch = _search;
         _search = "";
-        _searchResults.Clear();
+        ClearSearchState();
         RequestRender();
     }
     

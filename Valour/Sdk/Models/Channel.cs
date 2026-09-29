@@ -657,12 +657,23 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     public async Task<List<Message>> SearchMessagesAsync(string searchText, int count = 20)
     {
-        if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
-            return new List<Message>();
+        var result = await SearchMessagesWithResultAsync(searchText, count);
+        return result.Success ? result.Data : [];
+    }
 
-        var messages = await Client.E2eeService.SearchAsync(this, searchText, count);
-        messages.SyncAll(Client);
-        return messages;
+    /// <summary>
+    /// Searches messages without collapsing a failed search into an
+    /// indistinguishable empty result.
+    /// </summary>
+    public async Task<TaskResult<List<Message>>> SearchMessagesWithResultAsync(string searchText, int count = 20)
+    {
+        if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
+            return TaskResult<List<Message>>.FromData([]);
+
+        var result = await Client.E2eeService.SearchWithResultAsync(this, searchText, count);
+        if (result.Success)
+            result.Data.SyncAll(Client);
+        return result;
     }
 
     public Task<List<PlanetMember>> FetchRecentChattersAsync() =>

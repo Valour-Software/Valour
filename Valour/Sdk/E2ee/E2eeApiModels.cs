@@ -424,6 +424,13 @@ public static class E2eeErrorCodes
     /// </summary>
     public const string RemovalCutoffStale = "E2EE_REMOVAL_CUTOFF_STALE";
 
+    /// <summary>
+    /// This device holds none of the channel keys a search needs, for example
+    /// while it waits for a member's device to share them. Retrying does not
+    /// help until the keys arrive.
+    /// </summary>
+    public const string SearchKeysUnavailable = "E2EE_SEARCH_KEYS_UNAVAILABLE";
+
     /// <summary>True when a failure message carries the given code.</summary>
     public static bool Is(string message, string code) =>
         message?.Contains(code, StringComparison.Ordinal) == true;
