@@ -6,9 +6,12 @@ namespace Valour.Tests.Client;
 public class ShareUtilsTests
 {
     [Theory]
-    [InlineData("http://0.0.0.1/", "https://app.valour.gg/I/test-code")]
-    [InlineData("http://0.0.0.0:5000/", "https://app.valour.gg/I/test-code")]
-    [InlineData("https://self-host.example/app/", "https://self-host.example/app/I/test-code")]
+    // The official app shares links on the shorter root domain, which
+    // redirects them into the app.
+    [InlineData("https://app.valour.gg/", "https://valour.gg/i/test-code")]
+    [InlineData("http://0.0.0.1/", "https://valour.gg/i/test-code")]
+    [InlineData("http://0.0.0.0:5000/", "https://valour.gg/i/test-code")]
+    [InlineData("https://self-host.example/app/", "https://self-host.example/app/i/test-code")]
     public void GetInviteShareUrl_UsesExternallyReachableOrigin(string baseUri, string expected)
     {
         ClientHosts.AppBaseUrl = "https://app.valour.gg";

@@ -223,7 +223,7 @@ public partial class E2eeService
 
             // The server cannot check an encrypted embed, so it is checked here
             // and again by every recipient.
-            if (embed is not null && EmbedSafety.Check(embed) is { Success: false } embedCheck)
+            if (embed is not null && EmbedSafety.Check(embed, channel.Node) is { Success: false } embedCheck)
                 return TaskResult<Message>.FromFailure(embedCheck.Message);
             var terms = SearchTerms.ForMessage(indexSecret.IndexKey, channel.Id, content);
 
@@ -849,7 +849,7 @@ public partial class E2eeService
         var shown = 0;
         foreach (var embed in embeds)
         {
-            var check = EmbedSafety.Check(embed);
+            var check = EmbedSafety.Check(embed, channel.Node);
             if (!check.Success)
             {
                 LogWarning($"Hiding an embed on message {message.Id}: {check.Message}");

@@ -1,3 +1,4 @@
+using Valour.Sdk.Nodes;
 using System.Text.RegularExpressions;
 using Valour.Sdk.Models;
 using Valour.Shared;
@@ -17,7 +18,9 @@ public static class MediaUriHelper
 {
     public static readonly Regex AttachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
 
-    public static TaskResult ScanMediaUri(MessageAttachment attachment)
+    /// <param name="node">The node the attachment's message belongs to. Its
+    /// content CDN is allowed too; the server passes none and uses its own.</param>
+    public static TaskResult ScanMediaUri(MessageAttachment attachment, Node node = null)
     {
         if (string.IsNullOrWhiteSpace(attachment.Location))
             return new(false, "Attachment location is required");
@@ -25,7 +28,7 @@ public static class MediaUriHelper
         if (AttachmentRejectRegex.IsMatch(attachment.Location))
             return new(false, "Attachment location contains invalid characters");
 
-        if (!IsAllowedLocation(attachment))
+        if (!IsAllowedLocation(attachment, node))
         {
             return new(false, "Attachments must be from an allowed source...");
         }
@@ -33,7 +36,7 @@ public static class MediaUriHelper
         return new(true, "");
     }
 
-    private static bool IsAllowedLocation(MessageAttachment attachment)
+    private static bool IsAllowedLocation(MessageAttachment attachment, Node node)
     {
         if (!Uri.TryCreate(attachment.Location, UriKind.Absolute, out var uri))
             return false;
@@ -52,7 +55,7 @@ public static class MediaUriHelper
 
         var host = NormalizeHost(uri.Host);
 
-        if (MatchesConfiguredOrigin(uri, ValourHosts.ContentCdnHost) ||
+        if (IsContentCdn(uri, node) ||
             MatchesConfiguredOrigin(uri, ValourHosts.AppHost) ||
             host == "media.tenor.com" ||
             KlipyMediaUrls.IsAllowed(attachment.Location))
@@ -75,6 +78,16 @@ public static class MediaUriHelper
             _ => false
         };
     }
+
+    /// <summary>
+    /// True if the address is on a content CDN that media in the node's
+    /// messages may load from: the instance's own, or the node's. History
+    /// moved between the hub and a community node keeps its locations, so
+    /// both are accepted.
+    /// </summary>
+    public static bool IsContentCdn(Uri location, Node node) =>
+        MatchesConfiguredOrigin(location, ValourHosts.ContentCdnHost) ||
+        (node is { IsExternal: true } && MatchesConfiguredOrigin(location, node.ContentCdnHost));
 
     public static bool MatchesConfiguredOrigin(Uri location, string configuredHost)
     {

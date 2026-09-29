@@ -215,11 +215,12 @@ public class MessageAttachment : ISharedMessageAttachment
         {
             // Proxied media needs no signature. It must stay absolute: the web
             // app is served separately from the CDN, so a relative path would
-            // load the app's own page. Only the configured CDN is used, so a
-            // message cannot point the image at another host.
-            return MediaUriHelper.MatchesConfiguredOrigin(uri, ValourHosts.ContentCdnHost)
+            // load the app's own page. Only a known CDN is used, so a message
+            // cannot point the image at another host; anything else is loaded
+            // from the CDN of the node the message came from.
+            return MediaUriHelper.IsContentCdn(uri, node)
                 ? uri.AbsoluteUri
-                : $"{ValourHosts.ContentCdnBaseUrl}/{location}";
+                : $"https://{node?.ContentCdnHost ?? ValourHosts.ContentCdnHost}/{location}";
         }
         
         if (_signedUrl is not null)

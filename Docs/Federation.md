@@ -222,6 +222,18 @@ five minutes have passed, so an upgrade takes effect without restarting the app.
 If the manifest cannot be read because of a network error, the client sends
 anyway and the node's own response decides.
 
+## Media on community nodes
+
+A community node serves its own uploads and proxied link media, such as images
+posted as links, from its content CDN host (`Hosting:ContentCdnSubdomain` under
+its root domain; the root Compose bundle serves it on the node's own domain).
+The node reports that host as `hosts.contentCdn` in its instance manifest.
+Clients load media in the node's messages and embeds from that host or from the
+hub's content CDN, because history moved between the hub and a node keeps its
+original locations. Until the manifest has been read, clients use the node's
+domain. Proxied media on any other host is loaded from the node's CDN instead,
+so a message cannot make readers request images from an unrelated server.
+
 ## Local development
 
 To test hub-side UI and migrations locally, configure the local server as a
