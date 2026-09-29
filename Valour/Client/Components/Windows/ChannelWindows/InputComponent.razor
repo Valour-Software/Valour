@@ -1071,29 +1071,47 @@
 
     private static readonly Regex InviteRegex = new("https?://(?:app\\.)?valour\\.gg/[iI]/([a-zA-Z0-9]+)", RegexOptions.Compiled);
 
+    /// <summary>
+    /// Rebuilds the message's invite cards from its current text. Edits reuse
+    /// the message's attachments, so existing cards are replaced rather than
+    /// added to; otherwise a removed link would keep its card and every edit
+    /// would add another copy. A link wrapped in angle brackets, such as
+    /// &lt;https://valour.gg/i/code&gt;, gets no card, like other link previews.
+    /// </summary>
     private void InsertInviteAttachments(Message message)
     {
-        if (string.IsNullOrWhiteSpace(message.Content))
-            return;
+        var attachments = message.Attachments?
+            .Where(x => x.Type != MessageAttachmentType.ValourInvite)
+            .ToList() ?? new List<MessageAttachment>();
 
-        var matches = InviteRegex.Matches(message.Content);
-        if (matches.Count == 0)
-            return;
-
-        var attachments = message.Attachments ?? new List<MessageAttachment>();
-
-        foreach (Match match in matches)
+        if (!string.IsNullOrWhiteSpace(message.Content))
         {
-            var code = match.Groups[1].Value;
-            attachments.Add(new MessageAttachment(MessageAttachmentType.ValourInvite)
+            var codes = new HashSet<string>(StringComparer.Ordinal);
+            foreach (Match match in InviteRegex.Matches(message.Content))
             {
-                Location = $"{ClientHosts.AppBaseUrl}/i/{code}",
-                Inline = false
-            });
+                if (IsBracketed(message.Content, match))
+                    continue;
+
+                var code = match.Groups[1].Value;
+                if (!codes.Add(code))
+                    continue;
+
+                attachments.Add(new MessageAttachment(MessageAttachmentType.ValourInvite)
+                {
+                    Location = $"{ClientHosts.AppBaseUrl}/i/{code}",
+                    Inline = false
+                });
+            }
         }
 
-        message.SetAttachments(attachments);
+        message.SetAttachments(attachments.Count > 0 ? attachments : null);
     }
+
+    private static bool IsBracketed(string content, Match match) =>
+        match.Index > 0 &&
+        match.Index + match.Length < content.Length &&
+        content[match.Index - 1] == '<' &&
+        content[match.Index + match.Length] == '>';
 
     // Guards the ":shortcode:" auto-fill below: injecting the emoji itself fires
     // another OnChatboxUpdate, which would otherwise re-trigger the auto-fill.
@@ -1147,8 +1165,11 @@
 
         var isAutocompleteToken = mode == '@' || mode == '#' || mode == ':';
 
-        // ":" autocomplete should wait until the user has typed at least one character.
-        if (mode == ':' && text.Length <= 1)
+        // ":" autocomplete waits for two shortcode characters. Emoticons such as
+        // ":)" or ":p" would otherwise open the picker, and Enter would send its
+        // top suggestion instead of the typed text. A fully typed ":o:" is still
+        // filled in by the exact-match path above.
+        if (mode == ':' && (text.Length < 3 || !IsShortcodeStart(text[1])))
         {
             isAutocompleteToken = false;
         }
@@ -1441,6 +1462,10 @@
 
         return merged;
     }
+
+    // Shortcodes are words; "+1" is the one that starts with a symbol.
+    private static bool IsShortcodeStart(char c) =>
+        char.IsAsciiLetterOrDigit(c) || c is '_' or '+';
 
     /// <summary>
     /// Finds an emoji whose shortcode exactly equals <paramref name="shortcode"/>
