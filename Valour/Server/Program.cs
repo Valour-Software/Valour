@@ -304,6 +304,12 @@ public partial class Program
         app.MapControllers();
         app.MapBlazorHub();
 
+        // Shared app links such as invites get their own preview tags, so
+        // other apps show the planet instead of the generic card. Routes
+        // ignore case, so these also serve /I/ and /D/.
+        foreach (var pattern in new[] { "/i/{code}", "/d/{planetId}", "/planet/{planetId}" })
+            app.MapGet(pattern, ServeAppPageWithPreviewAsync);
+
         app.MapFallbackToFile("_content/Valour.Client/index.html");
 
         app.MapHub<CoreHub>(CoreHub.HubUrl, options => { options.AllowStatefulReconnects = true; });
@@ -398,6 +404,24 @@ public partial class Program
         }
 
         return origins.ToArray();
+    }
+
+    private static async Task<IResult> ServeAppPageWithPreviewAsync(
+        HttpContext context,
+        IWebHostEnvironment environment,
+        AppLinkPreviewService previews)
+    {
+        var file = environment.WebRootFileProvider.GetFileInfo("_content/Valour.Client/index.html");
+        if (!file.Exists)
+            return Results.NotFound();
+
+        string page;
+        await using (var stream = file.CreateReadStream())
+        using (var reader = new StreamReader(stream))
+            page = await reader.ReadToEndAsync();
+
+        var meta = await previews.GetAsync(context.Request.Path.Value);
+        return Results.Content(meta?.ApplyToHostPage(page) ?? page, "text/html; charset=utf-8");
     }
 
     public static void ConfigureServices(WebApplicationBuilder builder)
@@ -672,6 +696,7 @@ public partial class Program
         services.AddScoped<UserAttachmentService>();
         services.AddScoped<MediaSafetyService>();
         services.AddScoped<PlanetInviteService>();
+        services.AddScoped<AppLinkPreviewService>();
         services.AddScoped<PlanetWebhookService>();
         services.AddSingleton<Valour.Server.Utilities.WebhookRateLimiter>();
         services.AddScoped<PlanetMemberService>();

@@ -64,4 +64,15 @@ public class NebulaPaletteTests
         Assert.Equal("oklch(0.82 0.1 45)", NebulaPalettes.PlanetLight("12215159187308544"));
         Assert.Equal(NebulaPalettes.PlanetLight("planet-7"), NebulaPalettes.PlanetLight("planet-7"));
     }
+
+    [Theory]
+    // Reference values from CSS Color 4 conversions.
+    [InlineData(1.0, 0.0, 0.0, "#ffffff")]
+    [InlineData(0.0, 0.0, 0.0, "#000000")]
+    [InlineData(0.627955, 0.257683, 29.2339, "#ff0000")]
+    [InlineData(0.519752, 0.176858, 142.495, "#008000")]
+    public void OklchToHex_MatchesCssConversions(double lightness, double chroma, double hue, string expected)
+    {
+        Assert.Equal(expected, NebulaPalettes.OklchToHex(lightness, chroma, hue));
+    }
 }
