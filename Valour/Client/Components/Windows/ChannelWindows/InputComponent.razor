@@ -85,7 +85,7 @@
     </div>
     <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
     
-    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" AnimateClose="true" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
+    <EmojiMart @ref="@_emojis" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" AnimateClose="true" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
     
     <div class="textbox-holder" @onclick="@OnClickTextbox">
         @* The textbox stays in the page while hidden; its script holds a reference to it. *@
@@ -564,7 +564,6 @@
         await InjectEmojiAsync(
             e.Id,
             e.Native,
-            e.Unified,
             e.Shortcodes,
             false,
             false,
@@ -1419,7 +1418,6 @@
     public ValueTask InjectEmojiAsync(
         string emoji,
         string native,
-        string unified,
         string shortcodes,
         bool deleteCurrentWord = false,
         bool appendSpace = false,
@@ -1431,7 +1429,6 @@
             "injectEmoji",
             emoji,
             native,
-            unified,
             shortcodes,
             deleteCurrentWord,
             appendSpace,
@@ -1503,7 +1500,6 @@
         return InjectEmojiAsync(
             emoji.Id,
             emoji.Native,
-            emoji.Unified,
             emoji.Shortcodes,
             true,
             true,
@@ -1540,13 +1536,6 @@
     [JSInvokable]
     public async Task OnChatboxUpdate(string input, string currentWord)
     {
-        //Console.WriteLine(input);
-
-        // Typing path — allow a fully typed ":shortcode:" to auto-fill into the
-        // emoji. The caret-move path (OnCaretUpdate) intentionally does not, so
-        // moving the cursor over existing text never rewrites it.
-        await UpdateMentionMenu(currentWord, allowEmojiAutocomplete: true);
-
         if (input is not null)
         {
             // Fix for dumb formatting in HTML
@@ -1567,6 +1556,13 @@
         {
             EditingMessageComponent.BuildMessage();
         }
+
+        // Typing path: a fully typed ":shortcode:" auto-fills into the emoji.
+        // The caret-move path (OnCaretUpdate) does not, so moving the cursor
+        // over existing text never rewrites it. The auto-fill reports the new
+        // text through a nested OnChatboxUpdate, so this runs after this
+        // update has stored its own, older text.
+        await UpdateMentionMenu(currentWord, allowEmojiAutocomplete: true);
 
         await ChatComponent.ScrollToBottom();
         await ChatComponent.Channel.SendIsTyping();

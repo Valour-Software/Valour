@@ -1,14 +1,11 @@
 using Markdig.Blazor;
 using Valour.Client.Components.Messages;
-using Valour.Client.Emojis;
 using Valour.Shared.Models;
 
 namespace Valour.Client.Markdig;
 
 public class ValourEmojiRenderer : BlazorObjectRenderer<ValourEmojiInline>
 {
-    
-    
     protected override void Write(BlazorRenderer renderer, ValourEmojiInline obj)
     {
         if (renderer == null) throw new ArgumentNullException(nameof(renderer));
@@ -30,19 +27,6 @@ public class ValourEmojiRenderer : BlazorObjectRenderer<ValourEmojiInline>
             }
 
             renderer.WriteText(obj.Match ?? string.Empty);
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(obj.Native))
-        {
-            var alt = obj.Match ?? string.Empty;
-            renderer.OpenElement("img")
-                .AddAttribute("draggable", "false")
-                .AddAttribute("class", "emoji")
-                .AddAttribute("alt", alt)
-                .AddAttribute("title", alt)
-                .AddAttribute("src", EmojiSourceProvider.GetSrcUrlByCodePoints(obj.Native))
-                .CloseElement();
             return;
         }
 

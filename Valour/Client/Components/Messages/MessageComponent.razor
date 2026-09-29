@@ -175,7 +175,14 @@ else
                 <TooltipTrigger Position="top" OnShow="@(() => EnsureReactionUsersAsync(reaction.emoji))">
                     <ChildContent>
                         <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
-                            <img class="emoji" src="@GetReactionSrc(reaction.emoji)" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
+                            @if (GetReactionSrc(reaction.emoji) is { } reactionSrc)
+                            {
+                                <img class="emoji" src="@reactionSrc" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
+                            }
+                            else
+                            {
+                                <span class="emoji" role="img" aria-label="@reaction.emoji">@reaction.emoji</span>
+                            }
                             <span class="reaction-count">@reaction.count</span>
                         </div>
                     </ChildContent>
@@ -410,8 +417,8 @@ else
     private List<(string emoji, int count)> _reactionsToRender = new();
     private bool _showAllReactions = false;
 
-    private string GetReactionSrc(string emoji) =>
-        EmojiSourceProvider.GetSrcUrlFromReaction(emoji, _message?.PlanetId);
+    private string? GetReactionSrc(string emoji) =>
+        EmojiSourceProvider.GetCustomSrcFromReaction(emoji, _message?.PlanetId);
 
     private string GetReactionAlt(string emoji) =>
         EmojiSourceProvider.GetAltFromReaction(emoji);

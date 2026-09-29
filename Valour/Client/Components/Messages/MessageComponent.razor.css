@@ -63,6 +63,10 @@
     user-select: none;
 }
 
+.message .reactions .reaction span.emoji {
+    font-size: 16px;
+}
+
 .message .reactions .reaction.added {
     color: var(--color-primary);
     background-color: var(--color-primary-soft);

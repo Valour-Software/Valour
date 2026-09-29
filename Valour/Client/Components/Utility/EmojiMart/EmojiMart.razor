@@ -25,9 +25,6 @@
     public bool AnimateClose { get; set; } = false;
 
     [Parameter]
-    public string EmojiSet { get; set; } = "native";
-
-    [Parameter]
     public Func<EmojiClickEvent, Task> OnEmojiClick { get; set; }
 
     [Parameter]
@@ -235,7 +232,7 @@
             if (_disposed)
                 return;
             _dotNetReference = DotNetObjectReference.Create(this);
-            await _module.InvokeVoidAsync("init", _id, _dotNetReference, EmojiSet, _customEmojis, _customCategoryIcon, _customCategoryName);
+            await _module.InvokeVoidAsync("init", _id, _dotNetReference, _customEmojis, _customCategoryIcon, _customCategoryName);
         }
         finally
         {

@@ -14,7 +14,6 @@ type InputContext = {
     injectEmoji: (
         text: string,
         native: string,
-        unified: string,
         shortcodes: string,
         deleteCurrentWord?: boolean,
         appendSpace?: boolean,
@@ -76,7 +75,7 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
 }
 
 /**
- * Recursively extracts text from a DOM node, handling emoji images and block elements.
+ * Recursively extracts text from a DOM node, handling custom emoji images and block elements.
  */
 function getElementText(el: Node): string {
     let text = '';
@@ -138,35 +137,44 @@ function insertTextAtCursor(text: string) {
     selection.addRange(range);
 }
 
+function lastTextNode(node: Node): Text | null {
+    if (node.nodeType === Node.TEXT_NODE) return node as Text;
+    for (let i = node.childNodes.length - 1; i >= 0; i--) {
+        const found = lastTextNode(node.childNodes[i]);
+        if (found) return found;
+    }
+    return null;
+}
+
+function firstTextNode(node: Node): Text | null {
+    if (node.nodeType === Node.TEXT_NODE) return node as Text;
+    for (const child of node.childNodes) {
+        const found = firstTextNode(child);
+        if (found) return found;
+    }
+    return null;
+}
+
+/**
+ * Resolves a caret position to a text node and character offset. A caret on an
+ * element sits between its children, so it resolves to the end of the text just
+ * before it, or to the start of the text after it when nothing precedes it. The
+ * search only descends into the element's children, so it always finishes.
+ */
 function findTextNodeAndOffset(node: Node, offset: number): { node: Text, offset: number } | null {
     if (node.nodeType === Node.TEXT_NODE) {
-        // Offsets on element containers count child nodes, not characters, so
-        // the offset carried down to a text node can fall outside its text.
         const text = node as Text;
         return { node: text, offset: Math.min(Math.max(offset, 0), text.length) };
     }
-    if (node.childNodes.length > 0) {
-        let childNode: Node | null = null;
-        if (offset < node.childNodes.length) {
-            childNode = node.childNodes[offset];
-        } else if (node.childNodes.length > 0) {
-            childNode = node.childNodes[node.childNodes.length - 1];
-            offset = childNode.textContent ? childNode.textContent.length : 0;
-        }
-        if (childNode) {
-            return findTextNodeAndOffset(childNode, offset);
-        }
+    const children = node.childNodes;
+    const index = Math.min(Math.max(offset, 0), children.length);
+    for (let i = index - 1; i >= 0; i--) {
+        const text = lastTextNode(children[i]);
+        if (text) return { node: text, offset: text.length };
     }
-    let sibling: Node | null = node.previousSibling;
-    while (sibling) {
-        if (sibling.nodeType === Node.TEXT_NODE) {
-            const textLength = sibling.textContent ? sibling.textContent.length : 0;
-            return { node: sibling as Text, offset: textLength };
-        }
-        sibling = sibling.previousSibling;
-    }
-    if (node.parentNode) {
-        return findTextNodeAndOffset(node.parentNode, offset);
+    for (let i = index; i < children.length; i++) {
+        const text = firstTextNode(children[i]);
+        if (text) return { node: text, offset: 0 };
     }
     return null;
 }
@@ -317,7 +325,6 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
         injectEmoji: async (
             text: string,
             native: string,
-            unified: string,
             shortcodes: string,
             deleteCurrentWord = false,
             appendSpace = false,
@@ -376,48 +383,50 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
                 range.deleteContents();
             }
 
-            const img = document.createElement('img');
-
+            // Unicode emoji are plain text drawn by the system font. Custom
+            // planet emoji are images that carry their token for getElementText.
+            let inserted: Node;
             if (isCustom) {
                 const token = customToken || (text ? `:${text}:` : '');
-                const src = customSrc || '';
                 const tooltip = shortcodes || token;
-
-                if (!src) {
+                if (!customSrc) {
                     return;
                 }
 
-                img.src = src;
+                const img = document.createElement('img');
+                img.src = customSrc;
                 img.setAttribute('data-text', token);
                 img.alt = tooltip;
                 img.title = tooltip;
                 img.setAttribute('aria-label', tooltip);
-                img.classList.add('custom-emoji');
+                img.classList.add('emoji', 'custom-emoji');
+                img.style.width = '1em';
+                inserted = img;
             } else {
-                const tooltip = shortcodes || native;
-                img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
-                img.setAttribute('data-text', native);
-                img.alt = tooltip;
-                img.title = tooltip;
-                img.setAttribute('aria-label', tooltip);
+                if (!native) {
+                    return;
+                }
+
+                inserted = document.createTextNode(native);
             }
 
-            img.classList.add('emoji');
-            img.style.width = '1em';
-            range.insertNode(img);
+            range.insertNode(inserted);
 
             if (appendSpace) {
                 const spacer = document.createTextNode(' ');
-                img.after(spacer);
+                inserted.parentNode?.insertBefore(spacer, inserted.nextSibling);
                 range.setStartAfter(spacer);
             } else {
-                range.setStartAfter(img);
+                range.setStartAfter(inserted);
             }
 
             range.collapse(true);
             sel?.removeAllRanges();
             sel?.addRange(range);
             ctx.lastRange = range.cloneRange();
+            // The caret now follows the emoji, so no word is being typed.
+            // Reporting the replaced ":shortcode" would reopen its suggestions.
+            ctx.currentWord = '';
             await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
         },
 

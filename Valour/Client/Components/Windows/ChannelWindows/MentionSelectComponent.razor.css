@@ -44,6 +44,12 @@
     border-radius: 0;
 }
 
+::deep .item span.icon.emoji-icon {
+    font-size: 16px;
+    line-height: 18px;
+    text-align: center;
+}
+
 ::deep .item .title {
     font-size: var(--font-size-sm);
     display: inline-block;

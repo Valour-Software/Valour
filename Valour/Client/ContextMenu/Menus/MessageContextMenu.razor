@@ -14,9 +14,14 @@
                     title="@emoji.Name"
                     @onclick="@(() => OnQuickReact(emoji))"
                     @onclick:stopPropagation="true">
-                <img class="emoji"
-                     src="@EmojiSourceProvider.GetSrcUrlFromReaction(emoji.Native, Data.Message.PlanetId)"
-                     alt="@emoji.Native"/>
+                @if (EmojiSourceProvider.GetCustomSrcFromReaction(emoji.Native, Data.Message.PlanetId) is { } customSrc)
+                {
+                    <img class="emoji" src="@customSrc" alt="@emoji.Native"/>
+                }
+                else
+                {
+                    <span class="emoji" role="img" aria-label="@emoji.Native">@emoji.Native</span>
+                }
             </button>
         }
         <button class="quick-reaction more"

@@ -1,5 +1,4 @@
 ﻿@using System.Text
-@using Valour.Client.Emojis
 @inherits ControlledRenderComponentBase
 
 <div class="radial-palette-container" style="@ContainerPositionStyle" @ref="OuterRef">
@@ -27,7 +26,7 @@
                                 }
                                 else
                                 {
-                                    <img id="option-@option.Id" alt="@option.Emoji" class="option-emoji" src="@EmojiSourceProvider.GetSrcUrlFromNative(option.Emoji)" /> 
+                                    <span id="option-@option.Id" class="emoji option-emoji" role="img" aria-label="@option.Emoji">@option.Emoji</span>
                                 }
                             }
                         </div>
@@ -195,8 +194,7 @@
 }}
 
 .option-emoji {{
-    width: {OptionSize * 0.6}px;
-    height: {OptionSize * 0.6}px;
+    font-size: {OptionSize * 0.5}px;
 }}
 ");
 

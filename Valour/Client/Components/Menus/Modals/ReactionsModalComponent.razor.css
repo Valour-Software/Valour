@@ -52,6 +52,11 @@
     flex-shrink: 0;
 }
 
+.reactions-modal-emoji span.emoji {
+    font-size: 1.125rem;
+    text-align: center;
+}
+
 .reactions-modal-user-list {
     display: flex;
     flex-direction: column;

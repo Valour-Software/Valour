@@ -10,7 +10,14 @@
                 {
                     <button class="reactions-modal-emoji @(emoji == _selectedEmoji ? "selected" : "")"
                             @onclick="() => SelectEmoji(emoji)">
-                        <img class="emoji" src="@GetReactionSrc(emoji)" alt="@emoji"/>
+                        @if (GetReactionSrc(emoji) is { } reactionSrc)
+                        {
+                            <img class="emoji" src="@reactionSrc" alt="@emoji"/>
+                        }
+                        else
+                        {
+                            <span class="emoji" role="img" aria-label="@emoji">@emoji</span>
+                        }
                         <span class="count">@_counts[emoji]</span>
                     </button>
                 }
@@ -51,8 +58,8 @@
     private List<(User User, PlanetMember Member)> _currentUsers =>
         _selectedEmoji is not null && _reactionUsers.TryGetValue(_selectedEmoji, out var users) ? users : new();
 
-    private string GetReactionSrc(string emoji) =>
-        EmojiSourceProvider.GetSrcUrlFromReaction(emoji, Data.Message?.PlanetId);
+    private string? GetReactionSrc(string emoji) =>
+        EmojiSourceProvider.GetCustomSrcFromReaction(emoji, Data.Message?.PlanetId);
 
     protected override async Task OnInitializedAsync()
     {
