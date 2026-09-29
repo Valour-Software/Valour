@@ -216,6 +216,8 @@ export function computeGas(o, gw, gh, width, height) {
 // and grain at full resolution.
 export function compose(canvas, o, gas, gw, gh, resolution) {
     const W = canvas.width, H = canvas.height, ctx = canvas.getContext('2d');
+    // A canvas the browser could not allocate has no pixels to read back.
+    if (!W || !H || !ctx) return;
     const source = document.createElement('canvas');
     source.width = gw;
     source.height = gh;
