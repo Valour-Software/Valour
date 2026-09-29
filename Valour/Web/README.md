@@ -13,6 +13,15 @@ dotnet run -- export
 The output is `dist/`, including rendered pages, static assets, `sitemap.xml`, and
 `_redirects`. Use the repository's pinned .NET SDK for local builds.
 
+## Invite and planet links
+
+The app shares invite and planet links on the root domain, such as
+`https://valour.gg/i/{code}`, because they are shorter than the app's own
+address. `_redirects` sends `/i/*`, `/d/*` and `/planet/*` to the same path on
+`app.valour.gg` with a 302. Browsers keep the link's fragment, which carries the
+key of a signed invite to a private planet. Apps that build link previews follow
+the redirect and read the app page, which describes the planet.
+
 ## Policy pages
 
 The privacy policy, terms of service, and platform rules are written as files at
