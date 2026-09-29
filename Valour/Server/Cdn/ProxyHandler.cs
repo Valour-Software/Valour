@@ -642,26 +642,31 @@ public class ProxyHandler
 
     #region Bluesky
 
+    private static readonly Regex BlueskyPostUri = new(
+        @"data-bluesky-uri=""at://(did:[a-z]+:[A-Za-z0-9._:%-]+)/app\.bsky\.feed\.post/([A-Za-z0-9]+)""",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     private async Task<MessageAttachment> HandleBluesky(string url, MessageAttachment attachment)
     {
         try
         {
-            // Bluesky posts can be embedded via iframe
-            var uri = new Uri(url);
-            var path = uri.AbsolutePath;
+            if (!new Uri(url).AbsolutePath.Contains("/post/"))
+                return null;
 
-            // URLs are like /profile/user.bsky.social/post/ABC123
-            if (path.Contains("/post/"))
-            {
-                // Convert to embed URL
-                var embedUrl = $"https://embed.bsky.app/embed{path}";
-                attachment.Location = embedUrl;
-                attachment.Width = 400;
-                attachment.Height = 300;
-                return attachment;
-            }
+            // The embed page only accepts the post's AT URI, which names the
+            // account by DID rather than handle. The oEmbed markup carries it.
+            var oembedData = await GetCachedOEmbed(
+                $"https://embed.bsky.app/oembed?url={HttpUtility.UrlEncode(url)}",
+                url);
 
-            return null;
+            var postUri = BlueskyPostUri.Match(oembedData?.Html ?? string.Empty);
+            if (!postUri.Success)
+                return null;
+
+            attachment.Location = $"https://embed.bsky.app/embed/{postUri.Groups[1].Value}/app.bsky.feed.post/{postUri.Groups[2].Value}";
+            attachment.Width = 400;
+            attachment.Height = 300;
+            return attachment;
         }
         catch (Exception ex)
         {
