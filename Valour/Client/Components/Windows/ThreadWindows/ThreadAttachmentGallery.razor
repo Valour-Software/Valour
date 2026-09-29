@@ -91,6 +91,12 @@
     [Parameter]
     public bool Expandable { get; set; } = true;
 
+    /// <summary>
+    /// Shows only the first link embed, for compact post previews in feeds.
+    /// </summary>
+    [Parameter]
+    public bool FirstEmbedOnly { get; set; }
+
     [CascadingParameter(Name = "ThreadEmbedNested")]
     public bool Nested { get; set; }
 
@@ -128,7 +134,7 @@
         _visible = attachments.Where(x => !EmbedTypes.Contains(x.Type)).ToList();
         _embeds = Nested
             ? new List<MessageAttachment>()
-            : attachments.Where(x => EmbedTypes.Contains(x.Type)).ToList();
+            : attachments.Where(x => EmbedTypes.Contains(x.Type)).Take(FirstEmbedOnly ? 1 : int.MaxValue).ToList();
 
         // Thread and wiki previews read the planet from the message they belong to.
         if (_embedMessage?.PlanetId != PlanetId)
