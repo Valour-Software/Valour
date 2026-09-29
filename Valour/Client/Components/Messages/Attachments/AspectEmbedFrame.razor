@@ -1,0 +1,29 @@
+@* A provider's player at a fixed shape. The box keeps its aspect ratio at
+   any width up to MaxWidth, so it holds its space before the player loads. *@
+<div class="aspect-embed" style="aspect-ratio: @AspectWidth / @AspectHeight; max-width: @(MaxWidth)px;">
+    <iframe src="@Src"
+            title="@Title"
+            loading="lazy"
+            allow="@Allow"
+            allowfullscreen></iframe>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Src { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public int AspectWidth { get; set; } = 16;
+
+    [Parameter]
+    public int AspectHeight { get; set; } = 9;
+
+    [Parameter]
+    public int MaxWidth { get; set; } = 560;
+
+    [Parameter]
+    public string Allow { get; set; } = "clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen";
+}

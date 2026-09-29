@@ -1,0 +1,20 @@
+@inherits AttachmentComponent
+
+@if (_src is not null)
+{
+    @* The server stores the video's size when Streamable reports it. *@
+    <AspectEmbedFrame Src="@_src"
+                      Title="Streamable video"
+                      AspectWidth="@(Attachment.Width > 0 && Attachment.Height > 0 ? Attachment.Width : 16)"
+                      AspectHeight="@(Attachment.Width > 0 && Attachment.Height > 0 ? Attachment.Height : 9)"
+                      MaxWidth="@(Attachment.Height > Attachment.Width ? 315 : 560)"/>
+}
+
+@code {
+    private string _src;
+
+    protected override void OnParametersSet()
+    {
+        _src = GetTrustedEmbedSource("streamable.com");
+    }
+}

@@ -2,15 +2,7 @@
 
 @if (_src is not null)
 {
-    <div class="twitch-container">
-        <iframe
-            class="twitch-embed"
-            src="@($"{_src}&parent={Valour.Shared.Hosting.ValourHosts.AppHost}&autoplay=false")"
-            width="560"
-            height="315"
-            allowfullscreen>
-        </iframe>
-    </div>
+    <AspectEmbedFrame Src="@($"{_src}&parent={Valour.Shared.Hosting.ValourHosts.AppHost}&autoplay=false")" Title="Twitch player"/>
 }
 
 @code {

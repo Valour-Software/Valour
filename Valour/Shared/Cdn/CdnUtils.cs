@@ -128,7 +128,9 @@ namespace Valour.Shared.Cdn
                    contentPrefix[..4].SequenceEqual(new byte[] { 0xca, 0xfe, 0xba, 0xbe });
         }
         
-        public static readonly Regex UrlRegex = new Regex(@"(!\[\]\()?(http|https|)\:\/\/[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])*(:(0-9)*)*(\/?)([=a-zA-Z0-9\:\-\.\?\,\'\/\\\+&%\$#_]*)?([=a-zA-Z0-9\-\?\,\'\/\+&%\$#_]+)(\))?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        // Paths may contain '@' (profile links on TikTok, Threads, YouTube,
+        // Mastodon) and '~' (user directories).
+        public static readonly Regex UrlRegex = new Regex(@"(!\[\]\()?(http|https|)\:\/\/[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])*(:(0-9)*)*(\/?)([=a-zA-Z0-9\:\-\.\?\,\'\/\\\+&%\$#_@~]*)?([=a-zA-Z0-9\-\?\,\'\/\+&%\$#_@~]+)(\))?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         
         /// <summary>
         /// Map for attachments that do not have a file extension
@@ -137,23 +139,43 @@ namespace Valour.Shared.Cdn
         {
             // Video platforms
             { "youtube.com", MessageAttachmentType.YouTube },
+            { "m.youtube.com", MessageAttachmentType.YouTube },
             { "youtu.be", MessageAttachmentType.YouTube },
             { "music.youtube.com", MessageAttachmentType.YouTube },
             { "vimeo.com", MessageAttachmentType.Vimeo },
             { "twitch.tv", MessageAttachmentType.Twitch },
+            { "m.twitch.tv", MessageAttachmentType.Twitch },
+            { "clips.twitch.tv", MessageAttachmentType.Twitch },
+            { "kick.com", MessageAttachmentType.Kick },
             { "tiktok.com", MessageAttachmentType.TikTok },
+            { "m.tiktok.com", MessageAttachmentType.TikTok },
+            { "vm.tiktok.com", MessageAttachmentType.TikTok },
+            { "vt.tiktok.com", MessageAttachmentType.TikTok },
+            { "streamable.com", MessageAttachmentType.Streamable },
 
-            // Social platforms
+            // Social platforms. The fxtwitter family rewrites X links for
+            // better chat previews; their links carry the same post ID.
             { "twitter.com", MessageAttachmentType.Twitter },
+            { "mobile.twitter.com", MessageAttachmentType.Twitter },
             { "x.com", MessageAttachmentType.Twitter },
+            { "mobile.x.com", MessageAttachmentType.Twitter },
+            { "fxtwitter.com", MessageAttachmentType.Twitter },
+            { "vxtwitter.com", MessageAttachmentType.Twitter },
+            { "fixupx.com", MessageAttachmentType.Twitter },
+            { "fixvx.com", MessageAttachmentType.Twitter },
             { "reddit.com", MessageAttachmentType.Reddit },
+            { "old.reddit.com", MessageAttachmentType.Reddit },
+            { "new.reddit.com", MessageAttachmentType.Reddit },
             { "instagram.com", MessageAttachmentType.Instagram },
             { "bsky.app", MessageAttachmentType.Bluesky },
+            { "threads.com", MessageAttachmentType.Threads },
+            { "threads.net", MessageAttachmentType.Threads },
 
             // Music platforms
             { "open.spotify.com", MessageAttachmentType.Spotify },
             { "spotify.com", MessageAttachmentType.Spotify },
             { "soundcloud.com", MessageAttachmentType.SoundCloud },
+            { "music.apple.com", MessageAttachmentType.AppleMusic },
 
             // Developer platforms
             { "github.com", MessageAttachmentType.GitHub },

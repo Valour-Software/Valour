@@ -48,4 +48,10 @@ public enum MessageAttachmentType : long
 
     // Inline preview of a Valour wiki page linked in chat
     ValourWikiPage,
+
+    // Values are stored, so later platforms are added here at the end.
+    Threads,
+    Streamable,
+    AppleMusic,
+    Kick,
 }

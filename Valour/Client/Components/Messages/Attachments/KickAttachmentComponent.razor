@@ -2,7 +2,7 @@
 
 @if (_src is not null)
 {
-    <AspectEmbedFrame Src="@_src" Title="Vimeo video"/>
+    <AspectEmbedFrame Src="@_src" Title="Kick player"/>
 }
 
 @code {
@@ -10,6 +10,6 @@
 
     protected override void OnParametersSet()
     {
-        _src = GetTrustedEmbedSource("player.vimeo.com");
+        _src = GetTrustedEmbedSource("player.kick.com");
     }
 }

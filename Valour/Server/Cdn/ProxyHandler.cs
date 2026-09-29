@@ -198,13 +198,13 @@ public class ProxyHandler
                 return HandleTwitch(uri, attachment);
 
             case MessageAttachmentType.Twitter:
-                return await HandleTwitter(url, attachment);
+                return await HandleTwitter(uri, attachment);
 
             case MessageAttachmentType.Reddit:
                 return await HandleReddit(url, attachment);
 
             case MessageAttachmentType.TikTok:
-                return await HandleTikTok(url, attachment);
+                return await HandleTikTok(url, uri, attachment);
 
             case MessageAttachmentType.Instagram:
                 return await HandleInstagram(url, attachment);
@@ -216,10 +216,22 @@ public class ProxyHandler
                 return await HandleSoundCloud(url, attachment);
 
             case MessageAttachmentType.GitHub:
-                return HandleGitHub(url, uri, attachment);
+                return await HandleGitHub(url, uri, attachment);
 
             case MessageAttachmentType.Bluesky:
                 return await HandleBluesky(url, attachment);
+
+            case MessageAttachmentType.Threads:
+                return HandleThreads(uri, attachment);
+
+            case MessageAttachmentType.Streamable:
+                return await HandleStreamable(uri, attachment);
+
+            case MessageAttachmentType.AppleMusic:
+                return HandleAppleMusic(uri, attachment);
+
+            case MessageAttachmentType.Kick:
+                return HandleKick(uri, attachment);
 
             case MessageAttachmentType.ValourThread:
                 return await HandleValourLinkAsync(url, attachment, db);
@@ -361,6 +373,14 @@ public class ProxyHandler
         }
 
         attachment.Location = embedUrl;
+
+        // Shorts are vertical; the player takes its shape from these.
+        if (uri.AbsolutePath.StartsWith("/shorts/"))
+        {
+            attachment.Width = 9;
+            attachment.Height = 16;
+        }
+
         return attachment;
     }
 
@@ -404,8 +424,23 @@ public class ProxyHandler
     {
         var path = uri.AbsolutePath;
 
-        // Clip
-        if (path.StartsWith("/clip/"))
+        // clips.twitch.tv/<slug>
+        if (uri.Host.Equals("clips.twitch.tv", StringComparison.OrdinalIgnoreCase))
+        {
+            var slug = path.Trim('/').Split('/')[0];
+            if (string.IsNullOrEmpty(slug))
+                return null;
+            attachment.Location = $"https://clips.twitch.tv/embed?clip={Uri.EscapeDataString(slug)}&parent={ValourHosts.RootDomain}";
+            return attachment;
+        }
+
+        // Clip, including twitch.tv/<channel>/clip/<slug>
+        var channelClip = Regex.Match(path, @"^/[^/]+/clip/([^/]+)");
+        if (channelClip.Success)
+        {
+            attachment.Location = $"https://clips.twitch.tv/embed?clip={Uri.EscapeDataString(channelClip.Groups[1].Value)}&parent={ValourHosts.RootDomain}";
+        }
+        else if (path.StartsWith("/clip/"))
         {
             var clipId = path.Replace("/clip/", "").TrimEnd('/');
             attachment.Location = $"https://clips.twitch.tv/embed?clip={clipId}&parent={ValourHosts.RootDomain}";
@@ -438,26 +473,37 @@ public class ProxyHandler
 
     #region Twitter/X
 
-    private async Task<MessageAttachment> HandleTwitter(string url, MessageAttachment attachment)
+    // Post links from X, Twitter, and the fxtwitter family all carry the
+    // author's handle and the post ID in the same place.
+    private static readonly Regex TwitterStatusPath = new(
+        @"^/([A-Za-z0-9_]{1,15})/status(?:es)?/(\d{1,20})(?:/|$)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private async Task<MessageAttachment> HandleTwitter(Uri uri, MessageAttachment attachment)
     {
+        var match = TwitterStatusPath.Match(uri.AbsolutePath);
+        if (!match.Success)
+            return null;
+
+        var postUrl = $"https://x.com/{match.Groups[1].Value}/status/{match.Groups[2].Value}";
+        attachment.Location = postUrl;
+
+        // Current clients frame the post from its ID. The oEmbed markup is
+        // kept for clients that still render it.
         try
         {
             var oembedData = await GetCachedOEmbed(
-                $"https://publish.x.com/oembed?url={HttpUtility.UrlEncode(url)}&theme=dark&dnt=true&omit_script=true&maxwidth=400&maxheight=400&limit=1&hide_thread=true",
-                url);
-
-            if (oembedData == null)
-                return null;
-
-            attachment.Location = url;
-            attachment.Data = OEmbedSanitizer.Sanitize(oembedData.Html);
-            return attachment;
+                $"https://publish.x.com/oembed?url={HttpUtility.UrlEncode(postUrl)}&theme=dark&dnt=true&omit_script=true&maxwidth=400&maxheight=400&limit=1&hide_thread=true",
+                postUrl);
+            if (oembedData is not null)
+                attachment.Data = OEmbedSanitizer.Sanitize(oembedData.Html);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch Twitter oEmbed data for {Url}", url);
-            return null;
+            _logger.LogWarning(ex, "Failed to fetch Twitter oEmbed data for {Url}", postUrl);
         }
+
+        return attachment;
     }
 
     #endregion
@@ -491,21 +537,42 @@ public class ProxyHandler
 
     #region TikTok
 
-    private async Task<MessageAttachment> HandleTikTok(string url, MessageAttachment attachment)
+    private static readonly Regex TikTokVideoPath = new(
+        @"/video/(\d{5,25})(?:/|$)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex TikTokVideoIdAttribute = new(
+        @"data-video-id=""(\d{5,25})""",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private async Task<MessageAttachment> HandleTikTok(string url, Uri uri, MessageAttachment attachment)
     {
         try
         {
+            // Full links carry the video ID. Short links (vm.tiktok.com) do
+            // not, but TikTok's oEmbed resolves them and names the video.
+            var videoId = TikTokVideoPath.Match(uri.AbsolutePath) is { Success: true } pathMatch
+                ? pathMatch.Groups[1].Value
+                : null;
+
             var oembedData = await GetCachedOEmbed(
                 $"https://www.tiktok.com/oembed?url={HttpUtility.UrlEncode(url)}",
                 url);
 
-            if (oembedData == null)
+            videoId ??= oembedData is null ? null : TikTokVideoIdAttribute.Match(oembedData.Html ?? string.Empty) is { Success: true } htmlMatch
+                ? htmlMatch.Groups[1].Value
+                : null;
+
+            if (videoId is null)
                 return null;
 
-            attachment.Location = url;
-            attachment.Data = OEmbedSanitizer.Sanitize(oembedData.Html);
-            attachment.Width = oembedData.Width ?? 325;
-            attachment.Height = oembedData.Height ?? 580;
+            // TikTok's player page plays in a frame without loading TikTok's
+            // script into the app. The oEmbed markup is kept for clients that
+            // still render it.
+            attachment.Location = $"https://www.tiktok.com/player/v1/{videoId}?description=1&music_info=1&rel=0";
+            attachment.Data = oembedData is null ? null : OEmbedSanitizer.Sanitize(oembedData.Html);
+            attachment.Width = 325;
+            attachment.Height = 578;
             return attachment;
         }
         catch (Exception ex)
@@ -527,8 +594,14 @@ public class ProxyHandler
             var uri = new Uri(url);
             var path = uri.AbsolutePath.TrimEnd('/');
 
-            // Extract post/reel ID from URL patterns like /p/ABC123/ or /reel/ABC123/
-            if (path.StartsWith("/p/") || path.StartsWith("/reel/"))
+            // Posts are /p/<code>, reels /reel/<code> or /reels/<code>, and
+            // older videos /tv/<code>. The embed page takes /p/ or /reel/.
+            if (path.StartsWith("/reels/"))
+                path = "/reel/" + path["/reels/".Length..];
+            else if (path.StartsWith("/tv/"))
+                path = "/p/" + path["/tv/".Length..];
+
+            if (Regex.IsMatch(path, @"^/(?:p|reel)/[A-Za-z0-9_-]+$"))
             {
                 // Use the embed URL format
                 attachment.Location = $"https://www.instagram.com{path}/embed/";
@@ -614,28 +687,207 @@ public class ProxyHandler
 
     #region GitHub
 
-    private MessageAttachment HandleGitHub(string url, Uri uri, MessageAttachment attachment)
+    private static readonly Regex GistPath = new(
+        @"^/(?:[A-Za-z0-9-]{1,39}/)?([0-9a-f]{20,40})/?$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private const int GistPreviewFiles = 2;
+    private const int GistPreviewLines = 15;
+    private const int GistPreviewLineLength = 160;
+
+    private static readonly ConcurrentDictionary<string, (string Data, DateTime CachedAt)> _gistCache = new();
+    private static readonly TimeSpan GistCacheExpiration = TimeSpan.FromDays(1);
+
+    /// <summary>
+    /// Gist links become a card with the first lines of the gist's files,
+    /// read from GitHub's API. Other GitHub links have no embed.
+    /// </summary>
+    private async Task<MessageAttachment> HandleGitHub(string url, Uri uri, MessageAttachment attachment)
     {
+        if (!uri.Host.Equals("gist.github.com", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var match = GistPath.Match(uri.AbsolutePath);
+        if (!match.Success)
+            return null;
+
+        var gistId = match.Groups[1].Value;
+        var data = await GetGistPreviewAsync(gistId);
+        if (data is null)
+            return null;
+
+        attachment.Location = $"https://gist.github.com/{gistId}";
+        attachment.Data = data;
+        return attachment;
+    }
+
+    private async Task<string> GetGistPreviewAsync(string gistId)
+    {
+        if (_gistCache.TryGetValue(gistId, out var cached) && DateTime.UtcNow - cached.CachedAt < GistCacheExpiration)
+            return cached.Data;
+
         try
         {
-            // GitHub Gist embed
-            if (uri.Host.Equals("gist.github.com", StringComparison.OrdinalIgnoreCase))
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/gists/{gistId}");
+            request.Headers.Add("User-Agent", "ValourBot/1.0");
+            request.Headers.Add("Accept", "application/vnd.github+json");
+
+            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var json = await CdnLimits.ReadBoundedStringAsync(response.Content, CdnLimits.MaxHtmlScrapeBytes);
+            if (json is null)
+                return null;
+
+            using var document = System.Text.Json.JsonDocument.Parse(json);
+            var root = document.RootElement;
+
+            var files = new List<GistPreviewFile>();
+            if (root.TryGetProperty("files", out var fileMap))
             {
-                // Keep canonical gist URL and let the client load the known embed script directly.
-                attachment.Location = $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath}".TrimEnd('/');
-                attachment.Data = null;
-                return attachment;
+                foreach (var file in fileMap.EnumerateObject())
+                {
+                    if (files.Count >= GistPreviewFiles)
+                        break;
+
+                    var content = file.Value.TryGetProperty("content", out var c) ? c.GetString() ?? string.Empty : string.Empty;
+                    var lines = content.Replace("\r\n", "\n").Split('\n');
+                    files.Add(new GistPreviewFile
+                    {
+                        Name = file.Name,
+                        Language = file.Value.TryGetProperty("language", out var l) ? l.GetString() : null,
+                        Lines = lines.Take(GistPreviewLines)
+                            .Select(x => x.Length > GistPreviewLineLength ? x[..GistPreviewLineLength] : x)
+                            .ToList(),
+                        TotalLines = lines.Length,
+                    });
+                }
             }
 
-            // Regular GitHub URLs - use Open Graph preview instead
-            attachment.Type = MessageAttachmentType.SitePreview;
-            return null; // Will fall through to Open Graph handling
+            var preview = new GistPreview
+            {
+                Owner = root.TryGetProperty("owner", out var owner) && owner.TryGetProperty("login", out var login)
+                    ? login.GetString()
+                    : null,
+                Description = root.TryGetProperty("description", out var description) ? description.GetString() : null,
+                FileCount = root.TryGetProperty("files", out var all) ? all.EnumerateObject().Count() : 0,
+                Files = files,
+            };
+
+            var data = System.Text.Json.JsonSerializer.Serialize(preview);
+            _gistCache[gistId] = (data, DateTime.UtcNow);
+            return data;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to create GitHub embed for {Url}", url);
+            _logger.LogWarning(ex, "Failed to fetch gist {GistId}", gistId);
             return null;
         }
+    }
+
+    #endregion
+
+    #region Threads
+
+    private static readonly Regex ThreadsPostPath = new(
+        @"^/@([A-Za-z0-9._]{1,30})/post/([A-Za-z0-9_-]{5,20})(?:/|$)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static MessageAttachment HandleThreads(Uri uri, MessageAttachment attachment)
+    {
+        var match = ThreadsPostPath.Match(uri.AbsolutePath);
+        if (!match.Success)
+            return null;
+
+        attachment.Location = $"https://www.threads.com/@{match.Groups[1].Value}/post/{match.Groups[2].Value}/embed";
+        return attachment;
+    }
+
+    #endregion
+
+    #region Streamable
+
+    private static readonly Regex StreamablePath = new(
+        @"^/(?:[eos]/)?([A-Za-z0-9]{4,12})/?$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private async Task<MessageAttachment> HandleStreamable(Uri uri, MessageAttachment attachment)
+    {
+        var match = StreamablePath.Match(uri.AbsolutePath);
+        if (!match.Success)
+            return null;
+
+        var videoId = match.Groups[1].Value;
+        attachment.Location = $"https://streamable.com/e/{videoId}";
+
+        // The player takes its shape from the video's size; without it,
+        // it assumes 16:9.
+        try
+        {
+            var videoUrl = $"https://streamable.com/{videoId}";
+            var oembedData = await GetCachedOEmbed(
+                $"https://api.streamable.com/oembed.json?url={HttpUtility.UrlEncode(videoUrl)}",
+                videoUrl);
+            attachment.Width = oembedData?.Width ?? 0;
+            attachment.Height = oembedData?.Height ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch Streamable oEmbed data for {VideoId}", videoId);
+        }
+
+        return attachment;
+    }
+
+    #endregion
+
+    #region Apple Music
+
+    private static readonly Regex AppleMusicPath = new(
+        @"^/[a-z]{2}/(album|playlist|song)/[^/]+/[A-Za-z0-9.]+/?$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static MessageAttachment HandleAppleMusic(Uri uri, MessageAttachment attachment)
+    {
+        var match = AppleMusicPath.Match(uri.AbsolutePath);
+        if (!match.Success)
+            return null;
+
+        // An album link with ?i=<track> points at one song on the album.
+        var trackId = HttpUtility.ParseQueryString(uri.Query)["i"];
+        var isSong = match.Groups[1].Value == "song" ||
+                     (!string.IsNullOrEmpty(trackId) && trackId.All(char.IsAsciiDigit));
+
+        attachment.Location = $"https://embed.music.apple.com{uri.AbsolutePath}" +
+                              (isSong && match.Groups[1].Value == "album" ? $"?i={trackId}" : string.Empty);
+        attachment.Width = 660;
+        attachment.Height = isSong ? 175 : 450;
+        return attachment;
+    }
+
+    #endregion
+
+    #region Kick
+
+    private static readonly Regex KickChannelPath = new(
+        @"^/([A-Za-z0-9_]{3,25})/?$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    // Site pages that share the channel URL shape.
+    private static readonly HashSet<string> KickReservedPaths = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "browse", "categories", "category", "following", "search", "settings", "dashboard", "terms-of-service", "privacy-policy",
+    };
+
+    private static MessageAttachment HandleKick(Uri uri, MessageAttachment attachment)
+    {
+        var match = KickChannelPath.Match(uri.AbsolutePath);
+        if (!match.Success || KickReservedPaths.Contains(match.Groups[1].Value))
+            return null;
+
+        attachment.Location = $"https://player.kick.com/{match.Groups[1].Value}";
+        return attachment;
     }
 
     #endregion

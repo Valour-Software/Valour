@@ -18,9 +18,8 @@ public static partial class SecurityHeaders
     private const string NonceItemKey = "Valour.CspNonce";
 
     // Third-party scripts the app loads: libraries injected by components
-    // (highlight.js, cropper, pickr, emoji-mart, lottie-player, TradingView) and
-    // the message embed widgets (main.js trustedEmbedScriptHosts), plus the hosts
-    // those widgets load their own code from.
+    // (highlight.js, cropper, pickr, emoji-mart, lottie-player, TradingView).
+    // Message embeds run in provider frames and load no scripts into the app.
     private static readonly string[] ThirdPartyScriptSources =
     [
         "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/",
@@ -29,16 +28,10 @@ public static partial class SecurityHeaders
         "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/",
         "https://unpkg.com/@lottiefiles/lottie-player@2.0.12/",
         "https://s3.tradingview.com",
-        "https://www.tiktok.com",
-        "https://*.tiktokcdn.com",
-        "https://*.tiktokcdn-us.com",
-        "https://*.ttwstatic.com",
-        "https://gist.github.com",
     ];
 
-    // Iframe hosts for message embeds: main.js trustedEmbedIframeHosts, the
-    // attachment components' players and provider pages (such as X and Reddit
-    // posts), and the frames the embed widgets create.
+    // Iframe hosts for message embeds: the attachment components' players and
+    // provider pages (such as X and Reddit posts), and TradingView's widget.
     private static readonly string[] EmbedFrameSources =
     [
         "https://www.youtube.com",
@@ -55,6 +48,10 @@ public static partial class SecurityHeaders
         "https://open.spotify.com",
         "https://w.soundcloud.com",
         "https://embed.reddit.com",
+        "https://www.threads.com",
+        "https://streamable.com",
+        "https://embed.music.apple.com",
+        "https://player.kick.com",
         "https://s.tradingview.com",
         "https://www.tradingview-widget.com",
     ];
@@ -88,7 +85,7 @@ public static partial class SecurityHeaders
         return string.Join("; ",
             "default-src 'self'",
             $"script-src {string.Join(' ', scriptSources)}",
-            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://github.githubassets.com",
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
             "img-src 'self' data: blob: https:",
             "media-src 'self' data: blob: https:",
             "font-src 'self' data: https:",

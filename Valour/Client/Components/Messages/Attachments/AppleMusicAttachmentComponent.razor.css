@@ -1,0 +1,8 @@
+.apple-music-embed {
+    display: block;
+    width: 100%;
+    max-width: 660px;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-raised);
+}

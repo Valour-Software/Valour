@@ -114,10 +114,13 @@ else
                                                 attachment.Type != MessageAttachmentType.Video &&
                                                 !(_revealedSpoilerAttachments?.Contains(id) ?? false);
 
-                    // Provider post frames size themselves to their content,
-                    // so their wrapper does not cap and scroll them.
+                    // Provider posts and players set their own size, often
+                    // taller than 410px (a post or a vertical video), so their
+                    // wrapper does not cap and scroll them.
                     var sizesItself = attachment.Type is MessageAttachmentType.Twitter or MessageAttachmentType.Reddit
-                        or MessageAttachmentType.Bluesky or MessageAttachmentType.Instagram;
+                        or MessageAttachmentType.Bluesky or MessageAttachmentType.Instagram or MessageAttachmentType.Threads
+                        or MessageAttachmentType.TikTok or MessageAttachmentType.YouTube or MessageAttachmentType.Streamable
+                        or MessageAttachmentType.AppleMusic or MessageAttachmentType.GitHub;
 
                     <div class="attachment-wrapper @(sizesItself ? "sizes-itself" : string.Empty)" @onclick="() => OnClickAttachment(id)">
                         @if (_ghost && !_isInnerReply)
