@@ -263,6 +263,11 @@ else
         public bool Ghost;
 
         /// <summary>
+        /// The live preview of the message being typed.
+        /// </summary>
+        public bool Draft;
+
+        /// <summary>
         /// Replaces the explanation shown when an encrypted message cannot be
         /// read, for views such as report review where the usual advice does
         /// not apply.
@@ -397,6 +402,7 @@ else
     private Message _message;
     private Message _lastMessage;
     private bool _ghost;
+    private bool _draft;
     private bool _isInnerReply;
     /* End Set Params */
     
@@ -725,6 +731,9 @@ else
         if (_ghost)
             newClass += " ghost";
 
+        if (_draft)
+            newClass += " draft";
+
         if (_animateIn)
             newClass += " message-enter";
 
@@ -1004,11 +1013,25 @@ else
             _ = ReRender();
     }
 
+    protected override void OnParametersSet()
+    {
+        // A draft becomes its ghost in place when sent (they share a key), so
+        // only its styling changes.
+        var draft = ParamData?.Draft == true;
+        if (draft == _draft || !_isBuilt)
+            return;
+
+        _draft = draft;
+        CalculateClassAndStyles();
+        _ = ReRender();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _message = ParamData.Message;
         _lastMessage = ParamData.LastMessage;
         _ghost = ParamData.Ghost;
+        _draft = ParamData.Draft;
         _isInnerReply = ParamData.IsInnerReply;
         _chat = ParamData.ChatComponent;
         _animateIn = ParamData.AnimateIn && !_isInnerReply;

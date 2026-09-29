@@ -18,23 +18,6 @@
                       After="@UserTutorials.OpenPlanetChat"
                       Text="This chat is live — say hi 👋" />
     }
-    <div class="preview-message">
-        @{
-            if (PreviewMessage is not null && !PreviewMessage.IsEmpty())
-            {
-                var messageParams = new MessageComponent.Params()
-                {
-                    Message = PreviewMessage,
-                    Ghost = true,
-                    LastMessage = ChatComponent.GetLastMessage(),
-                    ChatComponent = ChatComponent
-                };
-
-                <MessageComponent @key="@($"{ChatComponent.WindowCtx.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
-            }
-        }
-    </div>
-
 
     <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
 
@@ -198,7 +181,44 @@
     /// <summary>
     /// The message component for the preview message
     /// </summary>
-    public MessageComponent PreviewMessageComponent { get; private set; }
+    /// <summary>
+    /// The component showing <see cref="DraftPreview"/>. The chat renders it
+    /// among its messages and sets this reference.
+    /// </summary>
+    public MessageComponent PreviewMessageComponent { get; internal set; }
+
+    /// <summary>
+    /// The message being typed, shown as the last message in the chat while
+    /// it has content. The chat draws it where the message will appear once
+    /// sent, with the same width and spacing, so sending does not move it.
+    /// Null while editing, since the edited message updates in place.
+    /// </summary>
+    public Message DraftPreview =>
+        EditingMessageComponent is null && PreviewMessage is not null && !PreviewMessage.IsEmpty()
+            ? PreviewMessage
+            : null;
+
+    // Whether the chat's last render drew the draft; the chat reports it.
+    private bool _draftShown;
+
+    internal void OnDraftRendered(bool shown) => _draftShown = shown;
+
+    /// <summary>
+    /// Re-renders the chat when the draft preview appears or disappears. While
+    /// it stays visible, keystrokes update its component directly.
+    /// </summary>
+    private void SyncDraftPreview()
+    {
+        var shown = DraftPreview is not null;
+        if (shown == _draftShown)
+            return;
+
+        _draftShown = shown;
+        if (!shown)
+            PreviewMessageComponent = null;
+
+        _ = ChatComponent.ReRender();
+    }
     
     /// <summary>
     /// The message (if any) that is currently being edited
@@ -532,6 +552,7 @@
         }
 
         PreviewMessage = BuildNewMessage();
+        SyncDraftPreview();
 
         _loading = false;
         _pendingCustomEmojiRefresh = true;
@@ -642,6 +663,7 @@
         EditingMessageComponent = component;
         PreviewMessage = message;
         EditingOriginalText = PreviewMessage.Content;
+        SyncDraftPreview();
 
         if (PreviewMessageComponent is not null)
         {
@@ -1209,7 +1231,15 @@
     {
         //PreviewMessage.Content = string.Empty;
         if (PreviewMessage is not null)
+        {
             PreviewMessage.TimeSent = DateTime.UtcNow;
+
+            // Invite cards are added from the text, so the draft shows them
+            // too and the sent message is no taller than its preview.
+            InsertInviteAttachments(PreviewMessage);
+        }
+
+        SyncDraftPreview();
 
         if (PreviewMessageComponent is not null)
         {
@@ -1653,10 +1683,12 @@
             ChatComponent.QueuedMessages.Add(postMessage);
         }
 
-        // New message for preview. The preview component only exists after a
-        // render with content, and a fast submit can arrive before that render.
+        // New message for preview. The sent text is no longer a draft, so the
+        // new preview starts empty. The draft's component stays in the chat as
+        // the ghost (they share a key), so it must keep showing the sent message.
+        _retainedInputCache.Remove(ChatComponent.Channel.Id);
         PreviewMessage = BuildNewMessage();
-        PreviewMessageComponent?.SetMessage(PreviewMessage);
+        SyncDraftPreview();
 
         // Queue a chat re-render so the ghost appears in the same paint
         // as the preview clearing (both flush at the next yield).

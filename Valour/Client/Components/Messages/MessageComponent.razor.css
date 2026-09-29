@@ -322,13 +322,8 @@
     font-size: var(--font-size-xs);
 }
 
-.preview-message .message .reply:hover {
+.message.draft .reply:hover {
     cursor: pointer;
-}
-
-.preview-message .message {
-    max-height: 30vh;
-    overflow-y: scroll;
 }
 
 .reply .content-holder {
@@ -378,7 +373,7 @@
     cursor: pointer;
 }
 
-.preview-message .reply:hover .reply-remove {
+.message.draft .reply:hover .reply-remove {
     display: block;
 }
 
@@ -430,6 +425,15 @@
 /* Ensure loading messages are greyed out */
 .message.ghost {
     opacity: 0.7 !important;
+}
+
+.message.draft {
+    background-color: var(--surface-hover);
+    box-shadow: inset 0 1px 0 var(--line-strong);
+}
+
+.message.draft .message.reply {
+    opacity: 1;
 }
 
 /* One-shot entrance for live arrivals (set via Params.AnimateIn).
