@@ -15,6 +15,7 @@ using Valour.Server.Email;
 using Valour.Server.Redis;
 using Valour.Server.Workers;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Config;
 using Microsoft.AspNetCore.Components;
@@ -114,6 +115,22 @@ public partial class Program
                 // carry passwords, so neither may reach Sentry whatever the config says.
                 x.SendDefaultPii = false;
                 x.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
+                x.SetBeforeSend((e, _) =>
+                {
+                    if (e.Exception is not null && FrameworkNoise.IsSignalRClosedWriteFault(e.Exception.GetBaseException()))
+                        return null;
+
+                    // Sentry reports every 5xx from outgoing HTTP calls. Cloudflare's
+                    // RealtimeKit session listing fails often; RealtimeKitService
+                    // treats a failed listing as "no evidence" and never acts on it.
+                    var url = e.Request?.Url;
+                    if (url is not null &&
+                        url.Contains("/realtime/kit/", StringComparison.Ordinal) &&
+                        url.Contains("/sessions", StringComparison.Ordinal))
+                        return null;
+
+                    return e;
+                });
             });
         }
 

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using EntityFramework.Exceptions.Common;
 using Microsoft.EntityFrameworkCore.Storage;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -470,6 +471,14 @@ public class PlanetMemberService
 
             await _db.SaveChangesAsync();
             
+        }
+        catch (UniqueConstraintException)
+        {
+            // A concurrent join for the same user and planet inserted the
+            // member first.
+            if (trans is not null)
+                await trans.RollbackAsync();
+            return new TaskResult<PlanetMember>(false, "Already a member.", null);
         }
         catch (Exception e)
         {

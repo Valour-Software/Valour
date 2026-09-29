@@ -29,6 +29,9 @@ public class KlipyService : ServiceBase
 
     private readonly ValourClient _client;
     private readonly HttpClient _http;
+    // Kept separately from HttpClient.BaseAddress, which cannot change after
+    // the first request and hosts may reconfigure the key when the app reloads.
+    private Uri? _apiBase;
     private readonly List<GifFavorite> _gifFavorites = new();
 
     public readonly IReadOnlyList<GifFavorite> GifFavorites;
@@ -54,7 +57,7 @@ public class KlipyService : ServiceBase
     {
         var key = publicApiKey?.Trim();
         IsConfigured = !string.IsNullOrWhiteSpace(key);
-        _http.BaseAddress = IsConfigured
+        _apiBase = IsConfigured
             ? new Uri(ApiBaseAddress + Uri.EscapeDataString(key!) + "/", UriKind.Absolute)
             : null;
     }
@@ -145,7 +148,7 @@ public class KlipyService : ServiceBase
         try
         {
             using var response = await _http.PostAsJsonAsync(
-                $"gifs/share/{Uri.EscapeDataString(slug)}",
+                new Uri(_apiBase!, $"gifs/share/{Uri.EscapeDataString(slug)}"),
                 new { customer_id = CustomerId });
 
             return response.IsSuccessStatusCode
@@ -184,7 +187,7 @@ public class KlipyService : ServiceBase
     {
         try
         {
-            using var response = await _http.GetAsync(path, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _http.GetAsync(new Uri(_apiBase!, path), HttpCompletionOption.ResponseHeadersRead);
             if (!response.IsSuccessStatusCode)
                 return TaskResult<T>.FromFailure("GIF provider is unavailable.", (int)response.StatusCode);
 

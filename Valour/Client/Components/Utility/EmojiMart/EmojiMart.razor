@@ -123,6 +123,10 @@
         {
             return new();
         }
+        catch (JSDisconnectedException)
+        {
+            return new();
+        }
         catch (JSException)
         {
             // Allow a later search to retry the import
@@ -146,9 +150,10 @@
             var results = await module.InvokeAsync<EmojiClickEvent[]>("getFrequent", maxResults);
             return results?.ToList() ?? new();
         }
-        catch (JSException)
+        catch (Exception e) when (e is JSException or JSDisconnectedException)
         {
-            // Emoji library not loaded (e.g. CDN slow/blocked); show no quick reactions
+            // Emoji library not loaded (e.g. CDN slow/blocked) or the page is
+            // gone; show no quick reactions
             return new();
         }
     }
@@ -166,7 +171,7 @@
             await using var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
             await module.InvokeVoidAsync("recordFrequent", emojiId);
         }
-        catch (JSException)
+        catch (Exception e) when (e is JSException or JSDisconnectedException)
         {
             // Frequency tracking is best-effort; never crash the caller
         }
@@ -259,11 +264,15 @@
         {
             if (module is not null)
             {
+                // The page may already be gone when the component is disposed
+                // during a reload or window close.
                 try { await module.InvokeVoidAsync("destroy", _id); }
                 catch (JSException) { }
+                catch (JSDisconnectedException) { }
                 catch (ObjectDisposedException) { }
                 try { await module.DisposeAsync(); }
                 catch (JSException) { }
+                catch (JSDisconnectedException) { }
                 catch (ObjectDisposedException) { }
             }
         }
