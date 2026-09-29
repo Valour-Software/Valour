@@ -110,3 +110,30 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.thread-embeds {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.thread-embed {
+    max-width: 560px;
+    cursor: default;
+}
+
+.embed-spoiler-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 72px;
+    padding: var(--space-3);
+    color: var(--text-secondary);
+    font: inherit;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
