@@ -23,7 +23,7 @@ type InputContext = {
     ) => Promise<void>;
     pasteHandler: (e: ClipboardEvent) => void;
     keyDownHandler: (e: KeyboardEvent) => void;
-    inputHandler: (e: InputEvent) => void;
+    inputHandler: Debounced<(e: InputEvent) => void>;
     clickHandler: () => void;
     selectionChangeHandler: () => void;
     hookEvents: () => void;
@@ -66,12 +66,22 @@ function safeForInterop(str: string): string {
 /**
  * Debounce utility to limit function calls.
  */
-function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+type Debounced<T extends (...args: any[]) => void> = T & { cancel: () => void };
+
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): Debounced<T> {
     let timer: number | null = null;
-    return function (this: any, ...args: any[]) {
+    const debounced = function (this: any, ...args: any[]) {
         if (timer !== null) clearTimeout(timer);
-        timer = window.setTimeout(() => fn.apply(this, args), delay);
-    } as T;
+        timer = window.setTimeout(() => {
+            timer = null;
+            fn.apply(this, args);
+        }, delay);
+    } as Debounced<T>;
+    debounced.cancel = () => {
+        if (timer !== null) clearTimeout(timer);
+        timer = null;
+    };
+    return debounced;
 }
 
 /**
@@ -243,6 +253,12 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
         },
 
         submitMessage: async (keepOpen = false) => {
+            // Typing reaches the component through a short debounce, so the
+            // text typed just before Enter may not have been sent yet. Send
+            // it now, before clearing the box; otherwise the component would
+            // submit the older text, or nothing, and the typed text is lost.
+            ctx.inputHandler.cancel();
+            await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), '');
             ctx.inputEl.innerHTML = '';
             await ctx.dotnet.invokeMethodAsync('OnChatboxSubmit');
             await ctx.dotnet.invokeMethodAsync('OnCaretUpdate', '');

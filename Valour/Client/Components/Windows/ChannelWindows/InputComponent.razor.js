@@ -28,16 +28,22 @@ function safeForInterop(str) {
     }
     return result;
 }
-/**
- * Debounce utility to limit function calls.
- */
 function debounce(fn, delay) {
     let timer = null;
-    return function (...args) {
+    const debounced = function (...args) {
         if (timer !== null)
             clearTimeout(timer);
-        timer = window.setTimeout(() => fn.apply(this, args), delay);
+        timer = window.setTimeout(() => {
+            timer = null;
+            fn.apply(this, args);
+        }, delay);
     };
+    debounced.cancel = () => {
+        if (timer !== null)
+            clearTimeout(timer);
+        timer = null;
+    };
+    return debounced;
 }
 /**
  * Recursively extracts text from a DOM node, handling custom emoji images and block elements.
@@ -209,6 +215,12 @@ export function init(dotnet, inputEl) {
             ctx.inputEl.innerText = content;
         },
         submitMessage: async (keepOpen = false) => {
+            // Typing reaches the component through a short debounce, so the
+            // text typed just before Enter may not have been sent yet. Send
+            // it now, before clearing the box; otherwise the component would
+            // submit the older text, or nothing, and the typed text is lost.
+            ctx.inputHandler.cancel();
+            await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), '');
             ctx.inputEl.innerHTML = '';
             await ctx.dotnet.invokeMethodAsync('OnChatboxSubmit');
             await ctx.dotnet.invokeMethodAsync('OnCaretUpdate', '');
