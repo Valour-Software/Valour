@@ -15,17 +15,10 @@
             
             @if (ShowCreateButton && _filteredTags.Count == 0)
             {
-                <button class="toggle-btn  @( _isCheck ? "active" : "" )"
-                        style="background-color: @(_showError ? "var(--color-danger)" : "var(--color-primary)")"
+                <button class="v-btn small toggle-btn @( _isCheck ? "active" : "" ) @( _showError ? "danger" : "" )"
                         @onclick="@(async() => {await CreateNewTag();})">
-                    <span class="btn-text">@( _isCheck ? "Done" : "Add Tag" )</span>
-                    <svg class="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
+                    <i class="bi @( _isCheck ? "bi-check-lg" : "bi-plus-lg" )" aria-hidden="true"></i>
+                    <span class="btn-text">@( _isCheck ? "Done" : "Add tag" )</span>
                 </button>
             }
         </div>

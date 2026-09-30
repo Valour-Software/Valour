@@ -1,7 +1,7 @@
 .recent-chat-dock {
     flex-shrink: 0;
-    border-top: 1px solid var(--slight-tint);
-    background-color: var(--main-2);
+    border-top: 1px solid var(--line);
+    background-color: var(--surface-base);
 }
 
 .dock-scroll {
@@ -32,9 +32,9 @@
     padding: 0;
     border: none;
     background: none;
+    border-radius: var(--radius-full);
     cursor: pointer;
-    transform-origin: center bottom;
-    transition: transform var(--duration-fast) var(--ease-standard);
+    transition: box-shadow var(--duration-fast) var(--ease-standard);
     user-select: none;
     -webkit-user-drag: none;
 }
@@ -48,10 +48,13 @@
     -webkit-user-drag: none;
 }
 
-.dock-item:hover,
+.dock-item:hover {
+    box-shadow: 0 0 0 2px var(--line-strong);
+}
+
 .dock-item:focus-visible {
-    transform: translateY(-3px) scale(1.08);
-    outline: none;
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .dock-drag-ghost {
@@ -64,8 +67,8 @@
     justify-content: center;
     pointer-events: none;
     opacity: 0.92;
-    transform: translate(-50%, -50%) scale(1.08);
-    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.35));
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 8px 14px rgb(0 0 0 / 0.35));
     user-select: none;
     -webkit-user-drag: none;
 }
@@ -84,8 +87,8 @@
     width: 40px;
     height: 40px;
     border-radius: var(--radius-full);
-    background-color: var(--main-4);
-    color: var(--font-alt-color);
+    background-color: var(--surface-hover);
+    color: var(--text-tertiary);
     font-size: var(--font-size-lg);
 }
 
@@ -98,9 +101,12 @@
     padding: 0 4px;
     border-radius: var(--radius-full);
     background-color: var(--color-danger);
-    color: white;
+    color: var(--color-danger-contrast);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
     line-height: 16px;
-    box-shadow: 0 0 0 2px var(--main-2);
+    text-align: center;
+    box-shadow: 0 0 0 2px var(--surface-base);
 }

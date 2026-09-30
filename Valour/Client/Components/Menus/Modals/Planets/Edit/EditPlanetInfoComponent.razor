@@ -7,7 +7,7 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-globe2"></i>
-            Planet Info
+            Planet info
         </h3>
         <p class="helper-text top-help">Edit your planet's name, tags, and primary chat channel</p>
 
@@ -17,7 +17,7 @@
         </div>
 
         <div class="form-group">
-            <label>Primary Chat Channel</label>
+            <label>Primary chat channel</label>
             <CustomDropdown TItem="Channel"
                             Items="_chatChannels"
                             InitialItem="_selectedPrimaryChannel"
@@ -32,7 +32,7 @@
                    OnTagRemoveToPlanet="HandleTagRemoved" ShowCreateButton="true"/>
 
         <div class="actions">
-            <button class="v-btn primary" @onclick="OnSaveChanges">Save Changes</button>
+            <button class="v-btn primary" @onclick="OnSaveChanges">Save changes</button>
         </div>
     </div>
 
@@ -72,7 +72,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Enable Threads</span>
+                <span class="toggle-title">Enable threads</span>
                 <label class="switch">
                     <input type="checkbox" @oninput="OnCheckEnableThreads" checked="@_enableThreadsValue" />
                     <span class="slider round"></span>
@@ -84,7 +84,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Public Threads</span>
+                <span class="toggle-title">Public threads</span>
                 <label class="switch">
                     <input type="checkbox" @oninput="OnCheckPublicThreads" checked="@_publicThreadsValue" disabled="@(!_enableThreadsValue)" />
                     <span class="slider round"></span>
@@ -103,7 +103,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Enable Calendar</span>
+                <span class="toggle-title">Enable calendar</span>
                 <label class="switch">
                     <input type="checkbox" @oninput="OnCheckEnableCalendar" checked="@_enableCalendarValue" />
                     <span class="slider round"></span>
@@ -122,7 +122,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Activity Notification Cadence</span>
+                <span class="toggle-title">Activity notification cadence</span>
             </div>
             <p class="toggle-description">
                 How often members are notified when channels here become active, unless they
@@ -149,7 +149,7 @@
         <div class="appearance-split">
             <div class="options">
                 <div>
-                    <button class="v-btn primary" data-click-target="icon-upload">Upload Icon</button>
+                    <button class="v-btn secondary" data-click-target="icon-upload">Upload icon</button>
                     <p class="helper-text">Upload a Planet Icon (max 8MB, square)</p>
                     <ResultLabel Result="@_iconResult"/>
                     <InputFile @ref="_iconFileInput"
@@ -160,7 +160,7 @@
                 </div>
                 
                 <div>
-                    <button class="v-btn primary" data-click-target="bg-upload">Upload Background</button>
+                    <button class="v-btn secondary" data-click-target="bg-upload">Upload background</button>
                     <p class="helper-text">Upload a Planet Background (max 10MB, 300x400px)</p>
                     <ResultLabel Result="@_bgResult"/>
                     <InputFile @ref="_bgFileInput"
@@ -172,6 +172,39 @@
             </div>
             <div class="card-preview">
                 <DiscoveryPlanetCard HideActions="true" PlanetInfo="@Planet.ToListInfo()" />
+            </div>
+        </div>
+
+        <div class="world-editor">
+            <div class="world-preview" aria-hidden="true">
+                <NebulaSky Seed="@WorldPreviewSeed" Intensity="1.2" Scale="1.5" FocusX="0.35" FocusY="0.45" Spread="0.5" />
+                <PlanetGlobe Seed="@WorldPreviewSeed" Radius="0.34" CenterX="0.68" CenterY="0.52" />
+            </div>
+            <div class="world-options">
+                <span class="toggle-title">World</span>
+                <p class="helper-text">
+                    @if (_worldPreview == Planet.WorldVariant)
+                    {
+                        @(_worldPreview == 0 ? "Your planet's original world." : "Your planet's current world.")
+                    }
+                    else
+                    {
+                        @("Preview. Save to use this world everywhere your planet appears.")
+                    }
+                    A custom icon or background still shows in place of the generated one.
+                </p>
+                <div class="world-buttons">
+                    <button class="v-btn secondary" @onclick="OnRegenerateWorld">
+                        <i class="bi bi-arrow-repeat"></i>
+                        Regenerate
+                    </button>
+                    @if (_worldPreview != 0)
+                    {
+                        <button class="v-btn" @onclick="OnOriginalWorld">Reset to original</button>
+                    }
+                    <button class="v-btn primary" disabled="@(_worldSaving || _worldPreview == Planet.WorldVariant)" @onclick="OnSaveWorld">Save world</button>
+                </div>
+                <ResultLabel Result="@_worldResult"/>
             </div>
         </div>
         
@@ -206,6 +239,12 @@
     private bool _enableCalendarValue;
     private ITaskResult _enableCalendarResult;
 
+    private byte _worldPreview;
+    private bool _worldSaving;
+    private ITaskResult _worldResult;
+
+    private string WorldPreviewSeed => NebulaPalettes.WorldSeed(Planet.Id, _worldPreview);
+
     protected override Task OnInitializedAsync()
     {
         _nameValue = Planet.Name;
@@ -216,6 +255,7 @@
         _publicThreadsValue = Planet.PublicThreads;
         _enableCalendarValue = Planet.EnableCalendar;
         _activityCadenceValue = Planet.ActivityNotificationCadence;
+        _worldPreview = Planet.WorldVariant;
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -355,6 +395,33 @@
             Planet.PublicThreads = _publicThreadsValue;
         }
 
+        StateHasChanged();
+    }
+
+    private void OnRegenerateWorld()
+    {
+        _worldPreview = NebulaPalettes.NextWorldVariant(_worldPreview);
+        _worldResult = null;
+    }
+
+    private void OnOriginalWorld()
+    {
+        _worldPreview = 0;
+        _worldResult = null;
+    }
+
+    private async Task OnSaveWorld()
+    {
+        if (_worldSaving || _worldPreview == Planet.WorldVariant)
+            return;
+
+        _worldSaving = true;
+        _worldResult = null;
+        StateHasChanged();
+
+        var result = await Client.PlanetService.SetWorldVariantAsync(Planet, _worldPreview);
+        _worldResult = result.Success ? new TaskResult(true, "World saved.") : result;
+        _worldSaving = false;
         StateHasChanged();
     }
 

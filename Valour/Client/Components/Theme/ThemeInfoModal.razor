@@ -18,7 +18,7 @@
         }
         else
         {
-            <div class="theme-img" style="text-align: center; background-color: @Data.ThemeMeta.MainColor1"> 
+            <div class="theme-img default" style="background-color: @Data.ThemeMeta.MainColor1">
                 <Victor Style="max-width: 80px; padding: 5px; padding-top: 10px;" Color="@Data.ThemeMeta.PastelCyan" />
             </div>
         }
@@ -31,35 +31,31 @@
 
             <p class="description">@Data.ThemeMeta.Description</p>
 
-            <br/>
-
             @if (_theme is not null && !string.IsNullOrWhiteSpace(_theme.CustomCss))
             {
-                <b><i class="bi bi-exclamation-triangle-fill"></i> Theme contains custom CSS. Install with caution.</b>
-                <br/>
-                <br/>
+                <div class="css-warning"><i class="bi bi-exclamation-triangle-fill"></i> <span>Theme contains custom CSS. Install with caution.</span></div>
             }
 
             <div class="buttons-wrapper">
                 <div class="buttons">
                     @if (Data.ThemeMeta.AuthorId == Client.Me.Id && Data.Editor is not null)
                     {
-                        <button class="btn v-btn" @onclick="@OnClickEdit">Edit Theme</button>
+                        <button class="v-btn" @onclick="@OnClickEdit">Edit theme</button>
                     }
                     @if (Data.ThemeMeta.Id != ThemeComponent.Instance.CurrentTheme.Id)
                     {
-                        <button class="btn v-btn primary" @onclick="@OnClickInstallAsync">Install Theme</button>
+                        <button class="v-btn primary" @onclick="@OnClickInstallAsync">Install theme</button>
                     }
                     else
                     {
-                        <button class="btn v-btn danger" @onclick="@OnClickUninstallAsync">Uninstall</button>
+                        <button class="v-btn danger" @onclick="@OnClickUninstallAsync">Uninstall</button>
                     }
-                    <button class="btn v-btn secondary" @onclick="@OnClickTip">Tip Creator</button>
+                    <button class="v-btn secondary" @onclick="@OnClickTip">Tip creator</button>
                 </div>
                 <div>
                     <div class="voting">
-                        <button class="btn v-btn thumbs-up @(_myUpvote ? "primary" : "")" @onclick="@OnUpvoteAsync"><i class="bi bi-hand-thumbs-up-fill"></i></button>
-                        <button class="btn v-btn thumbs-down @(_myDownvote ? "primary" : "")" @onclick="@OnDownvoteAsync"><i class="bi bi-hand-thumbs-down-fill"></i></button>
+                        <button class="v-btn thumbs-up @(_myUpvote ? "primary" : "")" @onclick="@OnUpvoteAsync"><i class="bi bi-hand-thumbs-up-fill"></i></button>
+                        <button class="v-btn thumbs-down @(_myDownvote ? "primary" : "")" @onclick="@OnDownvoteAsync"><i class="bi bi-hand-thumbs-down-fill"></i></button>
                     </div>
                     <div class="voting-totals">
                         <span>@_upvotes</span>

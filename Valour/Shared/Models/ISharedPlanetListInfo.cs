@@ -65,11 +65,22 @@ public interface ISharedPlanetListInfo : ISharedModel<long>
     /// The number of members in the planet
     /// </summary>
     int MemberCount { get; set; }
+
+    /// <summary>
+    /// Members who connected in the last 15 minutes, or -1 when the planet's host
+    /// does not report it.
+    /// </summary>
+    int ActiveCount { get; set; }
     
     /// <summary>
     /// The version of the planet
     /// </summary>
     int Version { get; set; }
+
+    /// <summary>
+    /// Selects which generated world the planet shows. See <see cref="ISharedPlanet.WorldVariant"/>.
+    /// </summary>
+    byte WorldVariant { get; set; }
 
     public List<ISharedPlanetTag> GetTagsGeneric();
 }

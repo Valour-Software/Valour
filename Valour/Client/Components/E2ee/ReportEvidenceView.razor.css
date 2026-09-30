@@ -10,8 +10,8 @@
     gap: var(--space-2);
     padding: var(--space-3);
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
 }
 
 .evidence-header {
@@ -27,8 +27,14 @@
 
 .evidence-time,
 .evidence-note {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
+}
+
+.evidence-time {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
 }
 
 .evidence-badge {
@@ -37,16 +43,20 @@
     gap: var(--space-1);
     margin-left: auto;
     padding: var(--space-1) var(--space-2);
+    border: 1px solid transparent;
     border-radius: var(--radius-full);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
 }
 
 .evidence-badge.verified {
     color: var(--color-success);
     background-color: var(--color-success-soft);
+    border-color: var(--color-success-border);
 }
 
 .evidence-badge.unverified {
     color: var(--color-warning);
     background-color: var(--color-warning-soft);
+    border-color: var(--color-warning-border);
 }

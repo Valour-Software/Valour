@@ -4,36 +4,23 @@
 @inject NavigationManager navManager
 @inject IJSRuntime JS
 
-<body class="login-background" style="background-image: url(/_content/Valour.Client/media/Abstract-Background.png)">
-    <div class="popup-box">
-        <div class="col-md-12">
-            <section>
-                <h2>Age Verification</h2>
-
-                <h4>To ensure both of our safety! (And the law)</h4>
-                <hr />
-                <div asp-validation-summary="All" class="text-danger"></div>
-                <div class="form-group mt-2">
-                    <label>Birthday</label>
-                    <InputDate @bind-Value="date"></InputDate>
-                    <br />
-                    <span id="date-span" class="text-danger">@dateSpan</span>
-                </div>
-                <div class="form-group mt-4">
-                    <div style="display: inline-block">
-                        <p>
-                            <input type="checkbox" @bind="agreed" /> &nbsp; By checking this box, you acknowledge that the given age is truthful and that any attempt to provide misleading or false information will lead to account disablement.
-                        </p>
-                    </div>
-                    <span id="agreed-span" class="text-danger">@agreedSpan</span>
-                </div>
-                <div class="form-group mt-4" style="display:inline-block">
-                    <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Submit</button>
-                </div>
-            </section>
-        </div>
+<SignInShell>
+    <h1 class="headline">How old are you?</h1>
+    <p class="lede">We need your birthday to keep younger people safe and to follow the law.</p>
+    <div class="form-group">
+        <label>Birthday</label>
+        <InputDate @bind-Value="date" class="form-control"></InputDate>
+        <span id="date-span" class="text-danger">@dateSpan</span>
     </div>
-</body>
+    <label class="age-agreement">
+        <input type="checkbox" @bind="agreed" />
+        <span>I confirm this birthday is true. Giving false or misleading information will get the account disabled.</span>
+    </label>
+    <span id="agreed-span" class="text-danger">@agreedSpan</span>
+    <div class="sign-in-actions">
+        <button class="v-btn primary" @onclick="OnClickSubmit">Continue</button>
+    </div>
+</SignInShell>
 
 @code {
         // Input fields

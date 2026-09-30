@@ -2,7 +2,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:client="clr-namespace:Valour.Client;assembly=Valour.Client"
-             x:Class="Valour.Client.Maui.MainPage">
+             x:Class="Valour.Client.Maui.MainPage"
+             BackgroundColor="#0A0D12">
 
     <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
         <BlazorWebView.RootComponents>

@@ -1,0 +1,325 @@
+﻿.page {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: var(--surface-canvas);
+}
+
+.sign-in-sky {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.sign-in-sky ::deep canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.constellation {
+    position: absolute;
+    top: 7%;
+    right: 4%;
+    width: min(19vw, 260px);
+    height: auto;
+    overflow: visible;
+}
+
+.constellation line {
+    stroke: rgb(190 210 235 / 0.3);
+    stroke-width: 2;
+}
+
+.constellation circle {
+    fill: rgb(245 248 255 / 0.95);
+}
+
+.constellation circle.halo {
+    fill: rgb(225 236 255 / 0.12);
+}
+
+.sky-caption {
+    color: rgb(215 225 240 / 0.62);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.constellation-caption {
+    position: absolute;
+    top: calc(7% - 24px);
+    right: 4%;
+}
+
+.sign-in-victor {
+    position: absolute;
+    top: 34%;
+    left: 60%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.sign-in-victor img {
+    width: min(12vw, 170px);
+    animation: victor-float 6s ease-in-out infinite alternate;
+    user-select: none;
+}
+
+.sign-in-panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    flex: none;
+    width: min(100%, 700px);
+    min-height: 100%;
+    padding: 0 40px 0 clamp(24px, 8vw, 120px);
+    background: linear-gradient(90deg, var(--surface-canvas) 70%, transparent);
+}
+
+.sign-in-content {
+    width: 100%;
+    max-width: 420px;
+    padding: 48px 0;
+}
+
+.brand {
+    display: flex;
+    width: fit-content;
+    text-decoration: none;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 48px;
+    color: var(--text-primary);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing-tight);
+}
+
+.sign-in-content ::deep .headline {
+    width: max-content;
+    max-width: calc(100vw - 48px);
+    margin: 0 0 14px;
+    font-size: clamp(28px, 2.4vw, 36px);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.08;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 0.7), 0 0 18px rgb(0 0 0 / 0.75), 0 0 42px rgb(0 0 0 / 0.65);
+    letter-spacing: var(--letter-spacing-display);
+    text-wrap: balance;
+}
+
+.sign-in-content ::deep .headline em {
+    font-style: normal;
+    color: var(--text-tertiary);
+}
+
+.sign-in-content ::deep .lede {
+    max-width: 340px;
+    margin: 0 0 32px;
+    color: var(--text-secondary);
+    font-size: 15px;
+}
+
+.sign-in-content ::deep .notice {
+    margin: -12px 0 20px;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.sign-in-content ::deep .notice.success {
+    color: var(--color-success);
+}
+
+.sign-in-content ::deep .form-group {
+    margin-bottom: 1rem;
+}
+
+.sign-in-content ::deep .sign-in-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 1.5rem;
+}
+
+.sign-in-content ::deep .sign-in-actions .v-btn {
+    flex: 1;
+    padding: 0.75em 1em;
+    font-size: var(--font-size-sm);
+}
+
+.sign-in-content ::deep .forgot-password {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+}
+
+.sign-in-content ::deep .forgot-password:hover {
+    color: var(--text-primary);
+}
+
+.sign-in-content ::deep .fingerprint-btn {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 16px;
+}
+
+.sign-in-content ::deep .fingerprint-btn i {
+    font-size: 1.2em;
+}
+
+.sign-in-content ::deep .appeal-notice {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.sign-in-content ::deep .appeal-notice a {
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.sign-in-content ::deep .sign-in-foot {
+    display: flex;
+    gap: 20px;
+    margin-top: 32px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+}
+
+.sign-in-content ::deep .sign-in-foot a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.sign-in-content ::deep .sign-in-foot a:hover {
+    color: var(--text-primary);
+}
+
+.sign-in-content ::deep .sign-in-foot i {
+    margin-right: 6px;
+}
+
+.sign-in-content ::deep .multi-factor-auth {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: min(92vw, 340px);
+    padding: 24px;
+    text-align: center;
+    background-color: var(--surface-base);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-modal), var(--rim-light);
+    transform: translate(-50%, -50%);
+}
+
+.sign-in-content ::deep .multi-factor-auth h3 {
+    margin-bottom: 16px;
+    font-size: var(--font-size-lg);
+}
+
+.sign-in-content ::deep .multi-factor-auth p {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.sign-in-content ::deep .multi-factor-auth input {
+    margin-bottom: 10px;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-2xl);
+    letter-spacing: 0.2em;
+    text-align: center;
+}
+
+.sign-in-content ::deep .multi-factor-auth button {
+    width: 100%;
+    margin-top: 12px;
+}
+
+.sign-in-content ::deep .age-agreement {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 4px 0 8px;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.sign-in-content ::deep .age-agreement input {
+    margin-top: 3px;
+}
+
+.sign-in-content ::deep a.v-btn {
+    text-decoration: none;
+}
+
+@media (max-width: 900px) {
+    .page {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .sign-in-sky {
+        position: relative;
+        inset: auto;
+        flex: none;
+        height: 32vh;
+        min-height: 200px;
+    }
+
+    .constellation,
+    .sky-caption {
+        display: none;
+    }
+
+    .sign-in-victor {
+        top: 14%;
+        left: 56%;
+    }
+
+    .sign-in-victor img {
+        width: 110px;
+    }
+
+    .sign-in-panel {
+        align-items: flex-start;
+        width: 100%;
+        min-height: 0;
+        padding: 0 24px;
+        background: var(--surface-canvas);
+    }
+
+    .sign-in-content {
+        padding: 24px 0 40px;
+    }
+
+    .brand {
+        margin-bottom: 24px;
+    }
+
+    .sign-in-content ::deep .headline {
+        width: auto;
+        font-size: 28px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sign-in-victor img {
+        animation: none;
+    }
+}

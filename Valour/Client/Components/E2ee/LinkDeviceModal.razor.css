@@ -5,13 +5,13 @@
     padding: var(--space-3);
     margin-bottom: var(--space-3);
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
 }
 
 .device-card i {
     font-size: var(--font-size-xl);
-    color: var(--color-primary);
+    color: var(--text-secondary);
 }
 
 .device-copy {
@@ -20,7 +20,7 @@
 }
 
 .device-copy span {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -29,6 +29,7 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3);
+    border: 1px solid var(--color-success-border);
     border-radius: var(--radius-md);
     background-color: var(--color-success-soft);
 }
@@ -44,7 +45,7 @@
     justify-content: center;
     gap: var(--space-2);
     padding: var(--space-3) 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .typed-code {
@@ -59,6 +60,7 @@
 .typed-code-value {
     font-family: var(--font-family-mono);
     font-size: var(--font-size-xl);
+    font-variant-numeric: tabular-nums;
     letter-spacing: 0.1em;
     user-select: all;
 }

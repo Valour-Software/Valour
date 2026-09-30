@@ -15,3 +15,10 @@ cf-build text eol=lf
 # Android developer verification compares this snippet byte for byte, so git
 # must not add or convert line endings.
 adi-registration.properties -text
+
+# Freedesktop tools parse these files with Unix line endings.
+*.desktop text eol=lf
+
+# The Linux build runs on Linux, reads COMMIT as a plain value, and hashes these
+# files to name the prebuilt WebKit release, which must not vary by checkout.
+Tools/Linux/** eol=lf

@@ -1,0 +1,77 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+
+@* A provider's embed page in its own frame. The provider reports its content
+   height with postMessage, and main.js (valourEmbedFrames) sizes the frame
+   from it, starting from the last height seen for this embed. *@
+<iframe @ref="_frame"
+        class="provider-embed"
+        style="height: @(DefaultHeight)px; max-width: @(MaxWidth)px;"
+        src="@Src"
+        title="@Title"
+        loading="lazy"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        allowfullscreen></iframe>
+
+@code {
+    /// <summary>
+    /// Provider key known to valourEmbedFrames in main.js.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Provider { get; set; }
+
+    /// <summary>
+    /// Identifies the embedded item, so its height can be remembered.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string EmbedId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Src { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    /// <summary>
+    /// Height reserved until the provider reports one, when none is remembered.
+    /// </summary>
+    [Parameter]
+    public int DefaultHeight { get; set; } = 240;
+
+    [Parameter]
+    public int MaxWidth { get; set; } = 550;
+
+    private readonly string _handle = Guid.NewGuid().ToString("N");
+    private ElementReference _frame;
+    private bool _attached;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("valourEmbedFrames.attach", _handle, _frame, Provider, EmbedId);
+            _attached = true;
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!_attached)
+            return;
+
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("valourEmbedFrames.detach", _handle);
+        }
+        catch (Exception e) when (e is JSException or JSDisconnectedException)
+        {
+            // The page is gone, and the frame list went with it.
+        }
+    }
+}

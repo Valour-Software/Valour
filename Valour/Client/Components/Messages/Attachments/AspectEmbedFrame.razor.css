@@ -1,0 +1,15 @@
+.aspect-embed {
+    position: relative;
+    width: 100%;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background-color: var(--surface-raised);
+}
+
+.aspect-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}

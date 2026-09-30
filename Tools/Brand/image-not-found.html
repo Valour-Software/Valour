@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face { font-family: 'JetBrains Mono'; src: url('/Valour/Client/wwwroot/css/fonts/jetbrains-mono-latin.woff2') format('woff2'); font-weight: 400 700; }
+body { margin: 0; background: #000; }
+#nf { position: relative; width: 1200px; height: 600px; overflow: hidden; background: #0a0d12; }
+#nf canvas { position: absolute; inset: 0; }
+.frame { position: absolute; left: 250px; top: 92px; width: 250px; height: 190px; border: 5px dashed rgba(190,205,230,.35); border-radius: 26px; display: grid; place-items: center; }
+.frame svg { width: 76px; height: 76px; opacity: .45; }
+.victor { position: absolute; left: 540px; top: 150px; width: 300px; }
+.cap { position: absolute; left: 0; right: 0; top: 468px; text-align: center; font: 500 26px 'JetBrains Mono'; letter-spacing: .06em; color: rgba(205,215,232,.62); }
+</style></head><body>
+<div id="nf"><canvas id="sky" width="1200" height="600"></canvas>
+<div class="frame"><svg viewBox="0 0 24 24" fill="none" stroke="#dfe6f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 3.5 3.5L16 13l4 4"/></svg></div>
+<img class="victor" src="/Valour/Client/wwwroot/media/victor/victor-telescope.svg">
+<div class="cap">image not found</div></div>
+<script type="module">
+import { resolveOptions, gasSize, computeGas, compose } from '/Valour/Client/wwwroot/js/nebula.js';
+const o = resolveOptions({ seed: 'valour-lost', palette: 'valour', intensity: 0.55, focusX: 0.62, focusY: 0.4, spread: 0.55, scale: 1.8, stars: 180 });
+const { gw, gh, resolution } = gasSize(o, 1200, 600);
+compose(document.getElementById('sky'), o, computeGas(o, gw, gh, 1200, 600), gw, gh, resolution);
+await document.fonts.ready; document.body.dataset.done = '1';
+</script></body></html>

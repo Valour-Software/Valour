@@ -1,61 +1,62 @@
-@using System.Text
 @inherits ComponentBase
 @using Valour.Sdk.Models
 
-<div class="planet-theme-card planet-theme-card-@(PlanetInfo.PlanetId)">
-    @if (PlanetInfo.HasCustomBackground)
-    {
-        var bgLocation = @ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp);
-
-        if (bgLocation is not null)
+<div class="planet-card">
+    <div class="planet-card-sky">
+        @if (_backgroundUrl is not null)
         {
-            <style>
-                .planet-theme-card-@(PlanetInfo.PlanetId) {
-                    background: linear-gradient(180deg, #0a122699 60%, #20325b99 100%), url('@bgLocation') center center/cover no-repeat !important;
-                }
-            </style>
+            <img class="planet-card-background" src="@_backgroundUrl" alt="" />
         }
-    }
-    
-    <h3 class="planet-theme-title">@PlanetInfo.Name</h3>
-    <div class="planet-icon-img-holder mt-4">
-        <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
-        @if (!PlanetInfo.HasCustomIcon)
+        else
         {
-            <span class="icon-text planet-initials" style="font-size:@GetShortCodeFontSize(_iconText.Length)">
-                @_iconText
-            </span>
+            <NebulaSky Seed="@_seed" Intensity="1.35" Scale="1.5" FocusX="0.35" FocusY="0.45" Spread="0.5" />
         }
+        @if (_topics is not null)
+        {
+            <span class="planet-card-sky-name">@_topics</span>
+        }
+        <PlanetGlobe Seed="@_seed" Lights="@_lights" Radius="0.36" CenterX="0.8" CenterY="0.55" />
     </div>
-    <div class="planet-info">
-        <div class="planet-tags">
+
+    <div class="planet-card-body">
+        <div class="planet-card-icon">
+            @if (PlanetInfo.HasCustomIcon)
+            {
+                <img src="@_iconUrl" alt="@PlanetInfo.Name" />
+            }
+            else
+            {
+                <span style="font-size:@GetShortCodeFontSize(_iconText.Length)">@_iconText</span>
+            }
+        </div>
+
+        <h3 class="planet-card-name">@PlanetInfo.Name</h3>
+        <p class="planet-card-desc">@_descText</p>
+
+        <div class="planet-card-meta">
             @* Community-hosted counts are self-reported by the node; ranking
                uses hub-verified joins instead, but the display is honest about
                where this number comes from. *@
-            <ValourPill Variant="solid" Tone="neutral" Class="member-count-tag"
-                        Title="@(string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain) ? null : $"As reported by {PlanetInfo.NodeDomain} — not verified by Valour")">
-                <strong>@PlanetInfo.MemberCount Members</strong>
-            </ValourPill>
-            @if (!string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain))
+            <span title="@(_isCommunityHosted ? $"As reported by {PlanetInfo.NodeDomain}, not verified by Valour" : null)">
+                @PlanetInfo.MemberCount.ToString("N0") members
+            </span>
+            @if (PlanetInfo.ActiveCount >= 0)
             {
-                <ValourPill Variant="soft" Tone="warning"
-                            Text="COMMUNITY-HOSTED"
-                            title="@($"Hosted by {PlanetInfo.NodeDomain}, not by Valour")" />
+                <span class="planet-card-active @(PlanetInfo.ActiveCount > 0 ? "live" : null)"><span class="planet-card-dot"></span>@PlanetInfo.ActiveCount.ToString("N0") active</span>
             }
-            @if (_tagSlugs.Count > 0)
-            {
-                @foreach (var tag in _tagSlugs)
+            <span class="planet-card-chips">
+                @if (_isCommunityHosted)
                 {
-                    <ValourPill Text="@tag.ToUpper()" Variant="soft" Tone="neutral" />
+                    <span class="planet-card-chip warning" title="@($"Hosted by {PlanetInfo.NodeDomain}, not by Valour")">Community-hosted</span>
                 }
-            }
+            </span>
         </div>
-        <p class="planet-desc">@_descText</p>
+
         @if (!HideActions)
         {
-            <div class="action-btns mt-2">
-                <button class="v-btn card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
-                <button class="v-btn card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
+            <div class="planet-card-actions">
+                <button class="v-btn" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
+                <button class="v-btn primary" disabled="@_joining" @onclick:stopPropagation="true" @onclick="@OnJoinClick">Join</button>
             </div>
         }
     </div>
@@ -66,56 +67,68 @@
     [Parameter] public EventCallback<PlanetListInfo> OnJoin { get; set; }
     [Parameter] public bool HideActions { get; set; } = false;
 
+    private string _seed;
+    private string _topics;
+    private double _lights;
+    private string _backgroundUrl;
+    private bool _isCommunityHosted;
     private string _iconUrl;
     private string _iconText = string.Empty;
-    private readonly List<string> _tagSlugs = new();
-
     private string _descText;
-    
-    protected override async Task OnParametersSetAsync()
+    private bool _joining;
+
+    protected override void OnParametersSet()
     {
+        _seed = NebulaPalettes.WorldSeed(PlanetInfo);
+        _lights = PlanetInfo.ActiveCount >= 0
+            ? PlanetGlobe.LightsFor(PlanetInfo.MemberCount, PlanetInfo.ActiveCount)
+            : 0.6;
+        _backgroundUrl = PlanetInfo.HasCustomBackground
+            ? ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp)
+            : null;
+        _isCommunityHosted = !string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain);
+
         _iconUrl = PlanetInfo.HasAnimatedIcon
             ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
             : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
-        
-        if (!PlanetInfo.HasCustomIcon)
-        {
-            _iconText = ISharedPlanet.GetCommunityShortCode(PlanetInfo);
-        }
+        _iconText = PlanetInfo.HasCustomIcon ? string.Empty : ISharedPlanet.GetCommunityShortCode(PlanetInfo);
 
-        _tagSlugs.Clear();
-        if (PlanetInfo.Tags != null && PlanetInfo.Tags.Count > 0)
-        {
-            // Use the pre-loaded tags
-            foreach (var tag in PlanetInfo.Tags.Take(6))
-            {
-                if (!string.IsNullOrWhiteSpace(tag.Slug) && !_tagSlugs.Contains(tag.Slug))
-                    _tagSlugs.Add(tag.Slug);
-            }
-        }
+        var tags = PlanetInfo.Tags?.Where(t => !string.IsNullOrWhiteSpace(t.Name)).Select(t => t.Name).Take(2).ToList();
+        _topics = tags is { Count: > 0 } ? string.Join(" · ", tags) : null;
 
-        if (PlanetInfo.Description.Length < 100)
-        {
-            _descText = PlanetInfo.Description;
-        }
-        else
-        {
-            _descText = PlanetInfo.Description.Substring(0, 100) + "...";
-        }
+        var description = PlanetInfo.Description ?? string.Empty;
+        _descText = description.Length < 100 ? description : description[..100] + "...";
     }
-    
+
     private static string GetShortCodeFontSize(int length) => length switch
     {
-        <= 2 => "2.2em",
-        3 => "1.55em",
-        4 => "1.18em",
-        _ => "1em"
+        <= 2 => "15px",
+        3 => "12px",
+        4 => "10px",
+        _ => "9px"
     };
+
+    private async Task OnJoinClick()
+    {
+        // A second click before the first join finishes would send a duplicate
+        // join request for the same planet.
+        if (_joining)
+            return;
+
+        _joining = true;
+        try
+        {
+            await OnJoin.InvokeAsync(PlanetInfo);
+        }
+        finally
+        {
+            _joining = false;
+        }
+    }
 
     private async Task OnInfoClick()
     {
         var newWindowContent = PlanetInfoWindowComponent.GetDefaultContent(PlanetInfo);
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }
-
 }

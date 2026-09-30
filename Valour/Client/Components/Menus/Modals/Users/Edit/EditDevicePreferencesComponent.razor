@@ -14,7 +14,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Auto Emojis</span>
+                <span class="toggle-title">Auto emojis</span>
                 <label class="switch">
                     <input type="checkbox" @onclick="SwitchAutoEmojis" checked="@DevicePreferences.AutoEmoji">
                     <span class="slider round"></span>
@@ -25,7 +25,7 @@
 
         <div class="toggle-item">
             <div class="toggle-header">
-                <span class="toggle-title">Error Reporting</span>
+                <span class="toggle-title">Error reporting</span>
                 <label class="switch">
                     <input type="checkbox" @onclick="OnErrorReportingClick" checked="@_errorReportingEnabled">
                     <span class="slider round"></span>
@@ -88,10 +88,10 @@
             @if (ShouldShowMicPermissionButton)
             {
                 <VButton Variant="primary" Disabled="@_isRequestingMicPermission" OnClick="@OnRequestMicrophonePermissionAsync">
-                    @(_isRequestingMicPermission ? "Requesting Access..." : "Enable Microphone Access")
+                    @(_isRequestingMicPermission ? "Requesting access..." : "Enable microphone access")
                 </VButton>
             }
-            <VButton Variant="secondary" Icon="arrow-clockwise" Disabled="@_isLoadingMics" OnClick="@OnRefreshMicsAsync">Refresh Devices</VButton>
+            <VButton Variant="secondary" Icon="arrow-clockwise" Disabled="@_isLoadingMics" OnClick="@OnRefreshMicsAsync">Refresh devices</VButton>
         </div>
 
         @if (!string.IsNullOrWhiteSpace(_micError))
@@ -134,10 +134,10 @@
             @if (ShouldShowCameraPermissionButton)
             {
                 <VButton Variant="primary" Disabled="@_isRequestingCameraPermission" OnClick="@OnRequestCameraPermissionAsync">
-                    @(_isRequestingCameraPermission ? "Requesting Access..." : "Enable Camera Access")
+                    @(_isRequestingCameraPermission ? "Requesting access..." : "Enable camera access")
                 </VButton>
             }
-            <VButton Variant="secondary" Icon="arrow-clockwise" Disabled="@_isLoadingCameras" OnClick="@OnRefreshCamerasAsync">Refresh Devices</VButton>
+            <VButton Variant="secondary" Icon="arrow-clockwise" Disabled="@_isLoadingCameras" OnClick="@OnRefreshCamerasAsync">Refresh devices</VButton>
         </div>
 
         @if (!string.IsNullOrWhiteSpace(_cameraError))
@@ -433,7 +433,7 @@
         if (string.Equals(_micPermissionState, "unsupported", StringComparison.OrdinalIgnoreCase))
             return "This browser does not support microphone device access for this feature.";
 
-        return "Microphone permission state is unavailable on this browser. Use 'Enable Microphone Access' to request access.";
+        return "Microphone permission state is unavailable on this browser. Use 'Enable microphone access' to request access.";
     }
 
     private string GetCameraPermissionDescription()
@@ -450,7 +450,7 @@
         if (string.Equals(_cameraPermissionState, "unsupported", StringComparison.OrdinalIgnoreCase))
             return "This browser does not support camera device access for this feature.";
 
-        return "Camera permission state is unavailable on this browser. Use 'Enable Camera Access' to request access.";
+        return "Camera permission state is unavailable on this browser. Use 'Enable camera access' to request access.";
     }
 
     private async Task LoadErrorReportingStateAsync()

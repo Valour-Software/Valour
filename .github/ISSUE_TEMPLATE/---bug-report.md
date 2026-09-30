@@ -1,8 +1,9 @@
 ---
-name: "\U0001F41B Bug report"
+name: "\U0001FAB2 Bug report"
 about: Create a report to help us improve
-title: "\U0001F41B Bug - <title for bug report here>"
-labels: Bug, Needs Looking At
+title: "<title for bug report here>"
+labels: Needs Looking At
+type: Bug
 assignees: ''
 
 ---
@@ -25,9 +26,9 @@ If applicable, add screenshots to help explain your problem.
 
 **System Information:**
  - OS: [e.g. iOS]
- - Valour Version [e.g 0.0.6.4]
+ - Valour Version: [e.g 0.9.4]
  - Valour Platform: [e.g. Web, Mobile App, Desktop App]
-     - Browser: [e.g. chrome, safari] **Only answer when saying you use Web**
+     - Browser: [e.g. Chrome, Safari] **Only answer when saying you use Web**
 
 **Additional context**
 Add any other context about the problem here.

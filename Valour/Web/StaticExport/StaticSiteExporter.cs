@@ -7,6 +7,7 @@ public sealed class StaticSiteExporter
     private static readonly ExportPage[] Pages =
     [
         new("Home", "Index", "/", "index.html"),
+        new("Home", "DiscordAlternative", "/discord-alternative/", "discord-alternative/index.html"),
         new("Home", "Faq", "/faq/", "faq/index.html"),
         new("Home", "Privacy", "/privacy/", "privacy/index.html"),
         new("Home", "Terms", "/terms/", "terms/index.html"),
@@ -14,7 +15,7 @@ public sealed class StaticSiteExporter
         new("Home", "EconomyRules", "/rules/economy/", "rules/economy/index.html"),
         new("Home", "DeleteAccount", "/delete-account/", "delete-account/index.html"),
         new("Home", "Texas", "/texas/", "texas/index.html"),
-        new("Home", "UserCount", "/userCount/", "userCount/index.html")
+        new("Home", "UserCount", "/userCount/", "userCount/index.html", InSitemap: false)
     ];
 
     private readonly RazorViewRenderer _renderer;
@@ -103,7 +104,7 @@ public sealed class StaticSiteExporter
 
     private static string BuildSitemap(string siteBaseUrl)
     {
-        var routes = Pages.Select(page => page.RequestPath).ToArray();
+        var routes = Pages.Where(page => page.InSitemap).Select(page => page.RequestPath).ToArray();
         var urls = routes.Select(route =>
         {
             // Trailing-slash form matches the _redirects rules, so sitemap
@@ -129,8 +130,18 @@ public sealed class StaticSiteExporter
         """;
     }
 
+    // Invite and planet links can be shared on the root domain. They open in
+    // the app, and link previews follow the redirect to the app's own page,
+    // which describes the planet. 302 keeps browsers from caching the
+    // redirect, so these links can later move without breaking old shares.
     private static string BuildRedirects() =>
         """
+        /i/* https://app.valour.gg/i/:splat 302
+        /I/* https://app.valour.gg/i/:splat 302
+        /d/* https://app.valour.gg/d/:splat 302
+        /D/* https://app.valour.gg/d/:splat 302
+        /planet/* https://app.valour.gg/planet/:splat 302
+        /discord-alternative /discord-alternative/ 301
         /faq /faq/ 301
         /privacy /privacy/ 301
         /terms /terms/ 301

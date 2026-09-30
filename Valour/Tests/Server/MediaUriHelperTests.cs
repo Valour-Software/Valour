@@ -31,6 +31,14 @@ public class MediaUriHelperTests
     [InlineData(MessageAttachmentType.Bluesky, "data:text/html,x", false, false)]
     [InlineData(MessageAttachmentType.YouTube, "https://www.youtube.com/embed/abc", false, true)]
     [InlineData(MessageAttachmentType.Twitch, "https://player.twitch.tv/?channel=x&parent=valour.gg", false, true)]
+    // Each player host is accepted only for its own type.
+    [InlineData(MessageAttachmentType.TikTok, "https://www.tiktok.com/player/v1/6718335390845095173", true, true)]
+    [InlineData(MessageAttachmentType.Threads, "https://www.threads.com/@user/post/abc/embed", true, true)]
+    [InlineData(MessageAttachmentType.Streamable, "https://streamable.com/e/abc123", true, true)]
+    [InlineData(MessageAttachmentType.AppleMusic, "https://embed.music.apple.com/us/album/x/1", true, true)]
+    [InlineData(MessageAttachmentType.Kick, "https://player.kick.com/channel", true, true)]
+    [InlineData(MessageAttachmentType.Kick, "https://embed.music.apple.com/us/album/x/1", true, false)]
+    [InlineData(MessageAttachmentType.AppleMusic, "https://player.kick.com/channel", true, false)]
     // Server-built inline previews of plain http provider links still pass.
     [InlineData(MessageAttachmentType.Twitter, "http://twitter.com/user/status/1", true, true)]
     [InlineData(MessageAttachmentType.Twitter, "http://twitter.com/user/status/1", false, false)]

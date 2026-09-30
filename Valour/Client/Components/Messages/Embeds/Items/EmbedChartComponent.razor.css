@@ -11,12 +11,12 @@
 
 .chart-title {
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
     margin-bottom: 4px;
 }
 
 .chart-grid {
-    stroke: rgba(255, 255, 255, 0.1);
+    stroke: var(--line);
     stroke-width: 1;
 }
 
@@ -38,6 +38,6 @@
 .chart-legend-swatch {
     width: 8px;
     height: 8px;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     display: inline-block;
 }

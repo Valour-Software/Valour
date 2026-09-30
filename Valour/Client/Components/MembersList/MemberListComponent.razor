@@ -1,5 +1,6 @@
 ﻿@inject PlanetService PlanetService
 @inject ValourClient Client
+@inject IAppStorage LocalStorage
 @implements IDisposable
 
 @if (!_visible)
@@ -56,7 +57,7 @@
                     {
                         TitleName = "Online",
                         IsTitle = true,
-                        TitleColor = "#fff",
+                        TitleColor = null,
                         Key = "online"
                     });
 
@@ -83,7 +84,7 @@
                     {
                         TitleName = "Offline",
                         IsTitle = true,
-                        TitleColor = "#fff",
+                        TitleColor = null,
                         Key = "offline"
                     });
 
@@ -105,8 +106,13 @@
                     @if (context.IsTitle)
                     {
                         <div>
-                            <p class="role-title subtitle" style="color: @context.TitleColor;">@context.TitleName</p>
-                            <div class="v-gradient-underline" style="background-image: linear-gradient(to right, @context.TitleColor, transparent);"></div>
+                            <p class="role-title">
+                                @if (context.TitleColor is not null)
+                                {
+                                    <span class="role-dot" style="background-color: @context.TitleColor;"></span>
+                                }
+                                @context.TitleName
+                            </p>
                         </div>
                     }
                     else
@@ -124,7 +130,8 @@
     [Parameter]
     public Channel Channel { get; set; }
     
-    private bool _visible = false;
+    // Desktop windows open the list the way the user last left it.
+    private bool _visible = !DeviceInfo.IsMobile && DevicePreferences.MemberListVisible;
 
     public class DisplayItem
     {
@@ -536,6 +543,9 @@
     public void ToggleVisible()
     {
         _visible = !_visible;
+
+        if (!DeviceInfo.IsMobile)
+            _ = DevicePreferences.SetMemberListVisible(_visible, LocalStorage);
 
         if (_visible && _reloadPending && _planet is not null)
             BuildRoleLists(); // Also requests a render

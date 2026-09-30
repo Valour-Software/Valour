@@ -1,30 +1,37 @@
 @inherits AttachmentComponent
-@inject IJSRuntime JsRuntime
+@using System.Net
+@using System.Text.RegularExpressions
 
-<div class="soundcloud-embed" id="@_id">
-</div>
-
-<style>
-    .soundcloud-embed {
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        max-width: 100%;
-    }
-
-    .soundcloud-embed iframe {
-        border: none;
-        border-radius: var(--radius-md);
-    }
-</style>
+@if (_src is not null)
+{
+    <iframe class="soundcloud-embed"
+            src="@_src"
+            title="SoundCloud player"
+            style="height: @(_height)px;"
+            loading="lazy"
+            allow="autoplay"></iframe>
+}
 
 @code {
-    private readonly string _id = "soundcloud-embed-" + Guid.NewGuid().ToString();
+    // SoundCloud's oEmbed markup is a single player iframe; only its source is used.
+    private static readonly Regex PlayerSource = new(
+        @"src=""(https://w\.soundcloud\.com/player/\?[^""]+)""",
+        RegexOptions.CultureInvariant);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private string _src;
+    private int _height;
+
+    protected override void OnParametersSet()
     {
-        if (firstRender && !string.IsNullOrEmpty(Attachment.Data))
-        {
-            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Data, null, "soundcloud");
-        }
+        var match = PlayerSource.Match(Attachment?.Data ?? string.Empty);
+        var src = match.Success ? WebUtility.HtmlDecode(match.Groups[1].Value) : null;
+
+        _src = Uri.TryCreate(src, UriKind.Absolute, out var uri) &&
+               uri.Scheme == Uri.UriSchemeHttps &&
+               uri.Host == "w.soundcloud.com" &&
+               string.IsNullOrEmpty(uri.UserInfo)
+            ? uri.AbsoluteUri
+            : null;
+        _height = Attachment?.Height > 0 ? Attachment.Height : 166;
     }
 }

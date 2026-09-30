@@ -7,7 +7,7 @@
     return;
 }
 
-<BasicModalLayout Title="Attachment Preview" Icon="file-earmark" MaxWidth="800px">
+<BasicModalLayout Title="Attachment preview" Icon="file-earmark" MaxWidth="800px">
     <MainArea>
         <div class="attachment-holder">
             @switch (Data.Attachment.Type){
@@ -29,7 +29,7 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button @onclick="@OnClickDownload" class="v-btn">Download</button>
-            <button @onclick="@OnClickCopyLink" class="v-btn">Copy Link</button>
+            <button @onclick="@OnClickCopyLink" class="v-btn">Copy link</button>
             <button @onclick="@OnClickClose" class="v-btn">Close</button>
         </div>
     </ButtonArea>

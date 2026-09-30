@@ -3,10 +3,11 @@
 }
 
 .textbox {
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    color: white;
+    background: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--rim-light);
+    color: var(--text-primary);
     position: relative;
     margin: 10px 6px 10px 10px; /* right gap matches button gap rhythm */
     padding: 0.5em;
@@ -16,8 +17,7 @@
 }
 
 .textbox:focus-within {
-    border-color: color-mix(in srgb, var(--v-cyan) 35%, var(--slight-tint));
-    box-shadow: 0 0 12px color-mix(in srgb, var(--v-cyan) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--line-strong));
 }
 
 .textbox-wrapper {
@@ -38,6 +38,8 @@
     margin-left: auto;
     margin-right: auto;
     width: 100%;
+    min-height: 1.4em;
+    min-height: 1lh;
     padding-left: 0.75em;
     padding-right: 0.75em;
     max-width: 100%;
@@ -52,7 +54,7 @@
 
 .no-perms .textbox-inner {
     width: calc(100% - 22px);
-    color: rgba(120, 120, 120);
+    color: var(--text-tertiary);
     cursor: not-allowed;
     height:42px;
 }
@@ -69,14 +71,13 @@
     border: none;
     outline: none;
     padding: 0;
-    border-radius: var(--radius-full);
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 25px;
+    border-radius: var(--radius-md);
+    color: var(--text-tertiary);
+    font-size: 20px;
     cursor: pointer;
     user-select: none;
     transition: background-color var(--duration-fast) var(--ease-standard),
-                color var(--duration-fast) var(--ease-standard),
-                transform var(--duration-fast) var(--ease-standard);
+                color var(--duration-fast) var(--ease-standard);
 }
 
 .input-action-btn i {
@@ -92,17 +93,12 @@
     /* Clicks must land on the button itself — the picker's outside-click
        handler identifies the emoji button by element id. */
     pointer-events: none;
-    transition: transform var(--duration-fast) var(--ease-standard);
 }
 
 
 .input-action-btn:hover {
-    background-color: var(--slight-tint);
-    color: var(--font-color);
-}
-
-.input-action-btn:active {
-    transform: scale(0.92);
+    background-color: var(--line);
+    color: var(--text-primary);
 }
 
 .no-perms .upload-btn {
@@ -118,25 +114,20 @@
     margin-left: 4px;
 }
 
-/* Send is the primary action — brand gradient, white glyph */
 .send-btn {
-    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
-    color: white;
+    background-color: var(--color-primary);
+    color: var(--color-primary-contrast);
+    border-radius: var(--radius-full);
 }
 
 .send-btn:hover {
-    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
-    color: white;
-    filter: brightness(1.1);
+    background-color: color-mix(in srgb, var(--color-primary) 86%, white);
+    color: var(--color-primary-contrast);
 }
 
 .send-btn i {
     transform: translate(-1px, 1px); /* bi-send-fill optical centering */
     font-size: 18px;
-}
-
-.send-wrapper:active .send-btn {
-    transform: scale(0.92);
 }
 
 .textbox-holder {
@@ -151,24 +142,16 @@
     padding-right: 0.65em;
 }
 
-.mobile .textbox-holder {
-    /* Android already lays the WebView above its navigation bar. A fixed
-       24px margin created a second, oversized safe area on every phone.
-       Keep the normal row rhythm and only grow it when the browser exposes
-       a real bottom inset (notably iOS/home-indicator layouts). */
-    margin-bottom: max(6px, env(safe-area-inset-bottom, 0px));
-}
-
 ::deep .preview-message .message {
     opacity: 0.7;
     width: 100%;
-    background-color: var(--main-4);
-    border-top: 2px dashed rgba(255, 255, 255, 0.2);
+    background-color: var(--surface-hover);
+    border-top: 1px dashed var(--line-strong);
     margin-top: -2px;
 }
 
 ::deep .preview-message .message.reply {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--surface-hover);
     border-top: 0;
     opacity: 1;
     width: fit-content;
@@ -177,13 +160,13 @@
 ::deep .preview-message .multi-message {
     opacity: 0.7;
     width: 100%;
-    background-color: var(--main-4);
-    border-top: 2px dashed rgba(255, 255, 255, 0.2);
+    background-color: var(--surface-hover);
+    border-top: 1px dashed var(--line-strong);
     margin-top: -2px;
 }
 
 ::deep .preview-message .multi-message.reply {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--surface-hover);
     border-top: 0;
     opacity: 1;
 }
@@ -193,8 +176,8 @@
     left: 1em;
     top: 0.6em;
     font-size: var(--font-size-md);
-    color: rgba(255, 255, 255, 0.47);
-    font-weight: var(--font-weight-light);
+    color: var(--text-tertiary);
+    font-weight: var(--font-weight-regular);
     pointer-events: none;
 }
 
@@ -214,7 +197,7 @@
     gap: var(--space-2);
     min-width: 0;
     padding: var(--space-2) var(--space-3);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
     background-color: var(--color-warning-soft);
     border: 1px solid var(--color-warning-border);
@@ -258,21 +241,23 @@
 }
 
 .upload-menu .content {
-    background-color: var(--main-1);
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-lg);
-    padding: 5px;
-    min-width: 190px;
+    padding: 4px;
+    min-width: 200px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    box-shadow: var(--shadow-overlay), var(--rim-light);
 }
 
 .upload-menu .button {
-    color: white;
+    color: var(--text-primary);
     cursor: pointer;
     border: none;
-    padding: 8px;
-    background-color: var(--main-1);
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    background-color: transparent;
     width: 100%;
     text-align: left;
     font: inherit;
@@ -311,37 +296,29 @@
     align-items: baseline;
     gap: 3px;
     padding: 2px 7px;
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line);
     border-radius: var(--radius-full);
-    background: var(--main-3);
-    color: var(--font-color-mid);
-    font-size: var(--font-size-xs);
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-2xs);
     font-variant-numeric: tabular-nums;
     line-height: 1.35;
     white-space: nowrap;
 }
 
 .upload-menu .currency-code {
-    font-weight: var(--font-weight-bold);
-    letter-spacing: 0.02em;
+    font-weight: var(--font-weight-semibold);
 }
 
 /* Planet currencies deliberately never inherit the purple
    .valour-credits-text authenticity treatment used by VC. */
 .upload-menu .local-code {
-    color: var(--font-color);
-}
-
-.upload-menu .content .button:first-child {
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-}
-
-.upload-menu .content .button:last-child {
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    color: var(--text-primary);
 }
 
 .upload-menu .button:hover {
-    background-color: var(--main-4);
+    background-color: var(--surface-hover);
 }
 
 .upload-menu .carrot {
@@ -349,13 +326,9 @@
     height: 0;
     border-left: 10px solid transparent;
     border-right: 10px solid transparent;
-    border-top: 10px solid var(--main-1);
+    border-top: 10px solid var(--surface-overlay);
     position: absolute;
     right: 53px; /* centers over the plus button (53 + 10 border = 63px from menu right) */
-}
-
-.emoji-button:hover i {
-    transform: rotate(12deg) scale(1.1);
 }
 
 @media (max-width: 1280px) {
@@ -387,10 +360,10 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-1) var(--space-3);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
-    background-color: var(--main-2);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-base);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
     pointer-events: none;
 }
@@ -398,7 +371,7 @@
 .send-status-spinner {
     width: 0.85rem;
     height: 0.85rem;
-    border: 2px solid var(--slight-tint);
+    border: 2px solid var(--line);
     border-top-color: var(--color-primary);
     border-radius: 50%;
     animation: e2ee-send-spin 0.7s linear infinite;

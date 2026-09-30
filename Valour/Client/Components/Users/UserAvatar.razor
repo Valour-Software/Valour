@@ -1,6 +1,6 @@
 @implements IDisposable
 
-@* Reusable user avatar with optional state ring and badge overlay *@
+@* Round user avatar with an optional presence dot and badge overlay *@
 
 @if (User is null)
 {
@@ -14,6 +14,10 @@
          style="background-image: url(@_avatarUrl), url(@_failedAvatarUrl);"
          role="img"
          aria-label="@User.Name's profile picture"></div>
+    @if (ShowState && _statusClass != "offline")
+    {
+        <span class="user-avatar-presence @_statusClass" role="img" aria-label="@_statusName"></span>
+    }
     @if (ShowBadges)
     {
         <div class="user-avatar-badges">
@@ -39,13 +43,16 @@
     public bool ShowBadges { get; set; }
 
     /// <summary>
-    /// Shows the online state as a glowing ring around the avatar
+    /// Shows presence as a small dot at the bottom right of the avatar. Offline users
+    /// show no dot. The dot's outline uses --avatar-cutout, which defaults to
+    /// --surface-canvas; containers on other surfaces set it to their background.
     /// </summary>
     [Parameter]
     public bool ShowState { get; set; }
 
     /// <summary>
-    /// Shows a cyan/purple gradient ring around the avatar, matching PlanetIcon's unread style
+    /// Marks unread activity with a small dot at the top right, matching PlanetIcon.
+    /// Rows that show unread state on the name leave this off.
     /// </summary>
     [Parameter]
     public bool Unread { get; set; }
@@ -66,6 +73,7 @@
     private string _avatarUrl;
     private string _failedAvatarUrl;
     private string _statusClass = "offline";
+    private string _statusName = UserState.Offline.Name;
 
     protected override void OnInitialized()
     {
@@ -87,44 +95,47 @@
 
     private void CalculateStatus()
     {
-        _statusClass = string.IsNullOrWhiteSpace(User?.UserState?.CssClassName)
+        var state = User?.UserState;
+
+        _statusClass = string.IsNullOrWhiteSpace(state?.CssClassName)
             ? "offline"
-            : User.UserState.CssClassName;
+            : state.CssClassName;
+
+        _statusName = state?.Name ?? UserState.Offline.Name;
     }
 
     private void OnUserUpdated(ModelUpdatedEvent<User> eventData)
     {
+        var avatarChanged = eventData.Changes.On(x => x.HasCustomAvatar) ||
+                            eventData.Changes.On(x => x.Version);
+
+        var stateChanged = eventData.Changes.On(x => x.UserStateCode) ||
+                           eventData.Changes.On(x => x.TimeLastActive);
+
+        if (!avatarChanged && !stateChanged)
+            return;
+
         InvokeAsync(() =>
         {
-            var render = false;
-
-            if (eventData.Changes.On(x => x.HasCustomAvatar) ||
-                eventData.Changes.On(x => x.Version))
-            {
-                render = true;
+            if (avatarChanged)
                 CalculateAvatar();
-            }
 
-            if (eventData.Changes.On(x => x.UserStateCode))
-            {
-                render = true;
+            if (stateChanged)
                 CalculateStatus();
-            }
 
-            if (render)
-                StateHasChanged();
+            StateHasChanged();
         });
     }
 
     private void OnMemberUpdated(ModelUpdatedEvent<PlanetMember> eventData)
     {
+        if (!eventData.Changes.On(x => x.MemberAvatar))
+            return;
+
         InvokeAsync(() =>
         {
-            if (eventData.Changes.On(x => x.MemberAvatar))
-            {
-                CalculateAvatar();
-                StateHasChanged();
-            }
+            CalculateAvatar();
+            StateHasChanged();
         });
     }
 

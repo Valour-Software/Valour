@@ -14,9 +14,14 @@
                     title="@emoji.Name"
                     @onclick="@(() => OnQuickReact(emoji))"
                     @onclick:stopPropagation="true">
-                <img class="emoji"
-                     src="@EmojiSourceProvider.GetSrcUrlFromReaction(emoji.Native, Data.Message.PlanetId)"
-                     alt="@emoji.Native"/>
+                @if (EmojiSourceProvider.GetCustomSrcFromReaction(emoji.Native, Data.Message.PlanetId) is { } customSrc)
+                {
+                    <img class="emoji" src="@customSrc" alt="@emoji.Native"/>
+                }
+                else
+                {
+                    <span class="emoji" role="img" aria-label="@emoji.Native">@emoji.Native</span>
+                }
             </button>
         }
         <button class="quick-reaction more"
@@ -81,13 +86,13 @@
 
 @if (_deletePermission == PermissionState.True)
 {
-    <ContextMenuItem OnClickAsync="@OnClickDelete" Color="red">
+    <ContextMenuItem OnClickAsync="@OnClickDelete" Color="var(--color-danger)">
         <Label>Delete</Label>
         <Icon><i class="bi bi-trash-fill"></i></Icon>
     </ContextMenuItem>
 }
 
-<ContextMenuItem OnClickAsync="@OnClickReport" Color="red">
+<ContextMenuItem OnClickAsync="@OnClickReport" Color="var(--color-danger)">
     <Label>Report</Label>
     <Icon><i class="bi bi-flag-fill"></i></Icon>
 </ContextMenuItem>

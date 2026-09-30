@@ -14,7 +14,7 @@
         <div class="editor-section theme-editor-hero">
             <h3 class="editor-section-title">
                 <i class="bi bi-palette"></i>
-                Theme Editor
+                Theme editor
             </h3>
             <p class="helper-text">Preview changes live while you tune surfaces, semantic colors, fonts, assets, and custom CSS.</p>
         </div>
@@ -53,7 +53,7 @@
                 <div class="theme-banner-copy">
                     <label for="banner-upload" class="v-btn secondary">
                         <i class="bi bi-upload"></i>
-                        Upload Banner
+                        Upload banner
                     </label>
                     <p class="helper-text">PNG, JPG, GIF, or WEBP. Suggested size: 600x300px.</p>
                 </div>
@@ -89,11 +89,11 @@
                 <div class="actions">
                     @if (_editingTheme.Published)
                     {
-                        <VButton Variant="danger" OnClick="@(() => SetPublished(false))">Switch to Private</VButton>
+                        <VButton Variant="secondary" OnClick="@(() => SetPublished(false))">Switch to private</VButton>
                     }
                     else
                     {
-                        <VButton Variant="primary" OnClick="@(() => SetPublished(true))">Publish Theme</VButton>
+                        <VButton Variant="secondary" OnClick="@(() => SetPublished(true))">Publish theme</VButton>
                     }
                 </div>
             </div>
@@ -102,11 +102,11 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-fonts"></i>
-                Typography & Radius
+                Typography & radius
             </h3>
 
             <div class="form-group">
-                <label>App Font</label>
+                <label>App font</label>
                 <input class="v-input" value="@_editingTheme.FontFamily" @oninput="@OnChangeFontFamily" />
                 <p class="helper-text">Use a normal CSS font stack, or choose an uploaded font below.</p>
             </div>
@@ -114,7 +114,7 @@
             @if (FontAssets.Any())
             {
                 <div class="form-group">
-                    <label>Uploaded Fonts</label>
+                    <label>Uploaded fonts</label>
                     <select class="v-input" @onchange="@OnFontAssetSelected">
                         <option value="">Choose uploaded font...</option>
                         @foreach (var asset in FontAssets)
@@ -126,7 +126,7 @@
             }
 
             <div class="form-group">
-                <label>Rounding Scale</label>
+                <label>Rounding scale</label>
                 <div class="radius-grid">
                     <input class="v-input" value="@_editingTheme.RadiusXs" @oninput="@OnChangeRadiusXs" placeholder="xs" />
                     <input class="v-input" value="@_editingTheme.RadiusSm" @oninput="@OnChangeRadiusSm" placeholder="sm" />
@@ -141,7 +141,7 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-droplet-half"></i>
-                Text Colors
+                Text colors
             </h3>
 
             <section class="color-section">
@@ -150,7 +150,7 @@
                     <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.FontColor" OnColorChange="@OnChangeFontColor"/>
                 </div>
                 <div class="color-pill">
-                    <span>Muted Text</span>
+                    <span>Muted text</span>
                     <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.FontAltColor" OnColorChange="@OnChangeFontAltColor"/>
                 </div>
                 <div class="color-pill">
@@ -165,7 +165,7 @@
                 <i class="bi bi-layers"></i>
                 Surfaces
             </h3>
-            <p class="helper-text">These drive <code>--main-1</code> through <code>--main-5</code>, including the new fifth surface slot.</p>
+            <p class="helper-text">These drive <code>--main-1</code> through <code>--main-5</code>, from the app background to the strongest neutral fill.</p>
 
             <section class="color-section">
                 <div class="color-pill">
@@ -198,9 +198,9 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-stars"></i>
-                Semantic Colors
+                Semantic colors
             </h3>
-            <p class="helper-text">These map to the newer app tokens: primary, secondary, accent, danger, staff, and bot colors.</p>
+            <p class="helper-text">These set the app's semantic colors: primary, secondary, accent, danger, staff, and bot.</p>
 
             <section class="color-section">
                 <div class="color-pill">
@@ -239,15 +239,15 @@
 
             <section class="color-section">
                 <div class="color-pill">
-                    <span>Vibrant Blue</span>
+                    <span>Vibrant blue</span>
                     <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantBlue" OnColorChange="@OnChangeVibrantColor2"/>
                 </div>
                 <div class="color-pill">
-                    <span>Pastel Cyan</span>
+                    <span>Pastel cyan</span>
                     <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelCyan" OnColorChange="@OnChangePastelColor1"/>
                 </div>
                 <div class="color-pill">
-                    <span>Pastel Purple</span>
+                    <span>Pastel purple</span>
                     <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelPurple" OnColorChange="@OnChangePastelColor3"/>
                 </div>
             </section>
@@ -263,7 +263,7 @@
                 <InputTextArea @bind-Value="@_editingTheme.CustomCss" class="v-input custom-css-input" rows="8"></InputTextArea>
                 <p class="helper-text">Custom CSS is sanitized before preview and save. Use uploaded assets with the generated CSS variables below.</p>
                 <div class="actions">
-                    <VButton Variant="secondary" OnClick="@OnCssChange">Apply CSS to Preview</VButton>
+                    <VButton Variant="secondary" OnClick="@OnCssChange">Apply CSS to preview</VButton>
                 </div>
             </div>
         </div>
@@ -271,7 +271,7 @@
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-folder2-open"></i>
-                Theme Assets
+                Theme assets
             </h3>
             <p class="helper-text">Upload images or fonts. Images expose <code>var(--theme-asset-name)</code>; fonts expose <code>"theme-font-name"</code>.</p>
 
@@ -290,7 +290,7 @@
                                     <strong>@asset.Name</strong>
                                     <code>font-family: "theme-font-@asset.Name"</code>
                                 </div>
-                                <VButton Variant="secondary" Size="sm" OnClick="@(() => UseFontAsset(asset))">Use Font</VButton>
+                                <VButton Variant="secondary" Size="sm" OnClick="@(() => UseFontAsset(asset))">Use font</VButton>
                             }
                             else
                             {
@@ -314,13 +314,13 @@
             {
                 <div class="asset-upload-row">
                     <input class="v-input asset-name-input" @bind="_newAssetName" placeholder="Asset name, e.g. background" />
-                    <VButton Variant="secondary" OnClick="@OpenAssetPickerAsync">Choose File</VButton>
+                    <VButton Variant="secondary" OnClick="@OpenAssetPickerAsync">Choose file</VButton>
                     <span class="selected-file" title="@(_assetFileName ?? "No file selected")">@(_assetFileName ?? "No file selected")</span>
                     <input id="@_assetUploadInputId" type="file" class="hidden-native-input" accept=".png,.jpg,.jpeg,.webp,.gif,.woff2,.woff,.ttf,.otf" />
                 </div>
                 <div class="actions">
-                    <VButton Variant="primary" Disabled="@_uploadingAsset" OnClick="@UploadAssetAsync">
-                        @(_uploadingAsset ? "Uploading..." : "Upload Asset")
+                    <VButton Variant="secondary" Disabled="@_uploadingAsset" OnClick="@UploadAssetAsync">
+                        @(_uploadingAsset ? "Uploading..." : "Upload asset")
                     </VButton>
                 </div>
                 @if (!string.IsNullOrEmpty(_assetError))
@@ -336,8 +336,8 @@
 
         <div class="editor-section">
             <div class="actions editor-actions">
-                <VButton Variant="danger" Size="lg" OnClick="@CancelEdit">Cancel Changes</VButton>
-                <VButton Variant="primary" Size="lg" OnClick="@ConfirmChangesAsync">Save Theme</VButton>
+                <VButton Variant="secondary" Size="lg" OnClick="@CancelEdit">Cancel changes</VButton>
+                <VButton Variant="primary" Size="lg" OnClick="@ConfirmChangesAsync">Save theme</VButton>
             </div>
             <ResultLabel Result="@_editingResult"/>
         </div>
@@ -349,7 +349,7 @@ else
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-stars"></i>
-                Current Theme
+                Current theme
             </h3>
 
             <div class="current-theme-section">
@@ -358,11 +358,11 @@ else
                     <span class="create-theme-icon">
                         <i class="bi bi-plus-circle"></i>
                     </span>
-                    <span class="create-theme-title">Create New Theme</span>
+                    <span class="create-theme-title">Create new theme</span>
                     <span class="create-theme-description">Start from your current theme and preview changes live.</span>
                     <span class="create-theme-btn">
                         <i class="bi bi-palette"></i>
-                        Open Editor
+                        Open editor
                     </span>
                 </button>
             </div>
@@ -370,7 +370,7 @@ else
             @if (ThemeComponent.Instance.CurrentTheme != Theme.Default)
             {
                 <div class="actions">
-                    <VButton Variant="secondary" OnClick="@RevertThemeAsync">Revert to Default Theme</VButton>
+                    <VButton Variant="secondary" OnClick="@RevertThemeAsync">Revert to default theme</VButton>
                 </div>
             }
         </div>
@@ -378,7 +378,7 @@ else
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-compass"></i>
-                Popular Themes
+                Popular themes
             </h3>
             <LargeSearch Placeholder="Search themes..."
                          DebounceMs="300"
@@ -406,7 +406,7 @@ else
         <div class="editor-section">
             <h3 class="editor-section-title">
                 <i class="bi bi-person-workspace"></i>
-                My Themes
+                My themes
             </h3>
             <div class="carousel-section">
                 <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"

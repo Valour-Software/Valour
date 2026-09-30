@@ -3,18 +3,26 @@
   "short_name": "Valour",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#040d14",
-  "theme_color": "#192630",
+  "background_color": "#0a0d12",
+  "theme_color": "#0a0d12",
   "icons": [
+    {
+      "src": "/_content/Valour.Client/media/logo/logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
     {
       "src": "/_content/Valour.Client/media/logo/logo-square-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
       "src": "/_content/Valour.Client/media/logo/logo-square-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ]
 }

@@ -4,29 +4,28 @@
 
 @if (!string.IsNullOrWhiteSpace(_majorError))
 {
-    <p style="color: var(--color-danger); text-align: center; margin-top: 1em">@_majorError</p>
+    <p class="pay-error">@_majorError</p>
     return;
 }
 
 @if (_planetCurrency is null)
 {
-    <p>This planet does not have community economy features enabled. Consider asking an administrator to set it up!</p>
+    <p class="pay-status">This planet does not have community economy features enabled. Consider asking an administrator to set it up.</p>
     return;
 }
 
 @if (!string.IsNullOrWhiteSpace(_transactionId))
 {
-    <h5>Success!</h5>
-    <br />
-    
+    <h5 class="pay-title">Payment sent</h5>
+
     <div class="selected-preview">
-        <p>Transaction ID:</p>
-        <p>@_transactionId</p>
+        <p class="field-label">Transaction ID</p>
+        <p class="transaction-id">@_transactionId</p>
     </div>
     
     @if (Input is not null)
     {
-        <button @onclick="@OnClickReceipt" class="v-btn" style="width: 100%; margin-top: 1em">Send Receipt in Chat</button>
+        <button @onclick="@OnClickReceipt" class="v-btn large pay-action">Send receipt in chat</button>
     }
 
     return;
@@ -34,32 +33,32 @@
 
 @if (_myPlanetAccounts is null || _myPlanetAccounts.Count == 0)
 {
-    <h6 class="p-4">You don't have an eco account in this planet.</h6>
+    <p class="pay-status">You don't have an eco account in this planet.</p>
 
     if (!string.IsNullOrWhiteSpace(_errorSpan))
     {
-        <p style="color: var(--color-danger); text-align: center;">@_errorSpan</p>
+        <p class="pay-error">@_errorSpan</p>
     }
     
-    <button class="v-btn" style="width: 100%" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
+    <button class="v-btn primary large" @onclick="@OnClickCreatePlanetAccount">Create account</button>
     
-    <p style="margin-top: 1em">By creating an eco account, you agree to follow the <a href="https://valour.gg/rules/economy/" target="_blank" rel="noopener noreferrer">Platform Eco Rules</a></p>
+    <p class="pay-note">By creating an eco account, you agree to follow the <a href="https://valour.gg/rules/economy/" target="_blank" rel="noopener noreferrer">Platform Eco Rules</a>.</p>
 }
 else
 {
 
     @* Selected account *@
-    <p class="select-title">Select Account From</p>
+    <p class="select-title">From account</p>
 
     @* Account selection *@
-    <DropdownComponent @ref="@_accountDropdown" Title="Select Account" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
+    <DropdownComponent @ref="@_accountDropdown" Title="Select account" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
         @foreach (var account in _myPlanetAccounts)
         {
             <div class="account-select" @onclick="@(async () => await OnSelectAccount(account))" @onclick:stopPropagation="true">
                 @if (account.AccountType == AccountType.User)
                 {
                     <UserInfoComponent User="@Client.Me" />
-                    <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(account.BalanceValue)</p>
+                    <p class="account-balance amount">@_planetCurrency.Format(account.BalanceValue)</p>
                 }
                 else
                 {
@@ -75,7 +74,7 @@ else
             @if (_selectedPlanetAccount.AccountType == AccountType.User)
             {
                 <UserInfoComponent User="@Client.Me" />
-                <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(_selectedPlanetAccount.BalanceValue)</p>
+                <p class="account-balance amount">@_planetCurrency.Format(_selectedPlanetAccount.BalanceValue)</p>
             }
             else
             {
@@ -87,18 +86,18 @@ else
     @* Amount selection *@
     @if (_selectedPlanetAccount is not null)
     {
-        <p class="select-title">Select Amount</p>
+        <p class="select-title">Amount</p>
         <div class="input-row">
-            <input @oninput="PlanetAmountChanged" style="width: 90%" class="v-input" placeholder="Enter Amount" />
-            <span> @_planetCurrency.ShortCode</span>
+            <input @oninput="PlanetAmountChanged" class="v-input amount-input" placeholder="Enter amount" />
+            <span class="currency-code">@_planetCurrency.ShortCode</span>
         </div>
         
         @* Recipient selection *@
-        <p class="select-title">Select Recipient</p>
+        <p class="select-title">Recipient</p>
 
-        <DropdownComponent @ref="@_recipientDropdown" Title="Select Recipient" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%" ContentStyle="width: 100%;">
+        <DropdownComponent @ref="@_recipientDropdown" Title="Select recipient" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%" ContentStyle="width: 100%;">
             <div class="recipient-dropdown-content">
-                <input @oninput="@OnOtherSearch" style="width: 90%" class="v-input" placeholder="Search..." type="text"/>
+                <input @oninput="@OnOtherSearch" class="v-input" placeholder="Search..." type="text"/>
                 @if (_otherSearchResults is not null)
                 {
                     foreach (var searchResult in _otherSearchResults)
@@ -132,11 +131,11 @@ else
             
             if (string.IsNullOrWhiteSpace(_errorSpan))
             {
-                <button @onclick="OnClickSend" class="v-btn" style="width: 100%; margin-top: 1em">Send @_planetCurrency.Format(_amount)</button>
+                <button @onclick="OnClickSend" class="v-btn primary large pay-action">Send <span class="amount">@_planetCurrency.Format(_amount)</span></button>
             }
             else
             {
-                <p style="color: var(--color-danger); text-align: center; margin-top: 1em">@_errorSpan</p>
+                <p class="pay-error">@_errorSpan</p>
             }
         }
     }
@@ -152,7 +151,7 @@ else
     
     private readonly RenderFragment<(EcoAccount account, Currency currency)> _accountFrag = data =>
         @<div>
-            <p style="margin: 0"><b>@data.account.Name:</b> @data.currency.Format(data.account.BalanceValue)</p>
+            <p class="account-line"><b>@data.account.Name:</b> <span class="amount">@data.currency.Format(data.account.BalanceValue)</span></p>
         </div>;
     
     private Planet _focusedPlanet;

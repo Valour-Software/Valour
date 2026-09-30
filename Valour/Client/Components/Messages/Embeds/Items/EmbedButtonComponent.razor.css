@@ -1,27 +1,33 @@
-/* Self-contained button styling; the app bundle does not ship
-   bootstrap's btn component. Bot-supplied styles override via inline style. */
 .embed-button {
-    color: #ffffff;
-    background-color: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-sm, 0.25rem);
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--rim-light);
     padding: 0.35rem 0.85rem;
     font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
 }
 
 .embed-button:hover {
-    background-color: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.3);
+    background-color: var(--surface-active);
+    border-color: color-mix(in srgb, var(--tint) 22%, transparent);
 }
 
 .embed-button:active {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--surface-active);
+}
+
+.embed-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .embed-button ::deep .item-text {

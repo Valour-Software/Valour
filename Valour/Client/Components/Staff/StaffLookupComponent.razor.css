@@ -6,15 +6,27 @@
 .lookup-table {
     width: 100%;
     border-collapse: collapse;
+    font-size: var(--font-size-sm);
 }
 
 .lookup-table td {
-    padding: 0.35em 0.5em;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.45em 0.6em;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    color: var(--text-primary);
 }
 
 .lookup-table td:first-child {
-    opacity: 0.7;
+    color: var(--text-tertiary);
     white-space: nowrap;
     width: 1%;
+}
+
+.lookup-mono {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.text-danger {
+    color: var(--color-danger);
 }

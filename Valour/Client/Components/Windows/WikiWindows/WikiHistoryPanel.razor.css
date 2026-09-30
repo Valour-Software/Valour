@@ -5,16 +5,16 @@
     bottom: 0;
     width: min(300px, 85%);
     z-index: 25;
-    background: var(--main-1);
-    border-left: 1px solid var(--medium-tint);
-    box-shadow: -6px 0 22px rgba(0, 0, 0, 0.45);
+    background-color: var(--surface-overlay);
+    border-left: 1px solid var(--line);
+    box-shadow: var(--shadow-overlay);
     display: flex;
     flex-direction: column;
-    animation: dh-slide-in 0.16s ease;
+    animation: dh-slide-in var(--duration-base) var(--ease-standard);
 }
 
 @keyframes dh-slide-in {
-    from { transform: translateX(30px); opacity: 0; }
+    from { transform: translateX(8px); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
 
@@ -23,34 +23,45 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 14px;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
 }
 
 .dh-header h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: normal;
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
+.dh-header h3 i {
+    color: var(--text-tertiary);
+}
+
 .dh-close {
     background: transparent;
     border: none;
-    color: var(--font-alt-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
     cursor: pointer;
     font-size: 14px;
     padding: 4px;
+    transition: color var(--duration-fast) var(--ease-standard),
+                background-color var(--duration-fast) var(--ease-standard);
 }
 
 .dh-close:hover {
-    color: var(--font-color);
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
 }
 
 .dh-status {
     padding: 16px 14px;
-    color: var(--font-alt-color);
-    font-size: 13.5px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
 }
 
 .dh-list {
@@ -66,12 +77,13 @@
     flex-direction: column;
     gap: 2px;
     padding: 8px 10px;
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-md);
     cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .dh-item:hover {
-    background: var(--slight-tint);
+    background-color: var(--surface-hover);
 }
 
 .dh-item.loading {
@@ -79,14 +91,20 @@
 }
 
 .dh-item-title {
-    font-size: 13.5px;
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .dh-item-meta {
-    font-size: 12px;
-    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.dh-item-time {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }

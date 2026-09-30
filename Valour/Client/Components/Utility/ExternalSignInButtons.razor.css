@@ -12,7 +12,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    color: var(--font-alt-color, #ffffff99);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -21,7 +21,7 @@
     content: "";
     flex: 1;
     height: 1px;
-    background: var(--medium-tint, #ffffff22);
+    background-color: var(--line-strong);
 }
 
 .external-buttons {
@@ -39,20 +39,17 @@
     font-size: 1.1em;
 }
 
-.external-google i {
-    color: #ea4335;
-}
-
-.external-discord i {
-    color: #5865f2;
-}
-
 .external-cancel {
     align-self: center;
     background: none;
     border: none;
-    color: var(--font-alt-color, #ffffffaa);
+    color: var(--text-secondary);
     font-size: var(--font-size-sm);
     text-decoration: underline;
+    text-underline-offset: 2px;
     cursor: pointer;
+}
+
+.external-cancel:hover {
+    color: var(--text-primary);
 }

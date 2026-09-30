@@ -5,7 +5,7 @@
 @if (_error)
 {
     <div class="receipt-container">
-        <span style="color: var(--color-danger);">Error loading receipt</span>
+        <span class="receipt-error">Error loading receipt</span>
     </div>
 
     return;
@@ -13,72 +13,64 @@
 
 @if (_loading)
 {
-    <TiltCard HoverMargin="1em" ShineCssStyle="border-radius: var(--radius-xl)" CssStyle="border-radius: var(--radius-xl)">
-        <div class="receipt-container">
-            <div class="accounts">
-                <div class="account-from">
-                    <div class="inner">
-                        <UserInfoComponent />
-                        <p class="account-number">**********</p>
-                        <p class="account-number" style="font-size: var(--font-size-2xs)">000000000000</p>
-                    </div>
-                    <svg style="margin-bottom: 22px; margin-right: 6px" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="rgba(255, 255, 255, 0.5)" class="bi bi-caret-right-fill" viewBox="0 0 16 16">
-                        <path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"/>
-                    </svg>
-                </div>
-                <div class="account-to">
-                    <UserInfoComponent />
-                    <p class="account-number">**********</p>
-                    <p class="account-number" style="font-size: var(--font-size-2xs)">000000000000</p>
-                </div>
-            </div>
-            <p class="sent" style="color: var(--font-color)">Sent ??? <span class="time">@@ -:-:- -/-/-</span></p>
-            <p class="trans-info">0000-0000-0000-0000</p>
-        </div>
-    </TiltCard>
-    return;
-}
-
-<TiltCard HoverMargin="1em" ShineCssStyle="border-radius: var(--radius-xl)" CssStyle="border-radius: var(--radius-xl)">
     <div class="receipt-container">
         <div class="accounts">
             <div class="account-from">
                 <div class="inner">
-                    <UserInfoComponent User="@_userFrom"/>
-                    
-                    @if (_receipt.AccountFromId.ToString() != _receipt.AccountFromName)
-                    {
-                        <p class="account-number">@_receipt.AccountFromName</p>
-                        <p class="account-number" style="font-size: var(--font-size-2xs)">@_receipt.AccountFromId</p>
-                    }
-                    else
-                    {
-                        <p class="account-number">@_receipt.AccountFromId</p>
-                        <p class="account-number" style="font-size: var(--font-size-2xs)"></p>
-                    }
+                    <UserInfoComponent />
+                    <p class="account-number">**********</p>
+                    <p class="account-number account-id">000000000000</p>
                 </div>
-                <svg style="margin-bottom: 22px; margin-right: 6px" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="rgba(255, 255, 255, 0.5)" class="bi bi-caret-right-fill" viewBox="0 0 16 16">
-                    <path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"/>
-                </svg>
+                <i class="bi bi-caret-right-fill receipt-arrow"></i>
             </div>
             <div class="account-to">
-                <UserInfoComponent User="@_userTo"/>
-                @if (_receipt.AccountToId.ToString() != _receipt.AccountToName)
+                <UserInfoComponent />
+                <p class="account-number">**********</p>
+                <p class="account-number account-id">000000000000</p>
+            </div>
+        </div>
+        <p class="sent">Sent ??? <span class="time">@@ -:-:- -/-/-</span></p>
+        <p class="trans-info">0000-0000-0000-0000</p>
+    </div>
+    return;
+}
+
+<div class="receipt-container">
+    <div class="accounts">
+        <div class="account-from">
+            <div class="inner">
+                <UserInfoComponent User="@_userFrom"/>
+                
+                @if (_receipt.AccountFromId.ToString() != _receipt.AccountFromName)
                 {
-                    <p class="account-number">@_receipt.AccountToName</p>
-                    <p class="account-number" style="font-size: var(--font-size-2xs)">@_receipt.AccountToId</p>
+                    <p class="account-number">@_receipt.AccountFromName</p>
+                    <p class="account-number account-id">@_receipt.AccountFromId</p>
                 }
                 else
                 {
-                    <p class="account-number">@_receipt.AccountToId</p>
-                    <p class="account-number" style="font-size: var(--font-size-2xs)"></p>
+                    <p class="account-number">@_receipt.AccountFromId</p>
+                    <p class="account-number account-id"></p>
                 }
             </div>
+            <i class="bi bi-caret-right-fill receipt-arrow"></i>
         </div>
-        <p class="sent" style="color: @(ISharedCurrency.ValourCreditsId == _receipt.Currency.Id ? "var(--color-secondary)" : "var(--font-color)")">Sent @_receipt.Currency.Format(_receipt.Amount) <span class="time">@@ @_receipt.TimeStamp.ToLocalTime().ToShortTimeString() @_receipt.TimeStamp.ToLocalTime().ToShortDateString()</span></p>
-        <p class="trans-info">@_receipt.TransactionId</p>
+        <div class="account-to">
+            <UserInfoComponent User="@_userTo"/>
+            @if (_receipt.AccountToId.ToString() != _receipt.AccountToName)
+            {
+                <p class="account-number">@_receipt.AccountToName</p>
+                <p class="account-number account-id">@_receipt.AccountToId</p>
+            }
+            else
+            {
+                <p class="account-number">@_receipt.AccountToId</p>
+                <p class="account-number account-id"></p>
+            }
+        </div>
     </div>
-</TiltCard>
+    <p class="sent @(ISharedCurrency.ValourCreditsId == _receipt.Currency.Id ? "credits" : "")">Sent @_receipt.Currency.Format(_receipt.Amount) <span class="time">@@ @_receipt.TimeStamp.ToLocalTime().ToShortTimeString() @_receipt.TimeStamp.ToLocalTime().ToShortDateString()</span></p>
+    <p class="trans-info">@_receipt.TransactionId</p>
+</div>
 
 @code {
     private EcoReceipt _receipt;

@@ -81,7 +81,7 @@
                                 @device.Name
                                 @if (isThis)
                                 {
-                                    <span class="badge badge-primary">This device</span>
+                                    <span class="status-badge">This device</span>
                                 }
                             </span>
                             <span class="device-meta">Added @device.AddedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
@@ -111,7 +111,7 @@
                                 <span class="device-name">@(request.Device?.Name ?? "A new device")</span>
                                 <span class="device-meta">Requested @request.CreatedAt.ToLocalTime().ToString("t")</span>
                             </div>
-                            <VButton Variant="primary" Size="sm" OnClick="@(() => ReviewRequest(request))">Review</VButton>
+                            <VButton Variant="secondary" Size="sm" OnClick="@(() => ReviewRequest(request))">Review</VButton>
                         </div>
                     }
                 </div>

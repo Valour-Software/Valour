@@ -3,19 +3,15 @@
     @if (IsLoading)
     {
         <div class="planet-grid-loading">
-            <div class="planet-grid-spinner">
-                <i class="bi bi-arrow-clockwise"></i>
-            </div>
-            <p class="planet-grid-loading-text">Searching planets...</p>
+            <div class="loading-indicator"></div>
+            <p class="planet-grid-loading-text">Searching planets</p>
         </div>
     }
     else if (_planets == null || !_planets.Any())
     {
         <div class="planet-grid-empty">
-            <div class="planet-grid-empty-icon">
-                <i class="bi bi-globe"></i>
-            </div>
-            <p class="planet-grid-empty-text">@EmptyMessage</p>
+            <SkyMoment Pose="SkyMoment.VictorPose.Telescope" Seed="discovery-search" Palette="orion" Height="170"
+                       Title="Nothing in sight" Description="@EmptyMessage" />
         </div>
     }
     else

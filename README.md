@@ -1,4 +1,7 @@
-![Valour logo](Valour/Client/wwwroot/media/logo/wide/logo_wide_blue_black_trans.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Valour/Client/wwwroot/media/logo/wide/valour-wordmark-dark.png">
+  <img alt="Valour" src="Valour/Client/wwwroot/media/logo/wide/valour-wordmark-light.png" width="320">
+</picture>
 
 # Valour
 

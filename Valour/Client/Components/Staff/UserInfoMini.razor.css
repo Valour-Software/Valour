@@ -1,0 +1,42 @@
+.user-info-mini {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.user-info-mini:hover {
+    background-color: var(--surface-hover);
+}
+
+.user-info-mini:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.avatar-mini {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    background-size: cover;
+    background-position: center;
+    background-color: var(--surface-raised);
+    flex-shrink: 0;
+}
+
+.name-mini {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.text-muted {
+    color: var(--text-tertiary);
+}

@@ -5,37 +5,37 @@
     <MainArea>
         @if (_complete || Data.Count > 0)
         {
-            <h3>MFA Already Setup</h3>
+            <p class="mfa-done"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Multi-factor authentication is already set up.</p>
         }
         else
         {
             @if (_loading)
             {
-                <p>Loading...</p>
+                <p class="mfa-loading">Loading...</p>
             }
             else
             {
                 if (_createResult.Success)
                 {
-                    <img class="mb-4" alt="MFA QR Code" src="@_createResult.Data.QRCode" />
+                    <img class="mfa-qr" alt="MFA QR code" src="@_createResult.Data.QRCode" />
 
-                    <code>
-                        @_createResult.Data.Key
-                    </code>
-                    <span class="mb-4">Manual Key</span>
+                    <div class="mfa-key">
+                        <span class="mfa-key-label">Manual key</span>
+                        <code>@_createResult.Data.Key</code>
+                    </div>
 
-                    <p>Scan the QR code or enter the Manual Key into your authenticator app to setup MFA. Then enter a code from your app below.</p>
+                    <p>Scan the QR code or enter the manual key into your authenticator app to set up MFA. Then enter a code from your app below.</p>
 
-                    <input class="form-control" type="text" placeholder="Enter App Code" @bind-value="@_multiFactorCode" />
+                    <input class="form-control mfa-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter app code" @bind-value="@_multiFactorCode" />
                     
                     @if (!string.IsNullOrWhiteSpace(_multiFactorSpan))
                     {
-                        <span class="text-danger mt-4">@_multiFactorSpan</span>
+                        <span class="error-text">@_multiFactorSpan</span>
                     }
                 }
                 else
                 {
-                    <p class="error">Error setting up MFA</p>
+                    <p class="error-text">Error setting up MFA</p>
                 }
             }
         }
@@ -49,7 +49,7 @@
             else
             {
                 <button class="v-btn" @onclick="@Close">Cancel</button>
-                <button class="v-btn blue" @onclick="@OnClickMultiFactorAuth">Submit</button>
+                <button class="v-btn primary" @onclick="@OnClickMultiFactorAuth">Submit</button>
             }
         </div>
     </ButtonArea>

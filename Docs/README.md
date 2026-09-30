@@ -14,6 +14,8 @@ use placeholder values; use private local settings when running a server or test
 ## Application architecture
 
 - [Reactive models and real-time updates](ReactiveModelSystem.md)
+- [Design language](DesignLanguage.md)
+- [ValourOS terminal](ValourOSTerminal.md)
 - [End-to-end encryption](EndToEndEncryption.md)
 - [Sign-in methods](SignInMethods.md)
 - [API routing and authorization](../Valour/Docs/API_ROUTES.md)
@@ -22,7 +24,9 @@ use placeholder values; use private local settings when running a server or test
 - [Direct and group calls](DirectAndGroupCalls.md)
 - [SDK](../Valour/Sdk/README.md) and [shared contracts](../Valour/Shared/README.md)
 - [Public website](../Valour/Web/README.md)
+- [Desktop host for Linux (Photino)](../Valour/Client.Photino/README.md)
 - [Google Play listing kit](../Tools/PlayStore/README.md)
+- [Brand assets: icon, social images, and wordmarks](../Tools/Brand/README.md)
 
 ## Federation
 

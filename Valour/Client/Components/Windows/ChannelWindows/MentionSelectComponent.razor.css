@@ -2,10 +2,11 @@
     position: absolute;
     bottom: 50px;
     border-radius: var(--radius-lg);
-    padding: 6px;
-    background-color: var(--main-1);
+    padding: 4px;
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-overlay), var(--rim-light);
     z-index: 1000;
-    opacity: 0.95
 }
 
 .mobile .mention-select {
@@ -16,18 +17,20 @@
 
 ::deep .item {
     cursor: pointer;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     display: flex;
-    padding: 2px;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
 }
 
 ::deep .item:hover,
 ::deep .item.selected {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--surface-hover);
 }
 
 ::deep .item:active {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--surface-active);
 }
 
 ::deep .item .icon {
@@ -41,9 +44,14 @@
     border-radius: 0;
 }
 
+::deep .item span.icon.emoji-icon {
+    font-size: 16px;
+    line-height: 18px;
+    text-align: center;
+}
+
 ::deep .item .title {
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
     display: inline-block;
     margin: 0;
-    margin-left: 3px;
 }

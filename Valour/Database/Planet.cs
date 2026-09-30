@@ -212,6 +212,12 @@ public class Planet : ISharedPlanet
     public ChannelActivityCadence ActivityNotificationCadence { get; set; } = ChannelActivityCadence.Standard;
 
     /// <summary>
+    /// Selects which generated world the planet shows. 0 is the world derived
+    /// from the id alone. Mapped fluently in SetupDbModel.
+    /// </summary>
+    public byte WorldVariant { get; set; }
+
+    /// <summary>
     /// Who may receive the planet's channel keys. Every message is end-to-end
     /// encrypted either way. See <see cref="PlanetEncryptionMode"/>.
     /// </summary>
@@ -255,6 +261,11 @@ public class Planet : ISharedPlanet
 
             e.Property(x => x.EnableCalendar)
                 .HasDefaultValue(true)
+                .IsRequired();
+
+            e.Property(x => x.WorldVariant)
+                .HasColumnName("world_variant")
+                .HasDefaultValue((byte)0)
                 .IsRequired();
 
             e.Property(x => x.Vanity)

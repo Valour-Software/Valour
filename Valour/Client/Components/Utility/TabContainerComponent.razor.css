@@ -1,40 +1,37 @@
 ﻿.v-tab-container {
-    border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
 }
 
 .v-tab-header {
-    display: flex;
     position: relative;
-    background-color: transparent;
+    display: flex;
     padding: 0;
-    border-bottom: 1px solid var(--slight-tint);
+    background-color: transparent;
+    border-bottom: 1px solid var(--line);
 }
 
 .v-tab {
-    flex: 1;
-    padding: 0.65rem 1.25rem;
-    cursor: pointer;
-    text-align: center;
-    font-weight: var(--font-weight-medium);
-    color: var(--font-alt-color);
-    transition: color var(--duration-fast) var(--ease-standard),
-        background-color var(--duration-fast) var(--ease-standard);
     position: relative;
-    user-select: none;
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    color: var(--text-tertiary);
+    font-weight: var(--font-weight-medium);
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .v-tab:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--font-color);
+    color: var(--text-secondary);
 }
 
 .v-tab.active {
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .v-tab-indicator {
@@ -45,7 +42,7 @@
     display: flex;
     justify-content: center;
     pointer-events: none;
-    transition: transform 0.45s var(--ease-spring);
+    transition: transform var(--duration-slow) var(--ease-standard);
     z-index: 1;
 }
 
@@ -53,31 +50,25 @@
     width: 50%;
     height: 2px;
     border-radius: var(--radius-full);
-    background: linear-gradient(to right, var(--v-cyan), var(--v-purple));
-}
-
-.v-tab.first {
-    border-top-left-radius: var(--radius-sm);
-}
-
-.v-tab.last {
-    border-top-right-radius: var(--radius-sm);
+    background-color: var(--text-primary);
 }
 
 .v-tab-content {
+    min-height: 100px;
     padding: 1.25rem;
     overflow: auto;
-    transition: opacity 0.2s ease;
-    min-height: 100px;
+    transition: opacity var(--duration-base) var(--ease-standard);
 }
 
 .v-tab-badge {
-    background-color: var(--color-danger);
-    color: white;
-    font-size: var(--font-size-xs);
-    padding: 0.15rem 0.4rem;
-    border-radius: var(--radius-full);
     margin-left: 0.5rem;
+    padding: 0.1rem 0.4rem;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary-contrast);
+    background-color: var(--color-primary);
+    border-radius: var(--radius-full);
 }
 
 .v-tab-icon {
@@ -94,19 +85,46 @@
     font-size: var(--font-size-sm);
 }
 
-.v-tab-small .v-tab-badge {
-    font-size: var(--font-size-2xs);
-    padding: 0.1rem 0.3rem;
-}
-
 .v-tab-small .v-tab-content {
     padding: 0.75rem;
+}
+
+.v-tab-segmented .v-tab-header {
+    margin: 8px 8px 0;
+    padding: 3px 0;
+    background-color: var(--surface-base);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+}
+
+.v-tab-segmented .v-tab {
+    z-index: 1;
+    padding: 0.35rem 0.6rem;
+    font-size: var(--font-size-sm);
+}
+
+.v-tab-segmented .v-tab-indicator {
+    top: 3px;
+    bottom: 3px;
+    height: auto;
+    padding: 0 3px;
+    z-index: 0;
+}
+
+.v-tab-segmented .v-tab-indicator-bar {
+    width: 100%;
+    height: 100%;
+    background-color: var(--surface-active);
+    border-radius: var(--radius-md);
+}
+
+.v-tab-segmented .v-tab-content {
+    padding: 0;
 }
 
 @media (max-width: 576px) {
     .v-tab {
         padding: 0.75rem 0.5rem;
-        font-size: var(--font-size-md);
     }
 
     .v-tab-icon {

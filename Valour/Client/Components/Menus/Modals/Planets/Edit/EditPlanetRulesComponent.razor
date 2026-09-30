@@ -6,15 +6,15 @@
         <div>
             <h3 class="editor-section-title">
                 <i class="bi bi-list-check"></i>
-                Planet Rules
+                Planet rules
             </h3>
             <p class="helper-text rules-help">Rules appear in the Rules pseudochannel and can later be used for planet reports.</p>
         </div>
-        <button class="v-btn primary"
+        <button class="v-btn secondary"
                 disabled="@(!_canManage || _loading)"
                 @onclick="CreateRuleAsync">
             <i class="bi bi-plus-lg"></i>
-            Add Rule
+            Add rule
         </button>
     </div>
 
@@ -105,7 +105,7 @@
                                 <button class="v-btn primary"
                                         disabled="@(!_canManage || _saving)"
                                         @onclick="SaveSelectedAsync">
-                                    @(_saving ? "Saving..." : "Save Rule")
+                                    @(_saving ? "Saving..." : "Save rule")
                                 </button>
                             </div>
                         </div>

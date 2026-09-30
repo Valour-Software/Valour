@@ -35,6 +35,15 @@ public partial class MainPage : ContentPage
 
     private void OnUrlLoading(object? sender, Microsoft.AspNetCore.Components.WebView.UrlLoadingEventArgs e)
     {
+        // about: URLs (such as about:blank) are not links, and the system
+        // browser cannot open them. Handing one to it only fails and logs an
+        // error, so the load is dropped here instead.
+        if (e.Url.Scheme == "about")
+        {
+            e.UrlLoadingStrategy = Microsoft.AspNetCore.Components.WebView.UrlLoadingStrategy.CancelLoad;
+            return;
+        }
+
         // External URLs must be opened in the system browser.
         // Without this, all link clicks are silently swallowed by the WebView.
         if (!IsInternalHost(e.Url.Host))

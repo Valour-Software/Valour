@@ -49,9 +49,9 @@ else
         <section class="report-detail-panel">
             <div class="detail-header">
                 <div class="detail-heading">
-                    <button class="back-to-reports-btn" @onclick="BackToReports">
+                    <button class="v-btn tertiary small back-to-reports-btn" @onclick="BackToReports">
                         <i class="bi bi-arrow-left"></i>
-                        <span>Back to Reports</span>
+                        <span>Back to reports</span>
                     </button>
                     <span class="eyebrow">Selected report</span>
                     <h4>@_selected.RuleTitleSnapshot</h4>
@@ -61,20 +61,20 @@ else
                     @if (!_selected.IsResolved)
                     {
                         <div class="detail-actions">
-                            <button class="report-action-btn" @onclick="() => ConfirmDismiss(_selected)">
+                            <button class="v-btn secondary report-action-btn" @onclick="() => ConfirmDismiss(_selected)">
                                 <i class="bi bi-check2-circle"></i>
                                 <span>Dismiss</span>
                             </button>
                             @if (_canKick && _selected.ReportedMemberId.HasValue)
                             {
-                                <button class="report-action-btn" @onclick="() => ConfirmKick(_selected)">
+                                <button class="v-btn secondary report-action-btn" @onclick="() => ConfirmKick(_selected)">
                                     <i class="bi bi-box-arrow-right"></i>
                                     <span>Kick</span>
                                 </button>
                             }
                             @if (_canBan && _selected.ReportedMemberId.HasValue)
                             {
-                                <button class="report-action-btn danger" @onclick="() => ConfirmBan(_selected)">
+                                <button class="v-btn danger report-action-btn" @onclick="() => ConfirmBan(_selected)">
                                     <i class="bi bi-slash-circle"></i>
                                     <span>Ban</span>
                                 </button>
@@ -113,7 +113,7 @@ else
                 <div class="reported-message-review">
                     <div class="review-header">
                         <label>Reported message</label>
-                        <span>@_selected.MessageId.Value</span>
+                        <span class="review-id">@_selected.MessageId.Value</span>
                     </div>
 
                     @if (_isLoadingMessage)
@@ -149,7 +149,7 @@ else
                 <div class="reported-message-review">
                     <div class="review-header">
                         <label>@(_selected.ThreadCommentId.HasValue ? "Reported comment" : "Reported thread")</label>
-                        <span>@(_selected.ThreadCommentId ?? _selected.ThreadId.Value)</span>
+                        <span class="review-id">@(_selected.ThreadCommentId ?? _selected.ThreadId.Value)</span>
                     </div>
 
                     @if (_isLoadingThread)
@@ -301,7 +301,7 @@ else
                 Name = "Created",
                 SortField = "created",
                 Sortable = true,
-                RenderFragment = row => @<span>@row.Row.TimeCreated.ToLocalTime().ToString("MMM d, HH:mm")</span>,
+                RenderFragment = row => @<span class="report-time">@row.Row.TimeCreated.ToLocalTime().ToString("MMM d, HH:mm")</span>,
                 Width = "145px"
             },
             new()

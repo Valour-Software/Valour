@@ -1,13 +1,16 @@
 ﻿@inherits AttachmentComponent
 
-@if (Attachment?.Missing == true || string.IsNullOrWhiteSpace(_location))
+@if (Attachment?.Missing == true || (_resolved && string.IsNullOrWhiteSpace(_location)))
 {
     <FileAttachmentComponent Message="@Message" Attachment="@Attachment" />
 }
 else
 {
-    <div class="video-attachment-wrapper @(IsHiddenSpoiler ? "spoiler-hidden" : "")">
-        <video class="video-attachment" controls loop preload="metadata" playsinline src="@_location#t=0.001" type="@Attachment.MimeType"></video>
+    <div class="video-attachment-wrapper @(_sizeStyle is not null ? "sized" : "") @(IsHiddenSpoiler ? "spoiler-hidden" : "")" style="@_sizeStyle">
+        @if (_resolved)
+        {
+            <video class="video-attachment" controls loop preload="metadata" playsinline src="@_location#t=0.001" type="@Attachment.MimeType"></video>
+        }
         @if (IsHiddenSpoiler)
         {
             <div class="spoiler-overlay" @onclick="Reveal">
@@ -21,14 +24,41 @@ else
     [Parameter]
     public string CustomStyle { get; set; }
 
+    private const int MaxSize = 400;
+
     private string _location;
+    private string _sizeStyle;
+    private bool _resolved;
     private bool _revealed;
 
     private bool IsHiddenSpoiler => Attachment.IsSpoiler && !_revealed;
 
+    // The reserved size is set before the first render, which happens while
+    // OnInitializedAsync waits for the signed URL.
+    protected override void OnInitialized() => SetSizeStyle();
+
+    protected override void OnParametersSet() => SetSizeStyle();
+
+    // Videos uploaded with their dimensions reserve their space before the
+    // player loads its metadata; others take the player's size when it loads.
+    private void SetSizeStyle()
+    {
+        var width = Attachment?.Width ?? 0;
+        var height = Attachment?.Height ?? 0;
+        if (width <= 0 || height <= 0)
+        {
+            _sizeStyle = null;
+            return;
+        }
+
+        var scale = Math.Min(1.0, (double)MaxSize / Math.Max(width, height));
+        _sizeStyle = $"aspect-ratio: {width} / {height}; width: min({(int)(width * scale)}px, 100%);";
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
+        _resolved = true;
     }
 
     private void Reveal()

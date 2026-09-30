@@ -2475,6 +2475,12 @@ namespace Valour.Database.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("version");
 
+                    b.Property<byte>("WorldVariant")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0)
+                        .HasColumnName("world_variant");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Vanity")

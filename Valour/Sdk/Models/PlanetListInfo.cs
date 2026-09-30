@@ -71,12 +71,23 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
     /// The number of members in the planet
     /// </summary>
     public int MemberCount { get; set; }
+
+    /// <summary>
+    /// Members who connected in the last 15 minutes, or -1 when the planet's host
+    /// does not report it.
+    /// </summary>
+    public int ActiveCount { get; set; } = -1;
     
     /// <summary>
     /// The version of the planet
     /// </summary>
     public int Version { get; set; }
     
+    /// <summary>
+    /// Selects which generated world the planet shows
+    /// </summary>
+    public byte WorldVariant { get; set; }
+
     /// <summary>
     /// List of tag IDs associated with the planet
     /// </summary>
@@ -113,6 +124,7 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
             SelfHostedVoice = planet.SelfHostedVoice,
             Discoverable = planet.Discoverable,
             Version = planet.Version,
+            WorldVariant = planet.WorldVariant,
             TagIds = new List<long>() // Tags are not included in this model
         };
     }

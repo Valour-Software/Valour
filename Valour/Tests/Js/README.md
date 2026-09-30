@@ -2,8 +2,8 @@
 
 These tests exercise the compiled client JavaScript with Node's built-in test
 runner. Coverage includes village rendering helpers, terrain and wall resolution,
-building input, tileset packing and selection, chat bubbles, spatial audio, and
-LiveKit video-host lifecycle.
+building input, tileset packing and selection, chat bubbles, spatial audio,
+LiveKit video-host lifecycle, and the nebula sky and planet generators.
 
 Compile the client sources before running the tests. The client project compiles
 TypeScript to adjacent JavaScript files:
@@ -30,6 +30,17 @@ corrupt and oversized payloads, shared blob URLs, recovery after failed download
 and unchanged loading for ordinary images. The browser library and atlas suites
 check decoded pixels and the actual published files; the decoder unit tests do
 not establish license compliance or resistance to determined extraction.
+
+`nebula.test.mjs` checks that skies are deterministic for a seed, that computing
+the gas field in slices matches computing it at once, that the brand palette is
+never assigned to a planet, and that large skies stay within the pixel budget. It
+does not check how a sky looks; compare screenshots for that.
+
+`planet.test.mjs` checks that a planet id always yields the same genome, that a
+sample of ids covers every kind of world without two planets sharing a genome,
+that a planet uses its sky's palette, and that rendering is deterministic,
+transparent around the planet, and brighter on the night side when more people
+are active.
 
 `notification-preview.test.mjs` loads the service worker's
 `notification-preview.js` and `lib/noble-chacha.js` as classic scripts. It

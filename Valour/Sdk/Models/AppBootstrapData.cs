@@ -15,6 +15,12 @@ public sealed class AppBootstrapData
     public List<UserBlock> Blocks { get; set; } = [];
     public List<Planet> Planets { get; set; } = [];
     public List<PlanetMember> MyPlanetMembers { get; set; } = [];
+
+    /// <summary>
+    /// Members connected in the last 15 minutes, keyed by joined planet id. Planets
+    /// with nobody active are left out. Null when the server does not report it.
+    /// </summary>
+    public Dictionary<long, int> PlanetActivity { get; set; }
     public List<FederatedMembershipInfo> FederatedMemberships { get; set; } = [];
     public List<GifFavorite> GifFavorites { get; set; } = [];
     public List<ChannelFavorite> ChannelFavorites { get; set; } = [];

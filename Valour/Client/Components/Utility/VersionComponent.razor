@@ -5,7 +5,11 @@
     {
         <i class="bi bi-list open-menu" @onclick="Sidebar.ToggleMobileSidebar"></i>
     }
-    <p class="text" style="cursor: pointer" @onclick="OnClickLogo">Valour Alpha V@(GetVersionNumber()) <span style="font-size: var(--font-size-2xs); color: #7A7A7A">(@GetShortHash())</span></p>
+    <button class="brand" type="button" title="Valour Alpha @GetVersionNumber() (@GetShortHash())" @onclick="OnClickLogo">
+        <Victor Color="currentColor" Style="width: 22px; height: 22px; flex: none;" />
+        <span class="wordmark">Valour</span>
+        <span class="build">@GetVersionNumber() · @GetShortHash()</span>
+    </button>
 </div>
 
 @code {

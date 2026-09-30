@@ -304,9 +304,9 @@ public class StaffService
             return TaskResult.FromFailure("No verified emails found.");
 
         var bodyContent = $@"
-                <h1 style='color: #333;'>{subject}</h1>
+                <h1 style='{EmailTemplateHelper.HeadingStyle}'>{subject}</h1>
                 {htmlBody}
-                <p style='color: #666;'>— Valour Team</p>";
+                <p style='{EmailTemplateHelper.ParagraphStyle}'>The Valour team</p>";
 
         var sent = 0;
         var batchCount = 0;

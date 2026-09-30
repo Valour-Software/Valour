@@ -1,0 +1,104 @@
+@* A small scene for empty, waiting and welcome states: a generated sky, Victor
+   in one of his poses, and optional copy and actions underneath. *@
+
+<div class="sky-moment @(Banner ? "banner" : "stack") @CssClass" style="--moment-height: @(Height)px">
+    <div class="sky-moment-art pose-@PoseName" aria-hidden="true">
+        <NebulaSky Seed="@Seed" Palette="@Palette" Intensity="1.05" Scale="1.6" FocusX="0.68" FocusY="0.3" Spread="0.45" Stars="320" />
+        @if (Pose == VictorPose.Peeking)
+        {
+            <PlanetGlobe Seed="@(PlanetSeed ?? Seed)" Plain="true" Radius="1.9" CenterX="0.5" CenterY="2.62" Lights="0.8" Light="@DayLight" />
+        }
+        else if (Pose == VictorPose.Telescope)
+        {
+            <PlanetGlobe Seed="@($"{Seed}-moon")" Kind="rock" Plain="true" Radius="3" CenterX="0.5" CenterY="3.82" Lights="0" Light="@MoonLight" />
+        }
+        <img class="victor" src="_content/Valour.Client/media/victor/victor-@(PoseName).svg" alt="" draggable="false" />
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Title) || !string.IsNullOrWhiteSpace(Description) || ChildContent is not null)
+    {
+        <div class="sky-moment-copy">
+            @if (!string.IsNullOrWhiteSpace(Eyebrow))
+            {
+                <span class="sky-moment-eyebrow">@Eyebrow</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(Title))
+            {
+                <h3 class="sky-moment-title">@Title</h3>
+            }
+            @if (!string.IsNullOrWhiteSpace(Description))
+            {
+                <p class="sky-moment-description">@Description</p>
+            }
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly double[] DayLight = [0.5, -0.75, -0.4];
+    private static readonly double[] MoonLight = [-0.5, -0.8, 0.1];
+
+    /// <summary>
+    /// What Victor is doing in the scene.
+    /// </summary>
+    [Parameter]
+    public VictorPose Pose { get; set; } = VictorPose.Astronaut;
+
+    /// <summary>
+    /// Seeds the sky. Planet scenes pass the planet's world seed so the sky matches the planet.
+    /// </summary>
+    [Parameter]
+    public string Seed { get; set; } = "valour";
+
+    /// <summary>
+    /// A palette name from nebula.js. When empty, the palette follows the seed.
+    /// </summary>
+    [Parameter]
+    public string Palette { get; set; }
+
+    /// <summary>
+    /// Seeds the planet Victor peeks over. Defaults to the sky's seed.
+    /// </summary>
+    [Parameter]
+    public string PlanetSeed { get; set; }
+
+    /// <summary>
+    /// Height of the scene in pixels.
+    /// </summary>
+    [Parameter]
+    public int Height { get; set; } = 180;
+
+    /// <summary>
+    /// Lays the copy out left-aligned under a wide scene, for use inside content
+    /// such as the start of a channel, instead of centered under a compact scene.
+    /// </summary>
+    [Parameter]
+    public bool Banner { get; set; }
+
+    [Parameter]
+    public string Eyebrow { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Description { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string CssClass { get; set; }
+
+    private string PoseName => Pose.ToString().ToLowerInvariant();
+
+    public enum VictorPose
+    {
+        Astronaut,
+        Peeking,
+        Sleeping,
+        Telescope,
+        Rocket
+    }
+}

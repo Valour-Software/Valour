@@ -1,16 +1,11 @@
 ﻿.role-checkbox {
     border-radius: var(--radius-full);
     margin-right: 0.5em;
-
     position: absolute;
     opacity: 0;
     cursor: pointer;
     height: 0;
     width: 0;
-}
-
-.role-checkbox:disabled {
-
 }
 
 .v-checkmark-wrapper {
@@ -22,14 +17,16 @@
 
 .v-checkmark-wrapper .role-checkbox:checked ~ .v-checkmark-fill {
     display: block;
-    color: black;
+    color: var(--surface-canvas);
 }
 
 .v-checkmark {
     position: absolute;
     height: 1em;
     width: 1em;
-    background-color: var(--strong-tint);
+    box-sizing: border-box;
+    background-color: var(--surface-active);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-full);
 }
 

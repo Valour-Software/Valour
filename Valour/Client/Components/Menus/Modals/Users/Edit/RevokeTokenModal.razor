@@ -27,7 +27,7 @@
                 </div>
                 <div class="token-details">
                     <span class="label">Created:</span>
-                    <span>@Data.Token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
+                    <span class="token-date">@Data.Token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
                 </div>
             </div>
         }
@@ -35,7 +35,7 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button @onclick="@OnCancel" class="v-btn">Cancel</button>
-            <button @onclick="@OnConfirm" class="v-btn danger">Revoke Session</button>
+            <button @onclick="@OnConfirm" class="v-btn danger">Revoke session</button>
         </div>
     </ButtonArea>
 </BasicModalLayout>

@@ -1,19 +1,35 @@
 ﻿@inject FriendService FriendService
+@inject ContextMenuService ContextMenuService
+@inject ValourClient Client
+@implements IDisposable
 
 <div class="friend-container">
-    <p class="subtitle mb-2">Friends</p>
-    <div class="v-gradient-underline"></div>
-
     <div class="friend-search">
         <VSearchBox Value="@_filterText" ValueChanged="@OnFilterChanged" Placeholder="Search friends..."/>
     </div>
     <div class="list hover-scrollbar">
-        @if (_renderFriends.Count == 0)
+        @if (FriendService.IncomingRequests.Count > 0)
+        {
+            <button type="button" class="requests-row" @onclick="OnClickManageFriends">
+                <i class="bi bi-person-plus" aria-hidden="true"></i>
+                <span class="requests-name">Friend requests</span>
+                <span class="count">@(FriendService.IncomingRequests.Count > 99 ? "99+" : FriendService.IncomingRequests.Count)</span>
+            </button>
+        }
+
+        <div class="section-label">
+            <span>Online<span class="separator">·</span><span class="label-count">@_online.Count</span></span>
+            <button type="button" class="section-action" title="Manage friends" aria-label="Manage friends" @onclick="OnClickManageFriends">
+                <i class="bi bi-person-plus" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        @if (_online.Count == 0 && _offline.Count == 0)
         {
             <div class="empty-state">
                 @if (string.IsNullOrWhiteSpace(_filterText))
                 {
-                    <i class="bi bi-people"></i>
+                    <i class="bi bi-people" aria-hidden="true"></i>
                     <span>No friends yet</span>
                 }
                 else
@@ -24,16 +40,47 @@
         }
         else
         {
-            <Virtualize Items="@_renderFriends">
-                <UserInfoComponent User="@context" @key="@context.Id" />
+            <Virtualize Items="@_online" ItemSize="44" Context="friend">
+                @FriendRow(friend, false)
             </Virtualize>
+
+            @if (_offline.Count > 0)
+            {
+                <div class="section-label">
+                    <span>Offline<span class="separator">·</span><span class="label-count">@_offline.Count</span></span>
+                </div>
+                <Virtualize Items="@_offline" ItemSize="44" Context="friend">
+                    @FriendRow(friend, true)
+                </Virtualize>
+            }
         }
     </div>
 </div>
 
 @code {
-    private List<User> _renderFriends = new();
+    private readonly List<User> _online = new();
+    private readonly List<User> _offline = new();
+    private readonly HashSet<User> _watched = new();
     private string _filterText;
+
+    private RenderFragment FriendRow(User friend, bool offline) =>
+        @<div @key="@friend.Id" class="friend-row @(offline ? "offline" : "")" role="button" tabindex="0"
+              @onclick="@(e => ShowProfileAsync(friend, e))"
+              @oncontextpress="@(e => OnContextMenu(friend, e))"
+              @onkeydown="@(e => OnKeyDown(friend, e))">
+            <UserAvatar User="@friend" Size="32" ShowState="true"/>
+            <span class="info">
+                <span class="name">@friend.Name</span>
+                @if (!offline)
+                {
+                    <span class="status">@StatusText(friend)</span>
+                }
+                else if (!string.IsNullOrWhiteSpace(friend.Status))
+                {
+                    <span class="status">@friend.Status</span>
+                }
+            </span>
+        </div>;
 
     protected override void OnInitialized()
     {
@@ -41,11 +88,13 @@
         CalculateFriends();
     }
 
+    private static string StatusText(User user) =>
+        string.IsNullOrWhiteSpace(user.Status) ? user.UserState.Name : user.Status;
+
     private void OnFilterChanged(string value)
     {
         _filterText = value;
         CalculateFriends();
-        StateHasChanged();
     }
 
     private void OnFriendsListUpdate(FriendEventData e)
@@ -57,21 +106,109 @@
         });
     }
 
-    private void CalculateFriends()
+    private void OnFriendUpdated(ModelUpdatedEvent<User> eventData)
     {
-        _renderFriends.Clear();
+        if (!eventData.Changes.On(x => x.UserStateCode) &&
+            !eventData.Changes.On(x => x.TimeLastActive) &&
+            !eventData.Changes.On(x => x.Status) &&
+            !eventData.Changes.On(x => x.Name))
+            return;
 
-        var friends = FriendService.Friends;
-        if (!string.IsNullOrWhiteSpace(_filterText))
+        InvokeAsync(() =>
         {
-            friends = friends.Where(f => f.Name.ToLower().Contains(_filterText.ToLower())).ToList();
+            CalculateFriends();
+            StateHasChanged();
+        });
+    }
 
-            // Order first by if the name starts with the filter text,
-            // then alphabetically
-            friends = friends.OrderBy(f => f.Name.StartsWith(_filterText, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-                .ThenBy(f => f.Name).ToList();
+    private void WatchFriends(IReadOnlyCollection<User> friends)
+    {
+        var current = friends.ToHashSet();
+
+        foreach (var user in _watched.Where(x => !current.Contains(x)).ToList())
+        {
+            user.Updated -= OnFriendUpdated;
+            _watched.Remove(user);
         }
 
-        _renderFriends.AddRange(friends);
+        foreach (var user in friends)
+        {
+            if (_watched.Add(user))
+                user.Updated += OnFriendUpdated;
+        }
+    }
+
+    private void CalculateFriends()
+    {
+        _online.Clear();
+        _offline.Clear();
+
+        var all = FriendService.Friends.Where(x => x is not null).ToList();
+        WatchFriends(all);
+
+        IEnumerable<User> friends = all;
+        if (string.IsNullOrWhiteSpace(_filterText))
+        {
+            friends = friends.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase);
+        }
+        else
+        {
+            // Names that start with the filter text come first, then the rest alphabetically
+            friends = friends
+                .Where(f => f.Name.Contains(_filterText, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(f => f.Name.StartsWith(_filterText, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase);
+        }
+
+        foreach (var friend in friends)
+        {
+            if (friend.UserState.Value == UserState.Offline.Value)
+                _offline.Add(friend);
+            else
+                _online.Add(friend);
+        }
+    }
+
+    private void OnContextMenu(User friend, ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<UserContextMenu>(e,
+            new UserContextMenu.UserContextParams
+            {
+                User = friend
+            }
+        );
+    }
+
+    private async Task ShowProfileAsync(User friend, MouseEventArgs e = null)
+    {
+        var x = (int)(e?.ClientX ?? 0);
+        var y = (int)(e?.ClientY ?? 0);
+        await ProfilePopup.Instance.OpenAsync(friend, x, y, "bottomRight");
+    }
+
+    private async Task OnKeyDown(User friend, KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await ShowProfileAsync(friend);
+    }
+
+    private void OnClickManageFriends()
+    {
+        ModalRoot.Instance.OpenModal<EditUserComponent>(new EditUserComponent.ModalParams
+        {
+            StartCategory = "General Settings",
+            StartItem = "Friends",
+            User = Client.Me
+        });
+    }
+
+    void IDisposable.Dispose()
+    {
+        FriendService.FriendsChanged -= OnFriendsListUpdate;
+
+        foreach (var user in _watched)
+            user.Updated -= OnFriendUpdated;
+
+        _watched.Clear();
     }
 }

@@ -28,7 +28,7 @@
 }
 
 .currentlytyping-icon-holder:after {
-    color: #ffffff;
+    color: var(--text-secondary);
     animation-name: currentlytyping-icon;
     animation-duration: 1.5s;
     animation-iteration-count: infinite;
@@ -38,7 +38,8 @@
 }
 
 .is-typing-name {
-    font-weight: var(--font-weight-bold);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-semibold);
     font-size: var(--font-size-xs);
     line-height: var(--line-height-tight);
     display: inline-block;
@@ -51,7 +52,7 @@
 }
 
 .remainder-text {
-    color: #b5b5b5;
+    color: var(--text-tertiary);
     font-size: var(--font-size-2xs);
     display: inline-block;
     margin-left: 10px;

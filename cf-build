@@ -151,9 +151,9 @@ for attrs, body in re.findall(r"<script([^>]*)>(.*?)</script>", html, re.S | re.
 print(" ".join(hashes))
 PY
 )"
-THIRD_PARTY_SCRIPT_SOURCES="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/ https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/ https://cdn.jsdelivr.net/npm/@simonwep/pickr/ https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/ https://unpkg.com/@lottiefiles/lottie-player@2.0.12/ https://s3.tradingview.com https://platform.twitter.com https://cdn.syndication.twimg.com https://embed.reddit.com https://www.tiktok.com https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.ttwstatic.com https://gist.github.com"
-EMBED_FRAME_SOURCES="https://www.youtube.com https://youtube.com https://music.youtube.com https://player.vimeo.com https://vimeo.com https://player.twitch.tv https://clips.twitch.tv https://www.tiktok.com https://platform.twitter.com https://syndication.twitter.com https://twitter.com https://www.instagram.com https://embed.bsky.app https://open.spotify.com https://w.soundcloud.com https://embed.reddit.com https://s.tradingview.com https://www.tradingview-widget.com"
-APP_CSP="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' ${INLINE_SCRIPT_HASHES} ${THIRD_PARTY_SCRIPT_SOURCES}; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://github.githubassets.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src ${EMBED_FRAME_SOURCES}; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+THIRD_PARTY_SCRIPT_SOURCES="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/ https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/ https://cdn.jsdelivr.net/npm/@simonwep/pickr/ https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/ https://unpkg.com/@lottiefiles/lottie-player@2.0.12/ https://s3.tradingview.com"
+EMBED_FRAME_SOURCES="https://www.youtube.com https://youtube.com https://music.youtube.com https://player.vimeo.com https://vimeo.com https://player.twitch.tv https://clips.twitch.tv https://www.tiktok.com https://platform.twitter.com https://www.instagram.com https://embed.bsky.app https://open.spotify.com https://w.soundcloud.com https://embed.reddit.com https://www.threads.com https://streamable.com https://embed.music.apple.com https://player.kick.com https://s.tradingview.com https://www.tradingview-widget.com"
+APP_CSP="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' ${INLINE_SCRIPT_HASHES} ${THIRD_PARTY_SCRIPT_SOURCES}; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src ${EMBED_FRAME_SOURCES}; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 cat > "$OUTPUT_DIR/_headers" <<EOF
 /*
@@ -163,6 +163,80 @@ cat > "$OUTPUT_DIR/_headers" <<EOF
   Content-Security-Policy: ${APP_CSP}
 
 EOF
+
+# Shared app links such as invites get their own link preview tags, so other
+# apps (Discord, X, Slack, iMessage) show the planet instead of the generic
+# Valour card. A worker places tags from the API's api/linkpreview/head between
+# the host page's link-preview markers. _routes.json limits it to those
+# addresses; every other request is served as a static file without running
+# it, so framework downloads cost no invocations. The worker sets the same
+# security headers as _headers, which do not apply to its responses.
+if [ -n "$API_ORIGIN" ]; then
+python3 - "$OUTPUT_DIR" "$API_ORIGIN" "$APP_CSP" <<'PY'
+import json
+import pathlib
+import sys
+
+out, api_origin, csp = sys.argv[1], sys.argv[2], sys.argv[3]
+if not api_origin.endswith("/"):
+    api_origin += "/"
+
+worker = """// Written by cf-build. Serves shared app links such as invites with their own
+// link preview tags. See the comment above this worker in cf-build.
+const API_ORIGIN = %s;
+const CONTENT_SECURITY_POLICY = %s;
+const START = "<!-- link-preview -->";
+const END = "<!-- /link-preview -->";
+
+async function previewHead(pathname) {
+  try {
+    const response = await fetch(
+      API_ORIGIN + "api/linkpreview/head?path=" + encodeURIComponent(pathname),
+      { cf: { cacheTtl: 300, cacheEverything: true } });
+    return response.status === 200 ? await response.text() : null;
+  } catch {
+    return null;
+  }
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const page = await env.ASSETS.fetch(new URL("/", url));
+    let html = await page.text();
+
+    const head = request.method === "GET" ? await previewHead(url.pathname) : null;
+    const start = head ? html.indexOf(START) : -1;
+    const end = start < 0 ? -1 : html.indexOf(END, start);
+    if (start >= 0 && end >= 0) {
+      html = html.slice(0, start + START.length) + "\\n" + head + html.slice(end);
+    }
+
+    return new Response(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "X-Frame-Options": "DENY",
+        "Content-Security-Policy": CONTENT_SECURITY_POLICY,
+      },
+    });
+  },
+};
+""" % (json.dumps(api_origin), json.dumps(csp))
+
+routes = {
+    "version": 1,
+    "include": ["/I/*", "/i/*", "/D/*", "/d/*", "/planet/*"],
+    "exclude": [],
+}
+
+pathlib.Path(out, "_worker.js").write_text(worker)
+pathlib.Path(out, "_routes.json").write_text(json.dumps(routes, indent=2) + "\n")
+PY
+fi
 
 # Prevent stale host page/runtime config when switching deploy env vars.
 cat >> "$OUTPUT_DIR/_headers" <<'EOF'

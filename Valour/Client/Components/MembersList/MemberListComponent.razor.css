@@ -1,45 +1,46 @@
-﻿.role-list {
-    overflow-y: scroll;
-    overflow-x: hidden;
+﻿.role-list-wrapper {
     height: 100%;
-    padding: 1em;
-    width: min(300px, 50vw);
+    background-color: var(--surface-canvas);
+    border-left: 1px solid var(--line);
+}
+
+.role-list {
+    width: min(240px, 50vw);
+    height: 100%;
+    padding: 14px 10px;
+    overflow-x: hidden;
+    overflow-y: scroll;
 }
 
 .role-title {
-    margin-top: 2em;
-    margin-bottom: 0.25em;
-    opacity: 100% !important;
-    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 18px 8px 6px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-label);
+    text-transform: uppercase;
 }
 
 .role-list div:nth-child(2) .role-title {
     margin-top: 0;
 }
 
-.mobile .role-list {
-
+.role-dot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-full);
 }
 
 .mobile .role-list-wrapper {
     position: absolute;
-    right: 0;
-    bottom: 0;
     top: 35px;
-    z-index: 5;
-}
-
-.mobile .role-list-wrapper:before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    left: 0;
     right: 0;
-    background-color: var(--modal-dark);
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
-    box-shadow: #000 0 0 10px;
-    z-index: -1;
+    bottom: 0;
+    z-index: 5;
+    height: auto;
+    box-shadow: var(--shadow-overlay);
 }

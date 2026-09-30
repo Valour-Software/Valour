@@ -1,0 +1,12 @@
+.provider-embed {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    background-color: var(--surface-raised);
+    color-scheme: normal;
+}
+
+.provider-embed.embed-sized {
+    background-color: transparent;
+}

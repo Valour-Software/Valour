@@ -5,29 +5,23 @@
     <MainArea>
         @if (_isSelf)
         {
-            <p class="text-danger">You cannot ban yourself.</p>
+            <p class="self-warning">You cannot ban yourself.</p>
         }
         else
         {
             <p>This will remove them from the planet and prevent them from rejoining.</p>
             
-            <UserInfoComponent Member="@Data.Member" 
-                               Style="
-                               background-color: var(--main-3); 
-                               display: inline-block; 
-                               border-radius: var(--radius-md);
-                               padding-right: 0.5em;
-                               scale: 1.5;
-                               margin-top: 1.5em;
-                               margin-bottom: 2em" />
+            <div class="member-preview">
+                <UserInfoComponent Member="@Data.Member" AvatarSize="40" />
+            </div>
             
             <div class="form-group">
-                <label>Reason (Optional)</label>
+                <label>Reason (optional)</label>
                 <input type="text" class="form-control" @bind-value="@_reason"/>
             </div>
             
             <div class="form-group">
-                <label>Time in Minutes (0 or empty for permanent)</label>
+                <label>Duration in minutes (0 or empty for permanent)</label>
                 <InputNumber class="form-control" TValue="@int" @bind-Value="@_unbanMinutes"></InputNumber>
             </div>
             

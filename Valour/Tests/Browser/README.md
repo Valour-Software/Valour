@@ -98,9 +98,14 @@ checks their actual computed styles above and below the breakpoint. It also
 checks quoted values and strings and deterministic output. This catches release
 minification that silently turns valid responsive rules into invalid CSS.
 
-`villages-navigation-touch.mjs` exercises the actual sidebar module with touch
-events: edge swipes, canvas/button isolation, vertical scrolling, multi-finger
-cancellation, rotation and disposal. It uses a local fixture and no account.
+`villages-navigation-touch.mjs` exercises the actual sidebar module and long-press
+adapter with touch events. A rightward swipe that starts anywhere in the main
+layout opens the sidebar once horizontal travel clearly dominates. The suite checks
+that a slow swipe produces no long press, click or chat scroll, and that leftward
+reply swipes, diagonal and vertical scrolling, horizontal scrollers, canvases,
+buttons, editable text, overlays and the desktop layout keep their own gestures.
+It also covers multi-finger cancellation, rotation and disposal. It uses a local
+fixture and no account.
 Native buttons in the application navigation are essential: a mouse click in a
 mobile viewport can pass while a WebKit touch on a delegated non-button fails.
 

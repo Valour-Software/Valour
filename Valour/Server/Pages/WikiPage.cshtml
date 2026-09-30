@@ -3,6 +3,8 @@
 @using Valour.Server.Pages
 @using Valour.Client.Components.Wiki.Display
 @using Microsoft.AspNetCore.Components
+@using Valour.Client.Utility
+@using Valour.Server.Utilities
 @{
     var planetName = Model.Planet?.Name ?? "Planet";
     var title = Model.Doc?.Title ?? "Wiki";
@@ -13,7 +15,6 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>@title - @planetName Docs | Valour</title>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/_content/Valour.Client/media/favicon/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/_content/Valour.Client/media/favicon/favicon-32x32.png">
@@ -21,23 +22,15 @@
 
     @if (Model.Doc is not null)
     {
-        <meta name="description" content="@Model.Snippet"/>
-
-        <!-- Open Graph -->
-        <meta property="og:type" content="article"/>
-        <meta property="og:url" content="@Model.CanonicalUrl"/>
-        <meta property="og:title" content="@title"/>
-        <meta property="og:site_name" content="@planetName Wiki on Valour"/>
-        <meta property="og:description" content="@Model.Snippet"/>
-        <meta property="og:image" content="@Model.PlanetIcon"/>
-
-        <!-- Twitter -->
-        <meta property="twitter:card" content="summary"/>
-        <meta property="twitter:title" content="@title"/>
-        <meta property="twitter:description" content="@Model.Snippet"/>
-        <meta property="twitter:image" content="@Model.PlanetIcon"/>
-
-        <link rel="canonical" href="@Model.CanonicalUrl"/>
+        @Html.Raw(new LinkPreviewMeta
+        {
+            Title = title,
+            DocumentTitle = $"{title} - {planetName} Wiki | Valour",
+            Description = string.IsNullOrWhiteSpace(Model.Snippet) ? $"A page in the {planetName} wiki on Valour." : Model.Snippet,
+            Url = Model.CanonicalUrl,
+            SiteName = $"{planetName} Wiki on Valour",
+            Type = "article",
+        }.WithPlanet(Model.Planet!).RenderHead())
         @if (Model.Planet!.Nsfw)
         {
             <meta name="rating" content="adult"/>
@@ -47,6 +40,7 @@
     }
     else
     {
+        <title>@title - @planetName Wiki | Valour</title>
         @* Private/missing interstitials must not enter the index *@
         <meta name="robots" content="noindex"/>
     }
@@ -55,7 +49,7 @@
     <link href="/_content/Valour.Client/css/public-wiki.css" rel="stylesheet"/>
 </head>
 <body>
-<div class="pd-page">
+<div class="pd-page" style="@(Model.Planet is null ? null : $"--planet-light: {NebulaPalettes.PlanetLight(Model.Planet.Id, Model.Planet.WorldVariant)}")">
     <header class="pd-topbar">
         <a class="pd-brand" href="/">
             <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>
@@ -112,7 +106,7 @@
                     @if (Model.Doc.LastEdited is not null)
                     {
                         <p class="pd-meta">
-                            Last updated @Model.Doc.LastEdited.Value.ToString("MMMM d, yyyy")@(Model.LastEditorName is not null ? $" by {Model.LastEditorName}" : "")
+                            Last updated <time class="pd-num" datetime="@Model.Doc.LastEdited.Value.ToString("yyyy-MM-dd")">@Model.Doc.LastEdited.Value.ToString("MMMM d, yyyy")</time>@(Model.LastEditorName is not null ? $" by {Model.LastEditorName}" : "")
                         </p>
                     }
 

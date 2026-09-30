@@ -29,43 +29,6 @@ else
     </div>
 }
 
-<style>
-    .user-info-mini {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: var(--radius-sm);
-        transition: background-color 0.15s ease;
-    }
-
-    .user-info-mini:hover {
-        background-color: var(--main-4);
-    }
-
-    .avatar-mini {
-        width: 24px;
-        height: 24px;
-        border-radius: var(--radius-full);
-        background-size: cover;
-        background-position: center;
-        flex-shrink: 0;
-    }
-
-    .name-mini {
-        font-size: var(--font-size-sm);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 150px;
-    }
-
-    .text-muted {
-        color: var(--font-alt-color);
-    }
-</style>
-
 @code {
     [Parameter]
     public long? UserId { get; set; }

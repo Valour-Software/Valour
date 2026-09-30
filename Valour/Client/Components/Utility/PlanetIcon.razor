@@ -1,16 +1,15 @@
-@* Standard circular planet icon with optional unread gradient ring *@
+@* Circular planet icon. Planets without a custom icon show their generated globe. *@
+@implements IDisposable
 
 @if (Planet is null)
 {
     return;
 }
 
-<div class="planet-icon @(Unread ? "unread" : "")" style="--planet-icon-size: @(Size)px">
-    @if (_iconText is not null)
+<div class="planet-icon @(Planet.HasCustomIcon ? "" : "globe") @(Unread ? "unread" : "")" style="--planet-icon-size: @(Size)px">
+    @if (!Planet.HasCustomIcon)
     {
-        <div class="planet-icon-img text-icon">
-            <span style="font-size: @(_fontSize.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px">@_iconText</span>
-        </div>
+        <PlanetGlobe Seed="@_seed" Plain="true" Radius="0.46" Lights="@Lights" />
     }
     else
     {
@@ -19,9 +18,7 @@
                    Src="@_iconUrl"
                    FallbackSrc="_content/Valour.Client/media/logo-circle.svg">
             <Placeholder>
-                <div class="planet-icon-img text-icon">
-                    <span style="font-size: @(_fontSize.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px">@_placeholderText</span>
-                </div>
+                <div class="planet-icon-img placeholder"></div>
             </Placeholder>
         </LazyImage>
     }
@@ -35,36 +32,63 @@
     public int Size { get; set; } = 36;
 
     /// <summary>
-    /// Shows the unread state as a gradient ring around the icon
+    /// Marks the planet as having unread activity with a small dot. Rows that show
+    /// unread state on the name leave this off.
     /// </summary>
     [Parameter]
     public bool Unread { get; set; }
+
+    /// <summary>
+    /// Night-side lights for generated globes. See <see cref="PlanetGlobe.LightsFor"/>.
+    /// </summary>
+    [Parameter]
+    public double Lights { get; set; } = 0.6;
 
     [Parameter]
     public IconFormat Format { get; set; } = IconFormat.WebpAnimated64;
 
     private string _iconUrl;
-    private string _iconText;
-    private string _placeholderText;
-    private float _fontSize;
+    private string _seed;
+    private Planet _observed;
 
     protected override void OnParametersSet()
     {
+        if (!ReferenceEquals(_observed, Planet))
+        {
+            if (_observed is not null)
+                _observed.Updated -= OnPlanetUpdated;
+
+            _observed = Planet;
+
+            if (_observed is not null)
+                _observed.Updated += OnPlanetUpdated;
+        }
+
         if (Planet is null)
             return;
 
-        _placeholderText = ISharedPlanet.GetCommunityShortCode(Planet);
-        _fontSize = (float)Size / (_placeholderText.Length + 1);
+        _seed = NebulaPalettes.WorldSeed(Planet);
+        _iconUrl = Planet.HasCustomIcon ? Planet.GetIconUrl(Format) : null;
+    }
 
-        if (Planet.HasCustomIcon)
+    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData)
+    {
+        if (eventData.Changes is not null && !eventData.Changes.On(x => x.WorldVariant))
+            return;
+
+        _ = InvokeAsync(() =>
         {
-            _iconUrl = Planet.GetIconUrl(Format);
-            _iconText = null;
-        }
-        else
-        {
-            _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
-            _iconText = _placeholderText;
-        }
+            if (Planet is null)
+                return;
+
+            _seed = NebulaPalettes.WorldSeed(Planet);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_observed is not null)
+            _observed.Updated -= OnPlanetUpdated;
     }
 }

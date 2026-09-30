@@ -381,6 +381,29 @@ function getImageSizeAsync(url) {
     });
 }
 
+// Resolves to a video's [width, height] from its metadata, or [0, 0] when it
+// cannot be read in time (the upload then proceeds without a size).
+function getVideoSizeAsync(url) {
+    return new Promise((resolve) => {
+        const video = document.createElement("video");
+        let settled = false;
+        const finish = size => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            video.removeAttribute("src");
+            video.load();
+            resolve(size);
+        };
+        const timer = setTimeout(() => finish([0, 0]), 10000);
+        video.preload = "metadata";
+        video.muted = true;
+        video.onloadedmetadata = () => finish([video.videoWidth, video.videoHeight]);
+        video.onerror = () => finish([0, 0]);
+        video.src = url;
+    });
+}
+
 /* Useful functions for layout items */
 function determineFlip(element, safeWidth){
     if (!element?.parentElement)
@@ -491,244 +514,150 @@ function positionRelativeTo(id, x, y, corner) {
     }
 }
 
-const trustedEmbedScriptHosts = new Set([
-    "platform.twitter.com",
-    "embed.reddit.com",
-    "www.tiktok.com",
-    "gist.github.com"
-]);
+// X, Reddit, Bluesky, Instagram and Threads posts render as the provider's
+// own embed page in a frame (ProviderEmbedFrame.razor). The page reports its content height with
+// postMessage, and the frame is sized from that. The last height seen for
+// each embed at each width is kept, so a revisited embed starts at its final
+// size instead of moving the layout when it loads.
+const valourEmbedFrames = (() => {
+    const providers = {
+        twitter: {
+            origin: "https://platform.twitter.com",
+            readHeight(message) {
+                const call = message?.["twttr.embed"];
+                return call?.method === "twttr.private.resize" ? call.params?.[0]?.height : undefined;
+            }
+        },
+        reddit: {
+            origin: "https://embed.reddit.com",
+            readHeight(message) {
+                return message?.type === "resize.embed" ? message.data : undefined;
+            }
+        },
+        bluesky: {
+            origin: "https://embed.bsky.app",
+            readHeight(message) {
+                return message?.height;
+            }
+        },
+        instagram: {
+            origin: "https://www.instagram.com",
+            readHeight(message) {
+                return message?.type === "MEASURE" ? message.details?.height : undefined;
+            }
+        },
+        threads: {
+            origin: "https://www.threads.com",
+            readHeight(message) {
+                return typeof message === "number" ? message : undefined;
+            }
+        }
+    };
 
-const trustedEmbedIframeHosts = new Set([
-    "www.youtube.com",
-    "youtube.com",
-    "music.youtube.com",
-    "player.vimeo.com",
-    "vimeo.com",
-    "player.twitch.tv",
-    "clips.twitch.tv",
-    "www.tiktok.com",
-    "platform.twitter.com",
-    "twitter.com",
-    "www.instagram.com",
-    "embed.bsky.app",
-    "open.spotify.com",
-    "w.soundcloud.com"
-]);
+    const storageKey = "embedFrameHeights";
+    const rememberedLimit = 300;
+    const frames = new Map();
+    let heights = null;
+    let listening = false;
 
-const allowedEmbedTags = new Set([
-    "blockquote", "a", "p", "br", "div", "span", "img", "iframe",
-    "strong", "em", "b", "i", "u", "time", "cite"
-]);
-
-// No id (it could collide with app element ids) and no allow (provider
-// iframes must not be granted camera, microphone, or similar features).
-const allowedEmbedAttributes = new Set([
-    "href", "src", "alt", "title", "class", "data-instgrm-captioned",
-    "data-instgrm-permalink", "data-instgrm-version", "datetime",
-    "width", "height", "frameborder", "allowfullscreen",
-    "data-tweet-id", "data-embed-theme", "cite", "data-conversation",
-    "data-lang", "data-dnt", "data-theme", "data-width", "data-height"
-]);
-
-// Class names each provider's oEmbed markup uses and its loader script looks
-// for. Every other class is dropped so embed markup cannot borrow app styles
-// to draw overlays over the interface.
-const allowedEmbedClasses = {
-    twitter: new Set(["twitter-tweet", "twitter-video", "tw-align-left", "tw-align-center", "tw-align-right"]),
-    reddit: new Set(["reddit-embed-bq", "reddit-card"]),
-    tiktok: new Set(["tiktok-embed"]),
-    soundcloud: new Set(),
-    github: new Set()
-};
-
-function filterEmbedClasses(value, provider) {
-    const allowed = Object.hasOwn(allowedEmbedClasses, provider) ? allowedEmbedClasses[provider] : null;
-    if (!allowed) {
-        return "";
-    }
-
-    return value.split(/\s+/).filter(name => allowed.has(name)).join(" ");
-}
-
-function isTrustedEmbedScriptSource(scriptSrc) {
-    try {
-        const parsed = new URL(scriptSrc, window.location.origin);
-        return parsed.protocol === "https:" && trustedEmbedScriptHosts.has(parsed.hostname.toLowerCase());
-    } catch {
-        return false;
-    }
-}
-
-function isTrustedEmbedIframeSource(iframeSrc) {
-    try {
-        const parsed = new URL(iframeSrc, window.location.origin);
-        return parsed.protocol === "https:" && trustedEmbedIframeHosts.has(parsed.hostname.toLowerCase());
-    } catch {
-        return false;
-    }
-}
-
-function isSafeEmbedUrl(urlValue, requiresTrustedIframe = false) {
-    if (typeof urlValue !== "string" || urlValue.length === 0) {
-        return false;
-    }
-
-    const lowered = urlValue.trim().toLowerCase();
-    if (lowered.startsWith("javascript:") || lowered.startsWith("vbscript:") || lowered.startsWith("data:") || lowered.startsWith("//")) {
-        return false;
-    }
-
-    try {
-        const parsed = new URL(urlValue, window.location.origin);
-        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-            return false;
+    function rememberedHeights() {
+        if (heights) {
+            return heights;
         }
 
-        if (requiresTrustedIframe) {
-            return isTrustedEmbedIframeSource(parsed.toString());
+        try {
+            heights = new Map(JSON.parse(localStorage.getItem(storageKey) ?? "[]"));
+        } catch {
+            heights = new Map();
         }
 
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-function sanitizeEmbedHtml(html, provider) {
-    if (typeof html !== "string" || html.length === 0) {
-        return "";
+        return heights;
     }
 
-    const template = document.createElement("template");
-    template.innerHTML = html;
+    // Text wraps differently at each width, so heights are kept per width.
+    function heightKey(entry) {
+        const width = Math.round(entry.frame.clientWidth / 10) * 10;
+        return `${entry.provider}:${entry.embedId}:${width}`;
+    }
 
-    const elements = Array.from(template.content.querySelectorAll("*"));
-    for (const element of elements) {
-        const tag = element.tagName.toLowerCase();
-
-        if (!allowedEmbedTags.has(tag)) {
-            element.remove();
-            continue;
+    function remember(entry, height) {
+        const remembered = rememberedHeights();
+        const key = heightKey(entry);
+        remembered.delete(key);
+        remembered.set(key, height);
+        while (remembered.size > rememberedLimit) {
+            remembered.delete(remembered.keys().next().value);
         }
 
-        let removed = false;
-        for (const attribute of Array.from(element.attributes)) {
-            const name = attribute.name.toLowerCase();
-            const value = attribute.value ?? "";
+        try {
+            localStorage.setItem(storageKey, JSON.stringify([...remembered]));
+        } catch {
+            // Storage can be full or unavailable; sizing still works.
+        }
+    }
 
-            if (name.startsWith("on") || !allowedEmbedAttributes.has(name)) {
-                element.removeAttribute(attribute.name);
+    function parseMessage(data) {
+        if (typeof data !== "string") {
+            return data;
+        }
+
+        try {
+            return JSON.parse(data);
+        } catch {
+            return null;
+        }
+    }
+
+    function onMessage(event) {
+        for (const entry of frames.values()) {
+            if (entry.frame.contentWindow !== event.source) {
                 continue;
             }
 
-            if (name === "class") {
-                const classes = filterEmbedClasses(value, provider);
-                if (classes) {
-                    element.setAttribute(attribute.name, classes);
-                } else {
-                    element.removeAttribute(attribute.name);
-                }
-                continue;
+            const provider = providers[entry.provider];
+            if (event.origin !== provider.origin) {
+                return;
             }
 
-            if (name === "src" && tag === "iframe" && !isSafeEmbedUrl(value, true)) {
-                element.remove();
-                removed = true;
-                break;
+            const height = Math.ceil(Number(provider.readHeight(parseMessage(event.data))));
+            if (!Number.isFinite(height) || height < 40 || height > 5000) {
+                return;
             }
 
-            if ((name === "href" || name === "src" || name === "cite") && !isSafeEmbedUrl(value, false)) {
-                element.removeAttribute(attribute.name);
-            }
-        }
-
-        if (!removed && tag === "iframe" && !element.getAttribute("src")) {
-            element.remove();
-        }
-    }
-
-    return template.innerHTML;
-}
-
-async function injectTwitter(id, data) {
-    const container = document.getElementById(id);
-    if (!container) {
-        return;
-    }
-    
-    container.innerHTML = sanitizeEmbedHtml(data, "twitter");
-    
-    const twitterScriptSrc = "https://platform.twitter.com/widgets.js";
-    if (!isTrustedEmbedScriptSource(twitterScriptSrc)) {
-        return;
-    }
-
-    let twitterScript = document.createElement('script');
-    twitterScript.src = twitterScriptSrc;
-    twitterScript.async = true;
-    twitterScript.charset = "utf-8";
-    container.appendChild(twitterScript);
-}
-
-async function injectReddit(id, data) {
-    const container = document.getElementById(id);
-    if (!container) {
-        return;
-    }
-
-    container.setAttribute('data-embed-theme', 'dark');
-    container.innerHTML = sanitizeEmbedHtml(data, "reddit");
-
-    const redditScriptSrc = "https://embed.reddit.com/widgets.js";
-    if (!isTrustedEmbedScriptSource(redditScriptSrc)) {
-        return;
-    }
-
-    let redditScript = document.createElement('script');
-    redditScript.src = redditScriptSrc;
-    redditScript.async = true;
-    redditScript.charset = "utf-8";
-    container.appendChild(redditScript);
-}
-
-// Generic embed injection function for oEmbed-based embeds
-// Injects HTML content and optionally loads an external script. provider
-// selects which class names the markup may keep (see allowedEmbedClasses).
-async function injectEmbed(id, html, scriptSrc, provider) {
-    const container = document.getElementById(id);
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = sanitizeEmbedHtml(html, provider);
-
-    // If a script source is provided, load it
-    if (scriptSrc) {
-        if (!isTrustedEmbedScriptSource(scriptSrc)) {
+            entry.frame.style.height = `${height}px`;
+            entry.frame.classList.add("embed-sized");
+            remember(entry, height);
             return;
         }
-
-        // Check if script is already loaded
-        const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
-        if (!existingScript) {
-            const script = document.createElement('script');
-            script.src = scriptSrc;
-            script.async = true;
-            script.charset = "utf-8";
-            container.appendChild(script);
-        } else {
-            // Script already exists, try to re-process embeds if possible
-            // TikTok uses window.tiktokEmbed?.lib?.render()
-            if (scriptSrc.includes('tiktok') && window.tiktokEmbed?.lib?.render) {
-                window.tiktokEmbed.lib.render();
-            }
-        }
     }
-}
 
-function playLottie(element) {
-    element.play();
-}
+    return {
+        attach(handle, frame, provider, embedId) {
+            if (!frame || !Object.hasOwn(providers, provider)) {
+                return;
+            }
+
+            const entry = { frame, provider, embedId };
+            frames.set(handle, entry);
+
+            const known = rememberedHeights().get(heightKey(entry));
+            if (known) {
+                frame.style.height = `${known}px`;
+            }
+
+            if (!listening) {
+                window.addEventListener("message", onMessage);
+                listening = true;
+            }
+        },
+
+        detach(handle) {
+            frames.delete(handle);
+        }
+    };
+})();
+
+window.valourEmbedFrames = valourEmbedFrames;
 
 async function themeAssetPickFile(inputId) {
     const input = document.getElementById(inputId);
@@ -830,4 +759,16 @@ function themeAssetClearSelection(inputId) {
     if (input) {
         input.value = '';
     }
+}
+
+// The loading scene is a module that may start after the app calls these, so the
+// calls are remembered for it to pick up.
+function valourBootStatus(text) {
+    window.__valourBootStatus = text;
+    window.valourBoot?.status(text);
+}
+
+function valourBootFinish() {
+    window.__valourBootDone = true;
+    window.valourBoot?.finish();
 }

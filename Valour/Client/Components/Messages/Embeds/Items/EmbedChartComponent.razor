@@ -15,7 +15,7 @@
 		{
 			@foreach (var slice in BuildPieSlices())
 			{
-				<path d="@slice.Path" fill="@slice.Color" stroke="var(--main-1, #111)" stroke-width="1" />
+				<path d="@slice.Path" fill="@slice.Color" stroke="var(--surface-canvas)" stroke-width="1" />
 			}
 		}
 		else
@@ -92,7 +92,7 @@
 		// CSS-isolation scope attribute, so scoped rules can't reach it
 		return new MarkupString(
 			$"<text x=\"{F(x)}\" y=\"{F(y)}\" text-anchor=\"{anchor}\"{baseline} " +
-			"font-size=\"8\" fill=\"var(--font-alt-color, rgba(255, 255, 255, 0.6))\">" +
+			"font-size=\"8\" fill=\"var(--text-tertiary)\">" +
 			encoded + "</text>");
 	}
 

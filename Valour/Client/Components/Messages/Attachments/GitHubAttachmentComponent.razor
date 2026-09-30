@@ -1,68 +1,53 @@
 @inherits AttachmentComponent
-@inject IJSRuntime JsRuntime
+@using System.Text.Json
 
-<div class="github-gist-embed" id="@_id">
-</div>
-
-<style>
-    .github-gist-embed {
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        max-width: 100%;
+@* Gists render from the preview the server stored, so no GitHub script
+   runs in the app. Older gist attachments without one show a link card. *@
+<a class="gist-card" href="@_href" target="_blank" rel="noopener noreferrer">
+    <div class="gist-header">
+        <i class="bi bi-github" aria-hidden="true"></i>
+        <span class="gist-title">@(_preview?.Owner is { Length: > 0 } owner ? $"{owner} / " : string.Empty)@(_firstFile?.Name ?? "Gist")</span>
+        @if (_preview?.FileCount > 1)
+        {
+            <span class="gist-files">@_preview.FileCount files</span>
+        }
+    </div>
+    @if (!string.IsNullOrWhiteSpace(_preview?.Description))
+    {
+        <div class="gist-description">@_preview.Description</div>
     }
-
-    .github-gist-embed .gist {
-        background: var(--main-3);
+    @if (_firstFile is not null)
+    {
+        <pre class="gist-code"><code>@string.Join("\n", _firstFile.Lines)</code></pre>
+        @if (_firstFile.TotalLines > _firstFile.Lines.Count)
+        {
+            <div class="gist-more">@(_firstFile.TotalLines - _firstFile.Lines.Count) more lines</div>
+        }
     }
-
-    .github-gist-embed .gist .gist-file {
-        border: 1px solid var(--main-4);
-        border-radius: var(--radius-md);
-    }
-
-    .github-gist-embed .gist .gist-data {
-        background: var(--main-3);
-        border-bottom: 1px solid var(--main-4);
-    }
-
-    .github-gist-embed .gist .gist-meta {
-        background: var(--main-4);
-        color: var(--font-color-mid);
-    }
-</style>
+</a>
 
 @code {
-    private readonly string _id = "github-gist-" + Guid.NewGuid().ToString();
+    private GistPreview _preview;
+    private GistPreviewFile _firstFile;
+    private string _href;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnParametersSet()
     {
-        if (!firstRender)
-            return;
+        _href = Valour.Shared.Utilities.SafeUrl.Sanitize(Attachment?.Location);
+        _preview = null;
 
-        var gistScriptSrc = GetGistScriptSrc();
-        if (!string.IsNullOrWhiteSpace(gistScriptSrc))
+        if (!string.IsNullOrWhiteSpace(Attachment?.Data))
         {
-            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, null, gistScriptSrc, "github");
-            return;
+            try
+            {
+                _preview = JsonSerializer.Deserialize<GistPreview>(Attachment.Data);
+            }
+            catch (JsonException)
+            {
+                // Older attachments stored nothing or other markup here.
+            }
         }
 
-        if (!string.IsNullOrEmpty(Attachment.Data))
-        {
-            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Data, null, "github");
-        }
-    }
-
-    private string? GetGistScriptSrc()
-    {
-        if (string.IsNullOrWhiteSpace(Attachment.Location))
-            return null;
-
-        if (!Uri.TryCreate(Attachment.Location, UriKind.Absolute, out var uri))
-            return null;
-
-        if (!string.Equals(uri.Host, "gist.github.com", StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        return $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath.TrimEnd('/')}.js";
+        _firstFile = _preview?.Files?.FirstOrDefault();
     }
 }

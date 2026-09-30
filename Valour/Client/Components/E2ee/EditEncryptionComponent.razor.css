@@ -11,13 +11,13 @@
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
 }
 
 .device-item > i {
     font-size: var(--font-size-xl);
-    color: var(--color-primary);
+    color: var(--text-secondary);
 }
 
 .device-copy {
@@ -34,16 +34,18 @@
 }
 
 .device-meta {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
 .safety-number {
     padding: var(--space-3);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
+    background-color: var(--surface-raised);
     font-family: var(--font-family-mono);
     font-size: var(--font-size-lg);
+    font-variant-numeric: tabular-nums;
     letter-spacing: 0.08em;
     text-align: center;
     word-spacing: 0.5em;
@@ -51,7 +53,9 @@
 
 .subsection-title {
     margin: var(--space-4) 0 var(--space-1);
-    font-size: var(--font-size-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
 }
 
 .warning-text {

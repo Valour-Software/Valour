@@ -27,10 +27,10 @@
             <div class="token-section">
                 <div class="token-warning">
                     <i class="bi bi-exclamation-triangle-fill"></i>
-                    Save this token now! It will not be shown again.
+                    Save this token now. It will not be shown again.
                 </div>
                 <div class="form-group">
-                    <label>New Bot Token</label>
+                    <label>New bot token</label>
                     <div class="input-group">
                         <input class="form-control token-input" value="@_newToken" readonly />
                         <button class="v-btn" @onclick="OnCopyToken">
@@ -44,8 +44,8 @@
         else
         {
             <div class="form-group">
-                <label>Bot Token</label>
-                <button class="v-btn warning" @onclick="OnRegenerateToken" disabled="@_regenerating">
+                <label>Bot token</label>
+                <button class="v-btn" @onclick="OnRegenerateToken" disabled="@_regenerating">
                     <i class="bi bi-arrow-clockwise"></i>
                     @if (_regenerating)
                     {
@@ -53,7 +53,7 @@
                     }
                     else
                     {
-                        <span>Regenerate Token</span>
+                        <span>Regenerate token</span>
                     }
                 </button>
                 <span class="helper-text">This will invalidate the old token immediately.</span>
@@ -62,11 +62,11 @@
         }
 
         <div class="danger-zone">
-            <h5>Danger Zone</h5>
+            <h5>Danger zone</h5>
             <p>Deleting your bot is permanent and cannot be undone.</p>
             <button class="v-btn danger" @onclick="OnDeleteBot">
                 <i class="bi bi-trash"></i>
-                Delete Bot
+                Delete bot
             </button>
         </div>
     </MainArea>

@@ -7,13 +7,13 @@
     white-space: nowrap;
     height: 27px;
     padding: 6px 8px 4px 6px;
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--text-secondary);
     transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .planet-wiki:hover {
-    background: rgba(255, 255, 255, 0.075);
-    color: var(--font-color);
+    background: var(--surface-hover);
+    color: var(--text-primary);
 }
 
 .planet-pseudo-icon {

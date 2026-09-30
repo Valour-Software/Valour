@@ -1,0 +1,21 @@
+@inherits AttachmentComponent
+
+@if (_src is not null)
+{
+    <iframe class="apple-music-embed"
+            src="@_src"
+            title="Apple Music player"
+            style="height: @(Attachment.Height > 0 ? Attachment.Height : 175)px;"
+            loading="lazy"
+            sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
+            allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"></iframe>
+}
+
+@code {
+    private string _src;
+
+    protected override void OnParametersSet()
+    {
+        _src = GetTrustedEmbedSource("embed.music.apple.com");
+    }
+}

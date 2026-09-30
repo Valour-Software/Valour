@@ -3,7 +3,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1.25rem 1rem;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -15,16 +15,16 @@
 .table-wrapper {
     width: 100%;
     overflow: auto;
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    background-color: var(--main-1);
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
 }
 
 .query-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    color: var(--font-color);
+    color: var(--text-primary);
     table-layout: fixed;
 }
 
@@ -32,16 +32,16 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background-color: var(--main-2);
-    border: none;
-    border-bottom: 1px solid var(--slight-tint);
     padding: 10px 12px;
-    white-space: nowrap;
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-label);
     text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
-    color: var(--font-alt-color);
+    white-space: nowrap;
+    background-color: var(--surface-base);
+    border: none;
+    border-bottom: 1px solid var(--line);
     user-select: none;
 }
 
@@ -51,7 +51,7 @@
 }
 
 .query-table th.sortable:hover {
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .th-inner {
@@ -62,7 +62,7 @@
 
 .query-table td {
     border: none;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
     padding: 6px 12px;
     text-align: left;
     vertical-align: middle;
@@ -73,7 +73,7 @@
 }
 
 .query-table tbody tr:hover {
-    background-color: var(--slight-tint);
+    background-color: var(--surface-hover);
 }
 
 .query-table tbody tr:last-child td {
@@ -81,8 +81,7 @@
 }
 
 /* min-height (set inline from RowHeight) keeps rows uniform, while content
-   that needs more space (e.g. wrapped role pills) can grow the row slightly.
-   No overflow clipping, so hover effects like pill translateY are never cut. */
+   that needs more space (e.g. wrapped role pills) can grow the row slightly. */
 td .data-wrapper {
     display: flex;
     align-items: center;
@@ -104,6 +103,7 @@ td .data-wrapper {
 }
 
 .footer-count {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
 }

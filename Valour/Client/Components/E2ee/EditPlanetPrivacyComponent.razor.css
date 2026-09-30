@@ -5,7 +5,7 @@
     gap: var(--space-3);
     margin: var(--space-3) 0;
     padding: var(--space-3);
-    border: 1px solid var(--color-primary);
+    border: 1px solid var(--color-primary-border);
     border-radius: var(--radius-md);
     background-color: var(--color-primary-soft);
 }
@@ -24,7 +24,7 @@
 }
 
 .pending-copy span {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -47,8 +47,9 @@
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
+    background-color: var(--surface-raised);
 }
 
 .person-name {
@@ -64,17 +65,20 @@
 .safety-number {
     font-family: var(--font-family-mono);
     font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
     letter-spacing: 0.06em;
     word-spacing: 0.4em;
 }
 
 .empty {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .subsection-title {
     margin: var(--space-4) 0 var(--space-2);
-    font-size: var(--font-size-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
 }
 
 .invite-row {

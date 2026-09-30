@@ -1,58 +1,22 @@
-/* MFA status */
 .mfa-status {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    border-radius: var(--radius-md);
-    background-color: var(--main-4);
-    margin-bottom: 1rem;
     font-size: var(--font-size-sm);
 }
 
 .mfa-status i {
     font-size: var(--font-size-lg);
-    color: var(--font-alt-color);
-}
-
-.mfa-status.enabled {
-    background-color: var(--color-success-soft);
+    color: var(--text-tertiary);
 }
 
 .mfa-status.enabled i {
     color: var(--color-success);
 }
 
-.loading-state {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 0;
-    color: var(--font-alt-color);
-}
-
-/* Loading spinner */
-.loading-indicator {
-    display: inline-block;
-    width: 1.25rem;
-    height: 1.25rem;
-    border: 2px solid var(--slight-tint);
-    border-radius: var(--radius-full);
-    border-top-color: var(--color-primary);
-    animation: spinner 0.7s linear infinite;
-}
-
-@keyframes spinner {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Sessions list */
 .loading, .no-tokens {
+    padding: 2rem 1rem;
     text-align: center;
-    padding: 2rem;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-lg);
 }
 
 .tokens-list {
@@ -64,13 +28,13 @@
 
 .token-item {
     padding: 0.85rem 1rem;
-    border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
 }
 
 .token-item.expired {
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 .token-item.expires-soon {
@@ -122,49 +86,40 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: var(--space-3);
     font-size: var(--font-size-xs);
 }
 
 .token-info .label {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .token-info span:last-child {
     text-align: right;
 }
 
-.expired {
-    color: var(--color-danger) !important;
+.token-time {
+    color: var(--text-secondary);
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
-.expires-soon {
-    color: var(--color-warning) !important;
+.token-time.expired {
+    color: var(--color-danger);
+}
+
+.token-time.expires-soon {
+    color: var(--color-warning);
 }
 
 .time-remaining {
-    font-size: var(--font-size-xs);
-    opacity: 0.7;
     margin-left: 0.5rem;
+    color: var(--text-tertiary);
+    font-family: var(--font-family-app);
 }
 
-/* Badge styling */
-.badge {
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
-}
-
-.badge-primary {
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
-}
-
-/* Bulk actions */
 .token-actions-bulk {
-    border-top: 1px solid var(--slight-tint);
+    border-top: 1px solid var(--line);
     padding-top: 1rem;
     margin-top: 1rem;
 }
@@ -172,5 +127,5 @@
 .help-text {
     margin: 0.5rem 0 0 0;
     font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }

@@ -90,7 +90,7 @@
             {
                 @* Always expandable - gallery clicks stop propagation, so opening
                    the preview doesn't hijack the card's navigation click *@
-                <ThreadAttachmentGallery Attachments="@Thread.Attachments" PlanetId="@Thread.PlanetId"/>
+                <ThreadAttachmentGallery Attachments="@Thread.Attachments" PlanetId="@Thread.PlanetId" FirstEmbedOnly="@Preview"/>
             }
         </Gallery>
         <Footer>
@@ -124,7 +124,7 @@
                         @onclick="@OnClickDismissPin"
                         @onclick:stopPropagation="true">
                     <i class="bi bi-check2-circle"></i>
-                    Dismiss Pin
+                    Dismiss pin
                 </button>
             }
         </Footer>

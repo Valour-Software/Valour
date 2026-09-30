@@ -21,11 +21,11 @@
                     <div @key="@("cell-" + result.Slug)" class="masonry-cell" @onclick="async () => await OnClickGif(result)">
                         @if (KlipyService.GifFavorites.Any(x => x.ProviderId == result.Slug))
                         {
-                            <h3 class="favorite" @onclick="() => OnClickUnfavorite(result)" @onclick:stopPropagation="true">❤️</h3>
+                            <h3 class="favorite" @onclick="() => OnClickUnfavorite(result)" @onclick:stopPropagation="true"><i class="bi bi-heart-fill"></i></h3>
                         }
                         else
                         {
-                            <h3 class="favorite" @onclick="() => OnClickFavorite(result)" @onclick:stopPropagation="true">🤍</h3>
+                            <h3 class="favorite" @onclick="() => OnClickFavorite(result)" @onclick:stopPropagation="true"><i class="bi bi-heart"></i></h3>
                         }
                         <img data-natwidth="@preview.Width" data-natheight="@preview.Height" class="item" src="@preview.Url" alt="@result.Title" loading="lazy" />
                     </div>
@@ -34,7 +34,7 @@
             else if (CategoryResults is not null)
             {
                 <div class="masonry-cell">
-                    <h2>Favorites ❤️</h2>
+                    <h2><i class="bi bi-heart-fill"></i> Favorites</h2>
                     <img data-natwidth="210" data-natheight="180" class="item" src="./_content/Valour.Client/media/Spookvooper.jpg" alt="Favorites" @onclick='() => OnClickCategory(":favorites:")' />
                 </div>
 

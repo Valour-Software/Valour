@@ -1,8 +1,9 @@
 .embed {
-    background-color: rgba(255, 255, 255, 0.07);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     padding: 1rem 1rem 1rem 1rem;
     max-width: 1024px;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     width: fit-content;
     position: relative;
     font-size: var(--font-size-sm);
@@ -22,7 +23,7 @@
 }
 
 .embed-title {
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
     font-size: var(--font-size-md);
 }
 
@@ -39,22 +40,28 @@
 }
 
 .embed-page-arrow {
-    color: var(--font-color, #ffffff);
-    background-color: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-sm, 0.25rem);
-    padding: 0.15rem 0.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    background-color: var(--surface-hover);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.2rem 0.5rem;
     font-size: var(--font-size-xs);
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
 }
 
 .embed-page-arrow:hover {
-    background-color: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--text-primary);
+    background-color: var(--surface-active);
 }
 
 .embed-page-number {
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
     opacity: 0.8;
 }

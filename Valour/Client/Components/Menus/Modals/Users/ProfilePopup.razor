@@ -11,7 +11,7 @@
     @onclick="Close"
     class="profile-outer">
     @* Holds the actual profile *@
-    <ProfileCard @ref="@_profileCard" User="@_user" Member="@_member" Profile="@_profile"></ProfileCard>
+    <ProfileCard @ref="@_profileCard" User="@_user" Member="@_member" Profile="@_profile" OnDismiss="@Close"></ProfileCard>
 </div>
 
 @code {

@@ -397,13 +397,13 @@ public class UserService
             string link = $"{PublicLinks.GetAppBaseUrl(ctx.Request)}/RecoverPassword/{recoveryCode}";
 
             string bodyContent = $@"
-            <h1 style='color: #333;'>Password Reset</h1>
-            <p style='color: #666;'>Hello,</p>
-            <p style='color: #666;'>You have requested a password reset for your account. To reset your password, please click the button below:</p>
-            <a href='{link}' style='display: inline-block; padding: 10px 20px; background-color: #3498db; color: #fff; text-decoration: none; border-radius: 3px;'>Reset Password</a>
-            <p style='color: #666;'>If you are unable to click the button, you can also copy and paste the following link into your browser:</p>
-            <p style='color: #666;'><a href='{link}'>{link}</a></p>
-            <p style='color: #666;'>Thank you,<br>Valour Team</p>";
+            <h1 style='{EmailTemplateHelper.HeadingStyle}'>Password Reset</h1>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>Hello,</p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>You have requested a password reset for your account. To reset your password, please click the button below:</p>
+            <a href='{link}' style='{EmailTemplateHelper.ButtonStyle}'>Reset Password</a>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>If you are unable to click the button, you can also copy and paste the following link into your browser:</p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'><a href='{link}' style='{EmailTemplateHelper.LinkStyle}'>{link}</a></p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>Thank you,<br>Valour Team</p>";
 
             string emsg = EmailTemplateHelper.WrapInTemplate(bodyContent);
 
@@ -1197,6 +1197,7 @@ public class UserService
     }
 
     private const int AccountDeletionLockClass = 0x56444C55; // "VDLU"
+    private const int MaxAccountDeletionAttempts = 3;
 
     /// <summary>
     /// Nuke it. Bots owned by the user are deleted first, because a bot must
@@ -1231,6 +1232,28 @@ public class UserService
         if (!billingResult.Success)
             return billingResult;
 
+        // The deletion touches most tables, so it can deadlock with the user's
+        // own activity that is still in flight (for example presence or message
+        // writes). PostgreSQL aborts one side and the transaction rolls back
+        // completely, so the deletion is simply attempted again.
+        for (var attempt = 1; ; attempt++)
+        {
+            var (result, deadlocked) = await DeleteAccountDataAsync(user, canRetry: attempt < MaxAccountDeletionAttempts);
+            if (!deadlocked)
+                return result;
+
+            _logger.LogWarning("Deadlock while hard deleting user {UserId}; retrying (attempt {Attempt})", user.Id, attempt);
+            await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt));
+        }
+    }
+
+    /// <summary>
+    /// Deletes the account and everything it owns in a single transaction.
+    /// Returns deadlocked = true, with nothing changed, when the transaction lost
+    /// a deadlock and <paramref name="canRetry"/> allows another attempt.
+    /// </summary>
+    private async Task<(TaskResult Result, bool Deadlocked)> DeleteAccountDataAsync(User user, bool canRetry)
+    {
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         // The deletion holds row locks on everything the account owns until it
@@ -1241,11 +1264,11 @@ public class UserService
             .SqlQuery<bool>($"SELECT pg_try_advisory_xact_lock({AccountDeletionLockClass}, {deletionKey}) AS \"Value\"")
             .SingleAsync();
         if (!deletionLocked)
-            return TaskResult.FromFailure("This account is already being deleted.");
+            return (TaskResult.FromFailure("This account is already being deleted."), false);
 
         var dbUser = await _db.Users.FindAsync(user.Id);
         if (dbUser is null)
-            return TaskResult.FromFailure("User not found.");
+            return (TaskResult.FromFailure("User not found."), false);
 
         List<string> revokedTokenIds = [];
         List<string> deletedUploadHashes = [];
@@ -1527,7 +1550,7 @@ public class UserService
             if (dbUser is null)
             {
                 await tran.RollbackAsync();
-                return TaskResult.FromFailure("User not found.");
+                return (TaskResult.FromFailure("User not found."), false);
             }
 
             // Channel states
@@ -1835,16 +1858,20 @@ public class UserService
 
             _logger.LogInformation("Hard deleted user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
 
-            return TaskResult.SuccessResult;
+            return (TaskResult.SuccessResult, false);
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             await tran.RollbackAsync();
             _db.ChangeTracker.Clear();
+
+            if (canRetry && e.GetBaseException() is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.DeadlockDetected })
+                return (default, true);
+
             _logger.LogError(e, "Error hard deleting user {UserName} ({UserId}). Base exception: {BaseExceptionMessage}",
                 dbUser.Name, dbUser.Id, e.GetBaseException().Message);
             
-            return new TaskResult(false, "An unexpected Database error occured.");
+            return (new TaskResult(false, "An unexpected Database error occured."), false);
         }
     }
 

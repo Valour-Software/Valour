@@ -1,6 +1,7 @@
 @page "/p/{PlanetIdText}"
 @model Valour.Server.Pages.PlanetInfoModel
 @using Valour.Shared.Models
+@using Valour.Server.Services
 @using Valour.Client.Components.Utility
 @using Microsoft.AspNetCore.Components
 @{
@@ -12,7 +13,6 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@(Model.PlanetInfo?.Name ?? "Planet") - Valour</title>
     
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="/_content/Valour.Client/media/favicon/apple-touch-icon.png">
@@ -22,30 +22,16 @@
     
     @if (Model.PlanetInfo != null)
     {
-        <meta name="description" content="@Model.PlanetInfo.Description" />
+        @Html.Raw((AppLinkPreviewService.ForPlanet(Model.PlanetInfo, Model.CanonicalUrl, Model.PlanetInfo.Name, noIndex: false)
+            with { DocumentTitle = $"{Model.PlanetInfo.Name} - Valour" }).RenderHead())
         <meta name="keywords" content="valour, planet, community, @Model.PlanetInfo.Name" />
-        
-        <!-- Open Graph / Facebook -->
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="@Model.RequestUrl" />
-        <meta property="og:title" content="@Model.PlanetInfo.Name - Valour" />
-        <meta property="og:description" content="@Model.PlanetInfo.Description" />
-        <meta property="og:image" content="@ISharedPlanet.GetIconUrl(Model.PlanetInfo, IconFormat.Webp256)" />
-        
-        <!-- Twitter -->
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="@Model.RequestUrl" />
-        <meta property="twitter:title" content="@Model.PlanetInfo.Name - Valour" />
-        <meta property="twitter:description" content="@Model.PlanetInfo.Description" />
-        <meta property="twitter:image" content="@ISharedPlanet.GetIconUrl(Model.PlanetInfo, IconFormat.Webp256)" />
-        
+
         <!-- Structured Data -->
         @Html.Raw("<script type=\"application/ld+json\">" + Model.JsonLd + "</script>")
-
-        <link rel="canonical" href="@Model.CanonicalUrl" />
     }
     else
     {
+        <title>@(Model.PlanetInfo?.Name ?? "Planet") - Valour</title>
         @* Error/missing states must not enter the index *@
         <meta name="robots" content="noindex" />
     }

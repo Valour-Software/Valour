@@ -1,33 +1,48 @@
+.apps-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .app {
-    border-top: 1px black solid;
-    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
     cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .app:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--surface-hover);
 }
 
 .app:active {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--surface-active);
 }
 
 .app-icon {
-    margin-bottom: 2px;
+    flex-shrink: 0;
     width: 32px;
     height: 32px;
-    display: inline-block;
+    border-radius: var(--radius-md);
+    object-fit: cover;
 }
 
 .app-name {
-    line-height: 32px;
-    display: inline-block;
     margin: 0;
-    margin-left: 5px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
 }
 
-.modal-bg {
-    background-color: var(--main-4);
-    padding: 20px;
-    border-radius: var(--radius-xl);
+.apps-status {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
 }

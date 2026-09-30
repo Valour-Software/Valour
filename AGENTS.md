@@ -8,6 +8,9 @@ read [Docs/ReactiveModelSystem.md](Docs/ReactiveModelSystem.md). This applies to
 `Valour/Shared/Utilities/HybridEvent.cs`, `Valour/Server/Hubs/CoreHub.cs`, and
 `Valour/Server/Services/CoreHubService.cs`.
 
+Before changing anything visual in the client, public pages, or website, read
+[Docs/DesignLanguage.md](Docs/DesignLanguage.md).
+
 ## Project structure
 
 `Valour/Client/` is the shared Razor UI library, and `Valour/Client.Blazor/` is its

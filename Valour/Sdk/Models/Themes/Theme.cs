@@ -17,7 +17,7 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
         Id = 0,
         AuthorId = ISharedUser.VictorUserId,
         Name = "To The Stars (Default)",
-        Description = "The default theme for Valour. Designed to be modern, sleek, and easy on the eyes.",
+        Description = "The default theme for Valour: quiet ink surfaces, with color reserved for people and activity.",
 
         FontFamily = ISharedTheme.DefaultFontFamily,
         RadiusXs = ISharedTheme.DefaultRadiusXs,
@@ -26,26 +26,26 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
         RadiusLg = ISharedTheme.DefaultRadiusLg,
         RadiusXl = ISharedTheme.DefaultRadiusXl,
         RadiusFull = ISharedTheme.DefaultRadiusFull,
-        FontColor = "#ffffff",
-        FontAltColor = "#7a7a7a",
-        LinkColor = "#00aaff",
+        FontColor = "#e7ebf1",
+        FontAltColor = "#7d8696",
+        LinkColor = "#8fd3ff",
 
-        MainColor1 = "#040d14",
-        MainColor2 = "#0b151d",
-        MainColor3 = "#121e27",
-        MainColor4 = "#182631",
-        MainColor5 = "#212f3a",
+        MainColor1 = "#0a0d12",
+        MainColor2 = "#0e1218",
+        MainColor3 = "#141922",
+        MainColor4 = "#1b212c",
+        MainColor5 = "#252c38",
 
         TintColor = "#ffffff",
 
-        VibrantPurple = "#bf06fd",
-        VibrantBlue = "#0c06fd",
-        VibrantCyan = "#00faff",
+        VibrantPurple = "#b9a4ff",
+        VibrantBlue = "#6f8cff",
+        VibrantCyan = "#8fd3ff",
 
-        PastelCyan = "#37a4ce",
-        PastelCyanPurple = "#6278cd",
-        PastelPurple = "#8457cd",
-        PastelRed = "#cd5e5e",
+        PastelCyan = "#7fc4e6",
+        PastelCyanPurple = "#a8b8ff",
+        PastelPurple = "#b9a4ff",
+        PastelRed = "#ff7a6e",
     };
 
     public long AuthorId { get; set; }

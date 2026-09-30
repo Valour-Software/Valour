@@ -57,7 +57,7 @@
 
 @if (Client.Me.Id != Data.Planet.OwnerId)
 {
-    <ContextMenuItem OnClickAsync='@OnClickLeavePlanet' Color="red">
+    <ContextMenuItem OnClickAsync='@OnClickLeavePlanet' Color="var(--color-danger)">
         <Label>Leave Planet</Label>
         <Icon><i class="bi bi-box-arrow-left"></i></Icon>
     </ContextMenuItem>

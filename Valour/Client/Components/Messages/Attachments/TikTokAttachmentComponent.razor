@@ -1,24 +1,34 @@
 @inherits AttachmentComponent
-@inject IJSRuntime JsRuntime
+@using System.Text.RegularExpressions
 
-<div class="tiktok-embed" id="@_id" style="max-width: @(Attachment.Width)px;">
-</div>
-
-<style>
-    .tiktok-embed {
-        border-radius: var(--radius-md);
-        overflow: hidden;
-    }
-</style>
+@if (_videoId is not null)
+{
+    <AspectEmbedFrame Src="@($"https://www.tiktok.com/player/v1/{_videoId}?description=1&music_info=1&rel=0")"
+                      Title="TikTok video"
+                      AspectWidth="9"
+                      AspectHeight="16"
+                      MaxWidth="325"/>
+}
 
 @code {
-    private readonly string _id = "tiktok-embed-" + Guid.NewGuid().ToString();
+    // Current attachments point at the player page; older ones keep the
+    // TikTok link and the oEmbed markup, which both carry the video ID.
+    private static readonly Regex VideoIdInLocation = new(
+        @"^https://www\.tiktok\.com/(?:player/v1/|@[^/]+/video/)(\d{5,25})(?:[/?#]|$)",
+        RegexOptions.CultureInvariant);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private static readonly Regex VideoIdInMarkup = new(
+        @"data-video-id=""(\d{5,25})""",
+        RegexOptions.CultureInvariant);
+
+    private string _videoId;
+
+    protected override void OnParametersSet()
     {
-        if (firstRender && !string.IsNullOrEmpty(Attachment.Data))
-        {
-            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Data, "https://www.tiktok.com/embed.js", "tiktok");
-        }
+        var match = VideoIdInLocation.Match(Attachment?.Location ?? string.Empty);
+        if (!match.Success)
+            match = VideoIdInMarkup.Match(Attachment?.Data ?? string.Empty);
+
+        _videoId = match.Success ? match.Groups[1].Value : null;
     }
 }

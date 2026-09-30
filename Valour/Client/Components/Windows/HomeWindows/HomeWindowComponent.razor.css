@@ -5,7 +5,6 @@
     overflow: hidden;
 }
 
-/* Toolbar: search left, toggles right */
 .toolbar {
     display: flex;
     align-items: center;
@@ -17,49 +16,52 @@
 .toolbar .search-input {
     flex: 1;
     min-width: 0;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-sm);
-    color: var(--font-color);
     padding: 6px 10px;
+    color: var(--text-primary);
     font-size: var(--font-size-sm);
     font-family: var(--font-family-app);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
     outline: none;
-    transition: border-color 0.2s ease;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        box-shadow var(--duration-fast) var(--ease-standard);
 }
 
 .toolbar .search-input:focus {
     border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
 }
 
 .toolbar .search-input::placeholder {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .toolbar .toggle-btn {
-    background: none;
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-sm);
-    color: var(--font-alt-color);
-    padding: 6px 10px;
-    cursor: pointer;
-    font-size: var(--font-size-md);
-    transition: all 0.15s ease;
     flex-shrink: 0;
+    padding: 6px 10px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-md);
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
 }
 
 .toolbar .toggle-btn:hover {
-    background-color: var(--slight-tint);
-    color: var(--font-color);
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
 }
 
 .toolbar .toggle-btn.active {
-    background-color: var(--main-4);
-    color: var(--font-color);
-    border-color: var(--color-primary);
+    background-color: var(--surface-active);
+    color: var(--text-primary);
+    border-color: var(--line-strong);
 }
 
-/* Make the tab container fill remaining space */
 ::deep .v-tab-container {
     flex: 1;
     min-height: 0;
@@ -75,21 +77,19 @@
     flex-direction: column;
 }
 
-/* Scrollable area within each tab */
 .tab-scroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
 }
 
-/* Bottom pinned actions */
 .bottom-actions {
     flex-shrink: 0;
     display: flex;
     gap: 4px;
     padding: 8px 12px;
-    border-top: 1px solid var(--slight-tint);
-    background-color: var(--main-2);
+    border-top: 1px solid var(--line);
+    background-color: var(--surface-base);
 }
 
 .bottom-actions .action-btn {
@@ -99,73 +99,55 @@
     justify-content: center;
     gap: 8px;
     padding: 8px 12px;
-    background: none;
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-sm);
-    color: var(--font-alt-color);
+    color: var(--text-secondary);
     font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     font-family: var(--font-family-app);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--rim-light);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
 }
 
 .bottom-actions .action-btn:hover {
-    background-color: var(--main-4);
-    color: var(--font-color);
-    border-color: var(--medium-tint);
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
 }
 
 .bottom-actions .action-btn .inline-badge {
-    background-color: var(--color-danger);
-    color: white;
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
-    padding: 1px 6px;
-    border-radius: var(--radius-lg);
     margin-left: auto;
+    padding: 1px 6px;
+    color: var(--color-danger-contrast);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    background-color: var(--color-danger);
+    border-radius: var(--radius-full);
 }
 
-/* Icon grid (card view) */
 .icon-container {
-    padding: 20px;
     display: grid;
     grid-template-columns: repeat(auto-fill, 87px);
     grid-gap: 0rem;
     justify-content: space-evenly;
-    overflow: hidden;
-    border: 1px solid var(--slight-tint);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border-radius: var(--radius-xl);
     margin: 12px;
+    padding: 20px;
+    overflow: hidden;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
 }
 
-/* Row list container */
 .row-list {
+    --avatar-cutout: var(--surface-base);
     display: flex;
     flex-direction: column;
     padding: 8px 12px;
 }
-
-/* Empty state for DMs */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 16px;
-    gap: 8px;
-}
-
-.empty-state i {
-    font-size: var(--font-size-5xl);
-    opacity: 0.4;
-}
-
-.empty-state span {
-    opacity: 0.6;
-}
-
-/* Card animation styles (shared by PlanetCard, FriendCard, and inline create/add buttons) */
 
 ::deep .flipper {
     display: inline-block;
@@ -173,25 +155,25 @@
 
 ::deep .outer-circle {
     position: relative;
-    background-color: black;
     width: 80px;
     height: 80px;
-    border-radius: var(--radius-full);
-    z-index: initial;
     margin: 5px;
-    box-shadow: black 0 0 10px;
+    z-index: initial;
+    background-color: var(--surface-canvas);
+    border-radius: var(--radius-full);
+    box-shadow: 0 0 0 1px var(--line);
 }
 
 ::deep .outer-circle .icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
     background-position: center;
     background-size: contain;
     border-radius: var(--radius-full);
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    left: 0px;
-    top: 0;
-    z-index: 1;
     cursor: pointer;
 }
 
@@ -200,20 +182,26 @@
 }
 
 ::deep .outer-circle .noti {
-    border-radius: var(--radius-full);
     position: absolute;
-    width: 30%;
-    height: 30%;
-    background-color: var(--font-color);
     left: 68.75%;
     top: 0;
-    border: solid 3px #040d14;
-    text-align: center;
     z-index: 1;
+    width: 30%;
+    height: 30%;
+    text-align: center;
+    background-color: var(--text-primary);
+    border: solid 3px var(--surface-raised);
+    border-radius: var(--radius-full);
 }
 
 ::deep .outer-circle .noti.purple {
-    background-color: var(--color-secondary);
+    color: var(--color-danger-contrast);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    line-height: 18px;
+    background-color: var(--color-danger);
 }
 
 ::deep .outer-circle .noti.friends {
@@ -226,36 +214,37 @@
 }
 
 ::deep .noti.nsfw {
-    background-color: var(--color-danger);
+    top: 0;
+    left: 0;
     width: auto;
-    border-radius: var(--radius-lg);
     padding-left: 4px;
     padding-right: 4px;
-    font-size: var(--font-size-xs);
+    color: var(--color-danger-contrast);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-loose);
-    top: auto;
-    bottom: 0;
-    left: 0px;
-    top: 0;
+    background-color: var(--color-danger);
+    border-radius: var(--radius-sm);
 }
 
 ::deep .rect-slide {
     position: absolute;
+    z-index: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--main-1);
-    z-index: 0;
+    background-color: var(--surface-canvas);
     border-radius: var(--radius-full);
     pointer-events: none;
     opacity: 0;
-    transition: width 0.2s ease-in-out, opacity 0.1s ease-in-out;
+    transition: width var(--duration-base) var(--ease-standard),
+        opacity var(--duration-fast) var(--ease-standard);
 }
 
 ::deep .outer-circle:hover .rect-slide {
     z-index: 2;
     opacity: 1;
     width: 240px;
-    box-shadow: cyan 0px 0px 10px;
+    box-shadow: 0 0 0 1px var(--line-strong);
 }
 
 ::deep .flipper.flip .rect-slide {
@@ -264,35 +253,27 @@
 
 ::deep .inner-circle {
     position: absolute;
-    background-color: black;
-    width: 80px;
-    height: 80px;
-    border-radius: var(--radius-full);
     right: -40px;
     top: 0;
     z-index: -5;
+    width: 80px;
+    height: 80px;
+    background-color: var(--surface-canvas);
+    border-radius: var(--radius-full);
 }
 
-::deep .outer-circle .planet-name {
-    color: lightgrey;
-    float: right;
-    overflow-wrap: break-word;
-    text-align: center;
-    width: 120px;
-}
-
-::deep .flipper.flip .outer-circle .planet-name {
-    margin-right: 115px;
-}
-
+::deep .outer-circle .planet-name,
 ::deep .outer-circle .friend-name {
-    color: lightgrey;
     float: right;
-    overflow-wrap: break-word;
-    text-align: center;
     width: 120px;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    text-align: center;
+    overflow-wrap: break-word;
 }
 
+::deep .flipper.flip .outer-circle .planet-name,
 ::deep .flipper.flip .outer-circle .friend-name {
     margin-right: 115px;
 }
@@ -315,12 +296,12 @@
 }
 
 ::deep .text-hide-circle {
+    position: absolute;
+    z-index: 1;
     width: 100%;
     height: 100%;
-    background-color: black;
-    position: absolute;
+    background-color: var(--surface-canvas);
     border-radius: var(--radius-full);
-    z-index: 1;
 }
 
 ::deep .outer-circle:hover .text-hide-circle {
@@ -328,23 +309,24 @@
 }
 
 ::deep .icon-text {
-    font-weight: var(--font-weight-bold);
-    font-family: var(--font-family-app);
-    text-align: center;
     margin: 0;
-    text-shadow: 0 0 5px black, 0 0 10px black;
-    color: var(--font-color);
+    color: var(--text-primary);
+    font-family: var(--font-family-app);
+    font-weight: var(--font-weight-semibold);
+    text-align: center;
 }
 
 ::deep .icon-text-holder {
     position: absolute;
     z-index: 1;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: var(--scrim);
+    border-radius: var(--radius-full);
+    pointer-events: none;
 }
 
 ::deep .outer-circle:hover .icon-text-holder {

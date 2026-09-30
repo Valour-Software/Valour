@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face { font-family: 'Instrument Sans'; src: url('/Valour/Client/wwwroot/css/fonts/instrument-sans-latin.woff2') format('woff2'); font-weight: 400 700; }
+@font-face { font-family: 'JetBrains Mono'; src: url('/Valour/Client/wwwroot/css/fonts/jetbrains-mono-latin.woff2') format('woff2'); font-weight: 400 700; }
+body { margin: 0; background: #000; }
+#h { position: relative; width: 1500px; height: 500px; overflow: hidden; background: #0a0d12; font-family: 'Instrument Sans'; color: #e7ebf1; }
+#h canvas, #h svg.c { position: absolute; inset: 0; }
+.scrim { position: absolute; inset: 0; background: radial-gradient(ellipse 620px 260px at 820px 250px, rgba(10,13,18,.72), rgba(10,13,18,0) 100%); }
+h1 { position: absolute; left: 520px; top: 150px; margin: 0; font-size: 62px; font-weight: 600; line-height: 1.06; letter-spacing: -0.035em; text-shadow: 0 1px 3px rgb(0 0 0 / .7), 0 0 18px rgb(0 0 0 / .75), 0 0 42px rgb(0 0 0 / .65); white-space: nowrap; }
+h1 em { font-style: normal; color: #7d8696; }
+.foot { position: absolute; left: 522px; top: 318px; font: 19px 'JetBrains Mono'; color: rgba(215,225,240,.62); text-shadow: 0 0 12px rgb(0 0 0 / .8); }
+.victor { position: absolute; left: 1250px; top: 70px; width: 150px; transform: rotate(-8deg); }
+.cap { position: absolute; font: 12px 'JetBrains Mono'; color: rgba(215,225,240,.5); }
+svg.c line { stroke: rgba(190,210,235,.28); stroke-width: 1.6; }
+svg.c circle { fill: rgba(245,248,255,.9); }
+svg.c circle.halo { fill: rgba(225,236,255,.12); }
+#mock { position: absolute; left: 44px; top: 319px; width: 344px; height: 344px; border-radius: 24px; border: 6px solid #000; background: url(/media/socials/icon-full-bleed.png) center/cover; display: none; }
+.show-mock #mock { display: block; }
+</style></head><body>
+<div id="h"><canvas id="sky" width="1500" height="500"></canvas><canvas id="planet" width="1500" height="500"></canvas>
+<svg class="c" viewBox="0 0 1500 500" id="con"></svg>
+<div class="scrim"></div>
+<img class="victor" src="/Valour/Client/wwwroot/media/victor/victor-astronaut.svg">
+<h1>Communities you can see.<br><em>Conversations only you can read.</em></h1>
+<div class="foot">open source · end-to-end encrypted · no ads</div>
+<div id="mock"></div></div>
+<script type="module">
+import { resolveOptions, gasSize, computeGas, compose } from '/Valour/Client/wwwroot/js/nebula.js';
+import { planetGenome, renderPlanet } from '/Valour/Client/wwwroot/js/planet.js';
+if (location.search.includes('mock')) document.body.classList.add('show-mock');
+const W = 1500, H = 500;
+const o = resolveOptions({ seed: 'valour', palette: 'valour', intensity: 1.3, focusX: 0.2, focusY: 0.45, spread: 0.45, scale: 2.2, stars: 420 });
+const { gw, gh, resolution } = gasSize(o, W, H);
+compose(document.getElementById('sky'), o, computeGas(o, gw, gh, W, H), gw, gh, resolution);
+const g = planetGenome('valour-home'); g.kind = 'terra'; g.rings = null; g.moons = [];
+const base = 420, R = 520, f = R / (base * g.size);
+const { pixels, size } = renderPlanet(g, base, 1.4, [0.12, -0.38, -0.92]);
+const cv = document.createElement('canvas'); cv.width = size; cv.height = size;
+cv.getContext('2d').putImageData(new ImageData(pixels, size, size), 0, 0);
+const ctx = document.getElementById('planet').getContext('2d'); ctx.imageSmoothingQuality = 'high';
+ctx.drawImage(cv, 1180 - size * f / 2, H + 390 - size * f / 2, size * f, size * f);
+const S = { A:[292,72,3.2],B:[190,130,2.4],C:[129,273,2.4],D:[170,352,2.4],E:[256,367,2.4],F:[292,178,2.4],G:[401,160,2.4],H:[446,178,3.2],I:[424,262,2.4],J:[305,352,2.4],K:[211,200,3.6],L:[328,245,3.6],M:[140,412,2.4],N:[201,427,3.6],O:[268,433,2.4] };
+const E = [['A','B'],['B','C'],['C','D'],['D','E'],['A','F'],['F','G'],['G','H'],['H','I'],['I','J'],['J','E'],['M','N'],['N','O'],['E','N']];
+const k = 0.4, ox = 930 - 100 * k, oy = 22 - 40 * k;
+const P = n => [ox + S[n][0] * k, oy + S[n][1] * k];
+let svg = E.map(([a, b]) => { const [x1, y1] = P(a), [x2, y2] = P(b); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`; }).join('');
+svg += Object.keys(S).map(n => { const [x, y] = P(n); return `<circle class="halo" cx="${x}" cy="${y}" r="${S[n][2] * 3.2}"/><circle cx="${x}" cy="${y}" r="${S[n][2] * 0.8}"/>`; }).join('');
+document.getElementById('con').innerHTML = svg;
+await document.fonts.ready;
+document.body.dataset.done = '1';
+</script></body></html>

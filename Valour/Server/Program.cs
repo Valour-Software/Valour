@@ -15,6 +15,7 @@ using Valour.Server.Email;
 using Valour.Server.Redis;
 using Valour.Server.Workers;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Config;
 using Microsoft.AspNetCore.Components;
@@ -114,6 +115,22 @@ public partial class Program
                 // carry passwords, so neither may reach Sentry whatever the config says.
                 x.SendDefaultPii = false;
                 x.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
+                x.SetBeforeSend((e, _) =>
+                {
+                    if (e.Exception is not null && FrameworkNoise.IsSignalRClosedWriteFault(e.Exception.GetBaseException()))
+                        return null;
+
+                    // Sentry reports every 5xx from outgoing HTTP calls. Cloudflare's
+                    // RealtimeKit session listing fails often; RealtimeKitService
+                    // treats a failed listing as "no evidence" and never acts on it.
+                    var url = e.Request?.Url;
+                    if (url is not null &&
+                        url.Contains("/realtime/kit/", StringComparison.Ordinal) &&
+                        url.Contains("/sessions", StringComparison.Ordinal))
+                        return null;
+
+                    return e;
+                });
             });
         }
 
@@ -287,6 +304,12 @@ public partial class Program
         app.MapControllers();
         app.MapBlazorHub();
 
+        // Shared app links such as invites get their own preview tags, so
+        // other apps show the planet instead of the generic card. Routes
+        // ignore case, so these also serve /I/ and /D/.
+        foreach (var pattern in new[] { "/i/{code}", "/d/{planetId}", "/planet/{planetId}" })
+            app.MapGet(pattern, ServeAppPageWithPreviewAsync);
+
         app.MapFallbackToFile("_content/Valour.Client/index.html");
 
         app.MapHub<CoreHub>(CoreHub.HubUrl, options => { options.AllowStatefulReconnects = true; });
@@ -342,6 +365,9 @@ public partial class Program
             $"https://{hosting.ApiHost}",
             "https://0.0.0.0",
             "https://0.0.0.1",
+            // The Linux desktop app serves its page from this custom scheme.
+            // Websites cannot use it, and its cookies stay in the app's web view.
+            "app://localhost",
         };
 
         if (isDevelopment)
@@ -378,6 +404,24 @@ public partial class Program
         }
 
         return origins.ToArray();
+    }
+
+    private static async Task<IResult> ServeAppPageWithPreviewAsync(
+        HttpContext context,
+        IWebHostEnvironment environment,
+        AppLinkPreviewService previews)
+    {
+        var file = environment.WebRootFileProvider.GetFileInfo("_content/Valour.Client/index.html");
+        if (!file.Exists)
+            return Results.NotFound();
+
+        string page;
+        await using (var stream = file.CreateReadStream())
+        using (var reader = new StreamReader(stream))
+            page = await reader.ReadToEndAsync();
+
+        var meta = await previews.GetAsync(context.Request.Path.Value);
+        return Results.Content(meta?.ApplyToHostPage(page) ?? page, "text/html; charset=utf-8");
     }
 
     public static void ConfigureServices(WebApplicationBuilder builder)
@@ -652,6 +696,7 @@ public partial class Program
         services.AddScoped<UserAttachmentService>();
         services.AddScoped<MediaSafetyService>();
         services.AddScoped<PlanetInviteService>();
+        services.AddScoped<AppLinkPreviewService>();
         services.AddScoped<PlanetWebhookService>();
         services.AddSingleton<Valour.Server.Utilities.WebhookRateLimiter>();
         services.AddScoped<PlanetMemberService>();

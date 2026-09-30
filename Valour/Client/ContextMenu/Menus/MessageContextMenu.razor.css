@@ -4,7 +4,7 @@
     gap: 2px;
     padding: 2px 2px 6px;
     margin-bottom: 4px;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
 }
 
 .quick-reaction {
@@ -20,16 +20,15 @@
     cursor: pointer;
     outline: none !important;
     transition: background-color var(--duration-fast) var(--ease-standard),
-        transform var(--duration-fast) var(--ease-standard);
+        color var(--duration-fast) var(--ease-standard);
 }
 
 .quick-reaction:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(1.12);
+    background-color: var(--surface-hover);
 }
 
 .quick-reaction:active {
-    transform: scale(1);
+    background-color: var(--surface-active);
 }
 
 .quick-reaction.reacted {
@@ -43,13 +42,18 @@
     cursor: pointer !important;
 }
 
+.quick-reaction span.emoji {
+    font-size: 20px;
+    cursor: pointer;
+}
+
 .quick-reaction.more {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-md);
 }
 
 .quick-reaction.more:hover {
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .mobile .quick-reaction {
@@ -60,6 +64,10 @@
 .mobile .quick-reaction img.emoji {
     width: 26px;
     height: 26px;
+}
+
+.mobile .quick-reaction span.emoji {
+    font-size: 26px;
 }
 
 .message-delete-preview {

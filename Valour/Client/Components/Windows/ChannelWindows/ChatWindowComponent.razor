@@ -40,6 +40,17 @@
                     <!-- Pushes messages to bottom -->
                     <div class="pusher"></div>
 
+                    @if (_reachedStart && Channel is not null)
+                    {
+                        <div class="channel-start">
+                            <SkyMoment Pose="SkyMoment.VictorPose.Peeking" Banner="true" Height="150"
+                                       Seed="@ChannelStartSeed"
+                                       Eyebrow="@ChannelStartEyebrow"
+                                       Title="@ChannelStartTitle"
+                                       Description="@ChannelStartDescription" />
+                        </div>
+                    }
+
                     <!-- Actual messages -->
                     @MessagesFragment
 
@@ -55,7 +66,7 @@
                 </button>
                 <ControlledRenderWrapper @ref="@_reactionSelectorRenderWrapper">
                     <div class="reaction-selector-wrapper" style="bottom: @(_reactionSelectorTop); right: @(_reactionSelectorLeft);">
-                        <EmojiMart @ref="@_reactionSelector" EmojiSet="twitter" StartShown="false" OnClickOutside="@OnClickOutsideReactionPicker" OnEmojiClick="@OnReactionSelectedAsync"/>
+                        <EmojiMart @ref="@_reactionSelector" StartShown="false" OnClickOutside="@OnClickOutsideReactionPicker" OnEmojiClick="@OnReactionSelectedAsync"/>
                     </div>
                 </ControlledRenderWrapper>
             </div>
@@ -125,6 +136,28 @@
     private bool _loadingForward = false;
     private bool _loadingBackward = false;
 
+    // True once the oldest message of the channel is on screen, so the start of
+    // the channel can be shown above it.
+    private bool _reachedStart;
+
+    private string ChannelStartSeed => Channel.PlanetId is null
+        ? Channel.Id.ToString()
+        : Channel.Planet is { } planet
+            ? NebulaPalettes.WorldSeed(planet)
+            : Channel.PlanetId.Value.ToString();
+
+    private string ChannelStartEyebrow => Channel?.PlanetId is null
+        ? "Direct message"
+        : Channel.Planet?.Name;
+
+    private string ChannelStartTitle => Channel?.PlanetId is null
+        ? "The start of your conversation"
+        : $"Welcome to #{Channel?.Name}";
+
+    private string ChannelStartDescription => Channel?.PlanetId is null
+        ? "Messages here are end-to-end encrypted. Only the people in this chat can read them."
+        : "This is the very beginning. Someone's already peeking.";
+
     /// <summary>
     /// When true, suppresses auto-scroll behaviors (ShiftScrollPosition, ScrollToBottom)
     /// so that LoadAroundMessageAsync / ScrollToMessage isn't fought by loading messages.
@@ -190,6 +223,7 @@
         BrowserUtils.Focused += OnBrowserFocused;
         BrowserUtils.Blurred += OnBrowserBlurred;
         WindowService.FocusedTabChanged += OnFocusedTabChanged;
+        Client.NotificationService.NotificationReceived += OnNotificationReceived;
         
         Channel.MessageReceived += OnReceiveMessage;
         Channel.MessageEdited += OnReceiveMessageEdit;
@@ -365,7 +399,33 @@
         }
 
         await ReRender();
+
+        // A target can arrive after setup already started loading recent history
+        if (succeeded && WindowCtx is Content { TargetMessageId: { } lateTarget } lateContent)
+        {
+            lateContent.TargetMessageId = null;
+            if (lateTarget != 0)
+                await LoadAroundMessageAsync(lateTarget);
+        }
+
         return succeeded;
+    }
+
+    /// <summary>
+    /// Loads the channel around a message and highlights it. While the channel
+    /// is still being set up, the message is kept as the target so setup loads
+    /// around it instead.
+    /// </summary>
+    public async Task ShowMessageAsync(long messageId)
+    {
+        if (_loading || _setupError is not null || Channel is null)
+        {
+            if (WindowCtx is Content content)
+                content.TargetMessageId = messageId;
+            return;
+        }
+
+        await LoadAroundMessageAsync(messageId);
     }
 
     private async Task RetrySetupAsync()
@@ -886,6 +946,8 @@
         if (!result.Success)
             return TaskResult.FromFailure(result);
 
+        _reachedStart = (result.Data?.Count ?? 0) < count;
+
         await AddMessages(result.Data, true, true);
 
         // Opening an encrypted channel is a good moment to share its key with
@@ -930,6 +992,7 @@
 
         var before = beforeResult.Data;
         var after = afterResult.Data;
+        _reachedStart = before is null || before.Count < 32;
 
         var combined = new List<Message>();
         if (before is not null)
@@ -1018,6 +1081,7 @@
     
     public void ClearMessages(bool render = true)
     {
+        _reachedStart = false;
         DisplayedMessages.Clear();
         QueuedMessages.Clear();
         RenderedMessages.Clear();
@@ -1154,6 +1218,7 @@
         if (atBottom && DisplayedMessages.Count > TrimThreshold)
         {
             DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - TargetMessages);
+            _reachedStart = false;
             _liveArrivalIds.RemoveWhere(id => !DisplayedMessages.Any(x => x.Id == id));
         }
 
@@ -1434,6 +1499,7 @@
 
             _isCaughtUp = true;
             ClearMessages(false);
+            _reachedStart = messages.Count < MessagePageSize;
 
             await AddMessages(messages, render: false, scroll: false);
 
@@ -1493,6 +1559,7 @@
             return;
 
         DisplayedMessages.RemoveRange(0, excess);
+        _reachedStart = false;
     }
     
 
@@ -1521,8 +1588,22 @@
 
             var messages = await Channel.GetMessagesAsync(firstId, MessagePageSize);
 
-            if (_disposed || messages is null || !messages.Any())
+            if (_disposed || messages is null)
                 return;
+
+            if (messages.Count == 0)
+            {
+                if (!_reachedStart)
+                {
+                    _reachedStart = true;
+                    await ReRender();
+                }
+
+                return;
+            }
+
+            if (messages.Count < MessagePageSize)
+                _reachedStart = true;
 
             // Insert older messages above, then preserve the viewport after the DOM has rendered them.
             await UpdateScrollPosition();
@@ -1723,6 +1804,23 @@
     private async Task OnFocusedTabChanged(WindowTab tab)
     {
         await InvokeAsync(UpdateActiveViewingLeaseStateAsync);
+    }
+
+    /// <summary>
+    /// Marks a reply or mention in this channel read when it arrives while the
+    /// user is looking at the latest messages. Messages mark their own
+    /// notification read when they first render, but the notification is
+    /// created after the message is relayed and usually arrives later.
+    /// </summary>
+    private void OnNotificationReceived(Notification notification)
+    {
+        if (notification.TimeRead is not null || notification.ChannelId != Channel?.Id)
+            return;
+
+        if (!_isCaughtUp || !IsActivelyVisibleToUser())
+            return;
+
+        _ = Client.NotificationService.MarkNotificationRead(notification, true);
     }
 
     private bool IsActivelyVisibleToUser()
@@ -1985,6 +2083,7 @@
         BrowserUtils.Focused -= OnBrowserFocused;
         BrowserUtils.Blurred -= OnBrowserBlurred;
         WindowService.FocusedTabChanged -= OnFocusedTabChanged;
+        Client.NotificationService.NotificationReceived -= OnNotificationReceived;
         
         if (Channel.PlanetId is not null)
         {

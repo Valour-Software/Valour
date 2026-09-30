@@ -9,6 +9,18 @@
     max-width: 100%;
 }
 
+.video-attachment-wrapper.sized {
+    display: block;
+}
+
+.video-attachment-wrapper.sized .video-attachment {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    background-color: var(--surface-canvas);
+}
+
 .video-attachment-wrapper.spoiler-hidden .video-attachment {
     filter: blur(24px);
 }
@@ -22,8 +34,8 @@
     text-align: center;
     padding: 8px;
     border-radius: var(--radius-md);
-    background-color: rgba(0, 0, 0, 0.35);
-    color: white;
-    font-weight: 600;
+    background-color: color-mix(in srgb, var(--surface-canvas) 40%, transparent);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
 }

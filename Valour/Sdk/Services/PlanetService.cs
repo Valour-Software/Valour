@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
@@ -56,6 +57,9 @@ public class PlanetService : ServiceBase
     public readonly IReadOnlyList<Planet> JoinedPlanets;
 
     private readonly List<Planet> _joinedPlanets = new();
+
+    private readonly Dictionary<long, int> _planetActivity = new();
+    private readonly HashSet<long> _planetActivityReported = new();
 
     /// <summary>
     /// Currently opened planets
@@ -267,6 +271,28 @@ public class PlanetService : ServiceBase
         await ApplyJoinedPlanetsAsync(response.Data, memberships);
         return TaskResult.SuccessResult;
     }
+
+    /// <summary>
+    /// Stores how many members of each joined planet were connected recently, as
+    /// reported at startup. Planets in <paramref name="reportedPlanetIds"/> that are
+    /// missing from <paramref name="activity"/> had nobody active.
+    /// </summary>
+    public void ApplyPlanetActivity(IEnumerable<long> reportedPlanetIds, IReadOnlyDictionary<long, int> activity)
+    {
+        _planetActivity.Clear();
+        _planetActivityReported.Clear();
+        foreach (var id in reportedPlanetIds)
+            _planetActivityReported.Add(id);
+        foreach (var (id, count) in activity)
+            _planetActivity[id] = count;
+    }
+
+    /// <summary>
+    /// Members of a joined planet connected in the last 15 minutes when the app
+    /// started, or -1 when the planet's host did not report it.
+    /// </summary>
+    public int GetActiveCount(long planetId) =>
+        _planetActivityReported.Contains(planetId) ? _planetActivity.GetValueOrDefault(planetId) : -1;
 
     public async Task ApplyJoinedPlanetsAsync(
         IEnumerable<Planet> joinedPlanets,
@@ -988,6 +1014,29 @@ public class PlanetService : ServiceBase
 
     public Task<TaskResult> SavePlanetListLayoutAsync(SavePlanetListLayoutRequest request) =>
         _client.PrimaryNode.PostAsync("api/users/me/planet-list-layout", request);
+
+    /// <summary>
+    /// Changes which generated world the planet shows, through the ordinary
+    /// planet update. The request carries the cached planet with only the
+    /// variant replaced, and the response is synchronized into the cache, so
+    /// the planet's Updated event reports the change even before the realtime
+    /// update arrives.
+    /// </summary>
+    public async Task<TaskResult<Planet>> SetWorldVariantAsync(Planet planet, byte worldVariant)
+    {
+        var node = planet.Node;
+        if (node is null)
+            return TaskResult<Planet>.FromFailure("The planet's node is unavailable. Reconnect and try again.");
+
+        var body = JsonSerializer.SerializeToNode(planet, JsonSerializerOptions.Web)!.AsObject();
+        body["worldVariant"] = worldVariant;
+
+        var result = await node.PutAsyncWithResponse<Planet>(planet.IdRoute, body);
+        if (!result.Success || result.Data is null)
+            return result;
+
+        return TaskResult<Planet>.FromData(result.Data.Sync(_client));
+    }
 
     public async Task<TaskResult> SetVanityAsync(Planet planet, string name)
     {

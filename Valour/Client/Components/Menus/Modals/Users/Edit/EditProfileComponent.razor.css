@@ -5,12 +5,12 @@
 }
 
 .preview {
-    background-color: var(--main-3);
+    background-color: var(--surface-raised);
     display: inline-block;
     padding: 0.5rem;
     border-radius: var(--radius-md);
     margin: 0 0 1.5rem;
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line);
 }
 
 .form-group:last-child {
@@ -44,7 +44,7 @@ textarea.v-input {
     width: 96px;
     height: 96px;
     flex: 0 0 auto;
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     cursor: pointer;
     object-fit: cover;
@@ -52,7 +52,7 @@ textarea.v-input {
 }
 
 .avatar:hover {
-    border-color: var(--medium-tint);
+    border-color: var(--line-strong);
 }
 
 .avatar-info {
@@ -73,9 +73,9 @@ textarea.v-input {
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     margin-bottom: 1.25rem;
     font-size: var(--font-size-sm);
 }
@@ -93,15 +93,24 @@ textarea.v-input {
     gap: 0.5rem;
     padding: 0.75rem;
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
 }
 
 .color-picker-item .v-span {
     display: block;
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+}
+
+.file-input-host {
+    display: none;
+}
+
+.tag-input {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .custom-file-input {

@@ -1042,6 +1042,50 @@ public class E2eeLiveTests
     }
 
     [Fact]
+    public async Task Newcomer_StartsAKeyWhenTheNewestRecordCannotBeVerified()
+    {
+        var (owner, _) = await CreateUserAsync();
+        var (newcomer, _) = await CreateUserAsync();
+        var (planet, channel) = await CreatePlanetAsync(owner);
+        var before = await SendAsync(owner, channel, "said before you joined", planet.MyMember.Id);
+        Assert.True(before.Success, before.Message);
+        await GoOfflineAsync(owner);
+
+        // The newcomer's device rejects the newest record, so it only knows
+        // the generation number. A key that does not unlock earlier ones
+        // needs nothing from that record, so sending still works.
+        using (var scope = _fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            var first = await db.E2eeChannelKeyGenerations
+                .SingleAsync(x => x.ChannelId == channel.Id && x.Generation == 1);
+            var signature = first.Signature.ToArray();
+            signature[0] ^= 0xFF;
+            first.Signature = signature;
+            await db.SaveChangesAsync();
+        }
+
+        var (newcomerPlanet, newcomerChannel) = await JoinPlanetAsync(newcomer, planet.Id, channel.Id);
+        var ring = await newcomer.E2eeService.GetKeyRingAsync(newcomerChannel, refresh: true);
+        Assert.Equal(1, ring.LatestGeneration);
+        Assert.Null(ring.LatestRecord);
+
+        var hello = await SendAsync(newcomer, newcomerChannel, "hello anyway", newcomerPlanet.MyMember.Id);
+        Assert.True(hello.Success, hello.Message);
+
+        using (var scope = _fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            var started = await db.E2eeChannelKeyGenerations.AsNoTracking()
+                .SingleAsync(x => x.ChannelId == channel.Id && x.Generation == 2);
+            var record = ChannelKeyGenerationRecord.Decode(started.Body);
+            Assert.Equal(ChannelKeyRotationReason.KeyUnavailable, record.Reason);
+            Assert.False(record.UnlocksPrevious);
+            Assert.Equal(2, record.IndexGeneration);
+        }
+    }
+
+    [Fact]
     public async Task Newcomer_WaitsForAHolderWhenThePlanetFiltersWords()
     {
         var (owner, _) = await CreateUserAsync();

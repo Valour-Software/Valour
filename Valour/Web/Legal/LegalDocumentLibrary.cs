@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Markdig;
+using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 
@@ -66,6 +67,12 @@ public sealed class LegalDocumentLibrary
             if (link.Url is { } url && TryMapDocumentLink(url, out var mapped))
                 link.Url = mapped;
         }
+
+        // The "Last updated" line is set in the monospaced face used for dates.
+        var dateLine = parsed.Descendants<ParagraphBlock>().FirstOrDefault(paragraph =>
+            paragraph.Inline?.FirstChild is LiteralInline literal &&
+            literal.Content.ToString().StartsWith("Last updated", StringComparison.OrdinalIgnoreCase));
+        dateLine?.GetAttributes().AddClass("doc-date");
 
         return new RenderedLegalDocument(document, parsed.ToHtml(Pipeline));
     }

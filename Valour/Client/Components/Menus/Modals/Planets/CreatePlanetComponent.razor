@@ -3,20 +3,18 @@
 @inject PlanetService PlanetService
 
 <section class="create-modal">
- <LottiePlayerLoader />
-
  @if (_showWelcome)
  {
-  <div class="welcome-state">
-   <lottie-player @ref="@_lottieRef" src="./_content/Valour.Client/media/animations/create_planet.json" background="transparent" speed="1"></lottie-player>
-   <h2 class="welcome">We have landed!</h2>
-  </div>
+  <SkyMoment Pose="SkyMoment.VictorPose.Peeking" Seed="@_createdSeed" Height="200" CssClass="welcome-state"
+             Eyebrow="@_createdName"
+             Title="We have landed"
+             Description="Your planet is ready. Invite people and start the first conversation." />
  }
  else
  {
   <div class="modal-header">
-   <lottie-player @ref="@_lottieRef" src="./_content/Valour.Client/media/animations/create_planet.json" background="transparent" speed="1"></lottie-player>
-   <h2>@(_importMode ? "Import from Discord" : "Create a Planet")</h2>
+   <SkyMoment Pose="@(_importMode ? SkyMoment.VictorPose.Telescope : SkyMoment.VictorPose.Rocket)" Palette="valour" Seed="valour-launch" Height="132" />
+   <h2>@(_importMode ? "Import from Discord" : "Create a planet")</h2>
    <p class="subtitle">
     @(_importMode
      ? "Bring your server's layout with you."
@@ -114,7 +112,8 @@
 
 @code {
 
-    private ElementReference _lottieRef;
+    private string _createdSeed;
+    private string _createdName;
 
 
     private bool _showWelcome = false;
@@ -207,14 +206,12 @@
 
     private async Task FinishAsync(Planet created)
     {
+     _createdSeed = NebulaPalettes.WorldSeed(created);
+     _createdName = created.Name;
      _showWelcome = true;
      StateHasChanged();
 
-     await Task.Delay(200);
-
-     await JsRuntime.InvokeVoidAsync("playLottie", _lottieRef);
-
-     await Task.Delay(3000);
+     await Task.Delay(3200);
 
      ModalRoot.CloseModal(ModalId);
 

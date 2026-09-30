@@ -1,0 +1,18 @@
+.planet-globe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.6s var(--ease-standard);
+    pointer-events: none;
+}
+
+.planet-globe[data-ready] {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .planet-globe {
+        transition: none;
+    }
+}

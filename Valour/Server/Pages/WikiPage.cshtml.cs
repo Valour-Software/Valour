@@ -1,5 +1,6 @@
 #nullable enable annotations
 
+using Valour.Server.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -64,7 +65,7 @@ public class WikiPageViewModel : PageModel
                 ["datePublished"] = Doc.TimeCreated.ToString("o"),
                 ["dateModified"] = (Doc.LastEdited ?? Doc.TimeCreated).ToString("o"),
                 ["description"] = Snippet,
-                ["image"] = PlanetIcon,
+                ["image"] = Planet is null ? null : LinkPreviewMeta.PlanetImageUrl(Planet),
                 ["author"] = new Dictionary<string, object?>
                 {
                     ["@type"] = "Person",

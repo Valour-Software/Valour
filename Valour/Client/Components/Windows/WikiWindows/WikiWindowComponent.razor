@@ -91,11 +91,11 @@
                             <div class="dw-folder-form">
                                 <input class="v-input" placeholder="Folder name" maxlength="@ISharedPlanetWikiPage.MaxTitleLength"
                                        @bind="_folderName" @bind:event="oninput"/>
-                                <button class="v-pill accent" disabled="@(string.IsNullOrWhiteSpace(_folderName))"
+                                <button class="v-btn primary small" disabled="@(string.IsNullOrWhiteSpace(_folderName))"
                                         @onclick="SubmitFolderFormAsync">
                                     @(_renamingFolder is null ? "Create" : "Rename")
                                 </button>
-                                <button class="v-pill" @onclick="CancelFolderForm">Cancel</button>
+                                <button class="v-btn small" @onclick="CancelFolderForm">Cancel</button>
                             </div>
                         }
                     </div>
@@ -126,13 +126,13 @@
                     <div class="dw-article-wrap">
                         <div class="dw-revision-banner">
                             <i class="bi bi-clock-history"></i>
-                            <span>Viewing revision from @_viewingRevision.TimeCreated.ToLocalTime().ToString("g")</span>
+                            <span>Viewing revision from <span class="dw-revision-time">@_viewingRevision.TimeCreated.ToLocalTime().ToString("g")</span></span>
                             <div class="dw-revision-actions">
                                 @if (CanManage)
                                 {
-                                    <button class="v-pill accent" @onclick="RestoreViewedRevisionAsync">Restore</button>
+                                    <button class="v-btn primary small" @onclick="RestoreViewedRevisionAsync">Restore</button>
                                 }
-                                <button class="v-pill" @onclick="ExitRevisionView">Back to current</button>
+                                <button class="v-btn small" @onclick="ExitRevisionView">Back to current</button>
                             </div>
                         </div>
                         <WikiPageView Window="@this"
@@ -187,7 +187,7 @@
                                         <i class="bi bi-journal-plus"></i>
                                         <h3>Start your wiki</h3>
                                         <p>Write your community's first wiki page.</p>
-                                        <button class="v-pill accent" @onclick="@(() => BeginCreatePageAsync(_selected?.Id))">
+                                        <button class="v-btn primary" @onclick="@(() => BeginCreatePageAsync(_selected?.Id))">
                                             Write your first page
                                         </button>
                                     </div>

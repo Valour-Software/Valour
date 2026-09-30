@@ -1,7 +1,7 @@
 @* Standard reusable button. Variants: primary, secondary, outline, ghost, danger. Sizes: sm, md, lg. *@
 
 <button type="@Type"
-        class="v-button @Variant @Size @(FullWidth ? "full-width" : "") @(_iconOnly ? "icon-only" : "")"
+        class="v-btn v-button @VariantClass @Size @(FullWidth ? "full-width" : "") @(_iconOnly ? "icon-only" : "")"
         disabled="@Disabled"
         title="@Title"
         @onclick="@OnClick"
@@ -57,4 +57,12 @@
     public string Type { get; set; } = "button";
 
     private bool _iconOnly => ChildContent is null && !string.IsNullOrEmpty(Icon);
+
+    private string VariantClass => Variant switch
+    {
+        "primary" => "primary",
+        "danger" => "danger",
+        "ghost" => "tertiary",
+        _ => null
+    };
 }

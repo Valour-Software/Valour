@@ -1,0 +1,87 @@
+.reports-filters {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-group label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
+}
+
+.filter-group .form-control {
+    min-width: 150px;
+}
+
+.reason-badge,
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    text-transform: none;
+    letter-spacing: var(--letter-spacing-normal);
+    white-space: nowrap;
+}
+
+.reason-badge.severe {
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+.reason-badge.moderate {
+    background-color: var(--color-warning-soft);
+    color: var(--color-warning);
+}
+
+.reason-badge.minor {
+    background-color: var(--surface-hover);
+    color: var(--text-secondary);
+}
+
+.status-badge.unresolved {
+    background-color: var(--color-warning-soft);
+    color: var(--color-warning);
+}
+
+.status-badge.resolved {
+    background-color: var(--color-success-soft);
+    color: var(--color-success);
+}
+
+.report-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.time-cell {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.description-cell {
+    display: block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}

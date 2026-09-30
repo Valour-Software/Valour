@@ -7,95 +7,35 @@
    (/D/{id}) pages. The pages differ only in how they load the planet info and
    how the join is performed; everything below is common. *@
 
-<NebulaBackground ContentClasses="absolute-center">
-    <div class="invite-card">
-        <div class="col-md-12">
+@if (Result is null || !Result.Value.Success || Result.Value.Data is null)
+{
+    <NebulaBackground ContentClasses="absolute-center">
+        <div class="invite-card">
             <section class="text-center">
-
                 @if (Result is null)
                 {
                     <h2>Loading...</h2>
                 }
-                else if (!Result.Value.Success)
+                else
                 {
                     <p class="invite-prompt text-danger">@(Result.Value.Message ?? "An error occurred.")</p>
                     <button class="v-btn center mt-4" @onclick="OnClose">Back to Home</button>
                 }
-                else
-                {
-                    if (!Client.IsLoggedIn)
-                    {
-                        <div class="invite-planet-preview">
-                            <DiscoveryPlanetCard PlanetInfo="@Result.Value.Data" HideActions="true"/>
-                        </div>
-                        <p class="invite-prompt">Create an account or log in to join this planet</p>
-                        <div class="invite-actions">
-                            <button class="v-btn mt-2 join-btn" @onclick="OnClickRegister">Join Valour</button>
-                            <button class="v-btn mt-2 login-btn" @onclick="OnClickLogin">Log In</button>
-                        </div>
-                    }
-                    else if (_alreadyJoined)
-                    {
-                        <DiscoveryPlanetCard PlanetInfo="@Result.Value.Data" HideActions="true"/>
-                        <p class="already-joined-text">You're already a member of this planet!</p>
-                        <button class="v-btn mt-2" @onclick="OnClose">Go to Home</button>
-                    }
-                    else if (!string.IsNullOrWhiteSpace(Result.Value.Data.NodeDomain))
-                    {
-                        @* Community-hosted planet: first-contact warning before joining. *@
-                        <DiscoveryPlanetCard PlanetInfo="@Result.Value.Data" HideActions="true"/>
-                        <div class="custom-media-warning mt-2">
-                            <i class="bi bi-hdd-network-fill"></i>
-                            <span>
-                                This planet is hosted by <b>@Result.Value.Data.NodeDomain</b> — a community server,
-                                not Valour. Messages and media you post there are stored on their servers and visible
-                                to their operator. Valour's moderation and data-deletion guarantees don't fully apply,
-                                and your IP address is visible to this server.
-                            </span>
-                        </div>
-                        @if (_joining)
-                        {
-                            <p class="invite-prompt">Joining...</p>
-                        }
-                        else
-                        {
-                            <button class="v-btn mt-3 join-btn" @onclick="@(() => OnJoinFederated(Result.Value.Data))">
-                                I understand — join @Result.Value.Data.NodeDomain
-                            </button>
-                        }
-                        @if (_joinError is not null)
-                        {
-                            <p class="invite-prompt text-danger">@_joinError</p>
-                        }
-                    }
-                    else
-                    {
-                        <DiscoveryPlanetCard PlanetInfo="@Result.Value.Data" OnJoin="OnJoinPlanet"/>
-                        @if (Result.Value.Data.SelfHostedMedia)
-                        {
-                            <div class="custom-media-warning mt-2">
-                                <i class="bi bi-hdd-network-fill"></i>
-                                <span>
-                                    This planet stores its media on infrastructure controlled by the planet's owner,
-                                    not by Valour. Files shared here are not scanned by Valour, and the planet's
-                                    media host can see your IP address when you view or upload media.
-                                </span>
-                            </div>
-                        }
-                        @if (_joining)
-                        {
-                            <p class="invite-prompt">Joining planet...</p>
-                        }
-                        else if (_joinError is not null)
-                        {
-                            <p class="invite-prompt text-danger">@_joinError</p>
-                        }
-                    }
-                }
             </section>
         </div>
+    </NebulaBackground>
+}
+else
+{
+    <div class="planet-landing">
+        <div class="planet-landing-inner">
+            <PlanetInfoDisplay PlanetInfo="@Result.Value.Data"
+                               IsFullPage="true"
+                               Notices="@NoticesFragment"
+                               Actions="@ActionButtons" />
+        </div>
     </div>
-</NebulaBackground>
+}
 
 @code {
     /// <summary>
@@ -135,6 +75,97 @@
     private bool _memberReported;
     private string _joinError;
     private bool _joining;
+
+    private PlanetListInfo Info => Result?.Data;
+
+    private bool IsCommunityHosted => !string.IsNullOrWhiteSpace(Info?.NodeDomain);
+
+    private bool HasNotices =>
+        !Client.IsLoggedIn ||
+        _alreadyJoined ||
+        IsCommunityHosted ||
+        Info?.SelfHostedMedia == true ||
+        _joining ||
+        _joinError is not null;
+
+    private RenderFragment NoticesFragment
+    {
+        get
+        {
+            if (!HasNotices)
+                return null;
+
+            return NoticeContent;
+        }
+    }
+
+    private RenderFragment NoticeContent => @<text>
+        @if (!Client.IsLoggedIn)
+        {
+            <p class="landing-note">Create an account or log in to join this planet</p>
+        }
+        else if (_alreadyJoined)
+        {
+            <p class="landing-note success">You're already a member of this planet!</p>
+        }
+        else if (IsCommunityHosted)
+        {
+            @* Community-hosted planet: first-contact warning before joining. *@
+            <div class="custom-media-warning">
+                <i class="bi bi-hdd-network-fill"></i>
+                <span>
+                    This planet is hosted by <b>@Info.NodeDomain</b> — a community server,
+                    not Valour. Messages and media you post there are stored on their servers and visible
+                    to their operator. Valour's moderation and data-deletion guarantees don't fully apply,
+                    and your IP address is visible to this server.
+                </span>
+            </div>
+        }
+        else if (Info.SelfHostedMedia)
+        {
+            <div class="custom-media-warning">
+                <i class="bi bi-hdd-network-fill"></i>
+                <span>
+                    This planet stores its media on infrastructure controlled by the planet's owner,
+                    not by Valour. Files shared here are not scanned by Valour, and the planet's
+                    media host can see your IP address when you view or upload media.
+                </span>
+            </div>
+        }
+        @if (Client.IsLoggedIn && !_alreadyJoined)
+        {
+            @if (_joining)
+            {
+                <p class="landing-note">@(IsCommunityHosted ? "Joining..." : "Joining planet...")</p>
+            }
+            else if (_joinError is not null)
+            {
+                <p class="landing-note danger">@_joinError</p>
+            }
+        }
+    </text>;
+
+    private RenderFragment ActionButtons => @<text>
+        @if (!Client.IsLoggedIn)
+        {
+            <button class="v-btn primary" @onclick="OnClickRegister">Join Valour</button>
+            <button class="v-btn" @onclick="OnClickLogin">Log in</button>
+        }
+        else if (_alreadyJoined)
+        {
+            <button class="v-btn" @onclick="OnClose">Go to Home</button>
+        }
+        else if (IsCommunityHosted)
+        {
+            <button class="v-btn primary" disabled="@_joining" @onclick="@(() => OnJoinFederated(Info))">
+                I understand — join @Info.NodeDomain
+            </button>
+        }
+        else
+        {
+            <button class="v-btn primary" disabled="@_joining" @onclick="@(() => OnJoinPlanet(Info))">Join planet</button>
+        }
+    </text>;
 
     protected override async Task OnParametersSetAsync()
     {

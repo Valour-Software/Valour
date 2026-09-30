@@ -42,7 +42,7 @@ else if (_page == SubPage.StripeResult)
         <h3 class="editor-section-title">@_stripeResultTitle</h3>
         <p>@_stripeResultMessage</p>
 
-        <button class="v-btn mt-4" @onclick="BackToMain">Back to Subscriptions</button>
+        <button class="v-btn mt-4" @onclick="BackToMain">Back to subscriptions</button>
     </div>
 }
 else
@@ -76,7 +76,7 @@ else
                 <div class="banner-actions">
                     @if (_activeSub.PendingType is not null)
                     {
-                        <button class="v-btn" @onclick="OnClickCancelPending">Undo Downgrade</button>
+                        <button class="v-btn" @onclick="OnClickCancelPending">Undo downgrade</button>
                     }
                     @if (_activeSub.Cancelled && _activeSub.StripeSubscriptionId is null)
                     {
@@ -86,13 +86,13 @@ else
                     {
                         @if (!_confirmingCancel)
                         {
-                            <button class="v-btn danger" @onclick="() => { _confirmingCancel = true; StateHasChanged(); }">Cancel Subscription</button>
+                            <button class="v-btn danger" @onclick="() => { _confirmingCancel = true; StateHasChanged(); }">Cancel subscription</button>
                         }
                         else
                         {
                             <span class="cancel-confirm-text">Are you sure?</span>
                             <div class="cancel-confirm-buttons">
-                                <button class="v-btn danger" @onclick="OnConfirmCancel">Yes, Cancel</button>
+                                <button class="v-btn danger" @onclick="OnConfirmCancel">Yes, cancel</button>
                                 <button class="v-btn" @onclick="() => { _confirmingCancel = false; StateHasChanged(); }">Keep subscription</button>
                             </div>
                         }
@@ -141,12 +141,12 @@ else
                         }
                         else if (isPending)
                         {
-                            <span class="status-badge pending">Next Cycle</span>
+                            <span class="status-badge pending">Next cycle</span>
                         }
                     </div>
                     <div class="tier-pricing">
-                        <span class="tier-price-vc">@tier.Price  VC / month</span>
-                        <span class="tier-price-usd">$@((tier.StripePriceCents / 100m).ToString("0.00")) / month</span>
+                        <span class="tier-price-vc"><span class="amount">@tier.Price VC</span> / month</span>
+                        <span class="tier-price-usd"><span class="amount">$@((tier.StripePriceCents / 100m).ToString("0.00"))</span> / month</span>
                     </div>
                     <p class="tier-desc">@tier.Description</p>
                     <details class="tier-benefits">
@@ -165,7 +165,7 @@ else
                         @if (_activeSub.PendingType is not null && isPending)
                         {
                             <button class="v-btn tier-subscribe-btn" @onclick="OnClickCancelPending">
-                                Undo Downgrade
+                                Undo downgrade
                             </button>
                             <span class="upgrade-note">Keep @_activeSub.Type and remove the scheduled change to @_activeSub.PendingType.</span>
                         }
@@ -173,7 +173,7 @@ else
                         @if (isActive && _activeSub.StripeSubscriptionId is null)
                         {
                             <button class="v-btn secondary tier-subscribe-btn" @onclick="() => OnClickStripeSubscribe(tier)">
-                                Switch to Card Billing
+                                Switch to card billing
                             </button>
                             <span class="upgrade-note">Keep this tier, move billing to Stripe, and apply your unused VC time as first-month credit.</span>
                         }
@@ -195,7 +195,7 @@ else
                             }
 
                             <button class="v-btn secondary" @onclick="() => OnClickStripeSubscribe(tier)">
-                                Pay with Card ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
+                                Pay with card ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
                             </button>
 
                             <button class="v-btn" @onclick="() => { _selectedTier = null; _errorSpan = null; StateHasChanged(); }">Back</button>
@@ -213,14 +213,14 @@ else
                             @if (_activeSub.StripeSubscriptionId is not null)
                             {
                                 <button class="v-btn primary" @onclick="() => OnClickStripeChange(tier)">
-                                    Confirm Upgrade ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month)
+                                    Confirm upgrade ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month)
                                 </button>
                                 <span class="upgrade-note">Prorated charges will apply for the current period.</span>
                             }
                             else
                             {
                                 <button class="v-btn primary" @onclick="() => OnClickSubscribe(tier)">
-                                    Confirm Upgrade (@(_dueNow) VC due now)
+                                    Confirm upgrade (@(_dueNow) VC due now)
                                 </button>
                                 @if (_globalAccount is not null && _globalAccount.BalanceValue < _dueNow)
                                 {
@@ -228,7 +228,7 @@ else
                                 }
 
                                 <button class="v-btn secondary" @onclick="() => OnClickStripeSubscribe(tier)">
-                                    Switch to Card Billing ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
+                                    Switch to card billing ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
                                 </button>
                                 <span class="upgrade-note">Use Stripe billing, with unused VC time credited on your first Stripe month.</span>
                             }
@@ -248,17 +248,17 @@ else
                             @if (_activeSub.StripeSubscriptionId is not null)
                             {
                                 <button class="v-btn primary" @onclick="() => OnClickStripeChange(tier)">
-                                    Confirm Downgrade
+                                    Confirm downgrade
                                 </button>
                             }
                             else
                             {
                                 <button class="v-btn primary" @onclick="() => OnClickSubscribe(tier)">
-                                    Confirm Downgrade
+                                    Confirm downgrade
                                 </button>
 
                                 <button class="v-btn secondary" @onclick="() => OnClickStripeSubscribe(tier)">
-                                    Switch to Card Billing ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
+                                    Switch to card billing ($@((tier.StripePriceCents / 100m).ToString("0.00")) / month + @(tier.VcReward) VC reward)
                                 </button>
                             }
                             @if (_activeSub.StripeSubscriptionId is not null)
@@ -280,11 +280,11 @@ else
                     }
                     else if (tierAction == TierAction.Subscribe)
                     {
-                        <button class="v-btn primary tier-subscribe-btn" @onclick="async () => await OnSelectTier(tier)">Subscribe</button>
+                        <button class="v-btn tier-subscribe-btn" @onclick="async () => await OnSelectTier(tier)">Subscribe</button>
                     }
                     else if (tierAction == TierAction.Upgrade)
                     {
-                        <button class="v-btn primary tier-subscribe-btn" @onclick="async () => await OnSelectTier(tier)">Upgrade</button>
+                        <button class="v-btn tier-subscribe-btn" @onclick="async () => await OnSelectTier(tier)">Upgrade</button>
                     }
                     else if (tierAction == TierAction.Downgrade)
                     {
@@ -306,7 +306,7 @@ else
         <p class="helper-text">Use Valour Credits for subscriptions and the community economy. Purchases open secure checkout.</p>
         @if (_globalAccount is not null)
         {
-            <p class="credit-balance">Your balance: <strong>@_globalAccount.BalanceValue VC</strong></p>
+            <p class="credit-balance">Your balance: <strong class="amount">@_globalAccount.BalanceValue VC</strong></p>
         }
         <div class="vc-grid">
             <button type="button" class="vc-card" @onclick="async () => await OnClickBuyCredits(500)">

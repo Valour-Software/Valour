@@ -3,6 +3,8 @@
 @using Valour.Server.Pages
 @using Valour.Client.Components.Wiki.Display
 @using Microsoft.AspNetCore.Components
+@using Valour.Client.Utility
+@using Valour.Server.Utilities
 @{
     var planetName = Model.Planet?.Name ?? "Planet";
     var title = $"{planetName} Wiki";
@@ -13,7 +15,6 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>@title | Valour</title>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/_content/Valour.Client/media/favicon/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/_content/Valour.Client/media/favicon/favicon-32x32.png">
@@ -21,23 +22,14 @@
 
     @if (Model.Planet is not null && !Model.IsPrivate)
     {
-        <meta name="description" content="@Model.Snippet"/>
-
-        <!-- Open Graph -->
-        <meta property="og:type" content="website"/>
-        <meta property="og:url" content="@Model.CanonicalUrl"/>
-        <meta property="og:title" content="@title"/>
-        <meta property="og:site_name" content="@planetName on Valour"/>
-        <meta property="og:description" content="@Model.Snippet"/>
-        <meta property="og:image" content="@Model.PlanetIcon"/>
-
-        <!-- Twitter -->
-        <meta property="twitter:card" content="summary"/>
-        <meta property="twitter:title" content="@title"/>
-        <meta property="twitter:description" content="@Model.Snippet"/>
-        <meta property="twitter:image" content="@Model.PlanetIcon"/>
-
-        <link rel="canonical" href="@Model.CanonicalUrl"/>
+        @Html.Raw(new LinkPreviewMeta
+        {
+            Title = title,
+            DocumentTitle = $"{title} | Valour",
+            Description = string.IsNullOrWhiteSpace(Model.Snippet) ? $"The wiki of {planetName} on Valour." : Model.Snippet,
+            Url = Model.CanonicalUrl,
+            SiteName = $"{planetName} on Valour",
+        }.WithPlanet(Model.Planet).RenderHead())
         @if (Model.Planet.Nsfw)
         {
             <meta name="rating" content="adult"/>
@@ -50,6 +42,7 @@
     }
     else
     {
+        <title>@title | Valour</title>
         @* Private/missing interstitials must not enter the index *@
         <meta name="robots" content="noindex"/>
     }
@@ -58,7 +51,7 @@
     <link href="/_content/Valour.Client/css/public-wiki.css" rel="stylesheet"/>
 </head>
 <body>
-<div class="pd-page">
+<div class="pd-page" style="@(Model.Planet is null ? null : $"--planet-light: {NebulaPalettes.PlanetLight(Model.Planet.Id, Model.Planet.WorldVariant)}")">
     <header class="pd-topbar">
         <a class="pd-brand" href="/">
             <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>
@@ -106,7 +99,7 @@
                 @if (Model.SearchResults is not null)
                 {
                     <h1 class="pd-title">Search results</h1>
-                    <p class="pd-meta">@Model.SearchResults.Count result@(Model.SearchResults.Count == 1 ? "" : "s") for "@Model.Query"</p>
+                    <p class="pd-meta"><span class="pd-num">@Model.SearchResults.Count</span> result@(Model.SearchResults.Count == 1 ? "" : "s") for "@Model.Query"</p>
 
                     @if (Model.SearchResults.Count == 0)
                     {
@@ -118,6 +111,7 @@
                             @foreach (var result in Model.SearchResults)
                             {
                                 <a class="pd-card" href="@Model.GetPageUrl(result.Slug)">
+                                    <i class="pd-card-icon bi bi-file-earmark-text"></i>
                                     <span class="pd-card-title">@result.Title</span>
                                 </a>
                             }
@@ -129,7 +123,7 @@
                     <h1 class="pd-title">@planetName Wiki</h1>
                     @if (!string.IsNullOrWhiteSpace(Model.Snippet))
                     {
-                        <p class="pd-meta">@Model.Snippet</p>
+                        <p class="pd-lede">@Model.Snippet</p>
                     }
 
                     @if (Model.RootNodes.Count == 0)
@@ -144,13 +138,17 @@
                                 @if (node.IsFolder)
                                 {
                                     <div class="pd-card pd-card-folder">
-                                        <span class="pd-card-title">@node.Title</span>
-                                        <span class="pd-card-sub">Folder</span>
+                                        <i class="pd-card-icon bi bi-folder2"></i>
+                                        <span class="pd-card-text">
+                                            <span class="pd-card-title">@node.Title</span>
+                                            <span class="pd-card-sub">Folder</span>
+                                        </span>
                                     </div>
                                 }
                                 else if (node.Slug is not null)
                                 {
                                     <a class="pd-card" href="@Model.GetPageUrl(node.Slug)">
+                                        <i class="pd-card-icon bi bi-file-earmark-text"></i>
                                         <span class="pd-card-title">@node.Title</span>
                                     </a>
                                 }

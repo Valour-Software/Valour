@@ -36,9 +36,10 @@
     max-width: 860px;
     margin: auto 0;
     padding: 32px 24px;
-    background: color-mix(in srgb, var(--main-2) 82%, transparent);
-    border: 1px solid var(--slight-tint);
+    background: var(--surface-base);
+    border: 1px solid var(--line);
     border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-modal), var(--rim-light);
     text-align: center;
 }
 
@@ -49,11 +50,11 @@
 }
 
 .step-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: var(--radius-full);
-    background-color: var(--slight-tint);
-    border: 1px solid var(--font-alt-color);
+    background-color: var(--surface-active);
+    border: none;
 }
 
 .step-dot.active {
@@ -62,24 +63,25 @@
 }
 
 .step-dot.done {
-    background-color: var(--font-alt-color);
+    background-color: var(--text-tertiary);
 }
 
 h1 {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--font-color);
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-display);
+    color: var(--text-primary);
     margin: 0 0 8px 0;
 }
 
 .subtitle {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-md);
     margin: 0 0 24px 0;
 }
 
 .loading-text {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     margin: 32px 0;
 }
 
@@ -104,24 +106,25 @@ h1 {
 .chip {
     padding: 8px 18px;
     border-radius: var(--radius-full);
-    border: 1px solid var(--slight-tint);
-    background: var(--main-3);
-    color: var(--font-color);
-    font-size: var(--font-size-md);
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 }
 
 .chip:hover {
-    background: var(--main-4);
-    border-color: var(--medium-tint);
-    transform: translateY(-1px);
+    background: var(--surface-hover);
+    border-color: var(--line-strong);
+    color: var(--text-primary);
 }
 
 .chip.selected {
-    background: color-mix(in srgb, var(--color-primary) 18%, var(--main-3));
-    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--slight-tint));
-    color: color-mix(in srgb, var(--color-primary) 42%, white);
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary-border);
+    color: var(--color-primary);
 }
 
 .joined-pills {
@@ -138,8 +141,8 @@ h1 {
     gap: 6px;
     padding: 4px 12px;
     border-radius: var(--radius-full);
-    background-color: var(--slight-tint);
-    color: var(--font-color);
+    background-color: var(--line);
+    color: var(--text-primary);
     font-size: var(--font-size-sm);
 }
 
@@ -167,40 +170,57 @@ h1 {
     flex: 1 1 260px;
     max-width: 340px;
     padding: 28px 20px;
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--slight-tint);
-    background: var(--main-3);
-    color: var(--font-color);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    color: var(--text-primary);
     cursor: pointer;
     text-align: center;
-    transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+    transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
 }
 
 .path-card:hover {
-    background: var(--main-4);
-    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--medium-tint));
-    transform: translateY(-2px);
+    background: var(--surface-hover);
+    border-color: var(--line-strong);
 }
 
 .path-card.primary-path {
-    background: color-mix(in srgb, var(--color-primary) 10%, var(--main-3));
-    border-color: color-mix(in srgb, var(--color-primary) 32%, var(--slight-tint));
+    border-color: var(--color-primary-border);
 }
 
 .path-card i {
     font-size: var(--font-size-2xl);
+    color: var(--text-tertiary);
+}
+
+.path-card.primary-path i {
     color: var(--color-primary);
+}
+
+.onboarding-victor {
+    width: 92px;
+    height: 92px;
+    margin: -8px 0 4px;
+    animation: victor-float 6s ease-in-out infinite alternate;
+    user-select: none;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .onboarding-victor {
+        animation: none;
+    }
 }
 
 .path-card h3 {
     margin: 12px 0 8px 0;
     font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-semibold);
 }
 
 .path-card p {
     margin: 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -211,18 +231,18 @@ h1 {
     gap: 16px;
     margin-top: 32px;
     padding-top: 20px;
-    border-top: 1px solid var(--slight-tint);
+    border-top: 1px solid var(--line);
     width: 100%;
     max-width: 640px;
 }
 
 .skip-btn {
     background: transparent;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .skip-btn:hover {
-    color: var(--font-color);
+    color: var(--text-primary);
 }
 
 .onboarding-window.mobile .onboarding-card {

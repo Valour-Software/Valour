@@ -1,12 +1,17 @@
-@using Valour.Client.Emojis
-
 <div class="@("item " + SelectedClass)" @onmousedown:preventDefault="true" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
-    <img class="icon emoji-icon" src="@_emojiUrl" alt="@_displayCode" title="@($":{_displayCode}:")" />
+    @if (_customSrc is not null)
+    {
+        <img class="icon emoji-icon" src="@_customSrc" alt="@_displayCode" title="@($":{_displayCode}:")" />
+    }
+    else
+    {
+        <span class="icon emoji-icon emoji" role="img" aria-label="@_displayCode" title="@($":{_displayCode}:")">@Emoji?.Native</span>
+    }
     <p class="title noselect">:@_displayCode:</p>
 </div>
 
 @code {
-    private string _emojiUrl;
+    private string _customSrc;
     private string _displayCode;
 
     [Parameter]
@@ -40,22 +45,9 @@
         if (string.IsNullOrWhiteSpace(_displayCode))
             _displayCode = "emoji";
 
-        if (Emoji?.IsCustom == true && !string.IsNullOrWhiteSpace(Emoji.Src))
-        {
-            _emojiUrl = Emoji.Src;
-        }
-        else if (!string.IsNullOrWhiteSpace(Emoji?.Unified))
-        {
-            _emojiUrl = EmojiSourceProvider.GetSrcUrlByCodePoints(Emoji.Unified.ToLowerInvariant());
-        }
-        else if (!string.IsNullOrWhiteSpace(Emoji?.Native))
-        {
-            _emojiUrl = EmojiSourceProvider.GetSrcUrlFromNative(Emoji.Native);
-        }
-        else
-        {
-            _emojiUrl = string.Empty;
-        }
+        _customSrc = Emoji?.IsCustom == true && !string.IsNullOrWhiteSpace(Emoji.Src)
+            ? Emoji.Src
+            : null;
     }
 
     private async Task OnClickAsync()

@@ -8,7 +8,7 @@ namespace Valour.Server.Api.Dynamic;
 public class UnsubscribeApi
 {
     /// <summary>
-    /// Link-click unsubscribe from email body — returns an HTML confirmation page.
+    /// Link-click unsubscribe from email body; returns an HTML confirmation page.
     /// No authentication required (token-based).
     /// </summary>
     [ValourRoute(HttpVerbs.Get, "api/email/unsubscribe")]
@@ -28,7 +28,7 @@ public class UnsubscribeApi
     }
 
     /// <summary>
-    /// RFC 8058 one-click unsubscribe — email clients call this directly via POST.
+    /// RFC 8058 one-click unsubscribe: email clients call this directly via POST.
     /// No authentication required (token-based).
     /// </summary>
     [ValourRoute(HttpVerbs.Post, "api/email/unsubscribe/oneclick")]
@@ -104,19 +104,32 @@ public class UnsubscribeApi
 
     private static string BuildHtmlPage(string title, string message)
     {
+        var logoUrl = EmailConfig.Instance?.LogoUrl ?? "https://valour.gg/media/logo/logo-64.png";
+
         return $@"<!DOCTYPE html>
 <html lang=""en"">
 <head>
     <meta charset=""UTF-8"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <meta name=""color-scheme"" content=""dark"">
+    <meta name=""theme-color"" content=""{EmailTemplateHelper.CanvasColor}"">
     <title>{title} - Valour</title>
+    <style>
+        @font-face {{
+            font-family: ""Instrument Sans"";
+            font-style: normal;
+            font-weight: 400 700;
+            font-display: swap;
+            src: url(""/_content/Valour.Client/css/fonts/instrument-sans-latin.woff2"") format(""woff2"");
+        }}
+    </style>
 </head>
-<body style='font-family: Outfit, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>
-    <div style='max-width: 600px; margin: 40px auto; background-color: #fff; padding: 30px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); text-align: center;'>
-        <img src='{EmailConfig.Instance?.LogoUrl ?? "https://valour.gg/media/logo/logo-64.png"}' alt='Valour Logo' style='max-width: 64px; height: auto; display: block; margin: 0 auto 20px;'>
-        <h1 style='color: #333;'>{title}</h1>
-        <p style='color: #666;'>{message}</p>
-    </div>
+<body style='margin: 0; padding: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: {EmailTemplateHelper.CanvasColor}; color: {EmailTemplateHelper.TextPrimaryColor}; font-family: {EmailTemplateHelper.FontStack}; -webkit-font-smoothing: antialiased;'>
+    <main style='box-sizing: border-box; width: calc(100% - 32px); max-width: 440px; margin: 40px 16px; padding: 32px; background-color: {EmailTemplateHelper.SurfaceColor}; border: 1px solid {EmailTemplateHelper.LineColor}; border-radius: 14px; text-align: center;'>
+        <img src='{logoUrl}' alt='Valour Logo' width='40' height='40' style='display: block; width: 40px; height: 40px; margin: 0 auto 20px;'>
+        <h1 style='margin: 0 0 10px 0; color: {EmailTemplateHelper.TextPrimaryColor}; font-size: 22px; font-weight: 600; line-height: 1.3; letter-spacing: -0.015em;'>{title}</h1>
+        <p style='margin: 0; color: {EmailTemplateHelper.TextSecondaryColor}; font-size: 15px; line-height: 1.6;'>{message}</p>
+    </main>
 </body>
 </html>";
     }

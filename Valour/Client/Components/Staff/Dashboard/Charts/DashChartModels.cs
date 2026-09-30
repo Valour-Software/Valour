@@ -161,7 +161,7 @@ internal static class DashChartMath
         var encoded = System.Net.WebUtility.HtmlEncode(text);
         return new MarkupString(
             $"<text x=\"{x}\" y=\"{F(y)}\" text-anchor=\"{anchor}\"{baseline} pointer-events=\"none\" " +
-            "style=\"font-size: 11px; font-family: var(--font-family-app, sans-serif); " +
-            "fill: var(--font-color-muted, #7a7a7a);\">" + encoded + "</text>");
+            "style=\"font-size: 10px; font-family: var(--font-family-mono, monospace); " +
+            "font-variant-numeric: tabular-nums; fill: var(--text-tertiary, #7d8696);\">" + encoded + "</text>");
     }
 }

@@ -34,14 +34,13 @@
     justify-content: center;
     flex: 0 0 auto;
     border-radius: var(--radius-full);
-    background: var(--user-badge-bg, var(--main-1));
-    box-shadow: 0 0 0 1px var(--main-2);
-    color: var(--font-color);
+    background-color: var(--user-badge-bg, var(--surface-canvas));
+    box-shadow: 0 0 0 1px var(--surface-base);
+    color: var(--text-primary);
     line-height: var(--line-height-none);
     cursor: default;
     user-select: none;
     pointer-events: auto;
-
     filter: saturate(0.75) brightness(0.9);
 }
 
@@ -50,11 +49,11 @@
 }
 
 .user-badge-item.icon.milestone-1k {
-    color: #ffc940;
+    color: var(--color-warning);
 }
 
 .user-badge-item.icon.milestone-10k {
-    color: #b8c4d4;
+    color: var(--text-secondary);
 }
 
 .user-badge-item.icon i {

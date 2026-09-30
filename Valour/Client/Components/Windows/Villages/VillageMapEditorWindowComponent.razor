@@ -15,7 +15,7 @@ else
     <div class="map-editor-tool">
         <div class="map-editor-topbar">
             <div class="map-editor-title-block">
-                <div class="map-editor-title">Village Map Editor</div>
+                <div class="map-editor-title">Village map editor</div>
                 <div class="map-editor-subtitle">@_mapWidth x @_mapHeight · @_paintedTileCount tiles · @_spriteCount sprites</div>
                 @if (!string.IsNullOrWhiteSpace(_status))
                 {
@@ -170,8 +170,8 @@ else
 
         <div class="map-export">
             <div class="map-export-actions">
-                <span>Map JSON</span>
-                <button class="secondary-action" title="Copy map JSON" @onclick="CopyJsonAsync">
+                <span class="map-export-label">Map JSON</span>
+                <button class="v-btn secondary-action" title="Copy map JSON" @onclick="CopyJsonAsync">
                     <i class="bi bi-clipboard"></i>
                     <span>Copy</span>
                 </button>

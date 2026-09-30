@@ -1,0 +1,51 @@
+# Builds WebKitGTK with WebRTC against the GNOME runtime. The result is packed
+# into an archive that gg.valour.Valour.yml installs, so WebKit is only compiled
+# when its commit or options change. Prepare the source first with
+# ../WebKit/fetch-source.sh webkit-src.
+id: gg.valour.WebKitBuild
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+build-options:
+  # The SDK's default flags include -g. Debug information would make the build
+  # tree several times larger than a hosted runner's free disk.
+  cflags: -O2 -pipe
+  cflags-override: true
+  cxxflags: -O2 -pipe
+  cxxflags-override: true
+  no-debuginfo: true
+  strip: true
+modules:
+  - name: webkitgtk
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DPORT=GTK
+      - -DCMAKE_BUILD_TYPE=Release
+      # Precompiled headers make every compile uncacheable, and the compiler
+      # cache is what lets an interrupted CI build resume.
+      - -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON
+      - -DUSE_GTK4=OFF
+      - -DENABLE_DOCUMENTATION=OFF
+      - -DENABLE_INTROSPECTION=OFF
+      - -DENABLE_MINIBROWSER=OFF
+      - -DENABLE_SPEECH_SYNTHESIS=OFF
+      - -DUSE_FLITE=OFF
+      - -DENABLE_GAMEPAD=OFF
+      - -DENABLE_WEBDRIVER=OFF
+      - -DENABLE_BUBBLEWRAP_SANDBOX=OFF
+      - -DUSE_LIBBACKTRACE=OFF
+      - -DUSE_LIBHYPHEN=OFF
+      - -DUSE_WOFF2=OFF
+      - -DUSE_SYSTEM_UNIFDEF=OFF
+      - -DUSE_SYSTEM_SYSPROF_CAPTURE=OFF
+      - -DENABLE_API_TESTS=OFF
+      - -DENABLE_TOOLS=OFF
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /libexec/webkit2gtk-4.1/jsc
+    sources:
+      - type: dir
+        path: webkit-src
+        skip:
+          - .git

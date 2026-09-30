@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Valour.Client.Components.Threads.Display;
 using Valour.Config.Configs;
+using Valour.Server.Api.Dynamic;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Storage;
 using Valour.Server.Database;
 using Valour.Server.Services;
+using Valour.Server.Utilities;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Pages;
@@ -43,7 +45,10 @@ public class ThreadViewModel : PageModel
     public string? ErrorMessage { get; set; }
 
     public string Snippet { get; set; } = string.Empty;
-    public string? OgImage { get; set; }
+    /// <summary>
+    /// What other apps show when this thread's link is shared.
+    /// </summary>
+    public LinkPreviewMeta? Preview { get; private set; }
     public string PlanetIcon { get; set; } = string.Empty;
 
     /// <summary>
@@ -78,7 +83,7 @@ public class ThreadViewModel : PageModel
                 ["datePublished"] = Thread.TimeCreated.ToString("o"),
                 ["dateModified"] = (Thread.EditedTime ?? Thread.TimeCreated).ToString("o"),
                 ["description"] = Snippet,
-                ["image"] = OgImage ?? PlanetIcon,
+                ["image"] = Preview?.Image,
                 ["author"] = new Dictionary<string, object?>
                 {
                     ["@type"] = "Person",
@@ -140,9 +145,37 @@ public class ThreadViewModel : PageModel
             Attachments = await LoadAttachmentsAsync()
         };
 
+        Preview = BuildPreview();
+
         await LoadCommentsAndAuthorsAsync();
 
         return Page();
+    }
+
+    private LinkPreviewMeta BuildPreview()
+    {
+        var preview = new LinkPreviewMeta
+        {
+            Title = Thread!.Title,
+            DocumentTitle = $"{Thread.Title} - {Planet!.Name} | Valour",
+            Description = string.IsNullOrWhiteSpace(Snippet) ? $"A thread in {Planet.Name} on Valour." : Snippet,
+            Url = RequestUrl,
+            SiteName = $"{Planet.Name} on Valour",
+            Type = "article",
+        }.WithPlanet(Planet);
+
+        // The thread's first image, through an address that does not expire.
+        var image = Planet.Nsfw ? null : LinkPreviewApi.PreviewImageOf(Thread);
+        return image is null
+            ? preview
+            : preview with
+            {
+                Image = $"{HostingConfig.Current.ThreadsBaseUrl}/api/linkpreview/threads/{PlanetId}/{ThreadId}/image",
+                ImageWidth = image.Width,
+                ImageHeight = image.Height,
+                ImageAlt = image.FileName ?? $"An image from {Thread.Title}",
+                LargeImage = true,
+            };
     }
 
     private async Task<List<StaticAttachmentData>> LoadAttachmentsAsync()
@@ -169,7 +202,6 @@ public class ThreadViewModel : PageModel
                 IsVideo = attachment.Type == MessageAttachmentType.Video
             });
 
-            OgImage ??= attachment.Type == MessageAttachmentType.Image ? url : null;
         }
 
         return result;

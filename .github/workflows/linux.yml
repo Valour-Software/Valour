@@ -1,0 +1,166 @@
+name: Linux Build
+
+# Packages the Linux desktop app as a Flatpak bundle for each architecture and
+# attaches it to the version's release. WebKit comes prebuilt from the Linux
+# WebKit workflow, which starts this one when it publishes a new build.
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [ Linux WebKit ]
+    types: [ completed ]
+    branches: [ main ]
+  push:
+    branches: [ main ]
+    paths:
+      - 'Valour/Client.Photino/**'
+      - 'Valour/Client/**'
+      - 'Tools/Linux/**'
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+      webkit: ${{ steps.check.outputs.webkit }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check if release already has Linux assets
+      id: check
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        CURRENT=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' Valour/Client.Maui/Valour.Client.Maui.csproj)
+        echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+        echo "webkit=$(Tools/Linux/webkit-key.sh)" >> "$GITHUB_OUTPUT"
+
+        WEBKIT=$(Tools/Linux/webkit-key.sh)
+        WEBKIT_ASSETS=$(gh release view "$WEBKIT" --json assets -q '.assets[].name' 2>/dev/null || true)
+        if ! echo "$WEBKIT_ASSETS" | grep -qx 'webkit-x86_64.tar.zst' || ! echo "$WEBKIT_ASSETS" | grep -qx 'webkit-aarch64.tar.zst'; then
+          # Linux WebKit starts this workflow again when it publishes the release.
+          echo "::warning::WebKit release $WEBKIT is not published yet, skipping the Linux build"
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        ASSETS=$(gh release view "v$CURRENT" --json assets -q '.assets[].name' 2>/dev/null || true)
+        if echo "$ASSETS" | grep -qx 'Valour-linux-x86_64.flatpak' && echo "$ASSETS" | grep -qx 'Valour-linux-aarch64.flatpak'; then
+          echo "Release v$CURRENT already has Linux assets, skipping build"
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+  build:
+    needs: check-version
+    if: needs.check-version.outputs.version_changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            rid: linux-x64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            rid: linux-arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download prebuilt WebKit
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ needs.check-version.outputs.webkit }}
+      run: |
+        gh release download "$TAG" --pattern "webkit-${{ matrix.arch }}.tar.zst*" --dir dist
+        (cd dist && sha256sum -c "webkit-${{ matrix.arch }}.tar.zst.sha256")
+        mv "dist/webkit-${{ matrix.arch }}.tar.zst" Tools/Linux/Flatpak/webkit.tar.zst
+
+    - name: Restore Village release atlas
+      run: python Tools/Villages/restore-release-assets.py
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 11.0.100-rc.1.26425.128
+
+    - name: Get short SHA
+      id: short-sha
+      run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+    - name: Replace asset version hashes
+      uses: mingjun97/file-regex-replace@v1
+      with:
+        regex: '\$\(SHORTHASH\)'
+        replacement: '${{ steps.short-sha.outputs.short_sha }}'
+        flags: "g"
+        include: '\.(js|cs|razor|cshtml|html)$'
+        exclude: '.^'
+        encoding: 'utf8'
+        path: '.'
+
+    - name: Restore dependencies
+      run: |
+        dotnet restore Valour/BuildTools/CssBundler/CssBundler.csproj
+        dotnet restore Valour/Client/Valour.Client.csproj
+
+    - name: Build Client (generates CSS bundle)
+      run: dotnet build Valour/Client/Valour.Client.csproj -c Release --no-restore
+
+    - name: Publish Linux app
+      run: >
+        dotnet publish Valour/Client.Photino/Valour.Client.Photino.csproj
+        -c Release
+        -r ${{ matrix.rid }}
+        --self-contained
+        -p:Version=${{ needs.check-version.outputs.version }}
+        -o Tools/Linux/Flatpak/valour
+
+    - name: Verify published assets
+      run: |
+        test -x Tools/Linux/Flatpak/valour/Valour
+        test -f Tools/Linux/Flatpak/valour/wwwroot/_content/Valour.Client/css/bundled.min.css
+
+    - name: Set release version in metadata
+      run: >
+        sed -i
+        "s#<release version=\"[^\"]*\" date=\"[^\"]*\"/>#<release version=\"${{ needs.check-version.outputs.version }}\" date=\"$(date -u +%F)\"/>#"
+        Tools/Linux/Flatpak/gg.valour.Valour.metainfo.xml
+
+    - name: Build Flatpak bundle
+      run: |
+        docker run --rm --privileged -v "$PWD:/repo" -w /repo \
+          ghcr.io/flathub-infra/flatpak-github-actions:gnome-51 \
+          Tools/Linux/Flatpak/build-app.sh /repo/artifacts
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: linux-${{ matrix.arch }}
+        path: artifacts/Valour-linux-${{ matrix.arch }}.flatpak
+
+  release:
+    needs: [check-version, build]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        merge-multiple: true
+
+    - name: Create or update GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ needs.check-version.outputs.version }}
+        name: Valour v${{ needs.check-version.outputs.version }}
+        files: |
+          ./artifacts/Valour-linux-x86_64.flatpak
+          ./artifacts/Valour-linux-aarch64.flatpak
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -18,7 +18,7 @@ public static class OutboundUrlSafetyValidator
         return await IsSafeAsync(uri, logger);
     }
 
-    public static async Task<bool> IsSafeAsync(Uri uri, ILogger? logger = null)
+    public static async Task<bool> IsSafeAsync(Uri uri, ILogger? logger = null, CancellationToken cancellationToken = default)
     {
         if (uri is null || !uri.IsAbsoluteUri)
             return false;
@@ -38,7 +38,7 @@ public static class OutboundUrlSafetyValidator
 
         try
         {
-            var addresses = await Dns.GetHostAddressesAsync(host);
+            var addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
             if (addresses.Length == 0)
                 return false;
 
@@ -113,6 +113,10 @@ public static class OutboundUrlSafetyValidator
         if (b0 == 100 && b1 is >= 64 and <= 127) return true; // 100.64.0.0/10
         if (b0 == 192 && b1 == 0 && b2 == 0) return true; // 192.0.0.0/24
         if (b0 == 192 && b1 == 0 && b2 == 2) return true; // 192.0.2.0/24 (TEST-NET-1)
+        if (b0 == 192 && b1 == 88 && b2 == 99) return true; // 192.88.99.0/24 (6to4 relay anycast)
+        // Azure's platform endpoint (DHCP, DNS, instance health) is a public
+        // address that is reachable only from inside Azure virtual machines.
+        if (b0 == 168 && b1 == 63 && b2 == 129 && bytes[3] == 16) return true; // 168.63.129.16
         if (b0 == 198 && b1 is 18 or 19) return true; // 198.18.0.0/15
         if (b0 == 198 && b1 == 51 && b2 == 100) return true; // 198.51.100.0/24 (TEST-NET-2)
         if (b0 == 203 && b1 == 0 && b2 == 113) return true; // 203.0.113.0/24 (TEST-NET-3)
@@ -140,6 +144,16 @@ public static class OutboundUrlSafetyValidator
 
         // 2001:db8::/32 (documentation)
         if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0D && bytes[3] == 0xB8)
+            return true;
+
+        // 100::/64 (discard-only)
+        if (bytes[0] == 0x01 && bytes[1] == 0x00 && bytes.AsSpan(2, 6).IndexOfAnyExcept((byte)0) < 0)
+            return true;
+
+        // 2001:2::/48 (benchmarking), 2001:10::/28 (ORCHID), 2001:20::/28 (ORCHIDv2)
+        if (bytes[0] == 0x20 && bytes[1] == 0x01 &&
+            ((bytes[2] == 0x00 && bytes[3] == 0x02 && bytes[4] == 0x00 && bytes[5] == 0x00) ||
+             (bytes[2] == 0x00 && (bytes[3] & 0xF0) is 0x10 or 0x20)))
             return true;
 
         // Transition prefixes carry an IPv4 destination inside the IPv6

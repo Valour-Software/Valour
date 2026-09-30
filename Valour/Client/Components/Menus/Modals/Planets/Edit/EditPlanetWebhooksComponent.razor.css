@@ -1,6 +1,6 @@
 .webhook-description {
     font-size: var(--font-size-sm);
-    color: var(--font-color-mid);
+    color: var(--text-secondary);
     margin-bottom: 12px;
 }
 
@@ -15,15 +15,15 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    background-color: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     gap: 12px;
     transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .webhook-card:hover {
-    border-color: var(--medium-tint);
+    border-color: var(--line-strong);
 }
 
 .webhook-identity,
@@ -39,10 +39,10 @@
     width: 42px;
     height: 42px;
     flex: 0 0 42px;
-    border-radius: 50%;
+    border-radius: var(--radius-avatar);
     object-fit: cover;
-    background: var(--main-4);
-    border: 1px solid var(--medium-tint);
+    background: var(--surface-hover);
+    border: 1px solid var(--line-strong);
 }
 
 .webhook-avatar-preview {
@@ -60,7 +60,7 @@
 
 .webhook-avatar-help {
     width: 100%;
-    color: var(--font-color-mid);
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
 }
 
@@ -82,7 +82,7 @@
 
 .webhook-name {
     font-size: var(--font-size-md);
-    color: var(--font-color);
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -90,11 +90,16 @@
 
 .webhook-meta {
     font-size: var(--font-size-xs);
-    color: var(--font-color-mid);
+    color: var(--text-tertiary);
     display: flex;
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
+}
+
+.webhook-date {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .webhook-meta i {
@@ -137,9 +142,9 @@
 .token-reveal {
     margin-top: 14px;
     padding: 12px 14px;
-    background-color: var(--main-3);
-    border: 1px solid var(--p-purple);
-    border-radius: var(--radius-md);
+    background-color: var(--color-success-soft);
+    border: 1px solid var(--color-success-border);
+    border-radius: var(--radius-lg);
 }
 
 .token-reveal-header {
@@ -147,12 +152,12 @@
     align-items: center;
     gap: 6px;
     font-size: var(--font-size-sm);
-    color: var(--font-color);
+    color: var(--text-primary);
     margin-bottom: 8px;
 }
 
 .token-reveal-header i {
-    color: var(--p-purple);
+    color: var(--color-success);
 }
 
 .token-reveal-url {
@@ -169,7 +174,7 @@
 
 .token-reveal-note {
     font-size: var(--font-size-xs);
-    color: var(--font-color-mid);
+    color: var(--text-secondary);
     margin: 8px 0 0 0;
 }
 
@@ -183,10 +188,11 @@
     align-items: center;
     gap: 8px;
     padding: 24px;
-    color: var(--font-color-mid);
-    font-size: var(--font-size-md);
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
 }
 
 .empty-state i {
+    margin-bottom: 0;
     font-size: var(--font-size-2xl);
 }

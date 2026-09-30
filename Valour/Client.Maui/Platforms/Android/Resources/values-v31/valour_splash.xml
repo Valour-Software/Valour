@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 and later always show a system splash. It is plain ink with no icon,
+     so it hands off to the app's ink window and then the loading scene without a
+     visible change. -->
+<resources>
+    <style name="Valour.SplashTheme" parent="Maui.SplashTheme">
+        <item name="android:windowBackground">@color/valour_ink</item>
+        <item name="android:statusBarColor">@color/valour_ink</item>
+        <item name="android:navigationBarColor">@color/valour_ink</item>
+        <item name="android:windowSplashScreenBackground">@color/valour_ink</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+    </style>
+</resources>

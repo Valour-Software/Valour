@@ -10,7 +10,7 @@
 }
 
 .active-banner.payment-failed {
-    border-color: var(--color-danger);
+    border-color: var(--color-danger-border);
 }
 
 .banner-content,
@@ -50,7 +50,7 @@
 .tier-desc,
 .upgrade-note,
 .credit-balance {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-sm);
     line-height: var(--line-height-base);
 }
@@ -68,11 +68,12 @@
 }
 
 .status-badge.active {
-    background: var(--color-primary-soft);
+    background-color: var(--color-primary-soft);
     color: var(--color-primary);
 }
 
 .status-badge.failed {
+    background-color: var(--color-danger-soft);
     color: var(--color-danger);
 }
 
@@ -86,15 +87,15 @@
     grid-template-columns: minmax(0, 1fr) 160px;
     gap: 1rem;
     padding: 1rem;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     align-items: start;
 }
 
 .tier-card.active,
 .tier-card.expanded {
-    border-color: var(--color-primary);
+    border-color: var(--color-primary-border);
 }
 
 .tier-summary {
@@ -118,12 +119,19 @@
 }
 
 .tier-price-vc {
-    color: var(--font-color);
+    color: var(--text-primary);
     font-weight: var(--font-weight-medium);
 }
 
 .tier-price-usd {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
+}
+
+.amount,
+.vc-amount,
+.vc-price {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .tier-desc {
@@ -136,13 +144,13 @@
 
 .tier-benefits summary {
     cursor: pointer;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .tier-perks {
     padding-left: 1.15rem;
     margin: .5rem 0 0;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
 }
 
 .tier-perks li {
@@ -160,7 +168,7 @@
 }
 
 .tier-card.expanded .tier-actions {
-    border-top: 1px solid var(--slight-tint);
+    border-top: 1px solid var(--line);
     padding-top: 1rem;
 }
 
@@ -183,19 +191,21 @@
     align-items: flex-start;
     gap: .35rem;
     padding: 1rem;
-    color: var(--font-color);
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     font: inherit;
     text-align: left;
     min-width: 0;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 .vc-card:hover {
-    border-color: var(--medium-tint);
-    background: var(--main-4);
+    border-color: var(--line-strong);
+    background-color: var(--surface-hover);
 }
 
 .vc-card:focus-visible,
@@ -212,12 +222,12 @@
 
 .vc-desc,
 .vc-savings {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
 }
 
 .vc-savings {
-    color: var(--color-primary);
+    color: var(--color-success);
 }
 
 .page-wrapper {

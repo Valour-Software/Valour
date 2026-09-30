@@ -34,4 +34,16 @@ public class CdnUtilsTests
     {
         Assert.False(CdnUtils.IsExecutableUpload(fileName, mimeType, "%PDF"u8));
     }
+
+    [Theory]
+    [InlineData("see https://www.tiktok.com/@scout2015/video/6718335390845095173 here", "https://www.tiktok.com/@scout2015/video/6718335390845095173")]
+    [InlineData("https://www.threads.com/@mosseri/post/DFBmq7ySDvi", "https://www.threads.com/@mosseri/post/DFBmq7ySDvi")]
+    [InlineData("home: https://example.com/~user/page", "https://example.com/~user/page")]
+    public void UrlRegex_KeepsAtSignsAndTildesInPaths(string content, string expected)
+    {
+        var match = CdnUtils.UrlRegex.Match(content);
+
+        Assert.True(match.Success);
+        Assert.Equal(expected, match.Value);
+    }
 }

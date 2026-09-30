@@ -1155,12 +1155,25 @@ public partial class E2eeService
         // A search key the server created is never reused by members, and a
         // key that does not unlock the previous one needs its own search key,
         // because members who only hold it cannot reach the earlier one.
-        var currentIndex = generation == 1 ? 0 : ring.Records[ring.LatestGeneration].IndexGeneration;
+        // Only a key that may reuse the current search key needs the newest
+        // record. A member starting a key without the earlier ones may not
+        // have been able to verify it, and does not need it.
+        var ownIndex = generation == 1 || newIndex || historyBreak;
+        var currentIndex = 0;
+        if (!ownIndex)
+        {
+            if (!ring.Records.ContainsKey(ring.LatestGeneration))
+                await EnsureRecordsAsync(channel, ring, ring.LatestGeneration, ring.LatestGeneration);
+            if (!ring.Records.TryGetValue(ring.LatestGeneration, out var latestRecord))
+                return Fail("This channel's current key could not be verified. Try again in a moment.");
+            currentIndex = latestRecord.IndexGeneration;
+        }
+
         if (currentIndex > 0 && !ring.Records.ContainsKey(currentIndex))
             await EnsureRecordsAsync(channel, ring, currentIndex, currentIndex);
         var serverIndex = currentIndex > 0 && ring.Records.TryGetValue(currentIndex, out var indexRecord) &&
                           indexRecord.IsServerCreated;
-        var indexGeneration = generation == 1 || newIndex || historyBreak || serverIndex ? generation : currentIndex;
+        var indexGeneration = ownIndex || serverIndex ? generation : currentIndex;
 
         // The record carries the rules it was made under, and the newest
         // membership log entry this device verified, so other devices can tell

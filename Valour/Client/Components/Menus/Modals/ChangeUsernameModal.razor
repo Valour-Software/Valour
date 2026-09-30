@@ -1,14 +1,16 @@
 ﻿@inject ValourClient Client
 @inherits Modal<ChangeUsernameModal.Params>
 
-<BasicModalLayout Title="Change Username" Icon="person-fill" ContentStyles="padding: 1em">
+<BasicModalLayout Title="Change Username" Icon="person-fill">
     <MainArea>
         @if (_canChangeUsername)
         {
             <div class="form-group">
-                <label class="m-2">New Username</label>
+                <label>New username</label>
                 <input id="new-username-input" type="text" autocomplete="off" class="form-control" @bind-value="@_newUsername"/>
-                <label class="m-2">Confirm it's you</label>
+            </div>
+            <div class="form-group">
+                <label>Confirm it's you</label>
                 <ConfirmIdentityInputs @bind-Password="@_password" OnLoaded="@OnIdentityLoaded" OnConfirmed="@OnConfirmedWithProof" />
             </div>
         }
@@ -25,7 +27,7 @@
             
             @if (_canChangeUsername && _hasPassword)
             {
-                <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
+                <button @onclick="@OnConfirm" class="v-btn primary">Confirm</button>
             }
         </div>
     </ButtonArea>

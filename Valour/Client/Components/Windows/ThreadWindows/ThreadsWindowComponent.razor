@@ -27,14 +27,14 @@
                     </CustomDropdown>
                 </div>
 
-                <div class="sort-tabs">
-                    <button class="sort-tab @(_sort == "hot" ? "active" : "")" @onclick='@(() => SetSort("hot"))'>
+                <div class="v-pill-group sort-tabs">
+                    <button class="v-pill-tab sort-tab @(_sort == "hot" ? "active" : "")" @onclick='@(() => SetSort("hot"))'>
                         <i class="bi bi-fire"></i> Hot
                     </button>
-                    <button class="sort-tab @(_sort == "new" ? "active" : "")" @onclick='@(() => SetSort("new"))'>
+                    <button class="v-pill-tab sort-tab @(_sort == "new" ? "active" : "")" @onclick='@(() => SetSort("new"))'>
                         <i class="bi bi-stars"></i> New
                     </button>
-                    <button class="sort-tab @(_sort == "top" ? "active" : "")" @onclick='@(() => SetSort("top"))'>
+                    <button class="v-pill-tab sort-tab @(_sort == "top" ? "active" : "")" @onclick='@(() => SetSort("top"))'>
                         <i class="bi bi-trophy"></i> Top
                     </button>
                 </div>
@@ -50,7 +50,7 @@
                     </div>
                 }
 
-                <button class="refresh-btn @(_newPostCount > 0 ? "has-new" : "")"
+                <button class="v-pill refresh-btn @(_newPostCount > 0 ? "accent has-new" : "icon-only")"
                         title="@(_newPostCount > 0 ? "Load new posts" : "Refresh feed")"
                         disabled="@_isLoading"
                         @onclick="@OnClickRefresh">
@@ -85,7 +85,7 @@
                             <i class="bi bi-rocket"></i>
                             <h3>No threads yet</h3>
                             <p>Be the first to post something!</p>
-                            <button class="v-btn primary" @onclick="@OnClickNewPost">New Post</button>
+                            <button class="v-btn" @onclick="@OnClickNewPost">New post</button>
                         </div>
                     </EmptyContent>
                     <LoadingContent>

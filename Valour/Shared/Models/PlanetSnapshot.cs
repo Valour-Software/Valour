@@ -236,6 +236,7 @@ public class PlanetSnapshotPlanet
     public bool PublicWiki { get; set; }
     public string Vanity { get; set; }
     public int Version { get; set; }
+    public byte WorldVariant { get; set; }
     public List<long> TagIds { get; set; } = new();
     public PlanetEncryptionMode EncryptionMode { get; set; }
     public bool EncryptionSharesHistory { get; set; } = true;

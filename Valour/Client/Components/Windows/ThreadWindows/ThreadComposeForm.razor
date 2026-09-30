@@ -34,11 +34,11 @@
     </div>
 
     <div class="form-group">
-        <div class="content-tabs">
-            <button class="content-tab @(_previewing ? "" : "active")" @onclick="@(() => _previewing = false)">
+        <div class="v-pill-group content-tabs">
+            <button class="v-pill-tab content-tab @(_previewing ? "" : "active")" @onclick="@(() => _previewing = false)">
                 <i class="bi bi-pencil"></i> Write
             </button>
-            <button class="content-tab @(_previewing ? "active" : "")" @onclick="@(() => _previewing = true)">
+            <button class="v-pill-tab content-tab @(_previewing ? "active" : "")" @onclick="@(() => _previewing = true)">
                 <i class="bi bi-eye"></i> Preview
             </button>
         </div>
@@ -92,7 +92,7 @@
             <label class="upload-btn @(_uploading || _attachments.Count >= ISharedPlanetThread.MaxAttachments ? "disabled" : "")">
                 <InputFile OnChange="@OnFilesSelected" multiple accept="image/*,video/*" disabled="@_uploading"/>
                 <i class="bi bi-image"></i>
-                @(_uploading ? "Uploading..." : "Add Media")
+                @(_uploading ? "Uploading..." : "Add media")
             </label>
         }
         else
@@ -257,9 +257,10 @@
                 // Displays size images from this metadata - without it the
                 // attachment preview renders 0x0. Read dimensions from the
                 // uploaded URL rather than retaining a complete byte[] copy.
-                if (type == MessageAttachmentType.Image && url is not null)
+                if (type is MessageAttachmentType.Image or MessageAttachmentType.Video && url is not null)
                 {
-                    var size = await JsRuntime.InvokeAsync<int[]>("getImageSizeAsync", url);
+                    var size = await JsRuntime.InvokeAsync<int[]>(
+                        type == MessageAttachmentType.Image ? "getImageSizeAsync" : "getVideoSizeAsync", url);
                     if (size is { Length: 2 })
                     {
                         attachment.Width = size[0];

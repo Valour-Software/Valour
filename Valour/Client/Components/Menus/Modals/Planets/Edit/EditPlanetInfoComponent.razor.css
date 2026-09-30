@@ -18,7 +18,6 @@
 .appearance-split .card-preview {
     max-width: 300px;
 }
-/* Vanity URL section */
 
 .vanity-row {
     display: flex;
@@ -31,18 +30,62 @@
     min-width: 0;
     max-width: 320px;
     font-family: var(--font-family-mono);
-    font-size: 13.5px;
+    font-size: var(--font-size-sm);
 }
 
 .vanity-status {
     margin: 0;
-    font-size: 12.5px;
+    font-size: var(--font-size-xs);
 }
 
 .vanity-status.ok {
-    color: var(--color-success, #63e6a3);
+    color: var(--color-success);
 }
 
 .vanity-status.bad {
-    color: var(--color-danger, #e66363);
+    color: var(--color-danger);
+}
+
+.world-editor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.world-preview {
+    position: relative;
+    flex: none;
+    width: 240px;
+    height: 135px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-canvas);
+    overflow: hidden;
+}
+
+.world-preview ::deep canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.world-options {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+}
+
+.world-options .helper-text {
+    margin: 0;
+}
+
+.world-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }

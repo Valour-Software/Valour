@@ -1,0 +1,622 @@
+/* ValourOS terminal. The script creates everything inside .vos-root, so
+   rules for inner elements use ::deep. Themes set the palette variables. */
+
+.vos-root {
+    --vos-font-size: 15px;
+    --vos-bg: #0a0d18;
+    --vos-fg: #d5dbe8;
+    --vos-dim: #6c7690;
+    --vos-black: #1b2030;
+    --vos-red: #ff6b7f;
+    --vos-green: #7ee2a8;
+    --vos-yellow: #f5cf73;
+    --vos-blue: #7ea6ff;
+    --vos-magenta: #c79bff;
+    --vos-cyan: #6fd6e8;
+    --vos-white: #eef2fa;
+    --vos-accent: var(--color-primary, #8b9cff);
+    --vos-cursor: var(--vos-accent);
+    --vos-selection: rgba(139, 156, 255, 0.28);
+    --vos-chrome: #121727;
+    --vos-chrome-fg: #aab3c8;
+    --vos-status-bg: #151b2e;
+    --vos-status-fg: #aab3c8;
+    --vos-status-active: var(--vos-accent);
+    --vos-line: rgba(255, 255, 255, 0.07);
+    --vos-code-bg: rgba(255, 255, 255, 0.07);
+    --vos-mention-bg: rgba(245, 207, 115, 0.1);
+    --vos-glow: none;
+    --vos-scanline-opacity: 0.05;
+    --vos-desktop: radial-gradient(ellipse at 20% 10%, #23305e 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 90%, #3b1f5c 0%, transparent 50%),
+        #05060d;
+
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    background: var(--vos-bg);
+    color: var(--vos-fg);
+    font-family: var(--font-family-mono, "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace);
+    font-size: var(--vos-font-size);
+    line-height: 1.45;
+    font-variant-ligatures: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+.vos-root[hidden] {
+    display: none;
+}
+
+/* Themes */
+
+.vos-root[data-theme="phosphor"] {
+    --vos-bg: #030b05;
+    --vos-fg: #5cff8a;
+    --vos-dim: #2b8a47;
+    --vos-black: #0d2414;
+    --vos-red: #b8ff5c;
+    --vos-green: #5cff8a;
+    --vos-yellow: #c6ff9e;
+    --vos-blue: #3fe07a;
+    --vos-magenta: #8effb0;
+    --vos-cyan: #7affc0;
+    --vos-white: #d6ffe2;
+    --vos-accent: #8effb0;
+    --vos-selection: rgba(92, 255, 138, 0.25);
+    --vos-chrome: #06150a;
+    --vos-chrome-fg: #3fe07a;
+    --vos-status-bg: #0b2a14;
+    --vos-status-fg: #5cff8a;
+    --vos-code-bg: rgba(92, 255, 138, 0.1);
+    --vos-mention-bg: rgba(92, 255, 138, 0.12);
+    --vos-glow: 0 0 6px rgba(92, 255, 138, 0.45);
+    --vos-scanline-opacity: 0.16;
+    --vos-desktop: radial-gradient(ellipse at center, #06230f 0%, #000 70%);
+}
+
+.vos-root[data-theme="amber"] {
+    --vos-bg: #0d0800;
+    --vos-fg: #ffb437;
+    --vos-dim: #9a6414;
+    --vos-black: #2a1a02;
+    --vos-red: #ff8a3d;
+    --vos-green: #ffc964;
+    --vos-yellow: #ffd88a;
+    --vos-blue: #ffae2e;
+    --vos-magenta: #ffbf6b;
+    --vos-cyan: #ffd27a;
+    --vos-white: #ffe8c2;
+    --vos-accent: #ffd27a;
+    --vos-selection: rgba(255, 180, 55, 0.25);
+    --vos-chrome: #1a1000;
+    --vos-chrome-fg: #d08c21;
+    --vos-status-bg: #2f1d02;
+    --vos-status-fg: #ffb437;
+    --vos-code-bg: rgba(255, 180, 55, 0.1);
+    --vos-mention-bg: rgba(255, 180, 55, 0.12);
+    --vos-glow: 0 0 6px rgba(255, 170, 40, 0.45);
+    --vos-scanline-opacity: 0.16;
+    --vos-desktop: radial-gradient(ellipse at center, #2a1700 0%, #000 70%);
+}
+
+.vos-root[data-theme="aubergine"] {
+    --vos-bg: #300a24;
+    --vos-fg: #eeeeec;
+    --vos-dim: #9a7e93;
+    --vos-black: #2e3436;
+    --vos-red: #ef2929;
+    --vos-green: #8ae234;
+    --vos-yellow: #fce94f;
+    --vos-blue: #729fcf;
+    --vos-magenta: #ad7fa8;
+    --vos-cyan: #34e2e2;
+    --vos-white: #eeeeec;
+    --vos-accent: #e95420;
+    --vos-selection: rgba(233, 84, 32, 0.3);
+    --vos-chrome: #2c2c2c;
+    --vos-chrome-fg: #dcdcdc;
+    --vos-status-bg: #3d1030;
+    --vos-status-fg: #eeeeec;
+    --vos-code-bg: rgba(255, 255, 255, 0.08);
+    --vos-desktop: radial-gradient(ellipse at 30% 20%, #e95420 0%, transparent 45%),
+        radial-gradient(ellipse at 80% 80%, #77216f 0%, transparent 55%),
+        #2c001e;
+}
+
+.vos-root[data-theme="dracula"] {
+    --vos-bg: #282a36;
+    --vos-fg: #f8f8f2;
+    --vos-dim: #6272a4;
+    --vos-black: #21222c;
+    --vos-red: #ff5555;
+    --vos-green: #50fa7b;
+    --vos-yellow: #f1fa8c;
+    --vos-blue: #bd93f9;
+    --vos-magenta: #ff79c6;
+    --vos-cyan: #8be9fd;
+    --vos-white: #ffffff;
+    --vos-accent: #bd93f9;
+    --vos-selection: rgba(68, 71, 90, 0.9);
+    --vos-chrome: #21222c;
+    --vos-chrome-fg: #bfbfcf;
+    --vos-status-bg: #44475a;
+    --vos-status-fg: #f8f8f2;
+    --vos-desktop: radial-gradient(ellipse at 50% 0%, #44475a 0%, #191a21 70%);
+}
+
+.vos-root[data-theme="paper"] {
+    --vos-bg: #fdf6e3;
+    --vos-fg: #3b4a52;
+    --vos-dim: #93a1a1;
+    --vos-black: #073642;
+    --vos-red: #dc322f;
+    --vos-green: #5f8700;
+    --vos-yellow: #b58900;
+    --vos-blue: #268bd2;
+    --vos-magenta: #d33682;
+    --vos-cyan: #2aa198;
+    --vos-white: #586e75;
+    --vos-accent: #6c71c4;
+    --vos-selection: rgba(108, 113, 196, 0.22);
+    --vos-chrome: #eee8d5;
+    --vos-chrome-fg: #657b83;
+    --vos-status-bg: #eee8d5;
+    --vos-status-fg: #586e75;
+    --vos-line: rgba(0, 0, 0, 0.08);
+    --vos-code-bg: rgba(0, 0, 0, 0.06);
+    --vos-mention-bg: rgba(181, 137, 0, 0.12);
+    --vos-scanline-opacity: 0;
+    --vos-desktop: radial-gradient(ellipse at 50% 0%, #fffaf0 0%, #d8cfb5 80%);
+}
+
+/* Window frame */
+
+.vos-root ::deep .vos-desktop {
+    position: absolute;
+    inset: 0;
+    background: var(--vos-desktop);
+    display: none;
+}
+
+.vos-root.vos-windowed {
+    background: #000;
+}
+
+.vos-root.vos-windowed ::deep .vos-desktop {
+    display: block;
+}
+
+.vos-root ::deep .vos-window {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--vos-bg);
+    overflow: hidden;
+    transform-origin: center;
+}
+
+.vos-root.vos-windowed ::deep .vos-window {
+    inset: max(24px, 5vh) max(24px, 7vw);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.vos-root ::deep .vos-titlebar {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 34px;
+    padding: 0 10px 0 14px;
+    background: var(--vos-chrome);
+    color: var(--vos-chrome-fg);
+    border-bottom: 1px solid var(--vos-line);
+    font-family: var(--font-family-base, system-ui, sans-serif);
+    font-size: 13px;
+    user-select: none;
+    cursor: default;
+}
+
+.vos-root ::deep .vos-title-icon {
+    color: var(--vos-accent);
+    font-size: 11px;
+}
+
+.vos-root ::deep .vos-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.vos-root ::deep .vos-controls {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+}
+
+.vos-root ::deep .vos-control {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: none;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--vos-chrome-fg);
+    font: 600 13px/1 system-ui, sans-serif;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+}
+
+.vos-root[data-theme="paper"] ::deep .vos-control {
+    background: rgba(0, 0, 0, 0.07);
+}
+
+.vos-root ::deep .vos-control:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.vos-root ::deep .vos-close:hover {
+    background: #e5484d;
+    color: #fff;
+}
+
+.vos-root ::deep .vos-min::before {
+    content: "–";
+}
+
+.vos-root ::deep .vos-max::before {
+    content: "□";
+    font-size: 12px;
+}
+
+.vos-root ::deep .vos-close::before {
+    content: "×";
+    font-size: 16px;
+}
+
+/* Screen */
+
+.vos-root ::deep .vos-screen {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 16px 16px;
+    cursor: text;
+    text-shadow: var(--vos-glow);
+    scrollbar-width: thin;
+    scrollbar-color: var(--vos-dim) transparent;
+}
+
+.vos-root ::deep .vos-screen::selection,
+.vos-root ::deep .vos-screen *::selection {
+    background: var(--vos-selection);
+}
+
+.vos-root ::deep .vos-line {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    min-height: 1.45em;
+}
+
+.vos-root ::deep .vos-line[hidden] {
+    display: none;
+}
+
+.vos-root ::deep .vos-msg {
+    display: grid;
+    margin-left: -6px;
+    padding-left: 6px;
+    grid-template-columns: 6ch 16ch 2ch minmax(0, 1fr);
+    align-items: start;
+    border-radius: 3px;
+}
+
+.vos-root ::deep .vos-msg-time {
+    color: var(--vos-dim);
+}
+
+.vos-root ::deep .vos-msg-nick {
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.vos-root ::deep .vos-msg-bar {
+    color: var(--vos-dim);
+    text-align: center;
+    opacity: 0.6;
+}
+
+.vos-root ::deep .vos-msg-body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.vos-root ::deep .vos-msg.vos-mentioned {
+    background: var(--vos-mention-bg);
+    box-shadow: inset 2px 0 0 var(--vos-yellow);
+}
+
+.vos-root ::deep .vos-msg.vos-pending {
+    opacity: 0.5;
+}
+
+/* Only the unsent text is struck through, not the reason it failed. */
+.vos-root ::deep .vos-msg.vos-failed .vos-msg-body > :not(.vos-err) {
+    text-decoration: line-through;
+    text-decoration-color: var(--vos-red);
+}
+
+@media (max-width: 700px) {
+    .vos-root ::deep .vos-msg {
+        grid-template-columns: 6ch 10ch 2ch minmax(0, 1fr);
+    }
+
+    .vos-root ::deep .vos-screen {
+        padding: 8px 10px 12px;
+    }
+}
+
+/* Input line and cursor */
+
+.vos-root ::deep .vos-cursor {
+    background: var(--vos-cursor);
+    color: var(--vos-bg);
+    text-shadow: none;
+}
+
+.vos-root ::deep .vos-cursor.vos-blink {
+    animation: vos-blink 1.06s steps(1, end) 0.5s infinite;
+}
+
+.vos-root ::deep .vos-unfocused .vos-cursor {
+    background: transparent;
+    color: inherit;
+    outline: 1px solid var(--vos-cursor);
+    outline-offset: -1px;
+    animation: none;
+}
+
+@keyframes vos-blink {
+    50% {
+        background: transparent;
+        color: inherit;
+    }
+}
+
+.vos-root ::deep .vos-capture {
+    position: absolute;
+    width: 1px;
+    height: 1em;
+    padding: 0;
+    border: 0;
+    margin: 0;
+    opacity: 0;
+    resize: none;
+    overflow: hidden;
+    pointer-events: none;
+    caret-color: transparent;
+    font-size: 16px;
+}
+
+.vos-root ::deep .vos-measure {
+    position: absolute;
+    visibility: hidden;
+    white-space: pre;
+    pointer-events: none;
+}
+
+/* Status bar, in the style of tmux */
+
+.vos-root ::deep .vos-status {
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: 1.7em;
+    background: var(--vos-status-bg);
+    color: var(--vos-status-fg);
+    font-size: 0.85em;
+    white-space: pre;
+    overflow: hidden;
+    user-select: none;
+}
+
+.vos-root ::deep .vos-status-left {
+    display: flex;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.vos-root ::deep .vos-status-right {
+    margin-left: auto;
+    display: flex;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.vos-root ::deep .vos-tab-session {
+    background: var(--vos-status-active);
+    color: var(--vos-bg);
+    font-weight: 700;
+}
+
+.vos-root ::deep .vos-tab {
+    opacity: 0.7;
+}
+
+.vos-root ::deep .vos-tab-active {
+    color: var(--vos-status-active);
+    font-weight: 700;
+}
+
+.vos-root ::deep .vos-typing {
+    color: var(--vos-dim);
+    font-style: italic;
+}
+
+.vos-root ::deep .vos-node {
+    opacity: 0.8;
+}
+
+.vos-root ::deep .vos-clock {
+    padding-right: 4px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+/* Text styles */
+
+.vos-root ::deep .vos-black { color: var(--vos-black); }
+.vos-root ::deep .vos-red { color: var(--vos-red); }
+.vos-root ::deep .vos-green { color: var(--vos-green); }
+.vos-root ::deep .vos-yellow { color: var(--vos-yellow); }
+.vos-root ::deep .vos-blue { color: var(--vos-blue); }
+.vos-root ::deep .vos-magenta { color: var(--vos-magenta); }
+.vos-root ::deep .vos-cyan { color: var(--vos-cyan); }
+.vos-root ::deep .vos-white { color: var(--vos-white); }
+.vos-root ::deep .vos-accent { color: var(--vos-accent); }
+.vos-root ::deep .vos-dim { color: var(--vos-dim); }
+.vos-root ::deep .vos-bold { font-weight: 700; }
+.vos-root ::deep .vos-ital { font-style: italic; }
+.vos-root ::deep .vos-err { color: var(--vos-red); }
+.vos-root ::deep .vos-warn { color: var(--vos-yellow); }
+.vos-root ::deep .vos-ok { color: var(--vos-green); }
+
+.vos-root ::deep .vos-code {
+    background: var(--vos-code-bg);
+    border-radius: 3px;
+    padding: 0 0.3ch;
+    color: var(--vos-cyan);
+}
+
+.vos-root ::deep .vos-link {
+    color: var(--vos-blue);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.vos-root ::deep .vos-mention {
+    color: var(--vos-accent);
+    font-weight: 600;
+}
+
+.vos-root ::deep .vos-mention-me {
+    color: var(--vos-bg);
+    background: var(--vos-yellow);
+    border-radius: 3px;
+    padding: 0 0.3ch;
+    font-weight: 700;
+    text-shadow: none;
+}
+
+.vos-root ::deep .vos-n0 { color: var(--vos-cyan); }
+.vos-root ::deep .vos-n1 { color: var(--vos-magenta); }
+.vos-root ::deep .vos-n2 { color: var(--vos-green); }
+.vos-root ::deep .vos-n3 { color: var(--vos-yellow); }
+.vos-root ::deep .vos-n4 { color: var(--vos-blue); }
+.vos-root ::deep .vos-n5 { color: var(--vos-red); }
+.vos-root ::deep .vos-n6 { color: var(--vos-accent); }
+.vos-root ::deep .vos-n7 { color: var(--vos-white); }
+
+.vos-root ::deep .vos-bg-black { background: var(--vos-black); }
+.vos-root ::deep .vos-bg-red { background: var(--vos-red); }
+.vos-root ::deep .vos-bg-green { background: var(--vos-green); }
+.vos-root ::deep .vos-bg-yellow { background: var(--vos-yellow); }
+.vos-root ::deep .vos-bg-blue { background: var(--vos-blue); }
+.vos-root ::deep .vos-bg-magenta { background: var(--vos-magenta); }
+.vos-root ::deep .vos-bg-cyan { background: var(--vos-cyan); }
+.vos-root ::deep .vos-bg-white { background: var(--vos-white); }
+.vos-root ::deep .vos-bright { filter: brightness(1.3) saturate(1.1); }
+
+/* The login banner shades from the accent toward magenta row by row. */
+.vos-root ::deep .vos-banner { color: var(--vos-accent); }
+.vos-root ::deep .vos-banner-1 { color: color-mix(in oklab, var(--vos-accent) 85%, var(--vos-magenta)); }
+.vos-root ::deep .vos-banner-2 { color: color-mix(in oklab, var(--vos-accent) 70%, var(--vos-magenta)); }
+.vos-root ::deep .vos-banner-3 { color: color-mix(in oklab, var(--vos-accent) 55%, var(--vos-magenta)); }
+.vos-root ::deep .vos-banner-4 { color: color-mix(in oklab, var(--vos-accent) 40%, var(--vos-magenta)); }
+.vos-root ::deep .vos-banner-5 { color: color-mix(in oklab, var(--vos-accent) 25%, var(--vos-magenta)); }
+.vos-root ::deep .vos-banner-os { color: var(--vos-dim); }
+
+/* The self-hosted interface font has no box-drawing blocks, so the banner
+   uses a system monospace face that draws them as solid cells. */
+.vos-root ::deep .vos-line:has(.vos-banner) {
+    font-family: Menlo, "SF Mono", Consolas, "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", monospace;
+    line-height: 1.05;
+    min-height: 1.05em;
+    white-space: pre;
+    overflow: hidden;
+}
+
+/* A bright line that sweeps across while the screens swap. */
+.vos-root ::deep .vos-beam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    background: #fff;
+    box-shadow: 0 0 12px 2px rgba(200, 215, 255, 0.9), 0 0 40px 8px rgba(139, 156, 255, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.vos-root.vos-powering {
+    background: transparent;
+}
+
+.vos-root.vos-powering ::deep .vos-window,
+.vos-root.vos-powering ::deep .vos-crt,
+.vos-root.vos-powering ::deep .vos-desktop {
+    visibility: hidden;
+}
+
+/* Glass: scanlines and a soft vignette, stronger on the retro themes. */
+
+.vos-root ::deep .vos-crt {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(to bottom,
+            rgba(0, 0, 0, var(--vos-scanline-opacity)) 0,
+            rgba(0, 0, 0, var(--vos-scanline-opacity)) 1px,
+            transparent 1px,
+            transparent 3px),
+        radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+.vos-root[data-theme="paper"] ::deep .vos-crt,
+.vos-root.vos-windowed ::deep .vos-crt {
+    display: none;
+}
+
+.vos-root ::deep .vos-window.vos-bell {
+    animation: vos-bell 180ms ease-out;
+}
+
+@keyframes vos-bell {
+    0% { filter: brightness(1.35); }
+    100% { filter: brightness(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vos-root ::deep .vos-cursor.vos-blink,
+    .vos-root ::deep .vos-window.vos-bell {
+        animation: none;
+    }
+}

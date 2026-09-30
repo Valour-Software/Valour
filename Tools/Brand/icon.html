@@ -1,0 +1,107 @@
+<!doctype html><html><body style="margin:0;background:transparent">
+<canvas id="c" width="1024" height="1024"></canvas>
+<script type="module">
+import { resolveOptions, gasSize, computeGas, compose } from '/Valour/Client/wwwroot/js/nebula.js';
+import { planetGenome, renderPlanet } from '/Valour/Client/wwwroot/js/planet.js';
+const params = new URLSearchParams(location.search);
+const variant = params.get('v') || 'outline';
+const S = 1024;
+const parts = await (await fetch('victor-parts.json')).json();
+const [face, far, eyeL, eyeR, nose, body, bowL, bowK, bowR] = parts.map(d => new Path2D(d));
+const W = '#f3f5fa', SH = '#cdd4e2', INK = '#12161e', BOW = params.get('bow') ? '#' + params.get('bow') : '#12161e', KNOT = params.get('knot') ? '#' + params.get('knot') : '#12161e';
+
+function squircle(ctx, x, y, size, n = 5) {
+  const r = size / 2, cx = x + r, cy = y + r;
+  ctx.beginPath();
+  for (let i = 0; i <= 360; i++) {
+    const t = i / 360 * Math.PI * 2, c = Math.cos(t), s = Math.sin(t);
+    const px = cx + r * Math.sign(c) * Math.pow(Math.abs(c), 2 / n);
+    const py = cy + r * Math.sign(s) * Math.pow(Math.abs(s), 2 / n);
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+}
+
+async function nebula(w, h, opts) {
+  const o = resolveOptions(opts);
+  const { gw, gh, resolution } = gasSize(o, w, h);
+  const gas = computeGas(o, gw, gh, w, h);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  compose(cv, o, gas, gw, gh, resolution);
+  return cv;
+}
+
+function planetCanvas(seed, radius, lights, light, kind) {
+  const g = planetGenome(seed); if (kind) g.kind = kind; g.rings = null; g.moons = [];
+  const { pixels, size } = renderPlanet(g, radius, lights, light);
+  const cv = document.createElement('canvas'); cv.width = size; cv.height = size;
+  cv.getContext('2d').putImageData(new ImageData(pixels, size, size), 0, 0);
+  cv.planetScale = g.size;
+  return cv;
+}
+
+function victor(ctx, cx, cy, scale, mono) {
+  ctx.save();
+  ctx.translate(cx - 287 * scale, cy - 283 * scale);
+  ctx.scale(scale, scale);
+  if (mono) {
+    ctx.fillStyle = mono;
+    for (const p of [far, face, body]) ctx.fill(p);
+    ctx.globalCompositeOperation = 'destination-out';
+    for (const p of [eyeL, eyeR, nose, bowL, bowR, bowK]) ctx.fill(p);
+  } else {
+    ctx.fillStyle = SH; ctx.fill(far);
+    ctx.fillStyle = W; ctx.fill(face); ctx.fill(body);
+    ctx.fillStyle = INK; ctx.fill(eyeL); ctx.fill(eyeR); ctx.fill(nose);
+    ctx.fillStyle = BOW; ctx.fill(bowL); ctx.fill(bowR);
+    ctx.fillStyle = KNOT; ctx.fill(bowK);
+  }
+  ctx.restore();
+}
+
+function stars(ctx, seed, count, area) {
+  let s = seed;
+  const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < count; i++) {
+    const x = area.x + rnd() * area.w, y = area.y + rnd() * area.h, r = 1.2 + rnd() * rnd() * 3.2;
+    ctx.fillStyle = `rgba(235,242,255,${0.35 + rnd() * 0.55})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+ctx.clearRect(0, 0, S, S);
+const bleed = ['bleed', 'bg', 'fg'].includes(variant) || variant.startsWith('avatar');
+const inset = bleed ? 0 : (variant === 'small' ? 16 : 40), size = S - inset * 2;
+const portrait = (k, bottom) => victor(ctx, S / 2, bottom - (470 - 283) * k, k);
+const AX = 281, AY = 289;
+const centered = (k, x = S / 2, y = S * 0.485) => victor(ctx, x + (287 - AX) * k, y + (283 - AY) * k, k);
+
+if (variant === 'glyph') {
+  victor(ctx, S / 2, S / 2 + 10, 2.25, '#f3f5fa');
+} else if (variant === 'fg') {
+  centered(1.15);
+} else {
+  ctx.save();
+  if (!bleed) { squircle(ctx, inset, inset, size); ctx.clip(); }
+  const bg = ctx.createLinearGradient(0, 0, 0, S); bg.addColorStop(0, '#0b0f16'); bg.addColorStop(1, '#07090d');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, S, S);
+  if (variant !== 'plain' && variant !== 'small') {
+    const neb = await nebula(S, S, { seed: 'valour-icon', palette: 'valour', intensity: 1.0, focusX: 0.72, focusY: 0.22, spread: 0.5, scale: 1.5, stars: 0 });
+    ctx.globalAlpha = 0.8; ctx.drawImage(neb, 0, 0); ctx.globalAlpha = 1;
+    stars(ctx, 7, 26, { x: inset, y: inset, w: size, h: size * 0.62 });
+  }
+  if (variant === 'bleed') centered(1.42);
+  else if (variant.startsWith('avatar')) centered(parseFloat(params.get('k') || '1.75'), S / 2, S * 0.5);
+  else if (variant === 'small') centered(1.84);
+  else if (variant !== 'bg') centered(1.6);
+  ctx.restore();
+  if (variant === 'outline') {
+    squircle(ctx, inset + 7, inset + 7, size - 14);
+    const g = ctx.createLinearGradient(inset, S - inset, S - inset, inset);
+    g.addColorStop(0, '#b9a4ff'); g.addColorStop(0.55, '#8fb4ff'); g.addColorStop(1, '#8fd3ff');
+    ctx.lineWidth = 12; ctx.strokeStyle = g; ctx.stroke();
+  }
+}
+document.body.dataset.done = '1';
+</script></body></html>

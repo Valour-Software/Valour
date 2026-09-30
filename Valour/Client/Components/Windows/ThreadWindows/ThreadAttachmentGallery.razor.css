@@ -5,7 +5,7 @@
     overflow: hidden;
     margin-top: var(--space-3);
     max-height: 420px;
-    border: 1px solid color-mix(in srgb, var(--font-color) 8%, transparent);
+    border: 1px solid var(--line);
 }
 
 .thread-gallery.count-1 {
@@ -35,7 +35,7 @@
     min-height: 0;
     overflow: hidden;
     cursor: pointer;
-    background-color: var(--main-1);
+    background-color: var(--surface-canvas);
 }
 
 .thread-gallery.count-1 .gallery-item {
@@ -52,7 +52,6 @@
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform var(--duration-base) var(--ease-standard);
 }
 
 .thread-gallery.count-1 .gallery-item img,
@@ -61,24 +60,20 @@
     max-height: 420px;
 }
 
-.gallery-item:hover img {
-    transform: scale(1.02);
-}
-
 .play-overlay {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: color-mix(in srgb, black 30%, transparent);
+    background-color: color-mix(in srgb, var(--surface-canvas) 35%, transparent);
     pointer-events: none;
 }
 
 .play-overlay i {
     font-size: 42px;
-    color: white;
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+    color: var(--text-primary);
+    filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.5));
 }
 
 .more-overlay {
@@ -87,11 +82,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: color-mix(in srgb, black 55%, transparent);
-    color: white;
+    background-color: var(--scrim);
+    color: var(--text-primary);
     font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    font-family: var(--font-family-app);
+    font-weight: var(--font-weight-semibold);
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .file-chip {
@@ -99,18 +95,45 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-3);
-    color: var(--font-color);
+    color: var(--text-primary);
     font-size: var(--font-size-sm);
     height: 100%;
 }
 
 .file-chip i {
     font-size: var(--font-size-lg);
-    color: var(--color-primary);
+    color: var(--text-tertiary);
 }
 
 .file-chip span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.thread-embeds {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.thread-embed {
+    max-width: 560px;
+    cursor: default;
+}
+
+.embed-spoiler-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 72px;
+    padding: var(--space-3);
+    color: var(--text-secondary);
+    font: inherit;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    cursor: pointer;
 }

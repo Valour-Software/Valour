@@ -1,21 +1,27 @@
 .receipt-container {
-    background-color: var(--main-1);
-    border-radius: var(--radius-xl);
-    padding: 1em;
-    max-width: 100%;
     display: inline-block;
-    background: rgb(6,6,74);
-    background: linear-gradient(51deg, var(--link-color) -80%, var(--main-1) 50%, var(--color-secondary) 220%);
+    max-width: 100%;
+    padding: 1em;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+}
+
+.receipt-error {
+    color: var(--color-danger);
 }
 
 .sent {
-    margin: 0; 
+    margin: 0;
     margin-top: 8px;
     margin-bottom: 12px;
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
 }
 
-.accounts {
-    
+.sent.credits {
+    color: var(--color-secondary);
 }
 
 .receipt-container .account-from {
@@ -30,16 +36,34 @@
     display: inline-block;
 }
 
+.receipt-arrow {
+    display: inline-block;
+    margin-bottom: 22px;
+    margin-right: 6px;
+    color: var(--text-tertiary);
+}
 
 .receipt-container .account-number {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
     margin: 0;
 }
 
+.receipt-container .account-number.account-id,
+.receipt-container .time,
+.receipt-container .trans-info {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.receipt-container .account-number.account-id {
+    font-size: var(--font-size-2xs);
+}
+
 .receipt-container .time {
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-base);
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
     margin: 0;
     white-space: nowrap;
 }
@@ -47,6 +71,6 @@
 .receipt-container .trans-info {
     font-size: var(--font-size-2xs);
     line-height: var(--line-height-base);
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
     margin: 0;
 }

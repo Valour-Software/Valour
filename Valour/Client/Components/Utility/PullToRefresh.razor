@@ -5,14 +5,8 @@
     <div class="pull-refresh-indicator" aria-hidden="true">
         <div class="pull-refresh-badge">
             <svg class="pull-refresh-ring" viewBox="0 0 40 40" fill="none">
-                <defs>
-                    <linearGradient id="@_gradientId" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                        <stop class="ring-stop-start" offset="0"/>
-                        <stop class="ring-stop-end" offset="1"/>
-                    </linearGradient>
-                </defs>
                 <circle class="ring-track" cx="20" cy="20" r="16"/>
-                <circle class="ring-arc" cx="20" cy="20" r="16" stroke="url(#@_gradientId)"/>
+                <circle class="ring-arc" cx="20" cy="20" r="16"/>
             </svg>
             <i class="bi bi-arrow-down pull-refresh-arrow"></i>
         </div>
@@ -50,9 +44,6 @@
 
     [Parameter]
     public string CssClass { get; set; }
-
-    // SVG gradient ids are document-global, so each instance needs its own
-    private readonly string _gradientId = $"ptr-grad-{Guid.NewGuid():N}";
 
     private ElementReference _root;
     private DotNetObjectReference<PullToRefresh> _dotnetRef;

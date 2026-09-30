@@ -8,7 +8,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
     padding-bottom: 0.6rem;
 }
 
@@ -18,21 +18,30 @@
     justify-content: center;
     gap: 4px;
     padding: 3px 6px;
-    border: 1px solid var(--main-4);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-md);
-    background: transparent;
-    color: var(--font-color);
+    background-color: transparent;
+    color: var(--text-secondary);
     cursor: pointer;
     font-size: var(--font-size-md);
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
 }
 
 .reactions-modal-emoji:hover {
-    border-color: var(--color-secondary);
+    background-color: var(--surface-hover);
 }
 
 .reactions-modal-emoji.selected {
-    border-color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    border-color: var(--color-primary-border);
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.reactions-modal-emoji .count {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
 }
 
 .reactions-modal-emoji .emoji {
@@ -41,6 +50,11 @@
     aspect-ratio: 1 / 1;
     object-fit: contain;
     flex-shrink: 0;
+}
+
+.reactions-modal-emoji span.emoji {
+    font-size: 1.125rem;
+    text-align: center;
 }
 
 .reactions-modal-user-list {
@@ -52,7 +66,7 @@
 }
 
 .reactions-modal-loading {
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     text-align: center;
     margin: 1rem 0;
 }

@@ -4,7 +4,7 @@
     height: 100%;
     min-height: 0;
     min-width: 0;
-    background: linear-gradient(150deg, var(--main-2) 0%, var(--main-3) 65%, var(--main-4) 100%);
+    background-color: var(--surface-base);
 }
 
 .call-header {
@@ -13,7 +13,7 @@
     justify-content: space-between;
     padding: 12px 14px;
     gap: 10px;
-    border-bottom: 1px solid var(--slight-tint);
+    border-bottom: 1px solid var(--line);
     flex-shrink: 0;
 }
 
@@ -26,6 +26,7 @@
 }
 
 .call-channel-name {
+    color: var(--text-primary);
     font-weight: var(--font-weight-semibold);
     font-size: var(--font-size-sm);
     white-space: nowrap;
@@ -38,30 +39,29 @@
     align-items: center;
     gap: 6px;
     padding: 3px 10px;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-full);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     flex-shrink: 0;
-    letter-spacing: var(--letter-spacing-normal);
 }
 
 .call-status-badge.connected {
-    background: var(--color-success-soft);
+    background-color: var(--color-success-soft);
     color: var(--color-success);
 }
 
 .call-status-badge.connecting {
-    background: var(--color-warning-soft);
+    background-color: var(--color-warning-soft);
     color: var(--color-warning);
 }
 
 .call-status-badge.waiting {
-    background: var(--color-info-soft);
-    color: var(--color-info);
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
 }
 
 .call-status-badge.disconnected {
-    background: var(--color-danger-soft);
+    background-color: var(--color-danger-soft);
     color: var(--color-danger);
 }
 
@@ -73,23 +73,21 @@
 }
 
 .call-status-badge.connected .call-status-dot {
-    background: var(--color-success);
-    box-shadow: 0 0 6px color-mix(in srgb, var(--color-success) 60%, transparent);
-    animation: pulse-dot 2s ease-in-out infinite;
+    background-color: var(--color-success);
 }
 
 .call-status-badge.connecting .call-status-dot {
-    background: var(--color-warning);
-    animation: pulse-dot 1s ease-in-out infinite;
+    background-color: var(--color-warning);
+    animation: pulse-dot 1.4s var(--ease-standard) infinite;
 }
 
 .call-status-badge.waiting .call-status-dot {
-    background: var(--color-info);
-    animation: pulse-dot 1.6s ease-in-out infinite;
+    background-color: var(--color-primary);
+    animation: pulse-dot 2s var(--ease-standard) infinite;
 }
 
 .call-status-badge.disconnected .call-status-dot {
-    background: var(--color-danger);
+    background-color: var(--color-danger);
 }
 
 @keyframes pulse-dot {
@@ -103,7 +101,7 @@
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
-    background: rgba(0, 0, 0, 0.14);
+    border-bottom: 1px solid var(--line);
     flex-shrink: 0;
 }
 
@@ -111,75 +109,81 @@
     width: 40px;
     height: 40px;
     border-radius: var(--radius-full);
-    border: 1px solid var(--slight-tint);
-    background: var(--main-4);
-    color: var(--font-color);
+    border: 1px solid var(--line-strong);
+    background-color: var(--surface-raised);
+    box-shadow: var(--rim-light);
+    color: var(--text-primary);
     font-size: var(--font-size-md);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
     outline: none;
 }
 
 .call-ctrl-btn:hover {
-    background: var(--main-4);
-    border-color: var(--medium-tint);
-    transform: scale(1.08);
+    background-color: var(--surface-hover);
 }
 
-.call-ctrl-btn:active {
-    transform: scale(0.94);
+.call-ctrl-btn:active:not(:disabled) {
+    background-color: var(--surface-active);
+}
+
+.call-ctrl-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .call-ctrl-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.45;
     cursor: not-allowed;
-    transform: none !important;
 }
 
 .call-ctrl-btn.danger {
-    background: var(--color-danger-soft);
+    background-color: var(--color-danger-soft);
     border-color: var(--color-danger-border);
     color: var(--color-danger);
+    box-shadow: none;
 }
 
 .call-ctrl-btn.danger:hover {
-    background: var(--color-danger);
-    border-color: var(--color-danger);
+    background-color: var(--color-danger);
+    border-color: transparent;
     color: var(--color-danger-contrast);
 }
 
 .call-ctrl-btn.toggled-danger {
-    background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+    background-color: var(--color-danger-soft);
     border-color: var(--color-danger-border);
     color: var(--color-danger);
+    box-shadow: none;
 }
 
 .call-ctrl-btn.toggled-danger:hover {
-    background: color-mix(in srgb, var(--color-danger) 28%, transparent);
-    border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+    background-color: color-mix(in srgb, var(--color-danger) 25%, transparent);
 }
 
 .call-ctrl-btn.toggled {
-    background: color-mix(in srgb, var(--color-info) 20%, transparent);
-    border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
-    color: var(--color-info);
+    background-color: var(--color-primary-soft);
+    border-color: var(--color-primary-border);
+    color: var(--color-primary);
+    box-shadow: none;
 }
 
 .call-ctrl-btn.toggled:hover {
-    background: color-mix(in srgb, var(--color-info) 30%, transparent);
-    border-color: color-mix(in srgb, var(--color-info) 55%, transparent);
+    background-color: color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
 .call-ctrl-btn.reconnect {
-    color: var(--color-info);
+    color: var(--color-primary);
 }
 
 .call-ctrl-btn.reconnect:hover {
-    background: var(--color-info-soft);
-    border-color: var(--color-info-border);
+    background-color: var(--color-primary-soft);
+    border-color: var(--color-primary-border);
 }
 
 .call-ctrl-btn.reconnect:disabled i {
@@ -208,26 +212,28 @@
 }
 
 .call-participants-label {
-    font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-normal);
-    opacity: 0.45;
+    letter-spacing: var(--letter-spacing-label);
+    color: var(--text-tertiary);
 }
 
 .call-participants-count {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
     font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-semibold);
-    background: var(--slight-tint);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-tertiary);
+    background-color: var(--surface-hover);
     padding: 1px 7px;
-    border-radius: var(--radius-lg);
-    opacity: 0.45;
+    border-radius: var(--radius-full);
 }
 
 .call-participants-empty {
     margin: 0;
     padding: 6px 4px;
-    opacity: 0.4;
+    color: var(--text-tertiary);
     font-size: var(--font-size-xs);
     text-align: center;
 }
@@ -236,21 +242,20 @@
     display: flex;
     align-items: center;
     padding: 4px 6px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     border: 1px solid transparent;
-    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-base) var(--ease-standard);
     position: relative;
     gap: 4px;
 }
 
 .voice-participant:hover {
-    background: var(--slight-tint);
+    background-color: var(--surface-hover);
 }
 
 .voice-participant.active-speaker {
     border-color: var(--color-success-border);
-    background: color-mix(in srgb, var(--color-success) 5%, transparent);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--color-success) 8%, transparent);
 }
 
 .participant-info {
@@ -275,7 +280,8 @@
     background: transparent;
     outline: none;
     opacity: 0;
-    transition: width 0.2s ease, opacity 0.15s ease;
+    transition: width var(--duration-base) var(--ease-standard),
+        opacity var(--duration-fast) var(--ease-standard);
     cursor: pointer;
     margin: 0;
     padding: 0;
@@ -289,13 +295,13 @@
 
 .participant-volume-slider::-webkit-slider-runnable-track {
     height: 3px;
-    background: var(--main-4);
+    background-color: var(--surface-active);
     border-radius: var(--radius-xs);
 }
 
 .participant-volume-slider::-moz-range-track {
     height: 3px;
-    background: var(--main-4);
+    background-color: var(--surface-active);
     border-radius: var(--radius-xs);
     border: none;
 }
@@ -305,20 +311,18 @@
     width: 12px;
     height: 12px;
     border-radius: var(--radius-full);
-    background: var(--color-info);
+    background-color: var(--color-primary);
     cursor: pointer;
     margin-top: -4.5px;
-    box-shadow: 0 0 4px color-mix(in srgb, var(--color-info) 30%, transparent);
 }
 
 .participant-volume-slider::-moz-range-thumb {
     width: 12px;
     height: 12px;
     border-radius: var(--radius-full);
-    background: var(--color-info);
+    background-color: var(--color-primary);
     border: none;
     cursor: pointer;
-    box-shadow: 0 0 4px color-mix(in srgb, var(--color-info) 30%, transparent);
 }
 
 .participant-volume-btn,
@@ -328,14 +332,16 @@
     border-radius: var(--radius-full);
     border: none;
     background: transparent;
-    color: var(--font-color);
+    color: var(--text-primary);
     font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     opacity: 0.35;
-    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    transition: opacity var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
     flex-shrink: 0;
     outline: none;
 }
@@ -350,7 +356,13 @@
 .participant-volume-btn:hover,
 .participant-mod-btn:hover {
     opacity: 1 !important;
-    background: var(--slight-tint);
+    background-color: var(--surface-hover);
+}
+
+.participant-volume-btn:focus-visible,
+.participant-mod-btn:focus-visible {
+    opacity: 1;
+    box-shadow: var(--focus-ring);
 }
 
 .participant-volume-btn.muted {
@@ -359,12 +371,12 @@
 }
 
 .participant-volume-btn.muted:hover {
-    background: var(--color-danger-soft);
+    background-color: var(--color-danger-soft);
 }
 
 .participant-mod-btn.toggled {
     opacity: 1;
-    background: var(--color-warning-soft);
+    background-color: var(--color-warning-soft);
     color: var(--color-warning);
 }
 
@@ -373,7 +385,7 @@
 }
 
 .participant-mod-btn.warn.toggled:hover {
-    background: color-mix(in srgb, var(--color-warning) 20%, transparent);
+    background-color: color-mix(in srgb, var(--color-warning) 22%, transparent);
 }
 
 .participant-mod-btn.danger:hover {
@@ -383,7 +395,6 @@
 .participant-self-muted {
     font-size: var(--font-size-sm);
     color: var(--color-danger);
-    opacity: 0.7;
     flex-shrink: 0;
 }
 
@@ -408,8 +419,8 @@
 
 .video-empty {
     margin: auto;
-    color: var(--font-alt-color);
-    opacity: 0.7;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
 }
 
 .video-audio-hosts {
@@ -484,32 +495,32 @@
 .video-tile {
     position: relative;
     min-height: 120px;
-    background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--color-info) 18%, transparent), rgba(0, 0, 0, 0.4));
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     overflow: hidden;
     display: flex;
     align-items: stretch;
     justify-content: stretch;
+    transition: border-color var(--duration-base) var(--ease-standard),
+        box-shadow var(--duration-base) var(--ease-standard);
 }
 
 .video-tile.active-speaker {
-    border-color: color-mix(in srgb, var(--color-success) 65%, transparent);
-    box-shadow:
-        0 0 0 2px color-mix(in srgb, var(--color-success) 20%, transparent),
-        0 0 30px color-mix(in srgb, var(--color-success) 20%, transparent);
+    border-color: var(--color-success);
+    box-shadow: inset 0 0 0 1px var(--color-success);
 }
 
 .participant-video {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    background: #111;
+    background-color: var(--surface-canvas);
 }
 
 .video-tile.screen-share .participant-video {
     object-fit: contain;
-    background: #000;
+    background-color: var(--surface-canvas);
 }
 
 .video-fallback {
@@ -524,25 +535,23 @@
 .video-fallback-avatar {
     width: 120px;
     height: 120px;
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-avatar);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    border: 2px solid rgba(255, 255, 255, 0.22);
-    box-shadow: 0 0 24px rgba(0, 0, 0, 0.35);
+    border: 2px solid var(--line-strong);
 }
 
 .screen-share-fallback-icon {
     font-size: var(--font-size-5xl);
-    opacity: 0.8;
-    color: rgba(255, 255, 255, 0.88);
+    color: var(--text-tertiary);
 }
 
 .video-overlay-top {
     position: absolute;
     inset: 0 auto auto 0;
     padding: 8px;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, transparent 100%);
+    background: linear-gradient(180deg, var(--scrim) 0%, transparent 100%);
     width: 100%;
     pointer-events: none;
 }
@@ -563,7 +572,7 @@
     justify-content: flex-end;
     padding: 8px;
     width: 100%;
-    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.55) 100%);
+    background: linear-gradient(180deg, transparent 0%, var(--scrim) 100%);
 }
 
 .video-overlay-actions {
@@ -578,69 +587,51 @@
     gap: 2px;
 }
 
-.video-focus-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-full);
-    border: none;
-    background: transparent;
-    color: var(--font-color);
-    font-size: var(--font-size-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0.55;
-    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
-    flex-shrink: 0;
-    outline: none;
-}
-
-.video-focus-btn:hover {
-    opacity: 1;
-    background: var(--slight-tint);
-}
-
-.video-focus-btn.active {
-    opacity: 1;
-    color: var(--color-info);
-    background: color-mix(in srgb, var(--color-info) 18%, transparent);
-}
-
+.video-focus-btn,
 .video-viewport-btn {
     width: 28px;
     height: 28px;
     border-radius: var(--radius-full);
     border: none;
     background: transparent;
-    color: var(--font-color);
+    color: var(--text-primary);
     font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     opacity: 0.55;
-    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    transition: opacity var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
     flex-shrink: 0;
     outline: none;
 }
 
+.video-focus-btn:hover,
 .video-viewport-btn:hover {
     opacity: 1;
-    background: var(--slight-tint);
+    background-color: var(--surface-hover);
 }
 
+.video-focus-btn:focus-visible,
+.video-viewport-btn:focus-visible {
+    opacity: 1;
+    box-shadow: var(--focus-ring);
+}
+
+.video-focus-btn.active,
 .video-viewport-btn.active {
     opacity: 1;
-    color: var(--color-info);
-    background: color-mix(in srgb, var(--color-info) 18%, transparent);
+    color: var(--color-primary);
+    background-color: var(--color-primary-soft);
 }
 
 .video-fullscreen-backdrop {
     position: fixed;
     inset: 0;
     z-index: 1600;
-    background: rgba(0, 0, 0, 0.78);
+    background-color: color-mix(in srgb, var(--surface-canvas) 88%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -659,7 +650,7 @@
     width: 100%;
     height: 100%;
     min-height: 0;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
 }
 
 .video-fullscreen-close {
@@ -669,20 +660,20 @@
     width: 34px;
     height: 34px;
     border-radius: var(--radius-full);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(0, 0, 0, 0.55);
-    color: #fff;
+    border: 1px solid var(--line-strong);
+    background-color: var(--scrim);
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
     z-index: 2;
 }
 
 .video-fullscreen-close:hover {
-    background: rgba(0, 0, 0, 0.74);
-    border-color: rgba(255, 255, 255, 0.38);
+    background-color: var(--surface-hover);
 }
 
 .video-tile.focus-thumb .video-participant-meta {
@@ -717,9 +708,9 @@
     gap: 8px;
     margin: 0 12px 12px;
     padding: 8px 12px;
-    border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
-    border: 1px solid var(--color-danger-soft);
+    border-radius: var(--radius-md);
+    background-color: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
     color: var(--color-danger);
     font-size: var(--font-size-xs);
     line-height: var(--line-height-base);
@@ -748,7 +739,6 @@
     min-height: 100px;
 }
 
-/* Community-hosted voice warning (mirrors the shared BYO warning style) */
 .custom-media-warning {
     display: flex;
     align-items: flex-start;
@@ -756,15 +746,15 @@
     text-align: left;
     padding: 10px 14px;
     margin: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--color-warning, #e0a030);
-    background-color: rgba(224, 160, 48, 0.08);
-    font-size: 0.85em;
-    color: var(--font-color, #eee);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-warning-border);
+    background-color: var(--color-warning-soft);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
 }
 
 .custom-media-warning i {
-    color: var(--color-warning, #e0a030);
+    color: var(--color-warning);
     margin-top: 2px;
 }
 
@@ -797,7 +787,7 @@
     align-items: center;
     gap: 4px;
     opacity: .45;
-    transition: opacity 160ms ease;
+    transition: opacity var(--duration-base) var(--ease-standard);
 }
 
 .nearby-person.speaking,
@@ -810,11 +800,12 @@
     object-fit: cover;
     width: 44px;
     height: 44px;
-    border-radius: 50%;
+    border-radius: var(--radius-avatar);
     background-size: cover;
     background-position: center;
-    background-color: var(--main-2);
-    border: 2px solid var(--slight-tint);
+    background-color: var(--surface-base);
+    border: 2px solid var(--line-strong);
+    transition: border-color var(--duration-base) var(--ease-standard);
 }
 
 .nearby-person.speaking .nearby-avatar {
@@ -841,16 +832,24 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    border: 1px solid var(--slight-tint);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-full);
-    background: color-mix(in srgb, var(--main-2) 75%, transparent);
-    color: var(--font-color);
+    background-color: var(--surface-overlay);
+    color: var(--text-primary);
     cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard),
+        opacity var(--duration-fast) var(--ease-standard);
+}
+
+.nearby-video-button:hover {
+    background-color: var(--surface-hover);
 }
 
 .nearby-video-button.selected {
     color: var(--color-primary);
-    border-color: var(--color-primary);
+    border-color: var(--color-primary-border);
+    background-color: var(--color-primary-soft);
 }
 
 .nearby-options-button {
@@ -860,6 +859,7 @@
 .nearby-options-button:hover,
 .nearby-options-button:focus-visible {
     opacity: 1;
+    background-color: var(--surface-hover);
 }
 
 .nearby-video-button:focus-visible,
@@ -873,10 +873,10 @@
     position: absolute;
     right: calc(100% + 10px);
     width: min(320px, calc(100cqw - 100px));
-    border: 1px solid var(--medium-tint);
+    border: 1px solid var(--line);
     border-radius: var(--radius-lg);
-    background: color-mix(in srgb, var(--main-2) 92%, transparent);
-    box-shadow: 0 8px 24px #0005;
+    background-color: var(--surface-overlay);
+    box-shadow: var(--shadow-overlay);
 }
 
 .nearby-controls {
@@ -903,7 +903,9 @@
     justify-content: space-between;
     padding: 6px 10px;
     gap: 8px;
+    color: var(--text-primary);
     font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
 }
 
 .nearby-video-heading span {
@@ -914,11 +916,19 @@
 
 .nearby-video-heading button {
     border: 0;
-    color: var(--font-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
     background: transparent;
     min-width: 32px;
     min-height: 32px;
     cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
+}
+
+.nearby-video-heading button:hover {
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
 }
 
 .nearby-video-popout .video-tile {
@@ -932,16 +942,29 @@
 .nearby-mode > .call-controls {
     width: min(320px, calc(100cqw - 100px));
     align-self: flex-end;
-    background: var(--main-2);
+    background-color: var(--surface-base);
     border-radius: var(--radius-md);
+}
+
+.nearby-mode > .call-controls {
+    border: 1px solid var(--line);
+}
+
+.nearby-mode > .custom-media-warning {
+    background-color: color-mix(in srgb, var(--color-warning) 15%, var(--surface-base));
+}
+
+.nearby-mode > .call-error {
+    background-color: color-mix(in srgb, var(--color-danger) 15%, var(--surface-base));
 }
 
 @media (prefers-reduced-motion: reduce) {
     .nearby-person { transition: none; }
+    .call-status-dot { animation: none !important; }
 }
 
 .nearby-call-status {
     font-size: var(--font-size-xs);
-    color: var(--font-color);
+    color: var(--text-secondary);
     align-self: center;
 }

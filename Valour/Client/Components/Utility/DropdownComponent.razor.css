@@ -13,15 +13,17 @@
 
 .v-dropdown .content {
     position: absolute;
-    top: 100%;
-    background-color: var(--main-1);
+    top: calc(100% + 4px);
+    right: 0;
     z-index: 5;
-    border-radius: var(--radius-md);
     display: flex;
     flex-direction: column;
-    gap: 0.5em;
-    right: 0;
-    padding: 0.5em;
+    gap: 2px;
+    padding: 4px;
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-overlay), var(--rim-light);
 }
 
 .mobile .v-dropdown .content {
@@ -30,12 +32,11 @@
     top: auto;
     bottom: 0;
     z-index: 100000;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
-.v-dropdown .align-right {
-    right: 0;
-}
-
+.v-dropdown .align-right,
 .v-dropdown .align-left {
     right: 0;
 }

@@ -13,7 +13,7 @@
             <UserInfoComponent User="@Data.User" ShowBadges="false" ShowState="false" />
         </div>
 
-        <h6 class="mt-3">Account recovery</h6>
+        <h6 class="staff-tools-heading mt-3">Account recovery</h6>
         <div class="form-group">
             <label>
                 <input type="checkbox" @bind="_invalidateSessions" />
@@ -21,7 +21,7 @@
             </label>
         </div>
         <div class="button-row">
-            <button class="v-btn primary" @onclick="TriggerPasswordReset">Send password reset email</button>
+            <button class="v-btn" @onclick="TriggerPasswordReset">Send password reset email</button>
             <button class="v-btn danger" @onclick="ScheduleMfaRemoval">Schedule 2FA removal</button>
             <button class="v-btn" @onclick="CancelMfaRemoval">Cancel pending 2FA removal</button>
         </div>
@@ -31,9 +31,9 @@
             the account is emailed immediately and can cancel it.
         </p>
 
-        <h6 class="mt-3">Identity</h6>
+        <h6 class="staff-tools-heading mt-3">Identity</h6>
         <div class="button-row">
-            <button class="v-btn secondary" @onclick="ResetUsername">Reset username</button>
+            <button class="v-btn" @onclick="ResetUsername">Reset username</button>
             @if (Data.User.HidePriorName)
             {
                 <button class="v-btn" @onclick="@(() => SetPriorNameHidden(false))">Unhide prior name</button>
@@ -48,7 +48,7 @@
             name automatically.
         </p>
 
-        <h6 class="mt-3">Owned bots</h6>
+        <h6 class="staff-tools-heading mt-3">Owned bots</h6>
         <div class="button-row">
             <button class="v-btn" @onclick="LoadBots">View owned bots</button>
         </div>

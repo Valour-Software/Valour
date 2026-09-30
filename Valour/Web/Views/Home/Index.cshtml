@@ -1,277 +1,295 @@
 ﻿@{
-    ViewData["Title"] = "Valour: The Open-Source Community Platform";
-    ViewData["Description"] = "Real-time chat, thread feeds, community wikis, and voice: one open-source home for your community. No ads, no data selling, no ID checks.";
-    ViewData["Keywords"] = "Community Platform, Discord Alternative, Open Source Chat, Privacy, No ID Verification, Self-Hosted Chat, Threads, Community Wiki, Voice Chat, Federation";
-    ViewData["main-class"] = "homepage-content";
+    ViewData["Title"] = "Valour: The Encrypted, Open-Source Discord Alternative";
+    ViewData["Description"] = "Chat, voice, threads and wikis for your community. Messages are end-to-end encrypted, with no ads and no ID checks. Import your Discord server in minutes.";
+    ViewData["Keywords"] = "Discord alternative, encrypted Discord alternative, open source Discord alternative, Discord alternative without ID verification, end-to-end encrypted community chat, self-hosted chat, community platform, voice chat";
+    ViewData["main-class"] = "home";
+    ViewData["HeaderOverlay"] = true;
+
+    // Canis Victor: stars placed on Victor's own outline (head, visor, eyes and
+    // bowtie), in the coordinate space of his artwork. Matches the sign-in page.
+    var stars = new Dictionary<char, (int X, int Y, double Size)>
+    {
+        ['A'] = (292, 72, 3.2), ['B'] = (190, 130, 2.4), ['C'] = (129, 273, 2.4), ['D'] = (170, 352, 2.4),
+        ['E'] = (256, 367, 2.4), ['F'] = (292, 178, 2.4), ['G'] = (401, 160, 2.4), ['H'] = (446, 178, 3.2),
+        ['I'] = (424, 262, 2.4), ['J'] = (305, 352, 2.4), ['K'] = (211, 200, 3.6), ['L'] = (328, 245, 3.6),
+        ['M'] = (140, 412, 2.4), ['N'] = (201, 427, 3.6), ['O'] = (268, 433, 2.4)
+    };
+    var edges = new (char From, char To)[]
+    {
+        ('A', 'B'), ('B', 'C'), ('C', 'D'), ('D', 'E'), ('A', 'F'), ('F', 'G'), ('G', 'H'),
+        ('H', 'I'), ('I', 'J'), ('J', 'E'), ('M', 'N'), ('N', 'O'), ('E', 'N')
+    };
+
+    var features = new (string Icon, string Title, string Text)[]
+    {
+        ("bi-chat-left-text", "Chat", "Channels, direct messages and group chats, with replies, reactions, spoilers and link previews. Keep several conversations open side by side."),
+        ("bi-camera-video", "Voice and video", "Voice and video channels to hang out in, and calls with friends or groups of up to 25, with screen sharing."),
+        ("bi-shield-check", "Roles and moderation", "Roles with detailed permissions, automod, bans, reports and an audit log, so moderators have what they need."),
+        ("bi-chat-square-text", "Threads", "A feed of posts sorted by hot, new and top, for discussions that should not scroll away."),
+        ("bi-journal-text", "Wikis", "Pages with revision history and search, for rules, guides and everything your community keeps explaining."),
+        ("bi-calendar-event", "Events", "A shared calendar with RSVPs and reminders, so people know when game night starts."),
+        ("bi-robot", "Bots and integrations", "Bots, incoming webhooks and interactive embeds with buttons, forms and live updates."),
+        ("bi-palette", "Themes", "Restyle Valour with the theme editor or your own CSS, and share your themes with others.")
+    };
+
+    var switchSteps = new (string Title, string Text)[]
+    {
+        ("Sign in with Discord", "Create your account with your Discord login, or with an email address. There is nothing to verify beyond your email."),
+        ("Import your server", "Save your Discord server as a template and paste its link into Valour. Channels, categories, roles and permissions come across."),
+        ("Invite your members", "Share an invite link. Members can sign in with Discord too, so joining takes a few seconds.")
+    };
+
+    var extras = new (string Icon, string Title, string Text)[]
+    {
+        ("bi-search", "Found on the web", "Public threads and wikis get their own pages that search engines index, so people can find your community from a search, not only from an invite."),
+        ("bi-houses", "Villages", "Give your planet a small 2D world. Members walk around, talk with voice that fades with distance, and step into buildings that open channels."),
+        ("bi-hdd-network", "Your own infrastructure", "Store your planet's uploads in your own storage and run its calls on your own voice server, or run all of Valour yourself with Docker.")
+    };
+
+    var principles = new (string Title, string Text, string LinkText, string LinkUrl)[]
+    {
+        ("Encrypted end to end", "Messages in direct chats, group chats and planet channels are encrypted on your devices before they are sent. Threads and wikis are public on purpose.", "How encryption works", "https://github.com/Valour-Software/Valour/blob/main/Docs/EndToEndEncryption.md"),
+        ("No ID checks", "Sign up with an email, Google or Discord. We never ask for a phone number, a government ID or a face scan.", "Why we paused Texas sign-ups", "/texas/"),
+        ("Open source", "The client and server are published under the AGPL. Read the code, send a fix, or run your own instance.", "Source on GitHub", "https://github.com/Valour-Software/Valour"),
+        ("No ads, nothing to sell", "Valour is free. Optional Stargazer subscriptions from $4.99 a month pay for the servers, not advertisers or data brokers.", "Privacy Policy", "/privacy/")
+    };
+
+    var appJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "SoftwareApplication",
+        ["name"] = "Valour",
+        ["url"] = "https://valour.gg",
+        ["applicationCategory"] = "CommunicationApplication",
+        ["operatingSystem"] = "Web, Windows, Linux, Android",
+        ["description"] = "An open-source community platform with end-to-end encrypted chat, voice and video, threads, wikis and events.",
+        ["image"] = "https://valour.gg/media/twitter-card.png",
+        ["downloadUrl"] = "https://github.com/Valour-Software/Valour/releases/latest",
+        ["offers"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "Offer",
+            ["price"] = "0",
+            ["priceCurrency"] = "USD",
+        },
+    });
 }
 
-<section class="hero-section">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-xl-8 col-lg-10 hero-content text-center" data-aos="fade-up">
-                <h1 class="title-gradient">Community first.</h1>
-                <p class="hero-subtitle">Real-time chat, thread feeds, wikis, and voice: one open-source home for your community. No ads, no data selling, no ID checks.</p>
-                <div class="hero-download-panel" data-download-picker>
-                    <p class="hero-platform-note" data-platform-note>Recommended for your device</p>
-                    <div class="hero-actions">
-                        <a href="https://github.com/Valour-Software/Valour/releases/latest/download/ValourLauncher.exe"
-                           class="btn btn-gradient btn-hero download-option"
-                           data-download="windows"
-                           data-platform-option="windows">
-                            <i class="bi bi-windows"></i> Download for Windows
-                        </a>
-                        <a href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk"
-                           class="btn btn-outline btn-hero download-option"
-                           data-download="android"
-                           data-platform-option="android">
-                            <i class="bi bi-android2"></i> Download for Android
-                        </a>
-                        <a href="https://app.valour.gg"
-                           class="btn btn-outline btn-hero download-option"
-                           data-platform-option="web">
-                            Open on Web <i class="bi bi-arrow-right"></i>
-                        </a>
-                        <button type="button" class="btn btn-ghost btn-hero view-all-downloads" data-show-downloads>
-                            View all downloads
-                        </button>
-                    </div>
-                </div>
-            </div>
+@Html.Raw($"<script type=\"application/ld+json\">{appJsonLd}</script>")
+
+<section class="hero">
+    <div class="hero-sky" aria-hidden="true">
+        <canvas class="sky-layer" data-eager data-sky='{"seed":"valour","palette":"valour","intensity":1.3,"scale":2.6,"spread":0.4,"focusX":0.72,"focusY":0.35,"narrow":{"focusX":0.6,"focusY":0.3,"spread":0.5}}'></canvas>
+        <canvas class="sky-layer" data-eager data-planet='{"seed":"valour-home","kind":"terra","plain":true,"radius":0.5,"centerX":0.8,"centerY":1.19,"lights":1.4,"light":[0.12,-0.38,-0.92],"narrow":{"radius":0.62,"centerX":0.62,"centerY":1.3}}'></canvas>
+        <div class="constellation">
+            <span class="sky-caption">canis victor · the good boy</span>
+            <svg viewBox="100 40 380 420">
+                @foreach (var (from, to) in edges)
+                {
+                    <line x1="@stars[from].X" y1="@stars[from].Y" x2="@stars[to].X" y2="@stars[to].Y" />
+                }
+                @foreach (var star in stars.Values)
+                {
+                    <circle class="halo" cx="@star.X" cy="@star.Y" r="@(star.Size * 4)" />
+                    <circle cx="@star.X" cy="@star.Y" r="@star.Size" />
+                }
+            </svg>
         </div>
-        <div class="row justify-content-center">
-            <div class="col-xl-10 hero-image" data-aos="fade-up" data-aos-delay="200">
-                <div class="hero-reel-shell">
-                    <div class="hero-reel-glow"></div>
-                    <div class="image-card sm-rounded-image hero-preview-card hero-reel-card">
-                        <video class="hero-reel"
-                               autoplay
-                               muted
-                               loop
-                               playsinline
-                               preload="metadata"
-                               poster="media/images/platform-md.webp"
-                               aria-label="Preview of the Valour platform">
-                            <source src="media/videos/platform-reel.mp4" type="video/mp4">
-                        </video>
-                    </div>
-                    <div class="hero-reel-badge">
-                        <i class="bi bi-play-circle-fill"></i>
-                        Platform preview
-                    </div>
-                </div>
-            </div>
+        <div class="hero-victor">
+            <img src="/media/victor/victor-astronaut.svg" alt="" width="170" height="170" draggable="false" />
+            <span class="sky-caption">victor · out for a spacewalk</span>
         </div>
     </div>
-</section>
 
-<section id="features" class="features-section">
-    <div class="container">
-        <div class="section-header text-center" data-aos="fade-up">
-            <span class="section-subtitle">PLATFORM</span>
-            <h2 class="title-gradient">Everything your community needs</h2>
-            <p class="section-description">Chat is just the beginning. Valour gives your community a full home.</p>
-        </div>
-
-        <div class="row features-grid">
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-window-stack"></i>
-                    </div>
-                    <h3>Multi-window Chat</h3>
-                    <p>Open multiple channels at once (even across communities!) with resizable windows, splits, and tabs. Your layout, your way.</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-stars"></i>
-                    </div>
-                    <h3>Thread Feeds</h3>
-                    <p>Every community gets a post feed with hot, new, and top sorting: lasting discussions that don't scroll away like chat.</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-journal-text"></i>
-                    </div>
-                    <h3>Community Wikis</h3>
-                    <p>Build a knowledge base with revisions and search, and publish it to the web at your own custom URL.</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-mic"></i>
-                    </div>
-                    <h3>Voice Channels</h3>
-                    <p>Drop into voice with your community: on our infrastructure, or bring your own server for full control.</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-coin"></i>
-                    </div>
-                    <h3>Economy System</h3>
-                    <p>Launch a community currency in two clicks! Reward members, run events, and hook the API into your own systems.</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-palette"></i>
-                    </div>
-                    <h3>Themes &amp; Customization</h3>
-                    <p>Restyle the entire app with community-made themes, or publish your own to the theme marketplace.</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="platform-preview" data-aos="fade-up">
-            <h3 class="text-center">"Your Yandere" theme by Wyvern</h3>
-            <img src="media/images/platform-themes.webp" alt="The Valour platform" class="img-fluid rounded-image">
-        </div>
-    </div>
-</section>
-
-<section class="performance-section">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6 performance-content" data-aos="fade-right">
-                <div class="section-header">
-                    <span class="section-subtitle">TECHNOLOGY</span>
-                    <h2 class="title-gradient-reverse">Next-gen Performance</h2>
-                    <p class="section-description">Experience blazing fast speeds with our optimized tech stack.</p>
-                </div>
-                <div class="performance-features">
-                    <div class="performance-feature">
-                        <div class="feature-check"><i class="bi bi-check-circle-fill"></i></div>
-                        <div>
-                            <h4>Built on Blazor & WebAssembly</h4>
-                            <p>While other apps sacrifice your computer's resources with Electron, we use cutting-edge web technologies for superior speed.</p>
-                        </div>
-                    </div>
-                    <div class="performance-feature">
-                        <div class="feature-check"><i class="bi bi-check-circle-fill"></i></div>
-                        <div>
-                            <h4>Node-based Backend</h4>
-                            <p>Our custom node-based backend system allows large communities to get the performance they need - without disabling core features.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6 performance-image" data-aos="fade-left">
-                <div class="image-card floating">
-                    <img src="media/screencaps/performance.webp" alt="Browser performance" class="img-fluid rounded-image">
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="opensource-section">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6 opensource-image" data-aos="fade-right">
-                <div class="image-card">
-                    <img src="media/screencaps/opensource-3.webp" alt="Open Source Contributions" class="img-fluid rounded-image">
-                    <div class="card-badge">
-                        <i class="bi bi-github"></i> Open Source
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6 opensource-content" data-aos="fade-left" style="padding-left: 50px">
-                <div class="section-header">
-                    <span class="section-subtitle">TRANSPARENCY</span>
-                    <h2 class="title-gradient-blue">Open Source, Privacy Focused</h2>
-                    <p class="section-description">We're an open book. Built by volunteers with no corporate funding.</p>
-                </div>
-                <div class="opensource-values">
-                    <div class="value-item">
-                        <i class="bi bi-shield-check"></i>
-                        <div>
-                            <h4>Privacy First</h4>
-                            <p>No ads, no data selling, no ID or phone verification. An email is all you need.</p>
-                        </div>
-                    </div>
-                    <div class="value-item">
-                        <i class="bi bi-eye"></i>
-                        <div>
-                            <h4>Fully Transparent</h4>
-                            <p>Client and server are open source under AGPL. If you don't trust us, read the code yourself.</p>
-                        </div>
-                    </div>
-                    <div class="value-item">
-                        <i class="bi bi-hdd-network"></i>
-                        <div>
-                            <h4>Yours to Host</h4>
-                            <p>Run your own instance with one docker compose command, or host your data on your own servers.</p>
-                        </div>
-                    </div>
-                </div>
-                <a href="https://github.com/Valour-Software/Valour" class="btn btn-gradient mt-4">
-                    Our Source Code <i class="bi bi-github"></i>
+    <div class="container hero-inner">
+        <div class="hero-copy">
+            <p class="hero-eyebrow">The encrypted, open-source Discord alternative</p>
+            <h1 class="hero-title"><span>Communities you can see.</span> <em>Conversations only you can read.</em></h1>
+            <p class="hero-lede">Chat, voice, threads and wikis for your community, with every message encrypted end to end. No ads, no ID checks, and your Discord server comes with you.</p>
+            <div class="hero-actions" data-download-picker>
+                <a class="btn btn-primary btn-lg" href="https://app.valour.gg">Open Valour <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                <a class="btn btn-secondary btn-lg"
+                   href="https://github.com/Valour-Software/Valour/releases/latest/download/ValourLauncher.exe"
+                   data-download="windows"
+                   data-platform-option="windows">
+                    <i class="bi bi-windows" aria-hidden="true"></i> Download for Windows
+                </a>
+                <a class="btn btn-secondary btn-lg"
+                   href="https://github.com/Valour-Software/Valour/releases/latest/download/Valour-linux-x86_64.flatpak"
+                   data-download="linux"
+                   data-platform-option="linux">
+                    <i class="bi bi-pc-display" aria-hidden="true"></i> Download for Linux
+                </a>
+                <a class="btn btn-secondary btn-lg"
+                   href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk"
+                   data-download="android"
+                   data-platform-option="android">
+                    <i class="bi bi-android2" aria-hidden="true"></i> Download for Android
+                </a>
+                <a class="btn btn-secondary btn-lg" href="#download" data-platform-option="web">
+                    <i class="bi bi-download" aria-hidden="true"></i> All downloads
                 </a>
             </div>
+            <p class="hero-note" data-platform-note>Works in any modern browser. Apps for Windows, Linux and Android.</p>
         </div>
     </div>
 </section>
 
-<section id="download" class="download-section">
+<section id="features" class="section">
     <div class="container">
-        <div class="section-header text-center" data-aos="fade-up">
-            <span class="section-subtitle">DOWNLOAD</span>
-            <h2 class="title-gradient">Get the Valour App</h2>
-            <p class="section-description">Download the latest release straight from GitHub. Prefer the browser? <a href="https://app.valour.gg">Open the web app</a>.</p>
+        <header class="section-head">
+            <p class="eyebrow">What Valour is</p>
+            <h2>Everything your server does, and a little more.</h2>
+            <p class="section-lede">Communities on Valour are called planets. Each one has channels, roles, voice and video, plus threads, a wiki and a calendar when you want them.</p>
+        </header>
+
+        <figure class="product-shot">
+            <img src="/media/screens/valour-desktop.webp" alt="A Valour planet open on the desktop, with the channel list on the left and a conversation in the main window" width="1440" height="900" loading="lazy" />
+        </figure>
+
+        <div class="feature-grid four">
+            @foreach (var feature in features)
+            {
+                <div class="feature">
+                    <i class="bi @feature.Icon" aria-hidden="true"></i>
+                    <h3>@feature.Title</h3>
+                    <p>@feature.Text</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section id="switch" class="section">
+    <div class="container">
+        <div class="planets-head">
+            <header class="section-head">
+                <p class="eyebrow">Moving from Discord</p>
+                <h2>Bring your server over in a few minutes.</h2>
+                <p class="section-lede">Your channels, roles and permissions come with you. Messages and members stay behind, so you start fresh with the same structure.</p>
+            </header>
+            <figure class="planets-victor" aria-hidden="true">
+                <img src="/media/victor/victor-rocket.svg" alt="" width="180" height="180" loading="lazy" draggable="false" />
+                <figcaption class="sky-caption">victor · moving house</figcaption>
+            </figure>
         </div>
 
-        <div class="row download-grid justify-content-center">
-            <div class="col-md-5" data-aos="fade-up" data-aos-delay="100">
-                <div class="download-card">
-                    <div class="download-icon"><i class="bi bi-windows"></i></div>
-                    <h3>Windows</h3>
-                    <p>The Valour desktop launcher for Windows.</p>
-                    <a href="https://github.com/Valour-Software/Valour/releases/latest/download/ValourLauncher.exe"
-                       class="btn btn-gradient btn-lg" data-download="windows">
-                        <i class="bi bi-download"></i> Download for Windows
-                    </a>
-                </div>
-            </div>
-            <div class="col-md-5" data-aos="fade-up" data-aos-delay="200">
-                <div class="download-card">
-                    <div class="download-icon"><i class="bi bi-android2"></i></div>
-                    <h3>Android</h3>
-                    <p>The Valour app as a signed Android APK.</p>
-                    <a href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk"
-                       class="btn btn-outline btn-lg" data-download="android">
-                        <i class="bi bi-download"></i> Download for Android
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <p class="download-note text-center">
-            Looking for older versions? Browse all
-            <a href="https://github.com/Valour-Software/Valour/releases" target="_blank">GitHub releases</a>.
+        <ol class="step-grid">
+            @for (var i = 0; i < switchSteps.Length; i++)
+            {
+                <li class="step">
+                    <span class="step-number">0@(i + 1)</span>
+                    <h3>@switchSteps[i].Title</h3>
+                    <p>@switchSteps[i].Text</p>
+                </li>
+            }
+        </ol>
+        <p class="section-links">
+            <a href="/discord-alternative/">Compare Valour and Discord <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         </p>
     </div>
 </section>
 
-<section class="cta-section">
+<section id="more" class="section">
     <div class="container">
-        <div class="cta-card" data-aos="zoom-in">
-            <h2 class="title-gradient">Ready to bring your community home?</h2>
-            <p>Start in your browser in seconds! (...and bring your existing community over with the built-in Discord importer)</p>
-            <div class="cta-buttons">
-                <a href="https://app.valour.gg" class="btn btn-gradient btn-lg">
-                    Open on Web <i class="bi bi-arrow-right"></i>
-                </a>
-                <a href="https://github.com/Valour-Software/Valour" class="btn btn-outline btn-lg">
-                    <i class="bi bi-github"></i> Contribute
-                </a>
-            </div>
+        <header class="section-head">
+            <p class="eyebrow">Beyond chat</p>
+            <h2>Things your community can't do on Discord.</h2>
+        </header>
+        <div class="feature-grid three">
+            @foreach (var extra in extras)
+            {
+                <div class="feature">
+                    <i class="bi @extra.Icon" aria-hidden="true"></i>
+                    <h3>@extra.Title</h3>
+                    <p>@extra.Text</p>
+                </div>
+            }
         </div>
     </div>
 </section>
+
+<section id="open" class="section">
+    <div class="container">
+        <header class="section-head">
+            <p class="eyebrow">How it is run</p>
+            <h2>Private by default, and open to inspection.</h2>
+        </header>
+        <div class="principle-grid">
+            @foreach (var principle in principles)
+            {
+                <div class="principle">
+                    <h3>@principle.Title</h3>
+                    <p>@principle.Text</p>
+                    <a class="principle-link" href="@principle.LinkUrl">@principle.LinkText <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section id="download" class="section">
+    <div class="container">
+        <div class="download-head">
+            <header class="section-head">
+                <p class="eyebrow">Download</p>
+                <h2>Use Valour anywhere.</h2>
+                <p class="section-lede">One account works in the browser and in the apps. Apps for macOS and iOS are not available yet; the web app works on both.</p>
+            </header>
+            <figure class="download-victor" aria-hidden="true">
+                <img src="/media/victor/victor-telescope.svg" alt="" width="150" height="150" loading="lazy" draggable="false" />
+            </figure>
+        </div>
+
+        <div class="download-grid">
+            <div class="download-card">
+                <i class="bi bi-globe2" aria-hidden="true"></i>
+                <h3>Web</h3>
+                <p class="download-detail">app.valour.gg</p>
+                <p>Nothing to install. Works in current versions of Chrome, Edge, Firefox and Safari.</p>
+                <a class="btn btn-primary" href="https://app.valour.gg">Open Valour <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            </div>
+            <div class="download-card">
+                <i class="bi bi-windows" aria-hidden="true"></i>
+                <h3>Windows</h3>
+                <p class="download-detail">ValourLauncher.exe</p>
+                <p>The desktop launcher installs Valour and keeps it up to date.</p>
+                <a class="btn btn-secondary"
+                   href="https://github.com/Valour-Software/Valour/releases/latest/download/ValourLauncher.exe"
+                   data-download="windows">
+                    <i class="bi bi-download" aria-hidden="true"></i> Download for Windows
+                </a>
+            </div>
+            <div class="download-card">
+                <i class="bi bi-pc-display" aria-hidden="true"></i>
+                <h3>Linux</h3>
+                <p class="download-detail">Flatpak · x86_64 and ARM64</p>
+                <p>Install the file with <code>flatpak install --user</code>. The GNOME runtime comes from Flathub. The app does not update itself yet. <a href="https://github.com/Valour-Software/Valour/releases/latest/download/Valour-linux-aarch64.flatpak" data-download="linux-aarch64">ARM64 build</a></p>
+                <a class="btn btn-secondary"
+                   href="https://github.com/Valour-Software/Valour/releases/latest/download/Valour-linux-x86_64.flatpak"
+                   data-download="linux">
+                    <i class="bi bi-download" aria-hidden="true"></i> Download for Linux
+                </a>
+            </div>
+            <div class="download-card">
+                <i class="bi bi-android2" aria-hidden="true"></i>
+                <h3>Android</h3>
+                <p class="download-detail">gg.valour.app · signed APK</p>
+                <p>Install the signed APK directly. Your device may ask you to allow installs from your browser.</p>
+                <a class="btn btn-secondary"
+                   href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk"
+                   data-download="android">
+                    <i class="bi bi-download" aria-hidden="true"></i> Download for Android
+                </a>
+            </div>
+        </div>
+
+        <p class="download-note">
+            Release notes and older versions are on
+            <a href="https://github.com/Valour-Software/Valour/releases">GitHub releases</a>.
+        </p>
+    </div>
+</section>
+
+@section Scripts {
+    <script type="module" src="/js/sky.js"></script>
+}

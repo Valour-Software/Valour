@@ -15,7 +15,7 @@
             <p class="subtitle">Create a new bot account to automate tasks and build integrations.</p>
 
             <div class="form-group">
-                <label>Bot Name</label>
+                <label>Bot name</label>
                 <input class="form-control" @bind-value="@_name" placeholder="Enter bot name..." />
                 <span class="helper-text">Choose a unique name for your bot (2-32 characters)</span>
             </div>
@@ -28,18 +28,18 @@
                 <div class="success-icon">
                     <i class="bi bi-check-circle-fill"></i>
                 </div>
-                <h4>Bot Created Successfully!</h4>
+                <h4>Bot created</h4>
                 <p class="warning-text">
                     <i class="bi bi-exclamation-triangle-fill"></i>
-                    Save your token now! This is the only time it will be shown.
+                    Save your token now. This is the only time it will be shown.
                 </p>
             </div>
 
             <div class="form-group">
-                <label>Bot Token</label>
+                <label>Bot token</label>
                 <div class="token-display">
                     <input class="form-control token-input" value="@_token" readonly />
-                    <button class="v-btn" @onclick="OnCopyToken">
+                    <button class="v-btn secondary" @onclick="OnCopyToken">
                         <i class="bi bi-clipboard"></i>
                         Copy
                     </button>
@@ -60,7 +60,7 @@
                     }
                     else
                     {
-                        <span>Create Bot</span>
+                        <span>Create bot</span>
                     }
                 </button>
             }

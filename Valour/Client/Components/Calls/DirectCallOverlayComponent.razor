@@ -36,7 +36,7 @@
                             @friend.Name
                         </label>
                     }
-                    <button type="button" disabled="@(_selectedInvitees.Count == 0 || _busy)" @onclick="AddPeople">Invite</button>
+                    <button type="button" class="v-btn small primary" disabled="@(_selectedInvitees.Count == 0 || _busy)" @onclick="AddPeople">Invite</button>
                 </div>
             }
 

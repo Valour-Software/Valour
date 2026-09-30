@@ -3,14 +3,13 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     padding: 10px 10px 8px 14px;
-    animation: notif-in var(--duration-slow) var(--ease-out-expo) backwards;
+    animation: notif-in var(--duration-base) var(--ease-standard) backwards;
     transition: background var(--duration-fast) var(--ease-standard),
-                border-color var(--duration-fast) var(--ease-standard),
-                transform var(--duration-fast) var(--ease-standard);
+                border-color var(--duration-fast) var(--ease-standard);
 }
 
 .notification::before {
@@ -20,21 +19,19 @@
     top: 10px;
     bottom: 10px;
     width: 3px;
-    border-radius: var(--radius-full);
-    background: linear-gradient(180deg, var(--v-cyan), var(--v-purple));
-    box-shadow: 0 0 8px color-mix(in srgb, var(--v-cyan) 40%, transparent);
+    border-radius: 0 3px 3px 0;
+    background: var(--color-primary);
 }
 
 .notification:hover {
-    background: var(--main-4);
-    border-color: var(--medium-tint);
-    transform: translateY(-1px);
+    background: var(--surface-hover);
+    border-color: var(--line-strong);
 }
 
 @keyframes notif-in {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(3px);
     }
     to {
         opacity: 1;
@@ -66,7 +63,7 @@
 .title {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    color: white;
+    color: var(--text-primary);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -74,13 +71,14 @@
 }
 
 .time {
-    font-size: var(--font-size-xs);
-    color: var(--font-alt-color);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-2xs);
+    color: var(--text-tertiary);
 }
 
 .body {
     font-size: var(--font-size-xs);
-    color: var(--font-color-mid);
+    color: var(--text-secondary);
     margin: 0;
     padding-top: 4px;
     display: -webkit-box;
@@ -114,27 +112,22 @@
     background: transparent;
     border: none;
     outline: none;
-    color: var(--font-alt-color);
+    color: var(--text-tertiary);
     display: flex;
     align-items: center;
     gap: 4px;
     cursor: pointer;
     transition: background var(--duration-fast) var(--ease-standard),
-                color var(--duration-fast) var(--ease-standard),
-                transform var(--duration-fast) var(--ease-standard);
+                color var(--duration-fast) var(--ease-standard);
     font-size: var(--font-size-xs);
 }
 
 .button-holder button:hover {
-    background: var(--medium-tint);
-    color: white;
-}
-
-.button-holder button:active {
-    transform: scale(0.95);
+    background: var(--surface-active);
+    color: var(--text-primary);
 }
 
 .button-holder button.danger:hover {
-    background: color-mix(in srgb, var(--color-danger) 20%, transparent);
+    background: var(--color-danger-soft);
     color: var(--color-danger);
 }

@@ -53,10 +53,6 @@
          glob, and static web assets would then see each file twice. -->
     <Content Remove="@(TypeScriptCompile->'%(RelativeDir)%(Filename).js')" />
     <Content Remove="@(TypeScriptCompile->'%(RelativeDir)%(Filename).js.map')" />
-
-    <!-- Generated into obj by EmojiTrieCompiler and embedded in this assembly. -->
-    <EmbeddedResource Include="$(IntermediateOutputPath)generated/emoji-trie.bin"
-                      LogicalName="Valour.Client.Emojis.emoji-trie.bin" />
   </ItemGroup>
 
   <ItemGroup>
@@ -115,21 +111,6 @@
     <ItemGroup Condition="'$(_CssBundleExistedAtEvaluation)' != 'true'">
       <Content Include="wwwroot/css/bundled.min.css" />
     </ItemGroup>
-  </Target>
-
-  <Target Name="GenerateEmojiTrie"
-          BeforeTargets="PrepareResources"
-          Inputs="$(MSBuildProjectDirectory)/BuildInputs/emoji-test.txt;$(MSBuildProjectDirectory)/../BuildTools/EmojiTrieCompiler/Program.cs;$(MSBuildProjectDirectory)/../BuildTools/EmojiTrieCompiler/EmojiTrieCompiler.csproj"
-          Outputs="$(IntermediateOutputPath)generated/emoji-trie.bin">
-    <PropertyGroup>
-      <_EmojiTrieCompilerProject>$(MSBuildProjectDirectory)/../BuildTools/EmojiTrieCompiler/EmojiTrieCompiler.csproj</_EmojiTrieCompilerProject>
-      <_EmojiTrieInput>$(MSBuildProjectDirectory)/BuildInputs/emoji-test.txt</_EmojiTrieInput>
-      <_EmojiTrieOutput>$(IntermediateOutputPath)generated/emoji-trie.bin</_EmojiTrieOutput>
-      <_EmojiTrieDotNet Condition="'$(DotNetHostPath)' != ''">$(DotNetHostPath)</_EmojiTrieDotNet>
-      <_EmojiTrieDotNet Condition="'$(_EmojiTrieDotNet)' == '' and '$(DOTNET_HOST_PATH)' != ''">$(DOTNET_HOST_PATH)</_EmojiTrieDotNet>
-      <_EmojiTrieDotNet Condition="'$(_EmojiTrieDotNet)' == ''">dotnet</_EmojiTrieDotNet>
-    </PropertyGroup>
-    <Exec Command="&quot;$(_EmojiTrieDotNet)&quot; run --project &quot;$(_EmojiTrieCompilerProject)&quot; -- &quot;$(_EmojiTrieInput)&quot; &quot;$(_EmojiTrieOutput)&quot;" />
   </Target>
 
   <PropertyGroup>

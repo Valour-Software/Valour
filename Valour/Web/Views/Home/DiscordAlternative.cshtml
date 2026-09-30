@@ -1,0 +1,152 @@
+@{
+    ViewData["Title"] = "Discord Alternative With Encryption and No ID Checks | Valour";
+    ViewData["Description"] = "An open-source Discord alternative with servers, roles, voice and video. Messages are end-to-end encrypted, no ID checks, and your server imports in minutes.";
+    ViewData["Keywords"] = "Discord alternative, Discord alternative without age verification, encrypted Discord alternative, open source Discord alternative, import Discord server, Discord vs Valour";
+
+    var rows = new (string Feature, string Valour, string Discord)[]
+    {
+        ("Servers with channels, roles and permissions", "Yes. Servers are called planets.", "Yes"),
+        ("Voice, video and screen sharing", "Yes", "Yes"),
+        ("End-to-end encrypted messages", "Yes, every message, by default", "No. Voice and video calls are encrypted, messages are not."),
+        ("ID or face scan", "Never. You enter your birth date.", "Rolling out age checks that can ask for a face scan or ID."),
+        ("Ads", "None", "Sponsored Quests in the app"),
+        ("Open source", "Yes, under the AGPL", "No"),
+        ("Run it on your own server", "Yes, with Docker", "No"),
+        ("Threads and wikis that search engines can find", "Yes, when a planet makes them public", "No"),
+        ("Paid plan", "Optional Stargazer, from $4.99 a month", "Optional Nitro, from $2.99 a month")
+    };
+
+    var caveats = new[]
+    {
+        "Messages and members do not import. The importer recreates your channels, categories, roles and permissions, and your members join again with an invite link.",
+        "Discord bots do not run on Valour. Bots are built with Valour's .NET SDK, and incoming webhooks work from any tool that can send a web request.",
+        "Apps are available for the web, Windows, Linux and Android. There is no macOS or iOS app yet, but the web app works on both.",
+        "Uploaded files and images are not end-to-end encrypted. Message text and embeds are."
+    };
+
+    var steps = new[]
+    {
+        "In Discord, open Server Settings, then Server Template, and create a template. If you already have one, choose Sync so it matches your server.",
+        "Copy the template link. It looks like discord.new/abc123.",
+        "In Valour, choose Create a planet, then Import your server, and paste the link.",
+        "Share an invite link with your members. They can sign in with their Discord account."
+    };
+
+    var faqs = new (string Question, string Answer)[]
+    {
+        ("Is Valour free?",
+         "Yes. Everything on this page is free. Optional Stargazer subscriptions cost $4.99, $9.99 or $14.99 a month and add larger uploads and profile extras. They pay for the servers, since Valour has no ads."),
+        ("Do I need to verify my age or identity?",
+         "No. You enter your birth date when you sign up, and you must be at least 13. Valour never asks for a government ID, a face scan or a phone number. Sign-ups from Texas are paused, because Texas is pushing apps toward identity checks and we would rather not build one."),
+        ("Can I import my Discord server?",
+         "Yes. Paste a Discord server template link when you create a planet, and Valour recreates its channels, categories, roles and permissions. Messages and members are not copied."),
+        ("Can I sign in with my Discord account?",
+         "Yes. You can sign up and sign in with Discord or Google, or use an email address and password."),
+        ("Are my messages private?",
+         "Messages in direct chats, group chats and planet channels are encrypted on your devices before they are sent, so Valour stores text it cannot read. Threads and wiki pages are public on purpose, and uploaded files are not end-to-end encrypted."),
+        ("Can my Discord bots come with me?",
+         "Not directly. Valour bots are written with the Valour .NET SDK, and incoming webhooks let other tools post into your channels.")
+    };
+
+    var faqJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "FAQPage",
+        ["mainEntity"] = faqs.Select(f => new Dictionary<string, object?>
+        {
+            ["@type"] = "Question",
+            ["name"] = f.Question,
+            ["acceptedAnswer"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "Answer",
+                ["text"] = f.Answer,
+            },
+        }).ToList(),
+    });
+}
+
+@Html.Raw($"<script type=\"application/ld+json\">{faqJsonLd}</script>")
+
+<div class="container doc-page">
+    <article class="prose doc-single">
+        <p class="doc-date">Updated September 2026</p>
+        <h1>A Discord alternative with end-to-end encryption and no ID checks</h1>
+        <p class="doc-lede">
+            Valour works the way Discord does: servers with channels, roles, voice and video. We call them planets.
+            The difference is what Valour leaves out. Your messages are encrypted before they leave your device,
+            nobody asks for your ID, and there are no ads.
+        </p>
+
+        <p class="doc-actions">
+            <a class="btn btn-primary" href="https://app.valour.gg">Open Valour <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            <a class="btn btn-secondary" href="#move">Move your server</a>
+        </p>
+
+        <h2>Valour and Discord side by side</h2>
+        <div class="table-scroll">
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th scope="col"><span class="visually-hidden">Feature</span></th>
+                        <th scope="col">Valour</th>
+                        <th scope="col">Discord</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            <th scope="row">@row.Feature</th>
+                            <td>@row.Valour</td>
+                            <td>@row.Discord</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="table-note">Discord details as of September 2026. Discord's age checks depend on your country and account.</p>
+
+        <h2>Before you move</h2>
+        <p>Valour is younger and smaller than Discord. A few things work differently:</p>
+        <ul>
+            @foreach (var caveat in caveats)
+            {
+                <li>@caveat</li>
+            }
+        </ul>
+
+        <h2 id="move">Move your server</h2>
+        <ol>
+            @foreach (var step in steps)
+            {
+                <li>@step</li>
+            }
+        </ol>
+
+        <h2>Why we don't ask for ID</h2>
+        <p>
+            Collecting government IDs and face scans creates a store of personal data that can leak, and it shuts out people
+            who can't or won't hand it over. Valour asks for a birth date and nothing more. When Texas pushed apps toward
+            age and identity checks, we paused sign-ups there rather than build an identity checkpoint. <a href="/texas/">Read why we paused Texas sign-ups</a>.
+        </p>
+
+        <h2>Questions</h2>
+        <div class="faq-list">
+            @foreach (var faq in faqs)
+            {
+                <section class="faq-item">
+                    <h3>@faq.Question</h3>
+                    <p>@faq.Answer</p>
+                </section>
+            }
+        </div>
+
+        <div class="doc-closing">
+            <img src="/media/victor/victor-rocket.svg" alt="" width="120" height="120" loading="lazy" draggable="false" />
+            <p>
+                Ready to try it? <a href="https://app.valour.gg">Open Valour</a> in your browser, or
+                <a href="/#download">download the app</a>. More answers are in the <a href="/faq/">FAQ</a>.
+            </p>
+        </div>
+    </article>
+</div>

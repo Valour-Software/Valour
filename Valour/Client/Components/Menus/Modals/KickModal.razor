@@ -5,21 +5,15 @@
     <MainArea>
         @if (_isSelf)
         {
-            <p class="text-danger">You cannot kick yourself.</p>
+            <p class="self-warning">You cannot kick yourself.</p>
         }
         else
         {
             <p>This will remove them from the planet.</p>
             
-            <UserInfoComponent Member="@Data.Member" 
-                               Style="
-                               background-color: var(--main-3); 
-                               display: inline-block; 
-                               border-radius: var(--radius-md);
-                               padding-right: 0.5em;
-                               scale: 1.5;
-                               margin-top: 1.5em;
-                               margin-bottom: 2em" />
+            <div class="member-preview">
+                <UserInfoComponent Member="@Data.Member" AvatarSize="40" />
+            </div>
         }
     </MainArea>
     <ButtonArea>

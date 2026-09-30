@@ -1,0 +1,6 @@
+# Inputs and outputs of the Flatpak build scripts.
+/valour/
+/webkit.tar.zst
+/.flatpak-builder/
+/.build-app/
+/.out/

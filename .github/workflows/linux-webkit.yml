@@ -1,0 +1,114 @@
+name: Linux WebKit
+
+# Builds the WebKitGTK that the Linux desktop app bundles and publishes it as a
+# release named by Tools/Linux/webkit-key.sh. It runs only when the WebKit
+# recipe changes or on request. Linux Build downloads the result.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Tools/Linux/WebKit/COMMIT'
+      - 'Tools/Linux/WebKit/fetch-source.sh'
+      - 'Tools/Linux/Flatpak/webkit.yml'
+      - 'Tools/Linux/Flatpak/build-webkit.sh'
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.key.outputs.tag }}
+      needed: ${{ steps.key.outputs.needed }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check for an existing build
+      id: key
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG=$(Tools/Linux/webkit-key.sh)
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        ASSETS=$(gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null || true)
+        if echo "$ASSETS" | grep -qx 'webkit-x86_64.tar.zst' && echo "$ASSETS" | grep -qx 'webkit-aarch64.tar.zst'; then
+          echo "$TAG already has both architectures"
+          echo "needed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "needed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.needed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Hosted runners start with too little free disk for the WebKit build tree.
+    - name: Free disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /usr/local/share/boost
+        sudo docker image prune -af
+        df -h /
+
+    - name: Restore compiler cache
+      uses: actions/cache/restore@v4
+      with:
+        path: work/.flatpak-builder/ccache
+        key: webkit-ccache-${{ matrix.arch }}-${{ needs.check.outputs.tag }}
+        restore-keys: webkit-ccache-${{ matrix.arch }}-
+
+    # A cold build on a four-core runner takes most of the job's six hours. The
+    # step stops early enough for the cache to be saved, so rerunning the
+    # workflow continues from the compiled objects.
+    - name: Build WebKit
+      timeout-minutes: 330
+      run: |
+        docker run --rm --privileged -e JOBS=3 -v "$PWD:/repo" -w /repo \
+          ghcr.io/flathub-infra/flatpak-github-actions:gnome-51 \
+          Tools/Linux/Flatpak/build-webkit.sh /repo/work /repo/dist
+
+    - name: Save compiler cache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: work/.flatpak-builder/ccache
+        key: webkit-ccache-${{ matrix.arch }}-${{ needs.check.outputs.tag }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: webkit-${{ matrix.arch }}
+        path: dist/*
+
+  publish:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        path: dist
+        merge-multiple: true
+
+    - name: Publish release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ needs.check.outputs.tag }}
+      run: |
+        gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
+            --title "WebKitGTK for Linux ($TAG)" \
+            --notes "WebKitGTK with WebRTC, built against the GNOME 51 runtime for the Linux Flatpak. Built from Tools/Linux at $GITHUB_SHA."
+        gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
