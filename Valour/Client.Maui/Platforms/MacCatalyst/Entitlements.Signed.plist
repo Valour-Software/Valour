@@ -1,8 +1,8 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-    <!-- Used for unsigned builds. Entitlements.Signed.plist adds Keychain access
-         for builds signed with the Apple team; keep the two in step. -->
+    <!-- Used for builds signed with the Apple team. Keep in step with
+         Entitlements.plist, which unsigned builds use. -->
     <dict>
         <!-- App Sandbox must be enabled to distribute a MacCatalyst app through the Mac App Store. -->
         <key>com.apple.security.app-sandbox</key>
@@ -21,5 +21,10 @@
         <true/>
         <key>com.apple.security.files.downloads.read-write</key>
         <true/>
+        <!-- End-to-end encryption keys and Touch ID sign-in keys live in the Keychain. -->
+        <key>keychain-access-groups</key>
+        <array>
+            <string>$(AppIdentifierPrefix)$(CFBundleIdentifier)</string>
+        </array>
     </dict>
 </plist>

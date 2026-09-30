@@ -5,7 +5,7 @@ namespace Valour.Client.Maui;
 
 public sealed class MauiNativeWindowService : INativeWindowService
 {
-    public bool SupportsTabPopout => OperatingSystem.IsWindows();
+    public bool SupportsTabPopout => OperatingSystem.IsWindows() || OperatingSystem.IsMacCatalyst();
 
     public Task<bool> TryOpenTabPopoutWindow(string popoutKey, string title)
     {

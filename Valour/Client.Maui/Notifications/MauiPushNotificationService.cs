@@ -343,6 +343,110 @@ public class MauiPushNotificationService : IPushNotificationService
 
     public Task DismissAllNotificationsAsync() => Task.CompletedTask;
 }
+#elif IOS || MACCATALYST
+public class MauiPushNotificationService : IPushNotificationService
+{
+    private const string PushSubscribedPreferenceKey = "push_subscribed";
+    private const string LocalEndpoint = "apple-local";
+
+    private readonly AppleNotificationService _appleNotifications;
+
+    public MauiPushNotificationService(AppleNotificationService appleNotifications)
+    {
+        _appleNotifications = appleNotifications;
+    }
+
+    public async Task<PushSubscriptionResult> RequestSubscriptionAsync()
+    {
+        if (!await _appleNotifications.RequestPermissionAsync())
+        {
+            return new PushSubscriptionResult
+            {
+                Success = false,
+                Error = "Notification permission was not granted. You can allow it in System Settings."
+            };
+        }
+
+        _appleNotifications.Enable();
+        Preferences.Set(PushSubscribedPreferenceKey, true);
+        return LocalSubscription();
+    }
+
+    public Task UnsubscribeAsync()
+    {
+        _appleNotifications.Disable();
+        Preferences.Set(PushSubscribedPreferenceKey, false);
+        return Task.CompletedTask;
+    }
+
+    public Task<PushSubscriptionResult> GetSubscriptionAsync()
+    {
+        if (Preferences.Get(PushSubscribedPreferenceKey, false))
+            return Task.FromResult(LocalSubscription());
+
+        return Task.FromResult(new PushSubscriptionResult
+        {
+            Success = false,
+            Error = "Notifications not enabled"
+        });
+    }
+
+    public async Task<bool> IsNotificationsEnabledAsync()
+    {
+        if (!Preferences.Get(PushSubscribedPreferenceKey, false))
+            return false;
+
+        return await GetPermissionStateAsync() != "denied";
+    }
+
+    public async Task<string> GetPermissionStateAsync()
+    {
+        try
+        {
+            return await _appleNotifications.GetPermissionStateAsync();
+        }
+        catch (Exception)
+        {
+            return "default";
+        }
+    }
+
+    public Task AskForPermissionAsync() => _appleNotifications.RequestPermissionAsync();
+
+    public Task OpenNotificationSettingsAsync()
+    {
+#if MACCATALYST
+        var url = new Foundation.NSUrl("x-apple.systempreferences:com.apple.Notifications-Settings.extension");
+#else
+        var url = new Foundation.NSUrl(UIKit.UIApplication.OpenNotificationSettingsUrl);
+#endif
+        return MainThread.InvokeOnMainThreadAsync(() =>
+            UIKit.UIApplication.SharedApplication.OpenUrl(url, new UIKit.UIApplicationOpenUrlOptions(), null));
+    }
+
+    public Task DismissNotificationAsync(Guid notificationId, long? sourceId)
+    {
+        _appleNotifications.Dismiss(notificationId);
+        return Task.CompletedTask;
+    }
+
+    public Task DismissAllNotificationsAsync()
+    {
+        _appleNotifications.DismissAll();
+        return Task.CompletedTask;
+    }
+
+    private static PushSubscriptionResult LocalSubscription() => new()
+    {
+        Success = true,
+        Subscription = new PushSubscriptionDetails
+        {
+            Endpoint = LocalEndpoint,
+            Key = "",
+            Auth = "",
+        }
+    };
+}
 #else
 public class MauiPushNotificationService : IPushNotificationService
 {

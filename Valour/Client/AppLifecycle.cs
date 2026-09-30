@@ -20,8 +20,15 @@ public static class AppLifecycle
     /// </summary>
     public static event Action? CallEnded;
 
+    /// <summary>
+    /// Fired when the native shell asks to open the settings, such as from the
+    /// Settings item in the Mac menu bar.
+    /// </summary>
+    public static event Action? SettingsRequested;
+
     public static void NotifyResumed() => Resumed?.Invoke();
     public static void NotifyBackground() => Backgrounded?.Invoke();
     public static void NotifyCallStarted() => CallStarted?.Invoke();
     public static void NotifyCallEnded() => CallEnded?.Invoke();
+    public static void RequestSettings() => SettingsRequested?.Invoke();
 }

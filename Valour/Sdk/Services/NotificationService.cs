@@ -24,6 +24,11 @@ public class NotificationService
     /// Run when notifications are cleared
     /// </summary>
     public HybridEvent NotificationsCleared;
+
+    /// <summary>
+    /// Run when the full unread list is replaced, such as when it loads at startup
+    /// </summary>
+    public HybridEvent UnreadNotificationsLoaded;
     
     private readonly object _unreadLock = new();
     private readonly List<Notification> _unreadNotifications = new();
@@ -152,6 +157,8 @@ public class NotificationService
                 if (notification.SourceId is { } sourceId)
                     _unreadNotificationsLookupBySource[sourceId] = notification;
         }
+
+        UnreadNotificationsLoaded?.Invoke();
     }
 
     public async Task<TaskResult> MarkNotificationRead(Notification notification, bool value)
