@@ -32,12 +32,12 @@
                     var pinned = IsActivePin(thread);
 
                     <div class="tree-row @(isLast ? "last" : "")" depth="2">
-                        <div class="channel-wrapper" style="margin-left: 18px" depth="2"
+                        <div class="channel-wrapper" style="margin-left: 20px" depth="2"
                              @onclick="@(() => OnClickThread(thread))">
                             <div class="channel-wrapper">
                                 <div class="channel nested">
                                     <i class="channel-icon bi-@(pinned ? "pin-angle-fill" : "chat-square-text")"
-                                       style="font-size: 14px; transform: translateY(calc(-50% - -2px)); left: 8px;"></i>
+                                       style="font-size: 14px"></i>
                                     <div class="path" depth="2"></div>
                                     <p class="name">@thread.Title</p>
                                 </div>

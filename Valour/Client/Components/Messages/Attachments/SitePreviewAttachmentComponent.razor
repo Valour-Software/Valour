@@ -83,8 +83,8 @@
             : null;
     }
 
-    private static string FromContentCdn(string url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var uri) && MediaUriHelper.MatchesConfiguredOrigin(uri, ValourHosts.ContentCdnHost)
+    private string FromContentCdn(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && MediaUriHelper.IsContentCdn(uri, Message?.Node)
             ? uri.AbsoluteUri
             : null;
 }

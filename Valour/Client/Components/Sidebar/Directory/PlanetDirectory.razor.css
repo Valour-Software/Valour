@@ -162,50 +162,6 @@
     background-color: var(--surface-active);
 }
 
-.planet-about,
-.planet-rules,
-.planet-events {
-    position: relative;
-    height: 27px;
-    padding: 6px 8px 4px 6px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: color var(--duration-fast) var(--ease-standard),
-        background-color var(--duration-fast) var(--ease-standard);
-}
-
-.planet-about:hover,
-.planet-rules:hover,
-.planet-events:hover {
-    color: var(--text-primary);
-    background-color: var(--surface-hover);
-}
-
-.planet-pseudo-icon {
-    position: absolute;
-    top: 50%;
-    left: 6px;
-    transform: translateY(-50%);
-    color: var(--text-tertiary);
-    font-size: var(--font-size-sm);
-    line-height: var(--line-height-none);
-}
-
-.planet-about .name,
-.planet-rules .name,
-.planet-events .name {
-    display: inline-block;
-    max-width: calc(100% - 24px);
-    margin: -2px 0 0 24px;
-    overflow: hidden;
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-regular);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
 .planet .header:hover {
     border-color: var(--line-strong);
 }

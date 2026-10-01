@@ -23,7 +23,7 @@ public partial class E2eeService
         if (content is null)
             return Fail("Include a new embed or changed items.");
 
-        var check = isFullEmbed ? EmbedSafety.Check(content) : EmbedSafety.CheckItems(content);
+        var check = isFullEmbed ? EmbedSafety.Check(content, message.Node) : EmbedSafety.CheckItems(content, message.Node);
         if (!check.Success)
             return check;
 
@@ -90,7 +90,9 @@ public partial class E2eeService
             var (isFullEmbed, content) = EmbedUpdateCrypto.Decrypt(secret, update.TargetMessageId,
                 update.TargetUserId ?? 0, update.Revision, update.Encrypted);
 
-            var check = isFullEmbed ? EmbedSafety.Check(content) : EmbedSafety.CheckItems(content);
+            var check = isFullEmbed
+                ? EmbedSafety.Check(content, channel.Node)
+                : EmbedSafety.CheckItems(content, channel.Node);
             if (!check.Success)
             {
                 LogWarning($"Ignoring an embed update for message {update.TargetMessageId}: {check.Message}");

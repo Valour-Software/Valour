@@ -366,12 +366,18 @@ public class E2eeChannelKeyService
 
         // A box sealed to a user key that was replaced, because a device was
         // removed or the keys were reset, may still be opened by the removed
-        // device, so later messages need a key it never had.
+        // device, so later messages need a key it never had. Such a box is
+        // removed when a working one is shared, so a holder whose keys were
+        // replaced after this key was made counts the same way.
         if (!required)
         {
             var states = await _identity.GetStatesAsync(holders);
+            var createdAt = DateTime.SpecifyKind(latest.CreatedAt, DateTimeKind.Utc);
             required = boxes.Any(b => states.TryGetValue(b.UserId, out var state) && state.HasIdentity &&
-                                      b.UserKeyGeneration < state.UserKey.Generation);
+                                      (b.UserKeyGeneration < state.UserKey.Generation ||
+                                       state.Records.Any(r =>
+                                           r.Type is UserKeyLogEntryType.RevokeDevice or UserKeyLogEntryType.Reset &&
+                                           r.Timestamp > createdAt)));
         }
 
         // In governed channels, a holder removed from the access log must also
@@ -1171,6 +1177,8 @@ public class E2eeChannelKeyService
 
         // The first box for a member wins. Boxes another member stored first,
         // even at the same moment, are skipped and the rest are still stored.
+        // A box its recipient can no longer open does not count.
+        await RemoveUnopenableBoxesAsync(channel.Id, result.Data.Valid);
         var recipients = await InsertBoxesAsync(channel.Id, result.Data.Valid, userId, DateTime.UtcNow);
         if (recipients.Count == 0)
             return TaskResult<ChannelKeyShareResultDto>.FromData(shareResult);
@@ -1179,6 +1187,46 @@ public class E2eeChannelKeyService
         await ForgetHeldKeyIfSharedAsync(channel);
         await NotifyKeysAvailableAsync(channel, recipients);
         return TaskResult<ChannelKeyShareResultDto>.FromData(shareResult);
+    }
+
+    /// <summary>
+    /// Removes the recipients' existing boxes for the given generations that
+    /// were sealed to a user key from before their last key reset. Their
+    /// devices can never open those boxes, and while one is stored, a working
+    /// box for the same generation cannot be stored, so the member would wait
+    /// for the key forever.
+    /// </summary>
+    private async Task RemoveUnopenableBoxesAsync(long channelId, List<ChannelKeyBoxDto> boxes)
+    {
+        if (boxes.Count == 0)
+            return;
+
+        var userIds = boxes.Select(b => b.UserId).Distinct().ToList();
+        var generations = boxes.Select(b => b.Generation).Distinct().ToList();
+        var incoming = boxes.Select(b => (b.UserId, b.Generation)).ToHashSet();
+
+        var existing = (await _db.E2eeChannelKeyBoxes.AsNoTracking()
+                .Where(x => x.ChannelId == channelId && userIds.Contains(x.UserId) &&
+                            generations.Contains(x.Generation))
+                .Select(x => new { x.UserId, x.Generation, x.UserKeyGeneration })
+                .ToListAsync())
+            .Where(x => incoming.Contains((x.UserId, x.Generation)))
+            .ToList();
+        if (existing.Count == 0)
+            return;
+
+        var states = await _identity.GetStatesAsync(existing.Select(x => x.UserId).Distinct());
+        foreach (var box in existing)
+        {
+            if (!states.TryGetValue(box.UserId, out var state) || !state.HasIdentity ||
+                box.UserKeyGeneration >= state.EpochFirstGeneration)
+                continue;
+
+            await _db.E2eeChannelKeyBoxes
+                .Where(x => x.ChannelId == channelId && x.UserId == box.UserId && x.Generation == box.Generation &&
+                            x.UserKeyGeneration == box.UserKeyGeneration)
+                .ExecuteDeleteAsync();
+        }
     }
 
     /// <summary>

@@ -55,8 +55,8 @@
         <DefineConstants Condition="'$(ValourPlayStore)' == 'true'">$(DefineConstants);VALOUR_PLAY_STORE</DefineConstants>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.9.14</ApplicationDisplayVersion>
-        <ApplicationVersion>104</ApplicationVersion>
+        <ApplicationDisplayVersion>0.9.16</ApplicationDisplayVersion>
+        <ApplicationVersion>106</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
@@ -66,6 +66,22 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+    </PropertyGroup>
+
+    <!-- The Mac SDK names the app bundle after ApplicationTitle (Valour.app), while
+         IDEs launch the bundle named after the assembly. Matching them lets Run
+         and Debug find the app, and the process shows as Valour. -->
+    <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+        <AssemblyName>Valour</AssemblyName>
+    </PropertyGroup>
+
+    <!-- The downloadable Mac app runs on Apple silicon and Intel Macs. Notarization
+         requires the hardened runtime, and the release is packaged as a disk
+         image rather than an installer package. -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+        <RuntimeIdentifiers>maccatalyst-arm64;maccatalyst-x64</RuntimeIdentifiers>
+        <UseHardenedRuntime>true</UseHardenedRuntime>
+        <CreatePackage>false</CreatePackage>
     </PropertyGroup>
 
     <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
@@ -156,6 +172,21 @@
             <_Parameter1>ValourApiBase</_Parameter1>
             <_Parameter2>$(ValourApiBase)</_Parameter2>
         </AssemblyAttribute>
+    </ItemGroup>
+    <!-- The Keychain needs an entitlement that only a build signed with the Apple
+         team can carry; an ad-hoc signed app that claims it is refused at launch.
+         Set CodesignKey and CodesignProvision (in Local.props, for example) to sign
+         with the team. Unsigned Debug builds keep encryption keys in a file inside
+         the app's sandbox instead, and unsigned Release builds have no fallback. -->
+    <PropertyGroup Condition="$(TargetFramework.Contains('maccatalyst'))">
+        <ValourTeamSigned Condition="'$(CodesignKey)' != '' and '$(CodesignKey)' != '-'">true</ValourTeamSigned>
+        <CodesignEntitlements Condition="'$(ValourTeamSigned)' == 'true'">Platforms\MacCatalyst\Entitlements.Signed.plist</CodesignEntitlements>
+        <DefineConstants Condition="'$(ValourTeamSigned)' != 'true' and '$(Configuration)' == 'Debug'">$(DefineConstants);VALOUR_UNSIGNED_KEYCHAIN</DefineConstants>
+    </PropertyGroup>
+
+    <!-- Apple platforms block plain HTTP unless the app declares an exception. -->
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' and '$(ValourApiBase)' != '' and ($(TargetFramework.Contains('ios')) or $(TargetFramework.Contains('maccatalyst')))">
+        <PartialAppManifest Include="Platforms\Apple\LocalServerTransport.plist" />
     </ItemGroup>
 
     <Target Name="ShowAppleTargetFrameworkSkipMessage"

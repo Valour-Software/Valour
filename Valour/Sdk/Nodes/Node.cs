@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Valour.Shared.Hosting;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
@@ -105,6 +106,15 @@ public class Node : ServiceBase // each node acts like a service
     // Distinguishes this node instance in the shared GET request cache.
     private readonly string _requestCacheScope = Guid.NewGuid().ToString("N") + "|";
 
+    private string _contentCdnHost;
+
+    /// <summary>
+    /// The host that serves this node's uploads and proxied media. A community
+    /// node names it in its instance manifest. Until that has been read, its
+    /// own domain is used, which serves the same routes in the standard setup.
+    /// </summary>
+    public string ContentCdnHost => IsExternal ? _contentCdnHost ?? Name : ValourHosts.ContentCdnHost;
+
     /// <summary>Auth token for this node: the node-local exchanged token, or the client's primary token.</summary>
     private string NodeAuthToken => _externalToken ?? Client.AuthService.Token;
 
@@ -179,7 +189,11 @@ public class Node : ServiceBase // each node acts like a service
             {
                 var manifest = await response.Content.ReadFromJsonAsync<InstanceManifest>(DefaultJsonOptions);
                 if (manifest is not null)
+                {
                     ClientProtocol = manifest.ClientProtocol;
+                    if (!string.IsNullOrWhiteSpace(manifest.Hosts?.ContentCdn))
+                        _contentCdnHost = manifest.Hosts.ContentCdn.Trim();
+                }
             }
 
             _clientProtocolReadAt = DateTime.UtcNow;

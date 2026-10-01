@@ -873,6 +873,36 @@
             lastMessage = message;
         }
 
+        // The message being typed, where it will appear once sent. It is a
+        // sibling of the messages above, so it gets the same width, spacing
+        // and grouping as the message that replaces it. It shares the key of
+        // the ghost it becomes when sent, so the same element stays in place.
+        var draft = InputComponent?.DraftPreview;
+        InputComponent?.OnDraftRendered(draft is not null);
+        if (draft is not null)
+        {
+            var showDateDivider = ShouldShowDateDivider(draft, lastMessage);
+            if (showDateDivider)
+                RenderDateDivider(builder, ref sequence, draft);
+
+            var messageParams = new MessageComponent.Params()
+            {
+                ChatComponent = this,
+                Message = draft,
+                IsInnerReply = false,
+                LastMessage = showDateDivider ? null : lastMessage,
+                Ghost = true,
+                Draft = true,
+            };
+
+            var input = InputComponent;
+            builder.OpenComponent<MessageComponent>(sequence++);
+            builder.AddAttribute(sequence++, "ParamData", messageParams);
+            builder.SetKey($"q-{draft.Fingerprint}");
+            builder.AddComponentReferenceCapture(sequence++, component => input.PreviewMessageComponent = (MessageComponent)component);
+            builder.CloseComponent();
+        }
+
     };
 
     private static bool ShouldShowDateDivider(Message message, Message lastMessage)

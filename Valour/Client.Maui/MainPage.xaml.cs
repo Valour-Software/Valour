@@ -11,6 +11,7 @@ public partial class MainPage : ContentPage
     public MainPage(string? startPath = null)
     {
         InitializeComponent();
+        IsPopout = !string.IsNullOrWhiteSpace(startPath);
         if (!string.IsNullOrWhiteSpace(startPath))
         {
             blazorWebView.StartPath = startPath;
@@ -19,6 +20,9 @@ public partial class MainPage : ContentPage
         blazorWebView.BlazorWebViewInitialized += OnBlazorWebViewInitialized;
         blazorWebView.UrlLoading += OnUrlLoading;
     }
+
+    /// <summary>True for a window showing a popped-out tab rather than the whole app.</summary>
+    public bool IsPopout { get; }
 
     private void OnBlazorWebViewInitialized(object? sender, Microsoft.AspNetCore.Components.WebView.BlazorWebViewInitializedEventArgs e)
     {
@@ -48,7 +52,7 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private static bool IsInternalHost(string? host)
+    internal static bool IsInternalHost(string? host)
     {
         return string.Equals(host, "0.0.0.0", StringComparison.OrdinalIgnoreCase)
                || string.Equals(host, "0.0.0.1", StringComparison.OrdinalIgnoreCase)

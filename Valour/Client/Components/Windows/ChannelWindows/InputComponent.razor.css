@@ -142,35 +142,6 @@
     padding-right: 0.65em;
 }
 
-::deep .preview-message .message {
-    opacity: 0.7;
-    width: 100%;
-    background-color: var(--surface-hover);
-    border-top: 1px dashed var(--line-strong);
-    margin-top: -2px;
-}
-
-::deep .preview-message .message.reply {
-    background-color: var(--surface-hover);
-    border-top: 0;
-    opacity: 1;
-    width: fit-content;
-}
-
-::deep .preview-message .multi-message {
-    opacity: 0.7;
-    width: 100%;
-    background-color: var(--surface-hover);
-    border-top: 1px dashed var(--line-strong);
-    margin-top: -2px;
-}
-
-::deep .preview-message .multi-message.reply {
-    background-color: var(--surface-hover);
-    border-top: 0;
-    opacity: 1;
-}
-
 .input-placeholder {
     position: absolute;
     left: 1em;

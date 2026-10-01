@@ -1,3 +1,4 @@
+using Valour.Sdk.Nodes;
 using Valour.Sdk.Cdn;
 using Valour.Sdk.Models.Embeds.Items;
 using Valour.Shared;
@@ -13,7 +14,9 @@ namespace Valour.Sdk.Models.Embeds;
 public static class EmbedSafety
 {
     /// <summary>Checks a complete embed.</summary>
-    public static TaskResult Check(string json)
+    /// <param name="node">The node the message belongs to, whose content CDN
+    /// media may also load from. The server passes none.</param>
+    public static TaskResult Check(string json, Node node = null)
     {
         if (string.IsNullOrWhiteSpace(json))
             return TaskResult.FromFailure("Embed data is required.");
@@ -25,11 +28,11 @@ public static class EmbedSafety
             return TaskResult.FromFailure("Embed data is invalid.");
 
         var valid = EmbedParser.Validate(embed);
-        return valid.Success ? CheckMedia(embed.EnumerateItems()) : valid;
+        return valid.Success ? CheckMedia(embed.EnumerateItems(), node) : valid;
     }
 
     /// <summary>Checks the changed items of a targeted embed update.</summary>
-    public static TaskResult CheckItems(string json)
+    public static TaskResult CheckItems(string json, Node node = null)
     {
         if (string.IsNullOrWhiteSpace(json))
             return TaskResult.FromFailure("Changed items data is required.");
@@ -41,10 +44,10 @@ public static class EmbedSafety
             return TaskResult.FromFailure("Changed items data is invalid.");
 
         var valid = EmbedParser.ValidateItems(items);
-        return valid.Success ? CheckMedia(items.Concat(items.SelectMany(x => x.EnumerateDescendants()))) : valid;
+        return valid.Success ? CheckMedia(items.Concat(items.SelectMany(x => x.EnumerateDescendants())), node) : valid;
     }
 
-    private static TaskResult CheckMedia(IEnumerable<EmbedItem> items)
+    private static TaskResult CheckMedia(IEnumerable<EmbedItem> items, Node node)
     {
         foreach (var media in items.OfType<EmbedMediaItem>())
         {
@@ -56,7 +59,7 @@ public static class EmbedSafety
             // relaxes the media checks.
             media.Attachment.Inline = false;
 
-            var result = MediaUriHelper.ScanMediaUri(media.Attachment);
+            var result = MediaUriHelper.ScanMediaUri(media.Attachment, node);
             if (!result.Success)
                 return TaskResult.FromFailure($"Embed media item {media.Id} uses a location that is not allowed.");
         }

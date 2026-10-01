@@ -5,6 +5,8 @@ using Valour.Sdk.Models.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
+using Valour.Shared.Hosting;
+using Valour.Sdk.Cdn;
 
 namespace Valour.Sdk.Models;
 
@@ -209,10 +211,16 @@ public class MessageAttachment : ISharedMessageAttachment
         // This is because the CDN will return a signed URL that is relative to the base URL of the client
         location = uri.PathAndQuery.TrimStart('/');
         
-        if (location.Contains("proxy/"))
+        if (location.StartsWith("proxy/", StringComparison.OrdinalIgnoreCase))
         {
-            // If the location is a proxy URL, we don't need to fetch a signed URL
-            return location;
+            // Proxied media needs no signature. It must stay absolute: the web
+            // app is served separately from the CDN, so a relative path would
+            // load the app's own page. Only a known CDN is used, so a message
+            // cannot point the image at another host; anything else is loaded
+            // from the CDN of the node the message came from.
+            return MediaUriHelper.IsContentCdn(uri, node)
+                ? uri.AbsoluteUri
+                : $"https://{node?.ContentCdnHost ?? ValourHosts.ContentCdnHost}/{location}";
         }
         
         if (_signedUrl is not null)

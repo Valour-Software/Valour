@@ -11,8 +11,8 @@
 @inject UnreadService UnreadService
 
 <div
-    style="margin-left: @(Depth > 1 ? 18 : 0)px"
-    class="channel-wrapper"
+    style="margin-left: @(Depth > 1 ? 20 : 0)px"
+    class="channel-wrapper @(IsRootCategory ? "root-category" : "")"
     draggable="@(!Valour.Client.Device.DeviceInfo.IsEmbedded ? "true" : "false")"
     data-channel-drag-id="@Channel.Id"
     data-channel-drag-category="@(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "true" : "false")"
@@ -58,7 +58,7 @@
                 var iconData = GetIconData();
             }
 
-            <i class="channel-icon bi-@iconData.Icon" style="font-size: @iconData.Size; transform:  translateY(calc(-50% - @(iconData.VerticalShift))); left: @(iconData.HorizontalShift)" aria-label="@iconData.AltText"></i>
+            <i class="channel-icon bi-@iconData.Icon" style="font-size: @iconData.Size" aria-label="@iconData.AltText"></i>
 
             @if (IsNested)
             {
@@ -187,6 +187,9 @@
     public Planet Planet { get; set; }
 
     private bool IsNested => Depth > 1;
+
+    // Top-level categories start a new group, so the list leaves space above them.
+    private bool IsRootCategory => Depth == 1 && Channel.ChannelType == ChannelTypeEnum.PlanetCategory;
     
     private string ChosenCss
     {
@@ -205,6 +208,9 @@
 
             if (IsNested)
                 css += " nested";
+
+            if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+                css += " category";
 
             return css;
         }
@@ -642,24 +648,20 @@
         public string Icon;
         public string AltText;
         public string Size;
-        public string VerticalShift;
-        public string HorizontalShift;
         
-        public IconData(string icon, string altText, string size, string verticalShift = "0px", string horizontalShift = "8px")
+        public IconData(string icon, string altText, string size)
         {
             Icon = icon;
             AltText = altText;
             Size = size;
-            VerticalShift = verticalShift;
-            HorizontalShift = horizontalShift;
         }
     }
 
     private static readonly Dictionary<IconState, IconData> IconDataLookup = new()
     {
         // Planet chats (cant be open)
-        { new IconState(false, false, ChannelTypeEnum.PlanetChat), new IconData("chat-left", "Chat channel", "14px", "-2px")  },
-        { new IconState(false, true, ChannelTypeEnum.PlanetChat), new IconData("chat-left-fill", "Chat channel with unread messages", "14px", "-2px")  },
+        { new IconState(false, false, ChannelTypeEnum.PlanetChat), new IconData("chat-left", "Chat channel", "14px")  },
+        { new IconState(false, true, ChannelTypeEnum.PlanetChat), new IconData("chat-left-fill", "Chat channel with unread messages", "14px")  },
         
         // Planet categories
         { new IconState(true, false, ChannelTypeEnum.PlanetCategory), new IconData("folder2-open", "Open category", "16px") },
@@ -668,28 +670,28 @@
         { new IconState(false, true, ChannelTypeEnum.PlanetCategory), new IconData("folder-fill", "Closed category with unread messages", "16px") },
         
         // Planet voice
-        { new IconState(false, false, ChannelTypeEnum.PlanetVoice), new IconData("music-note-beamed", "Voice channel", "16px", "-2px", "6px") },
-        { new IconState(false, true, ChannelTypeEnum.PlanetVoice), new IconData("music-note-beamed", "Voice channel with unread messages", "16px", "-2px", "6px") },
+        { new IconState(false, false, ChannelTypeEnum.PlanetVoice), new IconData("music-note-beamed", "Voice channel", "16px") },
+        { new IconState(false, true, ChannelTypeEnum.PlanetVoice), new IconData("music-note-beamed", "Voice channel with unread messages", "16px") },
 
         // Planet video
-        { new IconState(false, false, ChannelTypeEnum.PlanetVideo), new IconData("camera-video", "Video channel", "16px", "-2px", "6px") },
-        { new IconState(false, true, ChannelTypeEnum.PlanetVideo), new IconData("camera-video-fill", "Video channel with unread messages", "16px", "-2px", "6px") },
+        { new IconState(false, false, ChannelTypeEnum.PlanetVideo), new IconData("camera-video", "Video channel", "16px") },
+        { new IconState(false, true, ChannelTypeEnum.PlanetVideo), new IconData("camera-video-fill", "Video channel with unread messages", "16px") },
         
         // Direct chat
-        { new IconState(false, false, ChannelTypeEnum.DirectChat), new IconData("chat-left", "Direct chat", "14px", "-2px") },
-        { new IconState(false, true, ChannelTypeEnum.DirectChat), new IconData("chat-left-fill", "Direct chat with unread messages", "14px", "-2px") },
+        { new IconState(false, false, ChannelTypeEnum.DirectChat), new IconData("chat-left", "Direct chat", "14px") },
+        { new IconState(false, true, ChannelTypeEnum.DirectChat), new IconData("chat-left-fill", "Direct chat with unread messages", "14px") },
         
         // Direct voice
-        { new IconState(false, false, ChannelTypeEnum.DirectVoice), new IconData("music-note-beamed", "Direct voice", "16px", "-2px", "6px") },
-        { new IconState(false, true, ChannelTypeEnum.DirectVoice), new IconData("music-note-beamed", "Direct voice with unread messages", "16px", "-2px", "6px") },
+        { new IconState(false, false, ChannelTypeEnum.DirectVoice), new IconData("music-note-beamed", "Direct voice", "16px") },
+        { new IconState(false, true, ChannelTypeEnum.DirectVoice), new IconData("music-note-beamed", "Direct voice with unread messages", "16px") },
         
         // Group chat
-        { new IconState(false, false, ChannelTypeEnum.GroupChat), new IconData("chat-left", "Group chat", "14px", "-2px") },
-        { new IconState(false, true, ChannelTypeEnum.GroupChat), new IconData("chat-left-fill", "Group chat with unread messages", "14px", "-2px") },
+        { new IconState(false, false, ChannelTypeEnum.GroupChat), new IconData("chat-left", "Group chat", "14px") },
+        { new IconState(false, true, ChannelTypeEnum.GroupChat), new IconData("chat-left-fill", "Group chat with unread messages", "14px") },
         
         // Group voice
-        { new IconState(false, false, ChannelTypeEnum.GroupVoice), new IconData("music-note-beamed", "Group voice", "16px", "-2px", "6px") },
-        { new IconState(false, true, ChannelTypeEnum.GroupVoice), new IconData("music-note-beamed", "Group voice with unread messages", "16px", "-2px", "6px") },
+        { new IconState(false, false, ChannelTypeEnum.GroupVoice), new IconData("music-note-beamed", "Group voice", "16px") },
+        { new IconState(false, true, ChannelTypeEnum.GroupVoice), new IconData("music-note-beamed", "Group voice with unread messages", "16px") },
     };
     
     private static readonly IconData DefaultIconData = new IconData("question", "Unknown channel type", "15px");
