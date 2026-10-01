@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Google;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Config.Configs;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -19,14 +21,14 @@ public class GooglePlayApi
     public static async Task<IResult> ClaimSubscriptionAsync(
         [FromBody] GooglePlayPurchaseRequest request,
         UserService userService,
-        GooglePlayBillingService billingService)
+        GooglePlayBillingService billingService,
+        ILogger<GooglePlayApi> logger)
     {
         if (string.IsNullOrWhiteSpace(request?.PurchaseToken))
             return ValourResult.BadRequest("Missing purchase token.");
 
         var userId = await userService.GetCurrentUserIdAsync();
-        var result = await billingService.ClaimSubscriptionAsync(userId, request.PurchaseToken);
-        return Results.Json(result);
+        return await ClaimAsync(() => billingService.ClaimSubscriptionAsync(userId, request.PurchaseToken), logger);
     }
 
     /// <summary>
@@ -37,14 +39,33 @@ public class GooglePlayApi
     public static async Task<IResult> ClaimCreditsAsync(
         [FromBody] GooglePlayPurchaseRequest request,
         UserService userService,
-        GooglePlayBillingService billingService)
+        GooglePlayBillingService billingService,
+        ILogger<GooglePlayApi> logger)
     {
         if (string.IsNullOrWhiteSpace(request?.PurchaseToken) || string.IsNullOrWhiteSpace(request.ProductId))
             return ValourResult.BadRequest("Missing purchase details.");
 
         var userId = await userService.GetCurrentUserIdAsync();
-        var result = await billingService.ClaimCreditsAsync(userId, request.ProductId, request.PurchaseToken);
-        return Results.Json(result);
+        return await ClaimAsync(() => billingService.ClaimCreditsAsync(userId, request.ProductId, request.PurchaseToken), logger);
+    }
+
+    /// <summary>
+    /// Runs a claim and turns a failure to reach Google Play into a message the
+    /// app can show. Google's notification for the same purchase is retried
+    /// until it succeeds, so the purchase still arrives.
+    /// </summary>
+    private static async Task<IResult> ClaimAsync(Func<Task<TaskResult>> claim, ILogger logger)
+    {
+        try
+        {
+            return Results.Json(await claim());
+        }
+        catch (GoogleApiException e)
+        {
+            logger.LogError(e, "Google Play rejected a purchase lookup");
+            return Results.Json(TaskResult.FromFailure(
+                "Google Play could not confirm the purchase right now. It will be added to your account automatically."));
+        }
     }
 
     /// <summary>

@@ -726,7 +726,7 @@ public class StripeApi
 
         var user = await db.Users.FindAsync(sub.UserId);
         if (user is not null)
-            user.SubscriptionType = null;
+            user.SubscriptionType = await Valour.Server.Services.SubscriptionService.GetRemainingTypeAsync(db, sub.UserId, sub.Id);
 
         await db.SaveChangesAsync();
         logger.LogInformation("Stripe subscription deletion synced for UserId={UserId}", sub.UserId);

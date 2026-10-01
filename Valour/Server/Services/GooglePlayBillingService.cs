@@ -175,8 +175,8 @@ public class GooglePlayBillingService
         else if (!state.Entitled && sub.Active)
         {
             sub.Active = false;
-            if (user is not null && user.SubscriptionType == sub.Type)
-                user.SubscriptionType = null;
+            if (user is not null)
+                user.SubscriptionType = await SubscriptionService.GetRemainingTypeAsync(_db, sub.UserId, sub.Id);
         }
         else if (state.Entitled && user is not null)
         {
@@ -374,8 +374,8 @@ public class GooglePlayBillingService
                     {
                         sub.Active = false;
                         var user = await _db.Users.FindAsync(sub.UserId);
-                        if (user is not null && user.SubscriptionType == sub.Type)
-                            user.SubscriptionType = null;
+                        if (user is not null)
+                            user.SubscriptionType = await SubscriptionService.GetRemainingTypeAsync(_db, sub.UserId, sub.Id);
                         await _db.SaveChangesAsync();
                     }
                 }
