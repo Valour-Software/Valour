@@ -109,8 +109,10 @@ HTTPS -> nginx -> valour-blue:5000 or valour-green:5000
                        -> external PostgreSQL and Redis
 ```
 
-The application mounts `dotnet/appsettings.json` and
-`dotnet/firebase-credentials.json` read-only. The settings file must include the
+The application mounts `dotnet/appsettings.json`,
+`dotnet/firebase-credentials.json`, and `dotnet/google-play-service-account.json`
+read-only. The Google Play key is used for [Google Play Billing](../Payments.md#setting-up-google-play-billing);
+a deployment without it can remove that mount. The settings file must include the
 [Data Protection KEK](#data-protection-kek), the same for both colors. The Compose
 file supplies the runtime environment, listening URL, Firebase credential path,
 and IdGen worker ID.

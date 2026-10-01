@@ -1,0 +1,131 @@
+name: Android Play Store bundle
+
+# Builds and signs the Google Play bundle (ValourPlayStore=true) from a
+# playstore/* branch and uploads it as a workflow artifact. It creates no
+# GitHub release; download the artifact and upload it in the Play Console.
+on:
+  push:
+    branches: [ 'playstore/**' ]
+
+jobs:
+  build-aab:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Restore Village release atlas
+      run: python Tools/Villages/restore-release-assets.py
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        # The installer needs the full SDK version; global.json names the release.
+        dotnet-version: 11.0.100-rc.1.26425.128
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
+
+    - name: Install MAUI workload
+      run: dotnet workload install maui-android
+
+    - name: Install Android SDK platform
+      run: dotnet build Valour/Client.Maui/Valour.Client.Maui.csproj -t:InstallAndroidDependencies -f net11.0-android -p:AndroidSdkDirectory="$ANDROID_SDK_ROOT" -p:AcceptAndroidSDKLicenses=True
+
+    - name: Materialize Android signing keystore
+      id: signing-keystore
+      env:
+        ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      run: |
+        if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+          echo "Missing required secret: ANDROID_KEYSTORE_BASE64"
+          exit 1
+        fi
+
+        KEYSTORE_PATH="$RUNNER_TEMP/valour-release.keystore"
+        echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+        echo "keystore_path=$KEYSTORE_PATH" >> $GITHUB_OUTPUT
+
+    - name: Materialize google-services.json
+      env:
+        GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+      run: |
+        if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+          echo "Missing required secret: GOOGLE_SERVICES_JSON_BASE64"
+          exit 1
+        fi
+
+        TARGET="Valour/Client.Maui/Platforms/Android/google-services.json"
+        echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > "$TARGET"
+
+        if ! grep -q 'project_id' "$TARGET"; then
+          echo "Decoded google-services.json does not look valid (no project_id found)."
+          exit 1
+        fi
+
+    - name: Get short SHA
+      id: short-sha
+      run: echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+    - name: Replace asset version hashes
+      uses: mingjun97/file-regex-replace@v1
+      with:
+        regex: '\$\(SHORTHASH\)'
+        replacement: '${{ steps.short-sha.outputs.short_sha }}'
+        flags: "g"
+        include: '\.(js|cs|razor|cshtml|html)$'
+        exclude: '.^'
+        encoding: 'utf8'
+        path: '.'
+
+    - name: Restore dependencies
+      run: |
+        dotnet restore Valour/BuildTools/CssBundler/CssBundler.csproj
+        dotnet restore Valour/Client.Maui/Valour.Client.Maui.csproj -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
+
+    - name: Build Client (generates CSS bundle)
+      run: dotnet build Valour/Client/Valour.Client.csproj -c Release
+
+    - name: Build AAB for Play Store
+      env:
+        ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+        ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+        ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+      run: >
+        dotnet publish Valour/Client.Maui/Valour.Client.Maui.csproj
+        -f net11.0-android
+        -c Release
+        -o ./artifacts-aab
+        -p:ValourPlayStore=true
+        -p:AndroidKeyStore=true
+        -p:AndroidSigningKeyStore="${{ steps.signing-keystore.outputs.keystore_path }}"
+        -p:AndroidSigningStorePass="$ANDROID_SIGNING_STORE_PASSWORD"
+        -p:AndroidSigningKeyAlias="$ANDROID_SIGNING_KEY_ALIAS"
+        -p:AndroidSigningKeyPass="$ANDROID_SIGNING_KEY_PASSWORD"
+        -p:AndroidPackageFormat=aab
+        -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
+
+    - name: Find signed AAB
+      id: find-aab
+      run: |
+        AAB_PATH=$(find ./artifacts-aab -name '*-Signed.aab' | sort | head -1)
+        if [ -z "$AAB_PATH" ]; then
+          echo "No signed AAB was found."
+          exit 1
+        fi
+        echo "aab_path=$AAB_PATH" >> $GITHUB_OUTPUT
+
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: valour-playstore-aab-${{ steps.short-sha.outputs.short_sha }}
+        path: ${{ steps.find-aab.outputs.aab_path }}
+        if-no-files-found: error

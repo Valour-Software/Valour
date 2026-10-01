@@ -23,6 +23,7 @@
     <PackageReference Include="AWSSDK.S3" Version="4.0.18.5" />
     <PackageReference Include="CloudFlare.Client" Version="8.0.0" />
     <PackageReference Include="ExCSS" Version="4.3.1" />
+    <PackageReference Include="Google.Apis.AndroidPublisher.v3" Version="1.77.0.4284" />
     <PackageReference Include="GoogleAuthenticator" Version="3.2.0" />
     <PackageReference Include="IdGen" Version="3.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="11.0.0-rc.1.26425.128" />

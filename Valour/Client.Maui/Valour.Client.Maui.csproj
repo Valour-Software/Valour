@@ -139,8 +139,13 @@
 
     <ItemGroup Condition="$(TargetFramework.Contains('android'))">
         <PackageReference Include="Plugin.Firebase.CloudMessaging" Version="3.1.1" />
-        <PackageReference Include="Xamarin.GooglePlayServices.Base" Version="118.9.0" />
-        <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.9.0" />
+        <PackageReference Include="Xamarin.GooglePlayServices.Base" Version="118.10.0.3" />
+        <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.10.0.3" />
+        <!-- Google Play Billing (GooglePlayBillingService), used by ValourPlayStore builds -->
+        <PackageReference Include="Xamarin.Android.Google.BillingClient" Version="9.1.0.2" />
+        <!-- BillingClient raises AndroidX Fragment to 1.9, which absorbs the KTX classes.
+             Keep Fragment.Ktx on the same version so the classes are not defined twice. -->
+        <PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.9.0" />
         <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common.Java8" Version="2.11.0.1" />
         <!-- Fingerprint sign-in (AndroidDeviceKeyService) -->
         <PackageReference Include="Xamarin.AndroidX.Biometric" Version="1.1.0.33" />

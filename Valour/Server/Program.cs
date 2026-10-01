@@ -731,6 +731,7 @@ public partial class Program
         services.AddScoped<ExternalAuthProvider, GoogleAuthProvider>();
         services.AddScoped<ExternalAuthProvider, DiscordAuthProvider>();
         services.AddScoped<SubscriptionService>();
+        services.AddScoped<GooglePlayBillingService>();
         services.AddScoped<ThemeService>();
         services.AddScoped<StaffService>();
         services.AddScoped<DashboardService>();

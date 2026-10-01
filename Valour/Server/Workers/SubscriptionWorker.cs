@@ -39,6 +39,14 @@ public class SubscriptionWorker : IHostedService, IDisposable
         
         // get users who have now expired
         await service.ProcessActiveDue();
+
+        // catch Google Play renewals and expirations whose notifications were missed
+        var googlePlay = scope.ServiceProvider.GetRequiredService<GooglePlayBillingService>();
+        await googlePlay.RefreshLapsedSubscriptionsAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Subscription worker error");
         }
         finally
         {
