@@ -18,6 +18,18 @@ public class SubscriptionService
         _logger = logger;
     }
 
+    /// <summary>
+    /// The tier a user keeps once <paramref name="endingSubId"/> ends: the tier
+    /// of another active subscription, or null. A user can briefly hold two,
+    /// such as a card subscription that runs out after a Google Play one starts.
+    /// </summary>
+    public static async Task<string> GetRemainingTypeAsync(ValourDb db, long userId, string endingSubId) =>
+        await db.UserSubscriptions
+            .Where(x => x.UserId == userId && x.Active && x.Id != endingSubId)
+            .OrderByDescending(x => x.Created)
+            .Select(x => x.Type)
+            .FirstOrDefaultAsync();
+
     public async Task<UserSubscription> GetActiveSubscriptionAsync(long userId)
     {
         return (await _db.UserSubscriptions.FirstOrDefaultAsync(x => x.Active && x.UserId == userId)).ToModel();
