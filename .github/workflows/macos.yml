@@ -1,0 +1,208 @@
+name: macOS Build
+
+# Builds the Mac app for Apple silicon and Intel Macs, signs it with the Valour
+# Software LLC Developer ID, has Apple notarize it, and attaches the disk image
+# to the version's release. Gatekeeper then opens it without a warning.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Valour/Client.Maui/**'
+      - 'Valour/Client/**'
+      - '.github/workflows/macos.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check if release already has the Mac disk image
+      id: check
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        CURRENT=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' Valour/Client.Maui/Valour.Client.Maui.csproj)
+        echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+
+        # Gate on this platform's asset, not release existence: the release is
+        # shared with other platform workflows.
+        ASSETS=$(gh release view "v$CURRENT" --json assets -q '.assets[].name' 2>/dev/null || true)
+        if echo "$ASSETS" | grep -qx 'Valour-macos.dmg'; then
+          echo "Release v$CURRENT already has the Mac disk image, skipping build"
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+  build-macos:
+    needs: check-version
+    if: needs.check-version.outputs.version_changed == 'true'
+    # The .NET for Mac Catalyst workload requires Xcode 26.6.
+    runs-on: macos-26
+    # Apple's notarization sometimes takes an hour or more.
+    timeout-minutes: 180
+    env:
+      SIGNING_IDENTITY: "Developer ID Application: Valour Software LLC (3BRGSQ2N5K)"
+      PROFILE_NAME: "Mac Catalyst Team Direct Provisioning Profile: gg.valour.app"
+      DMG: artifacts/Valour-macos.dmg
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Select Xcode
+      run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+
+    - name: Restore Village release atlas
+      run: python3 Tools/Villages/restore-release-assets.py
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        # The installer needs the full SDK version; global.json names the release.
+        dotnet-version: 11.0.100-rc.1.26425.128
+
+    - name: Install MAUI workload
+      run: dotnet workload install maui-maccatalyst
+
+    - name: Get short SHA
+      id: short-sha
+      run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+    - name: Replace asset version hashes
+      uses: mingjun97/file-regex-replace@v1
+      with:
+        regex: '\$\(SHORTHASH\)'
+        replacement: '${{ steps.short-sha.outputs.short_sha }}'
+        flags: "g"
+        include: '\.(js|cs|razor|cshtml|html)$'
+        exclude: '.^'
+        encoding: 'utf8'
+        path: '.'
+
+    # The certificate goes into a temporary keychain that only this job uses.
+    - name: Install signing certificate and profile
+      env:
+        CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+        CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        PROFILE_BASE64: ${{ secrets.MACOS_PROVISION_PROFILE_BASE64 }}
+      run: |
+        KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+        KEYCHAIN_PASSWORD=$(uuidgen)
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+        security set-keychain-settings -lut 21600 "$KEYCHAIN"
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+        echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+        security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+        rm "$RUNNER_TEMP/cert.p12"
+
+        # The intermediate that issued the certificate, so codesign can build the chain.
+        curl -fsSL -o "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+        security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$KEYCHAIN"
+
+        security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+        security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+        security find-identity -v -p codesigning "$KEYCHAIN"
+
+        # The build looks the profile up by name in both of Xcode's profile folders.
+        for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+          mkdir -p "$dir"
+          echo "$PROFILE_BASE64" | base64 --decode > "$dir/valour-developer-id.provisionprofile"
+        done
+
+    - name: Restore dependencies
+      run: |
+        dotnet restore Valour/BuildTools/CssBundler/CssBundler.csproj
+        dotnet restore Valour/Client/Valour.Client.csproj
+
+    - name: Build Client (generates CSS bundle)
+      run: dotnet build Valour/Client/Valour.Client.csproj -c Release --no-restore
+
+    # The project's Release settings for Mac Catalyst build both architectures
+    # with the hardened runtime that notarization requires.
+    - name: Publish Mac app
+      run: >
+        dotnet publish Valour/Client.Maui/Valour.Client.Maui.csproj
+        -f net11.0-maccatalyst
+        -c Release
+        -p:EnableAppleTargetFrameworks=true
+        -p:CodesignKey="$SIGNING_IDENTITY"
+        -p:CodesignProvision="$PROFILE_NAME"
+
+    # The publish leaves one partial app per architecture beside the finished
+    # app, which is the one that contains both.
+    - name: Find and verify the app
+      run: |
+        APP=""
+        for candidate in Valour/Client.Maui/bin/Release/net11.0-maccatalyst/*/Valour.app; do
+          ARCHS=$(lipo -archs "$candidate/Contents/MacOS/Valour" 2>/dev/null || true)
+          if [[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]]; then
+            APP="$candidate"
+          fi
+        done
+        if [ -z "$APP" ]; then
+          echo "::error::No app containing both arm64 and x86_64 was produced."
+          exit 1
+        fi
+        echo "APP=$APP" >> "$GITHUB_ENV"
+
+        codesign --verify --deep --strict "$APP"
+        codesign -dvv "$APP" 2>&1 | grep -E "Authority=Developer ID Application|flags=.*runtime"
+        codesign -d --entitlements :- "$APP" | grep -q "3BRGSQ2N5K.gg.valour.app" \
+          || { echo "::error::The app is missing its Keychain entitlement."; exit 1; }
+
+    - name: Build disk image
+      run: |
+        mkdir -p artifacts "$RUNNER_TEMP/dmg"
+        ditto "$APP" "$RUNNER_TEMP/dmg/Valour.app"
+        ln -s /Applications "$RUNNER_TEMP/dmg/Applications"
+        hdiutil create -volname "Valour" -srcfolder "$RUNNER_TEMP/dmg" -fs APFS -format ULFO -ov "$DMG"
+        codesign --sign "$SIGNING_IDENTITY" --timestamp "$DMG"
+
+    - name: Notarize disk image
+      env:
+        ASC_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+        ASC_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+      run: |
+        KEY="$RUNNER_TEMP/AuthKey.p8"
+        echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$KEY"
+
+        xcrun notarytool submit "$DMG" --key "$KEY" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
+          --wait --timeout 2h --output-format json > "$RUNNER_TEMP/notary.json"
+        cat "$RUNNER_TEMP/notary.json"
+        STATUS=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['status'])" "$RUNNER_TEMP/notary.json")
+        if [ "$STATUS" != "Accepted" ]; then
+          ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['id'])" "$RUNNER_TEMP/notary.json")
+          xcrun notarytool log "$ID" --key "$KEY" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID"
+          echo "::error::Notarization finished with status $STATUS."
+          exit 1
+        fi
+
+        # The ticket travels with the disk image, so Macs can check it offline.
+        xcrun stapler staple "$DMG"
+        xcrun stapler validate "$DMG"
+        spctl -a -vv -t open --context context:primary-signature "$DMG"
+
+    - name: Create or update GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ needs.check-version.outputs.version }}
+        name: Valour v${{ needs.check-version.outputs.version }}
+        files: ${{ env.DMG }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Remove signing keychain
+      if: always()
+      run: |
+        security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+        rm -f "$RUNNER_TEMP/AuthKey.p8"
