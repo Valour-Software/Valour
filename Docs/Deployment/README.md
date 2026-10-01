@@ -221,3 +221,33 @@ The API CORS policy allows the HTTPS WebView origins `https://0.0.0.0` and
 `https://0.0.0.1` used by the MAUI clients, and `app://localhost`, which the Linux
 desktop app serves its page from. File uploads run inside the web view and
 require these origins in addition to the configured web application origins.
+
+## Google Play releases
+
+Two workflows build the Android App Bundle that Google Play distributes. Both
+build with `ValourPlayStore=true`, which removes self-updating and sells through
+Google Play Billing (see [Payments](../Payments.md)), and both sign it with the
+release keystore from the repository secrets.
+
+- [`android.yml`](../../.github/workflows/android.yml) runs on `main` when
+  `ApplicationDisplayVersion` names a version with no APK released yet. It
+  publishes the GitHub release and builds the Play bundle.
+- [`android-playstore.yml`](../../.github/workflows/android-playstore.yml) runs
+  on every push to a `playstore/**` branch, for testing a change on a phone
+  before it merges. It creates no GitHub release.
+
+Each workflow keeps the bundle as a workflow artifact and, when the
+`GOOGLE_PLAY_PUBLISHER_JSON` secret is set, sends it to the internal testing
+track. Promoting a build to production stays a manual step in the Play Console.
+
+Google Play accepts each version code (`ApplicationVersion` in
+`Valour.Client.Maui.csproj`) once. Raise it for every build meant for Google
+Play, or the upload step fails.
+
+The secret holds the JSON key of a service account that the Play Console allows
+to release to testing tracks and nothing else. It is a different account from
+the one the server uses to verify purchases. To set it up, create the service
+account in the Google Cloud project linked to the Play developer account,
+invite its email in the Play Console under Users and permissions with the
+"Release apps to testing tracks" permission for Valour, and store its key in
+the repository secret.
