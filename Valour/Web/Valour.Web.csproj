@@ -17,5 +17,6 @@
         <None Include="..\..\TERMS_OF_SERVICE.md" Link="Legal\TERMS_OF_SERVICE.md" CopyToOutputDirectory="PreserveNewest" />
         <None Include="..\..\PLATFORM_RULES.md" Link="Legal\PLATFORM_RULES.md" CopyToOutputDirectory="PreserveNewest" />
         <None Include="..\..\PLATFORM_ECO_RULES.md" Link="Legal\PLATFORM_ECO_RULES.md" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\..\CHILD_SAFETY.md" Link="Legal\CHILD_SAFETY.md" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 </Project>

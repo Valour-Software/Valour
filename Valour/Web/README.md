@@ -24,11 +24,13 @@ the redirect and read the app page, which describes the planet.
 
 ## Policy pages
 
-The privacy policy, terms of service, and platform rules are written as files at
-the repository root (`PRIVACY`, `TERMS_OF_SERVICE.md`, `PLATFORM_RULES.md`, and
-`PLATFORM_ECO_RULES.md`). The build copies them next to the site binaries, and
-`LegalDocumentLibrary` renders them as Markdown into `/privacy/`, `/terms/`,
-`/rules/`, and `/rules/economy/`. Links between these files, written as file
+The privacy policy, terms of service, platform rules, and child safety standards
+are written as files at the repository root (`PRIVACY`, `TERMS_OF_SERVICE.md`,
+`PLATFORM_RULES.md`, `PLATFORM_ECO_RULES.md`, and `CHILD_SAFETY.md`). The build
+copies them next to the site binaries, and `LegalDocumentLibrary` renders them as
+Markdown into `/privacy/`, `/terms/`, `/rules/`, `/rules/economy/`, and
+`/child-safety/`. Google Play links to `/child-safety/` as Valour's published
+standards against child sexual abuse and exploitation. Links between these files, written as file
 names or GitHub URLs, point to the matching site pages. Edit the root files, not
 the site, to change a policy.
 

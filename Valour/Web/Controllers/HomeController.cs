@@ -54,6 +54,12 @@ public class HomeController : Controller
         return View();
     }
 
+    [HttpGet("/child-safety")]
+    public IActionResult ChildSafety()
+    {
+        return View();
+    }
+
     [HttpGet("/delete-account")]
     public IActionResult DeleteAccount()
     {
