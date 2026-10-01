@@ -1,11 +1,20 @@
+using Android;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
+using AndroidX.Core.Content;
 
 namespace Valour.Client.Maui;
 
-[Service(ForegroundServiceType = ForegroundService.TypeMediaPlayback)]
+/// <summary>
+/// Keeps a voice call alive while the app is in the background. The service
+/// uses the microphone type, which is what Android and Google Play expect for
+/// an app that keeps capturing call audio in the background. Android 14 and
+/// later refuse to start a microphone service without the microphone
+/// permission, so a call joined without it does not start the service.
+/// </summary>
+[Service(ForegroundServiceType = ForegroundService.TypeMicrophone)]
 public class CallForegroundService : Service
 {
     private const int NotificationId = 9002;
@@ -30,10 +39,22 @@ public class CallForegroundService : Service
             .SetOngoing(true)
             .Build();
 
-        if (OperatingSystem.IsAndroidVersionAtLeast(29))
-            StartForeground(NotificationId, notification, ForegroundService.TypeMediaPlayback);
-        else
-            StartForeground(NotificationId, notification);
+        try
+        {
+            if (OperatingSystem.IsAndroidVersionAtLeast(29))
+                StartForeground(NotificationId, notification, ForegroundService.TypeMicrophone);
+            else
+                StartForeground(NotificationId, notification);
+        }
+        catch (Exception e)
+        {
+            // Android refuses a microphone service started from the
+            // background, for example when a call reconnects while the app is
+            // hidden. The call continues without the keep-alive.
+            Android.Util.Log.Warn("Valour", $"Call keep-alive service could not start: {e}");
+            StopSelf();
+            return StartCommandResult.NotSticky;
+        }
 
         AcquireWakeLock();
 
@@ -93,6 +114,12 @@ public class CallForegroundService : Service
         var activity = Platform.CurrentActivity;
         if (activity is null)
             return;
+
+        if (ContextCompat.CheckSelfPermission(activity, Manifest.Permission.RecordAudio) != Permission.Granted)
+        {
+            Android.Util.Log.Info("Valour", "Call keep-alive skipped: microphone permission not granted");
+            return;
+        }
 
         var intent = new Intent(activity, typeof(CallForegroundService));
 
