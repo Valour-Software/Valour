@@ -17,6 +17,7 @@ services:
     volumes:
       - ./dotnet/appsettings.json:/app/appsettings.json:ro
       - ./dotnet/firebase-credentials.json:/app/firebase-credentials.json:ro
+      - ./dotnet/google-play-service-account.json:/app/google-play-service-account.json:ro
     networks:
       valour-network:
         aliases:
