@@ -249,7 +249,6 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             Joined = true;
             Connecting = false;
             WaitingForPeer = false;
-            AppLifecycle.NotifyCallStarted();
 
             try
             {
@@ -267,6 +266,10 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             {
                 AudioEnabled = false;
             }
+
+            // After the microphone prompt, because the Android keep-alive
+            // service needs the microphone permission to start.
+            AppLifecycle.NotifyCallStarted();
 
             await RefreshStateFromSdkAsync();
             await RefreshParticipantsAsync();

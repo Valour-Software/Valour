@@ -46,11 +46,12 @@ public class CallForegroundService : Service
             else
                 StartForeground(NotificationId, notification);
         }
-        catch (Exception)
+        catch (Exception e)
         {
             // Android refuses a microphone service started from the
             // background, for example when a call reconnects while the app is
             // hidden. The call continues without the keep-alive.
+            Android.Util.Log.Warn("Valour", $"Call keep-alive service could not start: {e}");
             StopSelf();
             return StartCommandResult.NotSticky;
         }
@@ -115,7 +116,10 @@ public class CallForegroundService : Service
             return;
 
         if (ContextCompat.CheckSelfPermission(activity, Manifest.Permission.RecordAudio) != Permission.Granted)
+        {
+            Android.Util.Log.Info("Valour", "Call keep-alive skipped: microphone permission not granted");
             return;
+        }
 
         var intent = new Intent(activity, typeof(CallForegroundService));
 
