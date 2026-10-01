@@ -2,9 +2,9 @@
 @inject AuthService AuthService
 @inject ValourClient Client
 
-<BasicModalLayout Title="Sign in with your fingerprint?" Icon="fingerprint" MaxWidth="400px">
+<BasicModalLayout Title="@($"Sign in with {DeviceKeyText.With(Data.DeviceKeys.Method)}?")" Icon="@DeviceKeyText.Icon(Data.DeviceKeys.Method)" MaxWidth="400px">
     <MainArea>
-        <p>Next time, sign in on this device with your fingerprint instead of your password. You can change this in Settings, under Security.</p>
+        <p>Next time, sign in on this device with @DeviceKeyText.With(Data.DeviceKeys.Method) instead of your password. You can change this in Settings, under Security.</p>
         <ResultLabel Result="@_result" />
     </MainArea>
     <ButtonArea>
@@ -37,7 +37,7 @@
             var publicKey = await Data.DeviceKeys.CreateKeyAsync();
             if (publicKey is null)
             {
-                _result = TaskResult.FromFailure("This device couldn't create a fingerprint key.");
+                _result = TaskResult.FromFailure($"This device couldn't create a {DeviceKeyText.Name(Data.DeviceKeys.Method)} key.");
                 return;
             }
 

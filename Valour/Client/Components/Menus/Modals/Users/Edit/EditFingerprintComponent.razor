@@ -4,21 +4,23 @@
 @inject IServiceProvider Services
 @using Microsoft.Extensions.DependencyInjection
 
-@* Shown in the app on devices that can use fingerprint sign-in, and anywhere
+@* Shown in the app on devices that can use device sign-in, and anywhere
    devices already use it, so a lost phone can be removed from a computer. *@
 @if (_keys is not null && (_deviceKeys is not null || _keys.Count > 0))
 {
     <div class="editor-section">
         <h3 class="editor-section-title">
-            <i class="bi bi-fingerprint"></i>
-            Fingerprint sign-in
+            <i class="bi bi-@(_deviceKeys is null ? "fingerprint" : DeviceKeyText.Icon(_deviceKeys.Method))"></i>
+            @(_deviceKeys is null ? "Device sign-in" : $"{DeviceKeyText.Title(_deviceKeys.Method)} sign-in")
         </h3>
         <p class="helper-text">
             @(_deviceKeys is null
-                ? "These devices sign in with a fingerprint. Remove any device you no longer use or don't recognize."
+                ? "These devices sign in with a fingerprint or face check. Remove any device you no longer use or don't recognize."
                 : _deviceKeys.IsAvailable
-                    ? "Sign in on this device with your fingerprint instead of your password."
-                    : "Add a fingerprint in your device's settings to use fingerprint sign-in.")
+                    ? $"Sign in on this device with {DeviceKeyText.With(_deviceKeys.Method)} instead of your password."
+                    : _deviceKeys.Method == DeviceKeyMethod.Fingerprint
+                        ? "Add a fingerprint in your device's settings to use fingerprint sign-in."
+                        : $"Set up {DeviceKeyText.Name(_deviceKeys.Method)} in your device's settings to sign in with it.")
         </p>
 
         <div class="method-list">
@@ -46,7 +48,7 @@
 
                     @if (_enteringMfaCode)
                     {
-                        @* Fingerprint sign-in skips the authenticator code, so turning it on asks for one. *@
+                        @* Device sign-in skips the authenticator code, so turning it on asks for one. *@
                         <div class="method-form">
                             <input class="form-control" type="text" inputmode="numeric" autocomplete="one-time-code"
                                    placeholder="Authenticator code" @bind-value="@_mfaCode" />
@@ -83,6 +85,9 @@
     public ModalRoot ModalRoot { get; set; }
 
     private IDeviceKeyService _deviceKeys;
+
+    // Computers without the service manage other devices' keys, whose check is unknown.
+    private string MethodTitle => _deviceKeys is null ? "Device" : DeviceKeyText.Title(_deviceKeys.Method);
     private List<SignInMethodInfo> _keys;
 
     private bool _busy;
@@ -140,7 +145,7 @@
         }
     }
 
-    // Turning fingerprint sign-in off removes a way in rather than adding
+    // Turning device sign-in off removes a way in rather than adding
     // one, so it needs no confirmation.
     private Task OnClickRemove(SignInMethodInfo key) => RunAsync(async () =>
     {
@@ -154,7 +159,7 @@
         if (key == ThisDeviceKey)
             _deviceKeys.Clear();
 
-        Show("Fingerprint sign-in is off for that device.", false);
+        Show($"{MethodTitle} sign-in is off for that device.", false);
     });
 
     private Task OnClickTurnOn() => RunAsync(async () =>
@@ -182,14 +187,14 @@
 
     private async Task TurnOnAsync()
     {
-        var proof = await ExternalSignIn.ConfirmIdentityAsync(ModalRoot, "Confirm it's you to turn on fingerprint sign-in.");
+        var proof = await ExternalSignIn.ConfirmIdentityAsync(ModalRoot, $"Confirm it's you to turn on {DeviceKeyText.Name(_deviceKeys.Method)} sign-in.");
         if (proof is null)
             return;
 
         var publicKey = await _deviceKeys.CreateKeyAsync();
         if (publicKey is null)
         {
-            Show("This device couldn't create a fingerprint key.", true);
+            Show($"This device couldn't create a {DeviceKeyText.Name(_deviceKeys.Method)} key.", true);
             return;
         }
 
@@ -211,6 +216,6 @@
         _enteringMfaCode = false;
         _mfaCode = null;
         _deviceKeys.Save(new SavedDeviceKey(registered.Data, Client.Me.Id, Client.Me.Name));
-        Show("Fingerprint sign-in is on for this device.", false);
+        Show($"{MethodTitle} sign-in is on for this device.", false);
     }
 }

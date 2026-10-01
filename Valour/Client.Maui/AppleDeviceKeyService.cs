@@ -1,3 +1,4 @@
+#if IOS || MACCATALYST
 using System.Security.Cryptography;
 using System.Text.Json;
 using Foundation;
@@ -8,12 +9,12 @@ using Valour.Client.Device;
 namespace Valour.Client.Maui;
 
 /// <summary>
-/// Touch ID sign-in with a P-256 key in the Mac's Secure Enclave. The key can
-/// only sign after a Touch ID check, it never leaves the Secure Enclave, and
-/// adding or removing a fingerprint permanently disables it. The key lives in
-/// the Keychain, so this needs a build signed with the Apple team.
+/// Face ID or Touch ID sign-in with a P-256 key in the device's Secure Enclave.
+/// The key can only sign after that check, it never leaves the Secure Enclave,
+/// and enrolling a different face or fingerprint permanently disables it. The
+/// key lives in the Keychain, so this needs a build signed with the Apple team.
 /// </summary>
-public class MacDeviceKeyService : IDeviceKeyService
+public class AppleDeviceKeyService : IDeviceKeyService
 {
     private const string SavedKey = "valour-device-key";
     private static readonly NSData KeyTag = NSData.FromString("gg.valour.app.signin");
@@ -31,12 +32,24 @@ public class MacDeviceKeyService : IDeviceKeyService
         }
     }
 
+    public DeviceKeyMethod Method
+    {
+        get
+        {
+            using var context = new LAContext();
+            context.CanEvaluatePolicy(LAPolicy.DeviceOwnerAuthenticationWithBiometrics, out _);
+            return context.BiometryType == LABiometryType.FaceId ? DeviceKeyMethod.FaceId : DeviceKeyMethod.TouchId;
+        }
+    }
+
     public string DeviceName
     {
         get
         {
             var name = Microsoft.Maui.Devices.DeviceInfo.Current.Name?.Trim();
-            return string.IsNullOrEmpty(name) ? "Mac" : name;
+            if (!string.IsNullOrEmpty(name))
+                return name;
+            return OperatingSystem.IsMacCatalyst() ? "Mac" : Microsoft.Maui.Devices.DeviceInfo.Current.Model ?? "iPhone";
         }
     }
 
@@ -72,8 +85,8 @@ public class MacDeviceKeyService : IDeviceKeyService
     {
         Clear();
 
-        // Every signature needs its own Touch ID check, and enrolling or
-        // removing a fingerprint invalidates the key.
+        // Every signature needs its own Face ID or Touch ID check, and changing
+        // the enrolled faces or fingerprints invalidates the key.
         using var access = new SecAccessControl(SecAccessible.WhenPasscodeSetThisDeviceOnly,
             SecAccessControlCreateFlags.BiometryCurrentSet | SecAccessControlCreateFlags.PrivateKeyUsage);
 
@@ -126,8 +139,8 @@ public class MacDeviceKeyService : IDeviceKeyService
         query.AuthenticationContext = context;
         if (SecKeyChain.QueryAsConcreteType(query, out var status) is not SecKey key)
         {
-            // A fingerprint was added or removed since the key was made, or
-            // the key is gone.
+            // The enrolled faces or fingerprints changed since the key was made,
+            // or the key is gone.
             if (status == SecStatusCode.ItemNotFound)
                 Clear();
             return null;
@@ -149,3 +162,4 @@ public class MacDeviceKeyService : IDeviceKeyService
         KeyType = SecKeyType.ECSecPrimeRandom,
     };
 }
+#endif

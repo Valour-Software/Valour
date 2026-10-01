@@ -75,6 +75,15 @@
         <AssemblyName>Valour</AssemblyName>
     </PropertyGroup>
 
+    <!-- The downloadable Mac app runs on Apple silicon and Intel Macs. Notarization
+         requires the hardened runtime, and the release is packaged as a disk
+         image rather than an installer package. -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+        <RuntimeIdentifiers>maccatalyst-arm64;maccatalyst-x64</RuntimeIdentifiers>
+        <UseHardenedRuntime>true</UseHardenedRuntime>
+        <CreatePackage>false</CreatePackage>
+    </PropertyGroup>
+
     <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
         <AssemblyName>Valour</AssemblyName>
         <!-- MauiIcon supplies packaged tile assets, but unpackaged releases

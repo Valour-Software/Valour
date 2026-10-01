@@ -1675,6 +1675,98 @@ public class E2eeLiveTests
     }
 
     [Fact]
+    public async Task SharedKey_ReplacesABoxFromBeforeAKeyReset()
+    {
+        var (owner, _) = await CreateUserAsync();
+        var (member, _) = await CreateUserAsync();
+        var (planet, channel) = await CreatePlanetAsync(owner);
+        Assert.True((await SendAsync(owner, channel, "before the reset", planet.MyMember.Id)).Success);
+        Assert.True((await member.PlanetService.JoinPlanetAsync(planet.Id)).Success);
+
+        using var scope = _fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        var identity = scope.ServiceProvider.GetRequiredService<E2eeIdentityService>();
+        var latest = (await db.Channels.AsNoTracking().FirstAsync(x => x.Id == channel.Id)).EncryptionGeneration;
+        var memberState = await identity.GetStateAsync(member.Me.Id);
+        Assert.True(latest > 0);
+
+        // The member's only box for the newest key was sealed to a user key
+        // from before their reset, so their device cannot open it.
+        await db.E2eeChannelKeyBoxes
+            .Where(x => x.ChannelId == channel.Id && x.UserId == member.Me.Id)
+            .ExecuteDeleteAsync();
+        db.E2eeChannelKeyBoxes.Add(new Valour.Database.E2eeChannelKeyBox
+        {
+            ChannelId = channel.Id,
+            Generation = latest,
+            UserId = member.Me.Id,
+            UserKeyGeneration = memberState.EpochFirstGeneration - 1,
+            Box = new byte[80],
+            SharedByUserId = owner.Me.Id,
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var keys = scope.ServiceProvider.GetRequiredService<E2eeChannelKeyService>();
+        var serverChannel = (await db.Channels.AsNoTracking().FirstAsync(x => x.Id == channel.Id)).ToModel();
+        Assert.True((await keys.RequestKeysAsync(serverChannel, member.Me.Id)).Success);
+
+        // The holder's working box takes the place of the one that cannot be opened.
+        var ownerChannel = await planet.FetchChannelAsync(channel.Id);
+        await owner.E2eeService.ServeChannelAsync(ownerChannel);
+
+        var box = await db.E2eeChannelKeyBoxes.AsNoTracking()
+            .SingleAsync(x => x.ChannelId == channel.Id && x.UserId == member.Me.Id && x.Generation == latest);
+        Assert.Equal(memberState.UserKey.Generation, box.UserKeyGeneration);
+        Assert.False(await db.E2eeKeyRequests.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == member.Me.Id));
+
+        var memberPlanet = await member.PlanetService.FetchPlanetAsync(planet.Id, skipCache: true);
+        await memberPlanet.EnsureReadyAsync();
+        var memberChannel = await memberPlanet.FetchChannelAsync(channel.Id);
+        var ring = await member.E2eeService.GetKeyRingAsync(memberChannel, refresh: true);
+        Assert.NotNull(ring?.Latest);
+    }
+
+    [Fact]
+    public async Task SharedKey_AfterAResetStillReplacesTheChannelKey()
+    {
+        var (owner, _) = await CreateUserAsync();
+        var (member, _) = await CreateUserAsync();
+        var (planet, channel) = await CreatePlanetAsync(owner);
+        var (_, memberChannel) = await JoinPlanetAsync(member, planet.Id, channel.Id);
+        Assert.True((await SendAsync(owner, channel, "before the reset", planet.MyMember.Id)).Success);
+        await member.E2eeService.RequestKeysAsync(memberChannel);
+        await owner.E2eeService.ServeChannelAsync(await planet.FetchChannelAsync(channel.Id));
+        Assert.NotNull((await member.E2eeService.GetKeyRingAsync(memberChannel, refresh: true)).Latest);
+
+        var reset = await member.E2eeService.ResetKeysAsync();
+        Assert.True(reset.Success, reset.Message);
+
+        using var scope = _fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        var keys = scope.ServiceProvider.GetRequiredService<E2eeChannelKeyService>();
+        var identity = scope.ServiceProvider.GetRequiredService<E2eeIdentityService>();
+        var serverChannel = (await db.Channels.AsNoTracking().FirstAsync(x => x.Id == channel.Id)).ToModel();
+        var latest = serverChannel.EncryptionGeneration;
+        var memberState = await identity.GetStateAsync(member.Me.Id);
+
+        // The member's working box replaces the one sealed before the reset.
+        // The owner's device may first seal to the keys it loaded earlier,
+        // learn they changed, and share again.
+        Assert.True((await keys.RequestKeysAsync(serverChannel, member.Me.Id)).Success);
+        for (var i = 0; i < 2; i++)
+            await owner.E2eeService.ServeChannelAsync(await planet.FetchChannelAsync(channel.Id));
+        var box = await db.E2eeChannelKeyBoxes.AsNoTracking()
+            .SingleAsync(x => x.ChannelId == channel.Id && x.UserId == member.Me.Id && x.Generation == latest);
+        Assert.Equal(memberState.UserKey.Generation, box.UserKeyGeneration);
+
+        // The device the reset replaced may still hold the key, so the
+        // channel still needs a new one.
+        E2eeChannelKeyService.ForgetRotationCheck(channel.Id);
+        Assert.True(await keys.IsRotationRequiredAsync(serverChannel, latest));
+    }
+
+    [Fact]
     public async Task KeyRequests_AreNotAnnouncedAgainWithinThirtySeconds()
     {
         var (owner, _) = await CreateUserAsync();

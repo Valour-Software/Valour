@@ -23,8 +23,8 @@ else
         @if (_fingerprintAvailable)
         {
             <button type="button" class="v-btn confirm-fingerprint" disabled="@_busy" @onclick="@OnClickFingerprint">
-                <i class="bi bi-fingerprint" aria-hidden="true"></i>
-                <span>Confirm with fingerprint</span>
+                <i class="bi bi-@DeviceKeyText.Icon(_deviceKeys.Method)" aria-hidden="true"></i>
+                <span>Confirm with @DeviceKeyText.Name(_deviceKeys.Method)</span>
             </button>
         }
 

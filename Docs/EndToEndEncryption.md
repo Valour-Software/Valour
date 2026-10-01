@@ -617,7 +617,10 @@ through `api/e2ee/channels/{id}/boxes/prune`, after it has opened that part of
 the chain itself. A member of a channel with a long unbroken chain keeps one
 box. A device that cannot open a box deletes it
 (`DELETE api/e2ee/channels/{id}/boxes/{generation}`) so another member can share
-a working one. A device replaced by a reset holds only the old user key, so
+a working one. That includes a box sealed to a user key from before the
+member's last reset. The server also lets a shared box take the place of such
+a box, because each member has one box per generation and the member could
+otherwise never receive that key again. A device replaced by a reset holds only the old user key, so
 once the member's new device prunes the old boxes, the replaced device can no
 longer open those earlier channel keys.
 

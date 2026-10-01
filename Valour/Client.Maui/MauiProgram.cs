@@ -115,8 +115,10 @@ public static class MauiProgram
 #elif IOS || MACCATALYST
         builder.Services.AddScoped<IExternalAuthLauncher, AppleExternalAuthLauncher>();
 #endif
+#if IOS || MACCATALYST
+        builder.Services.AddSingleton<IDeviceKeyService, AppleDeviceKeyService>();
+#endif
 #if MACCATALYST
-        builder.Services.AddSingleton<IDeviceKeyService, MacDeviceKeyService>();
         builder.Services.AddSingleton<INativeUpdateService, MacUpdateService>();
 #endif
 

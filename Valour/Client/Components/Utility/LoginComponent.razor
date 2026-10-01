@@ -49,7 +49,7 @@
         @if (_deviceKeys?.IsAvailable == true && _deviceKeys.Saved is { } saved)
         {
             <button type="button" class="v-btn fingerprint-btn" disabled="@_fingerprintBusy" @onclick="@OnClickFingerprint">
-                <i class="bi bi-fingerprint" aria-hidden="true"></i>
+                <i class="bi bi-@DeviceKeyText.Icon(_deviceKeys.Method)" aria-hidden="true"></i>
                 <span>Sign in as @saved.UserName</span>
             </button>
         }
@@ -201,7 +201,7 @@
             var tokenResult = await AuthService.FetchTokenWithDeviceKey(saved.KeyId, challenge.Data.ChallengeId, signature);
             if (!tokenResult.Success && !tokenResult.RequiresEmailVerification)
             {
-                _passwordSpan = "Fingerprint sign-in didn't work. Sign in another way, then turn it on again in Settings, under Security.";
+                _passwordSpan = $"{DeviceKeyText.Title(_deviceKeys.Method)} sign-in didn't work. Sign in another way, then turn it on again in Settings, under Security.";
                 return;
             }
 

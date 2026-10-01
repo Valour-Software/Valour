@@ -188,14 +188,18 @@ public partial class E2eeService
             if (ring.Secrets.ContainsKey(box.Generation) || !ring.Records.TryGetValue(box.Generation, out var record))
                 continue;
 
+            // A box sealed to a user key from before the last key reset can
+            // never be opened, and is removed below like a damaged one.
             var userKey = await GetUserKeyAsync(box.UserKeyGeneration);
-            if (userKey is null)
+            if (userKey is null &&
+                (MyKeyState is null || box.UserKeyGeneration >= MyKeyState.EpochFirstGeneration))
                 continue;
 
             ChannelKeySecret secret = null;
             try
             {
-                secret = ChannelKeySecret.OpenBox(channel.Id, box.Generation, _client.Me.Id, userKey, box.Box);
+                if (userKey is not null)
+                    secret = ChannelKeySecret.OpenBox(channel.Id, box.Generation, _client.Me.Id, userKey, box.Box);
             }
             catch (Exception e) when (e is E2eeVerificationException or E2eeFormatException)
             {

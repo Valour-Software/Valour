@@ -3,7 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>NSCameraUsageDescription</key>
-    <string>Valour uses the camera to scan the code that links a new device to your encrypted messages.</string>
+    <string>Valour uses the camera for video calls and to scan the code that links a new device to your encrypted messages.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Valour uses the microphone for voice and video calls.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Valour uses Face ID to sign you in without your password.</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.social-networking</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UIDeviceFamily</key>

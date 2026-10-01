@@ -24,6 +24,8 @@ public class AndroidDeviceKeyService : IDeviceKeyService
         BiometricManager.From(Platform.AppContext).CanAuthenticate(BiometricManager.Authenticators.BiometricStrong)
         == BiometricManager.BiometricSuccess;
 
+    public DeviceKeyMethod Method => DeviceKeyMethod.Fingerprint;
+
     public string DeviceName
     {
         get
