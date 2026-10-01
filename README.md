@@ -153,6 +153,15 @@ An unsigned Debug build keeps encryption keys in a file inside the app's sandbox
 and offers no Touch ID sign-in. Debug builds that name a local server with
 `ValourApiBase` may reach it over plain HTTP.
 
+The macOS workflow builds the release disk image for Apple silicon and Intel Macs,
+signs it with the Valour Software LLC Developer ID, has Apple notarize it, and
+attaches `Valour-macos.dmg` to the version's release. It reads these repository
+secrets: `MACOS_CERT_P12_BASE64` and `MACOS_CERT_PASSWORD` (the Developer ID
+Application certificate and its private key), `MACOS_PROVISION_PROFILE_BASE64`
+(the Developer ID provisioning profile for `gg.valour.app`), and
+`ASC_API_KEY_P8_BASE64`, `ASC_API_KEY_ID`, and `ASC_API_ISSUER_ID` (an App Store
+Connect API key for notarization).
+
 Build from the root with `dotnet build`. C# integration tests start application
 services and need a dedicated test database and Redis instance. Use the
 [isolated test runner](Valour/Tests/Browser/README.md#isolated-c-regression) rather
