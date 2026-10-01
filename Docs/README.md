@@ -19,6 +19,7 @@ use placeholder values; use private local settings when running a server or test
 - [End-to-end encryption](EndToEndEncryption.md)
 - [Sign-in methods](SignInMethods.md)
 - [Payments and subscriptions](Payments.md)
+- [Media safety scanning](MediaSafety.md)
 - [API routing and authorization](../Valour/Docs/API_ROUTES.md)
 - [Roles and permissions](../Valour/Docs/ROLES.md)
 - [Channel activity notifications](ChannelActivityNotifications.md)
