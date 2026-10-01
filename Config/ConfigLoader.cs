@@ -27,6 +27,7 @@ public static class ConfigLoader
         config.GetSection("Node").Get<NodeConfig>();
         config.GetSection("Redis").Get<RedisConfig>();
         config.GetSection("Stripe").Get<StripeConfig>();
+        config.GetSection("GooglePlay").Get<GooglePlayConfig>();
         config.GetSection("Cloudflare").Get<CloudflareConfig>();
         config.GetSection("Voice").Get<VoiceConfig>();
         config.GetSection("MediaSafety").Get<MediaSafetyConfig>();
@@ -108,6 +109,11 @@ public static class ConfigLoader
         if (StripeConfig.Current is null)
         {
             new StripeConfig();
+        }
+
+        if (GooglePlayConfig.Current is null)
+        {
+            new GooglePlayConfig();
         }
 
         if (BootstrapConfig.Current is null)

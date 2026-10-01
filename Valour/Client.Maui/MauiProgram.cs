@@ -97,6 +97,10 @@ public static class MauiProgram
 #if ANDROID
         builder.Services.AddSingleton<Valour.Sdk.E2ee.INotificationKeyStore, SecureNotificationKeyStore>();
         builder.Services.AddSingleton<INativeUpdateService, AndroidUpdateService>();
+#if VALOUR_PLAY_STORE
+        // Play policy requires Google Play Billing for digital goods in apps it distributes.
+        builder.Services.AddSingleton<IStoreBillingService, GooglePlayStoreBillingService>();
+#endif
 #elif WINDOWS
         builder.Services.AddSingleton<INativeUpdateService, WindowsUpdateService>();
 #elif IOS || MACCATALYST

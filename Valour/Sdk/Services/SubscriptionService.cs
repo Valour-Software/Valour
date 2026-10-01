@@ -1,5 +1,6 @@
 using Valour.Sdk.Client;
 using Valour.Shared;
+using Valour.Shared.Models;
 
 namespace Valour.Sdk.Services;
 
@@ -80,6 +81,30 @@ public class SubscriptionService
         if (!result.Success)
             return new TaskResult(false, result.Message);
         return new TaskResult(result.Data?.Success ?? false, result.Data?.Message);
+    }
+
+    /// <summary>
+    /// Reports a Google Play subscription purchase so the server can verify and record it
+    /// </summary>
+    public async Task<TaskResult> ClaimGooglePlaySubscriptionAsync(string productId, string purchaseToken)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<TaskResult>("api/google-play/subscriptions",
+            new GooglePlayPurchaseRequest { ProductId = productId, PurchaseToken = purchaseToken });
+        if (!result.Success)
+            return new TaskResult(false, result.Message);
+        return result.Data;
+    }
+
+    /// <summary>
+    /// Reports a Google Play Valour Credits purchase so the server can verify it and deposit the credits
+    /// </summary>
+    public async Task<TaskResult> ClaimGooglePlayCreditsAsync(string productId, string purchaseToken)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<TaskResult>("api/google-play/credits",
+            new GooglePlayPurchaseRequest { ProductId = productId, PurchaseToken = purchaseToken });
+        if (!result.Success)
+            return new TaskResult(false, result.Message);
+        return result.Data;
     }
 
     private class StripeChangeResult

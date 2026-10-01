@@ -52,7 +52,12 @@ public class UserSubscription : ISharedUserSubscription
     public string StripeSubscriptionId { get; set; }
 
     /// <summary>
-    /// True if the most recent Stripe payment attempt failed
+    /// Set when the subscription is billed through Google Play
+    /// </summary>
+    public string GooglePlayPurchaseToken { get; set; }
+
+    /// <summary>
+    /// True if the most recent Stripe or Google Play payment attempt failed
     /// </summary>
     public bool StripePaymentFailed { get; set; }
 

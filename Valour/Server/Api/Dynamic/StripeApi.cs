@@ -106,8 +106,13 @@ public class StripeApi
         if (hasActiveStripeSub)
             return ValourResult.BadRequest("You already have an active Stripe subscription. Use the plan change flow instead.");
 
+        var hasActiveGooglePlaySub = await db.UserSubscriptions
+            .AnyAsync(x => x.Active && x.UserId == userId && x.GooglePlayPurchaseToken != null);
+        if (hasActiveGooglePlaySub)
+            return ValourResult.BadRequest("Your subscription is billed through Google Play. Manage it in the Valour Android app.");
+
         var existingSub = await db.UserSubscriptions
-            .Where(x => x.Active && x.UserId == userId && x.StripeSubscriptionId == null)
+            .Where(x => x.Active && x.UserId == userId && x.StripeSubscriptionId == null && x.GooglePlayPurchaseToken == null)
             .OrderByDescending(x => x.LastCharged)
             .FirstOrDefaultAsync();
 
@@ -765,9 +770,9 @@ public class StripeApi
     }
 
     /// <summary>
-    /// Deposits a VC reward for a Stripe subscription event
+    /// Deposits a VC reward for a Stripe or Google Play billing event
     /// </summary>
-    private static async Task DepositVcRewardAsync(
+    internal static async Task DepositVcRewardAsync(
         long userId, int amount, string fingerprint, string description,
         EcoService ecoService, ValourDb db, ILogger logger)
     {

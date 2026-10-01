@@ -56,7 +56,24 @@ namespace Valour.Database
         public string StripeSubscriptionId { get; set; }
 
         /// <summary>
-        /// True if the most recent Stripe payment attempt failed
+        /// The Google Play purchase token, if this subscription is billed through Google Play.
+        /// An upgrade or downgrade in Google Play issues a new token, so it becomes a new subscription.
+        /// </summary>
+        public string GooglePlayPurchaseToken { get; set; }
+
+        /// <summary>
+        /// The most recent Google Play order that paid for this subscription.
+        /// A new order ID means the subscription renewed.
+        /// </summary>
+        public string GooglePlayOrderId { get; set; }
+
+        /// <summary>
+        /// When the current Google Play billing period ends
+        /// </summary>
+        public DateTime? GooglePlayExpiry { get; set; }
+
+        /// <summary>
+        /// True if the most recent Stripe or Google Play payment attempt failed
         /// </summary>
         public bool StripePaymentFailed { get; set; }
 
@@ -117,6 +134,19 @@ namespace Valour.Database
                 e.Property(x => x.StripePaymentFailed)
                     .HasColumnName("stripe_payment_failed");
 
+                e.Property(x => x.GooglePlayPurchaseToken)
+                    .HasColumnName("google_play_purchase_token");
+
+                e.Property(x => x.GooglePlayOrderId)
+                    .HasColumnName("google_play_order_id");
+
+                e.Property(x => x.GooglePlayExpiry)
+                    .HasColumnName("google_play_expiry")
+                    .HasConversion(
+                        x => x,
+                        x => x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
+                    );
+
                 e.Property(x => x.PendingType)
                     .HasColumnName("pending_type");
 
@@ -126,6 +156,8 @@ namespace Valour.Database
                     .HasForeignKey(x => x.UserId);
 
                 // Indices
+                e.HasIndex(x => x.GooglePlayPurchaseToken)
+                    .IsUnique();
             });
         }
     }

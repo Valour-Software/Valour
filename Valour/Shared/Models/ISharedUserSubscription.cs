@@ -23,7 +23,12 @@ public class UserSubscriptionType
     public long StripePriceCents { get; set; }
 
     /// <summary>
-    /// Monthly VC cashback reward for Stripe subscribers
+    /// The Google Play subscription product ID for this tier
+    /// </summary>
+    public string GooglePlayProductId { get; set; }
+
+    /// <summary>
+    /// Monthly VC cashback reward for Stripe and Google Play subscribers
     /// </summary>
     public int VcReward { get; set; }
 
@@ -43,6 +48,7 @@ public static class UserSubscriptionTypes
     public static readonly UserSubscriptionType Stargazer = new()
     {
         Name = "Stargazer",
+        GooglePlayProductId = "stargazer",
         Description = "The classic! Support Valour and get access to perks like advanced profile styles.",
         Price = 500,
         StripePriceCents = 499,
@@ -53,6 +59,7 @@ public static class UserSubscriptionTypes
     public static readonly UserSubscriptionType StargazerPlus = new()
     {
         Name = "Stargazer Plus",
+        GooglePlayProductId = "stargazer_plus",
         Description = "A bump up for power users or those who just want to support Valour more.",
         Price = 1000,
         StripePriceCents = 999,
@@ -63,6 +70,7 @@ public static class UserSubscriptionTypes
     public static readonly UserSubscriptionType StargazerPro = new()
     {
         Name = "Stargazer Pro",
+        GooglePlayProductId = "stargazer_pro",
         Description = "Our maximum perks for the most enthusiastic Valournauts!",
         Price = 1500,
         StripePriceCents = 1499,
@@ -76,6 +84,12 @@ public static class UserSubscriptionTypes
         { "Stargazer Plus", StargazerPlus },
         { "Stargazer Pro", StargazerPro }
     };
+
+    /// <summary>
+    /// Finds the tier sold under a Google Play subscription product ID.
+    /// </summary>
+    public static UserSubscriptionType FromGooglePlayProductId(string productId) =>
+        TypeMap.Values.FirstOrDefault(x => x.GooglePlayProductId == productId);
 
     /// <summary>
     /// Returns the max upload size in bytes for a given subscription type name.
@@ -141,7 +155,13 @@ public interface ISharedUserSubscription
     public string StripeSubscriptionId { get; set; }
 
     /// <summary>
-    /// True if the most recent Stripe payment attempt failed.
+    /// Set when the subscription is billed through Google Play. Clients receive
+    /// a placeholder rather than the purchase token.
+    /// </summary>
+    public string GooglePlayPurchaseToken { get; set; }
+
+    /// <summary>
+    /// True if the most recent Stripe or Google Play payment attempt failed.
     /// Reset to false when a payment succeeds.
     /// </summary>
     public bool StripePaymentFailed { get; set; }

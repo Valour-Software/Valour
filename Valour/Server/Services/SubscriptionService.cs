@@ -8,11 +8,13 @@ namespace Valour.Server.Services;
 public class SubscriptionService
 {
     private readonly ValourDb _db;
+    private readonly GooglePlayBillingService _googlePlay;
     private readonly ILogger<SubscriptionService> _logger;
     
-    public SubscriptionService(ValourDb db, ILogger<SubscriptionService> logger)
+    public SubscriptionService(ValourDb db, GooglePlayBillingService googlePlay, ILogger<SubscriptionService> logger)
     {
         _db = db;
+        _googlePlay = googlePlay;
         _logger = logger;
     }
 
@@ -76,6 +78,11 @@ public class SubscriptionService
         if (currentSub is not null && currentSub.StripeSubscriptionId != null)
         {
             return new TaskResult(false, "You have an active Stripe subscription. Please cancel it first.");
+        }
+
+        if (currentSub is not null && currentSub.GooglePlayPurchaseToken != null)
+        {
+            return new TaskResult(false, "Your subscription is billed through Google Play. Change it in the Valour Android app.");
         }
 
         // If user selects their current tier while a pending change exists, cancel the pending change
@@ -214,6 +221,14 @@ public class SubscriptionService
         var user = await _db.Users.FindAsync(userId);
         if (user is null)
             return new TaskResult(false, "Could not find user.");
+
+        if (currentSub.GooglePlayPurchaseToken is not null)
+        {
+            var playResult = await _googlePlay.CancelSubscriptionAsync(currentSub);
+            return playResult.Success
+                ? new TaskResult(true, "Your subscription will end at the close of the current billing period.")
+                : playResult;
+        }
         
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
@@ -243,7 +258,7 @@ public class SubscriptionService
         var now = DateTime.UtcNow;
 
         var activeVcSubs = await _db.UserSubscriptions
-            .Where(x => x.Active && x.StripeSubscriptionId == null)
+            .Where(x => x.Active && x.StripeSubscriptionId == null && x.GooglePlayPurchaseToken == null)
             .ToListAsync();
 
         var dueSubs = activeVcSubs
@@ -408,6 +423,9 @@ public class SubscriptionService
 
         if (currentSub.PendingType is null)
             return new TaskResult(false, "No pending tier change to cancel.");
+
+        if (currentSub.GooglePlayPurchaseToken is not null)
+            return new TaskResult(false, "Change your Google Play subscription in Google Play.");
 
         // If Stripe-managed, revert the price on Stripe back to the current tier
         if (!string.IsNullOrEmpty(currentSub.StripeSubscriptionId))

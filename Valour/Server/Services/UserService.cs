@@ -1232,6 +1232,10 @@ public class UserService
         if (!billingResult.Success)
             return billingResult;
 
+        billingResult = await CancelGooglePlaySubscriptionsAsync(user.Id);
+        if (!billingResult.Success)
+            return billingResult;
+
         // The deletion touches most tables, so it can deadlock with the user's
         // own activity that is still in flight (for example presence or message
         // writes). PostgreSQL aborts one side and the transaction rolls back
@@ -1876,9 +1880,28 @@ public class UserService
     }
 
     /// <summary>
-    /// Cancels the user's Stripe subscriptions immediately. Subscriptions
-    /// bought through an app store are managed by that store and cannot be
-    /// cancelled from here.
+    /// Stops the user's Google Play subscriptions from renewing. Google Play
+    /// keeps its own purchase records.
+    /// </summary>
+    private async Task<TaskResult> CancelGooglePlaySubscriptionsAsync(long userId)
+    {
+        var subs = await _db.UserSubscriptions.IgnoreQueryFilters()
+            .Where(x => x.UserId == userId && x.Active && !x.Cancelled && x.GooglePlayPurchaseToken != null)
+            .ToListAsync();
+
+        foreach (var sub in subs)
+        {
+            var result = await GooglePlayBillingService.StopRenewalAsync(sub, _logger);
+            if (!result.Success)
+                return TaskResult.FromFailure(
+                    "We couldn't cancel your Google Play subscription, so your account was not deleted. Cancel it in Google Play and try again, or contact support@valour.gg.");
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Cancels the user's Stripe subscriptions immediately.
     /// </summary>
     private async Task<TaskResult> CancelStripeSubscriptionsAsync(long userId)
     {

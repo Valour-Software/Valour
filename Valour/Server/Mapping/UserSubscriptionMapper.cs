@@ -21,6 +21,9 @@ public static class UserSubscriptionMapper
             StripeSubscriptionId = string.IsNullOrEmpty(userSubscription.StripeSubscriptionId)
                 ? null
                 : "stripe_managed",
+            GooglePlayPurchaseToken = string.IsNullOrEmpty(userSubscription.GooglePlayPurchaseToken)
+                ? null
+                : "google_play_managed",
             StripePaymentFailed = userSubscription.StripePaymentFailed,
             PendingType = userSubscription.PendingType
         };
@@ -42,6 +45,7 @@ public static class UserSubscriptionMapper
             Cancelled = userSubscription.Cancelled,
             Renewals = userSubscription.Renewals,
             StripeSubscriptionId = userSubscription.StripeSubscriptionId,
+            GooglePlayPurchaseToken = userSubscription.GooglePlayPurchaseToken,
             StripePaymentFailed = userSubscription.StripePaymentFailed,
             PendingType = userSubscription.PendingType
         };
