@@ -249,7 +249,6 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             Joined = true;
             Connecting = false;
             WaitingForPeer = false;
-            AppLifecycle.NotifyCallStarted();
 
             try
             {
@@ -267,6 +266,8 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             {
                 AudioEnabled = false;
             }
+
+            AppLifecycle.NotifyCallStarted();
 
             await RefreshStateFromSdkAsync();
             await RefreshParticipantsAsync();
