@@ -37,7 +37,11 @@ public sealed class LegalDocumentLibrary
         "economy-rules", "PLATFORM_ECO_RULES.md", "/rules/economy/", "Economy Rules",
         "The rules for Valour's community economy and trading systems.");
 
-    public static readonly IReadOnlyList<LegalDocument> All = [Privacy, Terms, Rules, EconomyRules];
+    public static readonly LegalDocument ChildSafety = new(
+        "child-safety", "CHILD_SAFETY.md", "/child-safety/", "Child Safety Standards",
+        "Valour's standards against child sexual abuse and exploitation, and how to report it.");
+
+    public static readonly IReadOnlyList<LegalDocument> All = [Privacy, Terms, Rules, EconomyRules, ChildSafety];
 
     // Links between the documents are written as repository file names (or GitHub
     // URLs to them) so they work on GitHub; on the site they point at the pages.

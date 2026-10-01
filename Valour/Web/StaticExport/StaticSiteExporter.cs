@@ -13,6 +13,7 @@ public sealed class StaticSiteExporter
         new("Home", "Terms", "/terms/", "terms/index.html"),
         new("Home", "Rules", "/rules/", "rules/index.html"),
         new("Home", "EconomyRules", "/rules/economy/", "rules/economy/index.html"),
+        new("Home", "ChildSafety", "/child-safety/", "child-safety/index.html"),
         new("Home", "DeleteAccount", "/delete-account/", "delete-account/index.html"),
         new("Home", "Texas", "/texas/", "texas/index.html"),
         new("Home", "UserCount", "/userCount/", "userCount/index.html", InSitemap: false)
