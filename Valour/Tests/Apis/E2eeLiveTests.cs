@@ -1278,6 +1278,25 @@ public class E2eeLiveTests
     }
 
     [Fact]
+    public async Task ConcurrentKeyLogLookups_AllVerify()
+    {
+        var (reader, _) = await CreateUserAsync();
+        var (other, _) = await CreateUserAsync();
+
+        // Lookups that start before any of them stores the log all ask for the
+        // whole log. Each must build on what it asked from, not on the copy
+        // another lookup stored meanwhile.
+        var lookups = await Task.WhenAll(Enumerable.Range(0, 6)
+            .Select(_ => reader.E2eeService.GetUserStatesAsync([other.Me.Id])));
+
+        foreach (var states in lookups)
+        {
+            Assert.True(states.TryGetValue(other.Me.Id, out var state));
+            Assert.Equal(other.E2eeService.MyKeyState.HeadSeq, state.HeadSeq);
+        }
+    }
+
+    [Fact]
     public async Task ServerRefusesKeyBoxesForUnadmittedUsers()
     {
         var (owner, _) = await CreateUserAsync();

@@ -74,6 +74,12 @@ public sealed class ChannelKeyRing
 public partial class E2eeService
 {
     private static readonly TimeSpan KeyRingLifetime = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// How soon a ring is loaded again when a record was left out because its
+    /// creator's key log could not be loaded or verified.
+    /// </summary>
+    private static readonly TimeSpan IncompleteKeyRingLifetime = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan KeyRequestInterval = TimeSpan.FromSeconds(30);
 
     /// <summary>
@@ -308,7 +314,13 @@ public partial class E2eeService
                 }
 
                 if (creatorId is null || !creatorStates.TryGetValue(creatorId.Value, out var creatorState))
+                {
+                    // The creator's key log may load on a later try, so the
+                    // ring is not kept for its usual lifetime without it.
+                    LogWarning($"Key generation {entry.Generation} in channel {channel.Id} was skipped because its creator's keys could not be loaded.");
+                    ring.FetchedAt = DateTime.UtcNow - KeyRingLifetime + IncompleteKeyRingLifetime;
                     continue;
+                }
 
                 // A record dated outside its device's time on the account, for
                 // example just after the device was removed, still unlocks
