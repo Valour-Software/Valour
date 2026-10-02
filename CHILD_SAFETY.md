@@ -27,7 +27,7 @@ Valour also uses the date of birth to keep minors out of content meant for adult
 If you see anything that may involve the sexual abuse or exploitation of a child, report it right away.
 
 - **In the app:** open the menu on the message, thread, comment, planet, or user and choose Report. Select **Minor Sexual Content** for sexual content involving a minor, or **Underage User** for an account that belongs to someone under the minimum age. Your report goes to Valour's staff.
-- **By email:** write to [support@valour.gg](mailto:support@valour.gg). Include links or IDs for the content or account if you can.
+- **By email:** write to [safety@valour.gg](mailto:safety@valour.gg). Include links or IDs for the content or account if you can.
 
 Messages on Valour are end-to-end encrypted. When you report a message, your device includes its content in the report so that staff can review what you saw.
 
@@ -52,4 +52,4 @@ When Valour learns of content or behavior covered by these standards, staff:
 
 # Contact
 
-Valour's point of contact for child safety, including questions from authorities and child safety organizations, can be reached at [support@valour.gg](mailto:support@valour.gg).
+Valour's point of contact for child safety, including questions from authorities and child safety organizations, can be reached at [safety@valour.gg](mailto:safety@valour.gg).
