@@ -102,6 +102,11 @@ public partial class E2eeService
         var states = new Dictionary<long, UserKeyState>();
         var request = new UserKeyLogsRequest();
 
+        // The entries each count in the request refers to. Another lookup may
+        // store a longer log for the same user while this one waits, and the
+        // server's answer only extends the entries counted here.
+        var known = new Dictionary<long, List<UserKeyLogEntry>>();
+
         foreach (var userId in userIds.Distinct())
         {
             if (_client.Me is not null && userId == _client.Me.Id && MyKeyState is not null)
@@ -116,7 +121,8 @@ public partial class E2eeService
                 continue;
             }
 
-            request.KnownCounts[userId] = cached?.Entries.Count ?? 0;
+            known[userId] = cached?.Entries ?? [];
+            request.KnownCounts[userId] = known[userId].Count;
         }
 
         // The server answers a limited number of users per request. Pins are saved once
@@ -130,8 +136,7 @@ public partial class E2eeService
 
             foreach (var (userId, newEntries) in result.Data)
             {
-                var previous = _userStates.TryGetValue(userId, out var p) ? p.Entries : [];
-                var entries = previous.Concat(newEntries ?? []).ToList();
+                var entries = known.GetValueOrDefault(userId, []).Concat(newEntries ?? []).ToList();
                 try
                 {
                     var state = await AcceptUserLogAsync(userId, entries, savePins: false);

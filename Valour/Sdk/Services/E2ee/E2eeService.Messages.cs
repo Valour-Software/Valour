@@ -504,10 +504,14 @@ public partial class E2eeService
             // When the channel's keys could not be loaded, no key notice may
             // come, so the message is tried again on a timer.
             var fetchFailed = ring is null || _keyRingFailures.ContainsKey(ChannelKey(channel));
+
+            // Without the generation's verified record, no shared key can be
+            // used either, so the message is also tried again on a timer.
+            var recordMissing = ring is not null && !ring.Records.ContainsKey(message.KeyGeneration);
             MarkWaiting(message, fetchFailed
                     ? "Couldn't load this channel's keys. Trying again..."
                     : "Waiting for a member's device to share the key.",
-                retryLater: fetchFailed, channel: channel);
+                retryLater: fetchFailed || recordMissing, channel: channel);
             return;
         }
 
