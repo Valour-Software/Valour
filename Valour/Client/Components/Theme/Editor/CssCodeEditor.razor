@@ -1,0 +1,41 @@
+@inject IJSRuntime JsRuntime
+
+<div class="css-code-editor">
+    <pre class="css-code-editor-highlight" aria-hidden="true"><code>@((MarkupString)_html)</code></pre>
+    <textarea class="css-code-editor-input" spellcheck="false" autocapitalize="off" autocomplete="off" value="@Value" @oninput="OnInputAsync"></textarea>
+</div>
+
+@code {
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private string _html = string.Empty;
+    private string _highlightedSource;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if ((Value ?? string.Empty) != _highlightedSource)
+            await UpdateHighlightAsync();
+    }
+
+    private async Task OnInputAsync(ChangeEventArgs e)
+    {
+        Value = e.Value?.ToString() ?? string.Empty;
+        await UpdateHighlightAsync();
+        await ValueChanged.InvokeAsync(Value);
+    }
+
+    // Parent components that suppress re-rendering never pass new parameters,
+    // so keystrokes must refresh the highlight here as well.
+    private async Task UpdateHighlightAsync()
+    {
+        var source = Value ?? string.Empty;
+        _highlightedSource = source;
+
+        var html = await JsRuntime.InvokeAsync<string>("cssEditorHighlight", source);
+
+        // Results can arrive out of order when typing quickly; keep only the latest.
+        if (_highlightedSource == source)
+            _html = html;
+    }
+}
