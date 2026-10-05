@@ -22,12 +22,6 @@
     max-width: 100%;
 }
 
-.custom-css-input {
-    min-height: 160px;
-    resize: vertical;
-    font-family: var(--font-family-mono);
-}
-
 .editor-actions {
     justify-content: flex-end;
 }

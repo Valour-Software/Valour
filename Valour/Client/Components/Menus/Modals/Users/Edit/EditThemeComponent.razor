@@ -16,9 +16,12 @@
                 Theme editor
             </h3>
             <p class="helper-text">Preview changes live while you tune surfaces, semantic colors, fonts, assets, and custom CSS.</p>
-            <div class="actions">
-                <VButton Variant="secondary" Icon="arrows-move" OnClick="@OpenThemeEditorWindow">Open in Floating Editor</VButton>
-            </div>
+            @if (!DeviceInfo.IsMobile)
+            {
+                <div class="actions">
+                    <VButton Variant="secondary" Icon="arrows-move" OnClick="@OpenThemeEditorWindow">Open in Floating Editor</VButton>
+                </div>
+            }
         </div>
 
         <ThemeInfoSection @ref="_infoSection" Theme="@_editingTheme" OnPublishedChanged="@OnPublishedChangedAsync" OnDeleted="@OnThemeDeletedAsync" />
@@ -32,7 +35,7 @@
             </h3>
 
             <div class="form-group">
-                <InputTextArea @bind-Value="@_editingTheme.CustomCss" class="v-input custom-css-input" rows="8"></InputTextArea>
+                <CssCodeEditor Value="@_editingTheme.CustomCss" ValueChanged="@(v => _editingTheme.CustomCss = v)" />
                 <p class="helper-text">Custom CSS is sanitized before preview and save. Use uploaded assets with the generated CSS variables below.</p>
                 <div class="actions">
                     <VButton Variant="secondary" OnClick="@OnCssChange">Apply CSS to preview</VButton>

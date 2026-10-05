@@ -14,13 +14,6 @@
     padding-top: 0.85rem;
 }
 
-.theme-editor-css-textarea {
-    min-height: 320px;
-    resize: vertical;
-    font-family: var(--font-family-mono);
-    font-size: var(--font-size-xs);
-}
-
 .theme-editor-window-footer {
     flex: 0 0 auto;
     display: flex;

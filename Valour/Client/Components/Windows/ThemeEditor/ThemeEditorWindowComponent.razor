@@ -20,7 +20,7 @@
                             <i class="bi bi-filetype-css"></i>
                             Custom CSS
                         </h3>
-                        <textarea class="v-input theme-editor-css-textarea" value="@_cssText" @oninput="OnCssInput"></textarea>
+                        <CssCodeEditor Value="@_cssText" ValueChanged="@(v => _cssText = v)" />
                     </div>
                     break;
             }
@@ -75,11 +75,6 @@
     {
         _section = section;
         await ReRender();
-    }
-
-    private void OnCssInput(ChangeEventArgs e)
-    {
-        _cssText = e.Value?.ToString() ?? string.Empty;
     }
 
     private void Preview()
