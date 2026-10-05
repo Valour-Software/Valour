@@ -19,6 +19,7 @@
              that Valour.Client uses, so the WebView package is pinned here. -->
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="11.0.0-rc.1.26425.128" />
         <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0-rc.1.26425.128" />
+        <PackageReference Include="Sentry.Extensions.Logging" Version="6.1.0" />
     </ItemGroup>
 
     <ItemGroup>

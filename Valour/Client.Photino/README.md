@@ -34,6 +34,11 @@ these are `libgtk-3-0t64 libwebkit2gtk-4.1-0 libnotify4`. On Fedora they are
 | `IPushNotificationService` | `DesktopNotificationService` shows desktop notifications for notifications that arrive while Valour is running. Nothing is delivered while the app is closed. |
 | `IExternalAuthLauncher` | The shared `LoopbackExternalAuthLauncher` opens the provider in the default browser and receives the result on a loopback port. |
 
+Error reports go to Sentry in the desktop (`valour-windows`) project, and the
+`os` tag tells Linux apart from Windows. As in the other hosts, reporting is off
+unless the user turns it on in settings. The host reads that preference from
+`preferences.json` before starting the SDK, so startup crashes follow it too.
+
 ## Web view integration
 
 The page is served from `app://localhost/`. `wwwroot/desktop-host.js` sends
