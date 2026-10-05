@@ -304,10 +304,23 @@ jobs:
         path: ${{ steps.find-aab.outputs.aab_path }}
         if-no-files-found: error
 
+    # The APK release comes first, so a rejected Play upload can't hold it back.
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ needs.check-version.outputs.version }}
+        name: Valour v${{ needs.check-version.outputs.version }}
+        files: ${{ steps.find-apk.outputs.apk_path }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     # Sends the bundle to the Play internal testing track. Skipped until the
     # GOOGLE_PLAY_PUBLISHER_JSON secret holds a service account key that may
     # release to testing tracks. Play rejects a version code it has already
-    # received, so raise ApplicationVersion for every build meant for Play.
+    # received, and refuses one lower than a code already on any track, so
+    # raise ApplicationVersion above every code sent to Play, including test
+    # builds from playstore/ branches.
     - name: Check for Google Play publisher key
       id: play-key
       env:
@@ -330,12 +343,3 @@ jobs:
         track: internal
         status: completed
 
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: v${{ needs.check-version.outputs.version }}
-        name: Valour v${{ needs.check-version.outputs.version }}
-        files: ${{ steps.find-apk.outputs.apk_path }}
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

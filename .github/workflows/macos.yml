@@ -2,7 +2,9 @@ name: macOS Build
 
 # Builds the Mac app for Apple silicon and Intel Macs, signs it with the Valour
 # Software LLC Developer ID, has Apple notarize it, and attaches the disk image
-# to the version's release. Gatekeeper then opens it without a warning.
+# to the version's release. Gatekeeper then opens it without a warning. Run it
+# by hand on a version branch to check those steps before merging; only runs on
+# main publish the release.
 on:
   workflow_dispatch:
   push:
@@ -69,8 +71,11 @@ jobs:
         # The installer needs the full SDK version; global.json names the release.
         dotnet-version: 11.0.100-rc.1.26425.128
 
-    - name: Install MAUI workload
-      run: dotnet workload install maui-maccatalyst
+    # Restore evaluates every target framework in the project (Android, iOS,
+    # and Mac Catalyst), so all three workloads are needed even though only the
+    # Mac app is built.
+    - name: Install MAUI workloads
+      run: dotnet workload install maui-maccatalyst maui-ios maui-android
 
     - name: Get short SHA
       id: short-sha
@@ -192,7 +197,10 @@ jobs:
         xcrun stapler validate "$DMG"
         spctl -a -vv -t open --context context:primary-signature "$DMG"
 
+    # A manual run on another branch checks the build, signing, and
+    # notarization without publishing a release.
     - name: Create or update GitHub Release
+      if: github.ref == 'refs/heads/main'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ needs.check-version.outputs.version }}
