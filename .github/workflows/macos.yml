@@ -71,10 +71,11 @@ jobs:
         # The installer needs the full SDK version; global.json names the release.
         dotnet-version: 11.0.100-rc.1.26425.128
 
-    # Restore evaluates every target framework in the project, so the Android
-    # workload is needed even though only the Mac app is built.
+    # Restore evaluates every target framework in the project (Android, iOS,
+    # and Mac Catalyst), so all three workloads are needed even though only the
+    # Mac app is built.
     - name: Install MAUI workloads
-      run: dotnet workload install maui-maccatalyst maui-android
+      run: dotnet workload install maui-maccatalyst maui-ios maui-android
 
     - name: Get short SHA
       id: short-sha
