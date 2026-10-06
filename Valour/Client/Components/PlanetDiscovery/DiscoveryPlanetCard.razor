@@ -5,7 +5,7 @@
     <div class="planet-card-sky">
         @if (_backgroundUrl is not null)
         {
-            <img class="planet-card-background" src="@_backgroundUrl" alt="" />
+            <img class="planet-card-background" src="@_backgroundUrl" alt="" loading="lazy" decoding="async" />
         }
         else
         {
@@ -22,7 +22,7 @@
         <div class="planet-card-icon">
             @if (PlanetInfo.HasCustomIcon)
             {
-                <img src="@_iconUrl" alt="@PlanetInfo.Name" />
+                <img src="@_iconUrl" alt="@PlanetInfo.Name" loading="lazy" decoding="async" />
             }
             else
             {

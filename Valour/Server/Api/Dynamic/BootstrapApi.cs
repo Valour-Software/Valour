@@ -31,13 +31,8 @@ public class BootstrapApi
         // remains independently testable through its original endpoint.
         var friends = await userService.GetFriendsDataAsync(userId);
         var blocks = await userBlockService.GetBlocksAsync(userId);
-        var planets = await userService.GetJoinedPlanetInfo(userId);
+        var (planets, myPlanetMembers) = await userService.GetJoinedPlanetsWithMembershipsAsync(userId);
         var planetIds = planets.Select(x => x.Id).ToList();
-        var myPlanetMembers = await db.PlanetMembers
-            .AsNoTracking()
-            .Where(x => x.UserId == userId && planetIds.Contains(x.PlanetId))
-            .Select(x => x.ToModel())
-            .ToListAsync();
         var activeSince = DateTime.UtcNow.AddMinutes(-15);
         var planetActivity = await db.PlanetMembers
             .AsNoTracking()

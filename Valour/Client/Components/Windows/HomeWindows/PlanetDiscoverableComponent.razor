@@ -16,15 +16,7 @@
         }
         else
         {
-            @if (PlanetInfo.HasAnimatedIcon)
-            {
-                <style>
-                    .outer-circle:hover .discovery-icon-@PlanetInfo.PlanetId {
-                        background-image: url(@_animatedIconUrl), url(@_iconUrl), url(@_fallbackIconUrl) !important;
-                    }
-                </style>
-            }
-            <div class="icon discovery-icon-@PlanetInfo.PlanetId" style="background-image: url(@_iconUrl), url(@_fallbackIconUrl)"></div>
+            <div class="icon discovery-icon-@PlanetInfo.PlanetId @(PlanetInfo.HasAnimatedIcon ? AnimatedImageStyle.HoverClass : "")" style="@AnimatedImageStyle.Build(_iconUrl, _fallbackIconUrl, PlanetInfo.HasAnimatedIcon ? _animatedIconUrl : null)"></div>
         }
         <div class="rect-slide">
             <div class="text-wrapper">

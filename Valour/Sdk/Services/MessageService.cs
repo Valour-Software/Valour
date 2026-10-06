@@ -122,8 +122,6 @@ public class MessageService : ServiceBase
     {
         message = message.Sync(_client);
         
-        Log($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
-
         MessageReceived?.Invoke(message);
 
         if (message.PlanetId is not null)
@@ -153,8 +151,6 @@ public class MessageService : ServiceBase
     private void OnPlanetMessageEdited(Message message)
     {
         message = message.Sync(_client);
-        
-        Log($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         
         MessageEdited?.Invoke(message);
         
@@ -186,8 +182,6 @@ public class MessageService : ServiceBase
     {
         message = message.Sync(_client);
         
-        Log($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
-        
         MessageReceived?.Invoke(message);
         
         if (!_cache.Channels.TryGet(message.ChannelId, out var channel))
@@ -202,8 +196,6 @@ public class MessageService : ServiceBase
     private void OnDirectMessageEdited(Message message)
     {
         message = message.Sync(_client);
-        
-        Log($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         
         MessageEdited?.Invoke(message);
         

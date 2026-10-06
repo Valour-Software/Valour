@@ -29,12 +29,10 @@ public readonly struct Change<T>
 /// The dictionary entries are keyed on a property name (string)
 /// and store a Change value boxed as an object.
 ///
-/// Note: This class uses pooled dictionaries for efficiency. The dictionary
-/// is returned to the pool when Dispose() is called or when the finalizer runs.
-/// Since event handlers may be async and fire-and-forget, we rely on the finalizer
-/// as backup for handlers that don't explicitly dispose.
+/// Event handlers may be asynchronous and fire-and-forget, so the dictionary is
+/// never recycled; the garbage collector reclaims it with the event.
 /// </summary>
-public class ModelChange<TModel> : IDisposable
+public class ModelChange<TModel>
 {
     public static readonly ModelChange<TModel> Empty = 
         new ModelChange<TModel>(null);
@@ -118,40 +116,7 @@ public class ModelChange<TModel> : IDisposable
         newValue = default!;
         return false;
     }
-    
-    #region Disposal
-    
-    private bool _disposed = false;
-    
-    // Cleanup: Return PropsChanged to pool
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
 
-    private void Dispose(bool disposing)
-    {
-        if (_disposed)
-            return;
-
-        if (disposing)
-        {
-            if (_changes != null)
-            {
-                ModelUpdateUtils.ReturnChangeDict(_changes);
-            }
-        }
-        
-        _disposed = true;
-    }
-
-    ~ModelChange()
-    {
-        Dispose(false);
-    }
-    
-    #endregion
 }
 
 /// <summary>

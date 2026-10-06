@@ -166,6 +166,7 @@
     private const int PollIntervalMs = 45_000;
     private const int NewCheckPageSize = 20;
     private System.Timers.Timer _pollTimer;
+    private bool _disposed;
     private DateTime _newestSeen = DateTime.MinValue;
     private int _newPostCount;
 
@@ -194,10 +195,33 @@
 
         await RebuildFeedAsync();
 
+        if (_disposed)
+            return;
+
         _pollTimer = new System.Timers.Timer(PollIntervalMs);
-        _pollTimer.Elapsed += (_, _) => _ = InvokeAsync(CheckForNewPostsAsync);
+        _pollTimer.Elapsed += OnPollTimerElapsed;
         _pollTimer.AutoReset = true;
         _pollTimer.Start();
+    }
+
+    private void OnPollTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+    {
+        if (_disposed)
+            return;
+
+        _ = InvokeAsync(CheckForNewPostsAsync);
+    }
+
+    private bool IsVisibleToUser()
+    {
+        if (!BrowserUtils.IsFocused)
+            return false;
+
+        var tab = WindowCtx?.Tab;
+        if (tab is null || tab.IsFloating)
+            return true;
+
+        return tab.Layout?.FocusedTab == tab;
     }
 
     /// <summary>
@@ -206,7 +230,7 @@
     /// </summary>
     private async Task CheckForNewPostsAsync()
     {
-        if (_isLoading || !_hasLoaded)
+        if (_disposed || _isLoading || !_hasLoaded || !IsVisibleToUser())
             return;
 
         try
@@ -376,7 +400,11 @@
 
     public void Dispose()
     {
+        _disposed = true;
         Client.ThreadService.PinChanged -= OnPinChanged;
+
+        if (_pollTimer is not null)
+            _pollTimer.Elapsed -= OnPollTimerElapsed;
 
         _pollTimer?.Stop();
         _pollTimer?.Dispose();

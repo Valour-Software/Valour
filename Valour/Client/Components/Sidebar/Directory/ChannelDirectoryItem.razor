@@ -60,11 +60,6 @@
 
             <i class="channel-icon bi-@iconData.Icon" style="font-size: @iconData.Size" aria-label="@iconData.AltText"></i>
 
-            @if (IsNested)
-            {
-                <div class="path" depth="@Depth"></div>
-            }
-            
             @if (IsPrivate)
             {
                 <img alt="Locked" class="lock-icon" src="_content/Valour.Client/media/channel-list/lock.svg"/>
@@ -76,9 +71,7 @@
 
             @if (_notificationCount > 0)
             {
-                <div class="notif-badge">
-                    <span>@_notificationCount</span>
-                </div>
+                <div class="notif-badge">@_notificationCount</div>
             }
             else if (IsUnread)
             {
@@ -197,7 +190,7 @@
         {
             var css = "channel";
 
-            if (ChannelService.ConnectedPlanetChannels.Any(x => x.Id == Channel.Id))
+            if (ChannelService.IsChannelConnected(Channel.Id))
                 css += " open";
 
             if (IsUnread)
@@ -226,6 +219,7 @@
     // the handlers from the same instance.
     private Channel _subscribedChannel;
     private int _notificationCount;
+    private long? _associatedChatChannelId;
     private List<long> _voiceParticipants = new();
     
     protected override void OnInitialized()
@@ -270,6 +264,7 @@
     private void BuildSelf()
     {
         _isOpen = CategoryManager.IsOpen(Channel);
+        _associatedChatChannelId = ResolveAssociatedChatChannelId();
 
         BuildChildren();
         DetermineNotifications();
@@ -584,9 +579,9 @@
     
     private Task OnChannelConnectionChange(Channel channel)
     {
-        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory || channel.Id != Channel.Id)
             return Task.CompletedTask;
-            
+
         Refresh();
 
         return Task.CompletedTask;
@@ -704,7 +699,9 @@
     
     #endregion
 
-    private long? GetAssociatedChatChannelId()
+    private long? GetAssociatedChatChannelId() => _associatedChatChannelId;
+
+    private long? ResolveAssociatedChatChannelId()
     {
         if (!ISharedChannel.IsPlanetCallType(Channel.ChannelType))
             return null;

@@ -1,11 +1,9 @@
-using Markdig.Blazor;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Valour.Client.Messages;
-using Markdown = Markdig.Blazor.Markdown;
 
 namespace Valour.Tests.Client;
 
@@ -65,6 +63,73 @@ public class MarkdownLinkRenderingTests
         Assert.DoesNotContain("href", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task RepeatedRender_ReusesParsedDocumentWithIdenticalOutput()
+    {
+        const string markdown = "**bold** ||spoiler|| [link](https://example.com)";
+
+        var first = await RenderAsync(markdown);
+        var second = await RenderAsync(markdown);
+
+        Assert.Equal(first, second);
+        Assert.Contains("<strong>bold</strong>", first);
+        Assert.Contains("md-spoiler", first);
+    }
+
+    [Fact]
+    public void GetHtml_ReturnsStableOutputAcrossCalls()
+    {
+        const string markdown = "# Title\n\n*emphasis* and `code`";
+
+        var first = MarkdownManager.GetHtml(markdown);
+        var second = MarkdownManager.GetHtml(markdown);
+
+        Assert.Equal(first, second);
+        Assert.Contains("<em>emphasis</em>", first);
+        Assert.Equal("", MarkdownManager.GetHtml(null!));
+    }
+
+    [Fact]
+    public void GetHtml_AfterPipelineRegeneration_StillRendersContent()
+    {
+        const string markdown = "plain **text**";
+
+        var before = MarkdownManager.GetHtml(markdown);
+        MarkdownManager.RegenPipeline();
+        var after = MarkdownManager.GetHtml(markdown);
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void BoundedLruCache_EvictsLeastRecentlyUsedEntry()
+    {
+        var cache = new BoundedLruCache<string, int>(2);
+        cache.Set("a", 1);
+        cache.Set("b", 2);
+        Assert.True(cache.TryGet("a", out _));
+
+        cache.Set("c", 3);
+
+        Assert.Equal(2, cache.Count);
+        Assert.True(cache.TryGet("a", out var a));
+        Assert.Equal(1, a);
+        Assert.False(cache.TryGet("b", out _));
+        Assert.True(cache.TryGet("c", out _));
+    }
+
+    [Fact]
+    public void BoundedLruCache_SetOnExistingKeyReplacesValueWithoutGrowing()
+    {
+        var cache = new BoundedLruCache<string, int>(2);
+        cache.Set("a", 1);
+        cache.Set("a", 5);
+
+        Assert.Equal(1, cache.Count);
+        Assert.True(cache.TryGet("a", out var value));
+        Assert.Equal(5, value);
+    }
+
     private static async Task<string> RenderAsync(string markdown)
     {
         var services = new ServiceCollection()
@@ -93,12 +158,7 @@ public class MarkdownLinkRenderingTests
 
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
-            Markdown.RenderToFragment(
-                Content,
-                builder,
-                MarkdownManager.Pipeline,
-                MarkdownManager.Renderer,
-                this);
+            MarkdownManager.RenderToFragment(Content, builder, this);
         }
     }
 }

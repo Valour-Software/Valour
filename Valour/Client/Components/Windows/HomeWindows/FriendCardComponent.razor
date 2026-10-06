@@ -11,16 +11,7 @@
     <div class="outer-circle" @oncontextpress="@OnContextMenu">
         <div class="text-hide-circle"></div>
         
-        @if (Friend.HasAnimatedAvatar)
-        {
-            <style>
-                .outer-circle:hover .friend-icon-@Friend.Id {
-                    background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
-                }
-            </style>
-        }
-        
-        <div class="icon friend-icon-@Friend.Id" style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)"></div>
+        <div class="icon friend-icon-@Friend.Id @(Friend.HasAnimatedAvatar ? AnimatedImageStyle.HoverClass : "")" style="@AnimatedImageStyle.Build(_avatarUrl, _fallbackAvatarUrl, Friend.HasAnimatedAvatar ? _animatedAvatarUrl : null)"></div>
         @if (_isUnread || _notificationCount > 0)
         {
             <div class="noti @(_notificationCount > 0 ? "purple" : "")">

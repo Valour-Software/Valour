@@ -1,6 +1,8 @@
 ﻿using Markdig;
 using Markdig.Blazor;
 using Markdig.Extensions.AutoLinks;
+using Markdig.Syntax;
+using Microsoft.AspNetCore.Components.Rendering;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -25,6 +27,30 @@ public static class MarkdownManager
     private static readonly Regex StockToken = new("\\$[A-Za-z]{1,6}", RegexOptions.Compiled);
     private static readonly Regex Whitespace = new("\\s+", RegexOptions.Compiled);
 
+    private const int MaxCachedDocuments = 2048;
+    private const int MaxCachedHtml = 1024;
+    private const int MaxCachedContentLength = 8192;
+
+    /// <summary>
+    /// Parse results depend on the pipeline, so each pipeline owns its caches and
+    /// regenerating the pipeline discards them.
+    /// </summary>
+    private sealed class PipelineState
+    {
+        public readonly MarkdownPipeline Pipeline;
+        public readonly BlazorRenderer Renderer;
+        public readonly BoundedLruCache<string, MarkdownDocument> Documents = new(MaxCachedDocuments);
+        public readonly BoundedLruCache<string, string> Html = new(MaxCachedHtml);
+
+        public PipelineState(MarkdownPipeline pipeline, BlazorRenderer renderer)
+        {
+            Pipeline = pipeline;
+            Renderer = renderer;
+        }
+    }
+
+    private static PipelineState _state;
+
     public static BlazorRenderer Renderer;
     public static MarkdownPipeline Pipeline;
 
@@ -35,7 +61,7 @@ public static class MarkdownManager
 
     public static void RegenPipeline()
     {
-        Pipeline = new MarkdownPipelineBuilder()
+        var pipeline = new MarkdownPipelineBuilder()
             .DisableHtml()
             // GetHtml() renders through Markdig's default HtmlRenderer, which does
             // not go through ValourLinkRenderer - without this, javascript: links
@@ -55,20 +81,53 @@ public static class MarkdownManager
             .UseValourEmojiExtension(DevicePreferences.AutoEmoji)
             .Build();
 
-        Renderer = new BlazorRenderer(null, true);
-        Renderer.ObjectRenderers.Add(new MentionRenderer());
-        Renderer.ObjectRenderers.Add(new StockRenderer());
-        Renderer.ObjectRenderers.Add(new ValourEmojiRenderer());
+        var renderer = new BlazorRenderer(null, true);
+        renderer.ObjectRenderers.Add(new MentionRenderer());
+        renderer.ObjectRenderers.Add(new StockRenderer());
+        renderer.ObjectRenderers.Add(new ValourEmojiRenderer());
 
         // Must be inserted ahead of the package's built-in EmphasisInlineRenderer -
         // SpoilerInline derives from EmphasisInline to reuse its delimiter-run parsing,
         // but that also means the built-in renderer matches it and would render
         // the spoiler's contents unwrapped, with no span/blur at all.
-        Renderer.ObjectRenderers.Insert(0, new SpoilerRenderer());
+        renderer.ObjectRenderers.Insert(0, new SpoilerRenderer());
 
         // Must be inserted ahead of the package's built-in LinkInlineRenderer so
         // Valour links get in-app navigation instead of opening a new tab.
-        Renderer.ObjectRenderers.Insert(0, new ValourLinkRenderer());
+        renderer.ObjectRenderers.Insert(0, new ValourLinkRenderer());
+
+        Pipeline = pipeline;
+        Renderer = renderer;
+        _state = new PipelineState(pipeline, renderer);
+    }
+
+    /// <summary>
+    /// Renders markdown into a Blazor render tree. The parsed document is cached by
+    /// content because it does not depend on the render context; the renderers read
+    /// the context (planet, mentions) while writing, so output is never cached.
+    /// </summary>
+    public static void RenderToFragment(string content, RenderTreeBuilder builder, object renderContext)
+    {
+        var state = _state;
+        var document = GetDocument(content, state);
+
+        state.Renderer.SetBuilder(builder);
+        state.Renderer.SetContext(renderContext);
+        state.Pipeline.Setup(state.Renderer);
+        state.Renderer.Render(document);
+    }
+
+    private static MarkdownDocument GetDocument(string content, PipelineState state)
+    {
+        var cacheable = content.Length <= MaxCachedContentLength;
+        if (cacheable && state.Documents.TryGet(content, out var cached))
+            return cached;
+
+        var document = Markdown.Parse(content, state.Pipeline);
+        if (cacheable)
+            state.Documents.Set(content, document);
+
+        return document;
     }
 
     public static string GetHtml(string content)
@@ -76,11 +135,18 @@ public static class MarkdownManager
         if (content is null)
             return "";
 
+        var state = _state;
+        var cacheable = content.Length <= MaxCachedContentLength;
+        if (cacheable && state.Html.TryGet(content, out var cached))
+            return cached;
+
         string markdown = "Error: Message could not be parsed.";
 
         try
         {
-            markdown = Markdown.ToHtml(content, Pipeline);
+            markdown = Markdown.ToHtml(content, state.Pipeline);
+            if (cacheable)
+                state.Html.Set(content, markdown);
         }
         catch (Exception e)
         {

@@ -123,14 +123,18 @@
     public Channel Channel;
     public PermissionsNode ChannelPermissions { get; set; }
     
-    // Virtual window constants and state
-    // TrimThreshold: how many messages before we actually cut.
-    // TargetMessages: how many to keep after trimming.
-    // The gap between them prevents trim-on-every-load bouncing.
+    // Virtual window constants and state.
+    // MaxRenderedMessages is the most messages the window keeps in the DOM once a
+    // load or live arrival has settled. When it is exceeded, the end farthest from
+    // the reader is cut in blocks of TrimStep, so trimming happens once per block
+    // of arrivals rather than on every message.
     private const int InitialMessageCount = 32;
     private const int MessagePageSize = 64;
-    private const int TrimThreshold = 360;
-    private const int TargetMessages = 120;
+    private const int MaxRenderedMessages = 250;
+    private const int TrimStep = 50;
+    private static readonly TimeSpan HighlightProtectionTime = TimeSpan.FromSeconds(4);
+    private long? _highlightedMessageId;
+    private DateTime _highlightedUntil = DateTime.MinValue;
     private static readonly TimeSpan SealedIndexDelay = TimeSpan.FromSeconds(5);
     private bool _isCaughtUp = true;
     private bool _loadingForward = false;
@@ -320,7 +324,9 @@
             if (Channel.Node is null)
                 throw new Exception("Channel node is unavailable after opening connection.");
 
-            await RecentChatService.RecordOpenedAsync(Channel);
+            _ = RecentChatService.RecordOpenedAsync(Channel);
+
+            Task<PermissionsNode> permissionsTask = null;
 
             // Planet stuff
             if (Channel.PlanetId is not null)
@@ -340,7 +346,7 @@
                 myMember.Deleted += OnSelfMemberDeleted;
                 Channel.Deleted -= OnChannelDeleted;
                 Channel.Deleted += OnChannelDeleted;
-                ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(myMember.Id);
+                permissionsTask = Channel.GetFlattenedPermissionsAsync(myMember.Id).AsTask();
             }
 
             Channel.Updated -= OnChatChannelUpdate;
@@ -352,27 +358,28 @@
 
             // Check if we should load around a specific message (e.g. from notification)
             var targetMessageId = (WindowCtx as Content)?.TargetMessageId;
-            if (targetMessageId is not null && targetMessageId.Value != 0)
-            {
-                var historyResult = await LoadAroundMessageAsync(targetMessageId.Value);
-                if (!historyResult.Success)
-                {
-                    throw new Exception($"Failed to load channel history: {historyResult.Message}");
-                }
+            var loadingAround = targetMessageId is not null && targetMessageId.Value != 0;
 
-                // Clear so re-setup doesn't re-navigate
+            // Permissions load alongside history; Task.WhenAll observes both outcomes.
+            var historyTask = loadingAround
+                ? LoadAroundMessageAsync(targetMessageId.Value)
+                : LoadRecentMessages(InitialMessageCount);
+            await Task.WhenAll(historyTask, permissionsTask ?? Task.CompletedTask);
+
+            var historyResult = historyTask.Result;
+            if (!historyResult.Success)
+            {
+                throw new Exception($"Failed to load channel history: {historyResult.Message}");
+            }
+
+            if (permissionsTask is not null)
+                ChannelPermissions = permissionsTask.Result;
+
+            // Clear so re-setup doesn't re-navigate
+            if (loadingAround)
                 ((Content)WindowCtx).TargetMessageId = null;
-            }
-            else
-            {
-                var historyResult = await LoadRecentMessages(InitialMessageCount);
-                if (!historyResult.Success)
-                {
-                    throw new Exception($"Failed to load channel history: {historyResult.Message}");
-                }
-            }
 
-            await Channel.UpdateUserState(DateTime.UtcNow);
+            _ = Channel.UpdateUserState(DateTime.UtcNow);
             succeeded = true;
         }
         catch (Exception e)
@@ -484,7 +491,7 @@
         {
             _trimTopAfterNextRender = false;
             await UpdateScrollPosition();
-            TrimMessagesFromTop();
+            TrimDisplayedMessages(TrimEnd.Oldest);
             _scaleScrollAfterNextRender = true;
             await ReRender();
         }
@@ -496,7 +503,7 @@
             if (_trimBottomAfterScale)
             {
                 _trimBottomAfterScale = false;
-                TrimMessagesFromBottom();
+                TrimDisplayedMessages(TrimEnd.Newest);
                 await ReRender();
             }
 
@@ -1011,12 +1018,18 @@
         SuppressAutoScroll = true;
 
         // Fetch messages up to and including the target (Id < messageId+1 gets Id <= messageId)
-        var beforeResult = await Channel.GetMessagesWithResultAsync(messageId + 1, 32);
+        var beforeTask = Channel.GetMessagesWithResultAsync(messageId + 1, 32);
+
+        // Fetch messages after the target
+        var afterTask = Channel.GetMessagesAfterWithResultAsync(messageId, 32);
+
+        await Task.WhenAll(beforeTask, afterTask);
+        var beforeResult = beforeTask.Result;
+        var afterResult = afterTask.Result;
+
         if (!beforeResult.Success)
             return TaskResult.FromFailure(beforeResult);
 
-        // Fetch messages after the target
-        var afterResult = await Channel.GetMessagesAfterWithResultAsync(messageId, 32);
         if (!afterResult.Success)
             return TaskResult.FromFailure(afterResult);
 
@@ -1240,17 +1253,24 @@
         // ghost, in which case the ghost already animated in and the swap
         // should stay seamless.
         if (!replacedGhost)
+        {
+            // A reader who is scrolled up in a full window is not shown the new
+            // message. Forward loading fetches it when they scroll back down.
+            if (!atBottom && DisplayedMessages.Count >= MaxRenderedMessages)
+            {
+                _isCaughtUp = false;
+                return;
+            }
+
             _liveArrivalIds.Add(message.Id);
+        }
 
         DisplayedMessages.Add(message);
 
-        // check if there's too many messages
-        if (atBottom && DisplayedMessages.Count > TrimThreshold)
-        {
-            DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - TargetMessages);
-            _reachedStart = false;
-            _liveArrivalIds.RemoveWhere(id => !DisplayedMessages.Any(x => x.Id == id));
-        }
+        // A reader at the live bottom loses the oldest messages from the DOM;
+        // scrolling up loads them again.
+        if (atBottom)
+            TrimDisplayedMessages(TrimEnd.Oldest);
 
         // Flag for UI refresh
         if (render)
@@ -1454,6 +1474,12 @@
         if (_jsService is null || Channel is null)
             return ValueTask.CompletedTask;
 
+        if (highlight)
+        {
+            _highlightedMessageId = messageId;
+            _highlightedUntil = DateTime.UtcNow + HighlightProtectionTime;
+        }
+
         return _jsService.InvokeVoidAsync("scrollToMessage", $"m-{Channel.Id}-{messageId}", highlight);
     }
 
@@ -1502,7 +1528,7 @@
             if (DisplayedMessages.Count == beforeCount)
                 return;
 
-            _trimTopAfterNextRender = DisplayedMessages.Count > TrimThreshold;
+            _trimTopAfterNextRender = DisplayedMessages.Count > MaxRenderedMessages;
             await ReRender();
         }
         finally
@@ -1565,31 +1591,79 @@
         await ReRender();
     }
 
-    private void TrimMessagesFromBottom()
+    private enum TrimEnd
     {
-        if (DisplayedMessages.Count <= TrimThreshold)
-            return;
-
-        var excess = DisplayedMessages.Count - TargetMessages;
-        if (excess <= 0)
-            return;
-
-        DisplayedMessages.RemoveRange(DisplayedMessages.Count - excess, excess);
-        _isCaughtUp = false;
-        _suppressBottomPagingUntil = DateTime.UtcNow.AddMilliseconds(600);
+        Oldest,
+        Newest
     }
 
-    private void TrimMessagesFromTop()
+    /// <summary>
+    /// Cuts the displayed messages back to <see cref="MaxRenderedMessages"/> from
+    /// the given end, in whole blocks of <see cref="TrimStep"/>. Cutting the oldest
+    /// end means the start of the channel is no longer on screen, and cutting the
+    /// newest end means the window is no longer caught up to the present; both
+    /// are restored by the normal paging paths. The cut stops short of any message
+    /// the reader is working with. Returns how many messages were removed.
+    /// </summary>
+    private int TrimDisplayedMessages(TrimEnd end)
     {
-        if (DisplayedMessages.Count <= TrimThreshold)
-            return;
-
-        var excess = DisplayedMessages.Count - TargetMessages;
+        var excess = DisplayedMessages.Count - MaxRenderedMessages;
         if (excess <= 0)
-            return;
+            return 0;
 
-        DisplayedMessages.RemoveRange(0, excess);
-        _reachedStart = false;
+        // A queued message belongs after the newest displayed one, so the
+        // newest end stays contiguous with it until it is delivered.
+        if (end == TrimEnd.Newest && QueuedMessages.Count > 0)
+            return 0;
+
+        var wanted = Math.Min((excess + TrimStep - 1) / TrimStep * TrimStep, DisplayedMessages.Count);
+        var count = 0;
+        while (count < wanted)
+        {
+            var index = end == TrimEnd.Oldest ? count : DisplayedMessages.Count - 1 - count;
+            if (IsProtectedFromTrim(DisplayedMessages[index].Id))
+                break;
+
+            count++;
+        }
+
+        if (count == 0)
+            return 0;
+
+        if (end == TrimEnd.Oldest)
+        {
+            DisplayedMessages.RemoveRange(0, count);
+            _reachedStart = false;
+        }
+        else
+        {
+            DisplayedMessages.RemoveRange(DisplayedMessages.Count - count, count);
+            _isCaughtUp = false;
+            _suppressBottomPagingUntil = DateTime.UtcNow.AddMilliseconds(600);
+        }
+
+        if (_liveArrivalIds.Count > 0)
+        {
+            var remaining = DisplayedMessages.Select(x => x.Id).ToHashSet();
+            _liveArrivalIds.RemoveWhere(id => !remaining.Contains(id));
+        }
+
+        return count;
+    }
+
+    private bool IsProtectedFromTrim(long id)
+    {
+        if (id == long.MaxValue || id == _pendingScrollToMessageId)
+            return true;
+
+        if (id == _highlightedMessageId && DateTime.UtcNow < _highlightedUntil)
+            return true;
+
+        if (InputComponent is null)
+            return false;
+
+        return id == InputComponent.EditingMessageComponent?.ParamData?.Message?.Id ||
+               id == InputComponent.ReplyTargetId;
     }
     
 
@@ -1599,7 +1673,7 @@
         if (_disposed) return;
         _scrollLatestWindowAfterNextRender = false;
 
-        if (_loadingBackward)
+        if (_loadingBackward || _loadingForward)
             return;
 
         if (DisplayedMessages == null ||
@@ -1640,7 +1714,7 @@
             if (_disposed) return;
             DisplayedMessages.InsertRange(0, messages);
             _scaleScrollAfterNextRender = true;
-            _trimBottomAfterScale = DisplayedMessages.Count > TrimThreshold;
+            _trimBottomAfterScale = DisplayedMessages.Count > MaxRenderedMessages;
             await ReRender();
         }
         finally
@@ -1970,6 +2044,11 @@
         if ((DateTime.UtcNow - _lastRecoverAttempt).TotalMilliseconds < 750)
             return;
 
+        // A window that is not at the present picks up newer messages through
+        // forward loading; adding the latest ones here would leave a gap.
+        if (!_isCaughtUp)
+            return;
+
         _lastRecoverAttempt = DateTime.UtcNow;
         _recoveringMessages = true;
 
@@ -1996,7 +2075,16 @@
             await HydrateRecoveredMessageAuthorsAsync(toAdd);
 
             var atBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
+            if (!atBottom && DisplayedMessages.Count + toAdd.Count > MaxRenderedMessages)
+            {
+                _isCaughtUp = false;
+                return;
+            }
+
             await AddMessages(toAdd, render: false, scroll: false);
+
+            if (atBottom)
+                TrimDisplayedMessages(TrimEnd.Oldest);
 
             await ReRender();
 

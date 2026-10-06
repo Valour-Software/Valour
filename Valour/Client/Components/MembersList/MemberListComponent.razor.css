@@ -24,7 +24,7 @@
     text-transform: uppercase;
 }
 
-.role-list div:nth-child(2) .role-title {
+.role-list > .role-title:nth-child(2) {
     margin-top: 0;
 }
 

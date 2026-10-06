@@ -33,16 +33,7 @@
                     }
                     else
                     {
-                        @if (data.Planet.HasAnimatedIcon)
-                        {
-                            <style>
-                                .planet-icon-@data.Planet.Id:hover {
-                                    background-image: url(@data.AnimatedIconUrl), url(@data.IconUrl), url(@data.FallbackIconUrl) !important;
-                                }
-                            </style>
-                        }
-
-                        <div class="icon planet-icon-@data.Planet.Id" style="background-image: url(@data.IconUrl), url(@data.FallbackIconUrl)"></div>
+                        <div class="icon planet-icon-@data.Planet.Id @(data.Planet.HasAnimatedIcon ? AnimatedImageStyle.HoverClass : "")" style="@AnimatedImageStyle.Build(data.IconUrl, data.FallbackIconUrl, data.Planet.HasAnimatedIcon ? data.AnimatedIconUrl : null)"></div>
                     }
                 </div>
             </ChildContent>

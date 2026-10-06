@@ -34,6 +34,17 @@
 
     private readonly List<BadgeDef> _badges = new();
 
+    public static bool IsShown(User user, PlatformBadge badge) =>
+        PlatformBadgeCatalog.IsEarned(user, badge) && PlatformBadgeCatalog.IsVisible(user, badge);
+
+    public static bool HasBadges(User user) =>
+        user is not null &&
+        (IsShown(user, PlatformBadge.Stargazer) ||
+         IsShown(user, PlatformBadge.FirstOneThousand) ||
+         IsShown(user, PlatformBadge.FirstTenThousand) ||
+         IsShown(user, PlatformBadge.Bot) ||
+         IsShown(user, PlatformBadge.Staff));
+
     protected override void OnParametersSet()
     {
         _badges.Clear();
@@ -41,29 +52,27 @@
         if (User is null)
             return;
 
-        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Stargazer) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Stargazer))
+        if (IsShown(User, PlatformBadge.Stargazer))
         {
             _badges.Add(new BadgeDef(PlatformBadge.Stargazer, "stargazer", "bi-star-fill", "Stargazer",
                 $"--user-badge-star-start: {User.GetStarColor1()}; --user-badge-star-end: {User.GetStarColor2()};"));
         }
 
-        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.FirstOneThousand) &&
-            PlatformBadgeCatalog.IsVisible(User, PlatformBadge.FirstOneThousand))
+        if (IsShown(User, PlatformBadge.FirstOneThousand))
         {
             _badges.Add(new BadgeDef(PlatformBadge.FirstOneThousand, "milestone-1k", "bi-award-fill", "First 1k users"));
         }
-        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.FirstTenThousand) &&
-            PlatformBadgeCatalog.IsVisible(User, PlatformBadge.FirstTenThousand))
+        if (IsShown(User, PlatformBadge.FirstTenThousand))
         {
             _badges.Add(new BadgeDef(PlatformBadge.FirstTenThousand, "milestone-10k", "bi-award-fill", "First 10k users"));
         }
 
-        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Bot) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Bot))
+        if (IsShown(User, PlatformBadge.Bot))
         {
             _badges.Add(new BadgeDef(PlatformBadge.Bot, "bot", "bi-cpu-fill", "Bot"));
         }
 
-        if (PlatformBadgeCatalog.IsEarned(User, PlatformBadge.Staff) && PlatformBadgeCatalog.IsVisible(User, PlatformBadge.Staff))
+        if (IsShown(User, PlatformBadge.Staff))
         {
             _badges.Add(new BadgeDef(PlatformBadge.Staff, "staff", "bi-shield-fill", "Valour Staff"));
         }

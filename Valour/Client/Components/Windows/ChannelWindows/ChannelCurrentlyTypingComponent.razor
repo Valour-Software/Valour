@@ -63,14 +63,35 @@
     // User Id -> Last Update time
     private ConcurrentDictionary<long, DateTime> _typingUpdates = new();
     
-    // The timer that controls state updates
+    private static readonly TimeSpan ExpireCheckInterval = TimeSpan.FromSeconds(3);
+
+    // Expires stale typers. It only runs while someone is typing.
     private Timer _timer;
+    private bool _timerRunning;
+    private bool _disposed;
     private Channel _subscribedChannel;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await base.OnInitializedAsync();
-        _timer = new Timer(OnUpdateTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(3));
+        _timer = new Timer(OnUpdateTimer, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    }
+
+    private void StartTimer()
+    {
+        if (_disposed || _timerRunning)
+            return;
+
+        _timerRunning = true;
+        _timer.Change(ExpireCheckInterval, ExpireCheckInterval);
+    }
+
+    private void StopTimer()
+    {
+        if (!_timerRunning)
+            return;
+
+        _timerRunning = false;
+        _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
     protected override void OnParametersSet()
@@ -93,6 +114,9 @@
     // This clears the watching state if time passes with no update
     private void OnUpdateTimer(object state)
     {
+        if (_disposed)
+            return;
+
         _ = InvokeAsync(async () =>
         {
             try
@@ -127,6 +151,9 @@
                         StateHasChanged();
                     }
                 }
+
+                if (_typingUpdates.IsEmpty)
+                    StopTimer();
             }
             catch (Exception ex)
             {
@@ -137,6 +164,7 @@
 
     public void Clear()
     {
+        StopTimer();
         TotalCount = 0;
         _typingUpdates.Clear();
         DisplayData.Clear();
@@ -148,6 +176,7 @@
         if (_subscribedChannel is not null)
             _subscribedChannel.TypingUpdated -= OnCurrentlyTypingUpdate;
 
+        _disposed = true;
         _timer?.Dispose();
     }
 
@@ -213,6 +242,7 @@
         {
             try
             {
+                StartTimer();
                 await RefreshDisplay();
             }
             catch (Exception ex)

@@ -9,111 +9,21 @@
 }
 
 <CascadingValue Value="this">
-    <div class="role-list-wrapper">
+    <div class="role-list-wrapper" @ref="_wrapper">
         <div class="role-list hide-scrollbar">
-
-            @{
-                _mainDisplay = new();
-            }
 
             @if (_planet?.Members is not null && _displayedRoles is not null)
             {
-                foreach (var role in _displayedRoles)
-                {
-                    if (!_displayedRoleMembers.TryGetValue(role.Id, out var members))
-                        continue;
-
-                    if (members.Count > 0)
-                    {
-
-                        _mainDisplay.Add(new()
-                        {
-                            TitleName = role.Name,
-                            TitleColor = role.Color,
-                            IsTitle = true,
-                            Key = role.Id
-                        });
-
-                        var c = 0;
-                        foreach (var member in members)
-                        {
-                            _mainDisplay.Add(new DisplayItem()
-                            {
-                                Member = member,
-                                IsTitle = false,
-                                Key = member.Id,
-                            });
-
-                            c++;
-                        }
-                    }
-                }
-
-                _displayedRoleMembers.TryGetValue(0, out var online);
-
-                if (online is not null && online.Count > 0)
-                {
-                    _mainDisplay.Add(new()
-                    {
-                        TitleName = "Online",
-                        IsTitle = true,
-                        TitleColor = null,
-                        Key = "online"
-                    });
-
-                    var c = 0;
-                    foreach (var member in online)
-                    {
-                        _mainDisplay.Add(new DisplayItem()
-                        {
-                            Member = member,
-                            IsTitle = false,
-                            Key = member.Id,
-                        });
-
-                        c++;
-                    }
-                }
-
-                _displayedRoleMembers.TryGetValue(1, out var offline);
-
-                if (offline is not null && offline.Count > 0)
-                {
-
-                    _mainDisplay.Add(new()
-                    {
-                        TitleName = "Offline",
-                        IsTitle = true,
-                        TitleColor = null,
-                        Key = "offline"
-                    });
-
-                    var c = 0;
-                    foreach (var member in offline)
-                    {
-                        _mainDisplay.Add(new DisplayItem()
-                        {
-                            Member = member,
-                            IsTitle = false,
-                            Key = member.Id,
-                        });
-
-                        c++;
-                    }
-                }
-
-                <Virtualize Items="_mainDisplay">
+                <Virtualize Items="_mainDisplay" ItemSize="48">
                     @if (context.IsTitle)
                     {
-                        <div>
-                            <p class="role-title">
-                                @if (context.TitleColor is not null)
-                                {
-                                    <span class="role-dot" style="background-color: @context.TitleColor;"></span>
-                                }
-                                @context.TitleName
-                            </p>
-                        </div>
+                        <p class="role-title">
+                            @if (context.TitleColor is not null)
+                            {
+                                <span class="role-dot" style="background-color: @context.TitleColor;"></span>
+                            }
+                            @context.TitleName
+                        </p>
                     }
                     else
                     {
@@ -144,6 +54,8 @@
     }
 
     private List<DisplayItem> _mainDisplay = new();
+    private ElementReference _wrapper;
+    private bool _disposed;
     private List<PlanetRole> _displayedRoles;
     private Dictionary<long, List<PlanetMember>> _displayedRoleMembers = new();
 
@@ -174,6 +86,8 @@
         _displayedRoleMembers.Add(1, new());
 
         PlanetService.PlanetDisconnected += OnPlanetDisconnected;
+        BrowserUtils.Focused += OnBrowserFocused;
+        WindowService.FocusedTabChanged += OnFocusedTabChanged;
         
         // Reload every 30s. SetPlanet performs the initial build.
         _reloadTimer = new Timer(Reload, null, ReloadIntervalMs, ReloadIntervalMs);
@@ -202,28 +116,103 @@
 
     private void Refresh()
     {
+        if (_visible)
+            BuildDisplayItems();
+
         _shouldRender = true;
         StateHasChanged();
     }
 
-    private void Reload(object state)
+    private void BuildDisplayItems()
     {
-        InvokeAsync(() =>
+        var display = new List<DisplayItem>();
+
+        if (_planet?.Members is not null && _displayedRoles is not null)
         {
-            // Online state and activity can change without member events, so
-            // the visible list is rebuilt periodically. A hidden list waits
-            // until it is shown.
-            if (!_visible)
+            foreach (var role in _displayedRoles)
             {
-                _reloadPending = true;
-                return;
+                if (_displayedRoleMembers.TryGetValue(role.Id, out var members))
+                    AddSection(display, members, role.Id, role.Name, role.Color);
             }
 
-            if (_planet != null)
-            {
-                BuildRoleLists();
-            }
+            if (_displayedRoleMembers.TryGetValue(0, out var online))
+                AddSection(display, online, "online", "Online", null);
+
+            if (_displayedRoleMembers.TryGetValue(1, out var offline))
+                AddSection(display, offline, "offline", "Offline", null);
+        }
+
+        _mainDisplay = display;
+    }
+
+    private static void AddSection(List<DisplayItem> display, List<PlanetMember> members, object key, string title, string color)
+    {
+        if (members.Count == 0)
+            return;
+
+        display.Add(new DisplayItem
+        {
+            TitleName = title,
+            TitleColor = color,
+            IsTitle = true,
+            Key = key
         });
+
+        foreach (var member in members)
+        {
+            display.Add(new DisplayItem
+            {
+                Member = member,
+                IsTitle = false,
+                Key = member.Id
+            });
+        }
+    }
+
+    private void Reload(object state)
+    {
+        if (_disposed)
+            return;
+
+        // Online state and activity can change without member events, so the
+        // list is rebuilt periodically. A list nobody can see waits until it
+        // is shown again.
+        _ = InvokeAsync(RebuildIfShownAsync);
+    }
+
+    private async Task RebuildIfShownAsync()
+    {
+        if (_disposed || _planet is null)
+            return;
+
+        if (!_visible || !BrowserUtils.IsFocused || !await IsLaidOutAsync())
+        {
+            _reloadPending = true;
+            return;
+        }
+
+        if (!_disposed && _planet is not null)
+            BuildRoleLists();
+    }
+
+    private async Task<bool> IsLaidOutAsync()
+    {
+        var dimensions = await BrowserUtils.GetElementDimensions(_wrapper);
+        return dimensions.Width > 0;
+    }
+
+    private Task OnBrowserFocused() => InvokeAsync(ResumePendingReloadAsync);
+
+    private Task OnFocusedTabChanged(WindowTab tab) => InvokeAsync(ResumePendingReloadAsync);
+
+    private async Task ResumePendingReloadAsync()
+    {
+        if (!_reloadPending)
+            return;
+
+        // The newly focused tab is displayed by the next render.
+        await Task.Delay(250);
+        await RebuildIfShownAsync();
     }
 
     public Task OnMemberDelete(PlanetMember member)
@@ -555,8 +544,11 @@
 
     public void Dispose()
     {
+        _disposed = true;
         _reloadTimer?.Dispose();
         PlanetService.PlanetDisconnected -= OnPlanetDisconnected;
+        BrowserUtils.Focused -= OnBrowserFocused;
+        WindowService.FocusedTabChanged -= OnFocusedTabChanged;
 
         if (_planet is not null)
         {

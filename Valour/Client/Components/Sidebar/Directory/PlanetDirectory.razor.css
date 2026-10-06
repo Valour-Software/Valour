@@ -46,6 +46,7 @@
     height: 48px;
     padding: 0 10px;
     overflow: hidden;
+    cursor: pointer;
     background-color: var(--surface-canvas);
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
@@ -106,14 +107,16 @@
     gap: 6px;
 }
 
-.planet-stats .dot {
+.planet-stats .active::before {
+    content: '';
+    flex: none;
     width: 6px;
     height: 6px;
     background-color: var(--line-strong);
     border-radius: var(--radius-full);
 }
 
-.planet-stats .live .dot {
+.planet-stats .live::before {
     background-color: var(--color-success);
 }
 
@@ -137,7 +140,7 @@
     border-radius: var(--radius-full);
 }
 
-.header .right .notif-badge span {
+.header .right .notif-badge {
     color: var(--color-primary-contrast);
     font-family: var(--font-family-mono);
     font-size: 10px;

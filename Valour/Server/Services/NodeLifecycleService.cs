@@ -203,6 +203,95 @@ public class NodeLifecycleService
     }
     
     /// <summary>
+    /// Resolves the active node for many planets. Locally hosted planets need no
+    /// I/O, assignments and liveness are read with two batched Redis reads, and
+    /// only unassigned planets or planets with a dead node take the full
+    /// per-planet path (which may claim the planet).
+    /// </summary>
+    public async Task<Dictionary<long, string>> GetActiveNodesForPlanetsAsync(IReadOnlyCollection<long> planetIds)
+    {
+        var result = new Dictionary<long, string>(planetIds.Count);
+        var remote = new List<long>();
+
+        foreach (var planetId in planetIds)
+        {
+            if (result.ContainsKey(planetId))
+                continue;
+
+            if (_cache.HostedPlanets.ContainsKey(planetId))
+                result[planetId] = Name;
+            else if (!remote.Contains(planetId))
+                remote.Add(planetId);
+        }
+
+        if (remote.Count == 0)
+            return result;
+
+        var assigned = await _nodeRecords.StringGetAsync(
+            remote.Select(x => (RedisKey)$"planet:{x}").ToArray());
+
+        var assignedNodes = new string?[remote.Count];
+        var distinctNodes = new List<string>();
+        for (var i = 0; i < remote.Count; i++)
+        {
+            if (assigned[i].IsNull)
+                continue;
+
+            var node = (string)assigned[i]!;
+            assignedNodes[i] = node;
+            if (!distinctNodes.Contains(node))
+                distinctNodes.Add(node);
+        }
+
+        var aliveNodes = new HashSet<string>();
+        if (distinctNodes.Count > 0)
+        {
+            var alive = await _nodeRecords.StringGetAsync(
+                distinctNodes.Select(x => (RedisKey)$"alive:{x}").ToArray());
+
+            for (var i = 0; i < distinctNodes.Count; i++)
+            {
+                if (alive[i].IsNull)
+                    continue;
+
+                if ((DateTime.UtcNow - DateTime.Parse(alive[i]!)).TotalSeconds < 60)
+                    aliveNodes.Add(distinctNodes[i]);
+            }
+        }
+
+        var needsResolve = new List<long>();
+        for (var i = 0; i < remote.Count; i++)
+        {
+            if (assignedNodes[i] is not null && aliveNodes.Contains(assignedNodes[i]))
+                result[remote[i]] = assignedNodes[i];
+            else
+                needsResolve.Add(remote[i]);
+        }
+
+        if (needsResolve.Count == 0)
+            return result;
+
+        using var gate = new SemaphoreSlim(4);
+        var resolved = await Task.WhenAll(needsResolve.Select(async planetId =>
+        {
+            await gate.WaitAsync();
+            try
+            {
+                return (planetId, node: await GetActiveNodeForPlanetAsync(planetId));
+            }
+            finally
+            {
+                gate.Release();
+            }
+        }));
+
+        foreach (var (planetId, node) in resolved)
+            result[planetId] = node;
+
+        return result;
+    }
+
+    /// <summary>
     /// Returns the currently assigned node for the given planet
     /// May not be active or alive
     /// </summary>

@@ -8,7 +8,7 @@
 {
     <div class="user-info @CompactClass" style="@Style">
         <div class="left-block">
-            <img alt="user not found" class="avatar" src="@_avatarUrl">
+            <img alt="user not found" class="avatar" src="@_avatarUrl" loading="lazy" decoding="async">
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor">Not Found</p>
@@ -29,20 +29,10 @@
      @onkeydown="@OnKeyDown">
     <div class="user-info @CompactClass" style="@Style" @onclick="@ShowProfileAsync">
         <div class="left-block">
-            @if (User.HasAnimatedAvatar)
-            {
-                <style>
-                    .user-info:hover .avatar-@User.Id {
-                        background-image: url(@_animAvatarUrl), url(@_avatarUrl), url(@_failedAvatarUrl) !important;
-                    }
-                </style>
-            }
-            <UserAvatar User="@User" Member="@Member" Size="@AvatarSize" ShowBadges="@ShowBadges" ShowState="@ShowState"/>
+            <UserAvatar User="@User" Member="@Member" AnimatedUrl="@_animAvatarUrl" Size="@AvatarSize" ShowBadges="@ShowBadges" ShowState="@ShowState"/>
             
             <div class="name-status">
-                <div class="name-tag">
-                    <p class="username" style="color: @_roleColor" @onclick="@ShowProfileAsync">@_name</p>
-                </div>
+                <p class="username" style="color: @_roleColor" @onclick="@ShowProfileAsync">@_name</p>
                 @if (ShowStatus)
                 {
                     <p class="status">
@@ -101,7 +91,6 @@
     private string _roleColor = DefaultRoleColor;
     private string _avatarUrl;
     private string _animAvatarUrl;
-    private string _failedAvatarUrl;
 
     private string _statusText = "";
 
@@ -208,7 +197,6 @@
         _animAvatarUrl = (User?.HasAnimatedAvatar ?? false)
             ? User.GetAvatar(AvatarFormat.WebpAnimated128)
             : null;
-        _failedAvatarUrl = User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
     }
 
     private void CalculateStatus()

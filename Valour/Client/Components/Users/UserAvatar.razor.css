@@ -19,6 +19,12 @@
     border-radius: var(--radius-avatar);
 }
 
+.user-avatar.flat {
+    background-position: center;
+    background-size: cover;
+    border-radius: var(--radius-avatar);
+}
+
 .user-avatar-presence {
     position: absolute;
     right: calc(var(--user-avatar-size, 32px) * 0.07 - var(--presence-size) / 2);

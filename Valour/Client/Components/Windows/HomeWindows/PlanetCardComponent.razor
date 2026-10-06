@@ -1,4 +1,5 @@
 @using System.Numerics
+@implements IDisposable
 @using System.Text
 @inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
@@ -21,15 +22,7 @@
         }
         else
         {
-            @if (Planet.HasAnimatedIcon)
-            {
-                <style>
-                    .outer-circle:hover .planet-icon-@Planet.Id {
-                        background-image: url(@_animatedIconUrl), url(@_iconUrl), url(@_fallbackIconUrl) !important;
-                    }
-                </style>
-            }
-            <div class="icon planet-icon-@Planet.Id" style="background-image: url(@_iconUrl), url(@_fallbackIconUrl)"></div>
+            <div class="icon planet-icon-@Planet.Id @(Planet.HasAnimatedIcon ? AnimatedImageStyle.HoverClass : "")" style="@AnimatedImageStyle.Build(_iconUrl, _fallbackIconUrl, Planet.HasAnimatedIcon ? _animatedIconUrl : null)"></div>
         }
         
         
@@ -94,6 +87,12 @@
         NotificationService.NotificationReceived += OnNotification;
     }
     
+    public void Dispose()
+    {
+        HomeWindowComponent.OnRerenderPlanetCards -= Refresh;
+        NotificationService.NotificationReceived -= OnNotification;
+    }
+
     private void OnContextPress(ContextPressEventArgs e)
     {
         ContextMenuService.Root.OpenMenu<PlanetContextMenu>(e,

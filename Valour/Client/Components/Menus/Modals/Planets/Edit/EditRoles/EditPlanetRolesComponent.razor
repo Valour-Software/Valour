@@ -1,4 +1,5 @@
-﻿@inject ValourClient Client
+﻿@implements IDisposable
+@inject ValourClient Client
 
 <div class="settings-page">
 
@@ -353,8 +354,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _roleMemberCounts = await Planet.FetchRoleMembershipCountsAsync();
         Planet.Roles.Changed += OnRolesChanged;
+        _roleMemberCounts = await Planet.FetchRoleMembershipCountsAsync();
+    }
+
+    public void Dispose()
+    {
+        Planet.Roles.Changed -= OnRolesChanged;
     }
 
     private void GoBack() 

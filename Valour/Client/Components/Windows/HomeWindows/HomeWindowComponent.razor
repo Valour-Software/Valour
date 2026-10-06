@@ -1,4 +1,5 @@
 @inherits WindowContentComponentBase
+@implements IDisposable
 @inject ValourClient Client
 @inject PlanetService PlanetService
 @inject FriendService FriendService
@@ -264,6 +265,12 @@
                 await WindowService.OpenWindowAtFocused(content, WindowCtx.Tab);
             }
         });
+    }
+
+    public void Dispose()
+    {
+        PlanetService.JoinedPlanetsUpdated -= OnJoinedPlanetsUpdate;
+        FriendService.FriendsChanged -= OnFriendsListUpdate;
     }
 
     private void OnFriendsListUpdate(FriendEventData e)
