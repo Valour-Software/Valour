@@ -49,6 +49,15 @@ public class E2eeApi
         return result.Success ? Results.Json(request!.Entry) : ValourResult.BadRequest(result.Message);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/e2ee/users/me/usage")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [RateLimit(RateLimitPolicies.E2eeRead)]
+    public static async Task<IResult> GetOwnKeyUsageAsync(UserService userService, E2eeIdentityService identity)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        return Results.Json(new OwnKeyUsageDto { Used = await identity.HasUsedKeysAsync(userId) });
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/e2ee/users/me/boxes/{recipientId}")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     [RateLimit(RateLimitPolicies.Auth)]

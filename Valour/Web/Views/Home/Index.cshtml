@@ -61,10 +61,11 @@
         ["name"] = "Valour",
         ["url"] = "https://valour.gg",
         ["applicationCategory"] = "CommunicationApplication",
-        ["operatingSystem"] = "Web, Windows, Linux, Android",
+        ["operatingSystem"] = "Web, Windows, macOS, Linux, Android",
         ["description"] = "An open-source community platform with end-to-end encrypted chat, voice and video, threads, wikis and events.",
         ["image"] = "https://valour.gg/media/twitter-card.png",
         ["downloadUrl"] = "https://github.com/Valour-Software/Valour/releases/latest",
+        ["installUrl"] = "https://play.google.com/store/apps/details?id=gg.valour.app",
         ["offers"] = new Dictionary<string, object?>
         {
             ["@type"] = "Offer",
@@ -114,22 +115,27 @@
                     <i class="bi bi-windows" aria-hidden="true"></i> Download for Windows
                 </a>
                 <a class="btn btn-secondary btn-lg"
+                   href="https://github.com/Valour-Software/Valour/releases/latest/download/Valour-macos.dmg"
+                   data-download="mac"
+                   data-platform-option="mac">
+                    <i class="bi bi-apple" aria-hidden="true"></i> Download for Mac
+                </a>
+                <a class="btn btn-secondary btn-lg"
                    href="https://github.com/Valour-Software/Valour/releases/latest/download/Valour-linux-x86_64.flatpak"
                    data-download="linux"
                    data-platform-option="linux">
                     <i class="bi bi-pc-display" aria-hidden="true"></i> Download for Linux
                 </a>
                 <a class="btn btn-secondary btn-lg"
-                   href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk"
-                   data-download="android"
+                   href="https://play.google.com/store/apps/details?id=gg.valour.app"
                    data-platform-option="android">
-                    <i class="bi bi-android2" aria-hidden="true"></i> Download for Android
+                    <i class="bi bi-google-play" aria-hidden="true"></i> Get it on Google Play
                 </a>
                 <a class="btn btn-secondary btn-lg" href="#download" data-platform-option="web">
                     <i class="bi bi-download" aria-hidden="true"></i> All downloads
                 </a>
             </div>
-            <p class="hero-note" data-platform-note>Works in any modern browser. Apps for Windows, Linux and Android.</p>
+            <p class="hero-note" data-platform-note>Works in any modern browser. Apps for Windows, macOS and Linux, and for Android on Google Play.</p>
         </div>
     </div>
 </section>
@@ -233,7 +239,7 @@
             <header class="section-head">
                 <p class="eyebrow">Download</p>
                 <h2>Use Valour anywhere.</h2>
-                <p class="section-lede">One account works in the browser and in the apps. Apps for macOS and iOS are not available yet; the web app works on both.</p>
+                <p class="section-lede">One account works in the browser and in the apps. An iOS app is not available yet; the web app works on iPhone and iPad.</p>
             </header>
             <figure class="download-victor" aria-hidden="true">
                 <img src="/media/victor/victor-telescope.svg" alt="" width="150" height="150" loading="lazy" draggable="false" />
@@ -260,6 +266,17 @@
                 </a>
             </div>
             <div class="download-card">
+                <i class="bi bi-apple" aria-hidden="true"></i>
+                <h3>macOS</h3>
+                <p class="download-detail">Valour-macos.dmg · macOS 14+</p>
+                <p>Open the disk image and drag Valour into Applications. Runs on Apple silicon and Intel Macs, and tells you when an update is ready.</p>
+                <a class="btn btn-secondary"
+                   href="https://github.com/Valour-Software/Valour/releases/latest/download/Valour-macos.dmg"
+                   data-download="mac">
+                    <i class="bi bi-download" aria-hidden="true"></i> Download for Mac
+                </a>
+            </div>
+            <div class="download-card">
                 <i class="bi bi-pc-display" aria-hidden="true"></i>
                 <h3>Linux</h3>
                 <p class="download-detail">Flatpak · x86_64 and ARM64</p>
@@ -273,12 +290,11 @@
             <div class="download-card">
                 <i class="bi bi-android2" aria-hidden="true"></i>
                 <h3>Android</h3>
-                <p class="download-detail">gg.valour.app · signed APK</p>
-                <p>Install the signed APK directly. Your device may ask you to allow installs from your browser.</p>
+                <p class="download-detail">Google Play · gg.valour.app</p>
+                <p>Install Valour from Google Play. To install without the store, download the <a href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk" data-download="android">signed APK</a>.</p>
                 <a class="btn btn-secondary"
-                   href="https://github.com/Valour-Software/Valour/releases/latest/download/gg.valour.app-Signed.apk"
-                   data-download="android">
-                    <i class="bi bi-download" aria-hidden="true"></i> Download for Android
+                   href="https://play.google.com/store/apps/details?id=gg.valour.app">
+                    <i class="bi bi-google-play" aria-hidden="true"></i> Get it on Google Play
                 </a>
             </div>
         </div>

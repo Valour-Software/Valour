@@ -224,7 +224,8 @@ require these origins in addition to the configured web application origins.
 
 ## Google Play releases
 
-Two workflows build the Android App Bundle that Google Play distributes. Both
+Two workflows build the Android App Bundle that Google Play distributes as
+[Valour](https://play.google.com/store/apps/details?id=gg.valour.app). Both
 build with `ValourPlayStore=true`, which removes self-updating and sells through
 Google Play Billing (see [Payments](../Payments.md)), and both sign it with the
 release keystore from the repository secrets.

@@ -27,6 +27,16 @@
                     </p>
                 }
                 <div class="verify-options">
+                    @if (!Client.E2eeService.KeysResetElsewhere)
+                    {
+                        <button class="verify-option" @onclick="StartFreshAsync">
+                            <i class="bi bi-stars"></i>
+                            <span class="option-copy">
+                                <strong>I'm new to Valour</strong>
+                                <span>Set up encryption on this device.</span>
+                            </span>
+                        </button>
+                    }
                     <button class="verify-option" @onclick="StartShowingCodeAsync">
                         <i class="bi bi-qr-code"></i>
                         <span class="option-copy">
@@ -103,6 +113,21 @@
                        @bind="_recoveryInput" @bind:event="oninput" />
                 break;
 
+            case Step.CheckingNew:
+                <div class="loading-state"><div class="loading-indicator"></div><span>Setting up encryption...</span></div>
+                break;
+
+            case Step.AlreadyUsed:
+                <p>
+                    Your account's encryption was set up on <strong>@SetUpDeviceName</strong>
+                    on @SetUpDate, and the account has been used since.
+                </p>
+                <p>
+                    If you still have that device, approve this one from it, or use the recovery code you saved then.
+                    Starting over instead makes encrypted messages sent before now unreadable on every device.
+                </p>
+                break;
+
             case Step.Reset:
                 <div class="danger-note">
                     <i class="bi bi-exclamation-triangle-fill"></i>
@@ -130,7 +155,14 @@
                 break;
 
             case Step.NewRecoveryCode:
-                <p><strong>You've started over.</strong> Save your new recovery code before you continue.</p>
+                @if (_startedFresh)
+                {
+                    <p><strong>You're all set.</strong> Save your recovery code before you continue.</p>
+                }
+                else
+                {
+                    <p><strong>You've started over.</strong> Save your new recovery code before you continue.</p>
+                }
                 <RecoveryCodeView Code="@_newRecoveryCode" @bind-Saved="_saved" />
                 break;
 
@@ -167,6 +199,10 @@
                         @(_working ? "Restoring..." : "Restore")
                     </button>
                     break;
+                case Step.AlreadyUsed:
+                    <button class="v-btn" @onclick="BackAsync">Back</button>
+                    <button class="v-btn danger" @onclick="@(() => GoTo(Step.Reset))">Start over</button>
+                    break;
                 case Step.Reset:
                     <button class="v-btn" @onclick="BackAsync">Back</button>
                     <button class="v-btn danger" disabled="@(_working || _resetConfirm != "RESET")" @onclick="ResetAsync">
@@ -194,7 +230,11 @@
         public bool StartWithReset { get; set; }
     }
 
-    private enum Step { Choose, ShowCode, Scan, EnterCode, WaitingAfterScan, Recovery, Reset, NewRecoveryCode, Done }
+    private enum Step
+    {
+        Choose, ShowCode, Scan, EnterCode, WaitingAfterScan, Recovery, CheckingNew, AlreadyUsed, Reset,
+        NewRecoveryCode, Done
+    }
 
     private Step _step = Step.Choose;
     private DeviceLinkStart _link;
@@ -212,10 +252,27 @@
     private string _resetConfirm;
     private string _newRecoveryCode;
     private bool _saved;
+    private bool _startedFresh;
     private bool _working;
     private ITaskResult _result;
 
-    private string Title => _step == Step.Done ? "Device verified" : "Verify this device";
+    private string Title => _step switch
+    {
+        Step.Done => "Device verified",
+        Step.CheckingNew => "Set up encryption",
+        Step.NewRecoveryCode when _startedFresh => "Welcome to Valour",
+        _ => "Verify this device"
+    };
+
+    // The device that created the account's keys, which the person may not
+    // remember using, such as the browser they signed up in.
+    private UserDeviceInfo SetUpDevice =>
+        Client.E2eeService.MyKeyState?.EverDevices.Values.MinBy(device => device.AddedAt);
+
+    private string SetUpDeviceName =>
+        string.IsNullOrWhiteSpace(SetUpDevice?.Name) ? "another device" : SetUpDevice.Name;
+
+    private string SetUpDate => SetUpDevice?.AddedAt.ToLocalTime().ToString("MMMM d, yyyy") ?? "an earlier date";
 
     protected override void OnInitialized()
     {
@@ -261,7 +318,7 @@
 
     private void OnStatusChanged(E2eeStatus status)
     {
-        if (status != E2eeStatus.Ready || _step is Step.NewRecoveryCode or Step.Done)
+        if (status != E2eeStatus.Ready || _working || _step is Step.NewRecoveryCode or Step.Done)
             return;
 
         _step = Step.Done;
@@ -378,7 +435,62 @@
     private async Task ContinueAfterResetAsync()
     {
         await Client.E2eeService.MarkRecoveryCodeSavedAsync();
-        GoTo(Step.Done);
+        if (_startedFresh)
+            Close();
+        else
+            GoTo(Step.Done);
+    }
+
+    /// <summary>
+    /// For someone who believes they are new. If the account's keys were
+    /// never used, which happens when they signed up on another device, this
+    /// device makes new keys right away. Otherwise it explains where the keys
+    /// came from before offering to start over.
+    /// </summary>
+    private async Task StartFreshAsync()
+    {
+        if (_working)
+            return;
+
+        _working = true;
+        GoTo(Step.CheckingNew);
+
+        var check = await Client.E2eeService.CanStartFreshAsync();
+        if (!check.Success || !check.Data)
+        {
+            _working = false;
+            if (_disposed)
+                return;
+            if (check.Success)
+            {
+                GoTo(Step.AlreadyUsed);
+            }
+            else
+            {
+                _result = check;
+                _step = Step.Choose;
+                StateHasChanged();
+            }
+            return;
+        }
+
+        var result = await Client.E2eeService.ResetKeysAsync();
+        _working = false;
+        if (_disposed)
+            return;
+        if (result.Success)
+        {
+            _startedFresh = true;
+            _newRecoveryCode = result.Data;
+            E2eeCoordinator.ShownRecoveryCode = _newRecoveryCode;
+            GoTo(Step.NewRecoveryCode);
+        }
+        else
+        {
+            _result = result;
+            _step = Step.Choose;
+            StateHasChanged();
+        }
     }
 
     private async Task ResetAsync()

@@ -31,6 +31,20 @@ public sealed class UserKeyLogsRequest
     public Dictionary<long, int> KnownCounts { get; set; } = new();
 }
 
+/// <summary>
+/// Whether the signed-in account has used its encryption keys. See
+/// <c>E2eeService.CanStartFreshAsync</c>.
+/// </summary>
+public sealed class OwnKeyUsageDto
+{
+    /// <summary>
+    /// True when the account has sent messages, belongs to a direct or group
+    /// chat with messages from another person, or has signed a membership log
+    /// entry. Victor's welcome message does not count.
+    /// </summary>
+    public bool Used { get; set; }
+}
+
 public sealed class DeviceDescriptorDto
 {
     public string DeviceId { get; set; }

@@ -717,10 +717,20 @@ canvas {
     user-select: none;
 }
 
+/* Six columns fit three cards on the first row and two wider cards on the
+   second. */
 .download-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 16px;
+}
+
+.download-grid > .download-card {
+    grid-column: span 2;
+}
+
+.download-grid > .download-card:nth-last-child(-n + 2) {
+    grid-column: span 3;
 }
 
 .download-card {
@@ -1301,6 +1311,15 @@ canvas {
     .feature-grid.four,
     .download-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .download-grid > .download-card,
+    .download-grid > .download-card:nth-last-child(-n + 2) {
+        grid-column: auto;
+    }
+
+    .download-grid > .download-card:first-child {
+        grid-column: 1 / -1;
     }
 
     .principle-grid {

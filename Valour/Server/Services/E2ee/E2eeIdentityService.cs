@@ -568,6 +568,27 @@ public class E2eeIdentityService
         return TaskResult<UserKeyState>.FromData(state);
     }
 
+    /// <summary>
+    /// True when starting over would cost the account something on this node:
+    /// it has sent messages, belongs to a direct or group chat with messages
+    /// from another person, or has signed a membership log entry. Victor's
+    /// welcome message does not count. An account whose keys were created on
+    /// a device the person no longer uses, and never used since, can start
+    /// over without the warnings meant for someone who would lose history.
+    /// </summary>
+    public async Task<bool> HasUsedKeysAsync(long userId)
+    {
+        if (await _db.Messages.AnyAsync(x => x.AuthorUserId == userId))
+            return true;
+
+        if (await _db.ChannelMembers.AnyAsync(m =>
+                m.UserId == userId && _db.Messages.Any(x =>
+                    x.ChannelId == m.ChannelId && x.AuthorUserId != Valour.Shared.Models.ISharedUser.VictorUserId)))
+            return true;
+
+        return await _db.E2eeAccessLogEntries.AnyAsync(x => x.SignerUserId == userId);
+    }
+
     // User key boxes
 
     public async Task<UserKeyBoxDto> GetBoxAsync(long userId, string recipientId, int? generation)

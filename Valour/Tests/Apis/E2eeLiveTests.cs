@@ -436,6 +436,42 @@ public class E2eeLiveTests
         Assert.Equal("do you still have your keys", history.Single(m => m.Id == sent.Data.Id).Content);
     }
 
+    [Fact]
+    public async Task NewDevice_StartsFreshOnlyWhileTheKeysAreUnused()
+    {
+        // Keys made at sign-up and never used: the next device may start over.
+        var newcomer = await _fixture.RegisterUser();
+        var signUp = await LoginAsync(newcomer, new MemoryE2eeKeyStore(), autoSetUp: true);
+        Assert.Equal(E2eeStatus.Ready, signUp.E2eeService.Status);
+
+        var phone = await LoginAsync(newcomer, new MemoryE2eeKeyStore(), autoSetUp: false);
+        Assert.Equal(E2eeStatus.NeedsVerification, phone.E2eeService.Status);
+        var fresh = await phone.E2eeService.CanStartFreshAsync();
+        Assert.True(fresh.Success, fresh.Message);
+        Assert.True(fresh.Data);
+
+        var code = await phone.E2eeService.ResetKeysAsync();
+        Assert.True(code.Success, code.Message);
+        Assert.Equal(E2eeStatus.Ready, phone.E2eeService.Status);
+
+        // A sender, and someone who received a message, have used their keys.
+        var (sender, senderDetails) = await CreateUserAsync();
+        var (receiver, receiverDetails) = await CreateUserAsync();
+        var dm = await sender.ChannelService.FetchDmChannelAsync(receiver.Me.Id, create: true);
+        var sent = await SendAsync(sender, dm, "welcome aboard");
+        Assert.True(sent.Success, sent.Message);
+        await WaitForStoredAsync(sent.Data.Id);
+
+        foreach (var details in new[] { senderDetails, receiverDetails })
+        {
+            var device = await LoginAsync(details, new MemoryE2eeKeyStore(), autoSetUp: false);
+            Assert.Equal(E2eeStatus.NeedsVerification, device.E2eeService.Status);
+            var check = await device.E2eeService.CanStartFreshAsync();
+            Assert.True(check.Success, check.Message);
+            Assert.False(check.Data);
+        }
+    }
+
     /// <summary>
     /// Stores a plain-text message the way messages were stored before
     /// encryption became mandatory.
