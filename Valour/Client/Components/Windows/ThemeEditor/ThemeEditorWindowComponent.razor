@@ -1,0 +1,193 @@
+@inherits WindowContentComponentBase
+@implements IDisposable
+@inject ValourClient Client
+
+<div class="theme-editor-window">
+    @if (_theme is not null)
+    {
+        <div class="theme-editor-window-body">
+            @switch (_section)
+            {
+                case Section.Info:
+                    <ThemeInfoSection @ref="_infoSection" Theme="@_theme" OnDeleted="@OnThemeDeletedAsync" />
+                    break;
+                case Section.Colors:
+                    <ThemeColorsSection Theme="@_theme" />
+                    break;
+                case Section.Css:
+                    <div class="editor-section">
+                        <h3 class="editor-section-title">
+                            <i class="bi bi-filetype-css"></i>
+                            Custom CSS
+                        </h3>
+                        <CssCodeEditor Value="@_cssText" ValueChanged="@(v => _cssText = v)" />
+                    </div>
+                    break;
+            }
+        </div>
+
+        <div class="theme-editor-window-footer">
+            <div class="theme-editor-window-nav">
+                <button type="button" class="@NavClass(Section.Info)" @onclick="@(() => SetSectionAsync(Section.Info))">Info</button>
+                <button type="button" class="@NavClass(Section.Colors)" @onclick="@(() => SetSectionAsync(Section.Colors))">Colors</button>
+                <button type="button" class="@NavClass(Section.Css)" @onclick="@(() => SetSectionAsync(Section.Css))">CSS</button>
+            </div>
+            <div class="theme-editor-window-actions">
+                <VButton Variant="secondary" OnClick="Preview">Preview</VButton>
+                <VButton Variant="primary" OnClick="SaveAsync">@(CanEditTheme ? "Save & Close" : "Make a copy")</VButton>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private enum Section { Info, Colors, Css }
+
+    private Theme _theme;
+    private Theme _backupTheme;
+    private Section _section = Section.Info;
+    private string _cssText;
+    private bool _saving;
+
+    private ThemeInfoSection _infoSection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var content = (Content)WindowCtx;
+        _theme = content.Theme;
+        _backupTheme = content.BackupTheme;
+
+        // A saved layout can restore this tab after a reload with no live edit session to attach to.
+        // The edit buffer never survives a reload, so close it rather than show a broken editor.
+        if (_theme is null)
+        {
+            await WindowCtx.Tab.Component.CloseAsync();
+            return;
+        }
+
+        _cssText = _theme.CustomCss ?? string.Empty;
+    }
+
+    private string NavClass(Section section) =>
+        section == _section ? "theme-editor-nav-btn active" : "theme-editor-nav-btn";
+
+    private async Task SetSectionAsync(Section section)
+    {
+        _section = section;
+        await ReRender();
+    }
+
+    private void Preview()
+    {
+        _theme.CustomCss = _cssText;
+        ThemeComponent.Instance.Refresh();
+    }
+
+    // Matches ThemeInfoSection's own Danger Zone gate: a theme can be saved
+    // only by its author, or if it hasn't been created yet.
+    private bool CanEditTheme => _theme is null || _theme.Id == 0 || _theme.AuthorId == Client.Me.Id;
+
+    private void ConfirmCopyTheme()
+    {
+        var modalData = new ConfirmModalComponent.ModalParams(
+            "Make a copy of this theme?",
+            "You can't edit a theme that isn't yours. This creates a new theme in your account with the same settings, which you can then customize freely.",
+            "Make a copy",
+            "Cancel",
+            CopyThemeAsync,
+            () => Task.CompletedTask
+        );
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+    }
+
+    private Task CopyThemeAsync()
+    {
+        _theme.Id = 0;
+        _theme.AuthorId = Client.Me.Id;
+        _theme.Name += " (Copy)";
+        _theme.Published = false;
+
+        return SaveAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _theme is null)
+            return;
+
+        if (!CanEditTheme)
+        {
+            ConfirmCopyTheme();
+            return;
+        }
+
+        _saving = true;
+
+        var theme = _theme;
+        Preview();
+
+        var isNew = theme.Id == 0;
+        var result = isNew ? await theme.CreateAsync() : await theme.UpdateAsync();
+        if (!result.Success)
+        {
+            Console.WriteLine("Failed to save theme: " + result.Message);
+            _saving = false;
+            return;
+        }
+
+        var savedTheme = isNew ? result.Data : theme;
+        if (_infoSection is not null)
+            await _infoSection.UploadBannerIfNeededAsync(savedTheme.Id);
+
+        // Cleared so Dispose (fired by the CloseAsync below) knows the save
+        // already resolved this session and skips its revert-to-backup.
+        _theme = null;
+        await WindowCtx.Tab.Component.CloseAsync();
+    }
+
+    // _theme is intentionally left set so Dispose's revert-to-backup runs,
+    // same as closing without saving - the deleted theme can't stay live.
+    private async Task OnThemeDeletedAsync()
+    {
+        await WindowCtx.Tab.Component.CloseAsync();
+    }
+
+    // Closing the window without saving reverts the live preview
+    // to whatever theme was active before this editor opened.
+    public void Dispose()
+    {
+        if (_theme is not null)
+        {
+            ThemeComponent.Instance.CurrentTheme = _backupTheme ?? Theme.Default;
+            ThemeComponent.Instance.Refresh();
+        }
+    }
+
+    public class Content : WindowContent<ThemeEditorWindowComponent>
+    {
+        public Theme Theme { get; set; }
+        public Theme BackupTheme { get; set; }
+    }
+
+    public static Content BuildContent(Theme theme, Theme backupTheme)
+    {
+        return new Content
+        {
+            Title = $"Theme - {theme.Name}",
+            Icon = "_content/Valour.Client/media/logo/logo-64.png",
+            Theme = theme,
+            BackupTheme = backupTheme
+        };
+    }
+
+    public static FloatingWindowProps GetDefaultFloatingProps()
+    {
+        return new FloatingWindowProps()
+        {
+            Width = 480,
+            Height = 560,
+            X = 120,
+            Y = 80
+        };
+    }
+}
