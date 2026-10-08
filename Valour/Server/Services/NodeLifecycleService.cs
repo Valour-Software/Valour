@@ -204,7 +204,7 @@ public class NodeLifecycleService
     
     /// <summary>
     /// Resolves the active node for many planets. Locally hosted planets need no
-    /// I/O, assignments and liveness are read with two batched Redis reads, and
+    /// I/O, assignments and liveness are read with two pipelined rounds of Redis reads, and
     /// only unassigned planets or planets with a dead node take the full
     /// per-planet path (which may claim the planet).
     /// </summary>
@@ -227,8 +227,10 @@ public class NodeLifecycleService
         if (remote.Count == 0)
             return result;
 
-        var assigned = await _nodeRecords.StringGetAsync(
-            remote.Select(x => (RedisKey)$"planet:{x}").ToArray());
+        // Production Redis is clustered, so a multi-key MGET across hash slots
+        // fails. Single-key reads issued together are pipelined by the client.
+        var assigned = await Task.WhenAll(
+            remote.Select(x => _nodeRecords.StringGetAsync($"planet:{x}")));
 
         var assignedNodes = new string?[remote.Count];
         var distinctNodes = new List<string>();
@@ -246,8 +248,8 @@ public class NodeLifecycleService
         var aliveNodes = new HashSet<string>();
         if (distinctNodes.Count > 0)
         {
-            var alive = await _nodeRecords.StringGetAsync(
-                distinctNodes.Select(x => (RedisKey)$"alive:{x}").ToArray());
+            var alive = await Task.WhenAll(
+                distinctNodes.Select(x => _nodeRecords.StringGetAsync($"alive:{x}")));
 
             for (var i = 0; i < distinctNodes.Count; i++)
             {
