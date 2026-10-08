@@ -14,6 +14,9 @@ namespace Valour.Server.Cdn;
 
 public class CdnBucketService
 {
+    /// <summary>The upload result when the same file is already quarantined.</summary>
+    public const string UnavailableMessage = "This upload is not available.";
+
     private static readonly ConcurrentDictionary<string, Task<TaskResult>> PublicUploadsInFlight = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, Task<TaskResult>> PrivateUploadsInFlight = new(StringComparer.Ordinal);
 
@@ -135,7 +138,7 @@ public class CdnBucketService
         {
             if (existingUserItem.SafetyQuarantinedAt is not null)
             {
-                return new TaskResult(false, "This upload is not available.");
+                return new TaskResult(false, UnavailableMessage);
             }
 
             return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
@@ -165,7 +168,7 @@ public class CdnBucketService
         {
             if (existingHashItem.SafetyQuarantinedAt is not null)
             {
-                return new TaskResult(false, "This upload is not available.");
+                return new TaskResult(false, UnavailableMessage);
             }
 
             // Alright, someone else posted this. Let's make a new route to this
