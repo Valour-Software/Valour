@@ -32,7 +32,7 @@ public readonly struct ModelAddedEvent<TModel> : IModelInsertionEvent<TModel>
         Model = model;
     }
 }
-public class ModelUpdatedEvent<TModel> : IModelInsertionEvent<TModel>, IDisposable
+public class ModelUpdatedEvent<TModel> : IModelInsertionEvent<TModel>
     where TModel : ClientModel
 {
     public ModelChange<TModel>? Changes;
@@ -46,11 +46,6 @@ public class ModelUpdatedEvent<TModel> : IModelInsertionEvent<TModel>, IDisposab
         Model = model;
         Changes = changes;
         PositionChange = positionChange;
-    }
-    
-    public void Dispose()
-    {
-        Changes?.Dispose();
     }
 }
 

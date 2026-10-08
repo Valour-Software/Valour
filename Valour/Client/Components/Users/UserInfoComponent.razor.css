@@ -52,6 +52,8 @@
 }
 
 .username {
+    align-self: flex-start;
+    max-width: 100%;
     font-style: normal;
     font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);

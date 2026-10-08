@@ -5,6 +5,8 @@ type Channel = {
     messageWrapperEl: HTMLElement;
     oldScrollHeight: number;
     oldScrollTop: number;
+    anchorId: string | null;
+    anchorOffset: number;
     lastTopLoadPos: number;
     stickToBottom: boolean;
     scrollUpTimer: number;
@@ -36,6 +38,8 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         messageWrapperEl: messageWrapperEl,
         oldScrollHeight: 0,
         oldScrollTop: 0,
+        anchorId: null,
+        anchorOffset: 0,
         lastTopLoadPos: 0,
         stickToBottom: true,
         scrollUpTimer: Date.now(),
@@ -45,14 +49,43 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         resizeObserver: null,
         
         updateScrollPosition(){
-            this.oldScrollHeight = this.messageWrapperEl.scrollHeight;
-            this.oldScrollTop = this.messageWrapperEl.scrollTop;
+            const holder = this.messageWrapperEl;
+            this.oldScrollHeight = holder.scrollHeight;
+            this.oldScrollTop = holder.scrollTop;
+
+            // Remember the first message visible at the top and where it sits,
+            // so the view can be put back on it after messages are added above
+            // or removed. Heights of skipped (content-visibility) messages are
+            // only estimates, which makes a plain height difference unreliable.
+            this.anchorId = null;
+            const holderTop = holder.getBoundingClientRect().top;
+            for (let i = 0; i < holder.children.length; i++) {
+                const child = holder.children[i] as HTMLElement;
+                if (!child.id || !child.classList.contains('message') || child.classList.contains('ghost'))
+                    continue;
+
+                const rect = child.getBoundingClientRect();
+                if (rect.bottom > holderTop + 1) {
+                    this.anchorId = child.id;
+                    this.anchorOffset = rect.top - holderTop;
+                    break;
+                }
+            }
         },
         
         scaleScrollPosition(){
+            const holder = this.messageWrapperEl;
             const suppressUntil = Date.now() + 250;
             this.suppressPagingUntil = Math.max(this.suppressPagingUntil, suppressUntil);
-            this.messageWrapperEl.scrollTop = this.oldScrollTop + (this.messageWrapperEl.scrollHeight - this.oldScrollHeight);
+
+            const anchor = this.anchorId ? document.getElementById(this.anchorId) : null;
+            if (anchor) {
+                const shift = (anchor.getBoundingClientRect().top - holder.getBoundingClientRect().top) - this.anchorOffset;
+                holder.scrollTop += shift;
+            } else {
+                holder.scrollTop = this.oldScrollTop + (holder.scrollHeight - this.oldScrollHeight);
+            }
+            this.anchorId = null;
             window.setTimeout(() => {
                 if (this.suppressPagingUntil <= suppressUntil) {
                     this.suppressPagingUntil = 0;
@@ -62,8 +95,7 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         },
         
         shiftScrollPosition(amount: number){
-            this.updateScrollPosition();
-            this.messageWrapperEl.scrollTop = this.oldScrollTop + amount;
+            this.messageWrapperEl.scrollTop += amount;
         },
         
         isAtBottom(){

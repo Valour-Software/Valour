@@ -276,9 +276,16 @@ public class UserService
         return new TaskResult<UserProfile>(true, "Profile updated", updated);
     }
     
-    public async Task<List<Planet>> GetJoinedPlanetInfo(long userId)
+    public async Task<List<Planet>> GetJoinedPlanetInfo(long userId) =>
+        (await GetJoinedPlanetsWithMembershipsAsync(userId)).planets;
+
+    /// <summary>
+    /// Returns the planets the user has joined together with the user's own member
+    /// record for each, loaded by a single query.
+    /// </summary>
+    public async Task<(List<Planet> planets, List<Valour.Server.Models.PlanetMember> members)> GetJoinedPlanetsWithMembershipsAsync(long userId)
     {
-        var planetEntities = await _db.PlanetMembers
+        var memberEntities = await _db.PlanetMembers
             // A completed federation handoff keeps a locked official recovery
             // copy until the owner finalizes deletion. Do not render that copy
             // alongside the community-hosted planet; the corresponding
@@ -288,21 +295,27 @@ public class UserService
                             m.PlanetId == x.PlanetId &&
                             m.Status == FederatedMigrationStatus.Completed))
             .Include(x => x.Planet)
-            .ThenInclude(p => p.Tags) 
-            .Select(x => x.Planet)
+            .ThenInclude(p => p.Tags)
             .AsNoTracking()
             .ToListAsync();
-    
-        var planets = planetEntities
-            .Select(p => p.ToModel())
+
+        var planets = memberEntities
+            .Select(x => x.Planet.ToModel())
             .ToList();
-    
+
+        var members = memberEntities
+            .Select(x => x.ToModel())
+            .ToList();
+
+        var nodeNames = await _nodeLifecycleService.GetActiveNodesForPlanetsAsync(
+            planets.Select(x => x.Id).ToList());
+
         foreach (var planet in planets)
         {
-            planet.NodeName = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(planet.Id);
+            planet.NodeName = nodeNames[planet.Id];
         }
-    
-        return planets;
+
+        return (planets, members);
     }
 
     public async Task<PasswordRecovery> GetPasswordRecoveryAsync(string code) =>

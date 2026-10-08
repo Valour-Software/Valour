@@ -1,3 +1,4 @@
+@implements IDisposable
 @inject ContextMenuService ContextMenuService
 @inject NotificationService NotificationService
 @inject ChannelStateService ChannelStateService
@@ -86,6 +87,15 @@
             HomeWindowComponent.OnRerenderPlanetCards += Refresh;
             NotificationService.NotificationReceived += OnNotification;
         }
+    }
+
+    public void Dispose()
+    {
+        if (!_selfManaged)
+            return;
+
+        HomeWindowComponent.OnRerenderPlanetCards -= Refresh;
+        NotificationService.NotificationReceived -= OnNotification;
     }
 
     protected override void OnParametersSet()

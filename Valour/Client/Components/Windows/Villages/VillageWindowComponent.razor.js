@@ -61,6 +61,8 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         moveAccumulatorMs: 0,
         stepDurationMs: 130,
         animationFrame: 0,
+        canvasVisible: true,
+        visibilityObserver: null,
         destroyed: false,
         lastTimestamp: 0,
         zoom: 0.65,
@@ -492,6 +494,8 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
             canvas.removeEventListener("wheel", state.onWheel);
             state.resizeObserver?.disconnect();
             state.resizeObserver = null;
+            state.visibilityObserver?.disconnect();
+            state.visibilityObserver = null;
             if (state.animationFrame) {
                 cancelAnimationFrame(state.animationFrame);
                 state.animationFrame = 0;
@@ -968,6 +972,16 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
         state.resizeObserver.observe(canvas);
     }
 
+    // Docked tabs that are not focused stay mounted with display: none, so
+    // the loop keeps running but skips drawing while nothing can be seen.
+    if (typeof IntersectionObserver !== "undefined") {
+        state.visibilityObserver = new IntersectionObserver(entries => {
+            const entry = entries[entries.length - 1];
+            state.canvasVisible = entry.isIntersecting;
+        });
+        state.visibilityObserver.observe(canvas);
+    }
+
     primeMapTextures(state);
     void loadTilesetsForScene(state);
     ensureLocalPlayerPosition(state, state.currentMapId);
@@ -981,12 +995,14 @@ export function init(canvasId, dotNetRef, scene, isMobile) {
 
         const delta = state.lastTimestamp === 0 ? 16 : Math.min(40, timestamp - state.lastTimestamp);
         state.lastTimestamp = timestamp;
-        updateZoom(state, delta);
         updatePlayer(state, delta);
         updateRemotes(state, delta);
         updateSpatialAudio(state);
-        updateCamera(state);
-        draw(state);
+        if (state.canvasVisible && !document.hidden) {
+            updateZoom(state, delta);
+            updateCamera(state);
+            draw(state);
+        }
         state.animationFrame = requestAnimationFrame(frame);
     }
 

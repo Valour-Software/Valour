@@ -2,7 +2,7 @@
 
 <div class="notification" @key="@Notification.Id">
     <div class="top-row">
-        <img alt="Notification icon" class="image" src="@_imageUrl" @onerror="@OnImageError" />
+        <img alt="Notification icon" class="image" src="@_imageUrl" loading="lazy" decoding="async" @onerror="@OnImageError" />
         <div class="title-content">
             <p class="title">@Notification.Title</p>
             <span class="time">@GetRelativeTime()</span>

@@ -4,7 +4,8 @@
     overflow: auto;
 }
 
-::deep .channel.nested .path {
+::deep .channel.nested::after {
+    content: '';
     position: absolute;
     left: -5px;
     top: -6px;
@@ -45,7 +46,7 @@
     border-radius: var(--radius-full);
 }
 
-::deep .channel .notif-badge span {
+::deep .channel .notif-badge {
     font-family: var(--font-family-mono);
     font-size: 10px;
     font-weight: var(--font-weight-semibold);

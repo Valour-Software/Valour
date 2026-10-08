@@ -247,6 +247,23 @@ device in place of the text box, and messages the device cannot read show why.
 Apps never reset keys without asking, because a reset makes earlier messages
 unreadable.
 
+Someone can reach this prompt without knowing their account has keys, for
+example after signing up in a browser and then opening a native app, because
+setup happened silently on the first device. The prompt's first choice, **I'm
+new to Valour**, calls `E2eeService.CanStartFreshAsync`. It returns true when
+the key log has only ever listed one device and `GET api/e2ee/users/me/usage`
+reports that the account has not used its keys: it has sent no messages,
+belongs to no direct or group chat with messages from another person, and has
+signed no membership log entry. Victor's welcome message does not count, and
+the server checks only its own data, so messages on community nodes are not
+counted. When the result is true, the device starts over right away and shows
+the new recovery code, with no confirmation step, because nothing would be
+lost. Otherwise the prompt names the device and date the keys were set up and
+offers linking, the recovery code, or starting over with the usual warning. The
+device that created the keys sees that they were reset from another sign-in, as
+after any reset. A server that misreports use can only remove the warning,
+since starting over is the same reset either way.
+
 Signing out of the app removes the device from the account's key log
 (`E2eeService.SignOutDeviceAsync`), and the confirmation explains that the
 device must be approved or restored again to read encrypted messages. If it was
@@ -1624,6 +1641,7 @@ planet channels, which the server uses to find the channel in its planet.
 | `POST api/e2ee/users/me/log` | Append to this account's key log, with user key boxes |
 | `GET api/e2ee/users/me/boxes/{recipientId}?generation=` | A user key box for this account's device or recovery key |
 | `POST api/e2ee/users/me/boxes` | Store user key boxes |
+| `GET api/e2ee/users/me/usage` | Whether this account has used its keys, so a new device can start over without warnings |
 | `POST api/e2ee/link-sessions` and `GET .../pending`, `GET .../{id}`, `POST .../{id}/join`, `.../approve`, `.../deny` | Device linking |
 | `GET api/e2ee/server-keys` | The server's public attestation keys |
 | `GET api/e2ee/channels/{id}/keys` | Policy, newest generation, records, and this member's boxes |
@@ -1687,7 +1705,7 @@ an account with keys finds no device key in a `FileE2eeKeyStore`, the service
 logs an error that names the directory. Apps set `AutoRecover` and
 `StoreRecoveryCode` to false and guide the person instead, using
 `RestoreWithRecoveryCodeAsync`, `CreateNewRecoveryCodeAsync`, `ResetKeysAsync`,
-`RevokeDeviceAsync`, and the linking methods (`StartLinkingAsync`,
+`CanStartFreshAsync`, `RevokeDeviceAsync`, and the linking methods (`StartLinkingAsync`,
 `JoinLinkAsync`, `ShowLinkCodeAsync`, `MatchScannedLinkCodeAsync`,
 `ApproveLinkAsync`).
 

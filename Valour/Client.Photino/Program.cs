@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Photino.Blazor;
+using Sentry;
 using Valour.Client.Device;
 using Valour.Client.Notifications;
 using Valour.Client.Photino.Notifications;
@@ -20,12 +22,33 @@ public static class Program
 {
     private const string HostMessagePrefix = "valour-host:";
 
+    // Linux desktop reports go to the desktop (Windows) project; filter by the os tag.
+    private const string SentryDsn = "https://aeef5244054b87165a2ecd26ca7ea24e@o4510867505479680.ingest.us.sentry.io/4510927093301248";
+
     [STAThread]
     public static void Main(string[] args)
     {
+        var storage = new FileAppStorage();
+        SentryGate.IsEnabled = ReadErrorReportingPreference(storage);
+
+        // Initialized before anything else so startup crashes are reported too.
+        // The SDK captures unhandled and unobserved task exceptions itself.
+        using var sentry = SentrySdk.Init(options =>
+        {
+            options.Dsn = SentryDsn;
+            options.SetBeforeSend((e, _) =>
+                SentryGate.IsEnabled && (e.Exception is null || !SentryGate.IsKnownFrameworkNoise(e.Exception)) ? e : null);
+        });
+
         var builder = PhotinoBlazorAppBuilder.CreateDefault(StaticWebAssets.CreateFileProvider(), args);
 
-        builder.Services.AddSingleton<IAppStorage, FileAppStorage>();
+        builder.Services.AddLogging(logging => logging.AddSentry(options =>
+        {
+            options.InitializeSdk = false;
+            options.MinimumEventLevel = LogLevel.Error;
+        }));
+
+        builder.Services.AddSingleton<IAppStorage>(storage);
         builder.Services.AddSingleton<Valour.Sdk.E2ee.IE2eeKeyStore, SecretServiceKeyStore>();
         builder.Services.AddSingleton<IPushNotificationService, DesktopNotificationService>();
         builder.Services.AddValourClientServices(ApiBaseAddress());
@@ -62,6 +85,23 @@ public static class Program
             Console.Error.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 
         app.Run();
+    }
+
+    /// <summary>
+    /// Error reporting is opt-in. The shared UI loads the preference later, so
+    /// the host reads it here to cover errors raised before that.
+    /// </summary>
+    private static bool ReadErrorReportingPreference(FileAppStorage storage)
+    {
+        try
+        {
+            // FileAppStorage completes synchronously.
+            return storage.GetAsync<bool>(DevicePreferences.ErrorReportingEnabledStorageKey).GetAwaiter().GetResult();
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private static void OnWebMessage(object? sender, string message)

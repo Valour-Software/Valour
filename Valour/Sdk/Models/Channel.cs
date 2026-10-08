@@ -486,10 +486,10 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         var channelType = permission.TargetType;
 
         // Collect nodes weakest-first (Roles is strongest-first, so reverse)
-        var nodes = new List<PermissionsNode>();
-        for (int i = member.Roles.Count - 1; i >= 0; i--)
+        var fetched = await GetRoleNodesAsync(source, member.Roles, channelType, false);
+        var nodes = new List<PermissionsNode>(fetched.Length);
+        foreach (var node in fetched)
         {
-            var node = await source.GetPermNodeAsync(member.Roles[i].Id, channelType);
             if (node is not null)
                 nodes.Add(node);
         }
@@ -501,6 +501,20 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             return false;
 
         return Permission.HasPermission(perms, permission);
+    }
+
+    // Role permission nodes are requested together and returned weakest-first.
+    private static async Task<PermissionsNode[]> GetRoleNodesAsync(
+        Channel source,
+        IReadOnlyList<PlanetRole> roles,
+        ChannelTypeEnum type,
+        bool refresh)
+    {
+        var tasks = new Task<PermissionsNode>[roles.Count];
+        for (var i = 0; i < tasks.Length; i++)
+            tasks[i] = source.GetPermNodeAsync(roles[roles.Count - 1 - i].Id, type, refresh).AsTask();
+
+        return await Task.WhenAll(tasks);
     }
 
     /// <summary>
@@ -545,11 +559,9 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
         // Should be in order of most power -> least,
         // so we reverse it here
-        for (int i = member.Roles.Count - 1; i >= 0; i--)
+        var roleNodes = await GetRoleNodesAsync(source, member.Roles, permissionType, forceRefresh);
+        foreach (var node in roleNodes)
         {
-            var role = member.Roles[i];
-            var node = await source.GetPermNodeAsync(role.Id, permissionType, forceRefresh);
-
             if (node is null)
                 continue;
 
@@ -612,10 +624,48 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         }
 
         result.Data ??= [];
-        await Client.E2eeService.DecryptAllAsync(result.Data);
+        await DecryptAndPrefetchAuthorsAsync(result.Data);
         result.Data.SyncAll(Client);
 
         return TaskResult<List<Message>>.FromData(result.Data);
+    }
+
+    // Author members are fetched in one request alongside decryption instead of
+    // one request per message when each message first renders.
+    private async Task DecryptAndPrefetchAuthorsAsync(List<Message> messages)
+    {
+        var prefetch = PrefetchAuthorMembersAsync(messages);
+        await Client.E2eeService.DecryptAllAsync(messages);
+        await prefetch;
+    }
+
+    private async Task PrefetchAuthorMembersAsync(List<Message> messages)
+    {
+        if (PlanetId is null || Planet is null)
+            return;
+
+        var planet = Planet;
+        var ids = new HashSet<long>();
+        foreach (var message in messages)
+        {
+            if (message?.AuthorMemberId is { } authorId && !planet.Members.ContainsId(authorId))
+                ids.Add(authorId);
+
+            if (message?.ReplyTo?.AuthorMemberId is { } replyAuthorId && !planet.Members.ContainsId(replyAuthorId))
+                ids.Add(replyAuthorId);
+        }
+
+        if (ids.Count < 2)
+            return;
+
+        try
+        {
+            await planet.FetchMembersAsync(ids);
+        }
+        catch (Exception ex)
+        {
+            Client.Logger.Log("Channel", $"Failed to prefetch authors for {Id}: {ex.Message}", "Yellow");
+        }
     }
     
     /// <summary>
@@ -644,7 +694,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         }
 
         result.Data ??= [];
-        await Client.E2eeService.DecryptAllAsync(result.Data);
+        await DecryptAndPrefetchAuthorsAsync(result.Data);
         result.Data.SyncAll(Client);
 
         return TaskResult<List<Message>>.FromData(result.Data);

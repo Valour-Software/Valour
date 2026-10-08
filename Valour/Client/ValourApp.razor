@@ -259,10 +259,11 @@
             if (!string.IsNullOrWhiteSpace(localToken))
             {
                 await SetBootStatusAsync("signing you in");
-                // Signed-in initialization consumes the instance host map, but
-                // anonymous login rendering doesn't need to wait for it.
-                await _instanceManifestTask;
+                // Hosts from the instance manifest are only read while rendering
+                // media and links, so login runs alongside discovery and the
+                // router waits for both.
                 var result = await Client.InitializeUser(localToken);
+                await _instanceManifestTask;
 
                 if (result.Code == 401)
                 {
@@ -301,7 +302,7 @@
     private async Task FetchAndApplyInstanceManifestAsync()
     {
         // Applies configured domains to link building, CDN URLs, and route
-        // parsing; authenticated initialization awaits this task above.
+        // parsing; startup awaits this task before the router renders.
         var manifest = await Client.FetchInstanceManifestAsync();
         if (manifest is not null)
         {

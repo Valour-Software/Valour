@@ -7,24 +7,35 @@
     return;
 }
 
-<div class="user-avatar @(OnClick.HasDelegate ? "clickable" : "") @(ShowState ? "with-state" : "") @(Unread ? "unread" : "")"
-     style="--user-avatar-size: @(Size)px"
-     @onclick="@OnClick">
-    <div class="user-avatar-img avatar-@User.Id @(ShowState ? _statusClass : "")"
-         style="background-image: url(@_avatarUrl), url(@_failedAvatarUrl);"
+@if (HasPresenceDot || HasBadges)
+{
+    <div class="user-avatar @(OnClick.HasDelegate ? "clickable" : "") @(ShowState ? "with-state" : "") @(Unread ? "unread" : "")"
+         style="--user-avatar-size: @(Size)px"
+         @onclick="@OnClick">
+        <div class="user-avatar-img avatar-@User.Id @(HasAnimatedUrl ? AnimatedImageStyle.HoverClass : "") @(ShowState ? _statusClass : "")"
+             style="@BackgroundStyle"
+             role="img"
+             aria-label="@User.Name's profile picture"></div>
+        @if (HasPresenceDot)
+        {
+            <span class="user-avatar-presence @_statusClass" role="img" aria-label="@_statusName"></span>
+        }
+        @if (HasBadges)
+        {
+            <div class="user-avatar-badges">
+                <UserBadges User="@User"/>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="user-avatar flat avatar-@User.Id @(HasAnimatedUrl ? AnimatedImageStyle.HoverClass : "") @(OnClick.HasDelegate ? "clickable" : "") @(ShowState ? "with-state " + _statusClass : "") @(Unread ? "unread" : "")"
+         style="--user-avatar-size: @(Size)px; @BackgroundStyle"
          role="img"
-         aria-label="@User.Name's profile picture"></div>
-    @if (ShowState && _statusClass != "offline")
-    {
-        <span class="user-avatar-presence @_statusClass" role="img" aria-label="@_statusName"></span>
-    }
-    @if (ShowBadges)
-    {
-        <div class="user-avatar-badges">
-            <UserBadges User="@User"/>
-        </div>
-    }
-</div>
+         aria-label="@User.Name's profile picture"
+         @onclick="@OnClick"></div>
+}
 
 @code {
     [Parameter]
@@ -57,6 +68,13 @@
     [Parameter]
     public bool Unread { get; set; }
 
+    /// <summary>
+    /// Animated version of the avatar. Containers that react to hover (see
+    /// .anim-hover in globals.css) play it while hovered.
+    /// </summary>
+    [Parameter]
+    public string AnimatedUrl { get; set; }
+
     [Parameter]
     public AvatarFormat Format { get; set; } = AvatarFormat.Webp128;
 
@@ -72,6 +90,12 @@
 
     private string _avatarUrl;
     private string _failedAvatarUrl;
+    private bool HasAnimatedUrl => !string.IsNullOrWhiteSpace(AnimatedUrl);
+    private bool HasPresenceDot => ShowState && _statusClass != "offline";
+    private bool HasBadges => ShowBadges && UserBadges.HasBadges(User);
+
+    private string BackgroundStyle => AnimatedImageStyle.Build(_avatarUrl, _failedAvatarUrl, AnimatedUrl);
+
     private string _statusClass = "offline";
     private string _statusName = UserState.Offline.Name;
 

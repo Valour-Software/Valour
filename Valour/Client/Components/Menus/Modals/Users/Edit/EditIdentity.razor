@@ -115,7 +115,7 @@
             // the server's realtime echo comes back the diff sees no change
             // and never fires Updated for our own client - fire it manually
             // so the member list and chat name tag update without a reload.
-            var changes = ModelUpdateUtils.ChangeDictPool.Get();
+            var changes = ModelUpdateUtils.CreateChangeDict();
             changes[nameof(PlanetMember.Nickname)] = new Change<string>(old, updated);
             Member.InvokeUpdatedEvent(new ModelUpdatedEvent<PlanetMember>(Member, new ModelChange<PlanetMember>(changes)));
         }
@@ -189,7 +189,7 @@
             {
                 // Same reasoning as SaveNicknameAsync: the realtime echo won't
                 // detect a change against our own pre-mutated cached member.
-                var changes = ModelUpdateUtils.ChangeDictPool.Get();
+                var changes = ModelUpdateUtils.CreateChangeDict();
                 changes[nameof(PlanetMember.MemberAvatar)] = new Change<string>(old, string.Empty);
                 Member.InvokeUpdatedEvent(new ModelUpdatedEvent<PlanetMember>(Member, new ModelChange<PlanetMember>(changes)));
             }

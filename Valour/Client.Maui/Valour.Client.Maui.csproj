@@ -55,8 +55,8 @@
         <DefineConstants Condition="'$(ValourPlayStore)' == 'true'">$(DefineConstants);VALOUR_PLAY_STORE</DefineConstants>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.9.18</ApplicationDisplayVersion>
-        <ApplicationVersion>111</ApplicationVersion>
+        <ApplicationDisplayVersion>0.9.19</ApplicationDisplayVersion>
+        <ApplicationVersion>112</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
@@ -101,8 +101,10 @@
     <ItemGroup>
         <!-- Android launchers mask the icon to different shapes and only guarantee
              the middle of it, so Android gets separate sky and Victor layers sized to
-             that safe zone. Other platforms show the whole square. -->
-        <MauiIcon Condition="$(TargetFramework.Contains('-android'))" Include="Resources\AppIcon\Android\appicon.png" ForegroundFile="Resources\AppIcon\Android\appiconfg.svg" Color="#0a0d12" ForegroundScale="1" />
+             that safe zone. Themed icons use only the alpha of the monochrome layer, so it
+             cuts Victor's eyes, mouth, and buttons out of the silhouette. Other
+             platforms show the whole square. -->
+        <MauiIcon Condition="$(TargetFramework.Contains('-android'))" Include="Resources\AppIcon\Android\appicon.png" ForegroundFile="Resources\AppIcon\Android\appiconfg.svg" Color="#0a0d12" ForegroundScale="1" MonochromeFile="Resources\AppIcon\Android\appiconmono.svg" />
         <MauiIcon Condition="!$(TargetFramework.Contains('-android'))" Include="Resources\AppIcon\appicon.png" Color="#0a0d12" />
 
         <!-- Splash Screen (Victor floating, as on the loading screen) -->

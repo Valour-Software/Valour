@@ -287,11 +287,15 @@ public class ValourClient
         // the channels and users they refer to have loaded.
         var currentCallsTask = DirectCallService.FetchCurrentAsync();
 
+        // Loading keys needs only the signed-in user, so it overlaps the bootstrap
+        // request. Startup still finishes only once the keys are loaded.
+        var encryptionTask = InitializeEncryptionAsync();
+
         if (await TryLoadBootstrapAsync())
         {
             DirectCallService.ApplyCurrent(await currentCallsTask);
             AuthService.ScheduleFederationPassportPrefetch();
-            await InitializeEncryptionAsync();
+            await encryptionTask;
             return TaskResult.SuccessResult;
         }
 
@@ -323,7 +327,7 @@ public class ValourClient
         }
 
         AuthService.ScheduleFederationPassportPrefetch();
-        await InitializeEncryptionAsync();
+        await encryptionTask;
         return TaskResult.SuccessResult;
     }
 
@@ -410,7 +414,7 @@ public class ValourClient
                 // of this change won't detect a diff, so other UI watching
                 // User.Updated (member lists, chat name tags) never fires
                 // for our own client without this - see ClientModel.Sync().
-                var changes = ModelUpdateUtils.ChangeDictPool.Get();
+                var changes = ModelUpdateUtils.CreateChangeDict();
                 changes[nameof(User.Name)] = new Change<string>(old, newUsername);
                 Me.InvokeUpdatedEvent(new ModelUpdatedEvent<User>(Me, new ModelChange<User>(changes)));
             }

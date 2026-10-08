@@ -71,21 +71,19 @@ public class UnreadService
     
     public async Task<long[]> GetUnreadPlanets(long userId)
     {
-        var memberPlanetIds = _db.PlanetMembers
-            .Where(m => m.UserId == userId)
-            .Select(m => m.PlanetId);
-
         // Must match the unread rules of GetUnreadChannels: only chat channels
-        // can be 'viewed', so categories/voice/video would stay unread forever
-        return await _db.Channels
+        // can be 'viewed', so categories/voice/video would stay unread forever.
+        // EXISTS per planet lets the database stop at the first unread channel
+        // instead of listing every unread channel in every planet.
+        return await _db.PlanetMembers
             .AsNoTracking()
-            .Where(c => c.PlanetId != null
-                        && memberPlanetIds.Contains(c.PlanetId.Value)
-                        && ISharedChannel.ChatChannelTypes.Contains(c.ChannelType))
-            .Where(c => !_db.UserChannelStates
-                .Any(s => s.UserId == userId && s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)
-            )
-            .Select(c => c.PlanetId.Value)
+            .Where(m => m.UserId == userId)
+            .Where(m => _db.Channels.Any(c =>
+                c.PlanetId == m.PlanetId &&
+                ISharedChannel.ChatChannelTypes.Contains(c.ChannelType) &&
+                !_db.UserChannelStates.Any(s =>
+                    s.UserId == userId && s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)))
+            .Select(m => m.PlanetId)
             .Distinct()
             .ToArrayAsync();
     }

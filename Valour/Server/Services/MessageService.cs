@@ -805,7 +805,17 @@ public class MessageService
         var channel = await _channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return null;
-        
+
+        return await GetChannelMessagesAsync(channel, count, index);
+    }
+
+    /// <summary>
+    /// Fetches a page of messages for a channel the caller has already loaded and authorized
+    /// </summary>
+    public async Task<IEnumerable<Message>?> GetChannelMessagesAsync(Channel channel, int count = 50, long index = long.MaxValue)
+    {
+        var channelId = channel.Id;
+
         if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
             return null;
 
@@ -869,6 +879,14 @@ public class MessageService
         if (channel is null)
             return null;
 
+        return await GetChannelMessagesAfterAsync(channel, afterId, count);
+    }
+
+    /// <summary>
+    /// Fetches messages after an id for a channel the caller has already loaded and authorized
+    /// </summary>
+    public async Task<IEnumerable<Message>?> GetChannelMessagesAfterAsync(Channel channel, long afterId, int count = 50)
+    {
         if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
             return null;
 

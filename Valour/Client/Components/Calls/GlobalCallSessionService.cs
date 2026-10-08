@@ -214,6 +214,13 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
                 if (directCall is null)
                     StartHeartbeatLoop();
                 NotifyStateChanged();
+
+                // Waiting still holds a place in the channel, so the Android
+                // keep-alive starts now. It needs the microphone permission,
+                // so ask here instead of when someone joins.
+                await EnsureMicrophonePermissionAsync();
+                AppLifecycle.NotifyCallStarted();
+                NotifyStateChanged();
                 return;
             }
 
@@ -249,7 +256,6 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             Joined = true;
             Connecting = false;
             WaitingForPeer = false;
-            AppLifecycle.NotifyCallStarted();
 
             try
             {
@@ -267,6 +273,8 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
             {
                 AudioEnabled = false;
             }
+
+            AppLifecycle.NotifyCallStarted();
 
             await RefreshStateFromSdkAsync();
             await RefreshParticipantsAsync();

@@ -9,8 +9,10 @@ tabs and panes.
 
 ## How do I use it?
 
-Open [app.valour.gg](https://app.valour.gg) in a browser. Application downloads are
-listed in [GitHub releases](https://github.com/Valour-Software/Valour/releases).
+Open [app.valour.gg](https://app.valour.gg) in a browser. The Android app is on
+[Google Play](https://play.google.com/store/apps/details?id=gg.valour.app). The
+Windows, macOS, and Linux apps and the signed Android APK are listed in
+[GitHub releases](https://github.com/Valour-Software/Valour/releases).
 
 ## Is it free?
 

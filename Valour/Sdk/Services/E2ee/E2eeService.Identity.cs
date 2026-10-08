@@ -1584,6 +1584,28 @@ public partial class E2eeService
     public async Task<TaskResult<string>> ResetKeysAsync() => (await ResetCoreAsync()).Result;
 
     /// <summary>
+    /// True when this device can start over without the warnings of a reset,
+    /// because nothing would be lost: the account's keys were only ever on one
+    /// device, and the server reports that the account never sent a message,
+    /// received a message from another person, or signed a membership log.
+    /// This happens when someone signs up on one device and moves to another
+    /// before using Valour. A server that lies here only removes a warning;
+    /// starting over is still a reset. Fails when the server cannot be reached.
+    /// </summary>
+    public async Task<TaskResult<bool>> CanStartFreshAsync()
+    {
+        if (Status != E2eeStatus.NeedsVerification || KeysResetElsewhere || MyKeyState is not { } state ||
+            state.EverDevices.Count > 1)
+            return TaskResult<bool>.FromData(false);
+
+        var usage = await HubNode.GetJsonAsync<OwnKeyUsageDto>("api/e2ee/users/me/usage", cacheDurationMs: null);
+        if (!usage.Success || usage.Data is null)
+            return TaskResult<bool>.FromFailure("Could not reach Valour. Try again.");
+
+        return TaskResult<bool>.FromData(!usage.Data.Used);
+    }
+
+    /// <summary>
     /// Resets this account's keys. Transient is true when the server could
     /// not be reached, so the reset may or may not have happened; the next
     /// start finds out.

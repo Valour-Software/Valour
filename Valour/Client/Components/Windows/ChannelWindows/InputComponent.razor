@@ -232,6 +232,11 @@
     protected Message PreviewMessage { get; set; }
 
     /// <summary>
+    /// The id of the message the draft is replying to, if any.
+    /// </summary>
+    internal long? ReplyTargetId => PreviewMessage?.ReplyToId;
+
+    /// <summary>
     /// Dotnet object reference for use in Javascript
     /// </summary>
     private DotNetObjectReference<InputComponent> _thisRef;

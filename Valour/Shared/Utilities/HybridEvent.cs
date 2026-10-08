@@ -1,543 +1,347 @@
-using Microsoft.Extensions.ObjectPool;
-
 namespace Valour.Shared.Utilities;
 
 /// <summary>
 /// The hybrid event handler allows a given method signature to be called both
-/// synchronously and asynchronously. Built for efficiency using two separate
-/// lists of delegates, with list pooling to minimize allocations.
+/// synchronously and asynchronously. Handlers are stored in copy-on-write arrays,
+/// so invoking an event takes no lock and allocates nothing when no asynchronous
+/// handlers are registered.
 /// </summary>
 public class HybridEvent<TEventData> : IDisposable
 {
-    // Synchronous and asynchronous handler lists
-    private List<Action<TEventData>> _syncHandlers;
-    private List<Func<TEventData, Task>> _asyncHandlers;
+    private static readonly Action<TEventData>[] NoSyncHandlers = [];
+    private static readonly Func<TEventData, Task>[] NoAsyncHandlers = [];
 
-    // Init is false until the handler lists are initialized
-    private volatile bool _init;
+    private Action<TEventData>[] _syncHandlers = NoSyncHandlers;
+    private Func<TEventData, Task>[] _asyncHandlers = NoAsyncHandlers;
 
-    // Lock object for initialization (separate from handler access locks)
-    private readonly object _initLock = new();
+    // Guards writers only. Readers take a snapshot of the array reference.
+    private readonly object _writeLock = new();
 
-    // Lock object for synchronous and asynchronous handler access
-    private readonly object _syncLock = new();
-    private readonly object _asyncLock = new();
-
-    // Object pool for list reuse
-    // This is static because it is shared across all instances of HybridEvent
-    private static readonly ObjectPool<List<Action<TEventData>>> SyncListPool =
-        new DefaultObjectPool<List<Action<TEventData>>>(new ListPolicy<Action<TEventData>>());
-    private static readonly ObjectPool<List<Func<TEventData, Task>>> AsyncListPool =
-        new DefaultObjectPool<List<Func<TEventData, Task>>>(new ListPolicy<Func<TEventData, Task>>());
-
-    // Object pool for task list
-    private static readonly ObjectPool<List<Task>> TaskListPool =
-        new DefaultObjectPool<List<Task>>(new ListPolicy<Task>());
-
-    private void InitIfNeeded()
-    {
-        if (_init) return;
-
-        // Double-checked locking pattern
-        lock (_initLock)
-        {
-            if (_init) return;
-
-            _syncHandlers = SyncListPool.Get();
-            _asyncHandlers = AsyncListPool.Get();
-            _init = true;
-        }
-    }
-    
-    // Add a synchronous handler
     public void AddHandler(Action<TEventData> handler)
     {
-        InitIfNeeded();
-        
-        lock (_syncLock)
+        lock (_writeLock)
         {
-            _syncHandlers.Add(handler);
+            _syncHandlers = HandlerArrays.Append(_syncHandlers, handler);
         }
     }
 
-    // Add an asynchronous handler
     public void AddHandler(Func<TEventData, Task> handler)
     {
-        InitIfNeeded();
-        
-        lock (_asyncLock)
+        lock (_writeLock)
         {
-            _asyncHandlers.Add(handler);
+            _asyncHandlers = HandlerArrays.Append(_asyncHandlers, handler);
         }
     }
 
-    // Remove a synchronous handler
     public void RemoveHandler(Action<TEventData> handler)
     {
-        if (!_init) return;
-
-        lock (_syncLock)
+        lock (_writeLock)
         {
-            _syncHandlers?.Remove(handler);
+            _syncHandlers = HandlerArrays.Remove(_syncHandlers, handler);
         }
     }
 
-    // Remove an asynchronous handler
     public void RemoveHandler(Func<TEventData, Task> handler)
     {
-        if (!_init) return;
-
-        lock (_asyncLock)
+        lock (_writeLock)
         {
-            _asyncHandlers?.Remove(handler);
+            _asyncHandlers = HandlerArrays.Remove(_asyncHandlers, handler);
         }
     }
 
-    // Invoke all synchronous handlers with list pooling to prevent allocation
-    private void InvokeSyncHandlers(TEventData data)
+    /// <summary>
+    /// Runs synchronous handlers, then starts asynchronous handlers without waiting
+    /// for them to finish.
+    /// </summary>
+    public void Invoke(TEventData data)
     {
-        // Get a pooled list for copying handlers
-        var handlersCopy = SyncListPool.Get();
+        var syncHandlers = Volatile.Read(ref _syncHandlers);
 
-        // Copy handlers while locking to prevent concurrent modifications
-        lock (_syncLock)
+        // One throwing handler must not stop the rest or escape to the caller
+        // (on fire-and-forget paths that becomes an unobserved exception, or worse,
+        // a fatal one on some hosts).
+        for (var i = 0; i < syncHandlers.Length; i++)
         {
-            handlersCopy.AddRange(_syncHandlers);  // Copy handlers into pooled list
-        }
-
-        try
-        {
-            // Invoke all handlers. One throwing handler must not stop the rest
-            // or escape to the caller (on fire-and-forget paths that becomes an
-            // unobserved exception, or worse, a fatal one on some hosts).
-            for (int i = 0; i < handlersCopy.Count; i++)
-            {
-                if (handlersCopy[i] is not null)
-                {
-                    try
-                    {
-                        handlersCopy[i].Invoke(data); // No allocations, just iterating over the pooled list
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("[HybridEvent] Sync handler threw: " + ex);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            // Clear and return the list to the pool
-            handlersCopy.Clear();
-            SyncListPool.Return(handlersCopy);
-        }
-    }
-
-    // Invoke all asynchronous handlers concurrently with list pooling
-    private async Task InvokeAsyncHandlers(TEventData data)
-    {
-        // Get a pooled list for copying async handlers
-        var handlersCopy = AsyncListPool.Get();
-
-        // Copy handlers while locking to prevent concurrent modifications
-        lock (_asyncLock)
-        {
-            handlersCopy.AddRange(_asyncHandlers);  // Copy async handlers into pooled list
-        }
-        
-        var tasks = TaskListPool.Get();
-
-        try
-        {
-            // Invoke all async handlers in parallel using Task.WhenAll
-            for (int i = 0; i < handlersCopy.Count; i++)
-            {
-                if (handlersCopy[i] is not null)
-                {
-                    try
-                    {
-                        var task = handlersCopy[i].Invoke(data);
-                        if (task is not null)
-                            tasks.Add(task);  // Add tasks to list
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("[HybridEvent] Async handler threw synchronously: " + ex);
-                    }
-                }
-            }
-
             try
             {
-                await Task.WhenAll(tasks);  // Wait for all async handlers to complete
+                syncHandlers[i].Invoke(data);
             }
             catch (Exception ex)
             {
-                // Invoke() fire-and-forgets this method, so a faulted handler task
-                // would otherwise surface as an unobserved exception.
-                Console.WriteLine("[HybridEvent] Async handler threw: " + ex);
+                Console.WriteLine("[HybridEvent] Sync handler threw: " + ex);
             }
         }
-        finally
-        {
-            // Clear and return the list to the pool
-            handlersCopy.Clear();
-            AsyncListPool.Return(handlersCopy);
-            TaskListPool.Return(tasks);
-        }
+
+        var asyncHandlers = Volatile.Read(ref _asyncHandlers);
+        if (asyncHandlers.Length > 0)
+            _ = InvokeAsyncHandlers(asyncHandlers, data);
     }
 
-    // Invoke both sync and async handlers
-    public void Invoke(TEventData data)
+    private static async Task InvokeAsyncHandlers(Func<TEventData, Task>[] handlers, TEventData data)
     {
-        InvokeSyncHandlers(data);  // Call synchronous handlers first
-        _ = InvokeAsyncHandlers(data);  // Then call asynchronous handlers
+        if (handlers.Length == 1)
+        {
+            try
+            {
+                var task = handlers[0].Invoke(data);
+                if (task is not null)
+                    await task;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[HybridEvent] Async handler threw: " + ex);
+            }
+
+            return;
+        }
+
+        var tasks = new List<Task>(handlers.Length);
+        for (var i = 0; i < handlers.Length; i++)
+        {
+            try
+            {
+                var task = handlers[i].Invoke(data);
+                if (task is not null)
+                    tasks.Add(task);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[HybridEvent] Async handler threw synchronously: " + ex);
+            }
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            // Invoke() fire-and-forgets this method, so a faulted handler task
+            // would otherwise surface as an unobserved exception.
+            Console.WriteLine("[HybridEvent] Async handler threw: " + ex);
+        }
     }
 
     // Enable += and -= operators for adding/removing handlers
     public static HybridEvent<TEventData> operator +(HybridEvent<TEventData> handler, Action<TEventData> action)
     {
-        if (handler is null)
-            handler = new HybridEvent<TEventData>();
-        
+        handler ??= new HybridEvent<TEventData>();
         handler.AddHandler(action);
         return handler;
     }
 
     public static HybridEvent<TEventData> operator +(HybridEvent<TEventData> handler, Func<TEventData, Task> action)
     {
-        if (handler is null)
-            handler = new HybridEvent<TEventData>();
-        
+        handler ??= new HybridEvent<TEventData>();
         handler.AddHandler(action);
         return handler;
     }
 
     public static HybridEvent<TEventData> operator -(HybridEvent<TEventData> handler, Action<TEventData> action)
     {
-        if (handler is null)
-            return null;
-        
-        handler.RemoveHandler(action);
+        handler?.RemoveHandler(action);
         return handler;
     }
 
     public static HybridEvent<TEventData> operator -(HybridEvent<TEventData> handler, Func<TEventData, Task> action)
     {
-        if (handler is null)
-            return null;
-        
-        handler.RemoveHandler(action);
+        handler?.RemoveHandler(action);
         return handler;
     }
 
-    // Cleanup everything
     public void Dispose()
     {
-        if (!_init) return;
-
-        lock (_syncLock)
+        lock (_writeLock)
         {
-            if (_syncHandlers is not null)
-            {
-                _syncHandlers.Clear();
-                SyncListPool.Return(_syncHandlers);
-                _syncHandlers = null;
-            }
-        }
-
-        lock (_asyncLock)
-        {
-            if (_asyncHandlers is not null)
-            {
-                _asyncHandlers.Clear();
-                AsyncListPool.Return(_asyncHandlers);
-                _asyncHandlers = null;
-            }
-        }
-
-        _init = false;
-    }
-
-    // Custom object pooling policy for List<T>
-    private class ListPolicy<T> : PooledObjectPolicy<List<T>>
-    {
-        public override List<T> Create() => new List<T>();
-        public override bool Return(List<T> obj)
-        {
-            obj.Clear();  // Clear the list before returning to pool
-            return true;
+            _syncHandlers = NoSyncHandlers;
+            _asyncHandlers = NoAsyncHandlers;
         }
     }
 }
 
 /// <summary>
 /// The hybrid event handler allows a given method signature to be called both
-/// synchronously and asynchronously. Built for efficiency using two separate
-/// lists of delegates, with list pooling to minimize allocations.
+/// synchronously and asynchronously. Handlers are stored in copy-on-write arrays,
+/// so invoking an event takes no lock and allocates nothing when no asynchronous
+/// handlers are registered.
 /// </summary>
 public class HybridEvent : IDisposable
 {
-    // Synchronous and asynchronous handler lists
-    private List<Action> _syncHandlers;
-    private List<Func<Task>> _asyncHandlers;
+    private static readonly Action[] NoSyncHandlers = [];
+    private static readonly Func<Task>[] NoAsyncHandlers = [];
 
-    // Init is false until the handler lists are initialized
-    private volatile bool _init;
+    private Action[] _syncHandlers = NoSyncHandlers;
+    private Func<Task>[] _asyncHandlers = NoAsyncHandlers;
 
-    // Lock object for initialization (separate from handler access locks)
-    private readonly object _initLock = new();
+    // Guards writers only. Readers take a snapshot of the array reference.
+    private readonly object _writeLock = new();
 
-    // Lock object for synchronous and asynchronous handler access
-    private readonly object _syncLock = new();
-    private readonly object _asyncLock = new();
-
-    // Object pool for list reuse
-    // This is static because it is shared across all instances of HybridEvent
-    private static readonly ObjectPool<List<Action>> SyncListPool =
-        new DefaultObjectPool<List<Action>>(new ListPolicy<Action>());
-    private static readonly ObjectPool<List<Func<Task>>> AsyncListPool =
-        new DefaultObjectPool<List<Func<Task>>>(new ListPolicy<Func<Task>>());
-
-    // Object pool for task list
-    private static readonly ObjectPool<List<Task>> TaskListPool =
-        new DefaultObjectPool<List<Task>>(new ListPolicy<Task>());
-
-    private void InitIfNeeded()
-    {
-        if (_init) return;
-
-        // Double-checked locking pattern
-        lock (_initLock)
-        {
-            if (_init) return;
-
-            _syncHandlers = SyncListPool.Get();
-            _asyncHandlers = AsyncListPool.Get();
-            _init = true;
-        }
-    }
-
-    // Add a synchronous handler
     public void AddHandler(Action handler)
     {
-        InitIfNeeded();
-
-        lock (_syncLock)
+        lock (_writeLock)
         {
-            _syncHandlers.Add(handler);
+            _syncHandlers = HandlerArrays.Append(_syncHandlers, handler);
         }
     }
 
-    // Add an asynchronous handler
     public void AddHandler(Func<Task> handler)
     {
-        InitIfNeeded();
-
-        lock (_asyncLock)
+        lock (_writeLock)
         {
-            _asyncHandlers.Add(handler);
+            _asyncHandlers = HandlerArrays.Append(_asyncHandlers, handler);
         }
     }
 
-    // Remove a synchronous handler
     public void RemoveHandler(Action handler)
     {
-        if (!_init) return;
-
-        lock (_syncLock)
+        lock (_writeLock)
         {
-            _syncHandlers?.Remove(handler);
+            _syncHandlers = HandlerArrays.Remove(_syncHandlers, handler);
         }
     }
 
-    // Remove an asynchronous handler
     public void RemoveHandler(Func<Task> handler)
     {
-        if (!_init) return;
-
-        lock (_asyncLock)
+        lock (_writeLock)
         {
-            _asyncHandlers?.Remove(handler);
+            _asyncHandlers = HandlerArrays.Remove(_asyncHandlers, handler);
         }
     }
 
-    // Invoke all synchronous handlers with list pooling to prevent allocation
     private void InvokeSyncHandlers()
     {
-        // Get a pooled list for copying handlers
-        var handlersCopy = SyncListPool.Get();
+        var syncHandlers = Volatile.Read(ref _syncHandlers);
 
-        // Copy handlers while locking to prevent concurrent modifications
-        lock (_syncLock)
+        for (var i = 0; i < syncHandlers.Length; i++)
         {
-            handlersCopy.AddRange(_syncHandlers);  // Copy handlers into pooled list
-        }
-
-        try
-        {
-            // Invoke all handlers. One throwing handler must not stop the rest
-            // or escape to the caller (on fire-and-forget paths that becomes an
-            // unobserved exception, or worse, a fatal one on some hosts).
-            for (int i = 0; i < handlersCopy.Count; i++)
-            {
-                if (handlersCopy[i] is not null)
-                {
-                    try
-                    {
-                        handlersCopy[i].Invoke(); // No allocations, just iterating over the pooled list
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("[HybridEvent] Sync handler threw: " + ex);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            // Clear and return the list to the pool
-            handlersCopy.Clear();
-            SyncListPool.Return(handlersCopy);
-        }
-    }
-
-    // Invoke all asynchronous handlers concurrently with list pooling
-    private async Task InvokeAsyncHandlers()
-    {
-        // Get a pooled list for copying async handlers
-        var handlersCopy = AsyncListPool.Get();
-
-        // Copy handlers while locking to prevent concurrent modifications
-        lock (_asyncLock)
-        {
-            handlersCopy.AddRange(_asyncHandlers);  // Copy async handlers into pooled list
-        }
-        
-        var tasks = TaskListPool.Get();
-
-        try
-        {
-            // Invoke all async handlers in parallel using Task.WhenAll
-            for (int i = 0; i < handlersCopy.Count; i++)
-            {
-                if (handlersCopy[i] is not null)
-                {
-                    try
-                    {
-                        var task = handlersCopy[i].Invoke();
-                        if (task is not null)
-                            tasks.Add(task);  // Add tasks to list
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("[HybridEvent] Async handler threw synchronously: " + ex);
-                    }
-                }
-            }
-
             try
             {
-                await Task.WhenAll(tasks);  // Wait for all async handlers to complete
+                syncHandlers[i].Invoke();
             }
             catch (Exception ex)
             {
-                // Invoke() fire-and-forgets this method, so a faulted handler task
-                // would otherwise surface as an unobserved exception.
-                Console.WriteLine("[HybridEvent] Async handler threw: " + ex);
+                Console.WriteLine("[HybridEvent] Sync handler threw: " + ex);
             }
-        }
-        finally
-        {
-            // Clear and return the list to the pool
-            handlersCopy.Clear();
-            AsyncListPool.Return(handlersCopy);
-            TaskListPool.Return(tasks);
         }
     }
 
-    // Invoke both sync and async handlers
+    private static async Task InvokeAsyncHandlers(Func<Task>[] handlers)
+    {
+        if (handlers.Length == 1)
+        {
+            try
+            {
+                var task = handlers[0].Invoke();
+                if (task is not null)
+                    await task;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[HybridEvent] Async handler threw: " + ex);
+            }
+
+            return;
+        }
+
+        var tasks = new List<Task>(handlers.Length);
+        for (var i = 0; i < handlers.Length; i++)
+        {
+            try
+            {
+                var task = handlers[i].Invoke();
+                if (task is not null)
+                    tasks.Add(task);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[HybridEvent] Async handler threw synchronously: " + ex);
+            }
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[HybridEvent] Async handler threw: " + ex);
+        }
+    }
+
+    /// <summary>
+    /// Schedules synchronous handlers on the thread pool and starts asynchronous
+    /// handlers without waiting for them to finish.
+    /// </summary>
     public void Invoke()
-    { 
-        _ = Task.Run(InvokeSyncHandlers);  // Call synchronous handlers first
-        _ = InvokeAsyncHandlers();  // Then call asynchronous handlers
+    {
+        if (Volatile.Read(ref _syncHandlers).Length > 0)
+            _ = Task.Run(InvokeSyncHandlers);
+
+        var asyncHandlers = Volatile.Read(ref _asyncHandlers);
+        if (asyncHandlers.Length > 0)
+            _ = InvokeAsyncHandlers(asyncHandlers);
     }
 
     // Enable += and -= operators for adding/removing handlers
     public static HybridEvent operator +(HybridEvent handler, Action action)
     {
-        if (handler is null)
-            handler = new HybridEvent();
-        
+        handler ??= new HybridEvent();
         handler.AddHandler(action);
         return handler;
     }
 
     public static HybridEvent operator +(HybridEvent handler, Func<Task> action)
     {
-        if (handler is null)
-            handler = new HybridEvent();
-        
+        handler ??= new HybridEvent();
         handler.AddHandler(action);
         return handler;
     }
 
     public static HybridEvent operator -(HybridEvent handler, Action action)
     {
-        if (handler is null)
-            return null;
-        
-        handler.RemoveHandler(action);
+        handler?.RemoveHandler(action);
         return handler;
     }
 
     public static HybridEvent operator -(HybridEvent handler, Func<Task> action)
     {
-        if (handler is null)
-            return null;
-
-        handler.RemoveHandler(action);
+        handler?.RemoveHandler(action);
         return handler;
     }
 
-    // Cleanup everything
     public void Dispose()
     {
-        if (!_init) return;
-
-        lock (_syncLock)
+        lock (_writeLock)
         {
-            if (_syncHandlers is not null)
-            {
-                _syncHandlers.Clear();
-                SyncListPool.Return(_syncHandlers);
-                _syncHandlers = null;
-            }
-        }
-
-        lock (_asyncLock)
-        {
-            if (_asyncHandlers is not null)
-            {
-                _asyncHandlers.Clear();
-                AsyncListPool.Return(_asyncHandlers);
-                _asyncHandlers = null;
-            }
-        }
-
-        _init = false;
-    }
-
-    // Custom object pooling policy for List<T>
-    private class ListPolicy<T> : PooledObjectPolicy<List<T>>
-    {
-        public override List<T> Create() => new List<T>();
-        public override bool Return(List<T> obj)
-        {
-            obj.Clear();  // Clear the list before returning to pool
-            return true;
+            _syncHandlers = NoSyncHandlers;
+            _asyncHandlers = NoAsyncHandlers;
         }
     }
 }
 
+internal static class HandlerArrays
+{
+    public static T[] Append<T>(T[] source, T item)
+    {
+        var result = new T[source.Length + 1];
+        Array.Copy(source, result, source.Length);
+        result[source.Length] = item;
+        return result;
+    }
 
+    // Removes the first matching handler, like List<T>.Remove.
+    public static T[] Remove<T>(T[] source, T item)
+    {
+        var index = Array.IndexOf(source, item);
+        if (index < 0)
+            return source;
+
+        if (source.Length == 1)
+            return [];
+
+        var result = new T[source.Length - 1];
+        Array.Copy(source, result, index);
+        Array.Copy(source, index + 1, result, index, source.Length - index - 1);
+        return result;
+    }
+}

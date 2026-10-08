@@ -10,8 +10,9 @@ Communities are called planets. Each planet can have chat channels, thread feeds
 wikis, voice and video calls, roles, an economy, and a village where members walk
 around and meet. The client supports tabs, splits, and multiple open conversations.
 
-Use the app at [app.valour.gg](https://app.valour.gg) or visit
-[valour.gg](https://valour.gg) for the public website. The
+Use the app at [app.valour.gg](https://app.valour.gg), install the Android app from
+[Google Play](https://play.google.com/store/apps/details?id=gg.valour.app), or visit
+[valour.gg](https://valour.gg) for the public website and the other downloads. The
 [documentation index](Docs/README.md) covers development, hosting, and architecture.
 
 ## Codebase

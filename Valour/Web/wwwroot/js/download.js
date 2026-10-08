@@ -6,6 +6,7 @@
     // "linux" picks the build that matches the visitor's processor.
     const ASSETS = {
         windows: 'ValourLauncher.exe',
+        mac: 'Valour-macos.dmg',
         android: 'gg.valour.app-Signed.apk',
         'linux-x86_64': 'Valour-linux-x86_64.flatpak',
         'linux-aarch64': 'Valour-linux-aarch64.flatpak'
@@ -80,6 +81,10 @@
             .toLowerCase();
 
         if (platform.includes('android')) return 'android';
+        // iPhones report "like Mac OS X", and iPads ask for the desktop site as
+        // a Mac, so a touch screen marks them. Neither runs the Mac app.
+        if (/iphone|ipad|ipod/.test(platform)) return 'web';
+        if (platform.includes('mac')) return navigator.maxTouchPoints > 1 ? 'web' : 'mac';
         // ChromeOS reports Linux too, but runs the web app rather than Flatpaks.
         if (platform.includes('cros')) return 'web';
         if (platform.includes('win')) return 'windows';
@@ -97,10 +102,11 @@
         const options = picker.querySelectorAll('[data-platform-option]');
         const note = document.querySelector('[data-platform-note]');
         const notes = {
-            windows: 'Recommended for Windows. Also on Linux, Android and in the browser.',
-            linux: 'Recommended for Linux, as a Flatpak. Also on Windows, Android and in the browser.',
-            android: 'Recommended for Android. Also on Windows, Linux and in the browser.',
-            web: 'Works in any modern browser. Apps for Windows, Linux and Android.'
+            windows: 'Recommended for Windows. Also on macOS, Linux, Android and in the browser.',
+            mac: 'Recommended for macOS 14 or later. Also on Windows, Linux, Android and in the browser.',
+            linux: 'Recommended for Linux, as a Flatpak. Also on Windows, macOS, Android and in the browser.',
+            android: 'Recommended for Android, from Google Play. Also on Windows, macOS, Linux and in the browser.',
+            web: 'Works in any modern browser. Apps for Windows, macOS and Linux, and for Android on Google Play.'
         };
 
         options.forEach((option) => {

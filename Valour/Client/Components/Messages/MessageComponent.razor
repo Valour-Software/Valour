@@ -1,5 +1,4 @@
 ﻿@using Microsoft.AspNetCore.Components.Rendering
-@using global::Markdig.Blazor
 @using Valour.Client.Emojis
 @inject ValourClient Client
 @inject ContextMenuService ContextMenuService
@@ -27,23 +26,12 @@ else
     <div class="left-info">
         @if (!Minimal)
         {
-            @if (_message.WebhookId is null && _user.HasAnimatedAvatar)
-            {
-                <style>
-                    .message:hover .avatar-@_user.Id {
-                        background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
-                    }
-                </style>
-            }
-            <div class="avatar-stack">
-                <UserAvatar User="@_user" Member="@_member" OverrideUrl="@GetWebhookAvatar()" Size="38" ShowBadges="@(!_isInnerReply)" OnClick="@OnClickName"/>
-            </div>
+            <UserAvatar User="@_user" Member="@_member" OverrideUrl="@GetWebhookAvatar()" AnimatedUrl="@(_message.WebhookId is null && _user.HasAnimatedAvatar ? _animatedAvatarUrl : null)" Size="38" ShowBadges="@(!_isInnerReply)" OnClick="@OnClickName"/>
         }
-        <div class="time-container">
-            <span class="time" title="@_timeTitle">
-                @_timeText
-            </span>
-        </div>
+        else
+        {
+            <span class="time" title="@_timeTitle">@_timeText</span>
+        }
     </div>
     <div class="content-holder">
 
@@ -59,12 +47,11 @@ else
                     @_name
                 </p>
 
-                <span class="role-name">
-                    &nbsp;- @_nameTag
-                </span>
-                <span class="time" title="@_timeTitle">
-                    (@_timeText)
-                </span>
+                @if (!string.IsNullOrEmpty(_nameTag))
+                {
+                    <span class="role-name">&nbsp;- @_nameTag</span>
+                }
+                <span class="time" title="@_timeTitle">(@_timeText)</span>
                 @if (_message.IsFromBeforeEncryption)
                 {
                     @RenderSealedLabel
@@ -135,7 +122,7 @@ else
                         <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
                             @if (GetReactionSrc(reaction.emoji) is { } reactionSrc)
                             {
-                                <img class="emoji" src="@reactionSrc" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
+                                <img class="emoji" src="@reactionSrc" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)" decoding="async"/>
                             }
                             else
                             {
@@ -299,12 +286,7 @@ else
         builder.AddAttribute(1, "class", "fragments");
         try
         {
-            Markdown.RenderToFragment(
-                _message.Content,
-                builder,
-                MarkdownManager.Pipeline,
-                MarkdownManager.Renderer,
-                this);
+            MarkdownManager.RenderToFragment(_message.Content, builder, this);
         } catch (Exception e)
         {
             Client.Logger.Log("Message", "Error rendering message: " + e.Message, "red");
@@ -424,9 +406,7 @@ else
 
     private string _nameColor = "#ffffff";
     private string _nameTag = "Default";
-    private string _avatarUrl = "";
     private string _animatedAvatarUrl = "";
-    private string _fallbackAvatarUrl = "";
     private string _name = "User not Found";
 
     private string _timeTitle = "";
@@ -1002,9 +982,7 @@ else
         _name = GetAuthorName();
         _nameColor = GetAuthorColor();
         _nameTag = GetAuthorRoleTag();
-        _avatarUrl = GetAuthorAvatar();
         _animatedAvatarUrl = GetAuthorAvatarAnimated();
-        _fallbackAvatarUrl = GetAuthorAvatarUrlFallback();
         CalculateClassAndStyles();
 
         _isBuilt = true;
@@ -1226,7 +1204,6 @@ else
             eventData.Changes.On(x => x.Version))
         {
             render = true;
-            _avatarUrl = GetAuthorAvatar();
 
             if (_user.HasAnimatedAvatar)
             {
@@ -1253,7 +1230,6 @@ else
         if (eventData.Changes.On(x => x.MemberAvatar))
         {
             render = true;
-            _avatarUrl = GetAuthorAvatar();
             
             if (_user.HasAnimatedAvatar)
             {

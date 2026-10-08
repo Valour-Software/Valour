@@ -16,7 +16,7 @@
 }
 
 <div class="invite-attachment">
-    <img class="icon" src="@_imageUrl" alt="@_data.Name icon" @onerror="OnIconError" />
+    <img class="icon" src="@_imageUrl" alt="@_data.Name icon" loading="lazy" decoding="async" @onerror="OnIconError" />
     <span class="name">@_data.Name</span>
     <button class="v-btn primary" @onclick="OnJoin">Join</button>
 </div>

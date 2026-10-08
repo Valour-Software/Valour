@@ -94,47 +94,34 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    private bool ValuesDiffer(object? a, object? b)
-    {
-        if (a is null)
-            return b is not null;
-        return b is null || !a.Equals(b);
-    }
-    
     protected virtual ModelUpdatedEvent<TModel> HandleChanges(TModel existing, TModel updated)
     {
-        Dictionary<string, object>? changes = null;
-        
-        var type = existing.GetType();
-        var properties = ModelUpdateUtils.ModelPropertyCache[type];
-        var getters = ModelUpdateUtils.ModelGetterCache[type];
-        var setters = ModelUpdateUtils.ModelSetterCache[type];
-    
-        for (var i = 0; i < properties.Length; i++)
-        {
-            var prop = properties[i];
-            var a = getters[i](existing);
-            var b = getters[i](updated);
+        var changes = ModelUpdateUtils.CopyChanges(existing, updated);
 
-            if (ValuesDiffer(a, b))
-            {
-                if (changes is null)
-                    changes = ModelUpdateUtils.ChangeDictPool.Get();
-                
-                var factory = ChangeFactoryCache.GetOrAddFactory(prop.PropertyType);
-                var change = factory(a, b);
-                changes[prop.Name] = change;
-            }
-
-            // Apply the change to the existing model
-            setters[i](existing, b);
-        }
-        
-        return changes is null ? 
+        return changes is null ?
             new ModelUpdatedEvent<TModel>(existing, null) :
             new ModelUpdatedEvent<TModel>(existing, new ModelChange<TModel>(changes));
     }
-    
+
+    /// <summary>
+    /// Places a newly added model in the list. Called while holding the lock.
+    /// </summary>
+    protected virtual void InsertNew(TModel model, ModelInsertFlags flags)
+    {
+        List.Add(model);
+    }
+
+    protected int IndexOfReference(TModel model)
+    {
+        for (var i = 0; i < List.Count; i++)
+        {
+            if (ReferenceEquals(List[i], model))
+                return i;
+        }
+
+        return -1;
+    }
+
     public TModel? Put(TModel model, ModelInsertFlags flags = ModelInsertFlags.None)
     {
         var result = PutInternal(model, flags, null);
@@ -181,7 +168,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             else
             {
                 isUpdate = false;
-                List.Add(model);
+                InsertNew(model, flags);
                 IdMap[key] = model;
                 result = new ModelAddedEvent<TModel>(model);
             }
@@ -235,8 +222,9 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             IdMap.Remove(key);
 
             // Get index of item in list
-            var index = List.FindIndex(x => ReferenceEquals(x, item));
-            List.RemoveAt(index);
+            var index = IndexOfReference(item);
+            if (index >= 0)
+                List.RemoveAt(index);
         }
 
         if (item is null)
@@ -411,70 +399,51 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
         return baseResult;
     }
 
+    protected override void InsertNew(TModel model, ModelInsertFlags flags)
+    {
+        if (flags.HasFlag(ModelInsertFlags.SkipSorting))
+        {
+            List.Add(model);
+            return;
+        }
+
+        var index = List.BinarySearch(model, ISortable.Comparer);
+        if (index < 0) index = ~index;
+
+        List.Insert(index, model);
+    }
+
     protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags, string? scope)
     {
         // Always skip events in base - we'll fire them after repositioning
-        var baseFlags = flags | ModelInsertFlags.SkipEvents;
-        var baseResult = base.PutInternal(model, baseFlags, scope);
+        var baseResult = base.PutInternal(model, flags | ModelInsertFlags.SkipEvents, scope);
         if (baseResult is null)
             return null;
 
-        // Don't bother positioning the item properly if we're skipping sorting
-        if (flags.HasFlag(ModelInsertFlags.SkipSorting))
+        if (baseResult is ModelUpdatedEvent<TModel> updateEvent)
         {
-            // Still need to fire events if not skipping
-            if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
+            if (updateEvent.Changes is null && updateEvent.PositionChange is null)
             {
-                FireEventsForResult(baseResult);
-            }
-            return baseResult;
-        }
-
-        bool doRemoval = false;
-        ModelUpdatedEvent<TModel>? updateEvent = null;
-        ModelAddedEvent<TModel>? addEvent = null;
-
-        switch (baseResult)
-        {
-            case ModelUpdatedEvent<TModel> update:
-                updateEvent = update;
-                if (updateEvent.Changes is null && updateEvent.PositionChange is null)
-                {
-                    // Nothing actually changed - skip events entirely
-                    return baseResult;
-                }
-                if (updateEvent.PositionChange is null)
-                {
-                    // No position change - just fire events and return
-                    if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
-                    {
-                        FireEventsForResult(baseResult);
-                    }
-                    return baseResult;
-                }
-                doRemoval = true;
-                break;
-            case ModelAddedEvent<TModel> add:
-                addEvent = add;
-                doRemoval = true;
-                break;
-        }
-
-        var resultModel = baseResult.GetModel();
-
-        // Reposition within lock
-        lock (SyncLock)
-        {
-            if (doRemoval)
-            {
-                var index = List.FindIndex(x => ReferenceEquals(x, resultModel));
-                List.RemoveAt(index);
+                // Nothing actually changed - skip events entirely
+                return baseResult;
             }
 
-            var newIndex = List.BinarySearch(resultModel, ISortable.Comparer);
-            if (newIndex < 0) newIndex = ~newIndex;
+            if (updateEvent.PositionChange is not null && !flags.HasFlag(ModelInsertFlags.SkipSorting))
+            {
+                var updated = updateEvent.GetModel();
 
-            List.Insert(newIndex, resultModel);
+                lock (SyncLock)
+                {
+                    var index = IndexOfReference(updated);
+                    if (index >= 0)
+                        List.RemoveAt(index);
+
+                    var newIndex = List.BinarySearch(updated, ISortable.Comparer);
+                    if (newIndex < 0) newIndex = ~newIndex;
+
+                    List.Insert(newIndex, updated);
+                }
+            }
         }
 
         // Fire events outside lock

@@ -68,13 +68,18 @@ models belonging to another community origin. See
 
 `ModelStore<TModel, TId>` maintains a list for iteration and a dictionary for
 lookup. `Put` inserts a new object or updates an existing one in place. Change
-detection uses property metadata and cached getter/setter delegates from
-`ModelUpdateUtils`. Properties marked `IgnoreRealtimeChanges` are excluded.
+detection uses accessors that `ModelUpdateUtils` builds the first time a model
+type is updated. Properties marked `IgnoreRealtimeChanges` are excluded.
 
-A change record contains the old and new values for each changed property.
-`SortedModelStore<TModel, TId>` also tracks sort-position changes and repositions
-the model before publishing its events. Models in that store implement
-`ISortable`.
+A property counts as changed when its value differs by content. Byte arrays and
+lists of numbers or strings are compared element by element, so a model that is
+synchronized again with identical data produces no update event. A change record
+contains the old and new values for each changed property, and an update with no
+changed properties publishes no store or model update events.
+
+`SortedModelStore<TModel, TId>` inserts new models at their sorted position and
+repositions an updated model when its sort position changes, before publishing
+its events. Models in that store implement `ISortable`.
 
 | Event | Meaning |
 | --- | --- |
@@ -107,9 +112,11 @@ transaction merely because each operation is synchronized.
 ## HybridEvent
 
 `HybridEvent<T>` accepts both `Action<T>` and `Func<T, Task>` handlers. The
-parameterless `HybridEvent` has the corresponding parameterless forms. Handler
-lists are initialized under a lock. Invocation copies the lists under their own
-locks, then calls handlers after releasing those locks.
+parameterless `HybridEvent` has the corresponding parameterless forms. Handlers
+are stored in arrays that are replaced whenever a handler is added or removed.
+Adding and removing take a lock, but invocation reads the current arrays without
+locking and allocates nothing when there are no asynchronous handlers. A handler
+added or removed during an invocation takes effect on the next invocation.
 
 `Invoke` runs synchronous handlers first and starts asynchronous handlers without
 waiting for them to finish. The asynchronous invocation observes their tasks and
@@ -117,10 +124,9 @@ logs failures. Calling `Invoke` therefore does not establish that asynchronous
 work has completed. Use an explicitly awaited method when later work depends on
 completion.
 
-The event implementation pools handler snapshots and task lists. Model change
-dictionaries are also pooled. Read the values a handler needs before handing work
-to another task, and keep those values rather than retaining a change dictionary.
-Do not dispose a shared change record while another subscriber may still use it.
+A synchronous handler that throws is logged and does not stop later handlers.
+Model change dictionaries are ordinary objects created for each update and shared
+by all subscribers of that update. Treat them as read-only, and do not dispose them.
 
 ## Subscribing from components
 
@@ -205,8 +211,8 @@ the sidebar.
 - `Valour/Sdk/ModelLogic/ClientModel.cs`: model ownership, synchronization, and CRUD.
 - `Valour/Sdk/ModelLogic/ModelStore.cs`: stores, events, scope keys, and sorting.
 - `Valour/Sdk/ModelLogic/ModelChange.cs`: typed property changes.
-- `Valour/Sdk/ModelLogic/ModelUpdateUtils.cs`: cached property accessors.
+- `Valour/Sdk/ModelLogic/ModelUpdateUtils.cs`: per-type property accessors and value comparison.
 - `Valour/Sdk/Nodes/Node.cs`: transport, validation, and reconnection.
-- `Valour/Shared/Utilities/HybridEvent.cs`: handler invocation and pooling.
+- `Valour/Shared/Utilities/HybridEvent.cs`: handler storage and invocation.
 - `Valour/Server/Hubs/CoreHub.cs`: authenticated real-time methods.
 - `Valour/Server/Services/CoreHubService.cs`: notification delivery.

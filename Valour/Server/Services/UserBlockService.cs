@@ -160,21 +160,15 @@ public class UserBlockService
     /// </summary>
     public async Task<HashSet<long>> GetEffectiveHiddenUserIdsAsync(long userId)
     {
-        // Users this user has blocked (any type)
-        var blockedByMe = await _db.UserBlocks
-            .Where(x => x.UserId == userId)
-            .Select(x => x.BlockedUserId)
+        // One query: rows the user created (any type) yield the blocked user,
+        // rows blocking the user two-way yield the blocker.
+        var ids = await _db.UserBlocks
+            .Where(x => x.UserId == userId ||
+                        (x.BlockedUserId == userId && x.BlockType == BlockType.TwoWay))
+            .Select(x => x.UserId == userId ? x.BlockedUserId : x.UserId)
             .ToListAsync();
 
-        // Users who have two-way blocked this user
-        var twoWayBlockedMe = await _db.UserBlocks
-            .Where(x => x.BlockedUserId == userId && x.BlockType == BlockType.TwoWay)
-            .Select(x => x.UserId)
-            .ToListAsync();
-
-        var hidden = new HashSet<long>(blockedByMe);
-        foreach (var id in twoWayBlockedMe)
-            hidden.Add(id);
+        var hidden = new HashSet<long>(ids);
 
         return hidden;
     }

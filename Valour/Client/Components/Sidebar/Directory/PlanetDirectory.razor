@@ -13,8 +13,7 @@
     class="@GetCssClass()" 
     id="list-@Planet.Id"
     @oncontextpress="@OnContextPress">
-    <div class="header-wrapper" style="cursor:pointer" id="list-inner-@Planet.Id">
-        <div @onclick='@OnClick' class="header @(_hasUnread ? "unread" : "")" @ondragover:preventDefault="true">
+    <div @onclick='@OnClick' class="header @(_hasUnread ? "unread" : "")" @ondragover:preventDefault="true">
             <div class="header-sky" aria-hidden="true">
                 <NebulaSky Seed="@_seed" Intensity="0.95" Scale="1.3" FocusX="0.78" FocusY="0.45" Spread="0.5" Stars="90" />
                 <PlanetGlobe Seed="@_seed" Plain="true" Radius="1.15" CenterX="0.9" CenterY="1.05" Lights="@_lights" />
@@ -41,9 +40,7 @@
             <div class="right">
                 @if (_notifications > 0)
                 {
-                    <div class="notif-badge">
-                        <span>@_notifications</span>
-                    </div>
+                    <div class="notif-badge">@_notifications</div>
                 }
                 <i class="bi bi-chevron-down chevron @(Open ? "" : "closed")" aria-hidden="true"></i>
                 
@@ -54,7 +51,6 @@
                     </div>
                 }
             </div>
-        </div>
     </div>
     <div class="channel-list @(Open ? "open" : "")">
         <div class="channel-list-inner">
@@ -67,7 +63,7 @@
                     }
                     @if (_activeCount >= 0)
                     {
-                        <span class="@(_activeCount > 0 ? "live" : "")"><span class="dot"></span>@_activeCount active</span>
+                        <span class="active @(_activeCount > 0 ? "live" : "")">@_activeCount active</span>
                     }
                 </div>
             }
@@ -247,13 +243,24 @@
 
     private void OnChannelsChanged(IModelEvent<Channel> eventData)
     {
+        if (eventData is ModelUpdatedEvent<Channel> { Changes: not null, PositionChange: null } updated &&
+            !AffectsRootChannels(updated.Changes))
+            return;
+
         InvokeAsync(() =>
         {
-            Console.WriteLine("Channels changed");
             DetermineRootChannels();
             StateHasChanged();
         });
     }
+
+    private static bool AffectsRootChannels(ModelChange<Channel> changes) =>
+        changes.On(x => x.ParentId) ||
+        changes.On(x => x.ChannelType) ||
+        changes.On(x => x.AssociatedChatChannelId) ||
+        changes.On(x => x.Name) ||
+        changes.On(x => x.RawPosition) ||
+        changes.On(x => x.LocalPosition);
     
     public bool GetVisible(Channel channel)
     {

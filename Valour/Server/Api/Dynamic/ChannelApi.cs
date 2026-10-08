@@ -643,7 +643,7 @@ public class ChannelApi
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
 
-        var messages = await messageService.GetChannelMessagesAsync(planetId, channelId, count, index);
+        var messages = await messageService.GetChannelMessagesAsync(channel, count, index);
 
         // Filter out messages from blocked users
         var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
@@ -686,7 +686,7 @@ public class ChannelApi
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
 
-        var messages = await messageService.GetChannelMessagesAfterAsync(planetId, channelId, afterId, count);
+        var messages = await messageService.GetChannelMessagesAfterAsync(channel, afterId, count);
 
         // Filter out messages from blocked users
         var hidden = await userBlockService.GetEffectiveHiddenUserIdsAsync(token.UserId);
