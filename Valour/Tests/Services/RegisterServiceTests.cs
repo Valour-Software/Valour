@@ -57,6 +57,33 @@ public class RegisterServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task RegisterUser_FromIosAppStartsWithNsfwHidden()
+    {
+        var request = BuildValidRequest();
+        request.HideNsfw = true;
+
+        var result = await _registerService.RegisterUserAsync(request, new DefaultHttpContext(), skipEmail: true);
+        Assert.True(result.Success, result.Message);
+        _createdUsers.Add(result.Data);
+
+        var prefs = await _db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.Id == result.Data.Id);
+        Assert.NotNull(prefs);
+        Assert.False(prefs.ShowNsfw);
+    }
+
+    [Fact]
+    public async Task RegisterUser_ElsewhereShowsNsfwByDefault()
+    {
+        var result = await _registerService.RegisterUserAsync(BuildValidRequest(), new DefaultHttpContext(), skipEmail: true);
+        Assert.True(result.Success, result.Message);
+        _createdUsers.Add(result.Data);
+
+        // Preferences are created on first read, with NSFW content shown.
+        var prefs = await Valour.Server.Api.Dynamic.UserApi.EnsurePreferencesAsync(result.Data.Id, _db);
+        Assert.True(prefs.ShowNsfw);
+    }
+
+    [Fact]
     public async Task RegisterUser_TexasResidencyAttestationRequired()
     {
         var request = BuildValidRequest();
