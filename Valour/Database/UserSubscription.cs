@@ -73,6 +73,24 @@ namespace Valour.Database
         public DateTime? GooglePlayExpiry { get; set; }
 
         /// <summary>
+        /// The App Store original transaction ID, if this subscription is billed
+        /// through the App Store. It stays the same across renewals and plan
+        /// changes within the Stargazer subscription group.
+        /// </summary>
+        public string AppStoreOriginalTransactionId { get; set; }
+
+        /// <summary>
+        /// The most recent App Store transaction for this subscription. A new
+        /// transaction ID for the same product means the subscription renewed.
+        /// </summary>
+        public string AppStoreTransactionId { get; set; }
+
+        /// <summary>
+        /// When the current App Store billing period ends
+        /// </summary>
+        public DateTime? AppStoreExpiry { get; set; }
+
+        /// <summary>
         /// True if the most recent Stripe or Google Play payment attempt failed
         /// </summary>
         public bool StripePaymentFailed { get; set; }
@@ -147,6 +165,19 @@ namespace Valour.Database
                         x => x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
                     );
 
+                e.Property(x => x.AppStoreOriginalTransactionId)
+                    .HasColumnName("app_store_original_transaction_id");
+
+                e.Property(x => x.AppStoreTransactionId)
+                    .HasColumnName("app_store_transaction_id");
+
+                e.Property(x => x.AppStoreExpiry)
+                    .HasColumnName("app_store_expiry")
+                    .HasConversion(
+                        x => x,
+                        x => x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
+                    );
+
                 e.Property(x => x.PendingType)
                     .HasColumnName("pending_type");
 
@@ -157,6 +188,9 @@ namespace Valour.Database
 
                 // Indices
                 e.HasIndex(x => x.GooglePlayPurchaseToken)
+                    .IsUnique();
+
+                e.HasIndex(x => x.AppStoreOriginalTransactionId)
                     .IsUnique();
             });
         }

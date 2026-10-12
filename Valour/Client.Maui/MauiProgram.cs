@@ -110,6 +110,11 @@ public static class MauiProgram
 #elif IOS || MACCATALYST
         builder.Services.AddSingleton<AppleNotificationService>();
 #endif
+#if IOS && !MACCATALYST
+        // App Store rules require In-App Purchase for digital goods in the iOS
+        // app. The Mac app is distributed outside the App Store and uses Stripe.
+        builder.Services.AddSingleton<IStoreBillingService, AppStoreBillingService>();
+#endif
         // Native clients should talk directly to the API host.
         builder.Services.AddValourClientServices(ApiBaseAddress());
 

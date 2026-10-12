@@ -66,7 +66,9 @@ else
                     {
                         <span class="banner-warning">@(IsGooglePlaySub
                             ? "Your last Google Play payment failed. Update your payment method in Google Play."
-                            : "Your last payment failed. Please update your payment method.")</span>
+                            : IsAppStoreSub
+                                ? "Your last App Store payment failed. Update your payment method in your Apple account."
+                                : "Your last payment failed. Please update your payment method.")</span>
                     }
                     @if (_activeSub.Cancelled && !IsVcSub)
                     {
@@ -82,7 +84,7 @@ else
                     {
                         <button class="v-btn" @onclick="OnClickCancelPending">Undo downgrade</button>
                     }
-                    @if (IsGooglePlaySub && _store is not null)
+                    @if (IsThisStoreSub)
                     {
                         <button class="v-btn" @onclick="OnClickManageStoreSubscription">Manage in @_store.StoreName</button>
                     }
@@ -90,8 +92,9 @@ else
                     {
                         <button class="v-btn primary" @onclick="OnClickReactivate">Reactivate</button>
                     }
-                    else if (!_activeSub.Cancelled)
+                    else if (!_activeSub.Cancelled && !IsAppStoreSub)
                     {
+                        @* App Store subscriptions are cancelled with Apple, through Manage. *@
                         @if (!_confirmingCancel)
                         {
                             <button class="v-btn danger" @onclick="() => { _confirmingCancel = true; StateHasChanged(); }">Cancel subscription</button>
@@ -158,7 +161,7 @@ else
                         {
                             <span class="tier-price-usd"><span class="amount">$@((tier.StripePriceCents / 100m).ToString("0.00"))</span> / month</span>
                         }
-                        else if (GetStorePrice(tier.GooglePlayProductId) is { } storePrice)
+                        else if (GetStorePrice(_store.GetProductId(tier)) is { } storePrice)
                         {
                             <span class="tier-price-usd"><span class="amount">@storePrice</span> / month</span>
                         }
@@ -212,12 +215,13 @@ else
                             @if (_store is not null)
                             {
                                 <button class="v-btn secondary" @onclick="() => OnClickStoreSubscribe(tier)">
-                                    Subscribe with @_store.StoreName (@(GetStorePrice(tier.GooglePlayProductId) ?? "price unavailable") / month + @(tier.VcReward) VC reward)
+                                    Subscribe with @_store.StoreName (@(GetStorePrice(_store.GetProductId(tier)) ?? "price unavailable") / month + @(tier.VcReward) VC reward)
                                 </button>
                                 @if (IsStripeSub)
                                 {
                                     <span class="upgrade-note">Your current plan is billed by card. Cancel it first so you are not billed twice.</span>
                                 }
+                                @StoreTerms
                             }
                             else
                             {
@@ -242,12 +246,13 @@ else
                             {
                                 <span class="upgrade-note">@billingNote</span>
                             }
-                            else if (IsGooglePlaySub)
+                            else if (IsThisStoreSub)
                             {
                                 <button class="v-btn primary" @onclick="() => OnClickStoreSubscribe(tier)">
-                                    Upgrade in @_store.StoreName (@(GetStorePrice(tier.GooglePlayProductId) ?? "price unavailable") / month)
+                                    Upgrade in @_store.StoreName (@(GetStorePrice(_store.GetProductId(tier)) ?? "price unavailable") / month)
                                 </button>
                                 <span class="upgrade-note">The new plan starts now. Time left on your current plan is credited toward it.</span>
+                                @StoreTerms
                             }
                             else if (IsStripeSub)
                             {
@@ -291,12 +296,15 @@ else
                             {
                                 <span class="upgrade-note">@billingNote</span>
                             }
-                            else if (IsGooglePlaySub)
+                            else if (IsThisStoreSub)
                             {
                                 <button class="v-btn primary" @onclick="() => OnClickStoreSubscribe(tier)">
-                                    Downgrade in @_store.StoreName (@(GetStorePrice(tier.GooglePlayProductId) ?? "price unavailable") / month)
+                                    Downgrade in @_store.StoreName (@(GetStorePrice(_store.GetProductId(tier)) ?? "price unavailable") / month)
                                 </button>
-                                <span class="upgrade-note">The new plan starts now. Time left on your current plan is credited toward it.</span>
+                                <span class="upgrade-note">@(IsAppStoreSub
+                                    ? "The new plan starts at your next renewal."
+                                    : "The new plan starts now. Time left on your current plan is credited toward it.")</span>
+                                @StoreTerms
                             }
                             else if (IsStripeSub)
                             {
@@ -348,6 +356,14 @@ else
                 </div>
             }
         </div>
+
+        @if (_store?.SupportsRestore == true)
+        {
+            <div class="store-restore">
+                <button type="button" class="v-btn" @onclick="OnClickRestorePurchases">Restore purchases</button>
+                <span class="helper-text">Subscribed on another device with the same store account? Restore it here.</span>
+            </div>
+        }
     </div>
 
     @* Buy VC Credits *@
@@ -365,7 +381,7 @@ else
         @if (_store is not null)
         {
             <div class="vc-grid">
-                @foreach (var (productId, credits) in GooglePlayProducts.CreditPacks)
+                @foreach (var (productId, credits) in _store.CreditPacks)
                 {
                     <button type="button" class="vc-card" @onclick="() => OnClickStoreBuyCredits(productId)">
                         <span class="vc-amount">@credits VC</span>
@@ -439,7 +455,11 @@ else
 
     private bool IsStripeSub => _activeSub?.StripeSubscriptionId is not null;
     private bool IsGooglePlaySub => _activeSub?.GooglePlayPurchaseToken is not null;
-    private bool IsVcSub => _activeSub is not null && !IsStripeSub && !IsGooglePlaySub;
+    private bool IsAppStoreSub => _activeSub?.AppStoreOriginalTransactionId is not null;
+    private bool IsVcSub => _activeSub is not null && !IsStripeSub && !IsGooglePlaySub && !IsAppStoreSub;
+
+    // Billed by the store this build sells through, so it can be changed here.
+    private bool IsThisStoreSub => _activeSub is not null && _store?.Bills(_activeSub) == true;
 
     private static readonly List<UserSubscriptionType> _allTiers = new()
     {
@@ -723,6 +743,57 @@ else
         }
     }
 
+    // App stores require subscription offers to state how renewal works and to
+    // link the terms of use and privacy policy beside the purchase button.
+    private static readonly RenderFragment StoreTerms = @<span class="upgrade-note">
+        Renews monthly until you cancel in your store account's subscription settings.
+        <a href="https://valour.gg/terms/" target="_blank" rel="noopener noreferrer">Terms of Use</a>
+        &middot;
+        <a href="https://valour.gg/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+    </span>;
+
+    private async Task OnClickRestorePurchases()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            _errorSpan = null;
+            StateHasChanged();
+
+            var purchases = await _store.RestorePurchasesAsync();
+            var restored = 0;
+            string failure = null;
+            foreach (var purchase in purchases)
+            {
+                var result = await ClaimStorePurchaseAsync(purchase);
+                if (result.Success)
+                    restored++;
+                else
+                    failure ??= result.Message;
+            }
+
+            _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
+            Client.Me.SubscriptionType = _activeSub?.Type;
+            _globalAccount = await Client.EcoService.GetSelfGlobalAccountAsync();
+
+            _page = SubPage.Result;
+            _resultTitle = restored > 0 ? "Purchases restored" : "Nothing to restore";
+            _resultMessage = restored > 0
+                ? "Your purchases from this account were added to Valour."
+                : failure ?? "There are no purchases to restore for this account.";
+        }
+        catch (Exception)
+        {
+            _errorSpan = "Could not restore purchases. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task OnClickCancelPending()
     {
         if (_busy) return;
@@ -772,9 +843,7 @@ else
         }
     }
 
-    private Task<TaskResult> ClaimStorePurchaseAsync(StorePurchase purchase) => purchase.IsSubscription
-        ? Client.SubscriptionService.ClaimGooglePlaySubscriptionAsync(purchase.ProductId, purchase.PurchaseToken)
-        : Client.SubscriptionService.ClaimGooglePlayCreditsAsync(purchase.ProductId, purchase.PurchaseToken);
+    private Task<TaskResult> ClaimStorePurchaseAsync(StorePurchase purchase) => _store.ReportAsync(Client, purchase);
 
     private string GetStorePrice(string productId) =>
         productId is not null && _storePrices.TryGetValue(productId, out var price) ? price : null;
@@ -786,8 +855,11 @@ else
     /// </summary>
     private string GetExternalBillingNote()
     {
-        if (IsGooglePlaySub && _store is null)
+        if (IsGooglePlaySub && !IsThisStoreSub)
             return "Your plan is billed through Google Play. Change it in the Valour Android app.";
+
+        if (IsAppStoreSub && !IsThisStoreSub)
+            return "Your plan is billed through the App Store. Change it in the Valour iOS app.";
 
         if (IsStripeSub && _store is not null)
             return $"Your plan is billed by card. Change it at {ValourHosts.AppHost}.";
@@ -804,7 +876,7 @@ else
             _errorSpan = null;
             StateHasChanged();
 
-            var result = await _store.PurchaseAsync(tier.GooglePlayProductId, true, Client.Me.Id);
+            var result = await _store.PurchaseAsync(_store.GetProductId(tier), true, Client.Me.Id);
             await HandleStorePurchaseAsync(result,
                 "Subscription activated!", $"Your {tier.Name} subscription is now active. Thank you for supporting Valour!");
         }
@@ -829,7 +901,7 @@ else
 
             var result = await _store.PurchaseAsync(productId, false, Client.Me.Id);
             await HandleStorePurchaseAsync(result,
-                "Thank you for your purchase!", $"{GooglePlayProducts.CreditPacks[productId]} Valour Credits were added to your account.");
+                "Thank you for your purchase!", $"{_store.CreditPacks[productId]} Valour Credits were added to your account.");
         }
         catch (Exception)
         {
@@ -889,8 +961,8 @@ else
 
     private async Task OnClickManageStoreSubscription()
     {
-        var productId = UserSubscriptionTypes.TypeMap.GetValueOrDefault(_activeSub.Type)?.GooglePlayProductId;
-        await _store.OpenManageSubscriptionAsync(productId);
+        var tier = UserSubscriptionTypes.TypeMap.GetValueOrDefault(_activeSub.Type);
+        await _store.OpenManageSubscriptionAsync(tier is null ? null : _store.GetProductId(tier));
     }
 
     private TierAction GetTierAction(UserSubscriptionType tier)
@@ -974,6 +1046,8 @@ else
             return "Billed monthly via Stripe";
         if (IsGooglePlaySub)
             return "Billed monthly via Google Play";
+        if (IsAppStoreSub)
+            return "Billed monthly via the App Store";
         return "Billed monthly in VC";
     }
 

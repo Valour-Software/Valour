@@ -255,3 +255,11 @@
         width: 100%;
     }
 }
+
+.store-restore {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-top: 12px;
+}

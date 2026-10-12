@@ -107,6 +107,30 @@ public class SubscriptionService
         return result.Data;
     }
 
+    /// <summary>
+    /// Reports an App Store subscription transaction so the server can verify and record it
+    /// </summary>
+    public async Task<TaskResult> ClaimAppStoreSubscriptionAsync(string productId, string transactionId)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<TaskResult>("api/app-store/subscriptions",
+            new AppStorePurchaseRequest { ProductId = productId, TransactionId = transactionId });
+        if (!result.Success)
+            return new TaskResult(false, result.Message);
+        return result.Data;
+    }
+
+    /// <summary>
+    /// Reports an App Store Valour Credits purchase so the server can verify it and deposit the credits
+    /// </summary>
+    public async Task<TaskResult> ClaimAppStoreCreditsAsync(string productId, string transactionId)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<TaskResult>("api/app-store/credits",
+            new AppStorePurchaseRequest { ProductId = productId, TransactionId = transactionId });
+        if (!result.Success)
+            return new TaskResult(false, result.Message);
+        return result.Data;
+    }
+
     private class StripeChangeResult
     {
         public bool Success { get; set; }

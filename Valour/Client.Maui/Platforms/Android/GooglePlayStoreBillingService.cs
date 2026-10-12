@@ -27,6 +27,24 @@ public class GooglePlayStoreBillingService : Java.Lang.Object, IStoreBillingServ
 
     public string StoreName => "Google Play";
 
+    public string GetProductId(UserSubscriptionType tier) => tier.GooglePlayProductId;
+
+    public IReadOnlyDictionary<string, int> CreditPacks => GooglePlayProducts.CreditPacks;
+
+    public bool Bills(Valour.Sdk.Models.UserSubscription subscription) => subscription?.GooglePlayPurchaseToken is not null;
+
+    // Google Play reports purchases from every device through QueryPurchases,
+    // so there is nothing separate to restore.
+    public bool SupportsRestore => false;
+
+    public Task<IReadOnlyList<StorePurchase>> RestorePurchasesAsync() => GetUnfinishedPurchasesAsync();
+
+    // The server acknowledges subscriptions and consumes credit packs itself.
+    public Task<Valour.Shared.TaskResult> ReportAsync(Valour.Sdk.Client.ValourClient client, StorePurchase purchase) =>
+        purchase.IsSubscription
+            ? client.SubscriptionService.ClaimGooglePlaySubscriptionAsync(purchase.ProductId, purchase.PurchaseToken)
+            : client.SubscriptionService.ClaimGooglePlayCreditsAsync(purchase.ProductId, purchase.PurchaseToken);
+
     private async Task<BillingClient> ConnectAsync()
     {
         await _connectLock.WaitAsync();

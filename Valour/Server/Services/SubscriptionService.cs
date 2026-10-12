@@ -97,6 +97,11 @@ public class SubscriptionService
             return new TaskResult(false, "Your subscription is billed through Google Play. Change it in the Valour Android app.");
         }
 
+        if (currentSub is not null && currentSub.AppStoreOriginalTransactionId != null)
+        {
+            return new TaskResult(false, "Your subscription is billed through the App Store. Change it in the Valour iOS app.");
+        }
+
         // If user selects their current tier while a pending change exists, cancel the pending change
         if (currentSub is not null && currentNormalizedType == normalizedSubType && !currentSub.Cancelled)
         {
@@ -234,6 +239,10 @@ public class SubscriptionService
         if (user is null)
             return new TaskResult(false, "Could not find user.");
 
+        // Apple has no API to stop a renewal, so the person cancels it with Apple.
+        if (currentSub.AppStoreOriginalTransactionId is not null)
+            return new TaskResult(false, "Your subscription is billed through the App Store. Cancel it in your Apple account's subscription settings.");
+
         if (currentSub.GooglePlayPurchaseToken is not null)
         {
             var playResult = await _googlePlay.CancelSubscriptionAsync(currentSub);
@@ -270,7 +279,8 @@ public class SubscriptionService
         var now = DateTime.UtcNow;
 
         var activeVcSubs = await _db.UserSubscriptions
-            .Where(x => x.Active && x.StripeSubscriptionId == null && x.GooglePlayPurchaseToken == null)
+            .Where(x => x.Active && x.StripeSubscriptionId == null && x.GooglePlayPurchaseToken == null &&
+                        x.AppStoreOriginalTransactionId == null)
             .ToListAsync();
 
         var dueSubs = activeVcSubs
@@ -438,6 +448,9 @@ public class SubscriptionService
 
         if (currentSub.GooglePlayPurchaseToken is not null)
             return new TaskResult(false, "Change your Google Play subscription in Google Play.");
+
+        if (currentSub.AppStoreOriginalTransactionId is not null)
+            return new TaskResult(false, "Change your App Store subscription in your Apple account's subscription settings.");
 
         // If Stripe-managed, revert the price on Stripe back to the current tier
         if (!string.IsNullOrEmpty(currentSub.StripeSubscriptionId))

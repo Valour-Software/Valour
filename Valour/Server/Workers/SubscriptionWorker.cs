@@ -43,6 +43,10 @@ public class SubscriptionWorker : IHostedService, IDisposable
         // catch Google Play renewals and expirations whose notifications were missed
         var googlePlay = scope.ServiceProvider.GetRequiredService<GooglePlayBillingService>();
         await googlePlay.RefreshLapsedSubscriptionsAsync();
+
+        // and the same for the App Store
+        var appStore = scope.ServiceProvider.GetRequiredService<AppStoreBillingService>();
+        await appStore.RefreshLapsedSubscriptionsAsync();
         }
         catch (Exception e)
         {

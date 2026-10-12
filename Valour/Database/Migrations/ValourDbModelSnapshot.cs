@@ -4945,6 +4945,18 @@ namespace Valour.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("active");
 
+                    b.Property<DateTime?>("AppStoreExpiry")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("app_store_expiry");
+
+                    b.Property<string>("AppStoreOriginalTransactionId")
+                        .HasColumnType("text")
+                        .HasColumnName("app_store_original_transaction_id");
+
+                    b.Property<string>("AppStoreTransactionId")
+                        .HasColumnType("text")
+                        .HasColumnName("app_store_transaction_id");
+
                     b.Property<bool>("Cancelled")
                         .HasColumnType("boolean")
                         .HasColumnName("cancelled");
@@ -4994,6 +5006,9 @@ namespace Valour.Database.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppStoreOriginalTransactionId")
+                        .IsUnique();
 
                     b.HasIndex("GooglePlayPurchaseToken")
                         .IsUnique();

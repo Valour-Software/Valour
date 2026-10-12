@@ -28,6 +28,7 @@ public static class ConfigLoader
         config.GetSection("Redis").Get<RedisConfig>();
         config.GetSection("Stripe").Get<StripeConfig>();
         config.GetSection("GooglePlay").Get<GooglePlayConfig>();
+        config.GetSection("AppStore").Get<AppStoreConfig>();
         config.GetSection("Cloudflare").Get<CloudflareConfig>();
         config.GetSection("Voice").Get<VoiceConfig>();
         config.GetSection("MediaSafety").Get<MediaSafetyConfig>();
@@ -114,6 +115,11 @@ public static class ConfigLoader
         if (GooglePlayConfig.Current is null)
         {
             new GooglePlayConfig();
+        }
+
+        if (AppStoreConfig.Current is null)
+        {
+            new AppStoreConfig();
         }
 
         if (BootstrapConfig.Current is null)

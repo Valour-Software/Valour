@@ -1,3 +1,8 @@
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
+using Valour.Shared;
+using Valour.Shared.Models;
+
 namespace Valour.Client.Device;
 
 /// <summary>
@@ -9,6 +14,21 @@ public interface IStoreBillingService
 {
     /// <summary>The store's name as shown to people, for example "Google Play".</summary>
     string StoreName { get; }
+
+    /// <summary>The store's product ID for a subscription tier.</summary>
+    string GetProductId(UserSubscriptionType tier);
+
+    /// <summary>Valour Credit packs the store sells, keyed by product ID.</summary>
+    IReadOnlyDictionary<string, int> CreditPacks { get; }
+
+    /// <summary>True when this store bills the given Valour subscription.</summary>
+    bool Bills(UserSubscription subscription);
+
+    /// <summary>
+    /// True when the store expects a "Restore purchases" button, as the App
+    /// Store does for subscriptions bought on another device.
+    /// </summary>
+    bool SupportsRestore { get; }
 
     /// <summary>
     /// Returns the store's localized price for each product it sells, keyed by
@@ -29,6 +49,18 @@ public interface IStoreBillingService
     /// can be reported again.
     /// </summary>
     Task<IReadOnlyList<StorePurchase>> GetUnfinishedPurchasesAsync();
+
+    /// <summary>
+    /// Asks the store for purchases made with this store account, including
+    /// on other devices, so they can be reported again.
+    /// </summary>
+    Task<IReadOnlyList<StorePurchase>> RestorePurchasesAsync();
+
+    /// <summary>
+    /// Reports a purchase to the server for verification. Once the server
+    /// accepts it, the store is told the purchase was delivered.
+    /// </summary>
+    Task<TaskResult> ReportAsync(ValourClient client, StorePurchase purchase);
 
     /// <summary>Opens the store's page for managing a subscription.</summary>
     Task OpenManageSubscriptionAsync(string productId);

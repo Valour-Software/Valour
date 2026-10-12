@@ -111,8 +111,14 @@ public class StripeApi
         if (hasActiveGooglePlaySub)
             return ValourResult.BadRequest("Your subscription is billed through Google Play. Manage it in the Valour Android app.");
 
+        var hasActiveAppStoreSub = await db.UserSubscriptions
+            .AnyAsync(x => x.Active && x.UserId == userId && x.AppStoreOriginalTransactionId != null);
+        if (hasActiveAppStoreSub)
+            return ValourResult.BadRequest("Your subscription is billed through the App Store. Manage it in the Valour iOS app.");
+
         var existingSub = await db.UserSubscriptions
-            .Where(x => x.Active && x.UserId == userId && x.StripeSubscriptionId == null && x.GooglePlayPurchaseToken == null)
+            .Where(x => x.Active && x.UserId == userId && x.StripeSubscriptionId == null && x.GooglePlayPurchaseToken == null &&
+                        x.AppStoreOriginalTransactionId == null)
             .OrderByDescending(x => x.LastCharged)
             .FirstOrDefaultAsync();
 

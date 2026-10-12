@@ -28,7 +28,12 @@ public class UserSubscriptionType
     public string GooglePlayProductId { get; set; }
 
     /// <summary>
-    /// Monthly VC cashback reward for Stripe and Google Play subscribers
+    /// The App Store auto-renewable subscription product ID for this tier
+    /// </summary>
+    public string AppStoreProductId { get; set; }
+
+    /// <summary>
+    /// Monthly VC cashback reward for Stripe, Google Play and App Store subscribers
     /// </summary>
     public int VcReward { get; set; }
 
@@ -49,6 +54,7 @@ public static class UserSubscriptionTypes
     {
         Name = "Stargazer",
         GooglePlayProductId = "stargazer",
+        AppStoreProductId = "stargazer",
         Description = "The classic! Support Valour and get access to perks like advanced profile styles.",
         Price = 500,
         StripePriceCents = 499,
@@ -60,6 +66,7 @@ public static class UserSubscriptionTypes
     {
         Name = "Stargazer Plus",
         GooglePlayProductId = "stargazer_plus",
+        AppStoreProductId = "stargazer_plus",
         Description = "A bump up for power users or those who just want to support Valour more.",
         Price = 1000,
         StripePriceCents = 999,
@@ -71,6 +78,7 @@ public static class UserSubscriptionTypes
     {
         Name = "Stargazer Pro",
         GooglePlayProductId = "stargazer_pro",
+        AppStoreProductId = "stargazer_pro",
         Description = "Our maximum perks for the most enthusiastic Valournauts!",
         Price = 1500,
         StripePriceCents = 1499,
@@ -90,6 +98,12 @@ public static class UserSubscriptionTypes
     /// </summary>
     public static UserSubscriptionType FromGooglePlayProductId(string productId) =>
         TypeMap.Values.FirstOrDefault(x => x.GooglePlayProductId == productId);
+
+    /// <summary>
+    /// Finds the tier sold under an App Store subscription product ID.
+    /// </summary>
+    public static UserSubscriptionType FromAppStoreProductId(string productId) =>
+        TypeMap.Values.FirstOrDefault(x => x.AppStoreProductId == productId);
 
     /// <summary>
     /// Returns the max upload size in bytes for a given subscription type name.
@@ -159,6 +173,12 @@ public interface ISharedUserSubscription
     /// a placeholder rather than the purchase token.
     /// </summary>
     public string GooglePlayPurchaseToken { get; set; }
+
+    /// <summary>
+    /// Set when the subscription is billed through the App Store. Clients
+    /// receive a placeholder rather than the transaction ID.
+    /// </summary>
+    public string AppStoreOriginalTransactionId { get; set; }
 
     /// <summary>
     /// True if the most recent Stripe or Google Play payment attempt failed.

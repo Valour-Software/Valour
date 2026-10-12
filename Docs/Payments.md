@@ -3,7 +3,7 @@
 Valour sells two things: Stargazer subscriptions and Valour Credits (VC). This
 guide explains how each one can be paid for, how the server keeps
 subscriptions in sync with the payment provider, and how to set up Google Play
-Billing for the Android app.
+Billing for the Android app and In-App Purchase for the iOS app.
 
 ## Ways to pay
 
@@ -11,22 +11,24 @@ A Stargazer subscription is a row in `user_subscriptions`
 ([UserSubscription.cs](../Valour/Database/UserSubscription.cs)). The user's
 current tier is also copied to `users.subscription_type`, which is what perks
 such as the upload limit read. A user has at most one active subscription. It
-is billed in one of three ways, and the columns that are set show which:
+is billed in one of four ways, and the columns that are set show which:
 
 | Billing | Set column | Renewal is driven by |
 | --- | --- | --- |
 | Valour Credits | Neither | `SubscriptionService.ProcessActiveDue`, run hourly by `SubscriptionWorker` |
 | Stripe (card) | `stripe_subscription_id` | Stripe webhooks to `api/stripe/webhook` |
 | Google Play | `google_play_purchase_token` | Google Play notifications to `api/google-play/notifications` |
+| App Store | `app_store_original_transaction_id` | App Store Server Notifications to `api/app-store/notifications` |
 
 The tiers and their prices are defined in
 [ISharedUserSubscription.cs](../Valour/Shared/Models/ISharedUserSubscription.cs).
-Stripe and Google Play subscribers receive the tier's `VcReward` in credits
-with each paid month.
+Stripe, Google Play and App Store subscribers receive the tier's `VcReward` in
+credits with each paid month.
 
 Valour Credits can be bought as one-time packs through Stripe checkout
-([StripeApi.cs](../Valour/Server/Api/Dynamic/StripeApi.cs)) or Google Play
-([GooglePlayProducts](../Valour/Shared/Models/GooglePlayPurchase.cs)).
+([StripeApi.cs](../Valour/Server/Api/Dynamic/StripeApi.cs)), Google Play
+([GooglePlayProducts](../Valour/Shared/Models/GooglePlayPurchase.cs)), or the
+App Store ([AppStoreProducts](../Valour/Shared/Models/AppStorePurchase.cs)).
 
 ## Which checkout the client shows
 
@@ -35,13 +37,18 @@ Play Billing. The Android app built with `ValourPlayStore=true` registers
 [`IStoreBillingService`](../Valour/Client/Device/IStoreBillingService.cs), and
 the subscriptions page
 ([EditSubscriptionsComponent.razor](../Valour/Client/Components/Menus/Modals/Users/Edit/EditSubscriptionsComponent.razor))
-then sells through Google Play and hides every Stripe purchase. All other
-builds, including the Android APK published on GitHub, use Stripe.
+then sells through Google Play and hides every Stripe purchase. The App Store
+has the same rule, so the iOS app always registers the App Store version of
+the service. All other builds, including the Android APK published on GitHub
+and the Mac app, use Stripe.
 
 A subscription can only be changed where its billing lives. A Google Play
 subscription can be cancelled from any client, because the server can stop its
 renewal, but plan changes require the Play Store build. A card subscription
-cannot be changed from the Play Store build.
+cannot be changed from the Play Store build. Apple has no API to stop a
+renewal, so an App Store subscription is cancelled in the person's Apple
+account settings, which the iOS app opens from "Manage", and changed only in
+the iOS app.
 
 ## Google Play purchases
 
@@ -96,6 +103,43 @@ credits may already have been spent.
 Deleting an account stops renewal of its Google Play subscriptions before any
 data is removed. If Google Play cannot be reached, the account is not deleted.
 
+## App Store purchases
+
+[AppStoreBillingService](../Valour/Server/Services/AppStoreBillingService.cs)
+follows the same rule as Google Play: the server never trusts what the app
+reports. The app sends the StoreKit transaction ID to `api/app-store/subscriptions`
+or `api/app-store/credits`, and the server reads the transaction and the
+subscription status back from the App Store Server API.
+
+The app sets each purchase's `applicationUsername` to a UUID made from the
+Valour user ID ([AppStoreAccountToken](../Valour/Shared/Models/AppStorePurchase.cs)).
+Apple returns it as the transaction's `appAccountToken`, so a purchase is linked
+to its account even if the app closes before reporting it, and a claim from
+another account is refused.
+
+An App Store subscription keeps its original transaction ID across renewals
+and plan changes within the Stargazer subscription group, so it is a single
+`user_subscriptions` row. Each renewal is a new transaction with the reason
+`RENEWAL`, which deposits the monthly reward, fingerprinted by transaction ID.
+An upgrade takes effect immediately; a downgrade takes effect at the next
+renewal and shows as the pending tier. Only the first purchase in the group
+earns the welcome reward. A billing grace period keeps the subscription active
+and sets `stripe_payment_failed`.
+
+The app finishes a StoreKit transaction only after the server accepts it, so
+StoreKit keeps offering an unreported purchase. Credit packs are deposited
+once per transaction ID. Notifications are only used to find the transaction,
+which is then read back from Apple, so a forged notification can do no more
+than trigger a refresh. App Review and TestFlight purchases live in Apple's
+sandbox, so a transaction that production doesn't know is looked up there.
+
+The subscriptions page in the iOS app has a "Restore purchases" button, which
+App Store rules require, and shows renewal terms with links to the terms of
+use and privacy policy beside each subscription offer.
+
+Deleting an account cannot stop an App Store renewal. The person cancels it in
+their Apple account settings.
+
 ## Setting up Google Play Billing
 
 The server needs a service account that can read and manage purchases:
@@ -140,3 +184,44 @@ app look them up by ID:
 
 Google Play only offers products to an app it installed, so test purchases
 need a build from a Play testing track and a license tester account.
+
+## Setting up App Store In-App Purchase
+
+1. In App Store Connect, accept the Paid Apps agreement and complete the tax
+   and banking information. Products can't be sold until this is done.
+2. Under the app's Subscriptions, create a subscription group named Stargazer
+   with three one-month auto-renewable subscriptions, ranked Stargazer Pro,
+   Stargazer Plus, Stargazer from highest to lowest. Under In-App Purchases,
+   create the three consumable credit packs. Use these IDs:
+
+   | Product | Type | ID |
+   | --- | --- | --- |
+   | Stargazer | Auto-renewable subscription, 1 month | `stargazer` |
+   | Stargazer Plus | Auto-renewable subscription, 1 month | `stargazer_plus` |
+   | Stargazer Pro | Auto-renewable subscription, 1 month | `stargazer_pro` |
+   | 500 Valour Credits | Consumable | `vc_500` |
+   | 1000 Valour Credits | Consumable | `vc_1000` |
+   | 2000 Valour Credits | Consumable | `vc_2000` |
+
+3. Under Users and Access, then Integrations, then In-App Purchase, create a
+   key and download its .p8 file. Note the key ID and the issuer ID.
+4. Under the app's App Information, set the Production and Sandbox Server URLs
+   for App Store Server Notifications (Version 2) to
+   `https://<api host>/api/app-store/notifications?token=<secret>`.
+
+Then add an `AppStore` section to the server's `appsettings.json`
+([AppStoreConfig.cs](../Config/Configs/AppStoreConfig.cs)):
+
+```json
+"AppStore": {
+  "BundleId": "gg.valour.app",
+  "IssuerId": "<issuer id>",
+  "KeyId": "<key id>",
+  "PrivateKeyPath": "/path/to/SubscriptionKey.p8",
+  "NotificationToken": "<the same secret as the notification URL>"
+}
+```
+
+Submit the products for review with the first app version that sells them.
+Test purchases need a sandbox account (Users and Access, then Sandbox) or a
+TestFlight build.

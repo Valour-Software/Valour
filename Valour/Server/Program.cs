@@ -734,6 +734,7 @@ public partial class Program
         services.AddScoped<ExternalAuthProvider>(sp => sp.GetRequiredService<AppleAuthProvider>());
         services.AddScoped<SubscriptionService>();
         services.AddScoped<GooglePlayBillingService>();
+        services.AddScoped<AppStoreBillingService>();
         services.AddScoped<ThemeService>();
         services.AddScoped<StaffService>();
         services.AddScoped<DashboardService>();
@@ -754,6 +755,13 @@ public partial class Program
         // Calls to sign-in providers' token and account endpoints, which are
         // fixed addresses rather than user-supplied URLs.
         services.AddHttpClient(ExternalAuthProvider.HttpClientName, client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Valour/1.0");
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
+        // Calls to the App Store Server API, a fixed Apple address.
+        services.AddHttpClient(AppStoreBillingService.HttpClientName, client =>
         {
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Valour/1.0");
             client.Timeout = TimeSpan.FromSeconds(15);

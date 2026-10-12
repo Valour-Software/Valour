@@ -57,6 +57,11 @@ public class UserSubscription : ISharedUserSubscription
     public string GooglePlayPurchaseToken { get; set; }
 
     /// <summary>
+    /// Set when the subscription is billed through the App Store
+    /// </summary>
+    public string AppStoreOriginalTransactionId { get; set; }
+
+    /// <summary>
     /// True if the most recent Stripe or Google Play payment attempt failed
     /// </summary>
     public bool StripePaymentFailed { get; set; }

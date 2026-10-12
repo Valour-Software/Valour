@@ -217,11 +217,11 @@ public class GooglePlayBillingService
 
         foreach (var active in activeSubs)
         {
-            if (active.StripeSubscriptionId is not null)
+            if (active.StripeSubscriptionId is not null || active.AppStoreOriginalTransactionId is not null)
             {
                 // The app warns before Google Play checkout while a card
                 // subscription is active, but cannot prevent buying both.
-                _logger.LogWarning("User {UserId} bought a Google Play subscription while a Stripe subscription is active",
+                _logger.LogWarning("User {UserId} bought a Google Play subscription while a Stripe or App Store subscription is active",
                     userId);
                 continue;
             }
