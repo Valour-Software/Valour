@@ -730,6 +730,8 @@ public partial class Program
         // Each sign-in provider is one class; ExternalAuthService receives them all.
         services.AddScoped<ExternalAuthProvider, GoogleAuthProvider>();
         services.AddScoped<ExternalAuthProvider, DiscordAuthProvider>();
+        services.AddScoped<AppleAuthProvider>();
+        services.AddScoped<ExternalAuthProvider>(sp => sp.GetRequiredService<AppleAuthProvider>());
         services.AddScoped<SubscriptionService>();
         services.AddScoped<GooglePlayBillingService>();
         services.AddScoped<ThemeService>();

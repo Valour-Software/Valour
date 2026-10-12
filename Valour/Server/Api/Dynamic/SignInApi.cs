@@ -83,6 +83,46 @@ public class SignInApi
         ExternalAuthService externalAuth) =>
         externalAuth.HandleCallbackAsync(provider, code, state, error, ctx);
 
+    /// <summary>
+    /// Apple posts its result to the callback (response_mode=form_post). A
+    /// cross-site POST doesn't carry the browser-binding cookie, so this answers
+    /// with a 303 to the GET callback: browsers send SameSite=Lax cookies on a
+    /// top-level GET navigation, and the normal checks then run unchanged.
+    /// </summary>
+    [RateLimit(RateLimitPolicies.Auth)]
+    [ValourRoute(HttpVerbs.Post, "api/auth/external/{provider}/callback")]
+    public static async Task<IResult> ExternalFormCallbackRouteAsync(
+        string provider,
+        HttpContext ctx)
+    {
+        if (!ctx.Request.HasFormContentType)
+            return ValourResult.BadRequest("Expected a form post.");
+
+        var form = await ctx.Request.ReadFormAsync();
+        var query = new Dictionary<string, string?>();
+        foreach (var key in new[] { "code", "state", "error" })
+        {
+            var value = form[key].ToString();
+            if (!string.IsNullOrEmpty(value))
+                query[key] = value;
+        }
+
+        var target = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(
+            $"{ctx.Request.PathBase}{ctx.Request.Path}", query);
+        ctx.Response.Headers.CacheControl = "no-store";
+        return new SeeOtherResult(target);
+    }
+
+    private sealed class SeeOtherResult(string location) : IResult
+    {
+        public Task ExecuteAsync(HttpContext httpContext)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status303SeeOther;
+            httpContext.Response.Headers.Location = location;
+            return Task.CompletedTask;
+        }
+    }
+
     [RateLimit(RateLimitPolicies.Auth)]
     [ValourRoute(HttpVerbs.Post, "api/auth/external/registration")]
     public static async Task<IResult> GetExternalRegistrationRouteAsync(

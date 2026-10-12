@@ -77,6 +77,8 @@ public class UserService
     /// </summary>
     private User _currentUser;
 
+    private readonly Valour.Server.Services.ExternalAuth.AppleAuthProvider _apple;
+
     public UserService(
         ValourDb db,
         TokenService tokenService,
@@ -85,8 +87,10 @@ public class UserService
         NodeLifecycleService nodeLifecycleService,
         IConnectionMultiplexer redis,
         IHttpContextAccessor httpContextAccessor,
-        CdnBucketService bucketService)
+        CdnBucketService bucketService,
+        Valour.Server.Services.ExternalAuth.AppleAuthProvider apple)
     {
+        _apple = apple;
         _db = db;
         _bucketService = bucketService;
         _httpContextAccessor = httpContextAccessor;
@@ -1253,11 +1257,21 @@ public class UserService
         // own activity that is still in flight (for example presence or message
         // writes). PostgreSQL aborts one side and the transaction rolls back
         // completely, so the deletion is simply attempted again.
+        // Apple requires its tokens to be revoked when an account is deleted.
+        // They are read now, because the credentials are deleted with the account.
+        var appleCredentials = await _db.Credentials.AsNoTracking()
+            .Where(x => x.UserId == user.Id && x.CredentialType == CredentialType.APPLE)
+            .ToListAsync();
+
         for (var attempt = 1; ; attempt++)
         {
             var (result, deadlocked) = await DeleteAccountDataAsync(user, canRetry: attempt < MaxAccountDeletionAttempts);
             if (!deadlocked)
+            {
+                if (result.Success)
+                    await _apple.RevokeCredentialsAsync(appleCredentials);
                 return result;
+            }
 
             _logger.LogWarning("Deadlock while hard deleting user {UserId}; retrying (attempt {Attempt})", user.Id, attempt);
             await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt));

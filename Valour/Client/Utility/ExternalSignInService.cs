@@ -30,6 +30,7 @@ public class ExternalSignInService
     {
         [ExternalAuthProviders.Google] = ("Google", "bi-google"),
         [ExternalAuthProviders.Discord] = ("Discord", "bi-discord"),
+        [ExternalAuthProviders.Apple] = ("Apple", "bi-apple"),
     };
 
     private readonly AuthService _authService;

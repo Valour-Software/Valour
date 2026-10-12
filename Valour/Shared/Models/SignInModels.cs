@@ -8,6 +8,7 @@ public static class ExternalAuthProviders
 {
     public const string Google = "google";
     public const string Discord = "discord";
+    public const string Apple = "apple";
 }
 
 public enum ExternalAuthIntent

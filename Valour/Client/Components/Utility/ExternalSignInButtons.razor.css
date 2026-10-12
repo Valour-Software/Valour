@@ -39,6 +39,19 @@
     font-size: 1.1em;
 }
 
+/* Apple's guidelines require its button to be solid black or white with the
+   Apple logo. White reads best on Valour's dark surfaces. */
+.external-btn.external-apple {
+    background-color: #fff;
+    border-color: #fff;
+    color: #000;
+}
+
+.external-btn.external-apple:hover:not(:disabled) {
+    background-color: #e8e8e8;
+    border-color: #e8e8e8;
+}
+
 .external-cancel {
     align-self: center;
     background: none;

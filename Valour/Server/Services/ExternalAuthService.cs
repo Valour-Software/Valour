@@ -105,7 +105,8 @@ public class ExternalAuthService
         string CredentialType,
         string ProviderUserId,
         string Label,
-        string VerifierHash);
+        string VerifierHash,
+        string RefreshToken = null);
 
     private ExternalAuthProvider GetConfiguredProvider(string name) =>
         name is not null && _providers.TryGetValue(name, out var provider) && provider.IsConfigured ? provider : null;
@@ -251,6 +252,14 @@ public class ExternalAuthService
         var credential = await _db.Credentials.AsNoTracking().FirstOrDefaultAsync(x =>
             x.CredentialType == provider.CredentialType && x.Identifier == identity.ProviderUserId);
 
+        // Providers that issue a refresh token to revoke later (Apple) get the
+        // newest one stored when someone signs in with an account they hold.
+        if (credential is not null && identity.RefreshToken is not null &&
+            (state.Intent == ExternalAuthIntent.Login || credential.UserId == state.UserId))
+        {
+            await _signInMethods.SetProviderTokenAsync(credential.Id, identity.RefreshToken);
+        }
+
         switch (state.Intent)
         {
             case ExternalAuthIntent.Login:
@@ -310,7 +319,8 @@ public class ExternalAuthService
 
     private Task<string> CreateGrantAsync(FlowState state, ExternalAuthProvider provider, ExternalIdentity identity) =>
         _tickets.CreateAsync(GrantKind,
-            new Grant(state.Intent, state.UserId!.Value, provider.CredentialType, identity.ProviderUserId, identity.Label, state.VerifierHash),
+            new Grant(state.Intent, state.UserId!.Value, provider.CredentialType, identity.ProviderUserId, identity.Label, state.VerifierHash,
+                identity.RefreshToken),
             StateLifetime);
 
     // Redeeming tickets //
@@ -359,7 +369,7 @@ public class ExternalAuthService
             return TaskResult.FromFailure("This link has expired. Try again.");
 
         return await _signInMethods.LinkProviderAsync(userId, grant.CredentialType, grant.ProviderUserId, grant.Label,
-            GetDisplayName(grant.CredentialType));
+            GetDisplayName(grant.CredentialType), grant.RefreshToken);
     }
 
     public static ExternalRegistrationInfo ToRegistrationInfo(RegistrationTicket ticket) => new()

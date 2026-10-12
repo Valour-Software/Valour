@@ -13,7 +13,8 @@ public record ExternalIdentity(
     bool EmailVerified,
     string SuggestedUsername,
     string Label,
-    string AvatarUrl);
+    string AvatarUrl,
+    string RefreshToken = null);
 
 /// <summary>
 /// One service people can sign in with. Each provider supplies its OAuth

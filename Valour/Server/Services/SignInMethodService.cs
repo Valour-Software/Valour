@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Server.Database;
+using Valour.Server.Services.ExternalAuth;
 using Valour.Shared;
 using Valour.Shared.Models;
 using CredentialType = Valour.Database.CredentialType;
@@ -30,14 +31,17 @@ public class SignInMethodService
     private readonly UserService _userService;
     private readonly TokenService _tokenService;
     private readonly ILogger<SignInMethodService> _logger;
+    private readonly AppleAuthProvider _apple;
 
     public SignInMethodService(
         ValourDb db,
         AuthTicketStore tickets,
         UserService userService,
         TokenService tokenService,
+        AppleAuthProvider apple,
         ILogger<SignInMethodService> logger)
     {
+        _apple = apple;
         _db = db;
         _tickets = tickets;
         _userService = userService;
@@ -179,6 +183,10 @@ public class SignInMethodService
         _db.Credentials.Remove(target);
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
+
+        // Disconnects Valour in the person's Apple ID settings, as Apple requires.
+        await _apple.RevokeCredentialsAsync([target]);
+
         return TaskResult.SuccessResult;
     }
 
@@ -210,7 +218,8 @@ public class SignInMethodService
     /// identifier) keeps one provider account from being linked twice, even
     /// when two links race.
     /// </summary>
-    public async Task<TaskResult> LinkProviderAsync(long userId, string credentialType, string providerUserId, string label, string providerName)
+    public async Task<TaskResult> LinkProviderAsync(long userId, string credentialType, string providerUserId, string label, string providerName,
+        string providerToken = null)
     {
         var existing = await _db.Credentials.AsNoTracking()
             .FirstOrDefaultAsync(x => x.CredentialType == credentialType && x.Identifier == providerUserId);
@@ -231,6 +240,7 @@ public class SignInMethodService
             CredentialType = credentialType,
             Identifier = providerUserId,
             DisplayName = label,
+            Secret = EncodeProviderToken(providerToken),
             CreatedAt = DateTime.UtcNow,
         });
 
@@ -297,6 +307,17 @@ public class SignInMethodService
             CreatedAt = DateTime.UtcNow,
         };
     }
+
+    /// <summary>
+    /// Stores a provider token kept for revocation (Apple's refresh token) in
+    /// the credential's secret. Clients never receive credential secrets.
+    /// </summary>
+    public Task SetProviderTokenAsync(long credentialId, string token) =>
+        _db.Credentials.Where(x => x.Id == credentialId)
+            .ExecuteUpdateAsync(x => x.SetProperty(c => c.Secret, EncodeProviderToken(token)));
+
+    public static byte[] EncodeProviderToken(string token) =>
+        string.IsNullOrEmpty(token) ? null : System.Text.Encoding.UTF8.GetBytes(token);
 
     public async Task MarkUsedAsync(long credentialId)
     {

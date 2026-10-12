@@ -197,6 +197,7 @@ public class RegisterService
                     CredentialType = external.CredentialType,
                     Identifier = external.ProviderUserId,
                     DisplayName = external.Label,
+                    Secret = SignInMethodService.EncodeProviderToken(external.RefreshToken),
                     CreatedAt = DateTime.UtcNow,
                 });
 

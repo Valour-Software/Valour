@@ -1,10 +1,10 @@
 # Sign-in methods
 
 An account can sign in with a password, a Google account, a Discord account,
-and, in the Android app, a fingerprint. People manage their password and linked
+an Apple ID, and, in the Android app, a fingerprint. People manage their password and linked
 accounts in Settings, under Connections, and fingerprint sign-in under Security,
 beside the password and two-factor settings. This guide explains how the pieces fit together and how to turn
-Google and Discord sign-in on for a server.
+Google, Discord, and Apple sign-in on for a server.
 
 ## Credentials
 
@@ -17,21 +17,23 @@ column says which kind it is:
 | `Password` | The account's email | PBKDF2 hash | Not used |
 | `Google` | Google's account ID (`sub`) | Not used | The Google email |
 | `Discord` | The Discord user ID | Not used | `@username` |
+| `Apple` | Apple's account ID (`sub`) | Apple's refresh token | The Apple email, often a private relay address |
 | `DeviceKey` | A random key ID the device keeps | DER public key (P-256) | The device's name |
 
 A unique index on type and identifier keeps a Google account, Discord account,
 or device key tied to one Valour account. Passwords are excluded from the index
 because their identifier is the email, which is already unique.
 
-An account must keep at least one password, Google, or Discord method, because
-those work on a new device. A device key is lost with its device, so it never
+An account must keep at least one password, Google, Discord, or Apple method,
+because those work on a new device. A device key is lost with its device, so it never
 counts as the last way in. `SignInMethodService.RemoveMethodAsync` enforces
 this, and Connections disables the buttons that would break it.
 
 ## Signing in
 
 Every method ends at `api/users/token`. The request carries email and
-password, a sign-in ticket from Google or Discord, or a device key signature.
+password, a sign-in ticket from Google, Discord, or Apple, or a device key
+signature.
 After identifying the account, all three share the same checks: disabled
 accounts, email verification, the authenticator code, and a new session.
 Fingerprint sign-in skips the authenticator code, because the key only signs
@@ -42,11 +44,11 @@ A session from signing in to Valour lasts seven days from its last use.
 days after sign-in, so even a session used every day ends eventually. Tokens
 for bots, OAuth apps, and federation keep their fixed expiry.
 
-## Google and Discord
+## Google, Discord, and Apple
 
 Each provider is a class that extends
 [`ExternalAuthProvider`](../Valour/Server/Services/ExternalAuth/ExternalAuthProvider.cs):
-`GoogleAuthProvider` and `DiscordAuthProvider`. A provider supplies its OAuth
+`GoogleAuthProvider`, `DiscordAuthProvider`, and `AppleAuthProvider`. A provider supplies its OAuth
 addresses and reads its own account data. `ExternalAuthService` runs the flow
 around them, so adding a provider means adding one class and registering it in
 `Program.cs`.
@@ -102,6 +104,25 @@ take over an existing Valour account. Discord accounts can suggest a username,
 and both providers can supply the new account's avatar, which goes through the
 same upload checks as any avatar.
 
+### Apple
+
+`AppleAuthProvider` differs from the other providers in a few ways:
+
+- Apple has no fixed client secret. The server signs a five-minute ES256 token
+  with the Sign in with Apple key for each request.
+- The account comes from the ID token in Apple's token response, because Apple
+  has no userinfo endpoint. Apple only issues verified emails, and a person can
+  choose a private relay address.
+- Apple posts its result to the callback (`response_mode=form_post`). That
+  cross-site POST doesn't carry the browser-binding cookie, so the POST route
+  answers with a 303 redirect to the GET callback. Browsers send `SameSite=Lax`
+  cookies on that top-level GET, and the usual checks run unchanged.
+- App Store rules require apps to revoke Apple's tokens when an account is
+  deleted. The credential's `secret` keeps the newest refresh token, and
+  `AppleAuthProvider.RevokeCredentialsAsync` revokes it when the credential is
+  removed in Connections or the account is deleted. Revocation is best effort,
+  so a failure is logged and doesn't block the removal.
+
 ## Confirming identity
 
 Linking an account, removing a sign-in method, adding a password, turning on
@@ -114,7 +135,7 @@ works only with the session that created it, so a leaked proof is useless to
 another session. Accounts without a password rely on these proofs.
 
 Signing in also confirms identity, so every successful sign-in and every
-Google or Discord sign-up returns a proof for the new session. A change made
+Google, Discord, or Apple sign-up returns a proof for the new session. A change made
 right after signing in doesn't ask again.
 
 When a password, linked account, or fingerprint key is added, the account's
@@ -143,17 +164,24 @@ fingerprint sign-in on it yet. It uses the sign-in's proof, so turning it on
 needs no password or code. The app remembers that it asked each account, so
 either answer is final on that device, and Security settings can still change it.
 
-## Turning on Google and Discord
+## Turning on Google, Discord, and Apple
 
 Create an OAuth client with each provider and add the credentials to the
 `ExternalAuth` section of `appsettings.json` (see
 [appsettings.helper.json](../Config/appsettings.helper.json)). A provider appears
-on the sign-in page only when both values are set.
+on the sign-in page only when its settings are complete.
 
 - **Google:** in Google Cloud Console, create an OAuth client of type "Web
   application" with the scopes `openid`, `email`, and `profile`.
 - **Discord:** in the Discord Developer Portal, create an application and use
   its OAuth2 client ID and secret. It uses the `identify` and `email` scopes.
+- **Apple:** in the Apple Developer account, enable Sign in with Apple on the
+  app's App ID, create a Services ID with Sign in with Apple configured for the
+  API domain and the redirect URL below, and create a Sign in with Apple key.
+  Set `ClientId` to the Services ID, `TeamId` and `KeyId`, and either
+  `PrivateKey` (the .p8 contents) or `PrivateKeyPath`. Apple does not accept
+  `localhost` redirect URLs, so Apple sign-in can't be tested against a local
+  server.
 
 Register this redirect URL with each provider, replacing the host with the
 server's public API address:
@@ -161,4 +189,5 @@ server's public API address:
 ```
 https://api.valour.gg/api/auth/external/google/callback
 https://api.valour.gg/api/auth/external/discord/callback
+https://api.valour.gg/api/auth/external/apple/callback
 ```

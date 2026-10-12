@@ -122,6 +122,13 @@ public static class CredentialType
     public const string DISCORD = "Discord";
 
     /// <summary>
+    /// An Apple ID from Sign in with Apple. The identifier is Apple's stable
+    /// account ID ("sub"), and the secret is Apple's refresh token, which is
+    /// revoked when the credential or the account is removed.
+    /// </summary>
+    public const string APPLE = "Apple";
+
+    /// <summary>
     /// A key held in a device's hardware keystore that signs in after a
     /// fingerprint check. The identifier is a random key ID, and the secret is
     /// the public key (SubjectPublicKeyInfo).
@@ -133,6 +140,6 @@ public static class CredentialType
     /// key is lost with its device, so it never counts as the last way in.
     /// </summary>
     public static bool CanRecoverAccount(string type) =>
-        type is PASSWORD or GOOGLE or DISCORD;
+        type is PASSWORD or GOOGLE or DISCORD or APPLE;
 }
 
