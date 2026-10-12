@@ -27,6 +27,7 @@ use placeholder values; use private local settings when running a server or test
 - [Public website](../Valour/Web/README.md)
 - [Desktop host for Linux (Photino)](../Valour/Client.Photino/README.md)
 - [Google Play listing kit](../Tools/PlayStore/README.md)
+- [App Store listing kit](../Tools/AppStore/README.md)
 - [Brand assets: icon, social images, and wordmarks](../Tools/Brand/README.md)
 
 ## Federation

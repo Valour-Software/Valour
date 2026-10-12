@@ -55,8 +55,8 @@
         <DefineConstants Condition="'$(ValourPlayStore)' == 'true'">$(DefineConstants);VALOUR_PLAY_STORE</DefineConstants>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.9.19</ApplicationDisplayVersion>
-        <ApplicationVersion>112</ApplicationVersion>
+        <ApplicationDisplayVersion>0.9.20</ApplicationDisplayVersion>
+        <ApplicationVersion>113</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
