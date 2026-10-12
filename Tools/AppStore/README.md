@@ -85,14 +85,24 @@ chat,community,encrypted,messaging,group chat,voice,forum,wiki,threads,friends,g
 App Store Connect needs at least one screenshot for each device family the
 app supports. `Info.plist` declares iPhone and iPad, so both are required.
 
-| Display | Size (portrait) | Count |
+| Display | Size (portrait) | Files |
 | --- | --- | --- |
-| iPhone 6.9" | 1320 x 2868 | 3 to 10 |
-| iPad 13" | 2064 x 2752 | 3 to 10 |
+| iPhone 6.9" | 1320 x 2868 | `screenshots/framed/iphone-*.png` (6) |
+| iPad 13" | 2064 x 2752 | `screenshots/framed/ipad-*.png` (3) |
 
-Apple scales these down for smaller devices. Screenshots must show the
-current app, so take them from the iOS app in the Simulator rather than
-reusing the Google Play screenshots, which are 9:16 web captures.
+Upload them in file-name order. Apple scales them down for smaller devices.
+`screenshots/raw/` holds the same screens without captions, which App Store
+Connect also accepts.
+
+The raw screenshots were taken from the app's web client in WebKit, the engine
+the iOS app's web view uses, at the iPhone and iPad screen sizes. They used a
+local QA server with a made-up community: every name, avatar, message and
+planet in them is invented for the listing. The chat messages are end-to-end
+encrypted like any others, and were decrypted on the capturing device.
+
+`render.mjs` adds the captions. Edit the `shots` list and run it again after
+replacing a raw screenshot. App Store Connect rejects images with an alpha
+channel, so convert any edited image to RGB before uploading.
 
 ## App Privacy
 
