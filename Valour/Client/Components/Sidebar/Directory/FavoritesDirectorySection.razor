@@ -110,7 +110,8 @@
 
     private void BuildChannels()
     {
-        _channels = Client.ChannelFavoriteService.GetFavoriteChannels(Planet);
+        var channels = Client.ChannelFavoriteService.GetFavoriteChannels(Planet);
+        _channels = Client.HidesNsfw() ? channels.Where(x => !x.Nsfw).ToList() : channels;
     }
 
     private void OnFavoritesChanged()

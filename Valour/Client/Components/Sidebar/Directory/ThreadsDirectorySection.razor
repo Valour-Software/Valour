@@ -89,6 +89,7 @@
             _engine ??= Client.ThreadService.GetPlanetFeedEngine(Planet);
             _engine.SetFilter("sort", _sort, false);
             _engine.SetFilter("period", _sort == "top" ? "all" : null, false);
+            _engine.SetFilter("nsfw", Client.HidesNsfw() ? "hide" : null, false);
             _engine.ApplyOptions();
 
             var response = await _engine.GetItemsAsync(0, DisplayCount);

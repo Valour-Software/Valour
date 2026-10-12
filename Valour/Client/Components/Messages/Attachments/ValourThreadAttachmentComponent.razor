@@ -46,6 +46,10 @@ else if (_loading)
         {
             _thread = await Client.ThreadService.FetchThreadAsync(route.PlanetId.Value, route.ThreadId.Value);
             _loadedThreadId = route.ThreadId;
+
+            // Hidden NSFW threads stay a plain link instead of a preview card
+            if (_thread?.Nsfw == true && Client.HidesNsfw())
+                _thread = null;
         }
         catch (Exception e)
         {

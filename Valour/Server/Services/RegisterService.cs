@@ -226,6 +226,14 @@ public class RegisterService
 
             await _db.SaveChangesAsync();
 
+            if (request.HideNsfw)
+            {
+                var preferences = await Valour.Server.Api.Dynamic.UserApi.CreateDefaultPreferencesAsync(user.Id, _db);
+                preferences.ShowNsfw = false;
+                _db.UserPreferences.Add(preferences);
+                await _db.SaveChangesAsync();
+            }
+
             // Nodes without email verification have nothing to wait for
             if (refer != null && verifiedAtCreation)
                 await _userService.PayReferralRewardAsync(user.Id);

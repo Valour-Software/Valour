@@ -84,6 +84,10 @@ public static class MauiProgram
         });
 #endif
 
+#if IOS && !MACCATALYST
+        Valour.Client.Device.DeviceInfo.IsIosApp = true;
+#endif
+
         builder.Services.AddSingleton<IAppStorage, MauiStorageService>();
 #if VALOUR_UNSIGNED_KEYCHAIN
         // An unsigned Mac build can't use the Keychain (see the project file), so

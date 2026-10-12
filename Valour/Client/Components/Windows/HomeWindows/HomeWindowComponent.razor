@@ -178,10 +178,13 @@
 
     private IEnumerable<Planet> FilterPlanets()
     {
-        if (string.IsNullOrWhiteSpace(_filterText))
-            return PlanetService.JoinedPlanets;
+        var hideNsfw = Client.HidesNsfw();
+        var planets = PlanetService.JoinedPlanets.Where(p => !(hideNsfw && p.Nsfw));
 
-        return PlanetService.JoinedPlanets
+        if (string.IsNullOrWhiteSpace(_filterText))
+            return planets;
+
+        return planets
             .Where(p => p.Name.Contains(_filterText, StringComparison.OrdinalIgnoreCase));
     }
 

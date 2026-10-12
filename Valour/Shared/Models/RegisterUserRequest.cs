@@ -32,4 +32,10 @@ public class RegisterUserRequest
     /// Use the linked account's profile picture as the new account's avatar.
     /// </summary>
     public bool UseProviderAvatar { get; set; }
+
+    /// <summary>
+    /// Start the account with NSFW content hidden. The iOS app sets this, because
+    /// App Store rules require NSFW content to be off by default there.
+    /// </summary>
+    public bool HideNsfw { get; set; }
 }

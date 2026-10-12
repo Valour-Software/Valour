@@ -386,11 +386,12 @@ public class PlanetMemberService
             if (userPrivateInfo is null)
                 return new TaskResult<PlanetMember>(false, "An unexpected error occured.");
 
-            // Check if the user is 18+
-            if (userPrivateInfo.BirthDate.HasValue && userPrivateInfo.BirthDate.Value.AddYears(18) > DateTime.UtcNow)
-            {
+            // NSFW planets need a birth date showing the user is 18+
+            if (!userPrivateInfo.BirthDate.HasValue)
+                return new TaskResult<PlanetMember>(false, "Add your birth date to join NSFW planets.");
+
+            if (userPrivateInfo.BirthDate.Value.AddYears(18) > DateTime.UtcNow)
                 return new TaskResult<PlanetMember>(false, "You must be 18+ to join this planet.");
-            }
         }
 
         if (await _db.PlanetBans.AnyAsync(x => x.TargetId == user.Id && x.PlanetId == planet.Id &&

@@ -6,6 +6,7 @@
 @inject ChannelService ChannelService
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
+@inject ValourClient Client
 @inject IJSRuntime JsRuntime
 @inject PlanetService PlanetService
 
@@ -260,7 +261,8 @@
         changes.On(x => x.AssociatedChatChannelId) ||
         changes.On(x => x.Name) ||
         changes.On(x => x.RawPosition) ||
-        changes.On(x => x.LocalPosition);
+        changes.On(x => x.LocalPosition) ||
+        changes.On(x => x.Nsfw);
     
     public bool GetVisible(Channel channel)
     {
@@ -291,6 +293,9 @@
         // Village area rooms are transport channels, not permanent navigation.
         // They only surface inside the village meeting/chat UI.
         if (ISharedChannel.IsVillageEphemeral(channel))
+            return false;
+
+        if (channel.Nsfw && Client.HidesNsfw())
             return false;
 
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)

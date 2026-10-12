@@ -56,6 +56,31 @@
     </div>
     </div>
 
+    @* ===== NSFW content ===== *@
+    @* App Store rules don't allow turning NSFW content on inside the iOS app,
+       so the setting only appears in the other apps and on the web. *@
+    @if (!DeviceInfo.IsIosApp)
+    {
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-eye-slash"></i>
+                NSFW Content
+            </h3>
+
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Show NSFW content in the iOS app</span>
+                    <label class="switch">
+                        <input type="checkbox" aria-label="Show NSFW content in the iOS app" checked="@_showNsfw" @onchange="OnShowNsfwChanged" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <p class="toggle-description">The iOS app hides NSFW planets, channels and threads unless this is on. Other apps always show them. Turning this on requires a birth date showing you are 18 or older.</p>
+                <ResultLabel Result="@_showNsfwResult" />
+            </div>
+        </div>
+    }
+
     @* ===== Blocking ===== *@
     <div class="editor-section">
         <h3 class="editor-section-title">
@@ -137,6 +162,31 @@
         StateHasChanged();
     }
 
+    private bool _showNsfw;
+    private ITaskResult _showNsfwResult;
+
+    private async Task OnShowNsfwChanged(ChangeEventArgs e)
+    {
+        var value = e.Value is bool b && b;
+        var previous = _showNsfw;
+        _showNsfw = value;
+
+        var result = await Client.PrimaryNode.PostAsyncWithResponse<UserPreferences>(
+            $"api/users/me/preferences/showNsfw/{value.ToString().ToLowerInvariant()}");
+        if (result.Success && result.Data is not null)
+        {
+            _showNsfw = result.Data.ShowNsfw;
+            _showNsfwResult = new TaskResult(true, value ? "NSFW content will show in the iOS app." : "NSFW content will be hidden in the iOS app.");
+        }
+        else
+        {
+            _showNsfw = previous;
+            _showNsfwResult = new TaskResult(false, result.Message);
+        }
+
+        StateHasChanged();
+    }
+
     private DmPolicy _dmPolicy = DmPolicy.Everyone;
     private DmPolicy _callPolicy = DmPolicy.FriendsOnly;
     private string _blockName;
@@ -162,6 +212,7 @@
         {
             _dmPolicy = response.Data.DmPolicy;
             _callPolicy = response.Data.CallPolicy;
+            _showNsfw = response.Data.ShowNsfw;
         }
     }
 

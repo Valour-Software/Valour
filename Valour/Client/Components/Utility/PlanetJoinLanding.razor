@@ -7,7 +7,7 @@
    (/D/{id}) pages. The pages differ only in how they load the planet info and
    how the join is performed; everything below is common. *@
 
-@if (Result is null || !Result.Value.Success || Result.Value.Data is null)
+@if (Result is null || !Result.Value.Success || Result.Value.Data is null || HiddenAsNsfw)
 {
     <NebulaBackground ContentClasses="absolute-center">
         <div class="invite-card">
@@ -18,7 +18,7 @@
                 }
                 else
                 {
-                    <p class="invite-prompt text-danger">@(Result.Value.Message ?? "An error occurred.")</p>
+                    <p class="invite-prompt text-danger">@(HiddenAsNsfw ? NsfwHiddenMessage : Result.Value.Message ?? "An error occurred.")</p>
                     <button class="v-btn center mt-4" @onclick="OnClose">Back to Home</button>
                 }
             </section>
@@ -77,6 +77,12 @@ else
     private bool _joining;
 
     private PlanetListInfo Info => Result?.Data;
+
+    private const string NsfwHiddenMessage =
+        "This planet is marked NSFW, and NSFW content is hidden in this app.";
+
+    // The iOS app keeps NSFW planets hidden unless the person turned them on elsewhere.
+    private bool HiddenAsNsfw => Result?.Data?.Nsfw == true && Client.HidesNsfw();
 
     private bool IsCommunityHosted => !string.IsNullOrWhiteSpace(Info?.NodeDomain);
 

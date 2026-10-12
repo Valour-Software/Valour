@@ -178,7 +178,7 @@
     private bool _slideBack;
 
     private IEnumerable<Planet> JoinedPlanets =>
-        Client.PlanetService.JoinedPlanets.Where(x => x.EnableThreads);
+        Client.PlanetService.JoinedPlanets.Where(x => x.EnableThreads && !(Client.HidesNsfw() && x.Nsfw));
 
     protected override async Task OnInitializedAsync()
     {
@@ -240,6 +240,7 @@
                 : Client.ThreadService.GetPlanetFeedEngine(_planet);
 
             checkEngine.SetFilter("sort", "new", false);
+            checkEngine.SetFilter("nsfw", Client.HidesNsfw() ? "hide" : null, false);
             checkEngine.ApplyOptions();
 
             var response = await checkEngine.GetItemsAsync(0, NewCheckPageSize);
@@ -280,6 +281,7 @@
 
         _engine.SetFilter("sort", _sort, false);
         _engine.SetFilter("period", _sort == "top" ? _period : null, false);
+        _engine.SetFilter("nsfw", Client.HidesNsfw() ? "hide" : null, false);
         _engine.ApplyOptions();
 
         _threads.Clear();

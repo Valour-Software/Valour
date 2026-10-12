@@ -16,7 +16,8 @@ public static class UserPreferencesMapper
             DmPolicy = prefs.DmPolicy,
             CallPolicy = prefs.CallPolicy,
             ForceGpuAcceleration = prefs.ForceGpuAcceleration,
-            ActivityCooldownSeconds = prefs.ActivityCooldownSeconds
+            ActivityCooldownSeconds = prefs.ActivityCooldownSeconds,
+            ShowNsfw = prefs.ShowNsfw
         };
     }
 
@@ -34,7 +35,8 @@ public static class UserPreferencesMapper
             DmPolicy = prefs.DmPolicy,
             CallPolicy = prefs.CallPolicy,
             ForceGpuAcceleration = prefs.ForceGpuAcceleration,
-            ActivityCooldownSeconds = prefs.ActivityCooldownSeconds
+            ActivityCooldownSeconds = prefs.ActivityCooldownSeconds,
+            ShowNsfw = prefs.ShowNsfw
         };
     }
 }

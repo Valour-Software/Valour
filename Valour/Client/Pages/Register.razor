@@ -317,6 +317,7 @@
                 ExternalTicket = _external.Ticket,
                 ExternalVerifier = _external.Verifier,
                 UseProviderAvatar = _useProviderAvatar && _externalAvatar is not null,
+                HideNsfw = DeviceInfo.IsIosApp,
             });
 
             if (!result.Success || result.Token is null)
@@ -423,6 +424,7 @@
             InviteCode = InviteCode,
             Source = Source,
             IsNotTexasResident = _isNotTexasResident,
+            HideNsfw = DeviceInfo.IsIosApp,
         };
 
         _submitting = true;

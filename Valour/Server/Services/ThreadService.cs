@@ -454,6 +454,11 @@ public class ThreadService
         var sort = request.Options?.Filters?.GetValueOrDefault("sort") ?? "hot";
         var period = request.Options?.Filters?.GetValueOrDefault("period") ?? "all";
 
+        // Clients that hide NSFW content (the iOS app, by default) leave out NSFW
+        // threads and threads from NSFW planets.
+        if (request.Options?.Filters?.GetValueOrDefault("nsfw") == "hide")
+            query = query.Where(x => !x.Nsfw && !x.Planet.Nsfw);
+
         if (sort == "top")
         {
             DateTime? cutoff = period switch

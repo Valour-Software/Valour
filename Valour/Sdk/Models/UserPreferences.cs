@@ -15,6 +15,7 @@ public class UserPreferences : ClientModel<UserPreferences, long>, ISharedUserPr
     public DmPolicy CallPolicy { get; set; }
     public bool ForceGpuAcceleration { get; set; }
     public int? ActivityCooldownSeconds { get; set; }
+    public bool ShowNsfw { get; set; }
 
     [JsonConstructor]
     private UserPreferences() : base() { }

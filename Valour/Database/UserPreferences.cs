@@ -34,4 +34,7 @@ public class UserPreferences : ISharedUserPreferences
 
     [Column("activity_cooldown_seconds")]
     public int? ActivityCooldownSeconds { get; set; }
+
+    [Column("show_nsfw")]
+    public bool ShowNsfw { get; set; } = true;
 }

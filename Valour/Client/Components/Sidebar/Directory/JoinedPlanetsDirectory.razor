@@ -4,6 +4,7 @@
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
 @inject ContextMenuService ContextMenuService
+@inject ValourClient Client
 
 <div class="joined-planets">
     <div class="section-label">
@@ -185,7 +186,8 @@
 
     private void CalculatePlanets()
     {
-        _renderPlanets = PlanetService.JoinedPlanets.Select((p, index) =>
+        var hideNsfw = Client.HidesNsfw();
+        _renderPlanets = PlanetService.JoinedPlanets.Where(p => !(hideNsfw && p.Nsfw)).Select((p, index) =>
         {
             _placements.TryGetValue(p.Id, out var placement);
             return new JoinedPlanetRenderInfo

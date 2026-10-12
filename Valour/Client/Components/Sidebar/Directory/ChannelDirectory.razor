@@ -1,5 +1,6 @@
 ﻿@inject ChannelDragManager DragManager
 @inject PlanetService PlanetService
+@inject ValourClient Client
 
 
 <div 
@@ -7,7 +8,7 @@
     @ondragover:preventDefault="true"
     @ondragenter="@OnDragEnter"
     style="padding-bottom:80px">
-    @foreach (var planet in PlanetService.ConnectedPlanets)
+    @foreach (var planet in PlanetService.ConnectedPlanets.Where(p => !(Client.HidesNsfw() && p.Nsfw)))
     {
         <PlanetDirectory Planet="@planet" @key='planet.Id'></PlanetDirectory>
     }

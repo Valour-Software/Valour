@@ -1266,6 +1266,37 @@ public class UserApi
         return Results.Json(prefs.ToModel());
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/users/me/preferences/showNsfw/{enabled}")]
+    [UserRequired]
+    public static async Task<IResult> SetShowNsfwAsync(
+        bool enabled,
+        UserService userService,
+        ValourDb db)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+
+        // Turning NSFW content on needs a birth date showing the user is an adult.
+        if (enabled)
+        {
+            var birthDate = await db.PrivateInfos
+                .Where(x => x.UserId == userId)
+                .Select(x => x.BirthDate)
+                .FirstOrDefaultAsync();
+
+            if (birthDate is null)
+                return ValourResult.BadRequest("Add your birth date before showing NSFW content.");
+
+            if (userService.GetYearsOld(birthDate.Value) < 18)
+                return ValourResult.BadRequest("You must be 18 or older to show NSFW content.");
+        }
+
+        var prefs = await EnsurePreferencesAsync(userId, db);
+        prefs.ShowNsfw = enabled;
+
+        await db.SaveChangesAsync();
+        return Results.Json(prefs.ToModel());
+    }
+
     internal static async Task<DbUserPreferences?> SetErrorReportingStateAsync(long userId, ErrorReportingState state, ValourDb db)
     {
         var defaults = await CreateDefaultPreferencesAsync(userId, db);
@@ -1293,7 +1324,7 @@ public class UserApi
         return prefs;
     }
 
-    private static async Task<DbUserPreferences> CreateDefaultPreferencesAsync(long userId, ValourDb db)
+    internal static async Task<DbUserPreferences> CreateDefaultPreferencesAsync(long userId, ValourDb db)
     {
         var dmPolicy = DmPolicy.Everyone;
 

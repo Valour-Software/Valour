@@ -9,7 +9,9 @@
         {
             <div class="thread-loading">
                 <i class="bi bi-rocket"></i>
-                <p>This thread could not be loaded. It may have been deleted.</p>
+                <p>@(_hiddenNsfw
+                    ? "This thread is marked NSFW, and NSFW content is hidden in this app."
+                    : "This thread could not be loaded. It may have been deleted.")</p>
             </div>
         }
         else
@@ -156,6 +158,7 @@
     private Planet _planet;
     private PlanetPresenceSummary _presence;
     private bool _failed;
+    private bool _hiddenNsfw;
 
     private string _sort = "top";
     private readonly List<ThreadComment> _comments = new();
@@ -186,12 +189,25 @@
             return;
         }
 
-        _thread = await Client.ThreadService.FetchThreadAsync(Data.PlanetId, Data.ThreadId, skipCache: true);
-        if (_thread is null)
+        var thread = await Client.ThreadService.FetchThreadAsync(Data.PlanetId, Data.ThreadId, skipCache: true);
+        if (thread is null)
         {
             _failed = true;
             return;
         }
+
+        if (Client.HidesNsfw())
+        {
+            var threadPlanet = await Client.PlanetService.FetchPlanetAsync(thread.PlanetId);
+            if (thread.Nsfw || threadPlanet?.Nsfw == true)
+            {
+                _hiddenNsfw = true;
+                _failed = true;
+                return;
+            }
+        }
+
+        _thread = thread;
 
         _hooked = _thread;
         _hooked.Updated += OnThreadUpdated;

@@ -4832,6 +4832,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("notification_volume");
 
+                    b.Property<bool>("ShowNsfw")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_nsfw");
+
                     b.HasKey("Id");
 
                     b.ToTable("user_preferences");
