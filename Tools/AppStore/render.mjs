@@ -19,19 +19,19 @@ const data = (file) => `data:image/png;base64,${fs.readFileSync(file).toString('
 
 const shots = [
   ['iphone-1-chat', 'Chat with your communities', 'Every message is end-to-end encrypted'],
-  ['iphone-2-planets', 'All your planets in one place', 'Join communities built around what you love'],
-  ['iphone-3-threads', 'Threads worth coming back to', 'Posts and discussions from every planet you join'],
+  ['iphone-2-planets', 'All your planets in one place', 'Communities built around what you love'],
+  ['iphone-3-threads', 'Threads worth coming back to', 'Posts from every planet you join'],
   ['iphone-4-channels', 'Organized your way', 'Channels, threads, a wiki and voice'],
   ['iphone-5-wiki', 'A wiki for every community', 'Guides, rules and resources in one place'],
   ['iphone-6-onboarding', 'Find your people', 'Pick your interests and jump right in'],
   ['ipad-1-chat', 'Chat with your communities', 'Every message is end-to-end encrypted'],
-  ['ipad-2-threads', 'Threads worth coming back to', 'Posts and discussions from every planet you join'],
+  ['ipad-2-threads', 'Threads worth coming back to', 'Posts from every planet you join'],
   ['ipad-3-onboarding', 'Find your people', 'Pick your interests and jump right in'],
 ];
 
 const sizes = {
-  iphone: { w: 1320, h: 2868, title: 104, sub: 52, top: 190, deviceTop: 600, deviceW: 1060, radius: 92 },
-  ipad: { w: 2064, h: 2752, title: 112, sub: 56, top: 170, deviceTop: 560, deviceW: 1640, radius: 56 },
+  iphone: { w: 1320, h: 2868, title: 118, sub: 56, top: 150, deviceTop: 600, deviceW: 1000, radius: 96 },
+  ipad: { w: 2064, h: 2752, title: 120, sub: 60, top: 120, deviceTop: 420, deviceW: 1700, radius: 60 },
 };
 
 const html = (img, title, subtitle, s) => `<!doctype html><html><head><style>
