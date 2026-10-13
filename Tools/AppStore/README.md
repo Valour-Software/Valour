@@ -95,7 +95,9 @@ Upload them in file-name order. Apple scales them down for smaller devices.
 Connect also accepts.
 
 The raw screenshots were taken from the app's web client in WebKit, the engine
-the iOS app's web view uses, at the iPhone and iPad screen sizes. They used a
+the iOS app's web view uses, at 375 x 812 points for iPhone and 834 x 1112
+points for iPad, then scaled to Apple's sizes. Those logical sizes keep the
+interface as large as in the Google Play screenshots. They used a
 local QA server with a made-up community: every name, avatar, message and
 planet in them is invented for the listing. The chat messages are end-to-end
 encrypted like any others, and were decrypted on the capturing device.
