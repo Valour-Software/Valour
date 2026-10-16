@@ -293,7 +293,7 @@
 
     private async Task OnClickCopyLink(){
         var message = Data.Message;
-        var baseUri = NavManager.BaseUri.TrimEnd('/');
+        var baseUri = ShareUtils.GetPublicBaseUri(NavManager).TrimEnd('/');
 
         // Matches the deep-link routes on Index.razor
         var url = message.PlanetId is not null
