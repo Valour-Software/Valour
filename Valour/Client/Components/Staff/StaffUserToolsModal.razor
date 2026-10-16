@@ -34,6 +34,7 @@
         <h6 class="staff-tools-heading mt-3">Identity</h6>
         <div class="button-row">
             <button class="v-btn" @onclick="ResetUsername">Reset username</button>
+            <button class="v-btn danger" @onclick="ChangeEmail">Change email</button>
             @if (Data.User.HidePriorName)
             {
                 <button class="v-btn" @onclick="@(() => SetPriorNameHidden(false))">Unhide prior name</button>
@@ -178,6 +179,14 @@
 
                 await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
             });
+    }
+
+    private void ChangeEmail()
+    {
+        ModalRoot.OpenModal<StaffChangeEmailModal>(new StaffChangeEmailModal.ModalParams()
+        {
+            User = Data.User
+        });
     }
 
     private void SetPriorNameHidden(bool hidden)

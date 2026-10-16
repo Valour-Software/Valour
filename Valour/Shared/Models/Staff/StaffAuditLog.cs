@@ -19,7 +19,8 @@ public enum StaffActionType
     ClearPlatformBanner = 14,
     SelectVillageTemplateDraft = 15,
     PublishVillageTemplate = 16,
-    ResetVillage = 17
+    ResetVillage = 17,
+    ChangeEmail = 18
 }
 
 public interface ISharedStaffAuditLog
