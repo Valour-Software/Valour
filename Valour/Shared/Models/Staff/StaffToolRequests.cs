@@ -34,6 +34,13 @@ public class StaffResetUsernameRequest
     public string Reason { get; set; }
 }
 
+public class StaffChangeEmailRequest
+{
+    public long UserId { get; set; }
+    public string NewEmail { get; set; }
+    public string Reason { get; set; }
+}
+
 public class StaffSetPriorNameHiddenRequest
 {
     public long UserId { get; set; }
