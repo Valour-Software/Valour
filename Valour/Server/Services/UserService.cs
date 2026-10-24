@@ -704,10 +704,7 @@ public class UserService
         }
 
         if (oldEmail is not null)
-        {
-            await SendEmailChangedNoticeAsync(confirmCode.UserId, oldEmail);
             await RevokeAllOtherTokensAsync(confirmCode.UserId, confirmCode.SessionId);
-        }
 
         return new(true, "Success");
     }
@@ -756,6 +753,14 @@ public class UserService
 
         var newEmail = validated.Data;
 
+        var currentEmail = await _db.PrivateInfos
+            .Where(x => x.UserId == userId)
+            .Select(x => x.Email)
+            .FirstOrDefaultAsync();
+
+        if (currentEmail is null)
+            return TaskResult.FromFailure("Account not found.");
+
         var code = Guid.NewGuid().ToString();
         var createdAt = DateTime.UtcNow;
 
@@ -776,24 +781,25 @@ public class UserService
         await _db.SaveChangesAsync();
 
         var link = $"{PublicLinks.GetApiBaseUrl(ctx.Request)}/api/users/verify/{code}";
+        var encodedNewEmail = System.Net.WebUtility.HtmlEncode(newEmail);
 
         var bodyContent = $@"
-            <h1 style='{EmailTemplateHelper.HeadingStyle}'>Confirm Your New Email</h1>
+            <h1 style='{EmailTemplateHelper.HeadingStyle}'>Confirm Your Email Change</h1>
             <p style='{EmailTemplateHelper.ParagraphStyle}'>Hello,</p>
-            <p style='{EmailTemplateHelper.ParagraphStyle}'>You asked to use this address for your Valour account. To confirm the change, please click the button below:</p>
-            <a href='{link}' style='{EmailTemplateHelper.ButtonStyle}'>Confirm Email</a>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>Someone asked to change the email on your Valour account to <strong>{encodedNewEmail}</strong>. If this was you, please click the button below to confirm the change:</p>
+            <a href='{link}' style='{EmailTemplateHelper.ButtonStyle}'>Confirm Change</a>
             <p style='{EmailTemplateHelper.ParagraphStyle}'>If you are unable to click the button, you can also copy and paste the following link into your browser:</p>
             <p style='{EmailTemplateHelper.ParagraphStyle}'><a href='{link}' style='{EmailTemplateHelper.LinkStyle}'>{link}</a></p>
-            <p style='{EmailTemplateHelper.ParagraphStyle}'>If you did not ask for this, you can ignore this email.</p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>If you did not ask for this, ignore this email and your email will not change. You may also want to change your password.</p>
             <p style='{EmailTemplateHelper.ParagraphStyle}'>Thank you,<br>Valour Team</p>";
 
-        var rawMessage = $"To confirm this address as your new Valour account email, please go to the following link:\n{link}";
+        var rawMessage = $"Someone asked to change the email on your Valour account to {newEmail}. If this was you, confirm the change by going to the following link:\n{link}\n\nIf you did not ask for this, ignore this email and your email will not change. You may also want to change your password.";
 
         try
         {
             using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(EmailTimeoutSeconds));
             var result = await EmailManager.SendEmailAsync(
-                newEmail,
+                currentEmail,
                 "Valour Email Change",
                 rawMessage,
                 EmailTemplateHelper.WrapInTemplate(bodyContent),
@@ -811,7 +817,7 @@ public class UserService
             return TaskResult.FromFailure("Sorry! An unexpected error occured. Try again?");
         }
 
-        return TaskResult.FromSuccess("Check your new inbox for a confirmation link. Once confirmed, all other sessions will be logged out.");
+        return TaskResult.FromSuccess("Check your current email inbox for a confirmation link. Once confirmed, your email will change and all other sessions will be logged out.");
     }
 
     public async Task<TaskResult<(string OldEmail, string NewEmail)>> ChangeEmailAsync(long userId, string email)
