@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Valour.Client.Blazor", "Cli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Valour.Tests", "Tests\Valour.Tests.csproj", "{A5DF4C2D-FBB7-A7AB-B386-A6F447597FC9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Valour.Tests.Compatibility", "Tests.Compatibility\Valour.Tests.Compatibility.csproj", "{5504B9B3-4302-43E7-B9AC-2D6C6E57AB42}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Valour.Server", "Server\Valour.Server.csproj", "{A74CE827-E0AC-6015-EB22-A0B25DF9C678}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Valour.Shared", "Shared\Valour.Shared.csproj", "{44211DE9-0E39-400A-8B8A-C578738923AC}"
@@ -34,6 +36,10 @@ Global
 		{A5DF4C2D-FBB7-A7AB-B386-A6F447597FC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A5DF4C2D-FBB7-A7AB-B386-A6F447597FC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A5DF4C2D-FBB7-A7AB-B386-A6F447597FC9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5504B9B3-4302-43E7-B9AC-2D6C6E57AB42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5504B9B3-4302-43E7-B9AC-2D6C6E57AB42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5504B9B3-4302-43E7-B9AC-2D6C6E57AB42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5504B9B3-4302-43E7-B9AC-2D6C6E57AB42}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A74CE827-E0AC-6015-EB22-A0B25DF9C678}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A74CE827-E0AC-6015-EB22-A0B25DF9C678}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A74CE827-E0AC-6015-EB22-A0B25DF9C678}.Release|Any CPU.ActiveCfg = Release|Any CPU

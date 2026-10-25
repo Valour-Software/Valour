@@ -77,7 +77,7 @@ public sealed class DirectCallService : ServiceBase
     {
         if (node.IsExternal)
             return;
-        node.HubConnection.On<DirectCall>("Direct-Call-Update", call => Apply(call));
+        node.HubConnection.On<DirectCall>(HubEvents.DirectCallUpdate, call => Apply(call));
     }
 
     private void Apply(DirectCall call, bool notify = true)

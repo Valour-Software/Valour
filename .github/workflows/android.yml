@@ -7,6 +7,7 @@ on:
     paths:
       - 'Valour/Client.Maui/**'
       - 'Valour/Client/**'
+      - 'Directory.Build.props'
 
 jobs:
   check-version:
@@ -22,7 +23,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        CURRENT=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' Valour/Client.Maui/Valour.Client.Maui.csproj)
+        CURRENT=$(grep -oP '^\s*<Version>\K[^<]+' Directory.Build.props)
         echo "version=$CURRENT" >> $GITHUB_OUTPUT
 
         # Gate on this platform's assets, not release existence: the release is
@@ -318,9 +319,10 @@ jobs:
     # Sends the bundle to the Play internal testing track. Skipped until the
     # GOOGLE_PLAY_PUBLISHER_JSON secret holds a service account key that may
     # release to testing tracks. Play rejects a version code it has already
-    # received, and refuses one lower than a code already on any track, so
-    # raise ApplicationVersion above every code sent to Play, including test
-    # builds from playstore/ branches.
+    # received, and refuses one lower than a code already on any track. The code
+    # comes from the version in Directory.Build.props; see the comment there
+    # before sending another build of the same version, such as a playstore/
+    # test build.
     - name: Check for Google Play publisher key
       id: play-key
       env:

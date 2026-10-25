@@ -16,11 +16,11 @@ public static class DashboardHub
     /// <summary>
     /// Event carrying a <see cref="DashboardLiveStats"/> payload every few seconds.
     /// </summary>
-    public const string LiveEvent = "Dashboard-Live";
+    public const string LiveEvent = HubEvents.DashboardLive;
 
     /// <summary>
     /// Event carrying a <see cref="DashboardPresenceEvent"/> payload when a user's
     /// first primary connection opens or last one closes.
     /// </summary>
-    public const string PresenceEvent = "Dashboard-Presence";
+    public const string PresenceEvent = HubEvents.DashboardPresence;
 }

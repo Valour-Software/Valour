@@ -830,8 +830,8 @@ public class Node : ServiceBase // each node acts like a service
         where TModel : ClientModel<TModel>
     {
         var typeName = model.GetType().Name;
-        HubConnection.On<TModel, int>($"{typeName}-Update", OnModelUpdate<TModel>);
-        HubConnection.On<TModel>($"{typeName}-Delete", OnModelDelete<TModel>);
+        HubConnection.On<TModel, int>(HubEvents.ModelUpdate(typeName), OnModelUpdate<TModel>);
+        HubConnection.On<TModel>(HubEvents.ModelDelete(typeName), OnModelDelete<TModel>);
     }
 
     /// <summary>
@@ -982,15 +982,15 @@ public class Node : ServiceBase // each node acts like a service
         
         if (IsExternal)
         {
-            HubConnection.On<string>("ForceLogout", reason => InvalidateExternalSession(reason));
+            HubConnection.On<string>(HubEvents.ForceLogout, reason => InvalidateExternalSession(reason));
         }
         else
         {
-            HubConnection.On<Notification>("RelayNotification", Client.NotificationService.OnNotificationReceived);
-            HubConnection.On("RelayNotificationsCleared", Client.NotificationService.OnNotificationsCleared);
-            HubConnection.On<FriendEventData>("RelayFriendEvent", Client.FriendService.OnFriendEventReceived);
-            HubConnection.On<string>("ForceLogout", reason => Client.AuthService.HandleTokenInvalidated(reason));
-            HubConnection.On<PlatformBannerUpdate>("PlatformBanner-Update",
+            HubConnection.On<Notification>(HubEvents.RelayNotification, Client.NotificationService.OnNotificationReceived);
+            HubConnection.On(HubEvents.RelayNotificationsCleared, Client.NotificationService.OnNotificationsCleared);
+            HubConnection.On<FriendEventData>(HubEvents.RelayFriendEvent, Client.FriendService.OnFriendEventReceived);
+            HubConnection.On<string>(HubEvents.ForceLogout, reason => Client.AuthService.HandleTokenInvalidated(reason));
+            HubConnection.On<PlatformBannerUpdate>(HubEvents.PlatformBannerUpdate,
                 update => Client.PlatformBannerChanged?.Invoke(update?.Banner));
         }
 

@@ -264,36 +264,36 @@ public class MessageService : ServiceBase
     {
         // Encrypted messages are decrypted before they reach the cache, so
         // every consumer sees readable text.
-        node.HubConnection.On<Message>("Relay", async message =>
+        node.HubConnection.On<Message>(HubEvents.Relay, async message =>
         {
             if (!node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
                 return;
             await _client.E2eeService.DecryptAsync(message);
             OnPlanetMessageReceived(message);
         });
-        node.HubConnection.On<Message>("RelayEdit", async message =>
+        node.HubConnection.On<Message>(HubEvents.RelayEdit, async message =>
         {
             if (!node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
                 return;
             await _client.E2eeService.DecryptAsync(message);
             OnPlanetMessageEdited(message);
         });
-        node.HubConnection.On<Message>("DeleteMessage", message =>
+        node.HubConnection.On<Message>(HubEvents.DeleteMessage, message =>
         {
             if (node.AcceptsExternalPlanetRealtimeEvent(message?.PlanetId))
                 _client.MessageService.OnMessageDeleted(message);
         });
-        node.HubConnection.On<EmbedUpdate>("Channel-Embed-Update", async update =>
+        node.HubConnection.On<EmbedUpdate>(HubEvents.ChannelEmbedUpdate, async update =>
         {
             if (update is not null && node.AcceptsExternalMessageRealtimeEvent(update.TargetMessageId))
                 await OnEmbedUpdateAsync(update);
         });
-        node.HubConnection.On<MessageReaction>("MessageReactionAdd", reaction =>
+        node.HubConnection.On<MessageReaction>(HubEvents.MessageReactionAdd, reaction =>
         {
             if (reaction is not null && node.AcceptsExternalMessageRealtimeEvent(reaction.MessageId))
                 OnMessageReactionAdded(node, reaction);
         });
-        node.HubConnection.On<MessageReaction>("MessageReactionRemove", reaction =>
+        node.HubConnection.On<MessageReaction>(HubEvents.MessageReactionRemove, reaction =>
         {
             if (reaction is not null && node.AcceptsExternalMessageRealtimeEvent(reaction.MessageId))
                 OnMessageReactionRemoved(node, reaction);
@@ -303,17 +303,17 @@ public class MessageService : ServiceBase
         // federated community node has no authority over those global caches.
         if (!node.IsExternal)
         {
-            node.HubConnection.On<Message>("RelayDirect", async message =>
+            node.HubConnection.On<Message>(HubEvents.RelayDirect, async message =>
             {
                 await _client.E2eeService.DecryptAsync(message);
                 await OnDirectMessageReceived(message);
             });
-            node.HubConnection.On<Message>("RelayDirectEdit", async message =>
+            node.HubConnection.On<Message>(HubEvents.RelayDirectEdit, async message =>
             {
                 await _client.E2eeService.DecryptAsync(message);
                 OnDirectMessageEdited(message);
             });
-            node.HubConnection.On<EmbedUpdate>("Personal-Embed-Update", OnEmbedUpdateAsync);
+            node.HubConnection.On<EmbedUpdate>(HubEvents.PersonalEmbedUpdate, OnEmbedUpdateAsync);
         }
     }
 }

@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net11.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>annotations</Nullable>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+        <PackageReference Include="xunit.v3" Version="3.2.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+    <!-- These tests talk to a running server only through the SDK, the way an
+         app does. By default they use the SDK in this checkout. Building with
+         -p:ClientSdkVersion=0.9.20 uses that released Valour.Sdk package
+         instead, which is the client code people installed with that release.
+         The tests may only use SDK features that every tested release has. -->
+    <ItemGroup Condition="'$(ClientSdkVersion)' == ''">
+        <ProjectReference Include="..\Sdk\Valour.Sdk.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(ClientSdkVersion)' != ''">
+        <PackageReference Include="Valour.Sdk" Version="[$(ClientSdkVersion)]" />
+    </ItemGroup>
+
+</Project>

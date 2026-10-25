@@ -143,35 +143,14 @@ public partial class Program
         // Configure application
         ConfigureApp(app);
 
-        app.MapGet("/api/ping", () => "pong");
-        
+        NodeAPI = new NodeAPI();
 
-        // Add Cdn routes
-        ContentApi.AddRoutes(app);
-        UploadApi.AddRoutes(app);
-        ProxyApi.AddRoutes(app);
+        MapApiRoutes(app,
+            servePublicContent: app.Services.GetRequiredService<CdnStorageProvider>().Mode == CdnStorageMode.FileSystem);
 
-        // In filesystem storage mode the server itself serves public assets
-        // (avatars, icons, emoji) under /valour-public/; in s3 mode an external
-        // public CDN host serves them.
-        if (app.Services.GetRequiredService<CdnStorageProvider>().Mode == CdnStorageMode.FileSystem)
-        {
-            PublicContentApi.AddRoutes(app);
-        }
-
-        // Add API routes
-        BaseAPI.AddRoutes(app);
-        InstanceApi.AddRoutes(app);
-        EmbedAPI.AddRoutes(app);
         OauthAppApi.StartCodeCleanupTask();
         TokenService.StartCacheSweepTask();
         UserService.StartAccessFlagsSweepTask();
-        VoiceSignallingApi.AddRoutes(app);
-        
-        DynamicAPI.RegisterAll(app);
-
-        NodeAPI = new NodeAPI();
-        NodeAPI.AddRoutes(app);
 
         // Migrations and tasks
 
@@ -189,6 +168,33 @@ public partial class Program
         }
 
         await app.RunAsync();
+    }
+
+    /// <summary>
+    /// Maps the HTTP routes that clients and bots call. The wire contract test
+    /// records the routes mapped here, so client-facing routes belong in this
+    /// method rather than in <see cref="ConfigureApp"/>.
+    /// </summary>
+    internal static void MapApiRoutes(WebApplication app, bool servePublicContent)
+    {
+        app.MapGet("/api/ping", () => "pong");
+
+        ContentApi.AddRoutes(app);
+        UploadApi.AddRoutes(app);
+        ProxyApi.AddRoutes(app);
+
+        // In filesystem storage mode the server itself serves public assets
+        // (avatars, icons, emoji) under /valour-public/; in s3 mode an external
+        // public CDN host serves them.
+        if (servePublicContent)
+            PublicContentApi.AddRoutes(app);
+
+        BaseAPI.AddRoutes(app);
+        InstanceApi.AddRoutes(app);
+        EmbedAPI.AddRoutes(app);
+        VoiceSignallingApi.AddRoutes(app);
+        DynamicAPI.RegisterAll(app);
+        NodeAPI.AddRoutes(app);
     }
 
     public static void ConfigureApp(WebApplication app)
@@ -424,7 +430,16 @@ public partial class Program
         return Results.Content(meta?.ApplyToHostPage(page) ?? page, "text/html; charset=utf-8");
     }
 
-    public static void ConfigureServices(WebApplicationBuilder builder)
+    public static void ConfigureServices(WebApplicationBuilder builder) =>
+        ConfigureServices(builder, connectInfrastructure: true);
+
+    /// <summary>
+    /// Registers the server's services. When <paramref name="connectInfrastructure"/>
+    /// is false it neither applies database migrations nor connects to Redis, so
+    /// the wire contract test can read the routes without those services. A host
+    /// configured that way cannot serve requests.
+    /// </summary>
+    internal static void ConfigureServices(WebApplicationBuilder builder, bool connectInfrastructure)
     {
         var services = builder.Services;
 
@@ -512,9 +527,8 @@ public partial class Program
 
         services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); }, ServiceLifetime.Scoped);
 
-        // Apply migrations if flag is set
-        //if (Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true")
-        //{
+        if (connectInfrastructure)
+        {
             using var scope = services.BuildServiceProvider().CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
             // Some migrations build indexes on large tables concurrently, which
@@ -522,12 +536,17 @@ public partial class Program
             db.Database.SetCommandTimeout(TimeSpan.FromMinutes(30));
             using (HoldMigrationLock())
                 db.Database.Migrate();
-        //}
 
-        Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
+            Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
 
-        services.AddSingleton<IConnectionMultiplexer>(
-            ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
+            services.AddSingleton<IConnectionMultiplexer>(
+                ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
+        }
+        else
+        {
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+                throw new InvalidOperationException("This host was configured without Redis and cannot serve requests."));
+        }
 
         // This probably needs to be customized further but the documentation changed
         services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);

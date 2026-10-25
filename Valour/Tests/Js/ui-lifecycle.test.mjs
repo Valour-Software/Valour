@@ -139,13 +139,20 @@ test('input cleanup prevents a pending debounced callback from reaching a dispos
     let queued;
     globalThis.window = { setTimeout(fn) { queued = fn; return 1; } };
     globalThis.document = { addEventListener() {}, removeEventListener() {} };
+    let observing = false;
+    globalThis.MutationObserver = class {
+        observe() { observing = true; }
+        disconnect() { observing = false; }
+    };
     const element = { addEventListener() {}, removeEventListener() {} };
     let calls = 0;
     const context = init({ async invokeMethodAsync() { calls++; } }, element);
+    assert.ok(observing);
     context.inputHandler({});
     context.cleanup();
     await queued();
     assert.equal(calls, 0);
+    assert.equal(observing, false);
     assert.equal(init({}, null), null);
 });
 

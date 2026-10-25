@@ -1,0 +1,51 @@
+@* The message input's script creates a chip element for each mention and adds
+   this component to it as a JavaScript root component. It renders the same
+   mention components as chat messages. *@
+
+@switch (_mention?.Type)
+{
+    case MentionType.User:
+        <UserMentionComponent Mention="@_mention" />
+        break;
+    case MentionType.PlanetMember:
+        <MemberMentionComponent Mention="@_mention" RenderContext="@_context" />
+        break;
+    case MentionType.Role:
+        <RoleMentionComponent Mention="@_mention" RenderContext="@_context" />
+        break;
+    case MentionType.Channel:
+        <ChannelMentionComponent Mention="@_mention" RenderContext="@_context" />
+        break;
+}
+
+@code {
+    public const string JsIdentifier = "valour-input-mention";
+
+    /// <summary>
+    /// The mention token, such as «@m-123». Ids are passed inside text because
+    /// JavaScript numbers cannot hold every 64-bit id.
+    /// </summary>
+    [Parameter]
+    public string Token { get; set; }
+
+    /// <summary>
+    /// The <see cref="InputComponent.ChipContextId"/> of the input that holds
+    /// the chip. Its channel scopes member, role, and channel lookups.
+    /// </summary>
+    [Parameter]
+    public string InputId { get; set; }
+
+    private Mention _mention;
+    private MentionRenderContext _context;
+
+    protected override void OnParametersSet()
+    {
+        _mention = MessageInputText.TryParseMention(Token, out var mention) ? mention : null;
+
+        var channel = InputComponent.FindByChipContext(InputId)?.ChatComponent?.Channel;
+        _context = new MentionRenderContext
+        {
+            Planet = channel?.PlanetId is null ? null : channel.Planet
+        };
+    }
+}

@@ -1547,8 +1547,11 @@ reverting them.
 ### Clients
 
 The instance manifest's `MinimumClientProtocol` tells clients the oldest client
-this server works with. A client whose `InstanceManifest.CurrentClientProtocol`
-is lower shows a notice that cannot be dismissed, asking the person to update.
+this server works with. The server reports
+`InstanceManifest.OldestSupportedClientProtocol` there. A client whose
+`InstanceManifest.CurrentClientProtocol` is lower shows a notice that cannot be
+dismissed, asking the person to update. [Client compatibility](ClientCompatibility.md)
+describes when to raise it.
 Clients built before the manifest had this field see the server's
 `E2EE_REQUIRED` error when they try to send.
 

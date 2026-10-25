@@ -1,0 +1,8 @@
+# Changes that differ from baseline.json and are known to be safe for clients
+# of the baseline release, such as a removed property that no client reads.
+# Each line is a change exactly as WireContractTests reports it, then " # " and
+# the reason it is safe:
+#
+# property removed: Valour.Server.Models.Example.oldField # never read by any client
+#
+# Clear this file when baseline.json moves to a newer release.

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
+using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
@@ -61,7 +62,7 @@ public class VoiceStateService : ServiceBase
     private void HookHubEvents(Node node)
     {
         node.HubConnection.On<VoiceChannelParticipantsUpdate>(
-            "Voice-Channel-Participants",
+            HubEvents.VoiceChannelParticipants,
             update =>
             {
                 if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))

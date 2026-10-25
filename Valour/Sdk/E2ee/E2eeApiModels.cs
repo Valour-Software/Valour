@@ -1,3 +1,5 @@
+using Valour.Shared;
+
 namespace Valour.Sdk.E2ee;
 
 // Wire contracts for the end-to-end encryption API. Binary fields are sent as
@@ -456,7 +458,7 @@ public static class E2eeErrorCodes
 /// </summary>
 public sealed class E2eeRealtimeEvent
 {
-    public const string HubMethod = "E2ee-Event";
+    public const string HubMethod = HubEvents.E2eeEvent;
 
     public string Type { get; set; }
     public long? UserId { get; set; }

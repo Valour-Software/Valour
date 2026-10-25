@@ -14,11 +14,22 @@ public class InstanceManifest
     public const int CurrentProtocolVersion = ValourFederation.ProtocolVersion;
 
     /// <summary>
-    /// The client protocol this build speaks. Raise it when a server change
-    /// requires every client to update. Protocol 1: every chat message is
-    /// end-to-end encrypted, and the server refuses plain text.
+    /// The client protocol this build speaks. Raise it when clients and servers
+    /// change how they work together, so each side can tell what the other
+    /// supports. Protocol 1: every chat message is end-to-end encrypted, and the
+    /// server refuses plain text.
     /// </summary>
     public const int CurrentClientProtocol = 1;
+
+    /// <summary>
+    /// The oldest client protocol this build serves, reported to clients as
+    /// <see cref="MinimumClientProtocol"/>. Raising <see cref="CurrentClientProtocol"/>
+    /// does not raise this, so installed apps keep working while their store
+    /// update is reviewed and rolled out. Raise it only when the server can no
+    /// longer serve older clients, together with the wire contract baseline.
+    /// See Docs/ClientCompatibility.md.
+    /// </summary>
+    public const int OldestSupportedClientProtocol = 1;
 
     /// <summary>
     /// The first client protocol at which the server accepts end-to-end

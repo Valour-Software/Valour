@@ -585,12 +585,12 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
         _voiceSessionReplaceSubscription?.Dispose();
         _voiceSessionReplaceSubscription = hub.On<VoiceSessionReplaceEvent>(
-            "Voice-Session-Replace",
+            HubEvents.VoiceSessionReplace,
             OnVoiceSessionReplace);
 
         _voiceModerationSubscription?.Dispose();
         _voiceModerationSubscription = hub.On<VoiceModerationEvent>(
-            "Voice-Moderation-Action",
+            HubEvents.VoiceModerationAction,
             OnVoiceModerationAction);
     }
 

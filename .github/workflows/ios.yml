@@ -12,6 +12,7 @@ on:
     paths:
       - 'Valour/Client.Maui/**'
       - 'Valour/Client/**'
+      - 'Directory.Build.props'
       - '.github/workflows/ios.yml'
 
 permissions:
@@ -161,7 +162,7 @@ jobs:
 
         if [ "$STATUS" -ne 0 ]; then
           if grep -qiE "bundle version must be higher|has already been (used|uploaded)" "$RUNNER_TEMP/upload.log"; then
-            echo "::notice::App Store Connect already has this build number. Raise ApplicationVersion to upload a new build."
+            echo "::notice::App Store Connect already has this build number. Raise the version or ValourBuildRevision in Directory.Build.props to upload a new build."
             exit 0
           fi
           echo "::error::The upload to App Store Connect failed."
