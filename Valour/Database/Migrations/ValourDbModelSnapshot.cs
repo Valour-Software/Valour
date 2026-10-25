@@ -4855,6 +4855,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("birth_date");
 
+                    b.Property<DateTime?>("EmailChangeTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("email_change_time");
+
                     b.Property<string>("JoinInviteCode")
                         .HasColumnType("text")
                         .HasColumnName("join_invite_code");
