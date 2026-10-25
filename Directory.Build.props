@@ -1,0 +1,31 @@
+<Project>
+
+    <!-- The release version of every Valour project, package, and app. Change it
+         here and nowhere else. CI workflows and the NuGet publish step read the
+         Version line as text, so keep it a literal value on one line. -->
+    <PropertyGroup>
+        <Version>0.9.20</Version>
+
+        <!-- Raise to send another build of the same version to Google Play or
+             App Store Connect, such as a fix after review or a playstore/ test
+             build. Return it to 0 when the version changes. -->
+        <ValourBuildRevision>0</ValourBuildRevision>
+    </PropertyGroup>
+
+    <!-- The store build number (Android versionCode, iOS CFBundleVersion) comes
+         from the version: 0.9.20 with revision 0 is 92000. The stores accept
+         each number once and refuse one lower than any they already have, so
+         a new version always outranks every build of the previous one. -->
+    <PropertyGroup>
+        <_ValourMajor>$([System.Version]::Parse('$(Version)').Major)</_ValourMajor>
+        <_ValourMinor>$([System.Version]::Parse('$(Version)').Minor)</_ValourMinor>
+        <_ValourPatch>$([System.Version]::Parse('$(Version)').Build)</_ValourPatch>
+        <ValourBuildNumber>$([MSBuild]::Add($([MSBuild]::Add($([MSBuild]::Add($([MSBuild]::Multiply($(_ValourMajor), 1000000)), $([MSBuild]::Multiply($(_ValourMinor), 10000)))), $([MSBuild]::Multiply($(_ValourPatch), 100)))), $(ValourBuildRevision)))</ValourBuildNumber>
+    </PropertyGroup>
+
+    <Target Name="ValidateValourVersion" BeforeTargets="Build">
+        <Error Condition="$(_ValourMinor) &gt; 99 or $(_ValourPatch) &gt; 99 or $(ValourBuildRevision) &gt; 99"
+               Text="Valour version $(Version) revision $(ValourBuildRevision) does not fit the store build number. Minor, patch, and revision must each be 99 or lower." />
+    </Target>
+
+</Project>

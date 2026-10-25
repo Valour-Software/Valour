@@ -7,6 +7,7 @@ using StackExchange.Redis;
 using Valour.Config.Configs;
 using Valour.Server.Hubs;
 using Valour.Server.Redis;
+using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -679,13 +680,13 @@ public class NodeLifecycleService
             case NodeEventType.PlanetUserUpdate:
             {
                 if (TryReadRelayPayload(data, out PlanetUserRelayPayload update))
-                    _ = _hub.Clients.Group($"p-{data.TargetPlanet}").SendAsync("User-Update", update.User, update.Flags);
+                    _ = _hub.Clients.Group($"p-{data.TargetPlanet}").SendAsync(HubEvents.ModelUpdate(nameof(User)), update.User, update.Flags);
                 break;
             }
             case NodeEventType.PlanetUserDelete:
             {
                 if (TryReadRelayPayload(data, out PlanetUserRelayPayload delete))
-                    _ = _hub.Clients.Group($"p-{data.TargetPlanet}").SendAsync("User-Delete", delete.User);
+                    _ = _hub.Clients.Group($"p-{data.TargetPlanet}").SendAsync(HubEvents.ModelDelete(nameof(User)), delete.User);
                 break;
             }
             case NodeEventType.PlanetRealtimeEviction:
@@ -728,57 +729,57 @@ public class NodeLifecycleService
 
     private void OnRelayTransaction(Transaction transaction)
     {
-        _ = _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
-        _ = _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
+        _ = _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync(HubEvents.TransactionProcessed, transaction);
+        _ = _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync(HubEvents.TransactionProcessed, transaction);
     }
 
     private void OnRelayDirectMessage(Message message, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirect", message);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.RelayDirect, message);
     }
     
     private void OnRelayDirectMessageEdit(Message message, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirectEdit", message);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.RelayDirectEdit, message);
     }
 
     private void OnRelayDirectMessageDelete(Message message, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("DeleteMessage", message);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.DeleteMessage, message);
     }
 
     private void OnRelayDirectCall(DirectCall call, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("Direct-Call-Update", call);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.DirectCallUpdate, call);
     }
 
     private void OnRelayDirectChannel(Channel channel, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("Direct-Channel-Update", channel);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.DirectChannelUpdate, channel);
     }
 
     private void OnRelayDirectChannelRemoved(long channelId, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("Direct-Channel-Removed", channelId);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.DirectChannelRemoved, channelId);
     }
 
     private void OnRelayVoiceModerationAction(VoiceModerationEvent moderation, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("Voice-Moderation-Action", moderation);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.VoiceModerationAction, moderation);
     }
     
     private void OnRelayNotification(Notification notif, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayNotification", notif);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.RelayNotification, notif);
     }
 
     private void OnRelayFriendEvent(FriendEventData eventData, long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayFriendEvent", eventData);
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.RelayFriendEvent, eventData);
     }
     
     private void OnRelayNotificationsCleared(long targetUser)
     {
-        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayNotificationsCleared");
+        _ = _hub.Clients.Group($"u-{targetUser}").SendAsync(HubEvents.RelayNotificationsCleared);
     }
 }

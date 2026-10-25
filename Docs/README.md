@@ -45,6 +45,7 @@ use placeholder values; use private local settings when running a server or test
 
 ## Testing
 
+- [Client compatibility: wire contract and client journey tests](ClientCompatibility.md)
 - [Browser tests and the isolated C# test runner](../Valour/Tests/Browser/README.md)
 - [Client JavaScript tests](../Valour/Tests/Js/README.md)
 

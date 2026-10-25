@@ -8,7 +8,6 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
-        <Version>0.9.9</Version>
         <!-- Photino.Blazor is built against an older Components.WebView. -->
         <NoWarn>$(NoWarn);NU1603;NU1608</NoWarn>
     </PropertyGroup>

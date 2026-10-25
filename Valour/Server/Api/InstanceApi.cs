@@ -31,7 +31,7 @@ public class InstanceApi
         {
             Name = hosting.InstanceName,
             Version = typeof(ISharedUser).Assembly.GetName().Version?.ToString(),
-            MinimumClientProtocol = InstanceManifest.CurrentClientProtocol,
+            MinimumClientProtocol = InstanceManifest.OldestSupportedClientProtocol,
             ClientProtocol = InstanceManifest.CurrentClientProtocol,
             IsOfficial = string.Equals(hosting.RootDomain, "valour.gg", StringComparison.OrdinalIgnoreCase),
             Hosts = new InstanceHosts

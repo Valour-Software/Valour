@@ -54,9 +54,9 @@
              self-update path, which Play policy forbids for apps it distributes. -->
         <DefineConstants Condition="'$(ValourPlayStore)' == 'true'">$(DefineConstants);VALOUR_PLAY_STORE</DefineConstants>
 
-        <!-- Versions -->
-        <ApplicationDisplayVersion>0.9.20</ApplicationDisplayVersion>
-        <ApplicationVersion>113</ApplicationVersion>
+        <!-- Versions come from Directory.Build.props at the repository root. -->
+        <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+        <ApplicationVersion>$(ValourBuildNumber)</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
