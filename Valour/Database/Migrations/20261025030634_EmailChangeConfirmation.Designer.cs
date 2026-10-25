@@ -14,7 +14,7 @@ using Valour.Database.Context;
 namespace Valour.Database.Migrations
 {
     [DbContext(typeof(ValourDb))]
-    [Migration("20261016000608_EmailChangeConfirmation")]
+    [Migration("20261025030634_EmailChangeConfirmation")]
     partial class EmailChangeConfirmation
     {
         /// <inheritdoc />
@@ -4857,6 +4857,10 @@ namespace Valour.Database.Migrations
                     b.Property<DateTime?>("BirthDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("birth_date");
+
+                    b.Property<DateTime?>("EmailChangeTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("email_change_time");
 
                     b.Property<string>("JoinInviteCode")
                         .HasColumnType("text")

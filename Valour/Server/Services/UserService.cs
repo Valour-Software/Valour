@@ -46,6 +46,7 @@ public class UserService
     private const int EmailTimeoutSeconds = 20;
     private static readonly TimeSpan PasswordRecoveryCodeLifetime = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan EmailChangeCodeLifetime = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan EmailChangeCooldown = TimeSpan.FromDays(7);
 
     /// <summary>
     /// Referral rewards halve every this many rewarded referrals in 30 days.
@@ -737,6 +738,22 @@ public class UserService
 
     public async Task<TaskResult> RequestEmailChangeAsync(long userId, string email, string sessionId, HttpContext ctx)
     {
+        var current = await _db.PrivateInfos
+            .Where(x => x.UserId == userId)
+            .Select(x => new { x.Email, x.EmailChangeTime })
+            .FirstOrDefaultAsync();
+
+        if (current is null)
+            return TaskResult.FromFailure("Account not found.");
+
+        var now = DateTime.UtcNow;
+
+        if (current.EmailChangeTime is not null && current.EmailChangeTime.Value.Add(EmailChangeCooldown) > now)
+        {
+            var daysLeft = (int)Math.Ceiling((current.EmailChangeTime.Value.Add(EmailChangeCooldown) - now).TotalDays);
+            return TaskResult.FromFailure($"You can only change your email once every {EmailChangeCooldown.TotalDays:0} days. Try again in {daysLeft} {(daysLeft == 1 ? "day" : "days")}.");
+        }
+
         if (!EmailConfig.IsEnabled)
         {
             var changed = await ChangeEmailAsync(userId, email);
@@ -747,22 +764,18 @@ public class UserService
             return TaskResult.FromSuccess("Your email has been changed. All other sessions have been logged out.");
         }
 
+        if (await _db.EmailConfirmCodes.AnyAsync(x => x.UserId == userId && x.NewEmail != null && x.ExpiresAt > now))
+            return TaskResult.FromFailure("A confirmation link was already sent to your current email. Use it, or wait for it to expire before trying again.");
+
         var validated = await ValidateNewEmailAsync(userId, email);
         if (!validated.Success)
             return TaskResult.FromFailure(validated.Message);
 
         var newEmail = validated.Data;
-
-        var currentEmail = await _db.PrivateInfos
-            .Where(x => x.UserId == userId)
-            .Select(x => x.Email)
-            .FirstOrDefaultAsync();
-
-        if (currentEmail is null)
-            return TaskResult.FromFailure("Account not found.");
+        var currentEmail = current.Email;
 
         var code = Guid.NewGuid().ToString();
-        var createdAt = DateTime.UtcNow;
+        var createdAt = now;
 
         await _db.EmailConfirmCodes
             .Where(x => x.UserId == userId && x.NewEmail != null)
@@ -854,7 +867,9 @@ public class UserService
 
         await _db.PrivateInfos
             .Where(x => x.UserId == userId)
-            .ExecuteUpdateAsync(x => x.SetProperty(p => p.Email, newEmail));
+            .ExecuteUpdateAsync(x => x
+                .SetProperty(p => p.Email, newEmail)
+                .SetProperty(p => p.EmailChangeTime, DateTime.UtcNow));
 
         await _db.Credentials
             .Where(x => x.UserId == userId && x.CredentialType == CredentialType.PASSWORD)
