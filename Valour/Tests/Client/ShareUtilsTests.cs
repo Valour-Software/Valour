@@ -11,6 +11,8 @@ public class ShareUtilsTests
     [InlineData("https://app.valour.gg/", "https://valour.gg/i/test-code")]
     [InlineData("http://0.0.0.1/", "https://valour.gg/i/test-code")]
     [InlineData("http://0.0.0.0:5000/", "https://valour.gg/i/test-code")]
+    [InlineData("app://localhost/", "https://valour.gg/i/test-code")]
+    [InlineData("app://0.0.0.1/", "https://valour.gg/i/test-code")]
     [InlineData("https://self-host.example/app/", "https://self-host.example/app/i/test-code")]
     public void GetInviteShareUrl_UsesExternallyReachableOrigin(string baseUri, string expected)
     {

@@ -8,13 +8,13 @@ namespace Valour.Client.Utility;
 public static class ShareUtils
 {
     /// <summary>
-    /// Base URI usable in links shared outside the app. Inside the MAUI shell the
-    /// navigation base is a local loopback host, so fall back to the public web app.
+    /// Base URI usable in links shared outside the app. Inside the MAUI and Photino
+    /// shells the navigation base is a local host, so fall back to the public web app.
     /// </summary>
     public static string GetPublicBaseUri(NavigationManager nav)
     {
         var uri = new Uri(nav.BaseUri);
-        if (uri.Host is "0.0.0.0" or "0.0.0.1")
+        if (uri.Scheme is not ("http" or "https") || uri.Host is "0.0.0.0" or "0.0.0.1")
             return ClientHosts.AppBaseUrl;
 
         return nav.BaseUri;
