@@ -695,6 +695,7 @@ public partial class Program
                 acceptAnyCertificate: federationInsecure));
         services.AddScoped<UserAttachmentService>();
         services.AddScoped<MediaSafetyService>();
+        services.AddScoped<MediaSafetyIncidentService>();
         services.AddScoped<PlanetInviteService>();
         services.AddScoped<AppLinkPreviewService>();
         services.AddScoped<PlanetWebhookService>();
