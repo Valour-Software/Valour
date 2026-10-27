@@ -7,4 +7,4 @@ Icon=gg.valour.Valour
 Terminal=false
 Categories=Network;Chat;InstantMessaging;
 Keywords=chat;voice;community;encrypted;
-StartupWMClass=Valour
+StartupWMClass=gg.valour.Valour
