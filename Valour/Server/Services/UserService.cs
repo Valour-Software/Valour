@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Data;
+using Valour.Config.Configs;
 using Valour.Database;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
@@ -44,6 +45,8 @@ public class UserService
 
     private const int EmailTimeoutSeconds = 20;
     private static readonly TimeSpan PasswordRecoveryCodeLifetime = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan EmailChangeCodeLifetime = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan EmailChangeCooldown = TimeSpan.FromDays(7);
 
     /// <summary>
     /// Referral rewards halve every this many rewarded referrals in 30 days.
@@ -671,13 +674,30 @@ public class UserService
         var confirmCode = await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code && x.ExpiresAt > DateTime.UtcNow);
         if (confirmCode is null)
             return new TaskResult(false, "Code not found.");
-        
+
+        string oldEmail = null;
+
         try
         {
             _db.EmailConfirmCodes.Remove(confirmCode);
             await _db.SaveChangesAsync();
 
-            await MarkEmailVerifiedAsync(confirmCode.UserId);
+            if (confirmCode.NewEmail is null)
+            {
+                await MarkEmailVerifiedAsync(confirmCode.UserId);
+            }
+            else
+            {
+                var validated = await ValidateNewEmailAsync(confirmCode.UserId, confirmCode.NewEmail);
+                if (validated.Success)
+                    oldEmail = await ApplyEmailChangeAsync(confirmCode.UserId, validated.Data);
+
+                if (oldEmail is null)
+                {
+                    await tran.RollbackAsync();
+                    return new(false, validated.Success ? "Account not found." : validated.Message);
+                }
+            }
 
             await tran.CommitAsync();
         }
@@ -687,8 +707,203 @@ public class UserService
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
-        
+
+        if (oldEmail is not null)
+            await RevokeAllOtherTokensAsync(confirmCode.UserId, confirmCode.SessionId);
+
         return new(true, "Success");
+    }
+
+    private async Task<TaskResult<string>> ValidateNewEmailAsync(long userId, string email)
+    {
+        var valid = UserUtils.TestEmail(UserUtils.SanitizeEmail(email));
+        if (!valid.Success)
+            return valid;
+
+        var newEmail = valid.Data;
+        var host = newEmail[(newEmail.IndexOf('@') + 1)..];
+
+        if (await _db.BlockedUserEmails.AnyAsync(x => x.Email.ToLower() == newEmail || x.Email.ToLower() == host))
+            return TaskResult<string>.FromFailure("This email cannot be used.");
+
+        var ownerId = await _db.PrivateInfos
+            .Where(x => x.Email.ToLower() == newEmail)
+            .Select(x => (long?)x.UserId)
+            .FirstOrDefaultAsync();
+
+        if (ownerId == userId)
+            return TaskResult<string>.FromFailure("This is already your email.");
+
+        if (ownerId is not null)
+            return TaskResult<string>.FromFailure("This email is already in use.");
+
+        return TaskResult<string>.FromData(newEmail);
+    }
+
+    public async Task<TaskResult> RequestEmailChangeAsync(long userId, string email, string sessionId, HttpContext ctx)
+    {
+        var current = await _db.PrivateInfos
+            .Where(x => x.UserId == userId)
+            .Select(x => new { x.Email, x.EmailChangeTime })
+            .FirstOrDefaultAsync();
+
+        if (current is null)
+            return TaskResult.FromFailure("Account not found.");
+
+        var now = DateTime.UtcNow;
+
+        if (current.EmailChangeTime is not null && current.EmailChangeTime.Value.Add(EmailChangeCooldown) > now)
+        {
+            var daysLeft = (int)Math.Ceiling((current.EmailChangeTime.Value.Add(EmailChangeCooldown) - now).TotalDays);
+            return TaskResult.FromFailure($"You can only change your email once every {EmailChangeCooldown.TotalDays:0} days. Try again in {daysLeft} {(daysLeft == 1 ? "day" : "days")}.");
+        }
+
+        if (!EmailConfig.IsEnabled)
+        {
+            var changed = await ChangeEmailAsync(userId, email);
+            if (!changed.Success)
+                return TaskResult.FromFailure(changed.Message);
+
+            await RevokeAllOtherTokensAsync(userId, sessionId);
+            return TaskResult.FromSuccess("Your email has been changed. All other sessions have been logged out.");
+        }
+
+        if (await _db.EmailConfirmCodes.AnyAsync(x => x.UserId == userId && x.NewEmail != null && x.ExpiresAt > now))
+            return TaskResult.FromFailure("A confirmation link was already sent to your current email. Use it, or wait for it to expire before trying again.");
+
+        var validated = await ValidateNewEmailAsync(userId, email);
+        if (!validated.Success)
+            return TaskResult.FromFailure(validated.Message);
+
+        var newEmail = validated.Data;
+        var currentEmail = current.Email;
+
+        var code = Guid.NewGuid().ToString();
+        var createdAt = now;
+
+        await _db.EmailConfirmCodes
+            .Where(x => x.UserId == userId && x.NewEmail != null)
+            .ExecuteDeleteAsync();
+
+        _db.EmailConfirmCodes.Add(new Valour.Database.EmailConfirmCode
+        {
+            Code = code,
+            UserId = userId,
+            CreatedAt = createdAt,
+            ExpiresAt = createdAt.Add(EmailChangeCodeLifetime),
+            NewEmail = newEmail,
+            SessionId = sessionId
+        });
+
+        await _db.SaveChangesAsync();
+
+        var link = $"{PublicLinks.GetApiBaseUrl(ctx.Request)}/api/users/verify/{code}";
+        var encodedNewEmail = System.Net.WebUtility.HtmlEncode(newEmail);
+
+        var bodyContent = $@"
+            <h1 style='{EmailTemplateHelper.HeadingStyle}'>Confirm Your Email Change</h1>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>Hello,</p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>Someone asked to change the email on your Valour account to <strong>{encodedNewEmail}</strong>. If this was you, please click the button below to confirm the change:</p>
+            <a href='{link}' style='{EmailTemplateHelper.ButtonStyle}'>Confirm Change</a>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>If you are unable to click the button, you can also copy and paste the following link into your browser:</p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'><a href='{link}' style='{EmailTemplateHelper.LinkStyle}'>{link}</a></p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>If you did not ask for this, ignore this email and your email will not change. You may also want to change your password.</p>
+            <p style='{EmailTemplateHelper.ParagraphStyle}'>Thank you,<br>Valour Team</p>";
+
+        var rawMessage = $"Someone asked to change the email on your Valour account to {newEmail}. If this was you, confirm the change by going to the following link:\n{link}\n\nIf you did not ask for this, ignore this email and your email will not change. You may also want to change your password.";
+
+        try
+        {
+            using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(EmailTimeoutSeconds));
+            var result = await EmailManager.SendEmailAsync(
+                currentEmail,
+                "Valour Email Change",
+                rawMessage,
+                EmailTemplateHelper.WrapInTemplate(bodyContent),
+                cancellationToken: emailTimeout.Token);
+
+            if (!result.IsSuccessStatusCode)
+            {
+                _logger.LogError("Error sending email change confirmation for user {UserId}. Status code {StatusCode}.", userId, result.StatusCode);
+                return TaskResult.FromFailure("Sorry! There was an issue sending the email. Try again?");
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error sending email change confirmation for user {UserId}.", userId);
+            return TaskResult.FromFailure("Sorry! An unexpected error occured. Try again?");
+        }
+
+        return TaskResult.FromSuccess("Check your current email inbox for a confirmation link. Once confirmed, your email will change and all other sessions will be logged out.");
+    }
+
+    public async Task<TaskResult<(string OldEmail, string NewEmail)>> ChangeEmailAsync(long userId, string email)
+    {
+        var validated = await ValidateNewEmailAsync(userId, email);
+        if (!validated.Success)
+            return TaskResult<(string, string)>.FromFailure(validated.Message);
+
+        await using var tran = await _db.Database.BeginTransactionAsync();
+
+        var oldEmail = await ApplyEmailChangeAsync(userId, validated.Data);
+        if (oldEmail is null)
+        {
+            await tran.RollbackAsync();
+            return TaskResult<(string, string)>.FromFailure("Account not found.");
+        }
+
+        await tran.CommitAsync();
+
+        await SendEmailChangedNoticeAsync(userId, oldEmail);
+
+        return TaskResult<(string, string)>.FromData((oldEmail, validated.Data));
+    }
+
+    private async Task<string> ApplyEmailChangeAsync(long userId, string newEmail)
+    {
+        var oldEmail = await _db.PrivateInfos
+            .Where(x => x.UserId == userId)
+            .Select(x => x.Email)
+            .FirstOrDefaultAsync();
+
+        if (oldEmail is null)
+            return null;
+
+        await _db.PrivateInfos
+            .Where(x => x.UserId == userId)
+            .ExecuteUpdateAsync(x => x
+                .SetProperty(p => p.Email, newEmail)
+                .SetProperty(p => p.EmailChangeTime, DateTime.UtcNow));
+
+        await _db.Credentials
+            .Where(x => x.UserId == userId && x.CredentialType == CredentialType.PASSWORD)
+            .ExecuteUpdateAsync(x => x.SetProperty(c => c.Identifier, newEmail));
+
+        await _db.EmailConfirmCodes
+            .Where(x => x.UserId == userId && x.NewEmail != null)
+            .ExecuteDeleteAsync();
+
+        return oldEmail;
+    }
+
+    private async Task SendEmailChangedNoticeAsync(long userId, string email)
+    {
+        if (!EmailConfig.IsEnabled)
+            return;
+
+        try
+        {
+            await EmailManager.SendEmailAsync(
+                email,
+                "Valour: Your account email was changed",
+                "The email address on your Valour account was changed, so this address will no longer receive account emails.\n\n" +
+                "If you did NOT make this change, someone may have access to your account: contact support@valour.gg immediately.\n\n" +
+                "If you did make it, no action is needed.");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to send email change notice to user {UserId}", userId);
+        }
     }
 
     /// <summary>

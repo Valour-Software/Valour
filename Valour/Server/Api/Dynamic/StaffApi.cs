@@ -211,6 +211,23 @@ public class StaffApi
 
     [StaffRequired]
     [UserRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/email")]
+    public static async Task<IResult> ChangeEmailAsync(HttpContext ctx, UserService userService, StaffService staffService, [FromBody] StaffChangeEmailRequest request)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason))
+            return ValourResult.BadRequest("A reason is required.");
+
+        var requestor = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.ChangeEmailAsync(request.UserId, request.NewEmail, requestor.Id, request.Reason, ctx);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok(result.Message);
+    }
+
+    [StaffRequired]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [ValourRoute(HttpVerbs.Post, "api/staff/users/priorname")]
     public static async Task<IResult> SetPriorNameHiddenAsync(UserService userService, StaffService staffService, [FromBody] StaffSetPriorNameHiddenRequest request)
     {

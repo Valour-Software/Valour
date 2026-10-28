@@ -1170,6 +1170,14 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
+                    b.Property<string>("NewEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("new_email");
+
+                    b.Property<string>("SessionId")
+                        .HasColumnType("text")
+                        .HasColumnName("session_id");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
@@ -4850,6 +4858,10 @@ namespace Valour.Database.Migrations
                     b.Property<DateTime?>("BirthDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("birth_date");
+
+                    b.Property<DateTime?>("EmailChangeTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("email_change_time");
 
                     b.Property<string>("JoinInviteCode")
                         .HasColumnType("text")

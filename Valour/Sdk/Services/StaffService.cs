@@ -80,6 +80,10 @@ public class StaffService : ServiceBase
         _client.PrimaryNode.PostAsync("api/staff/users/resetname",
             new StaffResetUsernameRequest() { UserId = userId, Reason = reason });
 
+    public Task<TaskResult> ChangeEmailAsync(long userId, string newEmail, string reason) =>
+        _client.PrimaryNode.PostAsync("api/staff/users/email",
+            new StaffChangeEmailRequest() { UserId = userId, NewEmail = newEmail, Reason = reason });
+
     public Task<TaskResult> SetPriorNameHiddenAsync(long userId, bool hidden, string reason) =>
         _client.PrimaryNode.PostAsync("api/staff/users/priorname",
             new StaffSetPriorNameHiddenRequest() { UserId = userId, Hidden = hidden, Reason = reason });

@@ -352,7 +352,7 @@ public class RegisterService
         return !await _db.Users.AnyAsync(x => x.Id == userId && (x.Bot || x.ValourStaff));
     }
 
-    public async Task<TaskResult> ResendRegistrationEmail(UserPrivateInfo userPrivateInfo, HttpContext ctx, RegisterUserRequest request)
+    public async Task<TaskResult> ResendRegistrationEmail(UserPrivateInfo userPrivateInfo, HttpContext ctx)
     {
         await using var tran = await _db.Database.BeginTransactionAsync();
 
@@ -377,7 +377,7 @@ public class RegisterService
             Response result = await SendRegistrationEmail(ctx.Request, userPrivateInfo.Email, emailCode, emailTimeout.Token);
             if (!result.IsSuccessStatusCode)
             {
-                _logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
+                _logger.LogError($"Issue sending email to {userPrivateInfo.Email}. Error code {result.StatusCode}.");
                 await tran.RollbackAsync();
                 return new(false, "Sorry! We had an issue emailing your confirmation. Try again?");
             }

@@ -1,0 +1,69 @@
+@inherits Modal<StaffChangeEmailModal.ModalParams>
+@inject StaffService StaffService
+
+<BasicModalLayout Title="@($"Change email for {Data.User.NameAndTag}?")" Icon="envelope-fill" MaxWidth="450px">
+    <MainArea>
+        <p>
+            The new address takes effect immediately and the account is not asked to confirm it.
+            The previous address is emailed about the change. Verify the requester's identity before confirming.
+        </p>
+        <div class="form-group">
+            <label>New email</label>
+            <input type="email" class="form-control" autocomplete="off" @bind="_newEmail" @bind:event="oninput" />
+        </div>
+        <div class="form-group">
+            <label>Reason (required, audit-logged)</label>
+            <textarea class="form-control" rows="3" maxlength="512"
+                      placeholder="Why is this action being taken?"
+                      @bind="_reason" @bind:event="oninput"></textarea>
+        </div>
+
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@(() => Close())" class="v-btn">Cancel</button>
+            <button @onclick="@OnConfirm" class="v-btn danger"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_newEmail) || string.IsNullOrWhiteSpace(_reason))">Change email</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public User User { get; set; }
+    }
+
+    private string _newEmail = string.Empty;
+    private string _reason = string.Empty;
+    private bool _busy;
+
+    private ITaskResult _result;
+
+    private async Task OnConfirm()
+    {
+        if (_busy || string.IsNullOrWhiteSpace(_newEmail) || string.IsNullOrWhiteSpace(_reason))
+            return;
+
+        _busy = true;
+
+        var toastData = new ProgressToastData<TaskResult>()
+        {
+            Title = "Changing Email",
+            Message = "Waiting for result...",
+            ProgressTask = StaffService.ChangeEmailAsync(Data.User.Id, _newEmail.Trim(), _reason.Trim())
+        };
+
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+        if (result.Success)
+        {
+            Close();
+            return;
+        }
+
+        _result = result;
+        _busy = false;
+        StateHasChanged();
+    }
+}
