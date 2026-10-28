@@ -1,0 +1,70 @@
+.color-group-title {
+    margin: 0 0 0.5rem 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--font-alt-color);
+}
+
+.color-group-title:not(:first-child) {
+    margin-top: 1.75rem;
+}
+
+.color-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+    margin-bottom: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.color-pill {
+    position: relative;
+    min-height: 48px;
+    min-width: 0;
+    width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 3.75rem 0.75rem 0.9rem;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    box-shadow: none;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.color-pill:hover {
+    border-color: var(--medium-tint);
+}
+
+.color-pill span {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--font-color);
+}
+
+::deep .pickr-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 48px;
+    height: 100%;
+    background-color: var(--pcr-color);
+    border-left: 1px solid var(--slight-tint);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    transition: none;
+}
+
+@media (max-width: 420px) {
+    .color-section {
+        grid-template-columns: 1fr;
+    }
+}
