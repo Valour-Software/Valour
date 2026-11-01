@@ -92,7 +92,7 @@ transfer limits and the distinction between a pending and completed handoff.
 ## Contribute
 
 Install the at least the suggested SDK version in [global.json](global.json):
-`11.0.100-rc.1`. Local server work also requires PostgreSQL and Redis.
+`11.0.100-rc.3`. Local server work also requires PostgreSQL and Redis.
 JavaScript tests use Node.js, and browser tests require Playwright.
 Native application builds require their platform workloads.
 
