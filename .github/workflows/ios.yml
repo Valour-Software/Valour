@@ -38,7 +38,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         # The installer needs the full SDK version; global.json names the release.
-        dotnet-version: 11.0.100-rc.1.26425.128
+        dotnet-version: 11.0.100-rc.3.26522.148
 
     # Restore evaluates every target framework in the project (Android, iOS,
     # and Mac Catalyst), so all three workloads are needed even though only the
