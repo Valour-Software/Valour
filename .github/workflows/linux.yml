@@ -90,7 +90,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 11.0.100-rc.1.26425.128
+        dotnet-version: 11.0.100-rc.3.26522.148
 
     - name: Get short SHA
       id: short-sha
