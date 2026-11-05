@@ -61,8 +61,13 @@ def free_port():
 
 
 def publish_server(output):
+    # ImageSharp stops Release builds that have no Six Labors license key, and
+    # MSBuild reads the key from this environment variable. Pull requests from
+    # forks and local runs have no key, so they publish Debug, where a missing
+    # license is only a warning. Both configurations serve the same wire contract.
+    configuration = 'Release' if os.environ.get('SixLaborsLicenseKey') else 'Debug'
     subprocess.run(
-        ['dotnet', 'publish', str(SERVER), '-c', 'Release', '-o', str(output),
+        ['dotnet', 'publish', str(SERVER), '-c', configuration, '-o', str(output),
          '--nologo', '-v:q', '-clp:ErrorsOnly'],
         cwd=ROOT, check=True)
 
