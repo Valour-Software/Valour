@@ -1,0 +1,50 @@
+.css-code-editor {
+    display: grid;
+    min-width: 0;
+    margin-bottom: 0.5em;
+}
+
+.css-code-editor > pre,
+.css-code-editor > textarea {
+    grid-area: 1 / 1;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0.55em 0.8em;
+    box-sizing: border-box;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-relaxed);
+    letter-spacing: normal;
+    tab-size: 2;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
+}
+
+.css-code-editor-highlight {
+    min-height: 200px;
+    overflow: hidden;
+    pointer-events: none;
+    color: var(--text-primary);
+    background-color: var(--surface-raised);
+}
+
+.css-code-editor-highlight code {
+    font-family: inherit;
+}
+
+.css-code-editor-input {
+    min-height: 200px;
+    resize: none;
+    overflow: hidden;
+    color: transparent;
+    caret-color: var(--text-primary);
+    background-color: transparent;
+}
+
+.css-code-editor-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}

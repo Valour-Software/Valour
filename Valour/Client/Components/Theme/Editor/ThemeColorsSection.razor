@@ -1,0 +1,125 @@
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-palette2"></i>
+        Colors
+    </h3>
+
+    <h4 class="color-group-title">Text Colors</h4>
+    <section class="color-section">
+        <div class="color-pill">
+            <span>Text</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.FontColor" OnColorChange="@OnChangeFontColor"/>
+        </div>
+        <div class="color-pill">
+            <span>Muted Text</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.FontAltColor" OnColorChange="@OnChangeFontAltColor"/>
+        </div>
+        <div class="color-pill">
+            <span>Links</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.LinkColor" OnColorChange="@OnChangeLinkColor"/>
+        </div>
+    </section>
+
+    <h4 class="color-group-title">Surfaces</h4>
+    <p class="helper-text">These drive <code>--main-1</code> through <code>--main-5</code>, including the new fifth surface slot.</p>
+    <section class="color-section">
+        <div class="color-pill">
+            <span>Surface 1</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.MainColor1" OnColorChange="@OnChangeMainColor1"/>
+        </div>
+        <div class="color-pill">
+            <span>Surface 2</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.MainColor2" OnColorChange="@OnChangeMainColor2"/>
+        </div>
+        <div class="color-pill">
+            <span>Surface 3</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.MainColor3" OnColorChange="@OnChangeMainColor3"/>
+        </div>
+        <div class="color-pill">
+            <span>Surface 4</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.MainColor4" OnColorChange="@OnChangeMainColor4"/>
+        </div>
+        <div class="color-pill">
+            <span>Surface 5</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.MainColor5" OnColorChange="@OnChangeMainColor5"/>
+        </div>
+        <div class="color-pill">
+            <span>Tint</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.TintColor" OnColorChange="@OnChangeTintColor"/>
+        </div>
+    </section>
+
+    <h4 class="color-group-title">Semantic Colors</h4>
+    <p class="helper-text">These map to the newer app tokens: primary, secondary, accent, danger, staff, and bot colors.</p>
+    <section class="color-section">
+        <div class="color-pill">
+            <span>Primary</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.VibrantCyan" OnColorChange="@OnChangeVibrantCyan"/>
+        </div>
+        <div class="color-pill">
+            <span>Secondary</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.VibrantPurple" OnColorChange="@OnChangeVibrantPurple"/>
+        </div>
+        <div class="color-pill">
+            <span>Accent</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.PastelCyanPurple" OnColorChange="@OnChangePastelCyanPurple"/>
+        </div>
+        <div class="color-pill">
+            <span>Danger</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.PastelRed" OnColorChange="@OnChangePastelColorDanger"/>
+        </div>
+        <div class="color-pill">
+            <span>Staff</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.VibrantCyan" OnColorChange="@OnChangeVibrantCyan"/>
+        </div>
+        <div class="color-pill">
+            <span>Bot</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.VibrantPurple" OnColorChange="@OnChangeVibrantPurple"/>
+        </div>
+    </section>
+
+    <h4 class="color-group-title">Legacy Palette Aliases</h4>
+    <p class="helper-text">These keep older <code>--v-*</code> and <code>--p-*</code> theme variables editable.</p>
+    <section class="color-section">
+        <div class="color-pill">
+            <span>Vibrant Blue</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.VibrantBlue" OnColorChange="@OnChangeVibrantBlue"/>
+        </div>
+        <div class="color-pill">
+            <span>Pastel Cyan</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.PastelCyan" OnColorChange="@OnChangePastelCyan"/>
+        </div>
+        <div class="color-pill">
+            <span>Pastel Purple</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@Theme.PastelPurple" OnColorChange="@OnChangePastelPurple"/>
+        </div>
+    </section>
+</div>
+
+@code {
+    [Parameter] public Theme Theme { get; set; }
+
+    private Task OnChangeFontColor(string newColor) => SetColor(v => Theme.FontColor = v, newColor);
+    private Task OnChangeFontAltColor(string newColor) => SetColor(v => Theme.FontAltColor = v, newColor);
+    private Task OnChangeLinkColor(string newColor) => SetColor(v => Theme.LinkColor = v, newColor);
+    private Task OnChangeMainColor1(string newColor) => SetColor(v => Theme.MainColor1 = v, newColor);
+    private Task OnChangeMainColor2(string newColor) => SetColor(v => Theme.MainColor2 = v, newColor);
+    private Task OnChangeMainColor3(string newColor) => SetColor(v => Theme.MainColor3 = v, newColor);
+    private Task OnChangeMainColor4(string newColor) => SetColor(v => Theme.MainColor4 = v, newColor);
+    private Task OnChangeMainColor5(string newColor) => SetColor(v => Theme.MainColor5 = v, newColor);
+    private Task OnChangeTintColor(string newColor) => SetColor(v => Theme.TintColor = v, newColor);
+    private Task OnChangeVibrantPurple(string newColor) => SetColor(v => Theme.VibrantPurple = v, newColor);
+    private Task OnChangeVibrantBlue(string newColor) => SetColor(v => Theme.VibrantBlue = v, newColor);
+    private Task OnChangeVibrantCyan(string newColor) => SetColor(v => Theme.VibrantCyan = v, newColor);
+    private Task OnChangePastelCyan(string newColor) => SetColor(v => Theme.PastelCyan = v, newColor);
+    private Task OnChangePastelCyanPurple(string newColor) => SetColor(v => Theme.PastelCyanPurple = v, newColor);
+    private Task OnChangePastelPurple(string newColor) => SetColor(v => Theme.PastelPurple = v, newColor);
+    private Task OnChangePastelColorDanger(string newColor) => SetColor(v => Theme.PastelRed = v, newColor);
+
+    private static Task SetColor(Action<string> setter, string newColor)
+    {
+        setter(newColor);
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+}
