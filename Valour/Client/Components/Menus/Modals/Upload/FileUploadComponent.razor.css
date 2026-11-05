@@ -1,12 +1,6 @@
 ::deep img {
-    object-fit: contain;
-    object-position: left;
-    margin: 5px;
-    margin-left: 0px;
-    margin-right: 0px;
+    margin: 5px auto;
     cursor: pointer;
-    height: max-content;
-    width: max-content;
     max-width: min(400px, 100%);
     max-height: min(400px, 80vh);
 }
