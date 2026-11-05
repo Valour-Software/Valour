@@ -85,26 +85,21 @@ chat,community,encrypted,messaging,group chat,voice,forum,wiki,threads,friends,g
 App Store Connect needs at least one screenshot for each device family the
 app supports. `Info.plist` declares iPhone and iPad, so both are required.
 
-| Display | Size (portrait) | Files |
+| Display | Size | Files |
 | --- | --- | --- |
-| iPhone 6.9" | 1320 x 2868 | `screenshots/framed/iphone-*.png` (6) |
-| iPad 13" | 2064 x 2752 | `screenshots/framed/ipad-*.png` (3) |
+| iPhone 6.9" | 1320 x 2868 (portrait) | `screenshots/iphone/*.png` (8) |
+| iPad 13" | 2752 x 2064 (landscape) | `screenshots/ipad/*.png` (4) |
 
 Upload them in file-name order. Apple scales them down for smaller devices.
-`screenshots/raw/` holds the same screens without captions, which App Store
-Connect also accepts.
 
-The raw screenshots were taken from the app's web client in WebKit, the engine
-the iOS app's web view uses, at 375 x 812 points for iPhone and 834 x 1112
-points for iPad, then scaled to Apple's sizes. Those logical sizes keep the
-interface as large as in the Google Play screenshots. They used a
-local QA server with a made-up community: every name, avatar, message and
-planet in them is invented for the listing. The chat messages are end-to-end
-encrypted like any others, and were decrypted on the capturing device.
-
-`render.mjs` adds the captions. Edit the `shots` list and run it again after
-replacing a raw screenshot. App Store Connect rejects images with an alpha
-channel, so convert any edited image to RGB before uploading.
+They are the Google Play store images at Apple's sizes, made by
+`npm run stills` in `Tools/Films` on the `promo/e2ee-film` branch, which
+writes them to `Tools/Films/out/app-store/`. Each screen is the client's
+interface recreated with its real copy, in an iPhone or tablet frame. Every
+community, person and message in them is invented for the listing. The
+sign-in screen shows Sign in with Apple and Google, so the images name no
+competing product. They are exported as 24-bit PNG, because App Store Connect
+rejects images with an alpha channel.
 
 ## App Privacy
 
