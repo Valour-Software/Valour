@@ -570,13 +570,20 @@
     
     public class NameComparer : IComparer<PlanetMember>
     {
+        // List.Sort requires a consistent ordering: an item equals itself, and
+        // swapping the arguments flips the sign. Members with the same name are
+        // ordered by Id so their positions stay stable between sorts.
         public int Compare(PlanetMember a, PlanetMember b)
         {
-            if (string.Compare(a?.Name, b?.Name, StringComparison.OrdinalIgnoreCase) == 0)
-            {
+            if (ReferenceEquals(a, b))
+                return 0;
+            if (a is null)
                 return -1;
-            }
-            return string.Compare(a?.Name, b?.Name, StringComparison.OrdinalIgnoreCase);
+            if (b is null)
+                return 1;
+
+            var byName = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            return byName != 0 ? byName : a.Id.CompareTo(b.Id);
         }
     }
 }
