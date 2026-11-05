@@ -28,7 +28,10 @@
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
-            <button @onclick="@OnClickDownload" class="v-btn">Download</button>
+            @if (_downloadUrl is not null)
+            {
+                <a class="v-btn" href="@_downloadUrl" target="_blank" rel="noopener noreferrer">Download</a>
+            }
             <button @onclick="@OnClickCopyLink" class="v-btn">Copy link</button>
             <button @onclick="@OnClickClose" class="v-btn">Close</button>
         </div>
@@ -42,7 +45,19 @@
         public Message Message;
         public MessageAttachment Attachment;
     }
-    
+
+    private string _downloadUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Data.Attachment is null)
+            return;
+
+        var url = await Data.Attachment.GetSignedUrl(Data.Message.Client, Data.Message.Node);
+        if (SafeUrl.IsSafe(url))
+            _downloadUrl = url;
+    }
+
     private void OnClickClose()
     {
         Close();
@@ -53,14 +68,5 @@
         var url = await Data.Attachment.GetSignedUrl(Data.Message.Client, Data.Message.Node);
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Attachment link copied to clipboard", ToastProgressState.Success));
-    }
-
-    private async Task OnClickDownload()
-    {
-        var url = await Data.Attachment.GetSignedUrl(Data.Message.Client, Data.Message.Node);
-        if (!SafeUrl.IsSafe(url))
-            return;
-
-        await JsRuntime.InvokeVoidAsync("open", url, "_blank");
     }
 }

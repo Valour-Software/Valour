@@ -26,8 +26,8 @@
            (GHSA-9mv3-2cwr-p262, critical): it protects federation signing keys and
            planet BYO credentials at rest. Direct reference overrides the transitive
            10.0.3 that the EntityFrameworkCore variant would otherwise pull. -->
-      <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="11.0.0-rc.1.26425.128" />
-      <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="11.0.0-rc.1.26425.128" />
+      <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="11.0.0-rc.3.26522.148" />
+      <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="11.0.0-rc.3.26522.148" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
         <PrivateAssets>all</PrivateAssets>
@@ -38,8 +38,8 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="Microsoft.Extensions.Configuration" Version="11.0.0-rc.1.26425.128" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="11.0.0-rc.1.26425.128" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="11.0.0-rc.3.26522.148" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="11.0.0-rc.3.26522.148" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     </ItemGroup>
 

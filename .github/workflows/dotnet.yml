@@ -196,6 +196,9 @@ jobs:
         push: true
         build-args: |
           SHORTHASH=${{ steps.short-sha.outputs.short_sha }}
+        # Release builds of the server need the ImageSharp license key (see dockerfile).
+        secrets: |
+          sixlabors_license_key=${{ secrets.SIXLABORS_LICENSE_KEY }}
         tags: |
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}-${{ steps.short-sha.outputs.short_sha }}
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}-latest

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.10
 # Start with the official .NET 11 RC 3 SDK image
 # Cache the dependencies so we don't have to restore them every time
 #
@@ -66,13 +67,21 @@ FROM dotnet-restore AS build
 # RID-specific). TARGETARCH is amd64/arm64 from buildx; the .NET CLI accepts
 # those aliases directly.
 ARG TARGETARCH
-RUN dotnet publish Valour/Server/Valour.Server.csproj -c Release -a $TARGETARCH -o out
+#
+# ImageSharp validates its Six Labors license key during Release builds and fails
+# the build without one. The key arrives as a BuildKit secret exposed only to this
+# step as the SixLaborsLicenseKey environment variable, which MSBuild reads as a
+# property, so it never lands in an image layer. Build with:
+#   docker build --secret id=sixlabors_license_key,env=SIXLABORS_LICENSE_KEY .
+# The running server does not check the license, so nothing is mounted at runtime.
+RUN --mount=type=secret,id=sixlabors_license_key,env=SixLaborsLicenseKey,required=true \
+    dotnet publish Valour/Server/Valour.Server.csproj -c Release -a $TARGETARCH -o out
 
 # Staging dir for the media mount point (see COPY --chown below)
 RUN mkdir -p /staging/media
 
 # Start with a smaller runtime image for the final image
-FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.1-resolute-chiseled-extra AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.3-resolute-chiseled-extra AS final
 
 # Set the working directory to the app's output directory
 WORKDIR /app
