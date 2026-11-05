@@ -106,7 +106,8 @@ public partial class UploadApi
     /// </summary>
     private static async Task<(MemoryStream Source, IResult Rejection)> ReadAndScanImageAsync(
         IFormFile file,
-        MediaSafetyService mediaSafetyService)
+        MediaSafetyService mediaSafetyService,
+        long uploaderUserId)
     {
         var source = new MemoryStream();
         await file.CopyToAsync(source);
@@ -114,7 +115,8 @@ public partial class UploadApi
         var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(
             source,
             file.FileName,
-            file.ContentType);
+            file.ContentType,
+            uploaderUserId);
 
         if (safetyHashMatch.ShouldBlock)
         {
@@ -248,7 +250,7 @@ public partial class UploadApi
             return Results.BadRequest("Unable to process image. Check format and size.");
 
         using MemoryStream ms = imageData.Value.stream;
-        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(ms, file.FileName, imageData.Value.mime);
+        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(ms, file.FileName, imageData.Value.mime, authToken.UserId);
         if (safetyHashMatch.ShouldBlock)
             return ValourResult.Forbid("Unable to upload this image.");
 
@@ -339,7 +341,7 @@ public partial class UploadApi
             return new(false, tooLarge, null, code: StatusCodes.Status400BadRequest);
 
         source.Position = 0;
-        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(source, fileName, contentType);
+        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(source, fileName, contentType, userId);
         if (safetyHashMatch.ShouldBlock)
             return new(false, "Unable to upload this image.", null, code: StatusCodes.Status403Forbidden);
 
@@ -415,7 +417,7 @@ public partial class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService, authToken.UserId);
         if (scan.Rejection is not null) return scan.Rejection;
         using var source = scan.Source;
 
@@ -490,7 +492,8 @@ public partial class UploadApi
         var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(
             source,
             file.FileName,
-            file.ContentType);
+            file.ContentType,
+            authToken.UserId);
         if (safetyHashMatch.ShouldBlock)
             return ValourResult.Forbid("Unable to upload this image.");
 
@@ -560,7 +563,7 @@ public partial class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService, authToken.UserId);
         if (scan.Rejection is not null) return scan.Rejection;
         using var source = scan.Source;
 
@@ -668,7 +671,7 @@ public partial class UploadApi
             var oversized = await RejectIfOversizedAsync(file);
             if (oversized is not null) return oversized;
 
-            var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+            var scan = await ReadAndScanImageAsync(file, mediaSafetyService, authToken.UserId);
             if (scan.Rejection is not null) return scan.Rejection;
             imageSource = scan.Source;
         }
@@ -799,7 +802,7 @@ public partial class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService, authToken.UserId);
         if (scan.Rejection is not null) return scan.Rejection;
         using var source = scan.Source;
 
@@ -872,7 +875,7 @@ public partial class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService, authToken.UserId);
         if (scan.Rejection is not null) return scan.Rejection;
         using var source = scan.Source;
 
@@ -943,7 +946,7 @@ public partial class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService, authToken.UserId);
         if (scan.Rejection is not null) return scan.Rejection;
         using var source = scan.Source;
 
@@ -1026,7 +1029,7 @@ public partial class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService, authToken.UserId);
         if (scan.Rejection is not null) return scan.Rejection;
         using var source = scan.Source;
 
@@ -1102,7 +1105,7 @@ public partial class UploadApi
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
-        var scan = await ReadAndScanImageAsync(file, mediaSafetyService);
+        var scan = await ReadAndScanImageAsync(file, mediaSafetyService, authToken.UserId);
         if (scan.Rejection is not null) return scan.Rejection;
         using var source = scan.Source;
 
@@ -1235,7 +1238,7 @@ public partial class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(262_144_000)] // 250 MB (max tier limit)
-    private static async Task<IResult> FileRoute(HttpContext ctx, ValourDb db, TokenService tokenService, CdnBucketService bucketService, [FromHeader] string authorization)
+    private static async Task<IResult> FileRoute(HttpContext ctx, ValourDb db, TokenService tokenService, CdnBucketService bucketService, MediaSafetyService mediaSafetyService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -1287,7 +1290,22 @@ public partial class UploadApi
             return Results.BadRequest("Executable files are not allowed");
         }
 
-        var bucketResult = await bucketService.Upload(ms, fileName, ext, authToken.UserId, contentType, ContentCategory.File, db);
+        // Images belong on the image route, but a file can be an image under
+        // another name or type. Check what the bytes actually are, so an image
+        // cannot skip the media safety check this way.
+        MediaSafetyHashMatchResult safetyHashMatch = null;
+        ms.Position = 0;
+        var detectedFormat = await TryDetectImageFormatAsync(ms);
+        if (detectedFormat is not null)
+        {
+            safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(
+                ms, fileName, detectedFormat.DefaultMimeType, authToken.UserId);
+            if (safetyHashMatch.ShouldBlock)
+                return ValourResult.Forbid("Unable to upload this file.");
+        }
+
+        ms.Position = 0;
+        var bucketResult = await bucketService.Upload(ms, fileName, ext, authToken.UserId, contentType, ContentCategory.File, db, safetyHashMatch);
 
         if (bucketResult.Success)
         {
@@ -1301,6 +1319,22 @@ public partial class UploadApi
 
     [System.Text.RegularExpressions.GeneratedRegex(@"^\.[A-Za-z0-9]{1,16}$")]
     private static partial System.Text.RegularExpressions.Regex FileExtensionRegex();
+
+    private static async Task<SixLabors.ImageSharp.Formats.IImageFormat> TryDetectImageFormatAsync(Stream stream)
+    {
+        try
+        {
+            return await Image.DetectFormatAsync(stream);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+        finally
+        {
+            stream.Position = 0;
+        }
+    }
 
     private static async Task<(MemoryStream stream, string mime, string extension)?> ProcessImage(IFormFile file, int sizeX, int sizeY)
     {
