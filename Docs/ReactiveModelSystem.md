@@ -37,6 +37,11 @@ author. These filtered sends resolve permissions after the calling request retur
 removes the model through its cache implementation and raises deletion events.
 HTTP responses also pass through SDK model synchronization where applicable.
 
+Event names come from [`HubEvents`](../Valour/Shared/HubEvents.cs), and model
+events are named after the model type. Installed apps listen for these names,
+so renaming an event or a model type breaks them; see
+[Client compatibility](ClientCompatibility.md).
+
 ## Model ownership and identity
 
 `ClientModel` holds the owning `ValourClient`, resolves its node, and exposes a

@@ -967,7 +967,7 @@ public class PlanetService : ServiceBase
 
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<RoleOrderEvent>("RoleOrder-Update", update =>
+        node.HubConnection.On<RoleOrderEvent>(HubEvents.RoleOrderUpdate, update =>
         {
             if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
                 OnRoleOrderUpdate(update);

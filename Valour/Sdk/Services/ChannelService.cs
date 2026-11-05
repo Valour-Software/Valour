@@ -618,25 +618,25 @@ public class ChannelService : ServiceBase
     {
         if (!node.IsExternal)
         {
-            node.HubConnection.On<Channel>("Direct-Channel-Update", channel =>
+            node.HubConnection.On<Channel>(HubEvents.DirectChannelUpdate, channel =>
             {
                 if (channel is not null)
                     RegisterDirectChannel(channel);
             });
-            node.HubConnection.On<long>("Direct-Channel-Removed", RemoveDirectChannel);
+            node.HubConnection.On<long>(HubEvents.DirectChannelRemoved, RemoveDirectChannel);
         }
 
-        node.HubConnection.On<ChannelsMovedEvent>("Channels-Moved", update =>
+        node.HubConnection.On<ChannelsMovedEvent>(HubEvents.ChannelsMoved, update =>
         {
             if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
                 OnChannelsMoved(update);
         });
-        node.HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", update =>
+        node.HubConnection.On<ChannelWatchingUpdate>(HubEvents.ChannelWatchingUpdate, update =>
         {
             if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
                 OnWatchingUpdate(update);
         });
-        node.HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", update =>
+        node.HubConnection.On<ChannelTypingUpdate>(HubEvents.ChannelCurrentlyTypingUpdate, update =>
         {
             if (node.AcceptsExternalPlanetRealtimeEvent(update?.PlanetId))
                 OnTypingUpdate(update);

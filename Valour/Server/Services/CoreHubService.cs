@@ -4,6 +4,7 @@ using StackExchange.Redis;
 using Valour.Config.Configs;
 using Valour.Sdk.Models.Embeds;
 using Valour.Server.Hubs;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
@@ -70,7 +71,7 @@ public class CoreHubService
                 NodeConfig.Instance.Name, message.Id, groupId);
 
         // Fire-and-forget broadcast (matches pattern used by every other relay method)
-        _ = _hub.Clients.Group(groupId).SendAsync("Relay", message);
+        _ = _hub.Clients.Group(groupId).SendAsync(HubEvents.Relay, message);
 
         // Fire-and-forget channel state update with its own scope to avoid
         // blocking the message pipeline. Uses a separate DbContext so the
@@ -159,7 +160,7 @@ public class CoreHubService
             _logger.LogDebug("[{Node}] Relaying edited message {MessageId} to group {GroupId}",
                 NodeConfig.Instance.Name, message.Id, groupId);
 
-        _ = group.SendAsync("RelayEdit", message);
+        _ = group.SendAsync(HubEvents.RelayEdit, message);
     }
     
     public void RelayMessageReactionAdded(long channelId, MessageReaction reaction)
@@ -169,7 +170,7 @@ public class CoreHubService
         // Group we are sending messages to
         var group = _hub.Clients.Group(groupId);
 
-        _ = group.SendAsync("MessageReactionAdd", reaction);
+        _ = group.SendAsync(HubEvents.MessageReactionAdd, reaction);
     }
     
     public void RelayMessageReactionRemoved(long channelId, MessageReaction reaction)
@@ -179,7 +180,7 @@ public class CoreHubService
         // Group we are sending messages to
         var group = _hub.Clients.Group(groupId);
 
-        _ = group.SendAsync("MessageReactionRemove", reaction);
+        _ = group.SendAsync(HubEvents.MessageReactionRemove, reaction);
     }
 
     public async Task RelayFriendEvent(long targetId, FriendEventData eventData, NodeLifecycleService nodeLifecycleService)
@@ -260,16 +261,16 @@ public class CoreHubService
     }
     
     public void NotifyChannelsMoved(ChannelsMovedEvent eventData) => 
-        _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("Channels-Moved", eventData);
+        _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync(HubEvents.ChannelsMoved, eventData);
     
     public void NotifyRoleMembershipHashChanges(RoleMembershipHashChange change) =>
-        _ = _hub.Clients.Group($"p-{change.PlanetId}").SendAsync("RoleMembershipHash-Update", change);
+        _ = _hub.Clients.Group($"p-{change.PlanetId}").SendAsync(HubEvents.RoleMembershipHashUpdate, change);
     
     public void NotifyRoleOrderChange(RoleOrderEvent eventData) =>
-        _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("RoleOrder-Update", eventData);
+        _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync(HubEvents.RoleOrderUpdate, eventData);
 
     public void ForceLogoutUser(long userId) =>
-        _ = _hub.Clients.Group($"u-{userId}").SendAsync("ForceLogout", "disabled");
+        _ = _hub.Clients.Group($"u-{userId}").SendAsync(HubEvents.ForceLogout, "disabled");
 
     public void ForceLogoutToken(string tokenId)
     {
@@ -277,17 +278,17 @@ public class CoreHubService
         if (connectionIds.Length == 0)
             return;
 
-        _ = _hub.Clients.Clients(connectionIds).SendAsync("ForceLogout", "revoked");
+        _ = _hub.Clients.Clients(connectionIds).SendAsync(HubEvents.ForceLogout, "revoked");
     }
 
     public void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
-        _ = _hub.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
+        _ = _hub.Clients.Group($"u-{userId}").SendAsync(HubEvents.UserChannelStateUpdate, state);
 
     public void NotifyVoiceSessionReplace(long userId, VoiceSessionReplaceEvent update) =>
-        _ = _hub.Clients.Group($"u-{userId}").SendAsync("Voice-Session-Replace", update);
+        _ = _hub.Clients.Group($"u-{userId}").SendAsync(HubEvents.VoiceSessionReplace, update);
 
     public void NotifyVoiceChannelParticipants(long planetId, VoiceChannelParticipantsUpdate update) =>
-        SendToPlanetMembers(planetId, "Voice-Channel-Participants", [update], channelId: update.ChannelId);
+        SendToPlanetMembers(planetId, HubEvents.VoiceChannelParticipants, [update], channelId: update.ChannelId);
 
     // Village presence is scoped to a map group rather than the whole planet:
     // a member walking around an outdoor map should not wake up every client
@@ -297,27 +298,27 @@ public class CoreHubService
 
     public void NotifyVillagePresenceJoined(long planetId, long mapId, Valour.Shared.Villages.VillagePresence presence) =>
         _ = _hub.Clients.Group(Villages.VillagePresenceService.GetGroupId(planetId, mapId))
-            .SendAsync("Village-Presence-Joined", presence);
+            .SendAsync(HubEvents.VillagePresenceJoined, presence);
 
     public void NotifyVillagePresenceMoved(long planetId, long mapId, Valour.Shared.Villages.VillagePresenceMove move) =>
         _ = _hub.Clients.Group(Villages.VillagePresenceService.GetGroupId(planetId, mapId))
-            .SendAsync("Village-Presence-Moved", move);
+            .SendAsync(HubEvents.VillagePresenceMoved, move);
 
     public void NotifyVillagePresenceLeft(long planetId, long mapId, Valour.Shared.Villages.VillagePresenceLeft left) =>
         _ = _hub.Clients.Group(Villages.VillagePresenceService.GetGroupId(planetId, mapId))
-            .SendAsync("Village-Presence-Left", left);
+            .SendAsync(HubEvents.VillagePresenceLeft, left);
 
     public void NotifyPlanetItemChange<T>(long planetId, T model, int flags = 0) =>
-        SendPlanetItemEvent(planetId, model, $"{typeof(T).Name}-Update", [model, flags], isUpdate: true);
+        SendPlanetItemEvent(planetId, model, HubEvents.ModelUpdate(typeof(T).Name), [model, flags], isUpdate: true);
 
     public void NotifyPlanetItemChange<T>(T model, int flags = 0) where T : ISharedPlanetModel =>
-        SendPlanetItemEvent(model.PlanetId, model, $"{typeof(T).Name}-Update", [model, flags], isUpdate: true);
+        SendPlanetItemEvent(model.PlanetId, model, HubEvents.ModelUpdate(typeof(T).Name), [model, flags], isUpdate: true);
 
     public void NotifyPlanetItemDelete<T>(T model) where T : ISharedPlanetModel =>
-        SendPlanetItemEvent(model.PlanetId, model, $"{typeof(T).Name}-Delete", [model], isUpdate: false);
+        SendPlanetItemEvent(model.PlanetId, model, HubEvents.ModelDelete(typeof(T).Name), [model], isUpdate: false);
 
     public void NotifyPlanetItemDelete<T>(long planetId, T model) =>
-        SendPlanetItemEvent(planetId, model, $"{typeof(T).Name}-Delete", [model], isUpdate: false);
+        SendPlanetItemEvent(planetId, model, HubEvents.ModelDelete(typeof(T).Name), [model], isUpdate: false);
 
     /// <summary>
     /// Planet models that are only readable with a planet permission over HTTP.
@@ -488,7 +489,7 @@ public class CoreHubService
         for (int i = 0; i < recipientUserIds.Count; i++)
             groups[i] = $"u-{recipientUserIds[i]}";
 
-        _ = _hub.Clients.Groups(groups).SendAsync($"{nameof(Channel)}-Update", channel, flags);
+        _ = _hub.Clients.Groups(groups).SendAsync(HubEvents.ModelUpdate(nameof(Channel)), channel, flags);
     }
 
     public void NotifyChannelDelete(Channel channel, IReadOnlyList<long> recipientUserIds)
@@ -500,7 +501,7 @@ public class CoreHubService
         for (int i = 0; i < recipientUserIds.Count; i++)
             groups[i] = $"u-{recipientUserIds[i]}";
 
-        _ = _hub.Clients.Groups(groups).SendAsync($"{nameof(Channel)}-Delete", channel);
+        _ = _hub.Clients.Groups(groups).SendAsync(HubEvents.ModelDelete(nameof(Channel)), channel);
     }
 
     /// <summary>
@@ -664,10 +665,10 @@ public class CoreHubService
     }
 
     public void NotifyPlanetChange(Planet item, int flags = 0) =>
-        _ = _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Update", item, flags);
+        _ = _hub.Clients.Group($"p-{item.Id}").SendAsync(HubEvents.ModelUpdate(nameof(Planet)), item, flags);
 
     public void NotifyPlanetDelete(Planet item) =>
-        _ = _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Delete", item);
+        _ = _hub.Clients.Group($"p-{item.Id}").SendAsync(HubEvents.ModelDelete(nameof(Planet)), item);
     
     /// <summary>
     /// Delivers an embed interaction only to the author of the embed's message.
@@ -691,7 +692,7 @@ public class CoreHubService
             if (authorUserId is null)
                 return;
 
-            await _hub.Clients.Group($"u-{authorUserId.Value}").SendAsync("InteractionEvent", interaction);
+            await _hub.Clients.Group($"u-{authorUserId.Value}").SendAsync(HubEvents.InteractionEvent, interaction);
         }
         catch (Exception ex)
         {
@@ -700,16 +701,16 @@ public class CoreHubService
     }
 
     public void NotifyMessageDeletion(Message message) =>
-        _ = _hub.Clients.Group($"c-{message.ChannelId}").SendAsync("DeleteMessage", message);
+        _ = _hub.Clients.Group($"c-{message.ChannelId}").SendAsync(HubEvents.DeleteMessage, message);
 
     public void NotifyDirectMessageDeletion(Message message, long targetUserId) =>
-        _ = _hub.Clients.Group($"u-{targetUserId}").SendAsync("DeleteMessage", message);
+        _ = _hub.Clients.Group($"u-{targetUserId}").SendAsync(HubEvents.DeleteMessage, message);
 
     public void NotifyPersonalEmbedUpdateEvent(EmbedUpdate u) =>
-        _ = _hub.Clients.Group($"u-{u.TargetUserId}").SendAsync("Personal-Embed-Update", u);
+        _ = _hub.Clients.Group($"u-{u.TargetUserId}").SendAsync(HubEvents.PersonalEmbedUpdate, u);
 
     public void NotifyChannelEmbedUpdateEvent(EmbedUpdate u) =>
-        _ = _hub.Clients.Group($"c-{u.TargetChannelId}").SendAsync("Channel-Embed-Update", u);
+        _ = _hub.Clients.Group($"c-{u.TargetChannelId}").SendAsync(HubEvents.ChannelEmbedUpdate, u);
     
     public async Task NotifyUserChange(User user, int flags = 0)
     {
@@ -838,7 +839,7 @@ public class CoreHubService
 
             LastChannelWatchingBroadcast[channelId] = (userIds, nowTicks);
 
-            _ = _hub.Clients.Group(groupId).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate
+            _ = _hub.Clients.Group(groupId).SendAsync(HubEvents.ChannelWatchingUpdate, new ChannelWatchingUpdate
             {
                 PlanetId = planetId,
                 ChannelId = channelId,
@@ -864,7 +865,7 @@ public class CoreHubService
     {
         var planetId = await GetPlanetIdForChannel(channelId);
         
-        _ = _hub.Clients.Group($"c-{channelId}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate
+        _ = _hub.Clients.Group($"c-{channelId}").SendAsync(HubEvents.ChannelCurrentlyTypingUpdate, new ChannelTypingUpdate
         {
             PlanetId = planetId,
             ChannelId = channelId,
@@ -874,7 +875,7 @@ public class CoreHubService
 
     public void NotifyChannelStateUpdate(long planetId, long channelId, DateTime time)
     {
-        _ = _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time, planetId));
+        _ = _hub.Clients.Group($"p-{planetId}").SendAsync(HubEvents.ChannelState, new ChannelStateUpdate(channelId, time, planetId));
     }
 
     ////////////////
@@ -889,12 +890,12 @@ public class CoreHubService
     {
         SendToPlanetMembers(
             transaction.PlanetId,
-            "Transaction-Processed",
+            HubEvents.TransactionProcessed,
             [transaction],
             PlanetPermissions.ManageEcoAccounts,
             excludeUserIds: [transaction.UserFromId, transaction.UserToId]);
-        _ = _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
-        _ = _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
+        _ = _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync(HubEvents.TransactionProcessed, transaction);
+        _ = _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync(HubEvents.TransactionProcessed, transaction);
     }
 
     public async Task RelayTransaction(Transaction transaction, NodeLifecycleService nodeLifecycleService)
@@ -904,5 +905,5 @@ public class CoreHubService
     }
 
     public void NotifyCurrencyChange(Currency item, int flags = 0) =>
-        _ =  _hub.Clients.Group($"p-{item.Id}").SendAsync($"Currency-Update", item, flags);
+        _ =  _hub.Clients.Group($"p-{item.Id}").SendAsync(HubEvents.ModelUpdate(nameof(Currency)), item, flags);
 }

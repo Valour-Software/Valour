@@ -1,0 +1,62 @@
+name: Client compatibility
+
+# Checks that the server still works for people running the oldest supported
+# release: the wire contract tests, then the client journey tests, which drive
+# a freshly started server through the SDK in this checkout and through the
+# released SDK of the baseline version. See Docs/ClientCompatibility.md.
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password_123
+          POSTGRES_DB: valour_compat
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_user"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Restore Village release atlas
+      run: python3 Tools/Villages/restore-release-assets.py
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        # The installer needs the full SDK version; global.json names the release.
+        dotnet-version: 11.0.100-rc.1.26425.128
+
+    - name: Restore workloads
+      run: dotnet workload restore Valour/Server/Valour.Server.csproj
+
+    - name: Check the wire contract
+      run: dotnet test Valour/Tests/Valour.Tests.csproj --filter "FullyQualifiedName~Valour.Tests.Contracts"
+
+    - name: Run client journeys
+      run: python3 Tools/Compatibility/run-client-tests.py --db-host localhost:5432 --redis localhost:6379

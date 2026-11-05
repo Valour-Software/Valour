@@ -231,7 +231,7 @@ Google Play Billing (see [Payments](../Payments.md)), and both sign it with the
 release keystore from the repository secrets.
 
 - [`android.yml`](../../.github/workflows/android.yml) runs on `main` when
-  `ApplicationDisplayVersion` names a version with no APK released yet. It
+  the [release version](#release-versions) names a version with no APK released yet. It
   publishes the GitHub release and builds the Play bundle.
 - [`android-playstore.yml`](../../.github/workflows/android-playstore.yml) runs
   on every push to a `playstore/**` branch, for testing a change on a phone
@@ -241,9 +241,32 @@ Each workflow keeps the bundle as a workflow artifact and, when the
 `GOOGLE_PLAY_PUBLISHER_JSON` secret is set, sends it to the internal testing
 track. Promoting a build to production stays a manual step in the Play Console.
 
-Google Play accepts each version code (`ApplicationVersion` in
-`Valour.Client.Maui.csproj`) once. Raise it for every build meant for Google
-Play, or the upload step fails.
+Google Play accepts each version code once and refuses one lower than a code it
+already has on any track. The code comes from the release version, as described
+below, so a playstore/ test build of the version currently on `main` needs a
+higher `ValourBuildRevision`. Merge the change before the next version, or
+release the version from `main` with a revision at least as high as the test
+build's, or the upload step fails.
+
+## Release versions
+
+`Directory.Build.props` at the repository root holds the release version for
+every project: the server, the `Valour.Shared` and `Valour.Sdk` NuGet packages,
+and the desktop and mobile apps. To release a new version, change its `Version`
+line and nothing else. The platform workflows read that line to name the GitHub
+release, and the NuGet publish step reads it to decide whether a package version
+is new. It must stay a literal `major.minor.patch` value on one line.
+
+The store build number, which is the Android version code and the iOS
+`CFBundleVersion`, is computed from the version as
+`major * 1000000 + minor * 10000 + patch * 100 + ValourBuildRevision`. Version
+0.9.20 with revision 0 is build 92000. Google Play and App Store Connect each
+accept a build number once and require it to increase, so every new version
+outranks all builds of the one before it. To send another build of the same
+version, for example after App Review rejects a submission, raise
+`ValourBuildRevision` in the same file. Set it back to 0 when the version
+changes. The build fails if the minor version, patch version, or revision is
+above 99, because the number would overlap the next field.
 
 The secret holds the JSON key of a service account that the Play Console allows
 to release to testing tracks and nothing else. It is a different account from

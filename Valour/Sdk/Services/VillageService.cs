@@ -164,7 +164,7 @@ public class VillageService : ServiceBase
 
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<VillagePresence>("Village-Presence-Joined", presence =>
+        node.HubConnection.On<VillagePresence>(HubEvents.VillagePresenceJoined, presence =>
         {
             if (!node.AcceptsExternalPlanetRealtimeEvent(presence?.PlanetId))
                 return;
@@ -172,7 +172,7 @@ public class VillageService : ServiceBase
             OnPresenceJoined(presence);
         });
 
-        node.HubConnection.On<VillagePresenceMove>("Village-Presence-Moved", move =>
+        node.HubConnection.On<VillagePresenceMove>(HubEvents.VillagePresenceMoved, move =>
         {
             if (!node.AcceptsExternalPlanetRealtimeEvent(move?.PlanetId))
                 return;
@@ -180,7 +180,7 @@ public class VillageService : ServiceBase
             OnPresenceMoved(move);
         });
 
-        node.HubConnection.On<VillagePresenceLeft>("Village-Presence-Left", left =>
+        node.HubConnection.On<VillagePresenceLeft>(HubEvents.VillagePresenceLeft, left =>
         {
             if (!node.AcceptsExternalPlanetRealtimeEvent(left?.PlanetId))
                 return;

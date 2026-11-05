@@ -11,6 +11,7 @@ public partial class MainPage : ContentPage
     public MainPage(string? startPath = null)
     {
         InitializeComponent();
+        blazorWebView.RootComponents.RegisterValourJsComponents();
         IsPopout = !string.IsNullOrWhiteSpace(startPath);
         if (!string.IsNullOrWhiteSpace(startPath))
         {

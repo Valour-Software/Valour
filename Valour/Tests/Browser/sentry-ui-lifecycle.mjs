@@ -48,6 +48,75 @@ try {
         editor.remove();
         await new Promise(resolve => setTimeout(resolve, 90));
         check(callbacks.length === count, 'Removed editor does not invoke a disposed callback');
+        const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+        const roots = [];
+        window.Blazor = { rootComponents: { async add(element, identifier, parameters) {
+            const root = { identifier, parameters, disposed: false, async dispose() { root.disposed = true; } };
+            element.textContent = '@Nova';
+            roots.push(root);
+            return root;
+        } } };
+        const chipEditor = document.createElement('div');
+        chipEditor.contentEditable = 'true';
+        document.body.appendChild(chipEditor);
+        const chipCalls = [];
+        const memberToken = '«@m-12638576793878528»';
+        const chips = input.init({ async invokeMethodAsync(method, ...args) {
+            chipCalls.push({ method, args });
+            return method === 'GetInputSegments' ? [{ kind: 'mention', text: memberToken, label: '@Nova' }] : null;
+        } }, chipEditor, 'input-1');
+        chips.setInputSegments([{ kind: 'text', text: 'hi ' }, { kind: 'mention', text: memberToken, label: '@Nova' }, { kind: 'text', text: ' and\nbye' }]);
+        await tick();
+        check(roots.length === 1 && roots[0].identifier === 'valour-input-mention' &&
+            roots[0].parameters.token === memberToken && roots[0].parameters.inputId === 'input-1',
+            'Loaded mention renders through its Blazor root component');
+        const chip = chipEditor.querySelector('.input-mention');
+        chip.remove();
+        await tick();
+        check(roots[0].disposed, 'Removed mention disposes its root component');
+        chipEditor.insertBefore(chip, chipEditor.childNodes[1]);
+        await tick();
+        check(roots.length === 2 && !roots[1].disposed && chip.textContent === '@Nova', 'Restored mention renders again');
+
+        const selection = window.getSelection();
+        selection.selectAllChildren(chipEditor);
+        const copied = new DataTransfer();
+        chipEditor.dispatchEvent(new ClipboardEvent('copy', { clipboardData: copied, bubbles: true, cancelable: true }));
+        check(copied.getData('text/plain') === 'hi @Nova and\nbye', 'Copying gives other apps the visible text');
+        check(copied.getData('application/x-valour-message') === `hi ${memberToken} and\nbye`, 'Copying keeps mention tokens for the input');
+
+        await chips.submitMessage();
+        const sent = chipCalls.find(x => x.method === 'OnChatboxUpdate');
+        // The editor is a block element, so its text is wrapped in line breaks that sending trims.
+        const editorText = args => args[0].slice(1, -1);
+        check(editorText(sent.args) === `hi ${memberToken} and\nbye`, 'Sent text carries the mention token');
+        await tick();
+        check(roots[1].disposed, 'Clearing the input disposes its mentions');
+
+        chipEditor.textContent = 'hello @no';
+        const caret = document.createRange();
+        caret.setStart(chipEditor.firstChild, chipEditor.firstChild.length);
+        selection.removeAllRanges();
+        selection.addRange(caret);
+        chipCalls.length = 0;
+        chips.injectMention('«@u-5»', '@Nova');
+        await tick();
+        check(chipCalls.at(-1).method === 'OnChatboxUpdate' && editorText(chipCalls.at(-1).args) === 'hello «@u-5» ' && chipCalls.at(-1).args[1] === '',
+            'Picked mention replaces the typed word');
+        check(roots.length === 3 && roots[2].parameters.token === '«@u-5»', 'Picked mention renders through its Blazor root component');
+
+        const pasted = new DataTransfer();
+        pasted.setData('application/x-valour-message', memberToken);
+        chipEditor.dispatchEvent(new ClipboardEvent('paste', { clipboardData: pasted, bubbles: true, cancelable: true }));
+        await tick();
+        await tick();
+        check(roots.length === 4 && roots[3].parameters.token === memberToken, 'Pasted mention token becomes a chip');
+        check(editorText(chipCalls.at(-1).args) === `hello «@u-5» ${memberToken}`, 'Pasted mention is part of the message text');
+
+        chips.cleanup();
+        await tick();
+        check(roots.every(root => root.disposed), 'Input cleanup disposes every mention');
+        chipEditor.remove();
         const fade = await import('/Components/Utility/Fade.razor.js');
         fade.fadeIn(null); fade.fadeOut(null);
         check(true, 'Animation tolerates a removed host');

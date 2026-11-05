@@ -47,6 +47,15 @@ C# integration tests require isolated PostgreSQL and Redis services. Follow
 and use the local test runner. JavaScript tests run through Node's test runner;
 [their README](Valour/Tests/Js/README.md) explains compilation requirements.
 
+Released apps keep running against newer servers. Do not remove or retype a
+route, hub method, realtime event, or JSON property they use. The wire contract
+tests in `Valour/Tests/Contracts` check this without a database, and the client
+journey tests in `Valour/Tests.Compatibility` run the released SDK against the
+current server through `Tools/Compatibility/run-client-tests.py`. Those tests may
+only use SDK features that the baseline release has. See
+[Client compatibility](Docs/ClientCompatibility.md). Name realtime events
+through `HubEvents`.
+
 ## Documentation style
 
 Keep documentation aligned with the code in the checkout. Describe current

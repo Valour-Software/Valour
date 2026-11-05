@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Valour.Database.Context;
 using Valour.Sdk.Models.Embeds;
 using Valour.Sdk.Models.Embeds.Items;
+using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Tests.Apis;
@@ -94,7 +95,7 @@ public class EmbedApiLiveTests : IAsyncLifetime
 
         var hub = client.PrimaryNode.HubConnection;
         var interactionReceived = new TaskCompletionSource<EmbedInteractionEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var interactionSub = hub.On<EmbedInteractionEvent>("InteractionEvent",
+        using var interactionSub = hub.On<EmbedInteractionEvent>(HubEvents.InteractionEvent,
             e => interactionReceived.TrySetResult(e));
 
         // Interactions go to the message author's user group, which the

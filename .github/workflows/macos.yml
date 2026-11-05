@@ -12,6 +12,7 @@ on:
     paths:
       - 'Valour/Client.Maui/**'
       - 'Valour/Client/**'
+      - 'Directory.Build.props'
       - '.github/workflows/macos.yml'
 
 permissions:
@@ -31,7 +32,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        CURRENT=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' Valour/Client.Maui/Valour.Client.Maui.csproj)
+        CURRENT=$(grep -oP '^\s*<Version>\K[^<]+' Directory.Build.props)
         echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
 
         # Gate on this platform's asset, not release existence: the release is

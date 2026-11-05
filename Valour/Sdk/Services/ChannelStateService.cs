@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
+using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
@@ -65,7 +66,7 @@ public class ChannelStateService : ServiceBase
 
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<ChannelStateUpdate>("Channel-State", update =>
+        node.HubConnection.On<ChannelStateUpdate>(HubEvents.ChannelState, update =>
         {
             if (node.AcceptsExternalPlanetRealtimeEvent(update.PlanetId))
                 OnChannelStateUpdated(update);
@@ -74,6 +75,6 @@ public class ChannelStateService : ServiceBase
         // User channel state has no planet provenance, so it is deliberately
         // hub-only. An external node cannot update direct-message read state.
         if (!node.IsExternal)
-            node.HubConnection.On<UserChannelState>("UserChannelState-Update", OnUserChannelStateUpdated);
+            node.HubConnection.On<UserChannelState>(HubEvents.UserChannelStateUpdate, OnUserChannelStateUpdated);
     }
 }

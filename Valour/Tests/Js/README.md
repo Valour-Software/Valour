@@ -54,7 +54,11 @@ no text.
 listeners, browser listeners, dock history ownership, and delayed input callbacks.
 The standalone [browser lifecycle suite](../Browser/sentry-ui-lifecycle.mjs) checks
 actual DOM input and listener teardown while recording console and network errors.
-It serves local client modules and does not require a server or login:
+It also checks the message input's mention chips. Each chip holds a Blazor root
+component, which the suite replaces with a recording stub. The checks cover adding
+and disposing roots as chips are inserted, removed, restored, and cleared on send,
+and keeping mention tokens through copy, paste, and the sent text. The suite serves
+local client modules and does not require a server or login:
 
 ```sh
 node Valour/Tests/Browser/sentry-ui-lifecycle.mjs
