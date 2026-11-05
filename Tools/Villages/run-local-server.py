@@ -84,7 +84,9 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     if args.publish or args.publish_only:
         try:
-            subprocess.run(['dotnet', 'publish', str(root / 'Valour/Server/Valour.Server.csproj'), '-c', 'Release', '--no-restore', '--nologo', '-clp:ErrorsOnly', '-v:q', '-o', str(args.output)], cwd=root, check=True)
+            # Release builds need the Six Labors license key for ImageSharp; without it, publish Debug.
+            configuration = 'Release' if os.environ.get('SixLaborsLicenseKey') else 'Debug'
+            subprocess.run(['dotnet', 'publish', str(root / 'Valour/Server/Valour.Server.csproj'), '-c', configuration, '--no-restore', '--nologo', '-clp:ErrorsOnly', '-v:q', '-o', str(args.output)], cwd=root, check=True)
         finally:
             shutil.copy2(args.config, args.output / 'appsettings.json')
     else:
