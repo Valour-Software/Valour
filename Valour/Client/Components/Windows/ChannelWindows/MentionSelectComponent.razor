@@ -94,43 +94,17 @@
         switch (selected)
         {
             case PlanetMember member:
-                {
-                    var tag = $"«@m-{member.Id}» ";
-                    var text = "@" + member.Name;
-                    var classList = "mention";
-                    var styleList = $"color: {member.GetRoleColor()}";
-                    await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classList, styleList);
-                    break;
-                }
+                await ChannelComponent.InputComponent.InjectMentionAsync($"«@m-{member.Id}»", "@" + member.Name);
+                break;
             case User user:
-                {
-                    var tag = $"«@u-{user.Id}» ";
-                    var text = "@" + user.Name;
-                    var classList = "mention";
-                    var styleList = $"color: white";
-
-                    await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classList, styleList);
-                    break;
-                }
+                await ChannelComponent.InputComponent.InjectMentionAsync($"«@u-{user.Id}»", "@" + user.Name);
+                break;
             case PlanetRole role:
-                {
-                    var tag = $"«@r-{role.Id}» ";
-                    var text = "@" + role.Name;
-                    var classList = "mention";
-                    var styleList = $"color: {role.Color}";
-
-                    await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classList, styleList);
-                    break;
-                }
+                await ChannelComponent.InputComponent.InjectMentionAsync($"«@r-{role.Id}»", "@" + role.Name);
+                break;
             case Channel channel:
-                {
-                    var tag = $"«@c-{channel.Id}» ";
-                    var text = "#" + channel.Name;
-                    var classlist = "channel-mention";
-
-                    await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classlist, "");
-                    break;
-                }
+                await ChannelComponent.InputComponent.InjectMentionAsync($"«@c-{channel.Id}»", "#" + channel.Name);
+                break;
             case EmojiClickEvent emoji:
                 {
                     await ChannelComponent.InputComponent.InjectEmojiForAutocompleteAsync(emoji);

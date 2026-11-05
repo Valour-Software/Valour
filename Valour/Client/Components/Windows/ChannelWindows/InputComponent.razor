@@ -375,6 +375,7 @@
 
     protected override void OnInitialized()
     {
+        ChipContexts[ChipContextId] = this;
         KeyboardListener.KeyDown += OnGlobalKeyDown;
         _encryptionEvents = Client.E2eeService;
         _encryptionEvents.StatusChanged += OnEncryptionStatusChanged;
@@ -469,6 +470,17 @@
 
     private static Dictionary<long, string> _retainedInputCache = new();
 
+    private static readonly ConcurrentDictionary<string, InputComponent> ChipContexts = new();
+
+    /// <summary>
+    /// Identifies this input to the mention chips inside it. Each chip is a
+    /// separate Blazor root, so it finds the input's channel through this id.
+    /// </summary>
+    internal string ChipContextId { get; } = Guid.NewGuid().ToString("N");
+
+    internal static InputComponent FindByChipContext(string id) =>
+        id is not null && ChipContexts.TryGetValue(id, out var input) ? input : null;
+
     private bool _disposed;
     private bool _initializingInterop;
     private Task _interopCleanupTask;
@@ -500,6 +512,7 @@
     ValueTask IAsyncDisposable.DisposeAsync()
     {
         _disposed = true;
+        ChipContexts.TryRemove(ChipContextId, out _);
         KeyboardListener.KeyDown -= OnGlobalKeyDown;
         if (_encryptionEvents is not null)
             _encryptionEvents.StatusChanged -= OnEncryptionStatusChanged;
@@ -598,11 +611,18 @@
             e.Src);
     }
 
+    /// <summary>
+    /// Replaces the input's content. Mentions and custom emoji in the text are
+    /// shown as chips and images, the same as when they are picked while typing.
+    /// </summary>
     public ValueTask SetInputContent(string content)
     {
         return _disposed || _jsCtx is null ? ValueTask.CompletedTask :
-            _jsCtx.InvokeVoidAsync("setInputContent", content ?? string.Empty);
+            _jsCtx.InvokeVoidAsync("setInputSegments", SplitForInput(content));
     }
+
+    private List<MessageInputSegment> SplitForInput(string text) =>
+        MessageInputText.Split(text, ChatComponent?.Channel?.Planet, Client);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -618,7 +638,7 @@
                 _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
                 if (_disposed) return;
                 _thisRef = DotNetObjectReference.Create(this);
-                _jsCtx = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, InnerInputRef);
+                _jsCtx = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, InnerInputRef, ChipContextId);
                 if (_disposed || _jsCtx is null) return;
                 _fileDropZone = await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element, _uploadMenuFileButton);
                 if (_disposed) return;
@@ -1445,9 +1465,14 @@
     // JS Interop Zone //
     /////////////////////
 
-    public ValueTask InjectElementAsync(string text, string coverText, string classList, string styleList)
+    /// <summary>
+    /// Replaces the word being typed with a mention chip.
+    /// </summary>
+    /// <param name="token">The mention token, such as «@m-123».</param>
+    /// <param name="label">What the chip shows until its component renders.</param>
+    public ValueTask InjectMentionAsync(string token, string label)
     {
-        return _jsCtx.InvokeVoidAsync("injectElement", text, coverText, classList, styleList);
+        return _jsCtx.InvokeVoidAsync("injectMention", token, label);
     }
     
     public ValueTask InjectEmojiAsync(
@@ -1559,6 +1584,14 @@
     }
 
     // JS -> C#
+
+    /// <summary>
+    /// Splits pasted text so the mentions and custom emoji in it become chips
+    /// and images.
+    /// </summary>
+    [JSInvokable]
+    public List<MessageInputSegment> GetInputSegments(string text) => SplitForInput(text);
+
     [JSInvokable]
     public Task OnCaretUpdate(string currentWord)
     {

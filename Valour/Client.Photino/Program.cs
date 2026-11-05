@@ -61,6 +61,7 @@ public static class Program
         builder.RootComponents.Add<ValourApp>("app");
 
         var app = builder.Build();
+        app.RootComponents.RegisterValourJsComponents();
 
         app.MainWindow
             .SetLogVerbosity(0)

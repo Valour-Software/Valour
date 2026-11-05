@@ -131,6 +131,12 @@ jobs:
     - name: Build
       run: dotnet build Valour/Valour.sln --no-restore
 
+    # Fails the build when the server stops serving a route, hub method,
+    # realtime event, or JSON shape that clients of the baseline release use.
+    # It needs no database or Redis. See Docs/ClientCompatibility.md.
+    - name: Check client compatibility
+      run: dotnet test Valour/Valour.sln --no-build --filter "FullyQualifiedName~Valour.Tests.Contracts"
+
     - name: Test
       env:
         TEST_DB: "valour_test"
@@ -154,14 +160,14 @@ jobs:
       uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: Valour/Shared/Valour.Shared.csproj
-        VERSION_FILE_PATH: Valour/Shared/Valour.Shared.csproj
+        VERSION_FILE_PATH: Directory.Build.props
         NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
 
     - name: Publish API Nuget Package
       uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
-        VERSION_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
+        VERSION_FILE_PATH: Directory.Build.props
         NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
     
     - name: Log in to the Container registry

@@ -939,15 +939,16 @@ input[type="range"] {
     align-self: center;
 }
 
-.input-magic {
-    font-size: 0;
-    display: inline !important;
+.input-mention {
+    display: inline-block;
 }
 
-.input-magic::before {
-    content: attr(data-before);
-    display: inline;
-    font-size: var(--font-size-md);
+.input-mention:empty::before {
+    content: attr(data-label);
+    border-radius: var(--radius-xs);
+    padding: 0 3px;
+    font-weight: var(--font-weight-medium);
+    background-color: color-mix(in srgb, var(--tint) 9%, transparent);
 }
 
 .switch {

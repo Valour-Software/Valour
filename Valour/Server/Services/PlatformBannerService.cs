@@ -56,7 +56,7 @@ public sealed class PlatformBannerService
         await _db.SaveChangesAsync();
 
         var model = ToModel(entity);
-        await _hub.Clients.All.SendAsync("PlatformBanner-Update", new PlatformBannerUpdate { Banner = model });
+        await _hub.Clients.All.SendAsync(HubEvents.PlatformBannerUpdate, new PlatformBannerUpdate { Banner = model });
         return TaskResult<PlatformBanner>.FromData(model);
     }
 
@@ -73,7 +73,7 @@ public sealed class PlatformBannerService
 
         AddAudit(staffUserId, StaffActionType.ClearPlatformBanner, "Cleared platform banner");
         await _db.SaveChangesAsync();
-        await _hub.Clients.All.SendAsync("PlatformBanner-Update", new PlatformBannerUpdate());
+        await _hub.Clients.All.SendAsync(HubEvents.PlatformBannerUpdate, new PlatformBannerUpdate());
         return TaskResult.SuccessResult;
     }
 

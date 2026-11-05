@@ -6,11 +6,11 @@ type InputContext = {
     caretMoveHandler: (offset?: number) => Promise<void>;
     getCurrentWord: (off: number) => string;
     getCursorPos: () => number;
-    setInputContent: (content: string) => void;
+    setInputSegments: (segments: InputSegment[]) => void;
     focus: () => void;
     submitMessage: (keepOpen?: boolean) => Promise<void>;
     moveCursorToEnd: () => void;
-    injectElement: (text: string, coverText: string, classList: string, styleList: string) => void;
+    injectMention: (token: string, label: string) => void;
     injectEmoji: (
         text: string,
         native: string,
@@ -22,6 +22,7 @@ type InputContext = {
         customSrc?: string
     ) => Promise<void>;
     pasteHandler: (e: ClipboardEvent) => void;
+    copyHandler: (e: ClipboardEvent) => void;
     keyDownHandler: (e: KeyboardEvent) => void;
     inputHandler: Debounced<(e: InputEvent) => void>;
     clickHandler: () => void;
@@ -32,6 +33,30 @@ type InputContext = {
     currentIndex: number;
     lastRange: Range | null;
 };
+
+/**
+ * A piece of message text, matching MessageInputSegment in C#. Text is typed
+ * text; mentions and custom emoji carry their token in text.
+ */
+type InputSegment = {
+    kind: 'text' | 'mention' | 'emoji';
+    text: string;
+    label?: string;
+    src?: string;
+};
+
+type BlazorRootComponent = { dispose: () => Promise<void> };
+type BlazorRootComponents = {
+    add: (element: Element, identifier: string, parameters: Record<string, unknown>) => Promise<BlazorRootComponent>;
+};
+
+// Matches InputMentionChip.JsIdentifier in C#.
+const mentionChipComponent = 'valour-input-mention';
+const mentionChipClass = 'input-mention';
+
+// Copying inside the input keeps tokens under this type, so pasting a
+// mention gives a chip. Other apps receive the visible text.
+const messageClipboardType = 'application/x-valour-message';
 
 const blockLevelElements = new Set([
     'p', 'div', 'section', 'article', 'header', 'footer',
@@ -84,10 +109,22 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): Deb
     return debounced;
 }
 
+function isMentionChip(node: Node | null): boolean {
+    return node?.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains(mentionChipClass);
+}
+
+/** True for nodes rendered by a chip's Blazor component, where the caret does not belong. */
+function isInsideChip(node: Node | null): boolean {
+    const element = node?.nodeType === Node.ELEMENT_NODE ? node as Element : node?.parentElement;
+    return !!element?.closest(`.${mentionChipClass}`);
+}
+
 /**
- * Recursively extracts text from a DOM node, handling custom emoji images and block elements.
+ * Recursively extracts text from a DOM node, handling mention chips, custom
+ * emoji images, and block elements. By default chips and custom emoji give
+ * their message tokens. With display set, they give the text the user sees.
  */
-function getElementText(el: Node): string {
+function getElementText(el: Node, display = false): string {
     let text = '';
     switch (el.nodeType) {
         case Node.TEXT_NODE:
@@ -95,11 +132,22 @@ function getElementText(el: Node): string {
             // Replace non-breaking spaces (U+00A0) with regular spaces
             // Browsers insert &nbsp; in contenteditable to prevent whitespace collapsing
             return (el.nodeValue || '').replace(/\u00A0/g, ' ');
+        case Node.DOCUMENT_FRAGMENT_NODE:
+            for (const child of el.childNodes) {
+                text += getElementText(child, display);
+            }
+            return text;
         case Node.ELEMENT_NODE: {
             const element = el as HTMLElement;
+            if (isMentionChip(element)) {
+                return display
+                    ? (element.textContent?.trim() || element.dataset.label || '')
+                    : (element.dataset.text || '');
+            }
             const tagName = element.tagName.toLowerCase();
             if (tagName === 'img') {
-                return element.dataset.text || element.getAttribute('data-text') || '';
+                const token = element.dataset.text || element.getAttribute('data-text') || '';
+                return display ? (element.getAttribute('alt') || token) : token;
             }
             if (tagName === 'br') {
                 return '\n';
@@ -109,7 +157,7 @@ function getElementText(el: Node): string {
             }
             if (!excludedElements.has(tagName)) {
                 for (const child of el.childNodes) {
-                    text += getElementText(child);
+                    text += getElementText(child, display);
                 }
             }
             if (blockLevelElements.has(tagName)) {
@@ -133,22 +181,52 @@ function isMentionWord(word: string): boolean {
     return word[0] === '@' || word[0] === '#';
 }
 
-function insertTextAtCursor(text: string) {
-    const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return;
-    const range = selection.getRangeAt(0);
-    const span = document.createElement("span");
-    span.textContent = text.replace(/\n/g, "\n");
-    range.deleteContents();
-    range.insertNode(span);
-    range.setStartAfter(span);
-    range.setEndAfter(span);
-    selection.removeAllRanges();
-    selection.addRange(range);
+/**
+ * Creates an empty chip for a mention. The input's observer adds the Blazor
+ * mention component to it; until then, CSS shows the label.
+ */
+function createMentionChip(token: string, label: string): HTMLSpanElement {
+    const chip = document.createElement('span');
+    chip.classList.add(mentionChipClass);
+    chip.contentEditable = 'false';
+    chip.dataset.text = token;
+    chip.dataset.label = label || '';
+    return chip;
+}
+
+function createCustomEmoji(token: string, tooltip: string, src: string): HTMLImageElement {
+    const img = document.createElement('img');
+    img.src = src;
+    img.setAttribute('data-text', token);
+    img.alt = tooltip;
+    img.title = tooltip;
+    img.setAttribute('aria-label', tooltip);
+    img.classList.add('emoji', 'custom-emoji');
+    img.style.width = '1em';
+    return img;
+}
+
+function buildSegmentNodes(segments: InputSegment[]): DocumentFragment {
+    const fragment = document.createDocumentFragment();
+    for (const segment of segments ?? []) {
+        if (segment.kind === 'mention') {
+            fragment.appendChild(createMentionChip(segment.text, segment.label ?? ''));
+        } else if (segment.kind === 'emoji' && segment.src) {
+            const tooltip = segment.label || segment.text;
+            fragment.appendChild(createCustomEmoji(segment.text, tooltip, segment.src));
+        } else {
+            (segment.text ?? '').split('\n').forEach((line, i) => {
+                if (i > 0) fragment.appendChild(document.createElement('br'));
+                if (line) fragment.appendChild(document.createTextNode(line));
+            });
+        }
+    }
+    return fragment;
 }
 
 function lastTextNode(node: Node): Text | null {
     if (node.nodeType === Node.TEXT_NODE) return node as Text;
+    if (isMentionChip(node)) return null;
     for (let i = node.childNodes.length - 1; i >= 0; i--) {
         const found = lastTextNode(node.childNodes[i]);
         if (found) return found;
@@ -158,6 +236,7 @@ function lastTextNode(node: Node): Text | null {
 
 function firstTextNode(node: Node): Text | null {
     if (node.nodeType === Node.TEXT_NODE) return node as Text;
+    if (isMentionChip(node)) return null;
     for (const child of node.childNodes) {
         const found = firstTextNode(child);
         if (found) return found;
@@ -169,7 +248,9 @@ function firstTextNode(node: Node): Text | null {
  * Resolves a caret position to a text node and character offset. A caret on an
  * element sits between its children, so it resolves to the end of the text just
  * before it, or to the start of the text after it when nothing precedes it. The
- * search only descends into the element's children, so it always finishes.
+ * search only descends into the element's children, so it always finishes. It
+ * stops at a mention chip: the chip's text belongs to its Blazor component, and
+ * text on the far side of a chip is not at the caret.
  */
 function findTextNodeAndOffset(node: Node, offset: number): { node: Text, offset: number } | null {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -179,17 +260,19 @@ function findTextNodeAndOffset(node: Node, offset: number): { node: Text, offset
     const children = node.childNodes;
     const index = Math.min(Math.max(offset, 0), children.length);
     for (let i = index - 1; i >= 0; i--) {
+        if (isMentionChip(children[i])) break;
         const text = lastTextNode(children[i]);
         if (text) return { node: text, offset: text.length };
     }
     for (let i = index; i < children.length; i++) {
+        if (isMentionChip(children[i])) break;
         const text = firstTextNode(children[i]);
         if (text) return { node: text, offset: 0 };
     }
     return null;
 }
 
-export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
+export function init(dotnet: DotnetObject, inputEl: HTMLElement, chipContextId?: string): InputContext {
     if (!inputEl) return null;
     let disposed = false;
     const callback: Pick<DotnetObject, "invokeMethodAsync"> = {
@@ -199,6 +282,89 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             catch (error) { if (!disposed) throw error; }
         }
     };
+
+    // Each mention chip holds its own Blazor root component. A chip can leave
+    // the input (deleted, cut, cleared on send) and come back (undo), so the
+    // observer below adds and disposes roots to match the chips present.
+    const chipRoots = new Map<HTMLElement, Promise<BlazorRootComponent | null>>();
+    const chipDisposals = new Map<HTMLElement, Promise<void>>();
+
+    const mountChip = (chip: HTMLElement) => {
+        if (disposed || chipRoots.has(chip)) return;
+        const roots: BlazorRootComponents | undefined = (window as any).Blazor?.rootComponents;
+        if (!roots) return;
+        // A chip that returns while its previous root is still being disposed
+        // waits for that disposal before it is rendered again.
+        const mounting: Promise<BlazorRootComponent | null> = (chipDisposals.get(chip) ?? Promise.resolve())
+            .then(() => {
+                if (disposed || chipRoots.get(chip) !== mounting) return null;
+                chip.replaceChildren();
+                return roots.add(chip, mentionChipComponent, { token: chip.dataset.text ?? '', inputId: chipContextId ?? '' });
+            })
+            .catch(error => {
+                console.error('Failed to render a mention in the message input', error);
+                return null;
+            });
+        chipRoots.set(chip, mounting);
+    };
+
+    const unmountChip = (chip: HTMLElement) => {
+        const mounting = chipRoots.get(chip);
+        if (!mounting) return;
+        chipRoots.delete(chip);
+        const disposal: Promise<void> = mounting
+            .then(root => root?.dispose())
+            .catch(() => { })
+            .finally(() => {
+                if (chipDisposals.get(chip) === disposal) chipDisposals.delete(chip);
+            });
+        chipDisposals.set(chip, disposal);
+    };
+
+    const syncChips = () => {
+        for (const chip of [...chipRoots.keys()]) {
+            if (disposed || !inputEl.contains(chip)) unmountChip(chip);
+        }
+        if (disposed) return;
+        inputEl.querySelectorAll<HTMLElement>(`.${mentionChipClass}`).forEach(mountChip);
+    };
+
+    const chipObserver = new MutationObserver(syncChips);
+
+    const reportContent = (currentWord: string) =>
+        ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(currentWord));
+
+    /**
+     * Returns the caret's range in the input. When focus has moved elsewhere,
+     * such as to a picker, the caret returns to where it last was in the
+     * input, or to the end of the input.
+     */
+    const caretRange = (): Range | null => {
+        const sel = window.getSelection();
+        if (!sel) return null;
+        if (sel.rangeCount > 0 && ctx.inputEl.contains(sel.anchorNode)) return sel.getRangeAt(0);
+
+        let range: Range;
+        if (ctx.lastRange) {
+            range = ctx.lastRange.cloneRange();
+        } else {
+            ctx.inputEl.focus();
+            range = document.createRange();
+            range.selectNodeContents(ctx.inputEl);
+            range.collapse(false);
+        }
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return range;
+    };
+
+    const placeCaret = (range: Range) => {
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+        ctx.lastRange = range.cloneRange();
+    };
+
     const ctx: InputContext = {
         dotnet: callback,
         inputEl,
@@ -211,7 +377,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             if (!selection || selection.rangeCount === 0) return;
 
             const range = selection.getRangeAt(0);
-            if (range.collapsed && ctx.inputEl.contains(range.commonAncestorContainer)) {
+            if (range.collapsed && ctx.inputEl.contains(range.commonAncestorContainer) && !isInsideChip(range.startContainer)) {
                 ctx.lastRange = range.cloneRange();
             }
         },
@@ -229,11 +395,9 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             if (!sel || !sel.rangeCount) return '';
             const range = sel.getRangeAt(0);
             if (!range.collapsed) return '';
-            const target = range.endContainer ?? range.startContainer;
-            if (target && target.textContent) {
-                return target.textContent.substring(0, range.startOffset - offset).split(/\s+/g).pop() || '';
-            }
-            return '';
+            const caret = findTextNodeAndOffset(range.endContainer ?? range.startContainer, range.startOffset);
+            if (!caret || !ctx.inputEl.contains(caret.node) || isInsideChip(caret.node)) return '';
+            return (caret.node.textContent ?? '').substring(0, caret.offset - offset).split(/\s+/g).pop() || '';
         },
 
         caretMoveHandler: async (offset = 0) => {
@@ -248,8 +412,9 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             setTimeout(() => ctx.inputEl.focus(), 0);
         },
 
-        setInputContent: (content: string) => {
-            ctx.inputEl.innerText = content;
+        setInputSegments: (segments: InputSegment[]) => {
+            ctx.inputEl.replaceChildren(buildSegmentNodes(segments));
+            ctx.lastRange = null;
         },
 
         submitMessage: async (keepOpen = false) => {
@@ -260,6 +425,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             ctx.inputHandler.cancel();
             await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), '');
             ctx.inputEl.innerHTML = '';
+            ctx.lastRange = null;
             await ctx.dotnet.invokeMethodAsync('OnChatboxSubmit');
             await ctx.dotnet.invokeMethodAsync('OnCaretUpdate', '');
             if (keepOpen) ctx.focus();
@@ -282,60 +448,44 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             }, 50);
         },
 
-        injectElement: (
-            text: string,
-            coverText: string,
-            classList: string,
-            styleList: string,
-            deleteCurrentWord = true
-        ) => {
+        injectMention: (token: string, label: string) => {
             if (document.activeElement !== ctx.inputEl) ctx.focus();
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0) {
-                let caretRange = sel.getRangeAt(0);
-                let endContainer = caretRange.endContainer;
-                let endOffset = caretRange.endOffset;
-                if (endContainer.nodeType !== Node.TEXT_NODE) {
-                    const textNodeData = findTextNodeAndOffset(endContainer, endOffset);
-                    if (textNodeData) {
-                        endContainer = textNodeData.node;
-                        endOffset = textNodeData.offset;
-                    } else {
-                        console.error('No text node found at caret position');
-                        return;
-                    }
-                }
-                // Read the word from the same text node the range is built on.
-                // The selection may sit on an element, whose text and offsets
-                // do not line up with the resolved text node.
-                ctx.currentWord = (endContainer.textContent ?? '').substring(0, endOffset).split(/\s+/g).pop() || '';
-                const range = document.createRange();
-                const wordLength = ctx.currentWord.length;
-                const startOffset = endOffset - wordLength;
-                range.setStart(endContainer, startOffset);
-                range.setEnd(endContainer, endOffset);
-                if (deleteCurrentWord) {
-                    range.deleteContents();
-                    endOffset = startOffset;
-                }
-                const node = document.createTextNode(text);
-                const cont = document.createElement('span');
-                cont.appendChild(node);
-                const classes = classList ? classList.split(' ') : [];
-                classes.push('input-magic');
-                cont.classList.add(...classes);
-                if (styleList) cont.setAttribute('style', styleList);
-                cont.contentEditable = 'false';
-                cont.setAttribute('data-before', coverText);
-                range.insertNode(cont);
-                range.setStartAfter(cont);
-                range.collapse(true);
-                sel.removeAllRanges();
-                sel.addRange(range);
-            } else {
+            const range = caretRange();
+            if (!range) {
                 console.error("No selection available");
+                return;
             }
-            ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
+
+            // Replace the word being typed, such as "@na", with the chip.
+            // The word is read from the same text node the range is built on;
+            // the selection may sit on an element, whose text and offsets do
+            // not line up with the resolved text node.
+            const caret = findTextNodeAndOffset(range.endContainer, range.endOffset);
+            const insertAt = document.createRange();
+            if (caret) {
+                const word = (caret.node.textContent ?? '').substring(0, caret.offset).split(/\s+/g).pop() || '';
+                insertAt.setStart(caret.node, caret.offset - word.length);
+                insertAt.setEnd(caret.node, caret.offset);
+                insertAt.deleteContents();
+            } else {
+                insertAt.setStart(range.endContainer, range.endOffset);
+                insertAt.collapse(true);
+            }
+
+            // The space after the chip gives the caret a text node to sit in.
+            const chip = createMentionChip(token, label);
+            const spacer = document.createTextNode(' ');
+            insertAt.insertNode(spacer);
+            insertAt.insertNode(chip);
+
+            const after = document.createRange();
+            after.setStart(spacer, spacer.length);
+            after.collapse(true);
+            placeCaret(after);
+
+            // The caret now follows the mention, so no word is being typed.
+            ctx.currentWord = '';
+            reportContent(ctx.currentWord);
         },
 
         injectEmoji: async (
@@ -348,48 +498,19 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             customToken = '',
             customSrc = ''
         ) => {
-            let sel = window.getSelection();
-            let range: Range;
-            if (!ctx.inputEl.contains(sel?.anchorNode)) {
-                if (ctx.lastRange) {
-                    sel?.removeAllRanges();
-                    range = ctx.lastRange.cloneRange();
-                    sel?.addRange(range);
-                } else {
-                    ctx.inputEl.focus();
-                    sel = window.getSelection();
-                    range = document.createRange();
-                    range.selectNodeContents(ctx.inputEl);
-                    range.collapse(false);
-                    sel?.removeAllRanges();
-                    sel?.addRange(range);
-                }
-            } else {
-                if (sel && sel.rangeCount > 0) {
-                    range = sel.getRangeAt(0);
-                } else {
-                    console.error("No selection available");
-                    return;
-                }
+            let range = caretRange();
+            if (!range) {
+                console.error("No selection available");
+                return;
             }
             if (deleteCurrentWord) {
-                let endContainer = range.endContainer;
-                let endOffset = range.endOffset;
-
-                if (endContainer.nodeType !== Node.TEXT_NODE) {
-                    const textNodeData = findTextNodeAndOffset(endContainer, endOffset);
-                    if (textNodeData) {
-                        endContainer = textNodeData.node;
-                        endOffset = textNodeData.offset;
-                    }
-                }
-
-                if (endContainer.nodeType === Node.TEXT_NODE) {
+                const caret = findTextNodeAndOffset(range.endContainer, range.endOffset);
+                if (caret) {
                     const currentWord = ctx.getCurrentWord(0);
-                    const startOffset = Math.max(0, endOffset - currentWord.length);
+                    const startOffset = Math.max(0, caret.offset - currentWord.length);
                     const wordRange = document.createRange();
-                    wordRange.setStart(endContainer, startOffset);
-                    wordRange.setEnd(endContainer, endOffset);
+                    wordRange.setStart(caret.node, startOffset);
+                    wordRange.setEnd(caret.node, caret.offset);
                     wordRange.deleteContents();
                     range = wordRange;
                 } else {
@@ -404,20 +525,11 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             let inserted: Node;
             if (isCustom) {
                 const token = customToken || (text ? `:${text}:` : '');
-                const tooltip = shortcodes || token;
                 if (!customSrc) {
                     return;
                 }
 
-                const img = document.createElement('img');
-                img.src = customSrc;
-                img.setAttribute('data-text', token);
-                img.alt = tooltip;
-                img.title = tooltip;
-                img.setAttribute('aria-label', tooltip);
-                img.classList.add('emoji', 'custom-emoji');
-                img.style.width = '1em';
-                inserted = img;
+                inserted = createCustomEmoji(token, shortcodes || token, customSrc);
             } else {
                 if (!native) {
                     return;
@@ -437,13 +549,11 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             }
 
             range.collapse(true);
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-            ctx.lastRange = range.cloneRange();
+            placeCaret(range);
             // The caret now follows the emoji, so no word is being typed.
             // Reporting the replaced ":shortcode" would reopen its suggestions.
             ctx.currentWord = '';
-            await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
+            await reportContent(ctx.currentWord);
         },
 
         keyDownHandler: async (e: KeyboardEvent) => {
@@ -499,23 +609,49 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             if (disposed) return;
             ctx.selectionChangeHandler();
             ctx.currentWord = ctx.getCurrentWord(0);
-            await ctx.dotnet.invokeMethodAsync(
-                'OnChatboxUpdate',
-                safeForInterop(getElementText(ctx.inputEl)),
-                safeForInterop(ctx.currentWord)
-            );
+            await reportContent(ctx.currentWord);
         }, 50),
 
         pasteHandler: async (e: ClipboardEvent) => {
             e.preventDefault();
-            const text = e.clipboardData?.getData('text/plain') ?? '';
-            insertTextAtCursor(text);
+            const text = e.clipboardData?.getData(messageClipboardType)
+                || e.clipboardData?.getData('text/plain')
+                || '';
+            const range = text ? caretRange()?.cloneRange() : null;
+            if (!range) return;
+
+            // Tokens in the text, such as «@m-123», become chips and images.
+            let segments: InputSegment[] = [{ kind: 'text', text }];
+            if (text.includes('«')) {
+                segments = await ctx.dotnet.invokeMethodAsync<InputSegment[]>('GetInputSegments', safeForInterop(text)) ?? segments;
+                if (disposed || !ctx.inputEl.contains(range.startContainer)) return;
+            }
+
+            const nodes = buildSegmentNodes(segments);
+            const last = nodes.lastChild;
+            range.deleteContents();
+            range.insertNode(nodes);
+            if (last) range.setStartAfter(last);
+            range.collapse(true);
+            placeCaret(range);
+
             ctx.currentWord = ctx.getCurrentWord(0);
-            await ctx.dotnet.invokeMethodAsync(
-                'OnChatboxUpdate',
-                safeForInterop(getElementText(ctx.inputEl)),
-                safeForInterop(ctx.currentWord)
-            );
+            await reportContent(ctx.currentWord);
+        },
+
+        copyHandler: (e: ClipboardEvent) => {
+            const sel = window.getSelection();
+            if (!e.clipboardData || !sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+            const range = sel.getRangeAt(0);
+            if (!ctx.inputEl.contains(range.commonAncestorContainer)) return;
+
+            const copied = range.cloneContents();
+            e.preventDefault();
+            e.clipboardData.setData('text/plain', getElementText(copied, true));
+            e.clipboardData.setData(messageClipboardType, getElementText(copied));
+            // Deleting through the editing command keeps the cut undoable and
+            // reports it through the input event.
+            if (e.type === 'cut') document.execCommand('delete');
         },
 
         clickHandler: () => {
@@ -527,15 +663,22 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             ctx.inputEl.addEventListener('keydown', ctx.keyDownHandler);
             ctx.inputEl.addEventListener('click', ctx.clickHandler);
             ctx.inputEl.addEventListener('paste', ctx.pasteHandler);
+            ctx.inputEl.addEventListener('copy', ctx.copyHandler);
+            ctx.inputEl.addEventListener('cut', ctx.copyHandler);
             ctx.inputEl.addEventListener('input', ctx.inputHandler);
             document.addEventListener('selectionchange', ctx.selectionChangeHandler);
+            chipObserver.observe(ctx.inputEl, { childList: true, subtree: true });
         },
 
         cleanup: () => {
             disposed = true;
+            chipObserver.disconnect();
+            syncChips();
             ctx.inputEl.removeEventListener('keydown', ctx.keyDownHandler);
             ctx.inputEl.removeEventListener('click', ctx.clickHandler);
             ctx.inputEl.removeEventListener('paste', ctx.pasteHandler);
+            ctx.inputEl.removeEventListener('copy', ctx.copyHandler);
+            ctx.inputEl.removeEventListener('cut', ctx.copyHandler);
             ctx.inputEl.removeEventListener('input', ctx.inputHandler);
             document.removeEventListener('selectionchange', ctx.selectionChangeHandler);
         }
