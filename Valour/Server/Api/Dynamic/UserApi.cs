@@ -162,7 +162,10 @@ public class UserApi
         var result = await userService.VerifyAsync(code);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
-        
+
+        if (confirmCode.NewEmail is not null)
+            return Results.LocalRedirect("/", true, false);
+
         // Check for invite code
 
         var query = "";
@@ -655,7 +658,7 @@ public class UserApi
                 CredentialType.PASSWORD, userPrivateInfo.Email, request.Password);
             if (credential.Success && credential.Data?.Id == userPrivateInfo.UserId)
             {
-                var result = await registerService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
+                var result = await registerService.ResendRegistrationEmail(userPrivateInfo, ctx);
                 if (!result.Success)
                     return ValourResult.Problem(result.Message);
             }
@@ -926,6 +929,42 @@ public class UserApi
             return ValourResult.Problem(result.Message);
         
         return Results.NoContent();
+    }
+
+    [RateLimit(RateLimitPolicies.Email)]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/email")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> ChangeEmailRouteAsync(
+        [FromBody] ChangeEmailRequest request,
+        HttpContext ctx,
+        UserService userService,
+        TokenService tokenService,
+        SignInMethodService signInMethods,
+        MultiAuthService multiAuthService)
+    {
+        if (request is null)
+            return ValourResult.BadRequest("Include request in body.");
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var confirmed = await signInMethods.ConfirmIdentityAsync(userId, request.Password, request.ReauthProof);
+        if (!confirmed.Success)
+            return ValourResult.Forbid(confirmed.Message);
+
+        var mfaMethods = await multiAuthService.GetAppMultiAuthTypes(userId);
+        if (mfaMethods.Count > 0)
+        {
+            var mfa = await multiAuthService.VerifyEstablishedAppMultiAuth(userId, request.MultiFactorCode);
+            if (!mfa.Success)
+                return ValourResult.BadRequest(mfa.Message);
+        }
+
+        var currentToken = await tokenService.GetCurrentTokenAsync();
+
+        var result = await userService.RequestEmailChangeAsync(userId, request.NewEmail, currentToken.Id, ctx);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok(result.Message);
     }
 
     [RateLimit(RateLimitPolicies.Auth)]

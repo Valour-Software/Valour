@@ -1,3 +1,4 @@
+using Valour.Config.Configs;
 using Valour.Server.Database;
 using Valour.Server.Email;
 using Valour.Shared;
@@ -13,14 +14,16 @@ public class StaffService
 {
     private readonly ValourDb _db;
     private readonly UserService _userService;
+    private readonly RegisterService _registerService;
     private readonly TokenService _tokenService;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<StaffService> _logger;
 
-    public StaffService(ValourDb db, UserService userService, TokenService tokenService, CoreHubService coreHub, ILogger<StaffService> logger)
+    public StaffService(ValourDb db, UserService userService, RegisterService registerService, TokenService tokenService, CoreHubService coreHub, ILogger<StaffService> logger)
     {
         _db = db;
         _userService = userService;
+        _registerService = registerService;
         _tokenService = tokenService;
         _coreHub = coreHub;
         _logger = logger;
@@ -561,6 +564,28 @@ public class StaffService
         await LogActionAsync(staffUserId, StaffActionType.ResetUsername, userId, reason, $"{oldName} -> {newName}");
 
         return TaskResult<string>.FromData(newName);
+    }
+
+    public async Task<TaskResult> ChangeEmailAsync(long userId, string email, long staffUserId, string reason, HttpContext ctx)
+    {
+        if (await _db.Users.AnyAsync(x => x.Id == userId && x.ValourStaff))
+            return TaskResult.FromFailure("Staff account emails cannot be changed with this tool.");
+
+        var changed = await _userService.ChangeEmailAsync(userId, email);
+        if (!changed.Success)
+            return TaskResult.FromFailure(changed.Message);
+
+        await LogActionAsync(staffUserId, StaffActionType.ChangeEmail, userId, reason, $"{changed.Data.OldEmail} -> {changed.Data.NewEmail}");
+
+        var privateInfo = await _userService.GetUserPrivateInfoAsync(userId);
+        if (privateInfo.Verified || !EmailConfig.IsEnabled)
+            return TaskResult.FromSuccess("Email changed. The previous address has been notified.");
+
+        var resent = await _registerService.ResendRegistrationEmail(privateInfo, ctx);
+        if (!resent.Success)
+            return TaskResult.FromSuccess("Email changed, but the new verification link could not be sent. Use Verify email instead.");
+
+        return TaskResult.FromSuccess("Email changed. The previous address has been notified and a new verification link was sent to the new address.");
     }
 
     public async Task<TaskResult> SetPriorNameHiddenAsync(long userId, bool hidden, long staffUserId, string reason)

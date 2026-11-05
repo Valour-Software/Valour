@@ -67,6 +67,18 @@
     </div>
 </div>
 
+@* ===== Email ===== *@
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-envelope"></i>
+        Email
+    </h3>
+
+    <div class="actions">
+        <VButton Variant="secondary" OnClick="@OnClickChangeEmail">Change email</VButton>
+    </div>
+</div>
+
 @* ===== Password ===== *@
 <div class="editor-section">
     <h3 class="editor-section-title">
@@ -437,5 +449,13 @@
     private void OnClickChangePassword()
     {
         ModalRoot.OpenModal<ChangePasswordModal>();
+    }
+
+    private void OnClickChangeEmail()
+    {
+        ModalRoot.OpenModal<ChangeEmailModal>(new ChangeEmailModal.Params
+        {
+            RequireMfa = _multiAuthMethods is { Count: > 0 }
+        });
     }
 }

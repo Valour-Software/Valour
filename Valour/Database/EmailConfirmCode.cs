@@ -38,5 +38,11 @@ public class EmailConfirmCode
 
     [Column("expires_at")]
     public DateTime ExpiresAt { get; set; }
+
+    [Column("new_email")]
+    public string NewEmail { get; set; }
+
+    [Column("session_id")]
+    public string SessionId { get; set; }
 }
 

@@ -6,4 +6,6 @@ public class EmailConfirmCode
     public long UserId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
+    public string NewEmail { get; set; }
+    public string SessionId { get; set; }
 }

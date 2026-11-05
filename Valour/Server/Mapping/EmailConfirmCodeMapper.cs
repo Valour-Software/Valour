@@ -12,7 +12,9 @@ public static class EmailConfirmCodeMapper
             UserId = code.UserId,
             Code = code.Code,
             CreatedAt = code.CreatedAt,
-            ExpiresAt = code.ExpiresAt
+            ExpiresAt = code.ExpiresAt,
+            NewEmail = code.NewEmail,
+            SessionId = code.SessionId
         };
     }
     
@@ -26,7 +28,9 @@ public static class EmailConfirmCodeMapper
             UserId = code.UserId,
             Code = code.Code,
             CreatedAt = code.CreatedAt,
-            ExpiresAt = code.ExpiresAt
+            ExpiresAt = code.ExpiresAt,
+            NewEmail = code.NewEmail,
+            SessionId = code.SessionId
         };
     }
 }

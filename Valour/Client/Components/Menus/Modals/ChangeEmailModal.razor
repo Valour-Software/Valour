@@ -1,0 +1,99 @@
+@inject ValourClient Client
+@inherits Modal<ChangeEmailModal.Params>
+
+<BasicModalLayout Title="Change Email" Icon="envelope-fill">
+    <MainArea>
+        @if (!_sent)
+        {
+            <div class="form-group">
+                <label>New email</label>
+                <input id="new-email-input" type="email" autocomplete="email" class="form-control" @bind-value="@_newEmail"/>
+            </div>
+            @if (Data.RequireMfa)
+            {
+                <div class="form-group">
+                    <label>Authenticator code</label>
+                    <input class="v-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8"
+                           placeholder="000000" @bind="_mfaCode" />
+                </div>
+            }
+            <div class="form-group">
+                <label>Confirm it's you</label>
+                <ConfirmIdentityInputs @bind-Password="@_password" OnLoaded="@OnIdentityLoaded" OnConfirmed="@OnConfirmedWithProof" />
+            </div>
+        }
+
+        <ResultLabel Result="@_result"/>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">@(_sent ? "Close" : "Cancel")</button>
+
+            @if (!_sent && _hasPassword)
+            {
+                <button @onclick="@OnConfirm" class="v-btn primary" disabled="@_busy">Confirm</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+        public bool RequireMfa { get; set; }
+    }
+
+    private string _newEmail = "";
+    private string _password = "";
+    private string _mfaCode = "";
+    private bool _hasPassword = true;
+    private bool _sent;
+    private bool _busy;
+
+    private ITaskResult _result;
+
+    private void OnCancel()
+    {
+        Close();
+    }
+
+    private void OnIdentityLoaded(bool hasPassword) => _hasPassword = hasPassword;
+
+    private Task OnConfirm() => ChangeAsync(_password, null);
+
+    private Task OnConfirmedWithProof(IdentityConfirmation confirmation) => ChangeAsync(null, confirmation.ReauthProof);
+
+    private async Task ChangeAsync(string password, string reauthProof)
+    {
+        if (_busy)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_newEmail))
+        {
+            _result = TaskResult.FromFailure("Enter your new email.");
+            StateHasChanged();
+            return;
+        }
+
+        if (Data.RequireMfa && string.IsNullOrWhiteSpace(_mfaCode))
+        {
+            _result = TaskResult.FromFailure("Enter your authenticator code.");
+            StateHasChanged();
+            return;
+        }
+
+        _busy = true;
+
+        var toastData = new ProgressToastData<TaskResult>()
+        {
+            ProgressTask = Client.UpdateMyEmailAsync(_newEmail, password, reauthProof, Data.RequireMfa ? _mfaCode : null),
+            Title = "Changing Email",
+            Message = "Updating..."
+        };
+
+        _result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+        _sent = _result.Success;
+        _busy = false;
+        StateHasChanged();
+    }
+}
