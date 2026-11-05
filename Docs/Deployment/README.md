@@ -44,7 +44,9 @@ SIXLABORS_LICENSE_KEY='<license>' \
 ```
 
 The `.NET` workflow passes the `SIXLABORS_LICENSE_KEY` repository secret in the same
-way. When the license expires, replace that secret with the renewed license.
+way. The client compatibility runner and the Villages local server script publish
+Release when the `SixLaborsLicenseKey` environment variable is set, and Debug
+otherwise, so they also work in forks and on machines without the key. When the license expires, replace that secret with the renewed license.
 
 ## Data Protection KEK
 

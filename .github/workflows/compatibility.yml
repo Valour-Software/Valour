@@ -59,4 +59,7 @@ jobs:
       run: dotnet test Valour/Tests/Valour.Tests.csproj --filter "FullyQualifiedName~Valour.Tests.Contracts"
 
     - name: Run client journeys
+      env:
+        # Empty for pull requests from forks; the script then publishes Debug.
+        SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
       run: python3 Tools/Compatibility/run-client-tests.py --db-host localhost:5432 --redis localhost:6379
