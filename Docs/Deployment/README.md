@@ -26,6 +26,26 @@ request bodies up to 250 MB. All configured application hosts collapse to the
 single `VALOUR_DOMAIN`. The server applies database migrations during startup.
 Back up persistent data and private configuration before deploying a changed build.
 
+## Building the server image
+
+The server uses ImageSharp, which checks for a Six Labors license key in Release
+builds and stops the build without one. Debug builds only print a warning. The
+license is checked during the build only, so the running server needs no license
+file or mounted secret.
+
+The Dockerfile passes the key to `dotnet publish` as a BuildKit secret, which keeps
+it out of the image layers. To build the image yourself, put the full license string
+(including its `Id`, `Kind`, `ExpiryDateUtc`, and `Key` fields) in an environment
+variable and run:
+
+```sh
+SIXLABORS_LICENSE_KEY='<license>' \
+  docker build --secret id=sixlabors_license_key,env=SIXLABORS_LICENSE_KEY .
+```
+
+The `.NET` workflow passes the `SIXLABORS_LICENSE_KEY` repository secret in the same
+way. When the license expires, replace that secret with the renewed license.
+
 ## Data Protection KEK
 
 Every server that runs in the `Production` environment needs a Data Protection

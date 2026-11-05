@@ -17,3 +17,6 @@ media-storage/
 # literal "bin\Debug" directory that **/bin/ does not match. Its backslash
 # breaks MSBuild's glob walker inside Linux containers (MSB3552).
 **/bin\\Debug/
+
+# Six Labors (ImageSharp) license key file
+sixlabors.lic

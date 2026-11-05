@@ -16,8 +16,8 @@
         <PackageReference Include="Photino.Blazor" Version="4.0.13" />
         <!-- The bundled blazor.webview.js must match the Components.Web runtime
              that Valour.Client uses, so the WebView package is pinned here. -->
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="11.0.0-rc.1.26425.128" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0-rc.1.26425.128" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="11.0.0-rc.3.26522.148" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0-rc.3.26522.148" />
         <PackageReference Include="Sentry.Extensions.Logging" Version="6.1.0" />
     </ItemGroup>
 
