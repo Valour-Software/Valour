@@ -156,20 +156,6 @@ jobs:
         name: Test Results
         path: "**/test_results.trx"
         
-    - name: Publish Shared Nuget Package
-      uses: alirezanet/publish-nuget@v3.1.0
-      with:
-        PROJECT_FILE_PATH: Valour/Shared/Valour.Shared.csproj
-        VERSION_FILE_PATH: Directory.Build.props
-        NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
-
-    - name: Publish API Nuget Package
-      uses: alirezanet/publish-nuget@v3.1.0
-      with:
-        PROJECT_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
-        VERSION_FILE_PATH: Directory.Build.props
-        NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
-    
     - name: Log in to the Container registry
       uses: docker/login-action@v2
       with:
@@ -205,3 +191,60 @@ jobs:
         labels: |
           org.opencontainers.image.source=${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}
+
+  nuget:
+    # Publishes Valour.Shared and Valour.Sdk with NuGet trusted publishing: the
+    # job trades a GitHub OIDC token for a short-lived NuGet API key, so the
+    # repository stores no NuGet key. The nuget.org policy accepts tokens only
+    # from this workflow running in the "main" environment, which in turn only
+    # deploys from the main branch.
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04-arm
+    environment: main
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 11.0.100-rc.3.26522.148
+
+    # Stamp the commit hash into Version.cs, as the build job and dockerfile do.
+    - name: Stamp the short commit hash
+      run: grep -RIlZ '\$(SHORTHASH)' Valour/Shared Valour/Sdk | xargs -0 -r sed -i "s/\$(SHORTHASH)/${GITHUB_SHA::7}/g"
+
+    # Both packages take their version from Directory.Build.props. Valour.Sdk
+    # depends on the Valour.Shared package of the same version.
+    - name: Pack
+      run: |
+        dotnet pack Valour/Shared/Valour.Shared.csproj -c Release -o nupkgs -p:GeneratePackageOnBuild=false
+        dotnet pack Valour/Sdk/Valour.Sdk.csproj -c Release -o nupkgs -p:GeneratePackageOnBuild=false
+
+    # A Valour.Sdk package without its Valour.Shared dependency installs but
+    # fails at runtime, so stop before publishing one.
+    - name: Check the Sdk depends on Shared
+      run: |
+        version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)
+        unzip -p "nupkgs/Valour.Sdk.$version.nupkg" Valour.Sdk.nuspec | grep -q "<dependency id=\"Valour.Shared\" version=\"$version\""
+
+    - name: Get a NuGet API key
+      id: nuget-login
+      uses: NuGet/login@v1
+      with:
+        user: SpikeViper
+
+    # --skip-duplicate makes pushes without a version change a no-op. Shared is
+    # pushed first so the Sdk dependency exists when the Sdk is indexed.
+    - name: Push
+      env:
+        NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+      run: |
+        for package in Valour.Shared Valour.Sdk; do
+          dotnet nuget push "nupkgs/$package.*.nupkg" --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json --skip-duplicate
+        done
