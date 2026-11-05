@@ -398,6 +398,10 @@ public class ValourClient
         return await PrimaryNode.PostAsync("api/users/me/password", model);
     }
 
+    public Task<TaskResult> UpdateMyEmailAsync(string newEmail, string password, string reauthProof = null, string multiFactorCode = null) =>
+        PrimaryNode.PostAsync("api/users/me/email",
+            new ChangeEmailRequest() { NewEmail = newEmail, Password = password, ReauthProof = reauthProof, MultiFactorCode = multiFactorCode });
+
     public async Task<TaskResult> UpdateMyUsernameAsync(string newUsername, string password, string reauthProof = null)
     {
         var model = new ChangeUsernameRequest() { NewUsername = newUsername, Password = password, ReauthProof = reauthProof };
