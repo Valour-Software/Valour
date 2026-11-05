@@ -123,8 +123,8 @@
             <i class="bi bi-emoji-smile"></i>
         </button>
 
-        @if (DeviceInfo.IsMobile && CanUserPost){
-            <div class="send-wrapper" @onclick="@OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true"
+        @if (CanUserPost){
+            <div class="send-wrapper @(DeviceInfo.IsMobile ? string.Empty : "touch-only")" @onclick="@OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true"
                  @onmousedown:preventDefault="true">
                 <div class="input-action-btn send-btn" role="button" aria-label="Send Message">
                     <i class="bi bi-send-fill"></i>

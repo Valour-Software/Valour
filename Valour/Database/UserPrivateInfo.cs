@@ -47,6 +47,8 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
     /// </summary>
     public string JoinSource { get; set; }
 
+    public DateTime? EmailChangeTime { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<UserPrivateInfo>(e =>
@@ -79,6 +81,9 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
 
             e.Property(x => x.JoinSource)
                 .HasColumnName("join_source");
+
+            e.Property(x => x.EmailChangeTime)
+                .HasColumnName("email_change_time");
 
             // Indices
 

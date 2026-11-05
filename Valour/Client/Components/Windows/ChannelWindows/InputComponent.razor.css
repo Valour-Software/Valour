@@ -114,6 +114,16 @@
     margin-left: 4px;
 }
 
+.send-wrapper.touch-only {
+    display: none;
+}
+
+@media (pointer: coarse) {
+    .send-wrapper.touch-only {
+        display: flex;
+    }
+}
+
 .send-btn {
     background-color: var(--color-primary);
     color: var(--color-primary-contrast);

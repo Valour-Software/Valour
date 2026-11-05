@@ -28,6 +28,8 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        LinuxAppId.Apply();
+
         var storage = new FileAppStorage();
         SentryGate.IsEnabled = ReadErrorReportingPreference(storage);
 
