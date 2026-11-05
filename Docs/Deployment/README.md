@@ -276,8 +276,17 @@ build's, or the upload step fails.
 every project: the server, the `Valour.Shared` and `Valour.Sdk` NuGet packages,
 and the desktop and mobile apps. To release a new version, change its `Version`
 line and nothing else. The platform workflows read that line to name the GitHub
-release, and the NuGet publish step reads it to decide whether a package version
-is new. It must stay a literal `major.minor.patch` value on one line.
+release, and the NuGet publish job reads it to check the packages it built. It must
+stay a literal `major.minor.patch` value on one line.
+
+The `nuget` job in the `.NET` workflow publishes both packages after each push to
+`main`. A version that nuget.org already has is skipped, so only a changed
+`Version` publishes anything. The job uses NuGet trusted publishing: it exchanges
+the GitHub Actions identity token for a short-lived API key, so the repository
+stores no NuGet key. The nuget.org policy for the `SpikeViper` account accepts
+tokens only from `dotnet.yml` in `Valour-Software/Valour` running in the `main`
+environment, and that environment only deploys from the `main` branch. Renaming
+the workflow file or the environment requires the same change in the policy.
 
 The store build number, which is the Android version code and the iOS
 `CFBundleVersion`, is computed from the version as
