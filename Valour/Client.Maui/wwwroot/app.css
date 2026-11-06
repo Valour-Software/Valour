@@ -61,3 +61,14 @@ h1:focus {
         background-color: var(--surface-canvas);
     }
 }
+
+/* Keeps the app clear of the side safe areas: the status bar rail that the
+   iPhone Duo draws along one edge, and the camera housing on iPhones in
+   landscape. The page background shows through the inset. */
+@supports (-webkit-touch-callout: none) {
+    .mobile-holder {
+        box-sizing: border-box;
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+}
