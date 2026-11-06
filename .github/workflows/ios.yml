@@ -20,8 +20,10 @@ permissions:
 
 jobs:
   build-ios:
-    # The .NET for iOS workload requires Xcode 26.6.
-    runs-on: macos-26
+    # The .NET 11 RC3 workload for iOS requires Xcode 27.0 exactly, which only
+    # the xcode-27 runner image has. That image's default Xcode is newer, so the
+    # Select Xcode step picks 27.0 by path.
+    runs-on: xcode-27
     timeout-minutes: 90
     env:
       SIGNING_IDENTITY: "Apple Distribution: Valour Software LLC (3BRGSQ2N5K)"
@@ -30,7 +32,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Select Xcode
-      run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+      run: sudo xcode-select -s /Applications/Xcode_27.app/Contents/Developer
 
     - name: Restore Village release atlas
       run: python3 Tools/Villages/restore-release-assets.py
