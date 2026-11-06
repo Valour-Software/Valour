@@ -300,6 +300,27 @@ presence. Rings compete with the artwork and are hard to read at small sizes.
 Where an icon appears without a row, such as in a planet folder, a small dot at
 the top right marks unread activity.
 
+## Phone and wide layouts
+
+Valour has two layouts. The phone layout shows one window at a time, with the
+sidebar sliding in from the left. The wide layout keeps the sidebar open and
+lets windows sit side by side in tabs and splits. Components read
+`DeviceInfo.IsMobile` to choose between them.
+
+Browsers, desktop apps, and the Android app choose once at startup from the
+device type. The iPhone and iPad app choose from the window size instead: the
+wide layout needs a window at least 680 points wide and 500 points tall, which
+roughly matches iOS regular width and height size classes. When the window
+crosses that line, such as when an iPhone Duo opens or closes or an iPad enters
+Split View, the page shell rebuilds itself in the new layout. The dock saves its
+windows first and restores them afterward; the phone layout keeps only the
+focused tab.
+
+On iOS, the app shell stays inside the left and right safe areas. On iPhone Duo
+the status bar becomes a rail along one edge, and on other iPhones in landscape
+the camera housing takes one side. The page background shows through those
+insets.
+
 ## Victor and scenes
 
 Victor is drawn as himself, the dog from the logo, in a few poses: `astronaut`,

@@ -1,4 +1,4 @@
-@using Microsoft.Extensions.DependencyInjection
+﻿@using Microsoft.Extensions.DependencyInjection
 @inject ValourClient Client
 @inject LoggingService Logger
 @inject IJSRuntime JsRuntime
@@ -217,7 +217,11 @@
     {
         if (firstRender)
         {
-            var isMobile = await JsRuntime.InvokeAsync<bool>("IsMobile");
+            // The iPhone and iPad app pick the layout from the window size and
+            // switch it live; other hosts decide once from the device type.
+            var isMobile = DeviceInfo.IsIosApp
+                ? await LayoutModeWatcher.StartAsync(JsRuntime)
+                : await JsRuntime.InvokeAsync<bool>("IsMobile");
             var isEmbedded = await JsRuntime.InvokeAsync<bool>("IsEmbedded");
 
             DeviceInfo.IsMobile = isMobile;

@@ -1,4 +1,4 @@
-using Foundation;
+﻿using Foundation;
 using UIKit;
 
 namespace Valour.Client.Maui;
@@ -10,6 +10,14 @@ public class AppDelegate : MauiUIApplicationDelegate
 
     public override bool FinishedLaunching(UIApplication application, NSDictionary launchOptions)
     {
+        // Apps built with the iOS 27 SDK must use scenes (see SceneDelegate).
+        // UIKit then reports activation per scene instead of calling the app
+        // delegate, so the app-wide notifications drive the app lifecycle.
+        NSNotificationCenter.DefaultCenter.AddObserver(UIApplication.DidBecomeActiveNotification,
+            _ => AppLifecycle.NotifyResumed());
+        NSNotificationCenter.DefaultCenter.AddObserver(UIApplication.DidEnterBackgroundNotification,
+            _ => AppLifecycle.NotifyBackground());
+
         var result = base.FinishedLaunching(application, launchOptions);
 
         // Creating the billing service starts observing StoreKit, which Apple
@@ -17,17 +25,5 @@ public class AppDelegate : MauiUIApplicationDelegate
         IPlatformApplication.Current?.Services.GetService<Valour.Client.Device.IStoreBillingService>();
 
         return result;
-    }
-
-    public override void DidEnterBackground(UIApplication application)
-    {
-        base.DidEnterBackground(application);
-        AppLifecycle.NotifyBackground();
-    }
-
-    public override void OnActivated(UIApplication application)
-    {
-        base.OnActivated(application);
-        AppLifecycle.NotifyResumed();
     }
 }
