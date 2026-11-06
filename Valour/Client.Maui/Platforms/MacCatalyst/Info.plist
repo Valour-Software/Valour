@@ -16,6 +16,8 @@
         <integer>6</integer>
     </array>
     <!-- Scenes let the app open more than one window, which popped-out tabs use. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <true/>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
