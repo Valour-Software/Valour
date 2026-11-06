@@ -4,7 +4,7 @@
          here and nowhere else. CI workflows and the NuGet publish step read the
          Version line as text, so keep it a literal value on one line. -->
     <PropertyGroup>
-        <Version>0.9.21</Version>
+        <Version>0.9.22</Version>
 
         <!-- Raise to send another build of the same version to Google Play or
              App Store Connect, such as a fix after review or a playstore/ test
