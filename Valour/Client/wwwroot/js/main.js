@@ -72,6 +72,39 @@ function IsEmbedded() {
     return embedded;
 }
 
+// The iPhone and iPad app choose between the phone and wide layouts from the
+// window size instead of the device, so an unfolded iPhone Duo or a full-screen
+// iPad gets the wide layout, while a folded phone, a phone in landscape, or a
+// narrow Split View window gets the phone layout. The thresholds approximate
+// Apple's regular width and height size classes.
+window.valourLayout = (() => {
+    const wideQuery = '(min-width: 680px) and (min-height: 500px)';
+    // Folding animates the window through several sizes; report only where it settles.
+    const settleMs = 250;
+    let media = null;
+    let timer = null;
+
+    function isWide() {
+        return window.matchMedia(wideQuery).matches;
+    }
+
+    function watch(dotnetRef) {
+        if (media)
+            return;
+
+        media = window.matchMedia(wideQuery);
+        media.addEventListener('change', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                dotnetRef.invokeMethodAsync('OnWideLayoutChanged', media.matches)
+                    .catch(() => { });
+            }, settleMs);
+        });
+    }
+
+    return { isWide, watch };
+})();
+
 // A readable name for this device, shown in the account's device list when
 // linking devices for end-to-end encryption.
 function getValourDeviceName(isHybrid) {

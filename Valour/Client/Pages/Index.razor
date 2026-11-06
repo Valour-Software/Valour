@@ -6,6 +6,7 @@
 @page "/planetwiki/{StartPlanetId:long}/{StartPageId:long}"
 @page "/planetwiki/{StartPlanetId:long}"
 @using Valour.Sdk.Services
+@implements IDisposable
 
 @inject ValourClient Client
 @inject AuthService AuthService
@@ -30,6 +31,9 @@
 <ProfilePopup />
 <CustomDropdownContent />
 
+@* Removed for one render while the layout switches; see OnLayoutModeChanged. *@
+@if (!_rebuildingShell)
+{
 <div class="mobile-holder @MobileClass @EmbeddedClass">
 	<ToastContainer>
 		<!-- Modal management -->
@@ -75,6 +79,7 @@
 		</ModalRoot>
 	</ToastContainer>
 </div>
+}
 
 @* Ctrl+/ or Cmd+/ swaps the app for the ValourOS terminal. *@
 <ValourTerminal />
@@ -103,6 +108,8 @@
 	[Parameter]
 	public long? StartPageId { get; set; }
 
+	private bool _rebuildingShell;
+
 	private string MobileClass => DeviceInfo.IsMobile ? "mobile" : "desktop";
 	
 	private string EmbeddedClass => DeviceInfo.IsEmbedded ? "embedded" : "";
@@ -115,6 +122,7 @@
 
 		WindowService.FocusedPlanetChanged += OnPlanetChange;
 		AuthService.LoggedIn += OnLoginAsync;
+		DeviceInfo.LayoutModeChanged += OnLayoutModeChanged;
 	}
 
 	private async Task OnLoginAsync(User user)
@@ -122,9 +130,40 @@
 		await InvokeAsync(StateHasChanged);
 	}
 
+	// Folding an iPhone Duo or resizing an iPad window can switch between the
+	// phone and wide layouts. Components read DeviceInfo.IsMobile when they are
+	// created, so the shell is rebuilt instead of updated in place. The dock
+	// saves its layout first and restores it on load, collapsing it to the
+	// focused tab for the phone layout. The shell is removed for one render
+	// before it returns, so the old dock is disposed before the new one
+	// registers as the main dock.
+	private void OnLayoutModeChanged(bool mobile) => _ = InvokeAsync(RebuildShellAsync);
+
+	private async Task RebuildShellAsync()
+	{
+		if (_rebuildingShell)
+			return;
+
+		var dock = WindowService.MainDock;
+		if (dock?.Layout is not null)
+			await dock.SaveLayout();
+
+		// The launch route was already opened; reopening it would undo where the user went since.
+		_startRoute = null;
+
+		_rebuildingShell = true;
+		StateHasChanged();
+		await Task.Yield();
+
+		_rebuildingShell = false;
+		StateHasChanged();
+	}
+
 	public void Dispose()
 	{
 		WindowService.FocusedPlanetChanged -= OnPlanetChange;
+		DeviceInfo.LayoutModeChanged -= OnLayoutModeChanged;
+		AuthService.LoggedIn -= OnLoginAsync;
 	}
 
 	private Task OnPlanetChange(Planet planet)
