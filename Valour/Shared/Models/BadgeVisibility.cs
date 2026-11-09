@@ -17,7 +17,10 @@ public enum PlatformBadge : long
 
 public readonly record struct PlatformBadgeDefinition(
     PlatformBadge Badge,
-    string Key);
+    string Key,
+    string Name,
+    string Description,
+    string ShortName = null);
 
 /// <summary>
 /// Central lookup between durable platform badge bits and external identities.
@@ -29,11 +32,11 @@ public static class PlatformBadgeCatalog
     public static readonly IReadOnlyDictionary<PlatformBadge, PlatformBadgeDefinition> Definitions =
         new Dictionary<PlatformBadge, PlatformBadgeDefinition>
         {
-            [PlatformBadge.Stargazer] = new(PlatformBadge.Stargazer, "platform:stargazer"),
-            [PlatformBadge.FirstOneThousand] = new(PlatformBadge.FirstOneThousand, "platform:first-1k"),
-            [PlatformBadge.FirstTenThousand] = new(PlatformBadge.FirstTenThousand, "platform:first-10k"),
-            [PlatformBadge.Bot] = new(PlatformBadge.Bot, "platform:bot"),
-            [PlatformBadge.Staff] = new(PlatformBadge.Staff, "platform:staff"),
+            [PlatformBadge.Stargazer] = new(PlatformBadge.Stargazer, "platform:stargazer", "Stargazer", "Shows your active Valour subscription badge."),
+            [PlatformBadge.FirstOneThousand] = new(PlatformBadge.FirstOneThousand, "platform:first-1k", "First 1k users", "Recognizes the first one thousand Valour accounts."),
+            [PlatformBadge.FirstTenThousand] = new(PlatformBadge.FirstTenThousand, "platform:first-10k", "First 10k users", "Recognizes the first ten thousand Valour accounts."),
+            [PlatformBadge.Bot] = new(PlatformBadge.Bot, "platform:bot", "Bot", "Identifies this account as an automated user."),
+            [PlatformBadge.Staff] = new(PlatformBadge.Staff, "platform:staff", "Valour Staff", "Identifies this account as a Valour staff member.", "Staff"),
         };
 
     public static bool IsVisible(ISharedUser? user, PlatformBadge badge) =>

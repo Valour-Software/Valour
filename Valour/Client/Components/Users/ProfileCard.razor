@@ -86,6 +86,8 @@
                             <div class="badge-cluster">
                                 @foreach (var badge in _badges)
                                 {
+                                    var platBadgeDef = PlatformBadgeCatalog.Definitions[badge.Badge];
+                                    var label = string.IsNullOrEmpty(platBadgeDef.ShortName) ? platBadgeDef.Name : platBadgeDef.ShortName;
                                     <span class="badge-chip @badge.CssClass" @key="@badge.Badge">
                                         @if (badge.Badge == PlatformBadge.Stargazer)
                                         {
@@ -95,7 +97,7 @@
                                         {
                                             <i class="bi @badge.Icon" aria-hidden="true"></i>
                                         }
-                                        <span>@badge.Label</span>
+                                        <span>@label</span>
                                     </span>
                                 }
                             </div>
@@ -252,7 +254,7 @@
 
     public readonly string Id = Guid.NewGuid().ToString();
 
-    private record BadgeDef(PlatformBadge Badge, string CssClass, string Icon, string Label);
+    private record BadgeDef(PlatformBadge Badge, string CssClass, string Icon);
 
     private readonly List<BadgeDef> _badges = new();
     private List<PlanetRole> _roles = new();
@@ -315,17 +317,17 @@
     {
         _badges.Clear();
 
-        AddBadge(PlatformBadge.Stargazer, "stargazer", "bi-star-fill", "Stargazer");
-        AddBadge(PlatformBadge.FirstOneThousand, "milestone-1k", "bi-award-fill", "First 1k users");
-        AddBadge(PlatformBadge.FirstTenThousand, "milestone-10k", "bi-award-fill", "First 10k users");
-        AddBadge(PlatformBadge.Bot, "bot", "bi-cpu-fill", "Bot");
-        AddBadge(PlatformBadge.Staff, "staff", "bi-patch-check-fill", "Staff");
+        AddBadge(PlatformBadge.Stargazer, "stargazer", "bi-star-fill");
+        AddBadge(PlatformBadge.FirstOneThousand, "milestone-1k", "bi-award-fill");
+        AddBadge(PlatformBadge.FirstTenThousand, "milestone-10k", "bi-award-fill");
+        AddBadge(PlatformBadge.Bot, "bot", "bi-cpu-fill");
+        AddBadge(PlatformBadge.Staff, "staff", "bi-patch-check-fill");
     }
 
-    private void AddBadge(PlatformBadge badge, string cssClass, string icon, string label)
+    private void AddBadge(PlatformBadge badge, string cssClass, string icon)
     {
         if (PlatformBadgeCatalog.IsEarned(User, badge) && PlatformBadgeCatalog.IsVisible(User, badge))
-            _badges.Add(new BadgeDef(badge, cssClass, icon, label));
+            _badges.Add(new BadgeDef(badge, cssClass, icon));
     }
 
     private void BuildRoles()
