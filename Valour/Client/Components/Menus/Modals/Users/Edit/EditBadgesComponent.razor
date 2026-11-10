@@ -31,17 +31,18 @@
                 @foreach (var badge in _badges)
                 {
                     var isVisible = PlatformBadgeCatalog.IsVisible(Client.Me, badge.Badge);
+                    var badgeDef = PlatformBadgeCatalog.Definitions[badge.Badge];
                     <div class="badge-toggle-item">
                         <span class="badge-icon @badge.CssClass" style="@badge.Style">
                             <i class="bi @badge.Icon" aria-hidden="true"></i>
                         </span>
                         <div class="badge-copy">
-                            <span class="badge-title">@badge.Name</span>
-                            <span class="badge-description">@badge.Description</span>
+                            <span class="badge-title">@badgeDef.Name</span>
+                            <span class="badge-description">@badgeDef.Description</span>
                         </div>
                         <label class="switch" @key="@(badge.Badge.ToString() + ":" + _toggleRenderKey)">
                             <input type="checkbox"
-                                   aria-label="Show @badge.Name badge"
+                                   aria-label="Show @badgeDef.Name badge"
                                    checked="@isVisible"
                                    disabled="@(_savingKeys.Count > 0)"
                                    @onchange="args => SetVisibilityAsync(badge.Badge, args.Value is true)" />
@@ -61,7 +62,7 @@
 @code {
     [Parameter] public EventCallback OnChanged { get; set; }
     private sealed record BadgeOption(
-        PlatformBadge Badge, string Name, string Description, string Icon, string CssClass, string? Style = null);
+        PlatformBadge Badge, string Icon, string CssClass, string? Style = null);
 
     private readonly List<BadgeOption> _badges = [];
     private readonly HashSet<string> _savingKeys = new(StringComparer.Ordinal);
@@ -75,8 +76,6 @@
         {
             _badges.Add(new BadgeOption(
                 PlatformBadge.Stargazer,
-                "Stargazer",
-                "Shows your active Valour subscription badge.",
                 "bi-star-fill",
                 "stargazer",
                 $"--badge-star-start: {Client.Me.GetStarColor1()}; --badge-star-end: {Client.Me.GetStarColor2()};"));
@@ -86,8 +85,6 @@
         {
             _badges.Add(new BadgeOption(
                 PlatformBadge.FirstOneThousand,
-                "First 1k users",
-                "Recognizes the first one thousand Valour accounts.",
                 "bi-award-fill",
                 "milestone-1k"));
         }
@@ -95,8 +92,6 @@
         {
             _badges.Add(new BadgeOption(
                 PlatformBadge.FirstTenThousand,
-                "First 10k users",
-                "Recognizes the first ten thousand Valour accounts.",
                 "bi-award-fill",
                 "milestone-10k"));
         }
@@ -104,14 +99,14 @@
         if (Client.Me.Bot)
         {
             _badges.Add(new BadgeOption(
-                PlatformBadge.Bot, "Bot", "Identifies this account as an automated user.",
+                PlatformBadge.Bot,
                 "bi-cpu-fill", "bot"));
         }
 
         if (Client.Me.ValourStaff)
         {
             _badges.Add(new BadgeOption(
-                PlatformBadge.Staff, "Valour Staff", "Identifies this account as a Valour staff member.",
+                PlatformBadge.Staff,
                 "bi-shield-fill", "staff"));
         }
     }
