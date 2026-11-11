@@ -13,11 +13,11 @@
 
   <ItemGroup>
     <PackageReference Include="ExCSS" Version="4.3.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-rc.3.26522.148" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="11.0.0-rc.3.26522.148" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="11.0.0-rc.3.26522.148" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0-rc.3.26522.148" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="11.0.0-rc.3.26522.148" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="11.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="11.0.0" />
     <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.9.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -90,9 +90,7 @@
          so both would reach DefineStaticWebAssets as duplicate assets. -->
     <_CssBundleExistedAtEvaluation>$([System.IO.File]::Exists('$(MSBuildProjectDirectory)/wwwroot/css/bundled.min.css'))</_CssBundleExistedAtEvaluation>
   </PropertyGroup>
-  <Target Name="GenerateCssBundle"
-          DependsOnTargets="BundleScopedCssFiles"
-          BeforeTargets="ResolveProjectStaticWebAssets">
+  <Target Name="GenerateCssBundle" DependsOnTargets="BundleScopedCssFiles" BeforeTargets="ResolveProjectStaticWebAssets">
     <PropertyGroup>
       <_CssBundlerProject>$(MSBuildProjectDirectory)/../BuildTools/CssBundler/CssBundler.csproj</_CssBundlerProject>
       <_CssBundleInputs>$(MSBuildProjectDirectory)/wwwroot/css/reboot.min.css;$(MSBuildProjectDirectory)/wwwroot/css/globals.css;$(MSBuildProjectDirectory)/wwwroot/css/bootstrap-icons.css;$(MSBuildProjectDirectory)/wwwroot/css/hljs-theme.min.css;$(MSBuildProjectDirectory)/wwwroot/css/pickr.min.css</_CssBundleInputs>
