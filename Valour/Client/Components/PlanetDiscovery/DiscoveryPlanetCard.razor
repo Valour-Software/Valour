@@ -84,14 +84,14 @@
             ? PlanetGlobe.LightsFor(PlanetInfo.MemberCount, PlanetInfo.ActiveCount)
             : 0.6;
         _backgroundUrl = PlanetInfo.HasCustomBackground
-            ? ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp)
+            ? PlanetInfo.GetBackgroundUrl(PlanetBackgroundFormat.Webp)
             : null;
         _isCommunityHosted = !string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain);
 
         _iconUrl = PlanetInfo.HasAnimatedIcon
-            ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
-            : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
-        _iconText = PlanetInfo.HasCustomIcon ? string.Empty : ISharedPlanet.GetCommunityShortCode(PlanetInfo);
+            ? PlanetInfo.GetIconUrl(IconFormat.WebpAnimated256)
+            : PlanetInfo.GetIconUrl(IconFormat.Webp256);
+        _iconText = PlanetInfo.HasCustomIcon ? string.Empty : PlanetInfo.CommunityShortCode;
 
         var tags = PlanetInfo.Tags?.Where(t => !string.IsNullOrWhiteSpace(t.Name)).Select(t => t.Name).Take(2).ToList();
         _topics = tags is { Count: > 0 } ? string.Join(" · ", tags) : null;

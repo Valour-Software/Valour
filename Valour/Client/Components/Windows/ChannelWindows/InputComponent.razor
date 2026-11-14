@@ -989,7 +989,7 @@
                     hash = await System.Security.Cryptography.SHA256.HashDataAsync(hashStream, ct);
                 }
 
-                var sha = Convert.ToHexString(hash).ToLowerInvariant();
+                var sha = Convert.ToHexStringLower(hash);
                 var uploadSize = bytes?.LongLength ?? file.Size;
                 var grantResult = await storagePlanet.CreateMediaUploadGrantAsync(new PlanetMediaUploadRequest
                 {

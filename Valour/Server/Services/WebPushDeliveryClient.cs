@@ -12,7 +12,7 @@ public sealed class WebPushDeliveryClient : IDisposable
     private readonly HttpClient _httpClient;
     private readonly PushServiceClient _client;
     private readonly Lazy<VapidAuthentication> _authentication;
-    private readonly object _authenticationLock = new();
+    private readonly Lock _authenticationLock = new();
 
     /// <summary>
     /// Primary handler for the named Web Push client. Endpoints come from

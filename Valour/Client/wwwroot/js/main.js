@@ -464,6 +464,8 @@ function determineFlip(element, safeWidth){
  * - data-click-target="id": clicking the element clicks element "id", such as a
  *   hidden file input.
  * - data-fallback-src="url": image that switches to url when it fails to load.
+ * - data-reaction="emoji" inside data-tooltip-host="key": message reaction;
+ *   resting the mouse on it shows who reacted.
  */
 function eventTargetElement(event) {
     return event.target instanceof Element ? event.target : null;
@@ -499,6 +501,31 @@ function onFlipCardPointer(event) {
 }
 
 document.addEventListener('mouseover', onFlipCardPointer);
+
+let reactionHover = null;
+
+document.addEventListener('mouseover', event => {
+    const reaction = eventTargetElement(event)?.closest('[data-reaction]');
+    if (reaction === reactionHover?.reaction)
+        return;
+
+    if (reactionHover)
+        window.clearTimeout(reactionHover.timer);
+    reactionHover = null;
+
+    const host = reaction?.closest('[data-tooltip-host]');
+    if (!host)
+        return;
+
+    const timer = window.setTimeout(() => {
+        if (reactionHover?.reaction !== reaction || !reaction.isConnected)
+            return;
+
+        void DotNet.invokeMethodAsync('Valour.Client', 'ShowReactionTooltip',
+            Number(host.dataset.tooltipHost), reaction.dataset.reaction, reaction.getBoundingClientRect().toJSON());
+    }, 300);
+    reactionHover = { reaction, timer };
+});
 document.addEventListener('touchstart', onFlipCardPointer, { passive: true });
 
 // Load errors do not bubble, so this listens in the capture phase.

@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Valour.Shared.Models;
 
 /// <summary>
@@ -24,5 +26,5 @@ public static class GooglePlayProducts
         ["vc_500"] = 500,
         ["vc_1000"] = 1000,
         ["vc_2000"] = 2000,
-    };
+    }.ToFrozenDictionary();
 }

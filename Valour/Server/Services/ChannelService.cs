@@ -42,7 +42,7 @@ public class ChannelService
         ISharedChannel.IsPlanetCallType(type);
 
     private static PermissionState GetNodePermissionState(PermissionsNode node, Permission permission) =>
-        ISharedPermissionsNode.GetPermissionState(node, permission, ignoreviewperm: true);
+        node.GetPermissionState(permission, ignoreviewperm: true);
 
     private static List<PermissionsNode> BuildAssociatedChatPermissionNodes(
         List<PermissionsNode>? sourceNodes,

@@ -30,7 +30,7 @@ public class NotificationService
     /// </summary>
     public HybridEvent UnreadNotificationsLoaded;
     
-    private readonly object _unreadLock = new();
+    private readonly Lock _unreadLock = new();
     private readonly List<Notification> _unreadNotifications = new();
     private readonly Dictionary<long, Notification> _unreadNotificationsLookupBySource = new();
     private readonly ValourClient _client;

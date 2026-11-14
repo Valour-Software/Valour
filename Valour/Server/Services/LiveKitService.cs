@@ -456,7 +456,7 @@ public class LiveKitService : IVoiceProvider
     }
 
     private static string Base64UrlEncode(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        System.Buffers.Text.Base64Url.EncodeToString(bytes);
 
     // ================= LiveKit RoomService (Twirp) =================
 

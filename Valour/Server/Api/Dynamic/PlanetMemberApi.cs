@@ -1,3 +1,4 @@
+using Valour.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models.Staff;

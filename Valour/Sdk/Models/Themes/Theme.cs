@@ -141,9 +141,6 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
         return response.Data;
     }
 
-    public string GetBannerUrl(ThemeBannerFormat format) =>
-        ISharedTheme.GetBannerUrl(this, format);
-
     public override Theme AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         return Client.Cache.Themes.Put(this, flags);

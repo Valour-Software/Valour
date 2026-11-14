@@ -3,11 +3,11 @@ using System.Text.RegularExpressions;
 
 namespace Valour.Shared.Models;
 
-public class UserUtils
+public partial class UserUtils
 {
     // Matches control characters, zero-width characters, and other invisible Unicode
-    private static readonly Regex InvisibleCharsRegex = new Regex(
-        @"[\u0000-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u2028-\u202F\u2060\uFEFF\uFFF9-\uFFFB]");
+    [GeneratedRegex(@"[\u0000-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u2028-\u202F\u2060\uFEFF\uFFF9-\uFFFB]")]
+    private static partial Regex InvisibleCharsRegex { get; }
 
     /// <summary>
     /// Sanitizes an email address by trimming whitespace, removing invisible
@@ -57,7 +57,8 @@ public class UserUtils
         }
     }
 
-    private static readonly Regex UsernameRegex = new Regex(@"^[a-zA-Z0-9_-]+$");
+    [GeneratedRegex(@"^[a-zA-Z0-9_-]+$")]
+    private static partial Regex UsernameRegex { get; }
 
     /// <summary>
     /// Checks if a username meets standards
@@ -94,10 +95,14 @@ public class UserUtils
         return true;
     }
 
-    private static readonly Regex HasUpperRegex = new Regex(@"[A-Z]");
-    private static readonly Regex HasLowerRegex = new Regex(@"[a-z]");
-    private static readonly Regex HasNumbersRegex = new Regex(@"\d");
-    private static readonly Regex HasSymbolsRegex = new Regex(@"\W");
+    [GeneratedRegex(@"[A-Z]")]
+    private static partial Regex HasUpperRegex { get; }
+    [GeneratedRegex(@"[a-z]")]
+    private static partial Regex HasLowerRegex { get; }
+    [GeneratedRegex(@"\d")]
+    private static partial Regex HasNumbersRegex { get; }
+    [GeneratedRegex(@"\W")]
+    private static partial Regex HasSymbolsRegex { get; }
 
     private static readonly TaskResult PasswordFailedResult =
         new TaskResult(false, $"Password must be 10+ characters, with an uppercase letter, lowercase letter, and number or symbol.");

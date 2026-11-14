@@ -97,7 +97,7 @@
         try
         {
             // Get trigger bounds
-            _triggerBounds = await BrowserUtils.GetElementBoundingRectAsync(Data.Trigger.OuterReference);
+            _triggerBounds = await Data.Trigger.GetBoundsAsync();
             
             // Get actual tooltip content bounds after it's rendered
             _contentBounds = await BrowserUtils.GetElementBoundingRectAsync(_tooltipReference);

@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Buffers.Binary;
 using System.Text;
 using Org.BouncyCastle.Crypto.Digests;
@@ -29,12 +30,12 @@ public static class SearchTerms
     public const char Suffix = 'S';
     public const char Command = 'C';
 
-    private static readonly HashSet<string> StopWords = new(StringComparer.Ordinal)
+    private static readonly FrozenSet<string> StopWords = new HashSet<string>(StringComparer.Ordinal)
     {
         "a", "an", "and", "are", "as", "at", "be", "but", "by", "for", "if", "in", "into", "is", "it",
         "of", "on", "or", "so", "such", "that", "the", "their", "then", "there", "these", "they", "this",
         "to", "was", "will", "with"
-    };
+    }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>
     /// Computes the terms uploaded with a message.
@@ -385,14 +386,14 @@ public static class SearchTerms
     /// Characters that look like Latin letters, mapped so automod cannot be
     /// evaded by swapping in a lookalike from another alphabet.
     /// </summary>
-    private static readonly Dictionary<char, char> Lookalikes = new()
+    private static readonly FrozenDictionary<char, char> Lookalikes = new Dictionary<char, char>()
     {
         ['а'] = 'a', ['в'] = 'b', ['е'] = 'e', ['ё'] = 'e', ['к'] = 'k', ['м'] = 'm', ['н'] = 'h', ['о'] = 'o',
         ['р'] = 'p', ['с'] = 'c', ['т'] = 't', ['у'] = 'y', ['х'] = 'x', ['і'] = 'i', ['ї'] = 'i', ['ј'] = 'j',
         ['ѕ'] = 's', ['ԁ'] = 'd', ['ԛ'] = 'q', ['ԝ'] = 'w',
         ['α'] = 'a', ['β'] = 'b', ['ε'] = 'e', ['η'] = 'n', ['ι'] = 'i', ['κ'] = 'k', ['ν'] = 'v', ['ο'] = 'o',
         ['ρ'] = 'p', ['τ'] = 't', ['υ'] = 'u', ['χ'] = 'x', ['ω'] = 'w'
-    };
+    }.ToFrozenDictionary();
 
     /// <summary>
     /// Folds one character, or returns '\0' for characters that should be

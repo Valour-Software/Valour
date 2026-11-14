@@ -686,7 +686,7 @@ public class EcoService
             SourceId = transaction.UserFromId,
             Source = NotificationSource.TransactionReceived,
             Body = transaction.Description,
-            ImageUrl = userFrom.GetAvatarUrl(AvatarFormat.Webp128),
+            ImageUrl = userFrom.GetAvatar(AvatarFormat.Webp128),
             ClickUrl = $"/receipt/{transaction.Id}"
         });
 

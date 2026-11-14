@@ -63,7 +63,7 @@ public class E2eeIdentityService
     // until this time instead of waiting on the hub for every lookup.
     private static DateTime _hubRetryAt;
     private static int _hubFailures;
-    private static readonly object HubBackoffLock = new();
+    private static readonly Lock HubBackoffLock = new();
 
     private readonly ValourDb _db;
     private readonly E2eeRealtimeService _realtime;

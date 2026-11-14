@@ -5,5 +5,5 @@ namespace Valour.Client.Components.Tooltips;
 public class TooltipData
 {
     public Tooltip Component { get; set; }
-    public TooltipTrigger Trigger { get; set; }
+    public ITooltipSource Trigger { get; set; }
 }

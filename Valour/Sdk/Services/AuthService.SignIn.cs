@@ -38,7 +38,7 @@ public partial class AuthService
         Base64Url(SHA256.HashData(Encoding.UTF8.GetBytes(verifier)));
 
     private static string Base64Url(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        System.Buffers.Text.Base64Url.EncodeToString(bytes);
 
     /// <summary>
     /// Starts a provider sign-in and returns the page to open. Linking and

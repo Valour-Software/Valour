@@ -118,7 +118,7 @@
     private void GenerateAutoGraphic()
     {
         _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
-        _iconText = ISharedPlanet.GetCommunityShortCode(Planet);
+        _iconText = Planet.CommunityShortCode;
         _iconImageColor = Planet.Id.GetHashCode();
 
         _iconTextStyle = $"font-size: {100f / (_iconText.Length + 1)}px;";

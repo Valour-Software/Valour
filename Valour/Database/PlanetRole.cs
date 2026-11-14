@@ -87,12 +87,6 @@ public class PlanetRole : ISharedPlanetRole
     // Used for migrations
     public int Version { get; set; }
 
-    public uint GetAuthority() =>
-        ISharedPlanetRole.GetAuthority(this);
-
-    public bool HasPermission(PlanetPermission perm) =>
-        ISharedPlanetRole.HasPermission(this, perm);
-
     public static void SetupDbModel(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<PlanetRole>(e =>

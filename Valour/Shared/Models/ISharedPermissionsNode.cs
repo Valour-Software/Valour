@@ -16,8 +16,6 @@ public interface ISharedPermissionsNode : ISharedPlanetModel<long>
     // Routes //
     const string BaseRoute = "api/permissionsnodes";
     
-    public static string GetIdRoute(ISharedPermissionsNode node) 
-        => GetIdRoute(node.TargetId, node.RoleId, node.TargetType);
 
     public static string GetIdRoute(long targetId, long roleId, ChannelTypeEnum targetType) 
         => $"{BaseRoute}/{targetType}/{targetId}/{roleId}";
@@ -50,58 +48,6 @@ public interface ISharedPermissionsNode : ISharedPlanetModel<long>
     /// </summary>
     public ChannelTypeEnum TargetType { get; set; }
 
-    /// <summary>
-    /// Returns the node code for this permission node
-    /// </summary>
-    public PermissionNodeCode GetNodeCode() =>
-        ISharedPermissionsNode.GetNodeCode(this);
-
-    /// <summary>
-    /// Returns the permission state for a given permission
-    /// </summary>
-    public PermissionState GetPermissionState(Permission perm) =>
-        ISharedPermissionsNode.GetPermissionState(this, perm);
-
-    /// <summary>
-    /// Sets a permission to the given state
-    /// </summary>
-    public void SetPermission(Permission perm, PermissionState state) =>
-        ISharedPermissionsNode.SetPermission(this, perm, state);
-
-    public static PermissionNodeCode GetNodeCode(ISharedPermissionsNode node) =>
-        new PermissionNodeCode(node.Code, node.Mask);
-
-    public static PermissionState GetPermissionState(ISharedPermissionsNode node, Permission perm, bool ignoreviewperm = false) =>
-        node.GetNodeCode().GetState(perm, ignoreviewperm);
-
-    public static void SetPermission(ISharedPermissionsNode node, Permission perm, PermissionState state)
-    {
-        if (state == PermissionState.Undefined)
-        {
-            // Remove bit from code
-            node.Code &= ~perm.Value;
-
-            // Remove mask bit
-            node.Mask &= ~perm.Value;
-        }
-        else if (state == PermissionState.True)
-        {
-            // Add mask bit
-            node.Mask |= perm.Value;
-
-            // Add true bit
-            node.Code |= perm.Value;
-        }
-        else
-        {
-            // Remove mask bit
-            node.Mask |= perm.Value;
-
-            // Remove true bit
-            node.Code &= ~perm.Value;
-        }
-    }
-
     public static ChannelTypeEnum GetChannelTypeEnum<TPermissionType>()
     where TPermissionType : ChannelPermission
     {
@@ -124,3 +70,46 @@ public interface ISharedPermissionsNode : ISharedPlanetModel<long>
     }
 }
 
+public static class SharedPermissionsNodeExtensions
+{
+    extension(ISharedPermissionsNode node)
+    {
+        /// <summary>
+        /// The route for this node's API resource.
+        /// </summary>
+        public string IdRoute => ISharedPermissionsNode.GetIdRoute(node.TargetId, node.RoleId, node.TargetType);
+
+        /// <summary>
+        /// Returns the node code for this permission node
+        /// </summary>
+        public PermissionNodeCode GetNodeCode() => new(node.Code, node.Mask);
+
+        /// <summary>
+        /// Returns the permission state for a given permission
+        /// </summary>
+        public PermissionState GetPermissionState(Permission perm, bool ignoreviewperm = false) =>
+            node.GetNodeCode().GetState(perm, ignoreviewperm);
+
+        /// <summary>
+        /// Sets a permission to the given state
+        /// </summary>
+        public void SetPermission(Permission perm, PermissionState state)
+        {
+            switch (state)
+            {
+                case PermissionState.Undefined:
+                    node.Code &= ~perm.Value;
+                    node.Mask &= ~perm.Value;
+                    break;
+                case PermissionState.True:
+                    node.Mask |= perm.Value;
+                    node.Code |= perm.Value;
+                    break;
+                default:
+                    node.Mask |= perm.Value;
+                    node.Code &= ~perm.Value;
+                    break;
+            }
+        }
+    }
+}

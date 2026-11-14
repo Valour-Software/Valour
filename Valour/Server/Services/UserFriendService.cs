@@ -93,7 +93,7 @@ public class UserFriendService
         {
             Title = $"{user.Name} has added you as a friend!",
             Body = "You can add them back or ignore this.",
-            ImageUrl = user.GetAvatarUrl(AvatarFormat.Webp128),
+            ImageUrl = user.GetAvatar(AvatarFormat.Webp128),
             UserId = friendId,
             PlanetId = null,
             ChannelId = null,

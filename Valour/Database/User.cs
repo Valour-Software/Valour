@@ -224,12 +224,6 @@ namespace Valour.Database
         public virtual ICollection<User> OwnedBots { get; set; }
 
         /// <summary>
-        /// Generates the avatar URL for this user based on the requested format.
-        /// </summary>
-        public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
-            ISharedUser.GetAvatar(this, format);
-
-        /// <summary>
         /// Configures the entity model for the `User` class using fluent configuration.
         /// </summary>
         public static void SetupDbModel(ModelBuilder builder)

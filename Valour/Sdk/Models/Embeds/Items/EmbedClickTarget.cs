@@ -17,10 +17,16 @@ public enum EmbedClickTargetType
 [JsonDerivedType(typeof(EmbedPageTarget), "page")]
 [JsonDerivedType(typeof(EmbedEventTarget), "event")]
 [JsonDerivedType(typeof(EmbedFormSubmitTarget), "submit")]
-public abstract class EmbedClickTarget
+public closed class EmbedClickTarget
 {
     [JsonIgnore]
-    public abstract EmbedClickTargetType Type { get; }
+    public EmbedClickTargetType Type => this switch
+    {
+        EmbedLinkTarget => EmbedClickTargetType.Link,
+        EmbedPageTarget => EmbedClickTargetType.Page,
+        EmbedEventTarget => EmbedClickTargetType.Event,
+        EmbedFormSubmitTarget => EmbedClickTargetType.SubmitForm,
+    };
 }
 
 /// <summary>
@@ -29,9 +35,6 @@ public abstract class EmbedClickTarget
 public class EmbedLinkTarget : EmbedClickTarget
 {
     public string? Href { get; set; }
-
-    [JsonIgnore]
-    public override EmbedClickTargetType Type => EmbedClickTargetType.Link;
 }
 
 /// <summary>
@@ -40,9 +43,6 @@ public class EmbedLinkTarget : EmbedClickTarget
 public class EmbedPageTarget : EmbedClickTarget
 {
     public int PageIndex { get; set; }
-
-    [JsonIgnore]
-    public override EmbedClickTargetType Type => EmbedClickTargetType.Page;
 }
 
 /// <summary>
@@ -51,9 +51,6 @@ public class EmbedPageTarget : EmbedClickTarget
 public class EmbedEventTarget : EmbedClickTarget
 {
     public string? EventId { get; set; }
-
-    [JsonIgnore]
-    public override EmbedClickTargetType Type => EmbedClickTargetType.Event;
 }
 
 /// <summary>
@@ -62,7 +59,4 @@ public class EmbedEventTarget : EmbedClickTarget
 public class EmbedFormSubmitTarget : EmbedClickTarget
 {
     public string? EventId { get; set; }
-
-    [JsonIgnore]
-    public override EmbedClickTargetType Type => EmbedClickTargetType.SubmitForm;
 }

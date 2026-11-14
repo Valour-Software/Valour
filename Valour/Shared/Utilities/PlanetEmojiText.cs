@@ -6,20 +6,16 @@ namespace Valour.Shared.Utilities;
 /// Utilities for working with custom planet emoji tokens in message text.
 /// Token format: «e-:name:~id»
 /// </summary>
-public static class PlanetEmojiText
+public static partial class PlanetEmojiText
 {
     public const int MinNameLength = 2;
     public const int MaxNameLength = 32;
 
-    private static readonly Regex NameRegex = new(
-        "^[a-z0-9_]{2,32}$",
-        RegexOptions.Compiled
-    );
+    [GeneratedRegex("^[a-z0-9_]{2,32}$")]
+    private static partial Regex NameRegex { get; }
 
-    private static readonly Regex TokenRegex = new(
-        "«e-:([a-z0-9_]{2,32}):~([0-9]{1,20})»",
-        RegexOptions.Compiled
-    );
+    [GeneratedRegex("«e-:([a-z0-9_]{2,32}):~([0-9]{1,20})»")]
+    private static partial Regex TokenRegex { get; }
 
     public static string NormalizeName(string? name)
     {
