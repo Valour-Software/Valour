@@ -395,7 +395,7 @@ public class CoreHubService
         }
     }
 
-    private static readonly object FilteredSendChainLock = new();
+    private static readonly Lock FilteredSendChainLock = new();
     private static readonly Dictionary<long, Task> FilteredSendChains = new();
 
     private static async Task RunAfterAsync(Task previous, Func<Task> work)

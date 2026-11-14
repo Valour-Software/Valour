@@ -1,3 +1,4 @@
+using Valour.Shared.Models;
 using Valour.Client.Components.Menus.Modals.Channels.Edit;
 using Valour.Sdk.Models;
 

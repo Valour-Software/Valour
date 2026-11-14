@@ -47,7 +47,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     /// Lock object for thread-safe access to List and IdMap.
     /// SignalR callbacks run on background threads while UI accesses from main thread.
     /// </summary>
-    protected readonly object SyncLock = new();
+    protected readonly Lock SyncLock = new();
 
     public int Count
     {

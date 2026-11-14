@@ -49,5 +49,5 @@ public class AuthTokenInfo
     /// Derives the public handle for a token secret.
     /// </summary>
     public static string GetHandle(string tokenId) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(tokenId))).ToLowerInvariant();
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(tokenId)));
 }

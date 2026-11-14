@@ -7,7 +7,7 @@ using GifFavorite = Valour.Server.Models.GifFavorite;
 
 namespace Valour.Server.Services;
 
-public class GifFavoriteService
+public partial class GifFavoriteService
 {
     private const string KlipyProvider = "klipy";
 
@@ -15,7 +15,8 @@ public class GifFavoriteService
     /// Favorites are a personal shortlist, so each user keeps a bounded number.
     /// </summary>
     public const int MaxFavoritesPerUser = 500;
-    private static readonly Regex ProviderIdRegex = new("^[A-Za-z0-9-]{1,160}$", RegexOptions.Compiled);
+    [GeneratedRegex("^[A-Za-z0-9-]{1,160}$")]
+    private static partial Regex ProviderIdRegex { get; }
     private readonly ValourDb _db;
     private readonly ILogger<GifFavoriteService> _logger;
 

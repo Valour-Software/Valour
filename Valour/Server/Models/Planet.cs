@@ -148,7 +148,4 @@ public class Planet : ServerModel<long>, ISharedPlanet
     public byte WorldVariant { get; set; }
 
     public List<PlanetTag> Tags { get; set; } = new();
-    
-    public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
-        ISharedPlanet.GetIconUrl(this, format);
 }

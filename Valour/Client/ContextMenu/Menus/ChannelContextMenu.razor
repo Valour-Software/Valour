@@ -1,6 +1,16 @@
 @inherits ContextMenu<ChannelContextMenu.ChannelContextParams>
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
+@using Valour.Client.Components.Windows.ChannelWindows
+@using Valour.Client.Device
+
+@if (CanOpenInNewTab)
+{
+    <ContextMenuItem OnClickAsync="@OpenInNewTab">
+        <Label>Open in New Tab</Label>
+        <Icon><i class="bi bi-plus-square"></i></Icon>
+    </ContextMenuItem>
+}
 
 @if (_canModify)
 {
@@ -84,6 +94,19 @@
 </ContextMenuItem>
 
 @code {
+    // Mobile shows one window at a time, so there is no second tab to open
+    private bool CanOpenInNewTab =>
+        !DeviceInfo.IsMobile &&
+        (ISharedChannel.ChatChannelTypes.Contains(Data.Channel.ChannelType) ||
+         ISharedChannel.VoiceChannelTypes.Contains(Data.Channel.ChannelType));
+
+    private async Task OpenInNewTab()
+    {
+        var content = await ChannelWindowFactory.GetDefaultContent(Data.Channel);
+        if (content is not null)
+            await WindowService.OpenWindowInNewTab(content);
+    }
+
     private bool VoiceAvailable => Client.InstanceManifest?.Capabilities?.Voice != false;
 
     // Favorites are per-user leaf shortcuts - categories are intentionally unsupported

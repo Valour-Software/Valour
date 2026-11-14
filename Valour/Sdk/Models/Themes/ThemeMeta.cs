@@ -21,11 +21,6 @@ public class ThemeMeta : ClientModel<ThemeMeta, long>, ISharedThemeMeta
     public bool? MySentiment { get; set; }
     public long? MyVoteId { get; set; }
 
-    public string GetBannerUrl(ThemeBannerFormat format = ThemeBannerFormat.Webp)
-    {
-        return ISharedTheme.GetBannerUrl(this, format);
-    }
-
     public override ThemeMeta AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         return this;

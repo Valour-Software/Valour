@@ -167,17 +167,39 @@ public static class WindowService
         if (await TryFocusExistingWindowForContent(content))
             return;
 
-        // Replace the given tab's content instead of adding a new tab
-        if (tabToReplace?.Component is not null)
+        // Navigation replaces the caller's tab, or the focused tab, the way a
+        // browser link replaces the current page. Content that would lose an
+        // activity or unsaved input keeps its tab and the target opens beside it.
+        var target = tabToReplace ?? FocusedTab;
+        if (target?.Component is not null && target.Content?.KeepOnNavigate != true)
         {
-            await tabToReplace.Component.ReplaceAsync(content);
+            await target.Component.ReplaceAsync(content);
             return;
         }
 
         var tab = new WindowTab(content);
         await OpenWindowAtFocused(tab);
     }
-    
+
+    /// <summary>
+    /// Opens content in a new tab beside the focused one. Content that is
+    /// already open is focused instead, because two tabs of the same content
+    /// would show the same thing twice.
+    /// </summary>
+    public static async Task OpenWindowInNewTab(WindowContent content)
+    {
+        if (DeviceInfo.IsMobile)
+        {
+            await OpenWindowAtFocused(content);
+            return;
+        }
+
+        if (await TryFocusExistingWindowForContent(content))
+            return;
+
+        await OpenWindowAtFocused(new WindowTab(content));
+    }
+
     public static async Task OpenWindowAtFocused(WindowTab tab)
     {
         if (DeviceInfo.IsMobile)
@@ -273,7 +295,7 @@ public static class WindowService
         await MainDock.AddFloatingTab(tab, props);
     }
 
-    private static async Task<bool> TryFocusExistingWindowForContent(WindowContent content)
+    internal static async Task<bool> TryFocusExistingWindowForContent(WindowContent content)
     {
         if (content is null)
             return false;

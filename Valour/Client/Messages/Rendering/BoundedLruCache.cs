@@ -9,7 +9,7 @@ public sealed class BoundedLruCache<TKey, TValue> where TKey : notnull
     private readonly int _capacity;
     private readonly Dictionary<TKey, LinkedListNode<KeyValuePair<TKey, TValue>>> _lookup;
     private readonly LinkedList<KeyValuePair<TKey, TValue>> _order = new();
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     public BoundedLruCache(int capacity)
     {

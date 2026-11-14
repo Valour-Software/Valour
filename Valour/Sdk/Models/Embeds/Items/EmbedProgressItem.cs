@@ -11,9 +11,6 @@ public class EmbedProgressItem : EmbedItem, INamedItem
 
     public List<EmbedProgressBarItem> Bars { get; set; } = new();
 
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.Progress;
-
     public override IEnumerable<EmbedItem> EnumerateDescendants()
     {
         if (NameItem is not null)
@@ -78,7 +75,4 @@ public class EmbedProgressBarItem : EmbedItem
     /// Animates the stripes. Implies <see cref="IsStriped"/> when rendered.
     /// </summary>
     public bool IsAnimated { get; set; }
-
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.ProgressBar;
 }

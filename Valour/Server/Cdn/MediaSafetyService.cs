@@ -87,7 +87,7 @@ public class MediaSafetyService
     public static string ComputeSha256Hex(ReadOnlySpan<byte> data)
     {
         var hash = SHA256.HashData(data);
-        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        return Convert.ToHexStringLower(hash);
     }
 
     private async Task<MediaSafetyHashMatchResult> HashMatchPhotoDnaAsync(

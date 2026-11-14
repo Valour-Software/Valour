@@ -18,9 +18,6 @@ public class EmbedDropDownItem : EmbedItem, IFormInputItem, INamedItem
 
     public List<EmbedDropDownOptionItem> Options { get; set; } = new();
 
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.DropDown;
-
     public override IEnumerable<EmbedItem> EnumerateDescendants()
     {
         if (NameItem is not null)
@@ -75,7 +72,4 @@ public class EmbedDropDownOptionItem : EmbedItem
 
     [JsonIgnore]
     public string? EffectiveValue => Value ?? Text;
-
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.DropDownOption;
 }

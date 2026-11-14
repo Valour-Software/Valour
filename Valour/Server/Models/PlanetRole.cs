@@ -73,10 +73,4 @@ public class PlanetRole : ServerModel<long>, ISharedPlanetRole
     public int FlagBitIndex { get; set; }
     
     public bool AnyoneCanMention { get; set; }
-
-    public uint GetAuthority() =>
-        ISharedPlanetRole.GetAuthority(this);
-
-    public bool HasPermission(PlanetPermission perm) =>
-        ISharedPlanetRole.HasPermission(this, perm);
 }

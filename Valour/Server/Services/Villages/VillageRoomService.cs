@@ -211,7 +211,7 @@ public sealed class VillageRoomService
     /// </summary>
     public async Task<bool> CanAccessChannelAsync(ISharedChannel channel, long userId)
     {
-        if (channel?.PlanetId is null || !ISharedChannel.IsVillageEphemeral(channel))
+        if (channel?.PlanetId is null || !channel.IsVillageEphemeral)
             return true;
 
         foreach (var (key, state) in _rooms)

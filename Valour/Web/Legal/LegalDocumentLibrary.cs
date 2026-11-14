@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Collections.Concurrent;
 using Markdig;
 using Markdig.Renderers.Html;
@@ -45,8 +46,7 @@ public sealed class LegalDocumentLibrary
 
     // Links between the documents are written as repository file names (or GitHub
     // URLs to them) so they work on GitHub; on the site they point at the pages.
-    private static readonly Dictionary<string, string> PathsByFileName =
-        All.ToDictionary(document => document.FileName, document => document.Path, StringComparer.OrdinalIgnoreCase);
+    private static readonly FrozenDictionary<string, string> PathsByFileName = All.ToFrozenDictionary(document => document.FileName, document => document.Path, StringComparer.OrdinalIgnoreCase);
 
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UsePipeTables()

@@ -40,7 +40,7 @@
                     <!-- Pushes messages to bottom -->
                     <div class="pusher"></div>
 
-                    @if (_reachedStart && Channel is not null)
+                    @if (_reachedStart && Channel is not null && !_dormant)
                     {
                         <div class="channel-start">
                             <SkyMoment Pose="SkyMoment.VictorPose.Peeking" Banner="true" Height="150"
@@ -516,8 +516,15 @@
             _scrollLatestWindowAfterNextRender = false;
             await ScrollFromTopToBottomAnimated();
         }
-        
-        UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
+
+        if (_restorePositionAfterRender && _jsService is not null)
+        {
+            _restorePositionAfterRender = false;
+            await _jsService.InvokeVoidAsync("restorePosition");
+        }
+
+        if (_windowVisible)
+            UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
         
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -703,14 +710,25 @@
 
         await InvokeAsync(async () =>
         {
+            // Apply the edit to the data first: a hidden chat renders none of
+            // its messages, and they are rebuilt from this data when shown.
+            var edited = new HashSet<long> { message.Id };
+            foreach (var displayed in DisplayedMessages)
+            {
+                if (ApplyMessageEditToDisplayedMessage(displayed, message) is not null)
+                    edited.Add(displayed.Id);
+            }
+
             foreach (var messageComponent in RenderedMessages)
             {
                 var displayed = messageComponent.ParamData.Message;
-                var updatedTarget = ApplyMessageEditToDisplayedMessage(displayed, message);
-                if (updatedTarget is null)
+                if (!edited.Contains(displayed.Id))
                     continue;
 
-                if (ReferenceEquals(updatedTarget, displayed) && messageComponent.Edit)
+                // Inner replies render their own copy of the replied message
+                ApplyMessageEditToDisplayedMessage(displayed, message);
+
+                if (displayed.Id == message.Id && messageComponent.Edit)
                     await messageComponent.CloseEditMode();
 
                 messageComponent.BuildMessage(true);
@@ -816,6 +834,9 @@
     private RenderFragment MessagesFragment => builder =>
     {
         _messageSet.Clear();
+
+        if (_dormant)
+            return;
 
         Message lastMessage = null;
         var sequence = 0;
@@ -1736,6 +1757,11 @@
 
     public class Content : WindowContent<ChatWindowComponent, Channel>
     {
+        // Drafts are not saved, so a chat with unsent input keeps its tab
+        public override bool KeepOnNavigate =>
+            ComponentBase?.InputComponent is { } input &&
+            (input.DraftPreview is not null || input.EditingMessageComponent is not null);
+
         /// <summary>
         /// When set, the chat will load around this message and highlight it
         /// </summary>
@@ -1925,6 +1951,76 @@
             return;
 
         _ = Client.NotificationService.MarkNotificationRead(notification, true);
+    }
+
+    // A chat whose tab stays hidden this long drops its messages from the DOM
+    // and rebuilds them when shown, so open background tabs stay cheap.
+    private static readonly TimeSpan DormancyDelay = TimeSpan.FromSeconds(30);
+    private bool _windowVisible = true;
+    private bool _shownOnce;
+    private bool _dormant;
+    private bool _restorePositionAfterRender;
+    private CancellationTokenSource _dormancyCts;
+
+    public override void OnWindowVisibilityChanged(bool visible)
+    {
+        if (_disposed)
+            return;
+
+        _windowVisible = visible;
+        _dormancyCts?.Cancel();
+        _dormancyCts?.Dispose();
+        _dormancyCts = null;
+
+        if (visible)
+        {
+            _shownOnce = true;
+            if (Channel is not null)
+                UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
+
+            if (_dormant)
+            {
+                _dormant = false;
+                _restorePositionAfterRender = true;
+                _ = ReRender();
+            }
+
+            return;
+        }
+
+        // Tabs restored in the background have never been seen, so there is
+        // no reason to build their messages until they are opened.
+        if (!_shownOnce)
+        {
+            _ = EnterDormancyAsync();
+            return;
+        }
+
+        _dormancyCts = new CancellationTokenSource();
+        _ = EnterDormancyAfterDelayAsync(_dormancyCts.Token);
+    }
+
+    private async Task EnterDormancyAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        await Task.Delay(DormancyDelay, cancellationToken)
+            .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+        if (!cancellationToken.IsCancellationRequested)
+            await InvokeAsync(EnterDormancyAsync);
+    }
+
+    private async Task EnterDormancyAsync()
+    {
+        if (_disposed || _windowVisible || _dormant)
+            return;
+
+        // The scroll position is saved while the chat is still visible; this
+        // keeps it from being overwritten by the empty, hidden list.
+        if (_jsService is not null)
+            await _jsService.InvokeVoidAsync("freezePosition");
+
+        _dormant = true;
+        await ReRender();
     }
 
     private bool IsActivelyVisibleToUser()
@@ -2186,6 +2282,9 @@
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
         _disposed = true;
+        _dormancyCts?.Cancel();
+        _dormancyCts?.Dispose();
+        _dormancyCts = null;
 
         if (Channel is null)
             return;

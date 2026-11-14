@@ -51,7 +51,7 @@
         _data = result.Data;
         _loading = false;
 
-        _imageUrl = ISharedPlanet.GetIconUrl(_data, IconFormat.Webp256);
+        _imageUrl = _data.GetIconUrl(IconFormat.Webp256);
         
         StateHasChanged();
     }

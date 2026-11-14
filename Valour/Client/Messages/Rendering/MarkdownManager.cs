@@ -18,14 +18,20 @@ namespace Valour.Client.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public static class MarkdownManager
+public static partial class MarkdownManager
 {
-    private static readonly Regex UserMentionToken = new("«@[mu]-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex ChannelMentionToken = new("«@c-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex RoleMentionToken = new("«@r-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex CustomEmojiToken = new("«e-:([a-z0-9_]{2,32}):~[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex StockToken = new("\\$[A-Za-z]{1,6}", RegexOptions.Compiled);
-    private static readonly Regex Whitespace = new("\\s+", RegexOptions.Compiled);
+    [GeneratedRegex("«@[mu]-[0-9]{1,20}»")]
+    private static partial Regex UserMentionToken { get; }
+    [GeneratedRegex("«@c-[0-9]{1,20}»")]
+    private static partial Regex ChannelMentionToken { get; }
+    [GeneratedRegex("«@r-[0-9]{1,20}»")]
+    private static partial Regex RoleMentionToken { get; }
+    [GeneratedRegex("«e-:([a-z0-9_]{2,32}):~[0-9]{1,20}»")]
+    private static partial Regex CustomEmojiToken { get; }
+    [GeneratedRegex("\\$[A-Za-z]{1,6}")]
+    private static partial Regex StockToken { get; }
+    [GeneratedRegex("\\s+")]
+    private static partial Regex Whitespace { get; }
 
     private const int MaxCachedDocuments = 2048;
     private const int MaxCachedHtml = 1024;
@@ -81,7 +87,7 @@ public static class MarkdownManager
             .UseValourEmojiExtension(DevicePreferences.AutoEmoji)
             .Build();
 
-        var renderer = new BlazorRenderer(null, true);
+        var renderer = new BlazorRenderer(null, false);
         renderer.ObjectRenderers.Add(new MentionRenderer());
         renderer.ObjectRenderers.Add(new StockRenderer());
         renderer.ObjectRenderers.Add(new ValourEmojiRenderer());
@@ -95,6 +101,11 @@ public static class MarkdownManager
         // Must be inserted ahead of the package's built-in LinkInlineRenderer so
         // Valour links get in-app navigation instead of opening a new tab.
         renderer.ObjectRenderers.Insert(0, new ValourLinkRenderer());
+
+        // The package's code renderers keep a hidden copy of every code element
+        // beside a highlighted clone; these render one element each.
+        renderer.ObjectRenderers.Insert(0, new ValourCodeInlineRenderer());
+        renderer.ObjectRenderers.Insert(0, new ValourCodeBlockRenderer());
 
         Pipeline = pipeline;
         Renderer = renderer;

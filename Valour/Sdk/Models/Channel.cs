@@ -42,8 +42,8 @@ public readonly struct DirectChannelKey : IEquatable<DirectChannelKey>
 
 public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 {
-    public override string BaseRoute => ISharedChannel.GetBaseRoute(this);
-    public override string IdRoute => ISharedChannel.GetIdRoute(this);
+    public override string BaseRoute => PlanetId is { } planetId ? ISharedChannel.GetPlanetBaseRoute(planetId) : ISharedChannel.DirectBaseRoute;
+    public override string IdRoute => PlanetId is { } planetId ? ISharedChannel.GetPlanetIdRoute(planetId, Id) : ISharedChannel.GetDirectIdRoute(Id);
 
     /// <summary>
     /// Run when a channel sends a watching update

@@ -37,9 +37,6 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
     private PlanetInvite() : base() {}
     public PlanetInvite(ValourClient client) : base(client) { }
 
-    public bool IsPermanent() =>
-        ISharedPlanetInvite.IsPermanent(this);
-
     /// <summary>
     /// Returns the name of the invite's planet
     /// </summary>

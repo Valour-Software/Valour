@@ -555,7 +555,7 @@ public class NotificationService
             return;
 
         var senderName = senderUser.Name;
-        var senderAvatar = ISharedUser.GetAvatar(senderUser, AvatarFormat.Webp128);
+        var senderAvatar = senderUser.GetAvatar(AvatarFormat.Webp128);
 
         if (comment.AuthorMemberId is not null)
         {
@@ -664,7 +664,7 @@ public class NotificationService
         {
             Title = user.Name + " mentioned you in DMs",
             Body = EncryptedMessageBody,
-            ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
+            ImageUrl = user.GetAvatar(AvatarFormat.Webp128),
             ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
             ChannelId = channel.Id,
             Source = NotificationSource.DirectMention,
@@ -714,7 +714,7 @@ public class NotificationService
             Id = Guid.NewGuid(),
             Title = title,
             Body = EncryptedMessageBody,
-            ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
+            ImageUrl = user.GetAvatar(AvatarFormat.Webp128),
             UserId = targetMember.UserId,
             PlanetId = planet.Id,
             ChannelId = channel.Id,
@@ -753,7 +753,7 @@ public class NotificationService
             Id = Guid.NewGuid(),
             Title = roleSenderName + " in " + planet.Name,
             Body = EncryptedMessageBody,
-            ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
+            ImageUrl = user.GetAvatar(AvatarFormat.Webp128),
             PlanetId = planet.Id,
             ChannelId = channel.Id,
             Source = mentionSource,

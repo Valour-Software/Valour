@@ -286,14 +286,7 @@ public class DashboardService
         if (!hasCustomIcon)
             return null;
 
-        return ISharedPlanet.GetIconUrl(new PlanetListInfo
-        {
-            PlanetId = planetId,
-            Name = name,
-            HasCustomIcon = hasCustomIcon,
-            HasAnimatedIcon = hasAnimatedIcon,
-            Version = version,
-        }, IconFormat.Webp256);
+        return ISharedPlanet.GetIconUrl(planetId, version, hasCustomIcon, hasAnimatedIcon, IconFormat.Webp256);
     }
 
     private Task<List<DashboardGlobePlanet>> BuildGlobePlanetsAsync()

@@ -19,7 +19,14 @@ public abstract class WindowContent
     public User IconUser { get; set; }
     public long? PlanetId { get; set; }
     public bool AutoScroll { get; set; }
-    
+
+    /// <summary>
+    /// Whether navigating from this tab should open a new tab instead of
+    /// replacing it. Content returns true while replacing it would end an
+    /// activity, such as a call, or discard unsaved input.
+    /// </summary>
+    public virtual bool KeepOnNavigate => false;
+
     public WindowTab Tab { get; set; }
     
     private WindowContentComponentBase _componentBase;

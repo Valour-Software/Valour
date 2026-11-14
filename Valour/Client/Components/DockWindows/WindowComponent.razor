@@ -235,6 +235,8 @@
         // Reset render flag
         _canRender = false;
 
+        ReportContentVisibility();
+
         if (_armFloatEvent)
         {
             _armFloatEvent = false;
@@ -252,6 +254,29 @@
         }
     }
     
+    private WindowContentComponentBase _visibilityTarget;
+    private bool _reportedVisible;
+
+    /// <summary>
+    /// Tells the content whether this window is showing it. Every change to the
+    /// focused tab or to floating state re-renders this window, so checking
+    /// after each render covers all of them.
+    /// </summary>
+    private void ReportContentVisibility()
+    {
+        var target = WindowTab.Content?.ComponentBase;
+        if (target is null)
+            return;
+
+        var visible = IsFloating || IsActive;
+        if (ReferenceEquals(target, _visibilityTarget) && visible == _reportedVisible)
+            return;
+
+        _visibilityTarget = target;
+        _reportedVisible = visible;
+        target.OnWindowVisibilityChanged(visible);
+    }
+
     public void ReRender()
     {
         if (_disposed) return;

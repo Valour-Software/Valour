@@ -15,7 +15,7 @@ public class HybridEvent<TEventData> : IDisposable
     private Func<TEventData, Task>[] _asyncHandlers = NoAsyncHandlers;
 
     // Guards writers only. Readers take a snapshot of the array reference.
-    private readonly object _writeLock = new();
+    private readonly Lock _writeLock = new();
 
     public void AddHandler(Action<TEventData> handler)
     {
@@ -174,7 +174,7 @@ public class HybridEvent : IDisposable
     private Func<Task>[] _asyncHandlers = NoAsyncHandlers;
 
     // Guards writers only. Readers take a snapshot of the array reference.
-    private readonly object _writeLock = new();
+    private readonly Lock _writeLock = new();
 
     public void AddHandler(Action handler)
     {
