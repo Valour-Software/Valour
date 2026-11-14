@@ -247,27 +247,40 @@ public static class NotificationPreviewDecryptor
 /// service workers apply the same rules in notification-preview.js, so a
 /// message reads the same on every device.
 /// </summary>
-public static class NotificationPreviewText
+public static partial class NotificationPreviewText
 {
     public const int MaxLength = 300;
 
-    private static readonly Regex CodeFence = new("```[A-Za-z0-9_+-]*", RegexOptions.Compiled);
+    [GeneratedRegex("```[A-Za-z0-9_+-]*")]
+    private static partial Regex CodeFence { get; }
     // Spoilers can nest, so everything from the first marker to the last is
     // hidden, even text between two separate spoilers.
-    private static readonly Regex Spoiler = new(@"\|\|[\s\S]+\|\|", RegexOptions.Compiled);
-    private static readonly Regex UserMention = new("«@[mu]-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex RoleMention = new("«@r-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex ChannelMention = new("«@c-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex CustomEmoji = new("«e-:([a-z0-9_]{2,32}):~[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex Link = new(@"\[([^\]\n]*)\]\([^)\s]*\)", RegexOptions.Compiled);
-    private static readonly Regex InlineCode = new("`([^`\n]+)`", RegexOptions.Compiled);
-    private static readonly Regex Bold = new(@"\*\*([^*\n]+)\*\*", RegexOptions.Compiled);
-    private static readonly Regex Underline = new("__([^_\n]+)__", RegexOptions.Compiled);
-    private static readonly Regex Strikethrough = new("~~([^~\n]+)~~", RegexOptions.Compiled);
-    private static readonly Regex Italic = new(@"\*([^*\n]+)\*", RegexOptions.Compiled);
-    private static readonly Regex LinePrefix = new(@"^[ \t]*(#{1,6}[ \t]+|>[ \t]?|-#[ \t]+)",
-        RegexOptions.Compiled | RegexOptions.Multiline);
-    private static readonly Regex Whitespace = new(@"\s+", RegexOptions.Compiled);
+    [GeneratedRegex(@"\|\|[\s\S]+\|\|")]
+    private static partial Regex Spoiler { get; }
+    [GeneratedRegex("«@[mu]-[0-9]{1,20}»")]
+    private static partial Regex UserMention { get; }
+    [GeneratedRegex("«@r-[0-9]{1,20}»")]
+    private static partial Regex RoleMention { get; }
+    [GeneratedRegex("«@c-[0-9]{1,20}»")]
+    private static partial Regex ChannelMention { get; }
+    [GeneratedRegex("«e-:([a-z0-9_]{2,32}):~[0-9]{1,20}»")]
+    private static partial Regex CustomEmoji { get; }
+    [GeneratedRegex(@"\[([^\]\n]*)\]\([^)\s]*\)")]
+    private static partial Regex Link { get; }
+    [GeneratedRegex("`([^`\n]+)`")]
+    private static partial Regex InlineCode { get; }
+    [GeneratedRegex(@"\*\*([^*\n]+)\*\*")]
+    private static partial Regex Bold { get; }
+    [GeneratedRegex("__([^_\n]+)__")]
+    private static partial Regex Underline { get; }
+    [GeneratedRegex("~~([^~\n]+)~~")]
+    private static partial Regex Strikethrough { get; }
+    [GeneratedRegex(@"\*([^*\n]+)\*")]
+    private static partial Regex Italic { get; }
+    [GeneratedRegex(@"^[ \t]*(#{1,6}[ \t]+|>[ \t]?|-#[ \t]+)", RegexOptions.Multiline)]
+    private static partial Regex LinePrefix { get; }
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex Whitespace { get; }
 
     /// <summary>
     /// Returns the text to show, or an empty string when nothing is left.

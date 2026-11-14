@@ -18,14 +18,20 @@ namespace Valour.Client.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public static class MarkdownManager
+public static partial class MarkdownManager
 {
-    private static readonly Regex UserMentionToken = new("«@[mu]-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex ChannelMentionToken = new("«@c-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex RoleMentionToken = new("«@r-[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex CustomEmojiToken = new("«e-:([a-z0-9_]{2,32}):~[0-9]{1,20}»", RegexOptions.Compiled);
-    private static readonly Regex StockToken = new("\\$[A-Za-z]{1,6}", RegexOptions.Compiled);
-    private static readonly Regex Whitespace = new("\\s+", RegexOptions.Compiled);
+    [GeneratedRegex("«@[mu]-[0-9]{1,20}»")]
+    private static partial Regex UserMentionToken { get; }
+    [GeneratedRegex("«@c-[0-9]{1,20}»")]
+    private static partial Regex ChannelMentionToken { get; }
+    [GeneratedRegex("«@r-[0-9]{1,20}»")]
+    private static partial Regex RoleMentionToken { get; }
+    [GeneratedRegex("«e-:([a-z0-9_]{2,32}):~[0-9]{1,20}»")]
+    private static partial Regex CustomEmojiToken { get; }
+    [GeneratedRegex("\\$[A-Za-z]{1,6}")]
+    private static partial Regex StockToken { get; }
+    [GeneratedRegex("\\s+")]
+    private static partial Regex Whitespace { get; }
 
     private const int MaxCachedDocuments = 2048;
     private const int MaxCachedHtml = 1024;

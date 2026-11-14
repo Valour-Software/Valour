@@ -25,7 +25,7 @@ internal static class TextInputCrashGuard
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate void Setter(IntPtr self, IntPtr selector, IntPtr value);
 
-    private static readonly object Lock = new();
+    private static readonly Lock SyncRoot = new();
 
     // Native code calls these, so they must stay reachable for the process lifetime.
     private static readonly Getter LockedGetter = GetDocumentState;
@@ -69,7 +69,7 @@ internal static class TextInputCrashGuard
     private static IntPtr GetDocumentState(IntPtr self, IntPtr selector)
     {
         IntPtr value;
-        lock (Lock)
+        lock (SyncRoot)
         {
             value = _originalGetter!(self, selector);
             objc_retain(value);
@@ -79,7 +79,7 @@ internal static class TextInputCrashGuard
 
     private static void SetDocumentState(IntPtr self, IntPtr selector, IntPtr value)
     {
-        lock (Lock)
+        lock (SyncRoot)
             _originalSetter!(self, selector, value);
     }
 

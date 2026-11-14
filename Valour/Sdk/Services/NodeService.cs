@@ -273,9 +273,7 @@ public class NodeService : ServiceBase
             if (parts.Length != 3)
                 return null;
 
-            var base64 = parts[1].Replace('-', '+').Replace('_', '/');
-            base64 = base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
-            using var document = JsonDocument.Parse(Encoding.UTF8.GetString(Convert.FromBase64String(base64)));
+            using var document = JsonDocument.Parse(System.Buffers.Text.Base64Url.DecodeFromChars(parts[1]));
             if (!document.RootElement.TryGetProperty(claim, out var value))
                 return null;
             return value.ValueKind == JsonValueKind.String ? value.GetString() : value.ToString();

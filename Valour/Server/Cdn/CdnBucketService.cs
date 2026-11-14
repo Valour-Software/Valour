@@ -120,7 +120,7 @@ public class CdnBucketService
 
         // Get hash from image
         var hashBytes = SHA256.HashData(data.GetBuffer().AsSpan(0, (int)data.Length));
-        var sha256Hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+        var sha256Hash = Convert.ToHexStringLower(hashBytes);
         var hash = sha256Hash;
 
         // Add file extension to the end

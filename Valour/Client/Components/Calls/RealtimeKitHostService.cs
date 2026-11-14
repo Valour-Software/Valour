@@ -2,7 +2,7 @@ namespace Valour.Client.Components.Calls;
 
 public sealed class RealtimeKitHostService
 {
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private RealtimeKitComponent? _component;
     private TaskCompletionSource<RealtimeKitComponent> _componentReady = CreateReadyTcs();
 

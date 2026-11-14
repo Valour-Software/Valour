@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Valour.Shared.Models;
 
 namespace Valour.Client.Utility;
@@ -72,7 +73,7 @@ public static class NebulaPalettes
         ["lagoon"] = [330, 10, 60],
         ["orion"] = [250, 320, 35],
         ["tarantula"] = [180, 290, 45]
-    };
+    }.ToFrozenDictionary();
 
     /// <summary>
     /// The planet's light: a CSS color in the hue of its sky's bright core. It marks

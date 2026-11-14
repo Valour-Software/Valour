@@ -487,9 +487,6 @@ public class PlanetWebhookService
     private static string GenerateToken()
     {
         var bytes = RandomNumberGenerator.GetBytes(32);
-        return "whk_" + Convert.ToBase64String(bytes)
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
+        return "whk_" + System.Buffers.Text.Base64Url.EncodeToString(bytes);
     }
 }

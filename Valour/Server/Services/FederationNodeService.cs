@@ -31,7 +31,7 @@ public class FederationNodeService
     // unreachable for an explicit push revocation.
     private static readonly TimeSpan LocalSessionLifetime = TimeSpan.FromMinutes(15);
 
-    private static readonly object JwksLock = new();
+    private static readonly Lock JwksLock = new();
     private static JsonWebKeySet _cachedJwks;
     private static string _cachedHubIssuer;
     private static DateTime _jwksFetchedAt;

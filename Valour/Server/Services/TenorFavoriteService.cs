@@ -5,14 +5,15 @@ using Valour.Shared;
 
 namespace Valour.Server.Services;
 
-public class TenorFavoriteService
+public partial class TenorFavoriteService
 {
     /// <summary>
     /// Favorites are a personal shortlist, so each user keeps a bounded number.
     /// </summary>
     public const int MaxFavoritesPerUser = 500;
 
-    private static readonly Regex TenorIdRegex = new("^[A-Za-z0-9-]{1,64}$", RegexOptions.Compiled);
+    [GeneratedRegex("^[A-Za-z0-9-]{1,64}$")]
+    private static partial Regex TenorIdRegex { get; }
 
     private readonly ValourDb _db;
     private readonly ILogger<TenorFavoriteService> _logger;

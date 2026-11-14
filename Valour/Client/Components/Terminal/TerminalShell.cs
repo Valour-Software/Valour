@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -83,7 +84,7 @@ public sealed class TermBoot
 /// message. Messages go through the SDK, so encryption, permissions, and
 /// origin scope are handled the same way as in a chat window.
 /// </summary>
-public sealed class TerminalShell : IAsyncDisposable
+public sealed partial class TerminalShell : IAsyncDisposable
 {
     private const string Host = "valouros";
     private const int HistoryCount = 30;
@@ -1675,9 +1676,8 @@ public sealed class TerminalShell : IAsyncDisposable
     // Message rendering //
     ///////////////////////
 
-    private static readonly Regex InlineRegex = new(
-        @"(?<mention>«@(?<mtype>[mucr])-(?<mid>\d+)»)|(?<code>`[^`\n]+`)|(?<url>https?://[^\s<>«»]+)|(?<bold>\*\*[^*\n]+\*\*)|(?<ital>(?<![\w*])\*[^*\n]+\*(?![\w*]))",
-        RegexOptions.Compiled);
+    [GeneratedRegex(@"(?<mention>«@(?<mtype>[mucr])-(?<mid>\d+)»)|(?<code>`[^`\n]+`)|(?<url>https?://[^\s<>«»]+)|(?<bold>\*\*[^*\n]+\*\*)|(?<ital>(?<![\w*])\*[^*\n]+\*(?![\w*]))")]
+    private static partial Regex InlineRegex { get; }
 
     private async Task<TermLine> RenderMessageAsync(Message message, Channel channel, bool withId = true)
     {
@@ -1800,7 +1800,7 @@ public sealed class TerminalShell : IAsyncDisposable
         if (message.IsEncrypted && message.DecryptionState != MessageDecryptionState.Decrypted)
             return "encrypted message";
         var text = message.Content ?? string.Empty;
-        text = Regex.Replace(text, "«@[mucr]-\\d+»", "@…");
+        text = MentionTokenRegex.Replace(text, "@…");
         return text.Replace('\n', ' ');
     }
 
@@ -1891,8 +1891,13 @@ public sealed class TerminalShell : IAsyncDisposable
         return ("@unknown", false, null);
     }
 
-    private static readonly Regex OutgoingMentionRegex = new(@"(?<![\w«])@(?<name>[\w.\-]+)", RegexOptions.Compiled);
-    private static readonly Regex OutgoingChannelRegex = new(@"(?<![\w&«])#(?<name>[\w\-]+)", RegexOptions.Compiled);
+    [GeneratedRegex(@"(?<![\w«])@(?<name>[\w.\-]+)")]
+    private static partial Regex OutgoingMentionRegex { get; }
+    [GeneratedRegex(@"(?<![\w&«])#(?<name>[\w\-]+)")]
+    private static partial Regex OutgoingChannelRegex { get; }
+
+    [GeneratedRegex("«@[mucr]-\\d+»")]
+    private static partial Regex MentionTokenRegex { get; }
 
     /// <summary>
     /// Turns @name and #channel into mention tokens when exactly one member
@@ -2439,7 +2444,7 @@ public sealed class TerminalShell : IAsyncDisposable
         return boot;
     }
 
-    private static readonly Dictionary<char, string[]> BannerFont = new()
+    private static readonly FrozenDictionary<char, string[]> BannerFont = new Dictionary<char, string[]>()
     {
         ['V'] = ["██╗   ██╗", "██║   ██║", "██║   ██║", "╚██╗ ██╔╝", " ╚████╔╝ ", "  ╚═══╝  "],
         ['A'] = [" █████╗ ", "██╔══██╗", "███████║", "██╔══██║", "██║  ██║", "╚═╝  ╚═╝"],
@@ -2448,7 +2453,7 @@ public sealed class TerminalShell : IAsyncDisposable
         ['U'] = ["██╗   ██╗", "██║   ██║", "██║   ██║", "██║   ██║", "╚██████╔╝", " ╚═════╝ "],
         ['R'] = ["██████╗ ", "██╔══██╗", "██████╔╝", "██╔══██╗", "██║  ██║", "╚═╝  ╚═╝"],
         ['S'] = ["███████╗", "██╔════╝", "███████╗", "╚════██║", "███████║", "╚══════╝"],
-    };
+    }.ToFrozenDictionary();
 
     private static List<TermLine> Banner()
     {

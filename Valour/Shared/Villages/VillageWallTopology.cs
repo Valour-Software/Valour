@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Valour.Shared.Villages;
 
 /// <summary>
@@ -35,7 +37,7 @@ public static class VillageWallTopology
             [112] = 36, [80] = 37, [193] = 38, [65] = 39,
             [7] = 40, [5] = 41, [16] = 42, [4] = 43,
             [1] = 44, [64] = 45, [0] = 46,
-        };
+        }.ToFrozenDictionary();
 
     public static byte NormalizeMask(int rawMask)
     {

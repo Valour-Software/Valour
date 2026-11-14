@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.Json;
 using Valour.Sdk.Models.Embeds.Items;
 using Valour.Shared;
@@ -17,7 +18,7 @@ public static class EmbedParser
     /// CSS properties bot-authored styles may use. Compiled style strings
     /// are rejected server-side if they use anything else.
     /// </summary>
-    private static readonly HashSet<string> AllowedCssProperties = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenSet<string> AllowedCssProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "width", "min-width", "max-width",
         "height", "min-height", "max-height",
@@ -29,7 +30,7 @@ public static class EmbedParser
         "display", "position", "top", "right", "bottom", "left", "overflow",
         "flex-direction", "flex-wrap", "justify-content", "align-items",
         "align-content", "align-self", "flex-grow", "flex-shrink", "order", "gap",
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private static readonly string[] ForbiddenCssFragments =
     {
