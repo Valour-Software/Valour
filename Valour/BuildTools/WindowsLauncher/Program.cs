@@ -260,7 +260,9 @@ internal static class Program
 
     /// <summary>
     /// Requires the downloaded app to carry a valid Authenticode signature from
-    /// the same publisher that signed this launcher. Unsigned development builds
+    /// the same publisher that signed this launcher, compared by publisher
+    /// identity rather than the full certificate subject so a change of
+    /// certificate authority does not block updates. Unsigned development builds
     /// of the launcher skip the check.
     /// </summary>
     private static void VerifyAppSignature(string appPath, string launcherPath)
@@ -270,7 +272,7 @@ internal static class Program
             throw new InvalidDataException("Downloaded update does not contain Valour.exe.");
         }
 
-        var expectedPublisher = Authenticode.TryGetSignerSubject(launcherPath);
+        var expectedPublisher = Authenticode.TryGetPublisherIdentity(launcherPath);
         if (expectedPublisher is null)
         {
             return;
@@ -281,7 +283,7 @@ internal static class Program
             throw new InvalidDataException("Downloaded update is not validly signed.");
         }
 
-        var actualPublisher = Authenticode.TryGetSignerSubject(appPath);
+        var actualPublisher = Authenticode.TryGetPublisherIdentity(appPath);
         if (!string.Equals(actualPublisher, expectedPublisher, StringComparison.Ordinal))
         {
             throw new InvalidDataException($"Downloaded update is signed by an unexpected publisher: {actualPublisher}");
@@ -346,12 +348,19 @@ internal static class Program
             using var source = File.OpenRead(launcherPath);
             var launcherLength = GetLauncherImageLength(source);
 
-            if (File.Exists(installedLauncherPath) &&
-                new FileInfo(installedLauncherPath).Length == launcherLength &&
-                FileVersionInfo.GetVersionInfo(installedLauncherPath).ProductVersion ==
-                FileVersionInfo.GetVersionInfo(launcherPath).ProductVersion)
+            if (File.Exists(installedLauncherPath))
             {
-                return;
+                var installedVersion = GetFileVersion(installedLauncherPath);
+                var ownVersion = GetFileVersion(launcherPath);
+
+                // The app installs the launcher bundled with each release, so an
+                // older launcher started from a saved download must not replace it.
+                if (installedVersion > ownVersion ||
+                    (installedVersion == ownVersion &&
+                     new FileInfo(installedLauncherPath).Length == launcherLength))
+                {
+                    return;
+                }
             }
 
             var tempPath = installedLauncherPath + ".tmp-" + Guid.NewGuid().ToString("N");
@@ -410,6 +419,12 @@ internal static class Program
         }
 
         return stream.Length - trailerLength - payloadLength;
+    }
+
+    private static Version GetFileVersion(string path)
+    {
+        var info = FileVersionInfo.GetVersionInfo(path);
+        return new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart);
     }
 
     private static void CopyBytes(Stream source, Stream destination, long count)

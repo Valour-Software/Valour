@@ -1,8 +1,7 @@
 #!/bin/sh
 set -eu
 
-# Match the SDK pinned for the rest of the monorepo in ../../global.json.
-DOTNET_VERSION="${VALOUR_WEB_DOTNET_VERSION:-11.0.100-rc.3.26522.148}"
+DOTNET_CHANNEL="${VALOUR_WEB_DOTNET_CHANNEL:-11.0}"
 DOTNET_INSTALL_DIR="${PWD}/.dotnet-pages"
 INSTALL_SCRIPT="$(mktemp)"
 OUTPUT_DIR="dist"
@@ -10,9 +9,9 @@ SITE_BASE_URL="${VALOUR_WEB_BASE_URL:-https://valour.gg}"
 
 trap 'rm -f "$INSTALL_SCRIPT"' EXIT
 
-if ! command -v dotnet >/dev/null 2>&1 || [ "$(dotnet --version)" != "$DOTNET_VERSION" ]; then
+if ! command -v dotnet >/dev/null 2>&1 || [ "$(dotnet --version)" != "$DOTNET_CHANNEL"* ]; then
   curl -fsSL https://dot.net/v1/dotnet-install.sh -o "$INSTALL_SCRIPT"
-  bash "$INSTALL_SCRIPT" --version "$DOTNET_VERSION" --install-dir "$DOTNET_INSTALL_DIR"
+  bash "$INSTALL_SCRIPT" --channel "$DOTNET_CHANNEL" --install-dir "$DOTNET_INSTALL_DIR"
   export PATH="$DOTNET_INSTALL_DIR:$PATH"
 fi
 

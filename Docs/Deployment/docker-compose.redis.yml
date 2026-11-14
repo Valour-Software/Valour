@@ -1,0 +1,32 @@
+# Redis for a single Valour node. Runs as its own compose project
+# (valour-redis) so blue/green app cutovers never stop it. Reachable only on
+# valour-network as valour-redis:6379; no host port is published.
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: valour-redis
+    command:
+      - sh
+      - -c
+      - >
+        exec redis-server
+        --requirepass "$$REDIS_PASSWORD"
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory 512mb
+        --maxmemory-policy noeviction
+    env_file:
+      - ./redis.env
+    volumes:
+      - valour-redis-data:/data
+    networks:
+      - valour-network
+    mem_limit: 768m
+    restart: unless-stopped
+
+volumes:
+  valour-redis-data:
+
+networks:
+  valour-network:
+    external: true
