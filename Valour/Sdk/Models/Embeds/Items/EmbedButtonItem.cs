@@ -11,9 +11,6 @@ public class EmbedButtonItem : EmbedItem, IClickableItem
 
     public EmbedClickTarget? ClickTarget { get; set; }
 
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.Button;
-
     public override IEnumerable<EmbedItem> EnumerateDescendants() => EnumerateList(Children);
 
     public override bool TryReplaceDescendant(EmbedItem replacement) => TryReplaceInList(Children, replacement);

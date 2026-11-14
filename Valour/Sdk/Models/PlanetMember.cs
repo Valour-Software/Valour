@@ -249,12 +249,10 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
         PrimaryRole?.Color ?? "#ffffff";
 
 
-    /// <summary>
-    /// Returns the pfp url of the member
-    /// </summary>
+    // IMessageAuthor needs these as instance members.
     public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256) =>
-        ISharedPlanetMember.GetAvatar(this, format);
-    
+        SharedPlanetMemberExtensions.GetAvatar(this, format);
+
     public string GetFailedAvatar() =>
         User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
 }

@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Models;
+﻿using System.Collections.Frozen;
+
+namespace Valour.Shared.Models;
 
 public enum ChannelTypeEnum
 {
@@ -37,15 +39,10 @@ public interface ISharedChannel : ISharedModel<long>, ISortable
     public const byte CurrentVersion = 2;
     public const string VillageEphemeralNamePrefix = "◇ ";
     public const string DirectBaseRoute = "api/channels/direct";
-    public static string GetBaseRoute(ISharedChannel channel) => channel.PlanetId.HasValue ? GetPlanetBaseRoute(channel.PlanetId.Value) : DirectBaseRoute;
-    public static string GetIdRoute(ISharedChannel channel) => channel.PlanetId.HasValue ? GetPlanetIdRoute(channel.PlanetId.Value, channel.Id) : GetDirectIdRoute(channel.Id);
     public static string GetDirectIdRoute(long id) => $"{DirectBaseRoute}/{id}";
     public static string GetPlanetBaseRoute(long planetId) => $"{ISharedPlanet.BaseRoute}/{planetId}/channels";
     public static string GetPlanetIdRoute(long planetId, long id) => $"{GetPlanetBaseRoute(planetId)}/{id}";
 
-    public static bool IsVillageEphemeral(ISharedChannel? channel) =>
-        channel?.Name?.StartsWith(VillageEphemeralNamePrefix, StringComparison.Ordinal) == true;
-    
     public static string GetTypeName(ChannelTypeEnum type)
     {
         var i = (int)type;
@@ -55,36 +52,36 @@ public interface ISharedChannel : ISharedModel<long>, ISortable
         return SharedChannelNames.ChannelTypeNames[(int)type];
     }
     
-    public static readonly HashSet<ChannelTypeEnum> PlanetChannelTypes = new ()
+    public static readonly FrozenSet<ChannelTypeEnum> PlanetChannelTypes = new HashSet<ChannelTypeEnum>()
     {
         ChannelTypeEnum.PlanetChat,
         ChannelTypeEnum.PlanetCategory,
         ChannelTypeEnum.PlanetVoice,
         ChannelTypeEnum.PlanetVideo
-    };
+    }.ToFrozenSet();
     
-    public static readonly HashSet<ChannelTypeEnum> ChatChannelTypes = new ()
+    public static readonly FrozenSet<ChannelTypeEnum> ChatChannelTypes = new HashSet<ChannelTypeEnum>()
     {
         ChannelTypeEnum.PlanetChat,
         ChannelTypeEnum.DirectChat,
         ChannelTypeEnum.GroupChat
-    };
+    }.ToFrozenSet();
     
-    public static readonly HashSet<ChannelTypeEnum> VoiceChannelTypes = new ()
+    public static readonly FrozenSet<ChannelTypeEnum> VoiceChannelTypes = new HashSet<ChannelTypeEnum>()
     {
         ChannelTypeEnum.PlanetVoice,
         ChannelTypeEnum.PlanetVideo,
         ChannelTypeEnum.DirectVoice,
         ChannelTypeEnum.GroupVoice
-    };
+    }.ToFrozenSet();
 
-    public static readonly HashSet<ChannelTypeEnum> CallChannelTypes = new()
+    public static readonly FrozenSet<ChannelTypeEnum> CallChannelTypes = new HashSet<ChannelTypeEnum>()
     {
         ChannelTypeEnum.PlanetVoice,
         ChannelTypeEnum.PlanetVideo,
         ChannelTypeEnum.DirectVoice,
         ChannelTypeEnum.GroupVoice
-    };
+    }.ToFrozenSet();
 
     public static bool IsPlanetCallType(ChannelTypeEnum type) =>
         type is ChannelTypeEnum.PlanetVoice or ChannelTypeEnum.PlanetVideo;
@@ -165,4 +162,16 @@ public interface ISharedChannel : ISharedModel<long>, ISortable
     /// channel's first key is created. Server-managed.
     /// </summary>
     int EncryptionGeneration { get; set; }
+}
+
+public static class SharedChannelExtensions
+{
+    extension(ISharedChannel? channel)
+    {
+        /// <summary>
+        /// Whether this is a temporary channel created for a village room. False for null.
+        /// </summary>
+        public bool IsVillageEphemeral =>
+            channel?.Name?.StartsWith(ISharedChannel.VillageEphemeralNamePrefix, StringComparison.Ordinal) == true;
+    }
 }

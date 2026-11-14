@@ -34,22 +34,4 @@ public class PermissionsNode : ServerModel<long>, ISharedPermissionsNode
     /// The type of object this node applies to
     /// </summary>
     public ChannelTypeEnum TargetType { get; set; }
-    
-    /// <summary>
-    /// Returns the node code for this permission node
-    /// </summary>
-    public PermissionNodeCode GetNodeCode() =>
-        ISharedPermissionsNode.GetNodeCode(this);
-
-    /// <summary>
-    /// Returns the permission state for a given permission
-    /// </summary>
-    public PermissionState GetPermissionState(Permission perm, bool ignoreviewperm = false) =>
-        ISharedPermissionsNode.GetPermissionState(this, perm, ignoreviewperm);
-
-    /// <summary>
-    /// Sets a permission to the given state
-    /// </summary>
-    public void SetPermission(Permission perm, PermissionState state) =>
-        ISharedPermissionsNode.SetPermission(this, perm, state);
 }

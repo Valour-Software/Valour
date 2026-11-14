@@ -15,9 +15,6 @@ public class EmbedInputBoxItem : EmbedItem, IFormInputItem, INamedItem
 
     public bool KeepValueOnUpdate { get; set; } = true;
 
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.InputBox;
-
     public override IEnumerable<EmbedItem> EnumerateDescendants()
     {
         if (NameItem is null)

@@ -78,7 +78,7 @@
         private void GenerateAutoGraphic()
         {
             IconUrl = DefaultImage;
-            IconText = ISharedPlanet.GetCommunityShortCode(Planet);
+            IconText = Planet.CommunityShortCode;
             IconImageColor = Planet.Id.GetHashCode();
             IconTextStyle = $"font-size: {60f / (IconText.Length + 1)}px;";
         }

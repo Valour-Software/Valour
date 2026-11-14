@@ -13,9 +13,6 @@ public class EmbedTextItem : EmbedItem, IClickableItem, INamedItem
 
     public EmbedClickTarget? ClickTarget { get; set; }
 
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.Text;
-
     public EmbedTextItem() { }
 
     public EmbedTextItem(string? text)

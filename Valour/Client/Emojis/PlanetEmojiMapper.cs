@@ -19,8 +19,8 @@ public static class PlanetEmojiMapper
             Shortcodes = $":{emoji.Name}:",
             IsCustom = true,
             CustomId = emoji.Id,
-            Token = ISharedPlanetEmoji.GetToken(emoji),
-            Src = ISharedPlanetEmoji.GetCdnUrl(emoji)
+            Token = emoji.Token,
+            Src = emoji.GetCdnUrl()
         };
     }
 

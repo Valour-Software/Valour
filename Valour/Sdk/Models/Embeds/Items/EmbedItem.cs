@@ -66,7 +66,7 @@ public interface IFormInputItem
 [JsonDerivedType(typeof(EmbedProgressBarItem), "progressBar")]
 [JsonDerivedType(typeof(EmbedMediaItem), "media")]
 [JsonDerivedType(typeof(EmbedChartItem), "chart")]
-public abstract class EmbedItem
+public closed class EmbedItem
 {
     /// <summary>
     /// Optional identifier. Required for items that participate in forms,
@@ -85,8 +85,25 @@ public abstract class EmbedItem
     /// </summary>
     public string? Classes { get; set; }
 
+    /// <summary>
+    /// The kind of item. Every item class is listed here, so adding one
+    /// without a kind makes the compiler warn here.
+    /// </summary>
     [JsonIgnore]
-    public abstract EmbedItemType ItemType { get; }
+    public EmbedItemType ItemType => this switch
+    {
+        EmbedRowItem => EmbedItemType.Row,
+        EmbedTextItem => EmbedItemType.Text,
+        EmbedButtonItem => EmbedItemType.Button,
+        EmbedInputBoxItem => EmbedItemType.InputBox,
+        EmbedDropDownItem => EmbedItemType.DropDown,
+        EmbedDropDownOptionItem => EmbedItemType.DropDownOption,
+        EmbedFormItem => EmbedItemType.Form,
+        EmbedProgressItem => EmbedItemType.Progress,
+        EmbedProgressBarItem => EmbedItemType.ProgressBar,
+        EmbedMediaItem => EmbedItemType.Media,
+        EmbedChartItem => EmbedItemType.Chart,
+    };
 
     /// <summary>
     /// Enumerates all items nested under this one, depth-first.

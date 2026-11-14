@@ -26,17 +26,21 @@ public interface ISharedPlanetEmoji : ISharedPlanetModel<long>
         return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/{GetCdnPath(planetId, emojiId, format)}";
     }
 
-    public static string GetCdnUrl(ISharedPlanetEmoji emoji, PlanetEmojiFormat format = PlanetEmojiFormat.Webp128)
-    {
-        return GetCdnUrl(emoji.PlanetId, emoji.Id, format);
-    }
-
-    public static string GetToken(ISharedPlanetEmoji emoji)
-    {
-        return PlanetEmojiText.BuildToken(emoji.Name, emoji.Id);
-    }
-
     public long CreatorUserId { get; set; }
     public string Name { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+public static class SharedPlanetEmojiExtensions
+{
+    extension(ISharedPlanetEmoji emoji)
+    {
+        public string GetCdnUrl(PlanetEmojiFormat format = PlanetEmojiFormat.Webp128) =>
+            ISharedPlanetEmoji.GetCdnUrl(emoji.PlanetId, emoji.Id, format);
+
+        /// <summary>
+        /// The token that stands for this emoji in message text.
+        /// </summary>
+        public string Token => PlanetEmojiText.BuildToken(emoji.Name, emoji.Id);
+    }
 }

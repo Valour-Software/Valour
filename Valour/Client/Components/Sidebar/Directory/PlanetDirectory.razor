@@ -292,7 +292,7 @@
     {
         // Village area rooms are transport channels, not permanent navigation.
         // They only surface inside the village meeting/chat UI.
-        if (ISharedChannel.IsVillageEphemeral(channel))
+        if (channel.IsVillageEphemeral)
             return false;
 
         if (channel.Nsfw && Client.HidesNsfw())
