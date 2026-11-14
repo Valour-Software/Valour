@@ -21,7 +21,7 @@ public static class UnsubscribeTokenService
         var messageBytes = Encoding.UTF8.GetBytes(message);
 
         var hash = HMACSHA256.HashData(keyBytes, messageBytes);
-        var hex = Convert.ToHexString(hash).ToLowerInvariant();
+        var hex = Convert.ToHexStringLower(hash);
 
         return $"{userId}.{hex}";
     }
@@ -53,7 +53,7 @@ public static class UnsubscribeTokenService
         var messageBytes = Encoding.UTF8.GetBytes(userIdPart);
 
         var expectedHash = HMACSHA256.HashData(keyBytes, messageBytes);
-        var expectedHex = Convert.ToHexString(expectedHash).ToLowerInvariant();
+        var expectedHex = Convert.ToHexStringLower(expectedHash);
 
         var expectedBytes = Encoding.UTF8.GetBytes(expectedHex);
         var actualBytes = Encoding.UTF8.GetBytes(hmacPart);

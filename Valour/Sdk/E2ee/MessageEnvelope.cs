@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Valour.Sdk.E2ee;
 
 /// <summary>
@@ -111,7 +113,7 @@ public sealed class MessagePayload
     /// outside this set is opened and verified, then refused with
     /// <see cref="E2eeUnsupportedException"/> so the app can ask for an update.
     /// </summary>
-    public static readonly IReadOnlySet<int> SupportedExtensions = new HashSet<int>();
+    public static readonly FrozenSet<int> SupportedExtensions = FrozenSet<int>.Empty;
 
     public string Content { get; init; }
 

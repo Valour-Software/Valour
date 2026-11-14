@@ -29,7 +29,7 @@ public class ChannelService : ServiceBase
     /// </summary>
     public readonly IReadOnlyList<Channel> ConnectedPlanetChannels;
     private readonly List<Channel> _connectedPlanetChannels = new();
-    private readonly object _connectedPlanetChannelsLock = new();
+    private readonly Lock _connectedPlanetChannelsLock = new();
 
     /// <summary>
     /// Connected channels lookup

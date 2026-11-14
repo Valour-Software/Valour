@@ -10,7 +10,7 @@ namespace Valour.Client;
 /// </summary>
 public static class DeepLinkBridge
 {
-    private static readonly object Lock = new();
+    private static readonly Lock SyncRoot = new();
     private static string _pending;
     private static Func<string, Task> _handler;
 
@@ -24,7 +24,7 @@ public static class DeepLinkBridge
             return;
 
         Func<string, Task> handler;
-        lock (Lock)
+        lock (SyncRoot)
         {
             handler = _handler;
             if (handler is null)
@@ -49,7 +49,7 @@ public static class DeepLinkBridge
             return;
 
         string pending;
-        lock (Lock)
+        lock (SyncRoot)
         {
             _handler = handler;
             pending = _pending;
@@ -65,7 +65,7 @@ public static class DeepLinkBridge
     /// </summary>
     public static void ClearHandler(Func<string, Task> handler)
     {
-        lock (Lock)
+        lock (SyncRoot)
         {
             if (ReferenceEquals(_handler, handler))
                 _handler = null;

@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Frozen;
+
+using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Models;
 
@@ -21,13 +23,13 @@ public enum MentionType
 /// </summary>
 public class Mention
 {
-    public static readonly Dictionary<char, MentionType> CharToMentionType = new()
+    public static readonly FrozenDictionary<char, MentionType> CharToMentionType = new Dictionary<char, MentionType>()
     {
         { 'm', MentionType.PlanetMember },
         { 'u', MentionType.User },
         { 'c', MentionType.Channel },
         { 'r', MentionType.Role },
-    };
+    }.ToFrozenDictionary();
 
     /// <summary>
     /// The id of the stored mention row

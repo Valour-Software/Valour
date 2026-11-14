@@ -39,7 +39,7 @@ public sealed record SitePreview(
 /// failures, are cached, and everyone who posts the same link shares one
 /// fetch.
 /// </summary>
-public sealed class SitePreviewFetcher
+public sealed partial class SitePreviewFetcher
 {
     public const int MaxTitleLength = 200;
     public const int MaxDescriptionLength = 400;
@@ -69,21 +69,20 @@ public sealed class SitePreviewFetcher
     // Bounds how many pages the server reads at once, whoever asks.
     private static readonly SemaphoreSlim FetchSlots = new(8);
 
-    private static readonly Regex MetaTag = new(@"<meta\b[^>]*>",
-        RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"<meta\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
+    private static partial Regex MetaTag { get; }
 
-    private static readonly Regex LinkTag = new(@"<link\b[^>]*>",
-        RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"<link\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
+    private static partial Regex LinkTag { get; }
 
-    private static readonly Regex TitleTag = new(@"<title\b[^>]*>([^<]*)<",
-        RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"<title\b[^>]*>([^<]*)<", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
+    private static partial Regex TitleTag { get; }
 
-    private static readonly Regex TagAttribute = new(
-        @"([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:""([^""]*)""|'([^']*)'|([^\s""'>]+))",
-        RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:""([^""]*)""|'([^']*)'|([^\s""'>]+))", RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
+    private static partial Regex TagAttribute { get; }
 
-    private static readonly Regex MetaCharset = new(@"<meta\b[^>]*charset\s*=\s*[""']?([A-Za-z0-9_:.-]{1,40})",
-        RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"<meta\b[^>]*charset\s*=\s*[""']?([A-Za-z0-9_:.-]{1,40})", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
+    private static partial Regex MetaCharset { get; }
 
     static SitePreviewFetcher()
     {

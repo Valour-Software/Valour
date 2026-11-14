@@ -253,7 +253,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
 
         if (_executingTask != null)
         {
-            await Task.WhenAny(_executingTask, Task.Delay(Timeout.Infinite, cancellationToken));
+            await _executingTask.WaitAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }
 

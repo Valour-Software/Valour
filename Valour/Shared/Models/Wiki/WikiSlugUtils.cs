@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Frozen;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -9,22 +10,22 @@ namespace Valour.Shared.Models.Wiki;
 /// Slug and vanity-name rules for planet docs. Shared so client-side live
 /// validation matches server-side enforcement exactly.
 /// </summary>
-public static class WikiSlugUtils
+public static partial class WikiSlugUtils
 {
     /// <summary>
     /// Page slugs: lowercase alphanumerics and single dashes, no leading or
     /// trailing dash, 1-64 chars.
     /// </summary>
-    private static readonly Regex SlugRegex =
-        new(@"^[a-z0-9](?:-?[a-z0-9])*$", RegexOptions.Compiled);
+    [GeneratedRegex(@"^[a-z0-9](?:-?[a-z0-9])*$")]
+    private static partial Regex SlugRegex { get; }
 
     /// <summary>
     /// Page slugs that collide with literal public docs routes
     /// </summary>
-    public static readonly HashSet<string> ReservedPageSlugs = new(StringComparer.OrdinalIgnoreCase)
+    public static readonly FrozenSet<string> ReservedPageSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "search", "sitemap", "robots",
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Derives a URL slug from a page title. Falls back to "page" when the

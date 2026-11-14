@@ -67,7 +67,7 @@ public class PlanetService : ServiceBase
     public readonly IReadOnlyList<Planet> ConnectedPlanets;
 
     private readonly List<Planet> _connectedPlanets = new();
-    private readonly object _connectedPlanetsLock = new();
+    private readonly Lock _connectedPlanetsLock = new();
 
     /// <summary>
     /// Lookup for opened planets by id

@@ -899,7 +899,7 @@ public class StripeApi
             return $"{safePrefix}:missing";
 
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(stripeIdentifier));
-        var hash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        var hash = Convert.ToHexStringLower(hashBytes);
         return $"{safePrefix}:{hash[..24]}";
     }
 }

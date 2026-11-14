@@ -11,7 +11,7 @@ public class BlockService : ServiceBase
     public HybridEvent BlocksChanged;
 
     private readonly ValourClient _client;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     public readonly List<UserBlock> Blocks = new();
     private readonly HashSet<long> _blockedUserIds = new();

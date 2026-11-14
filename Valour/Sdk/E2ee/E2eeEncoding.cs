@@ -205,7 +205,7 @@ public sealed class E2eeReader
 public static class Base64Url
 {
     public static string Encode(ReadOnlySpan<byte> data) =>
-        Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        System.Buffers.Text.Base64Url.EncodeToString(data);
 
     public static byte[] Decode(string value)
     {

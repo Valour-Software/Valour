@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Valour.Shared.Models;
 
 /// <summary>
@@ -37,7 +39,7 @@ public static class PlatformBadgeCatalog
             [PlatformBadge.FirstTenThousand] = new(PlatformBadge.FirstTenThousand, "platform:first-10k", "First 10k users", "Recognizes the first ten thousand Valour accounts."),
             [PlatformBadge.Bot] = new(PlatformBadge.Bot, "platform:bot", "Bot", "Identifies this account as an automated user."),
             [PlatformBadge.Staff] = new(PlatformBadge.Staff, "platform:staff", "Valour Staff", "Identifies this account as a Valour staff member.", "Staff"),
-        };
+        }.ToFrozenDictionary();
 
     public static bool IsVisible(ISharedUser? user, PlatformBadge badge) =>
         user is not null && BadgeVisibility.IsVisible(user.HiddenBadgeFlags, (long)badge);
