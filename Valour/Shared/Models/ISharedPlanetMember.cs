@@ -50,50 +50,54 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
     /// assignments are resolved through the owning planet's badge lookup.
     /// </summary>
     long HiddenBadgeFlags { get; set; }
-    
-    public static TaskResult ValidateName(ISharedPlanetMember member)
-    {
-        // Ensure nickname is valid
-        return member.Nickname.Length > 32 ? new TaskResult(false, "Maximum nickname is 32 characters.") : 
-            TaskResult.SuccessResult;
-    }
-
-    public string Name => GetName(this);
-    
-    public static string GetName(ISharedPlanetMember member) =>
-        string.IsNullOrWhiteSpace(member.Nickname) ? 
-            (member.GetSharedUser()?.Name ?? "User not found") : 
-            member.Nickname;
-
-    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256) =>
-        GetAvatar(this, format);
-    
-    public static string GetAvatar(ISharedPlanetMember member, AvatarFormat format = AvatarFormat.Webp256)
-    {
-        if (!string.IsNullOrWhiteSpace(member.MemberAvatar))
-        {
-            // Native per-planet avatars are stored as the canonical 256px URL.
-            // Select the generated size that the caller actually requested while
-            // leaving legacy/external member-avatar URLs untouched.
-            var avatar = member.MemberAvatar;
-            var queryIndex = avatar.IndexOf('?');
-            var path = queryIndex < 0 ? avatar : avatar[..queryIndex];
-            var query = queryIndex < 0 ? string.Empty : avatar[queryIndex..];
-            if (path.Contains("/memberavatars/", StringComparison.Ordinal) && path.EndsWith("/256.webp", StringComparison.Ordinal))
-            {
-                var size = format switch
-                {
-                    AvatarFormat.Jpeg64 or AvatarFormat.Gif64 or AvatarFormat.Webp64 or AvatarFormat.WebpAnimated64 => 64,
-                    AvatarFormat.Jpeg128 or AvatarFormat.Gif128 or AvatarFormat.Webp128 or AvatarFormat.WebpAnimated128 => 128,
-                    _ => 256
-                };
-                return $"{path[..(path.Length - "256.webp".Length)]}{size}.webp{query}";
-            }
-
-            return avatar;
-        }
-
-        return member.GetSharedUser()?.GetAvatar(format) ?? ISharedUser.DefaultAvatar;
-    }
 }
 
+public static class SharedPlanetMemberExtensions
+{
+    extension(ISharedPlanetMember member)
+    {
+        /// <summary>
+        /// The member's nickname, or their user name when they have none.
+        /// </summary>
+        public string Name =>
+            string.IsNullOrWhiteSpace(member.Nickname)
+                ? member.GetSharedUser()?.Name ?? "User not found"
+                : member.Nickname;
+
+        public TaskResult ValidateName() =>
+            member.Nickname.Length > 32
+                ? new TaskResult(false, "Maximum nickname is 32 characters.")
+                : TaskResult.SuccessResult;
+
+        /// <summary>
+        /// The member's avatar for this planet, falling back to the user's avatar.
+        /// </summary>
+        public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256)
+        {
+            if (!string.IsNullOrWhiteSpace(member.MemberAvatar))
+            {
+                // Native per-planet avatars are stored as the canonical 256px URL.
+                // Select the generated size that the caller actually requested while
+                // leaving legacy/external member-avatar URLs untouched.
+                var avatar = member.MemberAvatar;
+                var queryIndex = avatar.IndexOf('?');
+                var path = queryIndex < 0 ? avatar : avatar[..queryIndex];
+                var query = queryIndex < 0 ? string.Empty : avatar[queryIndex..];
+                if (path.Contains("/memberavatars/", StringComparison.Ordinal) && path.EndsWith("/256.webp", StringComparison.Ordinal))
+                {
+                    var size = format switch
+                    {
+                        AvatarFormat.Jpeg64 or AvatarFormat.Gif64 or AvatarFormat.Webp64 or AvatarFormat.WebpAnimated64 => 64,
+                        AvatarFormat.Jpeg128 or AvatarFormat.Gif128 or AvatarFormat.Webp128 or AvatarFormat.WebpAnimated128 => 128,
+                        _ => 256
+                    };
+                    return $"{path[..(path.Length - "256.webp".Length)]}{size}.webp{query}";
+                }
+
+                return avatar;
+            }
+
+            return member.GetSharedUser()?.GetAvatar(format) ?? ISharedUser.DefaultAvatar;
+        }
+    }
+}

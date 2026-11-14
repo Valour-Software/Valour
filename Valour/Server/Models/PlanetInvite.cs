@@ -23,9 +23,4 @@ public class PlanetInvite : ServerModel<string>, ISharedPlanetInvite
     /// When the invite expires
     /// </summary>
     public DateTime? TimeExpires { get; set; }
-
-    /// <summary>
-    /// True if the invite is permanent
-    /// </summary>
-    public bool IsPermanent() => TimeExpires is null;
 }

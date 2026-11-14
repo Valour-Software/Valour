@@ -22,27 +22,27 @@ public class PlanetRoleDisplayTests
         var role = MakeRole(permissions: 0, isAdmin: true);
 
         Assert.True(((ISharedPlanetRole)role).HasPermission(PlanetPermissions.DisplayRole));
-        Assert.False(ISharedPlanetRole.GetHasDisplayRole(role));
+        Assert.False(role.HasDisplayRole);
     }
 
     [Fact]
     public void HasDisplayRole_FlagSet_IsTrue()
     {
         var role = MakeRole(permissions: PlanetPermissions.DisplayRole.Value, isAdmin: false);
-        Assert.True(ISharedPlanetRole.GetHasDisplayRole(role));
+        Assert.True(role.HasDisplayRole);
     }
 
     [Fact]
     public void HasDisplayRole_FullControl_IsTrue()
     {
         var role = MakeRole(permissions: Permission.FULL_CONTROL, isAdmin: false);
-        Assert.True(ISharedPlanetRole.GetHasDisplayRole(role));
+        Assert.True(role.HasDisplayRole);
     }
 
     [Fact]
     public void HasDisplayRole_FlagClear_IsFalse()
     {
         var role = MakeRole(permissions: PlanetPermissions.Default & ~PlanetPermissions.DisplayRole.Value, isAdmin: false);
-        Assert.False(ISharedPlanetRole.GetHasDisplayRole(role));
+        Assert.False(role.HasDisplayRole);
     }
 }

@@ -42,9 +42,6 @@ public class EmbedChartItem : EmbedItem
     /// value where a 0 floor would flatten the visible trend.
     /// </summary>
     public bool ZoomYAxis { get; set; }
-
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.Chart;
 }
 
 /// <summary>

@@ -152,11 +152,11 @@
             ? PlanetGlobe.LightsFor(PlanetInfo.MemberCount, PlanetInfo.ActiveCount)
             : 0.6;
         _backgroundUrl = PlanetInfo.HasCustomBackground
-            ? ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp)
+            ? PlanetInfo.GetBackgroundUrl(PlanetBackgroundFormat.Webp)
             : null;
         _iconUrl = PlanetInfo.HasAnimatedIcon
-            ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
-            : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
+            ? PlanetInfo.GetIconUrl(IconFormat.WebpAnimated256)
+            : PlanetInfo.GetIconUrl(IconFormat.Webp256);
         _isCommunityHosted = !string.IsNullOrWhiteSpace(PlanetInfo.NodeDomain);
 
         var description = PlanetInfo.Description?.Trim() ?? string.Empty;

@@ -531,7 +531,7 @@ public class PlanetMemberService
             return new TaskResult<PlanetMember>(false, migrationGuard.Message);
 
         member.Nickname ??= string.Empty;
-        var nameValid = ISharedPlanetMember.ValidateName(member);
+        var nameValid = member.ValidateName();
         if (!nameValid.Success)
             return new TaskResult<PlanetMember>(false, nameValid.Message);
 

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Frozen;
 using System.Text.Json.Serialization;
 
 /*  Valour (TM) - A free and secure chat client
@@ -104,12 +105,6 @@ public interface  ISharedUser : ISharedModel<long>
     bool Compliance { get; set; }
 
     /// <summary>
-    /// The span of time from which the user was last active
-    /// </summary>
-    TimeSpan LastActiveSpan =>
-        GetLastActiveSpan(this);
-    
-    /// <summary>
     /// If not null, the type of UserSubscription the user currently
     /// is subscribed to
     /// </summary>
@@ -164,60 +159,15 @@ public interface  ISharedUser : ISharedModel<long>
     /// </summary>
     public long HiddenBadgeFlags { get; set; }
 
-    /// <summary>
-    /// The subscription the user currently has
-    /// </summary>
-    public static UserSubscriptionType GetSubscription(ISharedUser user)
-    {
-        return user.SubscriptionType == null ? null: UserSubscriptionTypes.TypeMap[user.SubscriptionType];
-    }
-    
-    /// <summary>
-    /// The current activity state of the user
-    /// </summary>
-    [NotMapped]
-    UserState UserState
-    {
-        get => GetUserState(this);
-        set => SetUserState(this, value);
-    }
+    public const string DefaultAvatar = "_content/Valour.Client/media/user-icons/icon-0.webp";
+}
 
-    public static TimeSpan GetLastActiveSpan(ISharedUser user)
-    {
-        return DateTime.UtcNow.Subtract(user.TimeLastActive);
-    }
-
-    public static UserState GetUserState(ISharedUser user)
-    {
-        // Automatically determine
-        if (user.UserStateCode == 0)
-        {
-            double minPassed = DateTime.UtcNow.Subtract(user.TimeLastActive).TotalMinutes;
-
-            if (minPassed < 3)
-            {
-                return UserState.Online;
-            }
-            else if (minPassed < 6)
-            {
-                return UserState.Away;
-            }
-            else
-            {
-                return UserState.Offline;
-            }
-        }
-
-        // User selected
-        return UserState.States[user.UserStateCode];
-    }
-
-    public static void SetUserState(ISharedUser user, UserState state)
-    {
-        user.UserStateCode = state.Value;
-    }
-
-    private static readonly Dictionary<AvatarFormat, string> AvatarFormatMap = new()
+/// <summary>
+/// Members every user model shares, whichever side it lives on.
+/// </summary>
+public static class SharedUserExtensions
+{
+    private static readonly FrozenDictionary<AvatarFormat, string> AvatarFormatMap = new Dictionary<AvatarFormat, string>()
     {
         { AvatarFormat.Webp64, "64.webp" },
         { AvatarFormat.Webp128, "128.webp" },
@@ -234,9 +184,9 @@ public interface  ISharedUser : ISharedModel<long>
         { AvatarFormat.Gif64, "anim-64.gif" },
         { AvatarFormat.Gif128, "anim-128.gif" },
         { AvatarFormat.Gif256, "anim-256.gif" },
-    };
+    }.ToFrozenDictionary();
     
-    private static readonly HashSet<AvatarFormat> AnimatedFormats = new()
+    private static readonly FrozenSet<AvatarFormat> AnimatedFormats = new HashSet<AvatarFormat>()
     {
         AvatarFormat.Gif64,
         AvatarFormat.Gif128,
@@ -244,9 +194,9 @@ public interface  ISharedUser : ISharedModel<long>
         AvatarFormat.WebpAnimated64,
         AvatarFormat.WebpAnimated128,
         AvatarFormat.WebpAnimated256,
-    };
+    }.ToFrozenSet();
     
-    private static readonly Dictionary<AvatarFormat, AvatarFormat> AnimatedToStaticBackup = new()
+    private static readonly FrozenDictionary<AvatarFormat, AvatarFormat> AnimatedToStaticBackup = new Dictionary<AvatarFormat, AvatarFormat>()
     {
         { AvatarFormat.Gif64, AvatarFormat.Webp64 },
         { AvatarFormat.Gif128, AvatarFormat.Webp128 },
@@ -254,48 +204,71 @@ public interface  ISharedUser : ISharedModel<long>
         { AvatarFormat.WebpAnimated64, AvatarFormat.Webp64 },
         { AvatarFormat.WebpAnimated128, AvatarFormat.Webp128 },
         { AvatarFormat.WebpAnimated256, AvatarFormat.Webp256 },
-    };
-    
-    public const string DefaultAvatar = "_content/Valour.Client/media/user-icons/icon-0.webp";
-    
-    public static string GetFailedAvatar(ISharedUser user)
-    {
-        if (user is null)
-            return DefaultAvatar;
-        
-        var var = (int)(user.Id % 5);
-        return $"_content/Valour.Client/media/user-icons/icon-{var}.webp";
-    }
-    
-    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256)
-        => GetAvatar(this, format);
-    
-    public static string GetAvatar(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
-    {
-        if (user is null)
-            return DefaultAvatar;
-        
-        if (!user.HasCustomAvatar)
-            return GetFailedAvatar(user);
+    }.ToFrozenDictionary();
 
-        // If an animated avatar is requested, but the user doesn't have one, use the static version
-        if (!user.HasAnimatedAvatar)
-        {
-            if (AnimatedFormats.Contains(format))
-            {
-                format = AnimatedToStaticBackup[format];
-            }
-        }
-        
-        var formatStr = AvatarFormatMap[format];
-        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/avatars/{user.Id}/{formatStr}?v={user.Version}";
-    }
-    
-    public static string GetNameAndTag(ISharedUser user)
+    extension(ISharedUser user)
     {
-        if (user is null)
-            return null;
-        
-        return $"{user.Name}#{user.Tag}";
+        /// <summary>
+        /// The subscription the user currently has.
+        /// </summary>
+        public UserSubscriptionType Subscription =>
+            user.SubscriptionType is null ? null : UserSubscriptionTypes.TypeMap[user.SubscriptionType];
+
+        /// <summary>
+        /// How long ago the user was last active.
+        /// </summary>
+        public TimeSpan LastActiveSpan => DateTime.UtcNow.Subtract(user.TimeLastActive);
+
+        /// <summary>
+        /// The current activity state of the user. A state code of zero means
+        /// the state follows from how recently the user was active.
+        /// </summary>
+        public UserState UserState
+        {
+            get
+            {
+                if (user.UserStateCode != 0)
+                    return UserState.States[user.UserStateCode];
+
+                var minutesPassed = DateTime.UtcNow.Subtract(user.TimeLastActive).TotalMinutes;
+                return minutesPassed switch
+                {
+                    < 3 => UserState.Online,
+                    < 6 => UserState.Away,
+                    _ => UserState.Offline,
+                };
+            }
+            set => user.UserStateCode = value.Value;
+        }
+
+        /// <summary>
+        /// The user's name with their tag, such as "name#tag". Null for a null user.
+        /// </summary>
+        public string NameAndTag => user is null ? null : $"{user.Name}#{user.Tag}";
+
+        /// <summary>
+        /// One of the built-in avatars, picked from the user's ID, for users
+        /// without a custom avatar or whose avatar failed to load.
+        /// </summary>
+        public string GetFailedAvatar() =>
+            user is null ? ISharedUser.DefaultAvatar : $"_content/Valour.Client/media/user-icons/icon-{user.Id % 5}.webp";
+
+        /// <summary>
+        /// The avatar URL in the requested format. Animated formats fall back to
+        /// the static image when the user has no animated avatar.
+        /// </summary>
+        public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256)
+        {
+            if (user is null)
+                return ISharedUser.DefaultAvatar;
+
+            if (!user.HasCustomAvatar)
+                return user.GetFailedAvatar();
+
+            if (!user.HasAnimatedAvatar && AnimatedFormats.Contains(format))
+                format = AnimatedToStaticBackup[format];
+
+            return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/avatars/{user.Id}/{AvatarFormatMap[format]}?v={user.Version}";
+        }
     }
 }

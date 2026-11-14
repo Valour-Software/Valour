@@ -80,10 +80,10 @@ public sealed record LinkPreviewMeta
     public static string PlanetImageUrl(ISharedPlanetListInfo planet) => PlanetIconUrl(planet) ?? DefaultImage;
 
     private static string PlanetIconUrl(ISharedPlanet planet) =>
-        planet.HasCustomIcon && !planet.Nsfw ? ISharedPlanet.GetIconUrl(planet, IconFormat.Jpeg256) : null;
+        planet.HasCustomIcon && !planet.Nsfw ? planet.GetIconUrl(IconFormat.Jpeg256) : null;
 
     private static string PlanetIconUrl(ISharedPlanetListInfo planet) =>
-        planet.HasCustomIcon && !planet.Nsfw ? ISharedPlanet.GetIconUrl(planet, IconFormat.Jpeg256) : null;
+        planet.HasCustomIcon && !planet.Nsfw ? planet.GetIconUrl(IconFormat.Jpeg256) : null;
 
     private LinkPreviewMeta WithPlanet(string iconUrl, string planetName, string themeColor) => iconUrl is null
         ? this with { ThemeColor = themeColor }

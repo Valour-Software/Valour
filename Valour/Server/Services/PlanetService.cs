@@ -537,7 +537,7 @@ public class PlanetService
             Avatars = recentUsers.Select(x => new PresenceAvatar()
             {
                 Name = x.Name,
-                AvatarUrl = ISharedUser.GetAvatar(x.ToModel(), AvatarFormat.Webp64)
+                AvatarUrl = x.ToModel().GetAvatar(AvatarFormat.Webp64)
             }).ToList()
         };
     }

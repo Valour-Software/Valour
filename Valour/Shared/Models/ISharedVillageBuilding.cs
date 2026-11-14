@@ -60,11 +60,17 @@ public interface ISharedVillageBuilding : ISharedPlanetModel<long>
     bool ForSale { get; set; }
 
     decimal Price { get; set; }
+}
 
-    /// <summary>
-    /// Returns true when the tile falls inside the building's footprint.
-    /// </summary>
-    public static bool Contains(ISharedVillageBuilding building, int x, int y) =>
-        x >= building.X && x < building.X + building.Width &&
-        y >= building.Y && y < building.Y + building.Height;
+public static class SharedVillageBuildingExtensions
+{
+    extension(ISharedVillageBuilding building)
+    {
+        /// <summary>
+        /// Returns true when the tile falls inside the building's footprint.
+        /// </summary>
+        public bool Contains(int x, int y) =>
+            x >= building.X && x < building.X + building.Width &&
+            y >= building.Y && y < building.Y + building.Height;
+    }
 }

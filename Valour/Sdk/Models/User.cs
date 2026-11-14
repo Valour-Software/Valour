@@ -153,25 +153,9 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// </summary>
     public long HiddenBadgeFlags { get; set; }
 
-    /// <summary>
-    /// The subscription the user currently has
-    /// </summary>
-    [JsonIgnore]
-    public UserSubscriptionType Subscription =>
-        ISharedUser.GetSubscription(this);
-    
     [JsonIgnore]
     public string NameAndTag => $"{Name}#{Tag}";
 
-    public TimeSpan LastActiveSpan =>
-        ISharedUser.GetLastActiveSpan(this);
-
-    public UserState UserState
-    {
-        get => ISharedUser.GetUserState(this);
-        set => ISharedUser.SetUserState(this, value);
-    }
-    
     [JsonConstructor]
     private User() : base() { }
     public User(ValourClient client) : base(client) { }
@@ -181,12 +165,13 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     
     public Task<UserFriendData> FetchFriendDataAsync() =>
         Client.FriendService.FetchFriendDataAsync(Id);
-    
+
+    // IMessageAuthor needs these as instance members.
     public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256) =>
-        ISharedUser.GetAvatar(this, format);
-    
+        SharedUserExtensions.GetAvatar(this, format);
+
     public string GetFailedAvatar() =>
-        ISharedUser.GetFailedAvatar(this);
+        SharedUserExtensions.GetFailedAvatar(this);
     
     public bool HasStargazer =>
         SubscriptionType == UserSubscriptionTypes.Stargazer.Name ||

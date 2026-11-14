@@ -68,40 +68,34 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     /// </summary>
     uint Position { get; set; }
 
-    public uint GetAuthority() =>
-        ISharedPlanetRole.GetAuthority(this);
-    
-    public bool HasPermission(PlanetPermission perm) =>
-        ISharedPlanetRole.HasPermission(this, perm);
-
-    public static uint GetAuthority(ISharedPlanetRole role)
-    {
-        if (role.Position == uint.MaxValue)
-            return 0;
-        
-        return (uint.MaxValue - role.Position - 1);
-    }
-
-    public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
-    {
-        if (role.IsAdmin)
-            return true;
-
-        return Permission.HasPermission(role.Permissions, perm);
-    }
-
-    /// <summary>
-    /// Display Role is a cosmetic flag, not an authorization grant, so the
-    /// admin bypass in HasPermission does not apply (#1510)
-    /// </summary>
-    public bool HasDisplayRole => GetHasDisplayRole(this);
-
-    public static bool GetHasDisplayRole(ISharedPlanetRole role) =>
-        (role.Permissions & PlanetPermissions.DisplayRole.Value) == PlanetPermissions.DisplayRole.Value;
-
     uint ISortable.GetSortPosition()
     {
         return (uint)Position;
     }
 }
 
+public static class SharedPlanetRoleExtensions
+{
+    extension(ISharedPlanetRole role)
+    {
+        /// <summary>
+        /// The role's authority. Lower positions have more authority, and the
+        /// default role (the highest position) has none.
+        /// </summary>
+        public uint GetAuthority() =>
+            role.Position == uint.MaxValue ? 0 : uint.MaxValue - role.Position - 1;
+
+        /// <summary>
+        /// Whether the role grants the permission. Admin roles grant everything.
+        /// </summary>
+        public bool HasPermission(PlanetPermission perm) =>
+            role.IsAdmin || Permission.HasPermission(role.Permissions, perm);
+
+        /// <summary>
+        /// Display Role is a cosmetic flag, not an authorization grant, so the
+        /// admin bypass in HasPermission does not apply (#1510)
+        /// </summary>
+        public bool HasDisplayRole =>
+            (role.Permissions & PlanetPermissions.DisplayRole.Value) == PlanetPermissions.DisplayRole.Value;
+    }
+}

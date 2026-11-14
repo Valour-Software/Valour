@@ -126,32 +126,7 @@ public class User : ServerModel<long>, ISharedUser
     public long HiddenBadgeFlags { get; set; }
 
     /// <summary>
-    /// The subscription the user currently has
+    /// Sent to clients as part of the user, so it stays a real property.
     /// </summary>
-    [JsonIgnore]
-    public UserSubscriptionType Subscription =>
-        ISharedUser.GetSubscription(this);
-
-    /// <summary>
-    /// The span of time from which the user was last active
-    /// </summary>
-    [JsonIgnore]
-    public TimeSpan LastActiveSpan =>
-        ISharedUser.GetLastActiveSpan(this);
-
-    /// <summary>
-    /// The current activity state of the user
-    /// </summary>
-    [JsonIgnore]
-    public UserState UserState
-    {
-        get => ISharedUser.GetUserState(this);
-        set => ISharedUser.SetUserState(this, value);
-    }
-    
-    public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
-        ISharedUser.GetAvatar(this, format);
-    
-    public string NameAndTag => 
-        ISharedUser.GetNameAndTag(this);
+    public string NameAndTag => $"{Name}#{Tag}";
 }

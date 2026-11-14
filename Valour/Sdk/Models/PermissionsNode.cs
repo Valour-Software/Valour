@@ -46,7 +46,7 @@ public readonly struct PermissionsNodeKey : IEquatable<PermissionsNodeKey>
 
 public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, ISharedPermissionsNode
 {
-    public override string IdRoute => ISharedPermissionsNode.GetIdRoute(this);
+    public override string IdRoute => ISharedPermissionsNode.GetIdRoute(TargetId, RoleId, TargetType);
     public override string BaseRoute => ISharedPermissionsNode.BaseRoute;
     
     /// <summary>
@@ -85,24 +85,6 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     private PermissionsNode() : base() {}
     public PermissionsNode(ValourClient client) : base(client) { }
 
-    /// <summary>
-    /// Returns the node code for this permission node
-    /// </summary>
-    public PermissionNodeCode GetNodeCode() =>
-        ISharedPermissionsNode.GetNodeCode(this);
-
-    /// <summary>
-    /// Returns the permission state for a given permission
-    /// </summary>
-    public PermissionState GetPermissionState(Permission perm, bool ignoreviewperm = false) =>
-        ISharedPermissionsNode.GetPermissionState(this, perm, ignoreviewperm);
-
-    /// <summary>
-    /// Sets a permission to the given state
-    /// </summary>
-    public void SetPermission(Permission perm, PermissionState state) =>
-        ISharedPermissionsNode.SetPermission(this, perm, state);
-    
     /// <summary>
     /// Returns a key used for caching nodes via several properties
     /// </summary>
