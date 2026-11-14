@@ -87,10 +87,25 @@ app supports. `Info.plist` declares iPhone and iPad, so both are required.
 
 | Display | Size | Files |
 | --- | --- | --- |
-| iPhone 6.9" | 1320 x 2868 (portrait) | `screenshots/iphone/*.png` (8) |
-| iPad 13" | 2752 x 2064 (landscape) | `screenshots/ipad/*.png` (4) |
+| iPhone 6.3" with Dynamic Island | 1206 x 2622 (portrait) | `screenshots/iphone/iphone-*.png` (8) |
+| iPhone Duo (folded) | 1398 x 2034 (portrait) | `screenshots/duo/duo-*.png` (8) |
+| iPad 13" | 2752 x 2064 (landscape) | `screenshots/ipad/ipad-*.png` (4) |
 
 Upload them in file-name order. Apple scales them down for smaller devices.
+
+The product page also takes two creative assets, which go under Header and
+Search Results in App Store Connect:
+
+| Placement | Size | File |
+| --- | --- | --- |
+| Product page header | 3840 x 1646 (21:9) | `creative/header.png` |
+| Search results | 3840 x 2560 (3:2) | `creative/search-results.png` |
+
+Apple keeps only a centred safe area visible on every device, so the focal
+point of each sits inside it. The header has no text. The search results image
+carries the English subtitle, so another listing language needs its own copy.
+Neither image may contain transparency. They come from the same `npm run stills`
+command as the screenshots (`--only header` and `--only search`).
 
 They are the Google Play store images at Apple's sizes, made by
 `npm run stills` in `Tools/Films` on the `promo/e2ee-film` branch, which
