@@ -14,7 +14,7 @@
 
     private static List<TooltipData> _tooltips = new List<TooltipData>();
 
-    public static void ShowTooltip(TooltipTrigger trigger)
+    public static void ShowTooltip(ITooltipSource trigger)
     {
         // Check if we already have a tooltip for this trigger
         var existing = _tooltips.FirstOrDefault(x => x.Trigger.TriggerId == trigger.TriggerId);
@@ -40,7 +40,7 @@
         Instance?.ReRender();
     }
 
-    public static async Task HideTooltip(TooltipTrigger trigger)
+    public static async Task HideTooltip(ITooltipSource trigger)
     {
         var tooltip = _tooltips.FirstOrDefault(x => x.Trigger.TriggerId == trigger.TriggerId);
         if (tooltip?.Component != null)
@@ -68,7 +68,7 @@
         Instance?.ReRender();
     }
 
-    public static void RemoveTooltipByTrigger(TooltipTrigger trigger)
+    public static void RemoveTooltipByTrigger(ITooltipSource trigger)
     {
         _tooltips.RemoveAll(x => x.Trigger.TriggerId == trigger.TriggerId);
         Instance?.ReRender();

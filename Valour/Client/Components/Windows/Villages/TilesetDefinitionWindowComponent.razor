@@ -1920,6 +1920,7 @@
 
     public class Content : WindowContent<TilesetDefinitionWindowComponent>
     {
+        public override bool KeepOnNavigate => true;
     }
 
     public static WindowContent GetDefaultContent()

@@ -171,6 +171,9 @@ else
 
     public class Content : WindowContent<CallWindowComponent, Channel>
     {
+        // Replacing the window would leave the call
+        public override bool KeepOnNavigate => true;
+
         public override async Task ImportData(string data, ValourClient client)
         {
             var imported = JsonSerializer.Deserialize<StateData>(data);

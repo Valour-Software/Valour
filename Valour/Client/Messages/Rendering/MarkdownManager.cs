@@ -87,7 +87,7 @@ public static partial class MarkdownManager
             .UseValourEmojiExtension(DevicePreferences.AutoEmoji)
             .Build();
 
-        var renderer = new BlazorRenderer(null, true);
+        var renderer = new BlazorRenderer(null, false);
         renderer.ObjectRenderers.Add(new MentionRenderer());
         renderer.ObjectRenderers.Add(new StockRenderer());
         renderer.ObjectRenderers.Add(new ValourEmojiRenderer());
@@ -101,6 +101,11 @@ public static partial class MarkdownManager
         // Must be inserted ahead of the package's built-in LinkInlineRenderer so
         // Valour links get in-app navigation instead of opening a new tab.
         renderer.ObjectRenderers.Insert(0, new ValourLinkRenderer());
+
+        // The package's code renderers keep a hidden copy of every code element
+        // beside a highlighted clone; these render one element each.
+        renderer.ObjectRenderers.Insert(0, new ValourCodeInlineRenderer());
+        renderer.ObjectRenderers.Insert(0, new ValourCodeBlockRenderer());
 
         Pipeline = pipeline;
         Renderer = renderer;

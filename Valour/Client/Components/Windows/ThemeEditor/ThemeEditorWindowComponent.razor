@@ -165,6 +165,8 @@
 
     public class Content : WindowContent<ThemeEditorWindowComponent>
     {
+        public override bool KeepOnNavigate => true;
+
         public Theme Theme { get; set; }
         public Theme BackupTheme { get; set; }
     }
