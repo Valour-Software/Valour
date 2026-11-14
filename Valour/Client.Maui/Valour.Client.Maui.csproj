@@ -49,6 +49,7 @@
 
         <!-- App Identifier --> 
         <ApplicationId>gg.valour.app</ApplicationId>
+        <PackageId>Valour.Client.Maui</PackageId>
 
         <!-- Set ValourPlayStore=true for the Google Play bundle. It removes the
              self-update path, which Play policy forbids for apps it distributes. -->
