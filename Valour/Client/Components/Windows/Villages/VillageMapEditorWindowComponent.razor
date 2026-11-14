@@ -656,6 +656,7 @@ else
 
     public class Content : WindowContent<VillageMapEditorWindowComponent>
     {
+        public override bool KeepOnNavigate => true;
     }
 
     public static WindowContent GetDefaultContent()

@@ -11,20 +11,44 @@
 
 .message {
     --message-avatar-column: 64px;
+    --message-gutter: calc(4px + var(--message-avatar-column));
+    display: flow-root;
+    flex-shrink: 0;
     width: 100%;
     max-width: 100%;
-    display: grid;
-    grid-template-columns: var(--message-avatar-column) minmax(0, 1fr);
-    align-items: start;
-    padding-bottom: 0;
-    padding-left: 4px;
+    padding: 2px 0 2px var(--message-gutter);
     position: relative;
     margin-top: 5px;
+    overflow-x: clip;
+    font-style: normal;
+    font-weight: var(--font-weight-regular);
+    font-size: 15px;
+    line-height: var(--line-height-relaxed);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
+.message:not(.minimal) {
+    min-height: 40px;
+}
+
+.message > ::deep .user-avatar {
+    position: absolute;
+    top: 2px;
+    left: calc(4px + (var(--message-avatar-column) - var(--user-avatar-size, 38px)) / 2);
+}
+
+.message > ::deep .fragments,
+.message > ::deep .attachment-wrapper {
+    user-select: text;
+}
+
+.message > ::deep .fragments {
+    overflow: hidden;
 }
 
 .message .reactions {
-    grid-column: 2;
-    margin-left: 0;
+    margin: 2px 0 -2px;
     display: flex;
     gap: 4px;
     flex-direction: row;
@@ -105,40 +129,6 @@
     margin-top: 0;
 }
 
-.message .content-holder {
-    display: block;
-    min-width: 0;
-    grid-column: 2;
-    margin-left: 0;
-    margin-top: 2px;
-    margin-bottom: 2px;
-    vertical-align: top;
-    padding-left: 0;
-    max-width: 100%;
-}
-
-.message.minimal .content-holder {
-    margin-left: 0;
-    padding-left: 0;
-}
-
-.message .content {
-    font-style: normal;
-    font-weight: var(--font-weight-regular);
-    font-size: 15px;
-    line-height: var(--line-height-relaxed);
-    color: var(--text-primary);
-    margin: 0px;
-    overflow-wrap: anywhere;
-    user-select: text;
-    overflow: hidden;
-}
-
-.message.minimal .content {
-    margin-bottom: 0px;
-    padding-left: 0;
-}
-
 .message .imported-flag {
     display: inline-block;
     margin-left: 6px;
@@ -204,11 +194,9 @@
     margin-top: 41px;
 }
 
-.message .left-info ::deep .user-avatar {
-    margin-top: 2px;
-}
-
 .message .name-role-holder {
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-base);
     display: flex;
     min-width: 0;
     max-width: 100%;
@@ -248,14 +236,6 @@
     min-width: 0;
 }
 
-.message .left-info {
-    display: flex;
-    grid-column: 1;
-    position: relative;
-    align-items: center;
-    flex-direction: column;
-}
-
 .message .time {
     font-family: var(--font-family-mono);
     font-style: normal;
@@ -270,18 +250,20 @@
     padding-left: 10px;
 }
 
-.message.minimal > .left-info > .time {
+.message.minimal > .time {
     display: none;
-    min-width: 48px;
-    margin-top: 2px;
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    width: var(--message-avatar-column);
     line-height: calc(var(--font-size-md) * var(--line-height-base));
 }
 
-.message > .content-holder > .name-role-holder > .time {
+.message > .name-role-holder > .time {
     margin-left: 4px;
 }
 
-.message.minimal:hover > .left-info > .time {
+.message.minimal:hover > .time {
     display: block;
 }
 
@@ -306,8 +288,8 @@
     cursor: pointer;
 }
 
-.reply .content-holder {
-    padding-left: 4px;
+.message.reply {
+    padding-left: calc(var(--message-gutter) + 4px);
 }
 
 .reply-remove {

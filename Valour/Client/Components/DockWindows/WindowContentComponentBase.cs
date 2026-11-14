@@ -8,10 +8,25 @@ public class WindowContentComponentBase : ControlledRenderComponentBase
     [Parameter]
     public WindowContent WindowCtx { get; set; }
 
-    protected override void OnInitialized()
+    /// <summary>
+    /// Links the window content to this component. This runs here rather than
+    /// in OnInitialized because subclasses override OnInitialized without
+    /// calling the base method.
+    /// </summary>
+    public override Task SetParametersAsync(ParameterView parameters)
     {
-        // Set the window content component automatically
-        WindowCtx.SetComponent(this);
+        parameters.SetParameterProperties(this);
+        WindowCtx?.SetComponent(this);
+        return base.SetParametersAsync(ParameterView.Empty);
+    }
+
+    /// <summary>
+    /// Called by the hosting window when the content is shown or hidden, for
+    /// example when another tab in the same stack is selected. Content that is
+    /// not hosted in a window is always visible.
+    /// </summary>
+    public virtual void OnWindowVisibilityChanged(bool visible)
+    {
     }
 }
 

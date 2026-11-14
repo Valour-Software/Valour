@@ -14,6 +14,11 @@ type Channel = {
     lastReportedBottomState: boolean;
     suppressPagingUntil: number;
     resizeObserver: ResizeObserver | null;
+    savedAnchorId: string | null;
+    savedAnchorOffset: number;
+    saveAnchorTimer: number;
+    frozen: { atBottom: boolean; anchorId: string | null; anchorOffset: number } | null;
+    restorePending: boolean;
     
     hookEvents(): void;
     cleanup(): void;
@@ -29,6 +34,10 @@ type Channel = {
     scrollFromTopToBottomAnimated(): void;
     handleChatWindowScroll(e: MouseEvent): void;
     scrollToMessage(elementId: string, highlight: boolean): void;
+    findTopMessage(): { id: string; offset: number } | null;
+    scheduleSaveAnchor(): void;
+    freezePosition(): void;
+    restorePosition(): void;
 };
 
 export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Channel{
@@ -47,6 +56,11 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         lastReportedBottomState: true,
         suppressPagingUntil: 0,
         resizeObserver: null,
+        savedAnchorId: null,
+        savedAnchorOffset: 0,
+        saveAnchorTimer: 0,
+        frozen: null,
+        restorePending: false,
         
         updateScrollPosition(){
             const holder = this.messageWrapperEl;
@@ -98,6 +112,83 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
             this.messageWrapperEl.scrollTop += amount;
         },
         
+        // The first message whose bottom is below the top of the view. Children
+        // are in document order, so their bottoms only grow and a binary
+        // search finds it without measuring every message.
+        findTopMessage() {
+            const holder = this.messageWrapperEl;
+            const children = holder.children;
+            const holderTop = holder.getBoundingClientRect().top;
+            let low = 0;
+            let high = children.length;
+            while (low < high) {
+                const mid = (low + high) >> 1;
+                if (children[mid].getBoundingClientRect().bottom > holderTop + 1)
+                    high = mid;
+                else
+                    low = mid + 1;
+            }
+
+            for (let i = low; i < children.length; i++) {
+                const child = children[i] as HTMLElement;
+                if (child.id && child.classList.contains('message') && !child.classList.contains('ghost'))
+                    return { id: child.id, offset: child.getBoundingClientRect().top - holderTop };
+            }
+
+            return null;
+        },
+
+        // Positions cannot be measured once the window is hidden, so the place
+        // to return to is saved whenever scrolling settles.
+        scheduleSaveAnchor() {
+            window.clearTimeout(this.saveAnchorTimer);
+            this.saveAnchorTimer = window.setTimeout(() => {
+                if (this.messageWrapperEl.clientHeight === 0)
+                    return;
+
+                const top = this.findTopMessage();
+                this.savedAnchorId = top?.id ?? null;
+                this.savedAnchorOffset = top?.offset ?? 0;
+            }, 150);
+        },
+
+        freezePosition() {
+            window.clearTimeout(this.saveAnchorTimer);
+            this.frozen = {
+                atBottom: this.stickToBottom,
+                anchorId: this.savedAnchorId,
+                anchorOffset: this.savedAnchorOffset
+            };
+        },
+
+        restorePosition() {
+            const holder = this.messageWrapperEl;
+            if (!this.frozen)
+                return;
+
+            // Still hidden: the resize observer finishes once it has a size
+            if (holder.clientHeight === 0) {
+                this.restorePending = true;
+                return;
+            }
+
+            const frozen = this.frozen;
+            this.frozen = null;
+            this.restorePending = false;
+            this.suppressPagingUntil = Date.now() + 250;
+
+            const anchor = frozen.anchorId ? document.getElementById(frozen.anchorId) : null;
+            if (frozen.atBottom || !anchor) {
+                holder.scrollTop = holder.scrollHeight;
+                this.stickToBottom = true;
+            } else {
+                holder.scrollTop += (anchor.getBoundingClientRect().top - holder.getBoundingClientRect().top) - frozen.anchorOffset;
+                this.stickToBottom = false;
+            }
+
+            this.checkBottomSticky();
+        },
+
         isAtBottom(){
             return (this.messageWrapperEl.scrollHeight - (this.messageWrapperEl.scrollTop + this.messageWrapperEl.getBoundingClientRect().height)) < 200;
         },
@@ -172,6 +263,7 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
             }
 
             channel.checkBottomSticky();
+            channel.scheduleSaveAnchor();
         },
         
         scrollToMessage(elementId: string, highlight: boolean){
@@ -206,13 +298,16 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
             // preview, etc). Fires every frame during animated resizes, so
             // the chat follows the animation smoothly.
             this.resizeObserver = new ResizeObserver(() => {
-                if (this.stickToBottom)
+                if (this.restorePending)
+                    this.restorePosition();
+                else if (this.stickToBottom)
                     this.messageWrapperEl.scrollTop = this.messageWrapperEl.scrollHeight;
             });
             this.resizeObserver.observe(this.messageWrapperEl);
         },
         
         cleanup(){
+            window.clearTimeout(this.saveAnchorTimer);
             this.messageWrapperEl.removeEventListener('scroll', this.handleChatWindowScroll);
             this.resizeObserver?.disconnect();
             this.resizeObserver = null;
