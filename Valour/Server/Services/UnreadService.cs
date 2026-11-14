@@ -7,6 +7,9 @@ namespace Valour.Server.Services;
 
 public class UnreadService
 {
+    // EF translates Contains over an array into SQL; it cannot translate a FrozenSet.
+    private static readonly ChannelTypeEnum[] ChatChannelTypes = [.. ISharedChannel.ChatChannelTypes];
+
     private readonly ValourDb _db;
     private readonly ChannelActivityService _channelActivityService;
     private readonly PlanetPermissionService _permissionService;
@@ -32,7 +35,7 @@ public class UnreadService
     {
         var channels = _db.Channels
             .AsNoTracking()
-            .Where(c => c.PlanetId == planetId && ISharedChannel.ChatChannelTypes.Contains(c.ChannelType));
+            .Where(c => c.PlanetId == planetId && ChatChannelTypes.Contains(c.ChannelType));
 
         // Channel state is not an authorization boundary: a user normally has
         // no state row for a channel they cannot access. Always scope the
@@ -80,7 +83,7 @@ public class UnreadService
             .Where(m => m.UserId == userId)
             .Where(m => _db.Channels.Any(c =>
                 c.PlanetId == m.PlanetId &&
-                ISharedChannel.ChatChannelTypes.Contains(c.ChannelType) &&
+                ChatChannelTypes.Contains(c.ChannelType) &&
                 !_db.UserChannelStates.Any(s =>
                     s.UserId == userId && s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)))
             .Select(m => m.PlanetId)
