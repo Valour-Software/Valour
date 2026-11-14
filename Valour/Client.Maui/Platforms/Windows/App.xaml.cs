@@ -41,6 +41,7 @@ public partial class App : MauiWinUIApplication
         }
 
         base.OnLaunched(args);
+        WindowsUpdateService.RefreshInstalledLauncherInBackground();
 
         var window = Microsoft.Maui.MauiWinUIApplication.Current.Application.Windows[0];
         var mauiWindow = window.Handler?.PlatformView as Microsoft.UI.Xaml.Window;

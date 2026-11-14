@@ -20,8 +20,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        # The installer needs the full SDK version; global.json names the release.
-        dotnet-version: 11.0.100-rc.3.26522.148
+        dotnet-version: 11.0.x
 
     - name: Setup Java
       uses: actions/setup-java@v4
