@@ -69,22 +69,61 @@ internal static class Authenticode
     }
 
     /// <summary>
-    /// Returns the subject of the certificate embedded in the file's signature,
-    /// or null when the file is unsigned. This does not verify the signature.
+    /// Returns the publisher identity of the certificate embedded in the file's
+    /// signature, or null when the file is unsigned. This does not verify the
+    /// signature. See <see cref="GetPublisherIdentity"/> for the fields used.
     /// </summary>
-    public static string? TryGetSignerSubject(string path)
+    public static string? TryGetPublisherIdentity(string path)
     {
         try
         {
 #pragma warning disable SYSLIB0057
-            using var certificate = X509Certificate.CreateFromSignedFile(path);
+            using var certificate = new X509Certificate2(X509Certificate.CreateFromSignedFile(path));
 #pragma warning restore SYSLIB0057
-            return certificate.Subject;
+            return GetPublisherIdentity(certificate.SubjectName);
         }
         catch
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Builds a comparable publisher identity from a certificate subject using
+    /// the common name, organization, locality, state, and country. Street and
+    /// postal code are left out because certificate authorities differ in
+    /// whether they include them, so certificates for the same publisher from
+    /// different authorities still produce the same identity. Returns null when
+    /// the subject has neither a common name nor an organization.
+    /// </summary>
+    public static string? GetPublisherIdentity(X500DistinguishedName subject)
+    {
+        string? commonName = null, organization = null, locality = null, state = null, country = null;
+
+        foreach (var rdn in subject.EnumerateRelativeDistinguishedNames())
+        {
+            if (rdn.HasMultipleElements)
+            {
+                continue;
+            }
+
+            var value = rdn.GetSingleElementValue();
+            switch (rdn.GetSingleElementType().Value)
+            {
+                case "2.5.4.3": commonName = value; break;
+                case "2.5.4.10": organization = value; break;
+                case "2.5.4.7": locality = value; break;
+                case "2.5.4.8": state = value; break;
+                case "2.5.4.6": country = value; break;
+            }
+        }
+
+        if (string.IsNullOrEmpty(commonName) && string.IsNullOrEmpty(organization))
+        {
+            return null;
+        }
+
+        return $"CN={commonName}, O={organization}, L={locality}, S={state}, C={country}";
     }
 
     /// <summary>

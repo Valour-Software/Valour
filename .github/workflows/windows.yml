@@ -42,6 +42,10 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.version_changed == 'true'
     runs-on: windows-latest
+    permissions:
+      contents: write
+      # Signs in to Azure Artifact Signing through OpenID Connect.
+      id-token: write
 
     steps:
     - uses: actions/checkout@v4
@@ -109,22 +113,20 @@ jobs:
           throw "Launcher icon was not found."
         }
 
-    - name: Sign app executable
-      uses: sslcom/esigner-codesign@develop
+    - name: Sign in to Azure
+      uses: azure/login@v3
       with:
-        command: sign
-        username: ${{ secrets.ES_USERNAME }}
-        password: ${{ secrets.ES_PASSWORD }}
-        credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
-        totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-        file_path: ${{ github.workspace }}/artifacts/windows/Valour.exe
-        override: true
+        client-id: ${{ secrets.ARTIFACT_SIGNING_CLIENT_ID }}
+        tenant-id: ${{ secrets.ARTIFACT_SIGNING_TENANT_ID }}
+        subscription-id: ${{ secrets.ARTIFACT_SIGNING_SUBSCRIPTION_ID }}
 
-    # The launcher refuses to install an app archive whose Valour.exe is not
-    # signed by the launcher's own publisher.
-    - name: Create app archive
-      shell: pwsh
-      run: Compress-Archive -Path ./artifacts/windows/* -DestinationPath ./artifacts/Valour-windows-x64.zip -Force
+    - name: Sign app executable
+      uses: azure/artifact-signing-action@v2.0.0
+      with:
+        endpoint: https://eus.codesigning.azure.net/
+        signing-account-name: valour-software-ssl
+        certificate-profile-name: valour-public
+        files: ${{ github.workspace }}/artifacts/windows/Valour.exe
 
     - name: Publish launcher
       run: >
@@ -136,15 +138,24 @@ jobs:
         -o ./artifacts/launcher
 
     - name: Sign launcher executable
-      uses: sslcom/esigner-codesign@develop
+      uses: azure/artifact-signing-action@v2.0.0
       with:
-        command: sign
-        username: ${{ secrets.ES_USERNAME }}
-        password: ${{ secrets.ES_PASSWORD }}
-        credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
-        totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-        file_path: ${{ github.workspace }}/artifacts/launcher/Valour.exe
-        override: true
+        endpoint: https://eus.codesigning.azure.net/
+        signing-account-name: valour-software-ssl
+        certificate-profile-name: valour-public
+        files: ${{ github.workspace }}/artifacts/launcher/Valour.exe
+
+    # Installed launchers never replace themselves, so the app carries the
+    # signed launcher and installs it over an older copy when it starts.
+    - name: Bundle launcher with app
+      shell: pwsh
+      run: Copy-Item ./artifacts/launcher/Valour.exe ./artifacts/windows/ValourLauncher.exe -Force
+
+    # The launcher refuses to install an app archive whose Valour.exe is not
+    # signed by the launcher's own publisher.
+    - name: Create app archive
+      shell: pwsh
+      run: Compress-Archive -Path ./artifacts/windows/* -DestinationPath ./artifacts/Valour-windows-x64.zip -Force
 
     - name: Create release files
       shell: pwsh
@@ -176,17 +187,26 @@ jobs:
         Compress-Archive -Path $outputPath -DestinationPath ./artifacts/Valour-full.zip -Force
 
     # Check the files exactly as they are uploaded, after all packaging steps.
+    # Launchers from 0.9.22 and earlier install an update only when its signer
+    # subject equals their own exactly, so the subject must not change.
     - name: Verify signatures
       shell: pwsh
       run: |
+        $expectedSubject = "CN=VALOUR SOFTWARE LLC, O=VALOUR SOFTWARE LLC, L=Casper, S=Wyoming, C=US"
         $verifyDir = "./artifacts/verify"
         Expand-Archive ./artifacts/Valour-windows-x64.zip -DestinationPath $verifyDir -Force
 
-        foreach ($path in @("./artifacts/ValourLauncher.exe", "$verifyDir/Valour.exe")) {
+        foreach ($path in @("./artifacts/ValourLauncher.exe", "$verifyDir/Valour.exe", "$verifyDir/ValourLauncher.exe")) {
           $sig = Get-AuthenticodeSignature -FilePath $path
           Write-Host "${path}: $($sig.Status) ($($sig.SignerCertificate.Subject))"
           if ($sig.Status -ne "Valid") {
             throw "$path is not validly signed: $($sig.StatusMessage)"
+          }
+          if ($sig.SignerCertificate.Subject -cne $expectedSubject) {
+            throw "$path is signed by '$($sig.SignerCertificate.Subject)', but installed launchers require '$expectedSubject'."
+          }
+          if ($null -eq $sig.TimeStamperCertificate) {
+            throw "$path has no timestamp, so its signature would stop validating when the short-lived certificate expires."
           }
         }
 
