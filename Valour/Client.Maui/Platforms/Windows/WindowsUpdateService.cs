@@ -120,10 +120,10 @@ public sealed class WindowsUpdateService : INativeUpdateService
         }
     }
 
-    private static Version GetFileVersion(string path)
+    private static System.Version GetFileVersion(string path)
     {
         var info = FileVersionInfo.GetVersionInfo(path);
-        return new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart);
+        return new System.Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart);
     }
 
     private static string GetLauncherRoot() => Path.Combine(
