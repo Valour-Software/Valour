@@ -113,8 +113,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        # Pinned to the same SDK as the Dockerfile. Bump together with the Dockerfile.
-        dotnet-version: 11.0.100-rc.3.26522.148
+        dotnet-version: 11.0.x
 
     - name: Restore workload
       run: dotnet workload restore Valour/Valour.sln
@@ -212,7 +211,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 11.0.100-rc.3.26522.148
+        dotnet-version: 11.0.x
 
     # Stamp the commit hash into Version.cs, as the build job and dockerfile do.
     - name: Stamp the short commit hash
