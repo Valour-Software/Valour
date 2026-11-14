@@ -122,14 +122,32 @@ providers and do not establish that production credentials are accepted.
 ## Application nodes behind nginx
 
 The configuration in this directory expects Docker Compose, an external Docker
-network named `valour-network`, and external PostgreSQL and Redis. It starts an
-nginx container and a Valour application container. A deployment briefly runs both
+network named `valour-network`, and external PostgreSQL. It starts an nginx
+container and a Valour application container. A deployment briefly runs both
 blue and green application containers while traffic changes destination.
 
 ```text
 HTTPS -> nginx -> valour-blue:5000 or valour-green:5000
-                       -> external PostgreSQL and Redis
+                       -> external PostgreSQL
+                       -> Redis (valour-redis container or external)
 ```
+
+Redis can be an external service or the `valour-redis` container defined in
+`docker-compose.redis.yml`. The container suits a single machine: it is
+reachable only on `valour-network`, publishes no host port, keeps an append-only
+file in the `valour-redis-data` volume, and refuses writes rather than evicting
+keys when it reaches its 512 MB limit. Create a `redis.env` file containing
+`REDIS_PASSWORD=<secret>` with mode `0600`, then start it as its own Compose
+project so that blue/green teardown never stops it:
+
+```sh
+docker compose -f docker-compose.redis.yml -p valour-redis up -d
+```
+
+Set `Redis:ConnectionString` in `dotnet/appsettings.json` to
+`valour-redis:6379,password=<secret>,abortConnect=False`. Machines that share a
+database must also share one Redis, so a multi-machine cluster needs an external
+Redis that every machine can reach.
 
 The application mounts `dotnet/appsettings.json`,
 `dotnet/firebase-credentials.json`, and `dotnet/google-play-service-account.json`
