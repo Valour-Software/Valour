@@ -17,9 +17,22 @@ async function computeOnMainThread(o, gw, gh, width, height) {
     return pixels;
 }
 
-async function computeGas(o, gw, gh, width, height) {
-    return await runInWorker('gas', { options: o, gw, gh, width, height })
-        ?? await computeOnMainThread(o, gw, gh, width, height);
+// Renders a finished sky. The worker computes the gas and, where it can draw to
+// a canvas of its own, composes the whole image, so the page only draws the
+// result. Hosts whose web view crashes on worker canvases set a flag to keep
+// the composing step on the page.
+async function renderSky(o, width, height) {
+    const { gw, gh, resolution } = gasSize(o, width, height);
+    const composeInWorker = !window.valourDisableOffscreenCanvasWorkers;
+    const result = await runInWorker('sky', { options: o, gw, gh, width, height, resolution, composeInWorker });
+    if (result?.bitmap) return result.bitmap;
+
+    const gas = result?.pixels ?? await computeOnMainThread(o, gw, gh, width, height);
+    const scratch = document.createElement('canvas');
+    scratch.width = width;
+    scratch.height = height;
+    compose(scratch, o, gas, gw, gh, resolution);
+    return await toBitmap(scratch);
 }
 
 export function init(canvas, options) {
@@ -30,11 +43,13 @@ export function init(canvas, options) {
 
     async function render() {
         if (disposed) return;
-        const rect = canvas.getBoundingClientRect();
-        if (rect.width < 1 || rect.height < 1) return;
+        // The layout size, not the box on screen: a sky that a CSS transform
+        // scales keeps one size, and one render, while the transform animates.
+        const boxWidth = canvas.clientWidth, boxHeight = canvas.clientHeight;
+        if (boxWidth < 1 || boxHeight < 1) return;
 
         const ratio = Math.min(window.devicePixelRatio || 1, 2);
-        const width = snap(rect.width * ratio), height = snap(rect.height * ratio);
+        const width = snap(boxWidth * ratio), height = snap(boxHeight * ratio);
         const o = resolveOptions(current);
         const key = cacheKey(o, width, height);
         if (key === lastKey) return;
@@ -43,14 +58,7 @@ export function init(canvas, options) {
         const token = ++renderToken;
         let bitmap = getCached(key);
         if (!bitmap) {
-            const { gw, gh, resolution } = gasSize(o, width, height);
-            const gas = await computeGas(o, gw, gh, width, height);
-            if (disposed || token !== renderToken) return;
-            const scratch = document.createElement('canvas');
-            scratch.width = width;
-            scratch.height = height;
-            compose(scratch, o, gas, gw, gh, resolution);
-            bitmap = await toBitmap(scratch);
+            bitmap = await renderSky(o, width, height);
             if (disposed) {
                 bitmap.close?.();
                 return;

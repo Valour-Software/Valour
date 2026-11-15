@@ -64,13 +64,5 @@ public class PlanetReport : ClientPlanetModel<PlanetReport, long>, ISharedPlanet
     {
     }
 
-    public override PlanetReport AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Planet.Reports.Put(this, flags);
-    }
-
-    public override PlanetReport RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.Reports.Remove(this, skipEvents);
-    }
+    protected override ModelStore<PlanetReport, long> CacheStore => Planet.Reports;
 }

@@ -71,7 +71,7 @@ public class SignalRConnectionService : IDisposable
         private readonly Dictionary<long, long> _userMemberIds = new();
 
         // For thread safety
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         public GroupInfo(string groupId)
         {

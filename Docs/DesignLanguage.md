@@ -162,9 +162,15 @@ so the website and public pages can use it too.
 The generator builds a gas field from layered noise with fine filaments, dust lanes,
 and small-scale clumping, and colors it in OKLCH with low saturation. Stars of
 different color temperatures and film grain are added at full resolution. The gas
-field is computed in a Web Worker at reduced resolution, so it does not block the
-interface. If workers are unavailable, it is computed on the main thread in slices
-of a few milliseconds.
+field is computed in a Web Worker at reduced resolution, and the worker also adds
+the stars and grain when the browser lets a worker draw to a canvas of its own, so
+the page only draws the finished image. Otherwise the page adds the stars and grain
+itself. If workers are unavailable, the gas field is computed on the main thread in
+slices of a few milliseconds.
+
+A sky is rendered at the layout size of its canvas. A CSS transform that scales the
+canvas, such as the slow zoom of the loading scene, stretches the finished image and
+does not start another render.
 
 Skies are deterministic. The `Seed` parameter (a planet's world seed for planet skies)
 decides the shape, and the palette decides the colors. Finished skies are cached per
@@ -316,6 +322,20 @@ Split View, the page shell rebuilds itself in the new layout. The dock saves its
 windows first and restores them afterward; the phone layout keeps only the
 focused tab.
 
+In the wide layout, opening a channel, thread, or page from the sidebar or a
+link works like following a link in a browser: the focused tab shows the new
+content, and its back history returns to the old one. If the target is already
+open in a tab, that tab is focused instead. A channel's context menu has
+"Open in New Tab" for opening a second tab. A tab whose content would lose
+something by being replaced opens the target beside it instead: a call, a
+village, an editor, a wiki page being edited, or a chat with unsent text.
+Content declares this through `WindowContent.KeepOnNavigate`.
+
+A chat in a tab that has been hidden for 30 seconds removes its messages from
+the page and rebuilds them when the tab is shown again, at the same scroll
+position. Hidden chats still receive messages and edits; they also do not mark
+their channel read until they are shown.
+
 On iOS, the app shell stays inside the left and right safe areas. On iPhone Duo
 the status bar becomes a rail along one edge, and on other iPhones in landscape
 the camera housing takes one side. The page background shows through those
@@ -406,6 +426,11 @@ themes still render. Keep these constraints in mind:
   concatenation, so other formats break the tint and modal variables.
 - Custom CSS in themes targets existing class names. Renaming a widely used class
   such as `.sidebar`, `.window`, or `.topbar` breaks published themes.
+- Message rows have no wrapper elements, which keeps long chats light. The
+  avatar (or `.time` in a grouped row), `.name-role-holder`, the reply,
+  `.fragments` (the message text), `.attachment-wrapper`, and `.reactions` are
+  direct children of `.message`. The avatar and grouped-row time sit in the
+  left gutter set by `--message-avatar-column`.
 - The default theme is defined in code with id 0 and is not stored on devices, so
   changes to it reach every user who has not installed another theme.
 

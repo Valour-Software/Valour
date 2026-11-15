@@ -20,14 +20,4 @@ public class UserPreferences : ClientModel<UserPreferences, long>, ISharedUserPr
     [JsonConstructor]
     private UserPreferences() : base() { }
     public UserPreferences(ValourClient client) : base(client) { }
-
-    public override UserPreferences AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override UserPreferences RemoveFromCache(bool skipEvents = false)
-    {
-        return null;
-    }
 }

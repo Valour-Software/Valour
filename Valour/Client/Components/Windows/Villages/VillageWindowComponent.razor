@@ -3247,6 +3247,9 @@ else
 
     public class Content : WindowContent<VillageWindowComponent, Planet>
     {
+        // Replacing the window would leave the village and its voice
+        public override bool KeepOnNavigate => true;
+
         public override async Task ImportData(string data, ValourClient client)
         {
             var saved = JsonSerializer.Deserialize<SavedState>(data);

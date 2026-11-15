@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Models.Themes;
+﻿using System.Collections.Frozen;
+
+namespace Valour.Shared.Models.Themes;
 
 public interface ISharedTheme : ISharedThemeMeta
 {
@@ -130,40 +132,45 @@ public interface ISharedTheme : ISharedThemeMeta
         return unit is "px" or "rem" or "em" or "%";
     }
 
-    private static readonly Dictionary<ThemeBannerFormat, string> BannerFormatMap = new()
+}
+
+public static class SharedThemeExtensions
+{
+    private static readonly FrozenDictionary<ThemeBannerFormat, string> BannerFormatMap = new Dictionary<ThemeBannerFormat, string>()
     {
         { ThemeBannerFormat.Webp, "600x300.webp" },
         { ThemeBannerFormat.Jpeg, "600x300.jpg" },
         { ThemeBannerFormat.WebpAnimated, "anim-600x300.webp" },
         { ThemeBannerFormat.Gif, "anim-600x300.gif" },
-    };
+    }.ToFrozenDictionary();
 
-    private static readonly HashSet<ThemeBannerFormat> AnimatedFormats = new()
+    private static readonly FrozenSet<ThemeBannerFormat> AnimatedFormats = new HashSet<ThemeBannerFormat>()
     {
         ThemeBannerFormat.Gif,
         ThemeBannerFormat.WebpAnimated,
-    };
+    }.ToFrozenSet();
 
-    private static readonly Dictionary<ThemeBannerFormat, ThemeBannerFormat> AnimatedToStaticBackup = new()
+    private static readonly FrozenDictionary<ThemeBannerFormat, ThemeBannerFormat> AnimatedToStaticBackup = new Dictionary<ThemeBannerFormat, ThemeBannerFormat>()
     {
         { ThemeBannerFormat.Gif, ThemeBannerFormat.Webp },
         { ThemeBannerFormat.WebpAnimated, ThemeBannerFormat.Webp },
-    };
+    }.ToFrozenDictionary();
 
-    public static string GetBannerUrl(ISharedThemeMeta theme, ThemeBannerFormat format = ThemeBannerFormat.Webp)
+    extension(ISharedThemeMeta theme)
     {
-        if (!theme.HasCustomBanner)
-            return "_content/Valour.Client/media/image-not-found.webp";
-
-        if (!theme.HasCustomBanner)
+        /// <summary>
+        /// The theme's banner URL. Animated formats fall back to the static image
+        /// when the theme has no animated banner.
+        /// </summary>
+        public string GetBannerUrl(ThemeBannerFormat format = ThemeBannerFormat.Webp)
         {
-            if (AnimatedFormats.Contains(format))
-            {
-                format = AnimatedToStaticBackup[format];
-            }
-        }
+            if (!theme.HasCustomBanner)
+                return "_content/Valour.Client/media/image-not-found.webp";
 
-        string formatStr = BannerFormatMap[format];
-        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/themeBanners/{theme.Id}/{formatStr}";
+            if (!theme.HasAnimatedBanner && AnimatedFormats.Contains(format))
+                format = AnimatedToStaticBackup[format];
+
+            return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/themeBanners/{theme.Id}/{BannerFormatMap[format]}";
+        }
     }
 }

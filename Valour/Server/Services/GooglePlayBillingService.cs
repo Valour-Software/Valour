@@ -545,7 +545,7 @@ public class GooglePlayBillingService
 
     private static string BuildFingerprint(string prefix, string identifier)
     {
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identifier))).ToLowerInvariant();
+        var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(identifier)));
         return $"{prefix}:{hash[..24]}";
     }
 }

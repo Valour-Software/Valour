@@ -29,11 +29,15 @@ public interface ISharedPlanetInvite : ISharedPlanetModel<string>
     /// The time when this invite expires. Null for never.
     /// </summary>
     DateTime? TimeExpires { get; set; }
-
-    public bool IsPermanent() =>
-        ISharedPlanetInvite.IsPermanent(this);
-
-    public static bool IsPermanent(ISharedPlanetInvite item) =>
-        item.TimeExpires == null;
 }
 
+public static class SharedPlanetInviteExtensions
+{
+    extension(ISharedPlanetInvite invite)
+    {
+        /// <summary>
+        /// Whether the invite never expires.
+        /// </summary>
+        public bool IsPermanent() => invite.TimeExpires is null;
+    }
+}

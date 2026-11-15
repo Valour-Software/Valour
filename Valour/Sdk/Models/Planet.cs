@@ -976,9 +976,6 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public Task<int?> FetchMemberCountAsync() =>
         Client.PlanetService.FetchMemberCountAsync(this);
     
-    public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
-        ISharedPlanet.GetIconUrl(this, format);
-
     public PlanetListInfo ToListInfo()
     {
         var info = PlanetListInfo.FromPlanet(this);

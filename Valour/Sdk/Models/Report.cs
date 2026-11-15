@@ -112,14 +112,4 @@ public class Report : ClientModel<Report, string>, ISharedReport
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<Valour.Sdk.E2ee.MessageEvidenceDto> Evidence { get; set; }
-
-    public override Report AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override Report RemoveFromCache(bool skipEvents = false)
-    {
-        return this;
-    }
 }

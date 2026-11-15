@@ -415,9 +415,9 @@ public class ChannelActivityService
         if (webhookAvatar is not null)
             return webhookAvatar;
         if (!string.IsNullOrWhiteSpace(message.AuthorMember?.MemberAvatar))
-            return ISharedPlanetMember.GetAvatar(message.AuthorMember, AvatarFormat.Webp128);
+            return message.AuthorMember.GetAvatar(AvatarFormat.Webp128);
 
-        return ISharedUser.GetAvatar(message.AuthorUser, AvatarFormat.Webp128);
+        return message.AuthorUser.GetAvatar(AvatarFormat.Webp128);
     }
 
     /// <summary>

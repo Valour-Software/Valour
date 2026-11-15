@@ -29,7 +29,7 @@ public class FriendService : ServiceBase
 
     private readonly ValourClient _client;
     private readonly CacheService _cache;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     public FriendService(ValourClient client)
     {

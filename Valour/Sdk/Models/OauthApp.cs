@@ -43,13 +43,5 @@ public class OauthApp : ClientModel<OauthApp, long>, ISharedOauthApp
     private OauthApp(): base() {}
     public OauthApp(ValourClient client) : base(client) { }
 
-    public override OauthApp AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Client.Cache.OauthApps.Put(this, flags);
-    }
-
-    public override OauthApp RemoveFromCache(bool skipEvents = false)
-    {
-        return Client.Cache.OauthApps.Remove(this, skipEvents);
-    }
+    protected override ModelStore<OauthApp, long> CacheStore => Client.Cache.OauthApps;
 }

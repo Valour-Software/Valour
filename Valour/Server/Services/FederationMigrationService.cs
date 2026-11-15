@@ -302,7 +302,7 @@ public class FederationMigrationService
     private static string SnapshotHash(PlanetSnapshot snapshot)
     {
         var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(snapshot);
-        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+        return Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes));
     }
 
     /// <summary>

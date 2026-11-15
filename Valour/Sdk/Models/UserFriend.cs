@@ -35,13 +35,5 @@ public class UserFriend : ClientModel<UserFriend, long>, ISharedUserFriend
     private UserFriend() : base() {}
     public UserFriend(ValourClient client) : base(client) { }
 
-    public override UserFriend AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Client.Cache.UserFriends.Put(this, flags);
-    }
-
-    public override UserFriend RemoveFromCache(bool skipEvents = false)
-    {
-        return Client.Cache.UserFriends.Remove(this, skipEvents);
-    }
+    protected override ModelStore<UserFriend, long> CacheStore => Client.Cache.UserFriends;
 }

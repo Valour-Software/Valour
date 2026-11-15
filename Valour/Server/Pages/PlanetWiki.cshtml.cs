@@ -54,7 +54,7 @@ public class PlanetWikiModel : PageModel
             return Page();
         }
 
-        PlanetIcon = PublicThreadPageHelpers.NormalizeMediaUrl(ISharedPlanet.GetIconUrl(Planet, IconFormat.Webp128));
+        PlanetIcon = PublicThreadPageHelpers.NormalizeMediaUrl(Planet.GetIconUrl(IconFormat.Webp128));
         AppLink = $"{HostingConfig.Current.AppBaseUrl}/planetwiki/{Planet.Id}";
         CanonicalUrl = PublicWikiPageHelpers.GetHomeUrl(Planet);
 

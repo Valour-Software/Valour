@@ -83,7 +83,7 @@ public class AuthTicketStore
     }
 
     public static string Base64Url(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        System.Buffers.Text.Base64Url.EncodeToString(bytes);
 
     private static bool IsValidId(string id) =>
         !string.IsNullOrEmpty(id) && id.Length <= 64 && id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');

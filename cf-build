@@ -58,8 +58,14 @@ OUTPUT_DIR=output
 rm -rf "$PUBLISH_DIR" "$OUTPUT_DIR"
 
 # Cloudflare Pages can kill MSBuild child nodes during the WASM pipeline on larger apps.
-# Keep publish single-process for stability. AOT can be toggled separately if needed.
-PAGES_WASM_AOT="${VALOUR_PAGES_WASM_AOT-false}"
+# Keep publish single-process for stability.
+#
+# The client is compiled ahead of time. That makes the framework download larger
+# (about 13 MB compressed instead of 5.5 MB) and the build several minutes longer,
+# and in return the app starts about a quarter faster and channel switches take
+# about half the time. Set VALOUR_PAGES_WASM_AOT=false to publish the interpreted
+# build instead, for example if the Pages build runs out of time or memory.
+PAGES_WASM_AOT="${VALOUR_PAGES_WASM_AOT-true}"
 PUBLISH_PROPS="-m:1"
 if [ "$PAGES_WASM_AOT" = "true" ]; then
   PUBLISH_PROPS="$PUBLISH_PROPS -p:RunAOTCompilation=true"
@@ -163,31 +169,87 @@ cat > "$OUTPUT_DIR/_headers" <<EOF
 
 EOF
 
+# Cloudflare Pages rejects any file larger than 25 MiB, and the ahead-of-time
+# compiled runtime (_framework/dotnet.native.*.wasm) is about twice that. The
+# publish step also writes Brotli and gzip copies of every framework file, and
+# those are well under the limit. A file over the limit is removed from the
+# output and a worker serves its compressed copy at the original address with a
+# Content-Encoding header, so the browser, the integrity check, and the service
+# worker cache all see the same file they would otherwise.
+#
 # Shared app links such as invites get their own link preview tags, so other
 # apps (Discord, X, Slack, iMessage) show the planet instead of the generic
-# Valour card. A worker places tags from the API's api/linkpreview/head between
-# the host page's link-preview markers. _routes.json limits it to those
-# addresses; every other request is served as a static file without running
-# it, so framework downloads cost no invocations. The worker sets the same
-# security headers as _headers, which do not apply to its responses.
-if [ -n "$API_ORIGIN" ]; then
+# Valour card. The worker places tags from the API's api/linkpreview/head
+# between the host page's link-preview markers.
+#
+# _routes.json limits the worker to those addresses; every other request is
+# served as a static file without running it, so framework downloads other than
+# an oversized file cost no invocations. The worker sets the same security
+# headers as _headers, which do not apply to its responses.
 python3 - "$OUTPUT_DIR" "$API_ORIGIN" "$APP_CSP" <<'PY'
 import json
 import pathlib
 import sys
 
-out, api_origin, csp = sys.argv[1], sys.argv[2], sys.argv[3]
-if not api_origin.endswith("/"):
+out, api_origin, csp = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+if api_origin and not api_origin.endswith("/"):
     api_origin += "/"
 
-worker = """// Written by cf-build. Serves shared app links such as invites with their own
-// link preview tags. See the comment above this worker in cf-build.
+PAGES_FILE_LIMIT = 25 * 1024 * 1024
+
+compressed_only = []
+for file in sorted(out.rglob("*")):
+    if not file.is_file() or file.stat().st_size <= PAGES_FILE_LIMIT:
+        continue
+    path = "/" + file.relative_to(out).as_posix()
+    for suffix in (".br", ".gz"):
+        copy = file.with_name(file.name + suffix)
+        if not copy.is_file() or copy.stat().st_size > PAGES_FILE_LIMIT:
+            sys.exit("%s is over the Cloudflare Pages file limit and has no %s copy under it." % (path, suffix))
+    print("Serving %s (%.1f MiB) from its compressed copies." % (path, file.stat().st_size / 1048576))
+    file.unlink()
+    compressed_only.append(path)
+
+if not api_origin and not compressed_only:
+    sys.exit(0)
+
+worker = """// Written by cf-build. Serves files that are over the Cloudflare Pages size
+// limit from their compressed copies, and shared app links such as invites
+// with their own link preview tags. See the comment above this worker in cf-build.
 const API_ORIGIN = %s;
 const CONTENT_SECURITY_POLICY = %s;
+const COMPRESSED_ONLY = new Set(%s);
 const START = "<!-- link-preview -->";
 const END = "<!-- /link-preview -->";
 
+// The stored file is already compressed, so it is passed through unchanged and
+// the browser decodes it. A missing file must be a real 404: the site's
+// fallback would otherwise answer with the host page.
+async function compressedFile(request, env, url) {
+  const accepted = request.headers.get("Accept-Encoding") || "";
+  const encoding = /\\bbr\\b/.test(accepted) ? "br" : "gzip";
+  const copy = await env.ASSETS.fetch(
+    new URL(url.pathname + (encoding === "br" ? ".br" : ".gz"), url));
+  const type = copy.headers.get("Content-Type") || "";
+  if (!copy.ok || type.includes("text/html")) {
+    return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+
+  return new Response(request.method === "HEAD" ? null : copy.body, {
+    status: 200,
+    encodeBody: "manual",
+    headers: {
+      "Content-Type": url.pathname.endsWith(".wasm") ? "application/wasm" : "application/octet-stream",
+      "Content-Encoding": encoding,
+      "Vary": "Accept-Encoding",
+      "Cache-Control": "public, max-age=31536000",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
+
 async function previewHead(pathname) {
+  if (!API_ORIGIN) return null;
   try {
     const response = await fetch(
       API_ORIGIN + "api/linkpreview/head?path=" + encodeURIComponent(pathname),
@@ -201,6 +263,10 @@ async function previewHead(pathname) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (COMPRESSED_ONLY.has(url.pathname)) {
+      return compressedFile(request, env, url);
+    }
+
     const page = await env.ASSETS.fetch(new URL("/", url));
     let html = await page.text();
 
@@ -224,18 +290,18 @@ export default {
     });
   },
 };
-""" % (json.dumps(api_origin), json.dumps(csp))
+""" % (json.dumps(api_origin), json.dumps(csp), json.dumps(compressed_only))
 
+preview_routes = ["/I/*", "/i/*", "/D/*", "/d/*", "/planet/*"] if api_origin else []
 routes = {
     "version": 1,
-    "include": ["/I/*", "/i/*", "/D/*", "/d/*", "/planet/*"],
+    "include": preview_routes + compressed_only,
     "exclude": [],
 }
 
-pathlib.Path(out, "_worker.js").write_text(worker)
-pathlib.Path(out, "_routes.json").write_text(json.dumps(routes, indent=2) + "\n")
+(out / "_worker.js").write_text(worker)
+(out / "_routes.json").write_text(json.dumps(routes, indent=2) + "\n")
 PY
-fi
 
 # Prevent stale host page/runtime config when switching deploy env vars.
 cat >> "$OUTPUT_DIR/_headers" <<'EOF'

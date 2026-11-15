@@ -91,8 +91,9 @@ transfer limits and the distinction between a pending and completed handoff.
 
 ## Contribute
 
-Install the at least the suggested SDK version in [global.json](global.json):
-`11.0.100-rc.3`. Local server work also requires PostgreSQL and Redis.
+Install the SDK version pinned in [global.json](global.json): `11.0.100`. Local
+server work also requires PostgreSQL and Redis, which the repository can run in
+Docker.
 JavaScript tests use Node.js, and browser tests require Playwright.
 Native application builds require their platform workloads.
 
@@ -103,11 +104,36 @@ dotnet workload restore
 dotnet restore
 ```
 
-Create the ignored `Valour/Server/appsettings.json` using
-[Config/appsettings.helper.json](Config/appsettings.helper.json) as a guide.
-Configure `Database`, `Redis`, and `Node` for your local services. Choose filesystem
-media storage for local uploads, and configure optional services only when needed.
-The helper file is a list of settings with placeholders, not a ready-to-run config.
+Start the local PostgreSQL and Redis services:
+
+```sh
+docker compose -f docker-compose.dev.yml up -d
+```
+
+They listen on this machine only, PostgreSQL on port 54320 and Redis on port
+63790, so they do not collide with a database you already run. Their credentials
+are fixed and public, which is acceptable only because nothing else can reach
+them. `docker compose -f docker-compose.dev.yml down` stops them and keeps the
+data. Add `-v` to delete the data and start from an empty database.
+
+A server started in the Development environment, which is what `dotnet run` and
+the IDE launch profiles use, reads
+[appsettings.Development.json](Valour/Server/appsettings.Development.json). That
+file points the server at those two services and creates a staff account the
+first time it starts on an empty database: `admin@valour.local` with the password
+`Valour-dev-1234`. No other setup is needed to run the server.
+
+Settings are read in this order, and a later source replaces an earlier one:
+
+1. `Valour/Server/appsettings.json`, which is ignored by git. Use it for optional
+   services such as email, payments, voice, or S3 media storage.
+   [Config/appsettings.helper.json](Config/appsettings.helper.json) lists the
+   settings with placeholders. Without this file, uploads are stored on local
+   disk and optional services are off.
+2. `appsettings.<Environment>.json`, for example the Development file above.
+3. `Valour/Server/appsettings.Local.json`, also ignored by git. Use it to replace
+   a Development setting on your own machine, such as a different database.
+4. Environment variables, such as `Database__Host`.
 
 The server applies Entity Framework migrations on startup. Start it with:
 

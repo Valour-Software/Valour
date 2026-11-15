@@ -42,8 +42,8 @@ public readonly struct DirectChannelKey : IEquatable<DirectChannelKey>
 
 public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 {
-    public override string BaseRoute => ISharedChannel.GetBaseRoute(this);
-    public override string IdRoute => ISharedChannel.GetIdRoute(this);
+    public override string BaseRoute => PlanetId is { } planetId ? ISharedChannel.GetPlanetBaseRoute(planetId) : ISharedChannel.DirectBaseRoute;
+    public override string IdRoute => PlanetId is { } planetId ? ISharedChannel.GetPlanetIdRoute(planetId, Id) : ISharedChannel.GetDirectIdRoute(Id);
 
     /// <summary>
     /// Run when a channel sends a watching update
@@ -611,6 +611,10 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     {
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return TaskResult<List<Message>>.FromData([]);
+
+        // Decrypting the history needs the channel's keys, so their request
+        // starts now and overlaps the history request.
+        Client.E2eeService.PreloadKeyRing(this);
 
         // History changes with every send and edit, and decrypting changes the
         // returned messages, so responses are never shared between requests.

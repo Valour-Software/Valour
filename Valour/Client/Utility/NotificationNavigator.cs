@@ -1,4 +1,5 @@
 ﻿using Valour.Client.Components.DockWindows;
+using System.Collections.Frozen;
 using Valour.Client.Components.Menus.Modals;
 using Valour.Sdk.Models;
 using Valour.Client.Components.Menus.Modals.Users.Edit;
@@ -57,7 +58,7 @@ public static class NotificationNavigator
         return null;
     }
 
-    private static readonly HashSet<NotificationSource> PlanetChannelRouteSources = new()
+    private static readonly FrozenSet<NotificationSource> PlanetChannelRouteSources = new HashSet<NotificationSource>()
     {
         NotificationSource.PlanetMemberMention,
         NotificationSource.PlanetRoleMention,
@@ -65,7 +66,7 @@ public static class NotificationNavigator
         NotificationSource.PlanetHereMention,
         NotificationSource.PlanetEveryoneMention,
         NotificationSource.ChannelActivity,
-    };
+    }.ToFrozenSet();
 
     internal static bool IsPlanetChannelRouteSource(NotificationSource source) =>
         PlanetChannelRouteSources.Contains(source);

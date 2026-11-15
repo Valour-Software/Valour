@@ -14,9 +14,12 @@ namespace Valour.Sdk.Cdn;
 /// reader's IP address. The server applies it to attachments it can see, and
 /// clients apply it to embeds inside encrypted messages.
 /// </summary>
-public static class MediaUriHelper
+public static partial class MediaUriHelper
 {
-    public static readonly Regex AttachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
+    public static readonly Regex AttachmentRejectRegex = GeneratedAttachmentRejectRegex;
+
+    [GeneratedRegex("(^|.)(<|>|\"|'|\\s)(.|$)")]
+    private static partial Regex GeneratedAttachmentRejectRegex { get; }
 
     /// <param name="node">The node the attachment's message belongs to. Its
     /// content CDN is allowed too; the server passes none and uses its own.</param>

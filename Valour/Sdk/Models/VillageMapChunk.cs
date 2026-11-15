@@ -40,17 +40,6 @@ public class VillageMapChunk : ClientPlanetModel<VillageMapChunk, long>, IShared
     private VillageMapChunk() : base() { }
     public VillageMapChunk(ValourClient client) : base(client) { }
 
-    public override VillageMapChunk AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        var planet = GetPlanet(false);
-        if (planet is null)
-            return this;
-
-        return planet.VillageMapChunks.Put(this, flags);
-    }
-
-    public override VillageMapChunk RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.VillageMapChunks.Remove(this, skipEvents);
-    }
+    // Not cached until its planet is loaded
+    protected override ModelStore<VillageMapChunk, long> CacheStore => GetPlanet(false)?.VillageMapChunks;
 }

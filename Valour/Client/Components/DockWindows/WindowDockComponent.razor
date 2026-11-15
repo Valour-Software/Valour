@@ -196,6 +196,12 @@
             if (content is null)
                 return;
 
+            // Restored layouts often already hold the target, for example when a
+            // notification links to an open channel
+            WindowService.NotifyDockLayoutUpdated();
+            if (await WindowService.TryFocusExistingWindowForContent(content))
+                return;
+
             await Layout.AddTab(content);
             await NotifyLayoutChanged();
         }

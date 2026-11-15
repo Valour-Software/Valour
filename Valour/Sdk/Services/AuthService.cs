@@ -554,17 +554,9 @@ public partial class AuthService : ServiceBase
         }
     }
 
-    private static string Base64UrlEncode(byte[] value) => Convert.ToBase64String(value)
-        .TrimEnd('=')
-        .Replace('+', '-')
-        .Replace('/', '_');
+    private static string Base64UrlEncode(byte[] value) => System.Buffers.Text.Base64Url.EncodeToString(value);
 
-    private static byte[] Base64UrlDecode(string value)
-    {
-        var base64 = value.Replace('-', '+').Replace('_', '/');
-        base64 = base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
-        return Convert.FromBase64String(base64);
-    }
+    private static byte[] Base64UrlDecode(string value) => System.Buffers.Text.Base64Url.DecodeFromChars(value);
 
     private readonly record struct FederationPublicKey(byte[] X, byte[] Y);
 

@@ -21,7 +21,7 @@ public sealed class PlatformBanner
     public static string ComputeHash(string title, string message, PlatformBannerKind kind)
     {
         var value = $"{(int)kind}\n{title?.Trim()}\n{message?.Trim()}";
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..16].ToLowerInvariant();
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..16];
     }
 }
 

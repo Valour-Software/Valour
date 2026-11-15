@@ -37,11 +37,17 @@ public interface ISharedVillagePlot : ISharedPlanetModel<long>
     /// Asking price in the planet's currency. Zero means free to claim.
     /// </summary>
     decimal Price { get; set; }
+}
 
-    /// <summary>
-    /// Returns true when the tile falls inside the plot's bounds.
-    /// </summary>
-    public static bool Contains(ISharedVillagePlot plot, int x, int y) =>
-        x >= plot.X && x < plot.X + plot.Width &&
-        y >= plot.Y && y < plot.Y + plot.Height;
+public static class SharedVillagePlotExtensions
+{
+    extension(ISharedVillagePlot plot)
+    {
+        /// <summary>
+        /// Returns true when the tile falls inside the plot's bounds.
+        /// </summary>
+        public bool Contains(int x, int y) =>
+            x >= plot.X && x < plot.X + plot.Width &&
+            y >= plot.Y && y < plot.Y + plot.Height;
+    }
 }

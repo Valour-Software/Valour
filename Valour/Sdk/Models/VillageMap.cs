@@ -60,17 +60,6 @@ public class VillageMap : ClientPlanetModel<VillageMap, long>, ISharedVillageMap
     private VillageMap() : base() { }
     public VillageMap(ValourClient client) : base(client) { }
 
-    public override VillageMap AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        var planet = GetPlanet(false);
-        if (planet is null)
-            return this;
-
-        return planet.VillageMaps.Put(this, flags);
-    }
-
-    public override VillageMap RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.VillageMaps.Remove(this, skipEvents);
-    }
+    // Not cached until its planet is loaded
+    protected override ModelStore<VillageMap, long> CacheStore => GetPlanet(false)?.VillageMaps;
 }

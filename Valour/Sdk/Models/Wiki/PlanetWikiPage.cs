@@ -48,13 +48,5 @@ public class PlanetWikiPage : ClientPlanetModel<PlanetWikiPage, long>, ISharedPl
     {
     }
 
-    public override PlanetWikiPage AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Planet.WikiPages.Put(this, flags);
-    }
-
-    public override PlanetWikiPage RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.WikiPages.Remove(this, skipEvents);
-    }
+    protected override ModelStore<PlanetWikiPage, long> CacheStore => Planet.WikiPages;
 }

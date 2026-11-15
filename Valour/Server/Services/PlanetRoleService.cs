@@ -6,7 +6,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
-public class PlanetRoleService
+public partial class PlanetRoleService
 {
     private readonly ValourDb _db;
     private readonly ILogger<PlanetRoleService> _logger;
@@ -40,7 +40,8 @@ public class PlanetRoleService
         return hosted.GetRoleById(roleId);
     }
 
-    private static readonly Regex _hexColorRegex = new Regex("^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$");
+    [GeneratedRegex("^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$")]
+    private static partial Regex HexColorRegex { get; }
 
     public async Task<TaskResult<PlanetRole>> CreateAsync(PlanetRole role)
     {
@@ -51,7 +52,7 @@ public class PlanetRoleService
         if (string.IsNullOrWhiteSpace(role.Color))
             role.Color = "#ffffff";
 
-        if (!_hexColorRegex.IsMatch(role.Color))
+        if (!HexColorRegex.IsMatch(role.Color))
             return new TaskResult<PlanetRole>(false, "Invalid hex color");
 
         role.Id = IdManager.Generate();
@@ -153,7 +154,7 @@ public class PlanetRoleService
         
         if (updatedRole.Color != oldRole.Color)
         {
-            if (!_hexColorRegex.IsMatch(updatedRole.Color))
+            if (!HexColorRegex.IsMatch(updatedRole.Color))
                 return new TaskResult<PlanetRole>(false, "Invalid hex color");
         }
         

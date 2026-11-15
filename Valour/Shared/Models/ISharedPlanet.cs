@@ -6,6 +6,7 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using System.Collections.Frozen;
 using System.Text;
 using Valour.Shared.Utilities;
 
@@ -174,7 +175,7 @@ public interface ISharedPlanet : ISharedModel<long>
     /// </summary>
     byte WorldVariant { get; set; }
 
-    private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
+    private static readonly FrozenDictionary<IconFormat, string> IconFormatMap = new Dictionary<IconFormat, string>()
     {
         { IconFormat.Webp64, "64.webp" },
         { IconFormat.Webp128, "128.webp" },
@@ -191,15 +192,15 @@ public interface ISharedPlanet : ISharedModel<long>
         { IconFormat.Gif64, "anim-64.gif" },
         { IconFormat.Gif128, "anim-128.gif" },
         { IconFormat.Gif256, "anim-256.gif" },
-    };
+    }.ToFrozenDictionary();
     
-    private static readonly Dictionary<PlanetBackgroundFormat, string> BackgroundFormatMap = new()
+    private static readonly FrozenDictionary<PlanetBackgroundFormat, string> BackgroundFormatMap = new Dictionary<PlanetBackgroundFormat, string>()
     {
         { PlanetBackgroundFormat.Webp, "300x400.webp" },
         { PlanetBackgroundFormat.Jpeg, "300x400.jpg" },
-    };
+    }.ToFrozenDictionary();
     
-    private static readonly HashSet<IconFormat> AnimatedFormats = new()
+    private static readonly FrozenSet<IconFormat> AnimatedFormats = new HashSet<IconFormat>()
     {
         IconFormat.Gif64,
         IconFormat.Gif128,
@@ -207,9 +208,9 @@ public interface ISharedPlanet : ISharedModel<long>
         IconFormat.WebpAnimated64,
         IconFormat.WebpAnimated128,
         IconFormat.WebpAnimated256,
-    };
+    }.ToFrozenSet();
     
-    private static readonly Dictionary<IconFormat, IconFormat> AnimatedToStaticBackup = new()
+    private static readonly FrozenDictionary<IconFormat, IconFormat> AnimatedToStaticBackup = new Dictionary<IconFormat, IconFormat>()
     {
         { IconFormat.Gif64, IconFormat.Webp64 },
         { IconFormat.Gif128, IconFormat.Webp128 },
@@ -217,17 +218,7 @@ public interface ISharedPlanet : ISharedModel<long>
         { IconFormat.WebpAnimated64, IconFormat.Webp64 },
         { IconFormat.WebpAnimated128, IconFormat.Webp128 },
         { IconFormat.WebpAnimated256, IconFormat.Webp256 },
-    };
-    
-    public static string? GetBackgroundUrl(ISharedPlanet planet, PlanetBackgroundFormat format)
-    {
-        return GetBackgroundUrl(planet.HasCustomBackground, planet.Id, planet.Version, format);
-    }
-    
-    public static string? GetBackgroundUrl(ISharedPlanetListInfo planet, PlanetBackgroundFormat format)
-    {
-        return GetBackgroundUrl(planet.HasCustomBackground, planet.PlanetId, planet.Version, format);
-    }
+    }.ToFrozenDictionary();
     
     public static string? GetBackgroundUrl(bool hasCustom, long planetId, int version, PlanetBackgroundFormat format)
     {
@@ -239,56 +230,21 @@ public interface ISharedPlanet : ISharedModel<long>
         var formatStr = BackgroundFormatMap[format];
         return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/planetbgs/{planetId}/{formatStr}?v={version}";
     }
-    
-    public static string GetIconUrl(ISharedPlanet planet, IconFormat format)
-    {
-        if (!planet.HasCustomIcon)
-        {
-            return PlanetIconSvgGenerator.GetPlanetIconColor(planet);                        
-        }
 
-        // If an animated icon is requested, but the planet doesn't have one, use the static version
-        if (!planet.HasAnimatedIcon)
-        {
-            if (AnimatedFormats.Contains(format))
-            {
-                format = AnimatedToStaticBackup[format];
-            }
-        }
-        
-        string formatStr = IconFormatMap[format];
-        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/planets/{planet.Id}/{formatStr}?v={planet.Version}";
-    }
-    
-    public static string GetIconUrl(ISharedPlanetListInfo planet, IconFormat format)
+    /// <summary>
+    /// The icon URL in the requested format. Planets without a custom icon get
+    /// the generated default icon, and animated formats fall back to the static
+    /// image when the planet has no animated icon.
+    /// </summary>
+    public static string GetIconUrl(long planetId, int version, bool hasCustomIcon, bool hasAnimatedIcon, IconFormat format)
     {
-        if (!planet.HasCustomIcon)
-        {
-            return PlanetIconSvgGenerator.GetPlanetIconColor(planet.PlanetId);                        
-        }
+        if (!hasCustomIcon)
+            return PlanetIconSvgGenerator.GetPlanetIconColor(planetId);
 
-        // If an animated icon is requested, but the planet doesn't have one, use the static version
-        if (!planet.HasAnimatedIcon)
-        {
-            if (AnimatedFormats.Contains(format))
-            {
-                format = AnimatedToStaticBackup[format];
-            }
-        }
-        
-        string formatStr = IconFormatMap[format];
-        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/planets/{planet.PlanetId}/{formatStr}?v={planet.Version}";
-    }
-    
+        if (!hasAnimatedIcon && AnimatedFormats.Contains(format))
+            format = AnimatedToStaticBackup[format];
 
-    public static string GetCommunityShortCode(ISharedPlanet planet)
-    {
-        return GetCommunityShortCode(planet.Name);
-    }
-
-    public static string GetCommunityShortCode(ISharedPlanetListInfo planet)
-    {
-        return GetCommunityShortCode(planet.Name);
+        return $"{ValourHosts.PublicCdnBaseUrl}/valour-public/planets/{planetId}/{IconFormatMap[format]}?v={version}";
     }
 
     public static string GetCommunityShortCode(string name)
@@ -307,3 +263,36 @@ public interface ISharedPlanet : ISharedModel<long>
     }
 }
 
+/// <summary>
+/// Members shared by every planet model, and by the smaller planet list entries.
+/// </summary>
+public static class SharedPlanetExtensions
+{
+    extension(ISharedPlanet planet)
+    {
+        public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
+            ISharedPlanet.GetIconUrl(planet.Id, planet.Version, planet.HasCustomIcon, planet.HasAnimatedIcon, format);
+
+        public string? GetBackgroundUrl(PlanetBackgroundFormat format) =>
+            ISharedPlanet.GetBackgroundUrl(planet.HasCustomBackground, planet.Id, planet.Version, format);
+
+        /// <summary>
+        /// The short text shown in place of an icon for planets without one.
+        /// </summary>
+        public string CommunityShortCode => ISharedPlanet.GetCommunityShortCode(planet.Name);
+    }
+
+    extension(ISharedPlanetListInfo planet)
+    {
+        public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
+            ISharedPlanet.GetIconUrl(planet.PlanetId, planet.Version, planet.HasCustomIcon, planet.HasAnimatedIcon, format);
+
+        public string? GetBackgroundUrl(PlanetBackgroundFormat format) =>
+            ISharedPlanet.GetBackgroundUrl(planet.HasCustomBackground, planet.PlanetId, planet.Version, format);
+
+        /// <summary>
+        /// The short text shown in place of an icon for planets without one.
+        /// </summary>
+        public string CommunityShortCode => ISharedPlanet.GetCommunityShortCode(planet.Name);
+    }
+}
