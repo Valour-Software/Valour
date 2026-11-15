@@ -64,9 +64,17 @@ public class VillageService : ServiceBase
     // The scene is refetched immediately after purchases and property edits to
     // show their result, so the node's short GET cache must not satisfy the
     // refresh with the pre-edit world.
-    public Task<TaskResult<VillagePocScene>> FetchProofOfConceptSceneAsync(long planetId) =>
-        _client.PrimaryNode.GetJsonAsync<VillagePocScene>(
+    public async Task<TaskResult<VillagePocScene>> FetchProofOfConceptSceneAsync(long planetId)
+    {
+        // The village lives on the node that hosts the planet, which for a
+        // community-hosted planet is not the primary node.
+        var node = _client.Cache.Planets.TryGet(planetId, out var planet) && planet is not null
+            ? planet.Node
+            : await _client.NodeService.GetNodeForPlanetAsync(planetId);
+
+        return await (node ?? _client.PrimaryNode).GetJsonAsync<VillagePocScene>(
             $"api/planets/{planetId}/village/poc", cacheDurationMs: null);
+    }
 
     /// <summary>
     /// Buys a listed plot. <paramref name="expectedPrice"/> is the price shown to
