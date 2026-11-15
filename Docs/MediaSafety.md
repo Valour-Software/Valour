@@ -20,6 +20,13 @@ WebP, are converted to PNG for the check only. The stored file is unchanged.
 The result is recorded on the file's `cdn_bucket_items` row
 (`safety_hash_match_state`, `safety_match_id`, and related columns).
 
+Files that never reach Valour's servers are not checked. A planet that uses its
+own S3 bucket receives uploads directly: Valour issues a short-lived upload URL
+([`PlanetStorageService`](../Valour/Server/Services/PlanetStorageService.cs)) and
+the file goes from the app to that bucket. Community nodes run their own server,
+so their uploads are checked only if the node's operator configures scanning.
+See [Federation](Federation.md).
+
 ## When an image matches
 
 In `Enforce` mode a match blocks the upload, and
