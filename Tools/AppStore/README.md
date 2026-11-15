@@ -159,41 +159,97 @@ registration. In the questionnaire:
 email, join it to a small demo planet with a few channels, and give Apple the
 email and password. Do not use a personal or staff account.
 
-**Notes** (paste into the Notes field):
+**Notes** (4,000 characters max; paste into the Notes field after filling in
+the three values in angle brackets):
 
-> Valour is a community chat app. Messages are end-to-end encrypted. On first
-> sign-in the app creates encryption keys on the device and shows a recovery
-> code; tap "I saved it" to continue.
->
-> The review account is a member of the "App Review" planet, which has text
-> channels, a thread feed and a wiki.
->
-> Moderation: long-press a message to report it. Tap a user's avatar to block
-> them. Settings > Safety lists blocked users. Planet owners have roles,
-> automod and an audit log.
->
-> Account deletion: Settings > Profile > Delete account.
->
-> In-app purchases: Settings > Subscriptions sells the Stargazer
-> subscriptions and Valour Credit packs through In-App Purchase, with a
-> Restore purchases button. Sign in with Apple is on the sign-in page.
->
-> NSFW content is hidden in the iOS app for accounts created in it, and the
-> setting can't be changed inside the app.
->
-> The app uses only standard encryption algorithms. The French encryption
-> declaration is uploaded under App Encryption Documentation.
+```
+SCREEN RECORDING (iPhone, current iOS, starts at launch): <LINK>
 
-**Contact:** set in App Store Connect.
+DEMO ACCOUNT: <EMAIL> / <PASSWORD>
+On first sign-in the app creates encryption keys on the device and shows a recovery code. Tap "I saved it" to continue. The account is a member of the "App Review" planet (community), which has text channels, a thread feed and a wiki.
+
+1. PURPOSE AND AUDIENCE
+Valour is a community chat app for people aged 13 and over: friend groups, hobby and gaming communities, and open-source projects. Communities are called planets. Each has text channels, voice and video channels, threads, wikis and a calendar. It solves the problem that group chat usually means giving up privacy: every chat message is end-to-end encrypted, there are no ads or trackers, and no phone number or ID is needed. The app is free. The client and server are open source.
+
+2. MAIN FEATURES AND HOW TO REACH THEM
+- Register: "Create account" on the sign-in page (email, username, password, birthday, terms). Sign in with Apple and Google are on the same page.
+- Chat: open the App Review planet from the planet list, choose a channel, type a message.
+- Threads and wiki: in the planet's channel list.
+- Direct messages and friends: Home.
+- Report content: long-press a message, thread or comment, then Report. Reports go to the planet's moderators or to Valour staff.
+- Block a user: long-press a message, then Member > Block. Settings > Safety lists blocked users and unblocks them. Messages from blocked users are hidden.
+- Moderation: planet owners have roles, automod and an audit log. Valour staff review platform reports and remove content and accounts that break the rules (https://valour.gg/terms/). Uploaded images are checked against known abuse material.
+- Adult content: NSFW communities are hidden in the iOS app, and the setting cannot be turned on inside the app.
+- Delete account: Settings > Profile > Delete account. It confirms identity, then deletes the account and its data permanently.
+- Purchases: Settings > Subscriptions. Stargazer, Stargazer Plus and Stargazer Pro are optional monthly auto-renewable subscriptions that add perks such as larger uploads. Valour Credit packs (500, 1000, 2000) are consumables used for subscriptions and cosmetic items. All are sold only through In-App Purchase. The page has Restore purchases, Manage (opens Apple subscription settings), renewal terms, and links to the terms of use and privacy policy.
+
+3. EXTERNAL SERVICES
+- Apple: In-App Purchase with the App Store Server API, and Sign in with Apple.
+- Google and Discord: optional OAuth sign-in.
+- Cloudflare: content delivery, file storage, and relaying live voice and video (RealtimeKit).
+- Microsoft Azure: hosting for our own servers and database.
+- Microsoft PhotoDNA: matching uploaded images against known child abuse material.
+- SendGrid: account emails such as verification and password reset.
+- Klipy: GIF search.
+- Sentry: crash reports, only if the user opts in.
+The app has no AI features, no advertising and no analytics SDKs. Card payments are not offered in the iOS app.
+
+4. REGIONS
+The app works the same in every region. It is in English. There is no region-specific content or feature.
+
+5. REGULATED INDUSTRY AND THIRD-PARTY MATERIAL
+Valour is not in a regulated industry and includes no protected third-party material. Content is created by users, who agree to the terms of use before registering. The app uses only standard encryption algorithms; the French encryption declaration is under App Encryption Documentation.
+```
+
+## Screen recording
+
+App Review asks for one recording made on a physical iPhone running the
+current iOS release, starting with the app being launched from the Home
+Screen. Record it with the iPhone's own screen recorder using the build that
+is submitted, then upload it somewhere Apple can open without signing in and
+put the link at the top of the notes. Keep it under about five minutes.
+
+Use a new throwaway account for the recording, because it ends with the
+account being deleted. The review account must still exist afterwards. A
+second account has to have posted a message in the demo planet beforehand, so
+there is someone else's content to report and block.
+
+1. Launch the app from the Home Screen.
+2. Create an account: email, username, password, birthday, and the terms
+   checkbox. Show the Sign in with Apple button on the way.
+3. Confirm the email, sign in, and save the recovery code.
+4. Join the demo planet, open a channel and send a message. Open a thread and
+   the wiki briefly.
+5. Long-press the other account's message and submit a report through to the
+   "Report submitted" screen.
+6. Long-press the same message, choose Member, then Block. Show that the
+   message is hidden, then open Settings > Safety to show the blocked list.
+7. Open Settings > Subscriptions. Buy a subscription or a credit pack with a
+   sandbox account through to the confirmation, and show Restore purchases
+   and Manage.
+8. Open Settings > Profile > Delete account, confirm, and show the app
+   returning to the sign-in page. Try to sign in again to show the account is
+   gone.
+
+**Contact:** enter the name, email and phone number of the person App Review
+should reach in App Store Connect. Do not record them here.
 
 ## Encryption export compliance
 
 The app uses non-exempt encryption (end-to-end encryption with standard
 algorithms) and is distributed in France, so App Store Connect needs the ANSSI
 acknowledgement of receipt under App Information > App Encryption
-Documentation. Once Apple approves the document, add these keys to
-`Valour/Client.Maui/Platforms/iOS/Info.plist` so builds skip the export
-questions:
+Documentation.
+
+The iOS `Info.plist` does not declare encryption, so App Store Connect asks
+the export compliance questions for each uploaded build. Answer them on the
+build's page under TestFlight before it can be tested or submitted: the app
+uses encryption, with standard algorithms only, and is distributed in France.
+
+Declaring `ITSAppUsesNonExemptEncryption` as true without a compliance code
+makes App Store Connect refuse the upload (error 90592, "Invalid Export
+Compliance Code"). When Apple issues the code for the French declaration,
+both keys can go into `Info.plist` together so builds skip the questions:
 
 ```xml
 <key>ITSAppUsesNonExemptEncryption</key>
@@ -223,5 +279,5 @@ is configuration:
   Distribution certificate exported as .p12) and `IOS_PROVISION_PROFILE_BASE64`
   (an App Store provisioning profile for `gg.valour.app`). The upload uses the
   existing `ASC_API_*` key, which needs the App Manager or Developer role.
-- **Encryption compliance code.** Add it to `Info.plist` once Apple approves
-  the French declaration (see above).
+- **Encryption questions.** Answer the export compliance questions for the
+  uploaded build in App Store Connect (see above).
