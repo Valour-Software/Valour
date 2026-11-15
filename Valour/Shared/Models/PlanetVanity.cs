@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 
 namespace Valour.Shared.Models;
@@ -17,27 +18,27 @@ public class PlanetVanityRequest
 /// (wiki pages, the public planet page, and future surfaces like invites).
 /// Shared so client-side live validation matches server-side enforcement.
 /// </summary>
-public static class VanityUtils
+public static partial class VanityUtils
 {
     /// <summary>
     /// Vanity names: lowercase alphanumerics and single dashes, no leading or
     /// trailing dash, 3-32 chars.
     /// </summary>
-    private static readonly Regex VanityRegex =
-        new(@"^[a-z0-9](?:-?[a-z0-9]){2,31}$", RegexOptions.Compiled);
+    [GeneratedRegex(@"^[a-z0-9](?:-?[a-z0-9]){2,31}$")]
+    private static partial Regex VanityRegex { get; }
 
     /// <summary>
     /// Names that can never be claimed — first-party subdomains, common
     /// infrastructure paths, and app routes.
     /// </summary>
-    public static readonly HashSet<string> ReservedVanityNames = new(StringComparer.OrdinalIgnoreCase)
+    public static readonly FrozenSet<string> ReservedVanityNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "www", "api", "app", "docs", "wiki", "cdn", "public-cdn", "threads", "admin",
         "staff", "valour", "help", "about", "support", "terms", "privacy",
         "blog", "status", "search", "sitemap", "robots", "static", "assets",
         "media", "planet", "planets", "new", "edit", "settings", "login",
         "register", "invite", "discover",
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     public static TaskResult ValidateVanity(string? name)
     {

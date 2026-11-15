@@ -104,19 +104,6 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     
     public bool AnyoneCanMention { get; set; }
 
-    public uint GetAuthority() =>
-        ISharedPlanetRole.GetAuthority(this);
-
-    public bool HasPermission(PlanetPermission perm) =>
-        ISharedPlanetRole.HasPermission(this, perm);
-
-    /// <summary>
-    /// The cosmetic Display Role flag — unlike HasPermission, admin roles
-    /// do not implicitly get this (#1510)
-    /// </summary>
-    public bool HasDisplayRole =>
-        ISharedPlanetRole.GetHasDisplayRole(this);
-
     [JsonConstructor]
     private PlanetRole() : base() { }
     public PlanetRole(ValourClient client) : base(client) { }

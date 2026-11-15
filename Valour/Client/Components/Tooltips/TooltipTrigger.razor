@@ -1,4 +1,5 @@
 ﻿@implements IDisposable
+@implements ITooltipSource
 
 <div @ref="@OuterReference" class="tooltip-trigger" @onmouseenter="OnMouseEnter" @onmouseleave="OnMouseLeave">
     @ChildContent
@@ -9,7 +10,7 @@
 @code {
 
     // Used for the root to identify tooltip triggers
-    public readonly string TriggerId = Guid.NewGuid().ToString();
+    public string TriggerId { get; } = Guid.NewGuid().ToString();
 
     public ElementReference OuterReference { get; set; }
 
@@ -104,6 +105,8 @@
     }
 
     public Task HideTooltip() => TooltipRoot.HideTooltip(this);
+
+    public Task<ElementBounds> GetBoundsAsync() => BrowserUtils.GetElementBoundingRectAsync(OuterReference);
 
     public void Dispose()
     {

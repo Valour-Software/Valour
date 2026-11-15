@@ -1,10 +1,11 @@
 ﻿using System.Net;
+using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 using Valour.Shared.Models;
 
 namespace Valour.Shared.Cdn
 {
-    public static class CdnUtils
+    public static partial class CdnUtils
     {
         public static bool IsSuccessStatusCode(HttpStatusCode statusCode)
         {
@@ -12,7 +13,7 @@ namespace Valour.Shared.Cdn
             return intStatus >= 200 && intStatus <= 299;
         }
 
-        public static readonly HashSet<string> ImageSharpSupported = new()
+        public static readonly FrozenSet<string> ImageSharpSupported = new HashSet<string>()
         {
             "image/png",
             "image/jpeg",
@@ -21,17 +22,17 @@ namespace Valour.Shared.Cdn
             "image/bmp",
             "image/tiff",
             "image/webp"
-        };
+        }.ToFrozenSet();
 
-        private static readonly HashSet<string> ExecutableUploadExtensions = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly FrozenSet<string> ExecutableUploadExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".exe", ".com", ".scr", ".msi", ".msp", ".msix", ".appx", ".appxbundle",
             ".bat", ".cmd", ".ps1", ".psm1", ".vbs", ".vbe", ".wsf", ".wsh", ".hta",
             ".cpl", ".dll", ".sys", ".jar", ".apk", ".dmg", ".pkg", ".deb", ".rpm",
             ".run", ".appimage", ".sh", ".command", ".reg", ".lnk"
-        };
+        }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-        private static readonly HashSet<string> ExecutableUploadMimeTypes = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly FrozenSet<string> ExecutableUploadMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "application/x-msdownload",
             "application/x-msdos-program",
@@ -44,15 +45,15 @@ namespace Valour.Shared.Cdn
             "application/x-apple-diskimage",
             "application/x-sh",
             "application/x-shellscript"
-        };
+        }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-        private static readonly HashSet<string> ActiveContentExtensions = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly FrozenSet<string> ActiveContentExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".html", ".htm", ".xhtml", ".xht", ".shtml", ".svg", ".svgz",
             ".xml", ".xsl", ".xslt", ".mhtml", ".mht", ".htc"
-        };
+        }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-        private static readonly HashSet<string> ActiveContentMimeTypes = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly FrozenSet<string> ActiveContentMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "text/html",
             "application/xhtml+xml",
@@ -62,7 +63,7 @@ namespace Valour.Shared.Cdn
             "application/xslt+xml",
             "multipart/related",
             "text/xsl"
-        };
+        }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Returns true when a browser would treat the upload as active content -
@@ -130,12 +131,15 @@ namespace Valour.Shared.Cdn
         
         // Paths may contain '@' (profile links on TikTok, Threads, YouTube,
         // Mastodon) and '~' (user directories).
-        public static readonly Regex UrlRegex = new Regex(@"(!\[\]\()?(http|https|)\:\/\/[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])*(:(0-9)*)*(\/?)([=a-zA-Z0-9\:\-\.\?\,\'\/\\\+&%\$#_@~]*)?([=a-zA-Z0-9\-\?\,\'\/\+&%\$#_@~]+)(\))?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        public static readonly Regex UrlRegex = GeneratedUrlRegex;
+
+        [GeneratedRegex(@"(!\[\]\()?(http|https|)\:\/\/[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])*(:(0-9)*)*(\/?)([=a-zA-Z0-9\:\-\.\?\,\'\/\\\+&%\$#_@~]*)?([=a-zA-Z0-9\-\?\,\'\/\+&%\$#_@~]+)(\))?", RegexOptions.IgnoreCase)]
+        private static partial Regex GeneratedUrlRegex { get; }
         
         /// <summary>
         /// Map for attachments that do not have a file extension
         /// </summary>
-        public static readonly Dictionary<string, MessageAttachmentType> VirtualAttachmentMap = new(StringComparer.OrdinalIgnoreCase)
+        public static readonly FrozenDictionary<string, MessageAttachmentType> VirtualAttachmentMap = new Dictionary<string, MessageAttachmentType>(StringComparer.OrdinalIgnoreCase)
         {
             // Video platforms
             { "youtube.com", MessageAttachmentType.YouTube },
@@ -180,7 +184,10 @@ namespace Valour.Shared.Cdn
             // Developer platforms
             { "github.com", MessageAttachmentType.GitHub },
             { "gist.github.com", MessageAttachmentType.GitHub },
-        };
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly FrozenSet<MessageAttachmentType> VirtualAttachmentTypes =
+            VirtualAttachmentMap.Values.ToFrozenSet();
 
         /// <summary>
         /// Resolves the virtual attachment type for a host. This deployment's
@@ -201,7 +208,7 @@ namespace Valour.Shared.Cdn
         }
 
         public static bool IsVirtualAttachmentType(MessageAttachmentType type) =>
-            VirtualAttachmentMap.ContainsValue(type);
+            VirtualAttachmentTypes.Contains(type);
 
         /// <summary>
         /// Third-party attachment sources that bypass Valour CDN
@@ -233,7 +240,7 @@ namespace Valour.Shared.Cdn
                    ValourHosts.IsSelfHost(host);
         }
         
-        public static readonly Dictionary<string, string> ExtensionToMimeType = new(StringComparer.OrdinalIgnoreCase)
+        public static readonly FrozenDictionary<string, string> ExtensionToMimeType = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             // Video
             {".3gp", "video/3gpp"},
@@ -330,7 +337,7 @@ namespace Valour.Shared.Cdn
             {".jif", "image/jpeg"},
             {".jfif", "image/jpeg"},
             {".jfi", "image/jpeg"},
-        };
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
         public static HashSet<string> MediaTypes = new HashSet<string>()
         {

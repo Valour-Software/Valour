@@ -16,7 +16,4 @@ public class ChannelFavorite : ClientModel<ChannelFavorite, long>, ISharedChanne
     [JsonConstructor]
     private ChannelFavorite() : base() { }
     public ChannelFavorite(ValourClient client) : base(client) { }
-
-    public override ChannelFavorite AddToCache(ModelInsertFlags flags = ModelInsertFlags.None) => this;
-    public override ChannelFavorite RemoveFromCache(bool skipEvents) => this;
 }

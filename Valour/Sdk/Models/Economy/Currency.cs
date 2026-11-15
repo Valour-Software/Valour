@@ -57,13 +57,6 @@ public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
         return $"{Symbol}{Math.Round(amount, DecimalPlaces)} {ShortCode}";
     }
 
-    public override Currency AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Client.Cache.Currencies.Put(this, flags, CacheScope);
-    }
-
-    public override Currency RemoveFromCache(bool skipEvents = false)
-    {
-        return Client.Cache.Currencies.Remove(this, CacheScope, skipEvents);
-    }
+    protected override ModelStore<Currency, long> CacheStore => Client.Cache.Currencies;
+    protected override string CacheStoreScope => CacheScope;
 }

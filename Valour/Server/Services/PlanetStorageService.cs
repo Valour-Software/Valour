@@ -17,11 +17,15 @@ namespace Valour.Server.Services;
 /// owner's public base URL. Valour never receives, stores, scans, or serves
 /// planet-hosted media.
 /// </summary>
-public class PlanetStorageService
+public partial class PlanetStorageService
 {
     private const string ProtectorPurpose = "Valour.PlanetStorage.Credentials";
     private static readonly TimeSpan GrantLifetime = TimeSpan.FromMinutes(10);
-    private static readonly Regex Sha256Regex = new("^[a-f0-9]{64}$", RegexOptions.Compiled);
+    [GeneratedRegex("^[a-f0-9]{64}$")]
+    private static partial Regex Sha256Regex { get; }
+
+    [GeneratedRegex(@"^\.[a-z0-9]{1,10}$")]
+    private static partial Regex ExtensionRegex { get; }
 
     private readonly ValourDb _db;
     private readonly IDataProtector _protector;
@@ -343,7 +347,7 @@ public class PlanetStorageService
             return "";
 
         extension = extension.ToLowerInvariant();
-        return Regex.IsMatch(extension, @"^\.[a-z0-9]{1,10}$") ? extension : "";
+        return ExtensionRegex.IsMatch(extension) ? extension : "";
     }
 
     private static PlanetStorageInfo ToInfo(Valour.Database.PlanetStorageConfig config) => new()

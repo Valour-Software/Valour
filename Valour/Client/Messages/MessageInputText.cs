@@ -20,15 +20,14 @@ public sealed record MessageInputSegment(string Kind, string Text, string Label 
 /// Splits message text into the pieces the message input draws, so text that
 /// is loaded into the input looks the same as text typed into it.
 /// </summary>
-public static class MessageInputText
+public static partial class MessageInputText
 {
     public const string TextKind = "text";
     public const string MentionKind = "mention";
     public const string EmojiKind = "emoji";
 
-    private static readonly Regex TokenRegex = new(
-        "«@(?<type>[mucr])-(?<id>[0-9]{1,20})»|«e-:(?<emoji>[a-z0-9_]{2,32}):~(?<emojiId>[0-9]{1,20})»",
-        RegexOptions.Compiled);
+    [GeneratedRegex("«@(?<type>[mucr])-(?<id>[0-9]{1,20})»|«e-:(?<emoji>[a-z0-9_]{2,32}):~(?<emojiId>[0-9]{1,20})»")]
+    private static partial Regex TokenRegex { get; }
 
     /// <summary>
     /// Reads a mention token such as «@m-123». The whole string must be one token.

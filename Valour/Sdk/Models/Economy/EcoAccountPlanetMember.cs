@@ -18,14 +18,4 @@ public class EcoAccountPlanetMember : ClientModel<EcoAccountPlanetMember>
         Account = Account.Sync(Client, flags);
         Member = Member.Sync(Client, flags);
     }
-
-    public override EcoAccountPlanetMember AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override EcoAccountPlanetMember RemoveFromCache(bool skipEvents = false)
-    {
-        return this;
-    }
 }

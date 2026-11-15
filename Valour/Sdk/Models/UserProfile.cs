@@ -62,13 +62,5 @@ public class UserProfile : ClientModel<UserProfile, long>, ISharedUserProfile
     private UserProfile() : base() {}
     public UserProfile(ValourClient client) : base(client) { }
 
-    public override UserProfile AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Client.Cache.UserProfiles.Put(this, flags);
-    }
-    
-    public override UserProfile RemoveFromCache(bool skipEvents = false)
-    {
-        return Client.Cache.UserProfiles.Remove(this, skipEvents);
-    }
+    protected override ModelStore<UserProfile, long> CacheStore => Client.Cache.UserProfiles;
 }

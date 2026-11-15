@@ -24,13 +24,5 @@ public class ChannelMember : ClientModel<ChannelMember, long>
     private ChannelMember() {}
     public ChannelMember(ValourClient client) : base(client) { }
 
-    public override ChannelMember AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Client.Cache.ChannelMembers.Put(this, flags);
-    }
-
-    public override ChannelMember RemoveFromCache(bool skipEvents = false)
-    {
-        return Client.Cache.ChannelMembers.Remove(this, skipEvents);
-    }
+    protected override ModelStore<ChannelMember, long> CacheStore => Client.Cache.ChannelMembers;
 }

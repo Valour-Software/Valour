@@ -136,14 +136,16 @@ public abstract class ClientModel<TSelf> : ClientModel
     public virtual void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None) { }
 
     /// <summary>
-    /// Adds this item to the cache
+    /// Adds this item to the cache and returns the cached copy. Models that are
+    /// not cached return themselves.
     /// </summary>
-    public abstract TSelf AddToCache(ModelInsertFlags flags = ModelInsertFlags.None);
+    public virtual TSelf AddToCache(ModelInsertFlags flags = ModelInsertFlags.None) => (TSelf)this;
     
     /// <summary>
-    /// Returns and removes this item from the cache.
+    /// Removes this item from the cache and returns the removed copy. Models
+    /// that are not cached return themselves.
     /// </summary>
-    public abstract TSelf RemoveFromCache(bool skipEvents = false);
+    public virtual TSelf RemoveFromCache(bool skipEvents = false) => (TSelf)this;
 
     /// <summary>
     /// Safely invokes the updated event
@@ -171,6 +173,24 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
     [JsonConstructor]
     protected ClientModel(): base() { }
     public ClientModel(ValourClient client) : base(client) { }
+
+    /// <summary>
+    /// The store this model is cached in, or null when it is not cached, such
+    /// as a planet model whose planet is not loaded.
+    /// </summary>
+    protected virtual ModelStore<TSelf, TId>? CacheStore => null;
+
+    /// <summary>
+    /// The origin scope to cache under, for models from community nodes that
+    /// are keyed by scope as well as id.
+    /// </summary>
+    protected virtual string? CacheStoreScope => null;
+
+    public override TSelf AddToCache(ModelInsertFlags flags = ModelInsertFlags.None) =>
+        CacheStore?.Put((TSelf)this, flags, CacheStoreScope) ?? (TSelf)this;
+
+    public override TSelf RemoveFromCache(bool skipEvents = false) =>
+        CacheStore?.Remove((TSelf)this, CacheStoreScope, skipEvents) ?? (TSelf)this;
     
     /// <summary>
     /// Attempts to create this item on the server

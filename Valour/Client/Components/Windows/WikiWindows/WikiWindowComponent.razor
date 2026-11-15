@@ -323,6 +323,7 @@
     private List<(int Level, string Text)> _toc = new();
 
     private DocsMode _mode = DocsMode.View;
+    public bool IsEditing => _mode == DocsMode.Edit;
     private bool _editorCreating;
     private long? _editorParentId;
     private bool _editorDirty;
@@ -944,6 +945,9 @@
 
     public class Content : WindowContent<WikiWindowComponent, WikiWindowData>
     {
+        // An open editor may hold unsaved text
+        public override bool KeepOnNavigate => ComponentBase?.IsEditing == true;
+
         public override async Task ImportData(string data, ValourClient client)
         {
             Data = JsonSerializer.Deserialize<WikiWindowData>(data);

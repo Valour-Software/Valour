@@ -49,6 +49,8 @@ public class FederationHubService
     /// </summary>
     private const int MaxDescriptorBytes = 64 * 1024;
 
+    private static readonly JsonSerializerOptions DescriptorJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
     private readonly ValourDb _db;
     private readonly FederationKeyService _keyService;
     private readonly IHttpClientFactory _httpFactory;
@@ -854,7 +856,6 @@ public class FederationHubService
         if (length > MaxDescriptorBytes)
             throw new InvalidDataException("The node descriptor is too large.");
 
-        return JsonSerializer.Deserialize<FederatedNodeWellKnown>(buffer.AsSpan(0, length),
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return JsonSerializer.Deserialize<FederatedNodeWellKnown>(buffer.AsSpan(0, length), DescriptorJsonOptions);
     }
 }

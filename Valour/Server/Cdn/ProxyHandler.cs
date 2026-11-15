@@ -12,7 +12,7 @@ using MessageAttachment = Valour.Sdk.Models.MessageAttachment;
 
 namespace Valour.Server.Cdn;
 
-public class ProxyHandler
+public partial class ProxyHandler
 {
     private readonly HttpClient _http;
     private readonly ILogger<ProxyHandler> _logger;
@@ -412,7 +412,7 @@ public class ProxyHandler
             return seconds;
 
         // Parse formats like "1m30s", "1h2m3s", etc.
-        var match = Regex.Match(timestamp, @"(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?");
+        var match = TimestampRegex.Match(timestamp);
         if (match.Success)
         {
             var hours = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 0;
@@ -457,7 +457,7 @@ public class ProxyHandler
         }
 
         // Clip, including twitch.tv/<channel>/clip/<slug>
-        var channelClip = Regex.Match(path, @"^/[^/]+/clip/([^/]+)");
+        var channelClip = ChannelClipPath.Match(path);
         if (channelClip.Success)
         {
             attachment.Location = $"https://clips.twitch.tv/embed?clip={Uri.EscapeDataString(channelClip.Groups[1].Value)}&parent={ValourHosts.RootDomain}";
@@ -497,9 +497,17 @@ public class ProxyHandler
 
     // Post links from X, Twitter, and the fxtwitter family all carry the
     // author's handle and the post ID in the same place.
-    private static readonly Regex TwitterStatusPath = new(
-        @"^/([A-Za-z0-9_]{1,15})/status(?:es)?/(\d{1,20})(?:/|$)",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^/([A-Za-z0-9_]{1,15})/status(?:es)?/(\d{1,20})(?:/|$)", RegexOptions.CultureInvariant)]
+    private static partial Regex TwitterStatusPath { get; }
+
+    [GeneratedRegex(@"(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?")]
+    private static partial Regex TimestampRegex { get; }
+
+    [GeneratedRegex(@"^/[^/]+/clip/([^/]+)")]
+    private static partial Regex ChannelClipPath { get; }
+
+    [GeneratedRegex(@"^/(?:p|reel)/[A-Za-z0-9_-]+$")]
+    private static partial Regex InstagramPostPath { get; }
 
     private async Task<MessageAttachment> HandleTwitter(Uri uri, MessageAttachment attachment)
     {
@@ -559,13 +567,11 @@ public class ProxyHandler
 
     #region TikTok
 
-    private static readonly Regex TikTokVideoPath = new(
-        @"/video/(\d{5,25})(?:/|$)",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"/video/(\d{5,25})(?:/|$)", RegexOptions.CultureInvariant)]
+    private static partial Regex TikTokVideoPath { get; }
 
-    private static readonly Regex TikTokVideoIdAttribute = new(
-        @"data-video-id=""(\d{5,25})""",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"data-video-id=""(\d{5,25})""", RegexOptions.CultureInvariant)]
+    private static partial Regex TikTokVideoIdAttribute { get; }
 
     private async Task<MessageAttachment> HandleTikTok(string url, Uri uri, MessageAttachment attachment)
     {
@@ -623,7 +629,7 @@ public class ProxyHandler
             else if (path.StartsWith("/tv/"))
                 path = "/p/" + path["/tv/".Length..];
 
-            if (Regex.IsMatch(path, @"^/(?:p|reel)/[A-Za-z0-9_-]+$"))
+            if (InstagramPostPath.IsMatch(path))
             {
                 // Use the embed URL format
                 attachment.Location = $"https://www.instagram.com{path}/embed/";
@@ -709,9 +715,8 @@ public class ProxyHandler
 
     #region GitHub
 
-    private static readonly Regex GistPath = new(
-        @"^/(?:[A-Za-z0-9-]{1,39}/)?([0-9a-f]{20,40})/?$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^/(?:[A-Za-z0-9-]{1,39}/)?([0-9a-f]{20,40})/?$", RegexOptions.CultureInvariant)]
+    private static partial Regex GistPath { get; }
 
     private const int GistPreviewFiles = 2;
     private const int GistPreviewLines = 15;
@@ -813,9 +818,8 @@ public class ProxyHandler
 
     #region Threads
 
-    private static readonly Regex ThreadsPostPath = new(
-        @"^/@([A-Za-z0-9._]{1,30})/post/([A-Za-z0-9_-]{5,20})(?:/|$)",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^/@([A-Za-z0-9._]{1,30})/post/([A-Za-z0-9_-]{5,20})(?:/|$)", RegexOptions.CultureInvariant)]
+    private static partial Regex ThreadsPostPath { get; }
 
     private static MessageAttachment HandleThreads(Uri uri, MessageAttachment attachment)
     {
@@ -831,9 +835,8 @@ public class ProxyHandler
 
     #region Streamable
 
-    private static readonly Regex StreamablePath = new(
-        @"^/(?:[eos]/)?([A-Za-z0-9]{4,12})/?$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^/(?:[eos]/)?([A-Za-z0-9]{4,12})/?$", RegexOptions.CultureInvariant)]
+    private static partial Regex StreamablePath { get; }
 
     private async Task<MessageAttachment> HandleStreamable(Uri uri, MessageAttachment attachment)
     {
@@ -867,9 +870,8 @@ public class ProxyHandler
 
     #region Apple Music
 
-    private static readonly Regex AppleMusicPath = new(
-        @"^/[a-z]{2}/(album|playlist|song)/[^/]+/[A-Za-z0-9.]+/?$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^/[a-z]{2}/(album|playlist|song)/[^/]+/[A-Za-z0-9.]+/?$", RegexOptions.CultureInvariant)]
+    private static partial Regex AppleMusicPath { get; }
 
     private static MessageAttachment HandleAppleMusic(Uri uri, MessageAttachment attachment)
     {
@@ -893,9 +895,8 @@ public class ProxyHandler
 
     #region Kick
 
-    private static readonly Regex KickChannelPath = new(
-        @"^/([A-Za-z0-9_]{3,25})/?$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^/([A-Za-z0-9_]{3,25})/?$", RegexOptions.CultureInvariant)]
+    private static partial Regex KickChannelPath { get; }
 
     // Site pages that share the channel URL shape.
     private static readonly HashSet<string> KickReservedPaths = new(StringComparer.OrdinalIgnoreCase)
@@ -917,9 +918,8 @@ public class ProxyHandler
 
     #region Bluesky
 
-    private static readonly Regex BlueskyPostUri = new(
-        @"data-bluesky-uri=""at://(did:[a-z]+:[A-Za-z0-9._:%-]+)/app\.bsky\.feed\.post/([A-Za-z0-9]+)""",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"data-bluesky-uri=""at://(did:[a-z]+:[A-Za-z0-9._:%-]+)/app\.bsky\.feed\.post/([A-Za-z0-9]+)""", RegexOptions.CultureInvariant)]
+    private static partial Regex BlueskyPostUri { get; }
 
     private async Task<MessageAttachment> HandleBluesky(string url, MessageAttachment attachment)
     {
@@ -1002,7 +1002,7 @@ public class ProxyHandler
     /// </summary>
     private async Task<string> EnsureProxiedImageAsync(SitePreviewImage image, ValourDb db)
     {
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(image.Url))).ToLowerInvariant();
+        var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(image.Url)));
         var id = hash + image.Extension;
 
         try
@@ -1124,7 +1124,7 @@ public class ProxyHandler
         {
             // Get hash from uri (using thread-safe static method)
             var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(uri.AbsoluteUri));
-            var hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+            var hash = Convert.ToHexStringLower(hashBytes);
 
             var attachment = new MessageAttachment(type)
             {

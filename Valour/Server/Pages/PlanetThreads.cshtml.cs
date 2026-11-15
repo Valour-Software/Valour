@@ -72,7 +72,7 @@ public class PlanetThreadsModel : PageModel
             return Page();
         }
 
-        PlanetIcon = PublicThreadPageHelpers.NormalizeMediaUrl(ISharedPlanet.GetIconUrl(Planet, IconFormat.Webp128));
+        PlanetIcon = PublicThreadPageHelpers.NormalizeMediaUrl(Planet.GetIconUrl(IconFormat.Webp128));
 
         if (!Planet.EnableThreads || !Planet.PublicThreads)
         {
@@ -133,7 +133,7 @@ public class PlanetThreadsModel : PageModel
                 {
                     Title = thread.Title,
                     AuthorName = name,
-                    AuthorAvatarUrl = PublicThreadPageHelpers.NormalizeMediaUrl(ISharedUser.GetAvatar(user, AvatarFormat.Webp64)),
+                    AuthorAvatarUrl = PublicThreadPageHelpers.NormalizeMediaUrl(user.GetAvatar(AvatarFormat.Webp64)),
                     AuthorRoleName = roleName,
                     AuthorRoleColor = roleColor,
                     TimeCreated = thread.TimeCreated,

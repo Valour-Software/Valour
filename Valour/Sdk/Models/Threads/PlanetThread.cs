@@ -81,6 +81,8 @@ public class PlanetThread : ClientPlanetModel<PlanetThread, long>, ISharedPlanet
     {
     }
 
+    protected override ModelStore<PlanetThread, long> CacheStore => Planet.Threads;
+
     public override PlanetThread AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         // Feed hydration is intentionally excluded from realtime model diffs,
@@ -96,12 +98,7 @@ public class PlanetThread : ClientPlanetModel<PlanetThread, long>, ISharedPlanet
             existing.ViewerHasBoosted = ViewerHasBoosted ?? existing.ViewerHasBoosted;
         }
 
-        return Planet.Threads.Put(this, flags);
-    }
-
-    public override PlanetThread RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.Threads.Remove(this, skipEvents);
+        return base.AddToCache(flags);
     }
 
     public override void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None)

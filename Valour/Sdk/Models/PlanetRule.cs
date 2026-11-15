@@ -27,13 +27,5 @@ public class PlanetRule : ClientPlanetModel<PlanetRule, long>, ISharedPlanetRule
     {
     }
 
-    public override PlanetRule AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Planet.Rules.Put(this, flags);
-    }
-
-    public override PlanetRule RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.Rules.Remove(this, skipEvents);
-    }
+    protected override ModelStore<PlanetRule, long> CacheStore => Planet.Rules;
 }

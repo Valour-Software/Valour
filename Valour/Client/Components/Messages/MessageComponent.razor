@@ -23,134 +23,104 @@ else
      @onpointerdown="@OnPointerDown"
      @ref="OuterRef">
     
-    <div class="left-info">
-        @if (!Minimal)
-        {
-            <UserAvatar User="@_user" Member="@_member" OverrideUrl="@GetWebhookAvatar()" AnimatedUrl="@(_message.WebhookId is null && _user.HasAnimatedAvatar ? _animatedAvatarUrl : null)" Size="38" ShowBadges="@(!_isInnerReply)" OnClick="@OnClickName"/>
-        }
-        else
-        {
-            <span class="time" title="@_timeTitle">@_timeText</span>
-        }
-    </div>
-    <div class="content-holder">
+    @* The avatar or the minimal row's time sits in the left gutter, and the
+       rest flows beside it, so rows need no wrapper elements. *@
+    @if (!Minimal)
+    {
+        <UserAvatar User="@_user" Member="@_member" OverrideUrl="@GetWebhookAvatar()" AnimatedUrl="@(_message.WebhookId is null && _user.HasAnimatedAvatar ? _animatedAvatarUrl : null)" Size="38" ShowBadges="@(!_isInnerReply)" OnClick="@OnClickName"/>
 
-        @if (!Minimal)
-        {
-            <div class="name-role-holder">
-                
-                <p @onclick="OnClickName" 
-                   @oncontextpress:stopPropagation="true"
-                   @oncontextpress="@OnNameContextMenu"
-                   class="author-name" 
-                   style="color: @_nameColor;">
-                    @_name
-                </p>
+        <div class="name-role-holder">
+            <p @onclick="OnClickName"
+               @oncontextpress:stopPropagation="true"
+               @oncontextpress="@OnNameContextMenu"
+               class="author-name"
+               style="color: @_nameColor;">
+                @_name
+            </p>
 
-                @if (!string.IsNullOrEmpty(_nameTag))
-                {
-                    <span class="role-name">&nbsp;- @_nameTag</span>
-                }
-                <span class="time" title="@_timeTitle">(@_timeText)</span>
-                @if (_message.IsFromBeforeEncryption)
-                {
-                    @RenderSealedLabel
-                }
-            </div>
-        }
-        else if (_message.IsFromBeforeEncryption)
+            @if (!string.IsNullOrEmpty(_nameTag))
+            {
+                <span class="role-name">&nbsp;- @_nameTag</span>
+            }
+            <span class="time" title="@_timeTitle">(@_timeText)</span>
+            @if (_message.IsFromBeforeEncryption)
+            {
+                @RenderSealedLabel
+            }
+        </div>
+    }
+    else
+    {
+        <span class="time" title="@_timeTitle">@_timeText</span>
+
+        @if (_message.IsFromBeforeEncryption)
         {
             <div class="sealed-label-row">
                 @RenderSealedLabel
             </div>
         }
+    }
 
-        @if (_message.ReplyTo is not null && !_isInnerReply)
-        {
-            @RenderReply
-        }
+    @if (_message.ReplyTo is not null && !_isInnerReply)
+    {
+        @RenderReply
+    }
 
-        <div class="content">
-            @if (_message.Attachments != null && AttachmentsVerified)
-            {
-                RenderAttachments(__builder, followingText: false);
-            }
+    @if (_message.Attachments != null && AttachmentsVerified)
+    {
+        RenderAttachments(__builder, followingText: false);
+    }
 
-            @if (_message.AttachmentsWithheld)
-            {
-                <div class="encryption-notice withheld" role="status">
-                    <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
-                    <span>Some attachments were hidden because the sender did not send them with this message.</span>
-                </div>
-            }
-
-            @if (!_message.IsEmbed())
-            {
-                @RenderContent
-
-                @if (Edit)
-                {
-                    <p class="edit-flag">(Editing)</p>
-                }
-            }
-            
-            @if (_message.EditedTime != null)
-            {
-                <p class="edited-flag"> (Edited)</p>
-            }
-            @if (!string.IsNullOrWhiteSpace(_message.ImportSource))
-            {
-                <span class="imported-flag" title="Imported from @_message.ImportSource">Imported</span>
-            }
-
-            @if (_message.Attachments != null && AttachmentsVerified)
-            {
-                RenderAttachments(__builder, followingText: true);
-            }
+    @if (_message.AttachmentsWithheld)
+    {
+        <div class="encryption-notice withheld" role="status">
+            <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+            <span>Some attachments were hidden because the sender did not send them with this message.</span>
         </div>
-    </div>
+    }
+
+    @if (!_message.IsEmbed())
+    {
+        @RenderContent
+
+        @if (Edit)
+        {
+            <p class="edit-flag">(Editing)</p>
+        }
+    }
+
+    @if (_message.EditedTime != null)
+    {
+        <p class="edited-flag"> (Edited)</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(_message.ImportSource))
+    {
+        <span class="imported-flag" title="Imported from @_message.ImportSource">Imported</span>
+    }
+
+    @if (_message.Attachments != null && AttachmentsVerified)
+    {
+        RenderAttachments(__builder, followingText: true);
+    }
     @if (_reactions is not null && _reactions.Count > 0)
     {
-        <div class="reactions">
+        <div class="reactions" data-tooltip-host="@ReactionTooltipKey">
             @foreach (var reaction in _reactionsToRender)
             {
                 var added = _myReactions.Contains(reaction.emoji) ? "added" : "";
                 var newReaction = _newReactions != null && _newReactions.Contains(reaction.emoji) ? "new" : "";
-                
-                <TooltipTrigger Position="top" OnShow="@(() => EnsureReactionUsersAsync(reaction.emoji))">
-                    <ChildContent>
-                        <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
-                            @if (GetReactionSrc(reaction.emoji) is { } reactionSrc)
-                            {
-                                <img class="emoji" src="@reactionSrc" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)" decoding="async"/>
-                            }
-                            else
-                            {
-                                <span class="emoji" role="img" aria-label="@reaction.emoji">@reaction.emoji</span>
-                            }
-                            <span class="reaction-count">@reaction.count</span>
-                        </div>
-                    </ChildContent>
-                    <TooltipContent>
-                        <div class="reaction-tooltip-users">
-                            @if (_reactionUsers.TryGetValue(reaction.emoji, out var reactionUsers) && reactionUsers.Count > 0)
-                            {
-                                @foreach (var entry in reactionUsers.Take(MaxTooltipUsers))
-                                {
-                                    <UserInfoComponent @key="@(entry.Member?.Id ?? entry.User?.Id ?? 0)" User="@entry.User" Member="@entry.Member" Compact="true" AvatarSize="18" ShowBadges="false" ShowState="false" ShowStatus="false" />
-                                }
-                                @if (reactionUsers.Count > MaxTooltipUsers)
-                                {
-                                    <div class="reaction-tooltip-more">+@(reactionUsers.Count - MaxTooltipUsers) more</div>
-                                }
-                            }
-                            else
-                            {
-                                <div class="reaction-tooltip-name">Loading...</div>
-                            }
-                        </div>
-                    </TooltipContent>
-                </TooltipTrigger>
+
+                <div class="reaction @added @newReaction" data-reaction="@reaction.emoji" @onclick="() => OnReactionClick(reaction.emoji)">
+                    @if (GetReactionSrc(reaction.emoji) is { } reactionSrc)
+                    {
+                        <img class="emoji" src="@reactionSrc" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)" decoding="async"/>
+                    }
+                    else
+                    {
+                        <span class="emoji" role="img" aria-label="@reaction.emoji">@reaction.emoji</span>
+                    }
+                    <span class="reaction-count">@reaction.count</span>
+                </div>
             }
 
             @if (_reactions.Count > 20)
@@ -452,6 +422,55 @@ else
 
         var user = member?.User ?? await Client.UserService.FetchUserAsync(reaction.AuthorUserId);
         return (user, member);
+    }
+
+    // Registered only once reactions render, so most messages never hold a key
+    private int _reactionTooltipKey;
+    private ReactionTooltipSource _openReactionTooltip;
+
+    private int ReactionTooltipKey => _reactionTooltipKey != 0
+        ? _reactionTooltipKey
+        : _reactionTooltipKey = ReactionTooltips.Register(this);
+
+    internal Task ShowReactionTooltipAsync(string emoji, ElementBounds bounds) => InvokeAsync(async () =>
+    {
+        if (_reactions is null || !_reactions.ContainsKey(emoji))
+            return;
+
+        await EnsureReactionUsersAsync(emoji);
+
+        _openReactionTooltip = new ReactionTooltipSource(
+            $"reaction-{_reactionTooltipKey}-{emoji}",
+            ReactionTooltipContent(emoji),
+            bounds);
+        TooltipRoot.ShowTooltip(_openReactionTooltip);
+    });
+
+    private RenderFragment ReactionTooltipContent(string emoji) => @<div class="reaction-tooltip-users">
+        @if (_reactionUsers.TryGetValue(emoji, out var reactionUsers) && reactionUsers.Count > 0)
+        {
+            @foreach (var entry in reactionUsers.Take(MaxTooltipUsers))
+            {
+                <UserInfoComponent @key="@(entry.Member?.Id ?? entry.User?.Id ?? 0)" User="@entry.User" Member="@entry.Member" Compact="true" AvatarSize="18" ShowBadges="false" ShowState="false" ShowStatus="false" />
+            }
+            @if (reactionUsers.Count > MaxTooltipUsers)
+            {
+                <div class="reaction-tooltip-more">+@(reactionUsers.Count - MaxTooltipUsers) more</div>
+            }
+        }
+        else
+        {
+            <div class="reaction-tooltip-name">Loading...</div>
+        }
+    </div>;
+
+    private sealed class ReactionTooltipSource(string triggerId, RenderFragment content, ElementBounds bounds) : ITooltipSource
+    {
+        public string TriggerId => triggerId;
+        public RenderFragment TooltipContent => content;
+        public string Position => "top";
+        public string TooltipClass => null;
+        public Task<ElementBounds> GetBoundsAsync() => Task.FromResult(bounds);
     }
 
     private async Task EnsureReactionUsersAsync(string emoji)
@@ -1341,6 +1360,12 @@ else
 
         KeyboardListener.KeyDown -= OnKeyDown;
         _escapeSubscribed = false;
+
+        if (_reactionTooltipKey != 0)
+            ReactionTooltips.Unregister(_reactionTooltipKey);
+
+        if (_openReactionTooltip is not null)
+            TooltipRoot.RemoveTooltipByTrigger(_openReactionTooltip);
     }
 
     /// <summary>

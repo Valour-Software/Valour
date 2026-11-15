@@ -15,18 +15,18 @@ namespace Valour.Server.Services;
 /// address. Addresses it does not recognize return null and keep the
 /// generic card.
 /// </summary>
-public class AppLinkPreviewService
+public partial class AppLinkPreviewService
 {
     private const int MaxDescriptionLength = 200;
 
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromMinutes(5);
 
     // Invite codes and vanity names; see PlanetInviteService.
-    private static readonly Regex InvitePath = new(@"^/i/([A-Za-z0-9_-]{1,64})/?$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^/i/([A-Za-z0-9_-]{1,64})/?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex InvitePath { get; }
 
-    private static readonly Regex PlanetPath = new(@"^/(?:d|planet)/(\d{1,20})/?$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^/(?:d|planet)/(\d{1,20})/?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex PlanetPath { get; }
 
     private readonly IMemoryCache _cache;
     private readonly PlanetInviteService _inviteService;

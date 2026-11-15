@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <LangVersion>preview</LangVersion>
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <ImplicitUsings>true</ImplicitUsings>
     <Nullable>annotations</Nullable>

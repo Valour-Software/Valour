@@ -66,13 +66,5 @@ public class PlanetBan : ClientPlanetModel<PlanetBan, long>, ISharedPlanetBan
         return result;
     }
 
-    public override PlanetBan AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Planet.Bans.Put(this, flags);
-    }
-
-    public override PlanetBan RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.Bans.Remove(this, skipEvents);
-    }
+    protected override ModelStore<PlanetBan, long> CacheStore => Planet.Bans;
 }

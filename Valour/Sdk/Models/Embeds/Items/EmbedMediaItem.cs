@@ -12,7 +12,4 @@ public class EmbedMediaItem : EmbedItem, IClickableItem
     public MessageAttachment? Attachment { get; set; }
 
     public EmbedClickTarget? ClickTarget { get; set; }
-
-    [JsonIgnore]
-    public override EmbedItemType ItemType => EmbedItemType.Media;
 }

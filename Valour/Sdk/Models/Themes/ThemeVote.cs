@@ -15,16 +15,4 @@ public class ThemeVote : ClientModel<ThemeVote, long>, ISharedThemeVote
     
     private ThemeVote() : base() {}
     public ThemeVote(ValourClient client) : base(client) { }
-    
-    public override ThemeVote AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        // we dont cache theme votes
-        return this;
-    }
-
-    public override ThemeVote RemoveFromCache(bool skipEvents = false)
-    {
-        // we dont cache theme votes
-        return this;
-    }
 }

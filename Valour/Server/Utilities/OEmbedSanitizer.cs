@@ -7,7 +7,7 @@ namespace Valour.Server.Utilities;
 /// <summary>
 /// Sanitizes oEmbed HTML content to reduce XSS risk.
 /// </summary>
-public static class OEmbedSanitizer
+public static partial class OEmbedSanitizer
 {
     private static readonly HashSet<string> AllowedTags = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -47,29 +47,23 @@ public static class OEmbedSanitizer
         "w.soundcloud.com",
     };
 
-    private static readonly Regex EventHandlerPattern = new(
-        @"\s+on\w+\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    [GeneratedRegex(@"\s+on\w+\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)", RegexOptions.IgnoreCase)]
+    private static partial Regex EventHandlerPattern { get; }
 
-    private static readonly Regex JavaScriptUrlPattern = new(
-        @"(?:href|src)\s*=\s*[""']?\s*javascript:",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    [GeneratedRegex(@"(?:href|src)\s*=\s*[""']?\s*javascript:", RegexOptions.IgnoreCase)]
+    private static partial Regex JavaScriptUrlPattern { get; }
 
-    private static readonly Regex DataUrlPattern = new(
-        @"(?:href|src)\s*=\s*[""']?\s*data:(?!image/(?:png|jpg|jpeg|gif|webp))",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    [GeneratedRegex(@"(?:href|src)\s*=\s*[""']?\s*data:(?!image/(?:png|jpg|jpeg|gif|webp))", RegexOptions.IgnoreCase)]
+    private static partial Regex DataUrlPattern { get; }
 
-    private static readonly Regex InlineScriptPattern = new(
-        @"<script[^>]*>[\s\S]*?</script>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    [GeneratedRegex(@"<script[^>]*>[\s\S]*?</script>", RegexOptions.IgnoreCase)]
+    private static partial Regex InlineScriptPattern { get; }
 
-    private static readonly Regex TagPattern = new(
-        @"<(?<close>/)?(?<tag>[a-zA-Z0-9]+)(?<attrs>[^>]*)>",
-        RegexOptions.Compiled);
+    [GeneratedRegex(@"<(?<close>/)?(?<tag>[a-zA-Z0-9]+)(?<attrs>[^>]*)>")]
+    private static partial Regex TagPattern { get; }
 
-    private static readonly Regex AttributePattern = new(
-        @"(?<name>[^\s=/>]+)(?:\s*=\s*(?<value>""[^""]*""|'[^']*'|[^\s""'=<>`]+))?",
-        RegexOptions.Compiled);
+    [GeneratedRegex(@"(?<name>[^\s=/>]+)(?:\s*=\s*(?<value>""[^""]*""|'[^']*'|[^\s""'=<>`]+))?")]
+    private static partial Regex AttributePattern { get; }
 
     public static string Sanitize(string html)
     {

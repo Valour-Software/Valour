@@ -37,9 +37,6 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
     private PlanetInvite() : base() {}
     public PlanetInvite(ValourClient client) : base(client) { }
 
-    public bool IsPermanent() =>
-        ISharedPlanetInvite.IsPermanent(this);
-
     /// <summary>
     /// Returns the name of the invite's planet
     /// </summary>
@@ -54,19 +51,8 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
 
     
 
-    public override PlanetInvite AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        var planet = GetPlanet(false);
-        
-        if (planet is null)
-            return Client.Cache.OutsidePlanetInvites.Put(this, flags);
-        
-        return Planet.Invites.Put(this, flags);
-    }
-
-    public override PlanetInvite RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.Invites.Remove(this, skipEvents);
-    }
+    // Invites to planets that are not loaded are kept in a separate store
+    protected override ModelStore<PlanetInvite, string> CacheStore =>
+        GetPlanet(false)?.Invites ?? Client.Cache.OutsidePlanetInvites;
 }
 

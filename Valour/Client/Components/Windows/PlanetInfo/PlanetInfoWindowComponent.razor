@@ -259,7 +259,7 @@ else
         return new Content()
         {
             Title = "Info - " + planetInfo.Name,
-            Icon = ISharedPlanet.GetIconUrl(planetInfo, IconFormat.Webp64),
+            Icon = planetInfo.GetIconUrl(IconFormat.Webp64),
             Data = planetInfo,
             PlanetId = planetInfo.PlanetId,
             AutoScroll = true

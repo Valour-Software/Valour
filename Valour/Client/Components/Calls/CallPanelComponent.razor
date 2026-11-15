@@ -364,7 +364,7 @@
     </div>;
 
     private RealtimeKitComponent? _rtk => RealtimeKitHost.Component;
-    private readonly object _memberPrefetchLock = new();
+    private readonly Lock _memberPrefetchLock = new();
 
     private bool _joined;
     private bool _connecting;
@@ -888,7 +888,7 @@
     {
         var normalizedPeerId = string.IsNullOrWhiteSpace(peerId) ? "unknown" : peerId;
         var idBytes = System.Text.Encoding.UTF8.GetBytes(normalizedPeerId);
-        var idSuffix = Convert.ToHexString(idBytes).ToLowerInvariant();
+        var idSuffix = Convert.ToHexStringLower(idBytes);
         return $"call-audio-{idSuffix}";
     }
 
@@ -896,7 +896,7 @@
     {
         var normalizedPeerId = string.IsNullOrWhiteSpace(peerId) ? "unknown" : peerId;
         var idBytes = System.Text.Encoding.UTF8.GetBytes(normalizedPeerId);
-        var idSuffix = Convert.ToHexString(idBytes).ToLowerInvariant();
+        var idSuffix = Convert.ToHexStringLower(idBytes);
         var sourceSuffix = source == VideoTileSource.ScreenShare ? "screen" : "camera";
         var hostSuffix = isViewportFullscreen ? "fullscreen" : "inline";
         return $"call-video-{sourceSuffix}-{hostSuffix}-{idSuffix}";

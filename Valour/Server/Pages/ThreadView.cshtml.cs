@@ -112,7 +112,7 @@ public class ThreadViewModel : PageModel
             return Page();
         }
 
-        PlanetIcon = PublicThreadPageHelpers.NormalizeMediaUrl(ISharedPlanet.GetIconUrl(Planet, IconFormat.Webp128));
+        PlanetIcon = PublicThreadPageHelpers.NormalizeMediaUrl(Planet.GetIconUrl(IconFormat.Webp128));
 
         if (!Planet.EnableThreads || !Planet.PublicThreads)
         {
@@ -260,7 +260,7 @@ public class ThreadViewModel : PageModel
         string GetAvatar(long userId)
         {
             users.TryGetValue(userId, out var user);
-            return PublicThreadPageHelpers.NormalizeMediaUrl(ISharedUser.GetAvatar(user, AvatarFormat.Webp64));
+            return PublicThreadPageHelpers.NormalizeMediaUrl(user.GetAvatar(AvatarFormat.Webp64));
         }
 
         Post!.AuthorName = GetName(Thread.AuthorUserId, Thread.AuthorMemberId);

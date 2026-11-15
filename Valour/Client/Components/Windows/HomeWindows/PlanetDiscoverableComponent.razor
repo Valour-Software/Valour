@@ -50,11 +50,11 @@
     protected override void OnInitialized(){
         if (PlanetInfo.HasCustomIcon)
         {
-            _iconUrl = ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
+            _iconUrl = PlanetInfo.GetIconUrl(IconFormat.Webp256);
 
             if (PlanetInfo.HasAnimatedIcon)
             {
-                _animatedIconUrl =  ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256);
+                _animatedIconUrl =  PlanetInfo.GetIconUrl(IconFormat.WebpAnimated256);
             }
         }
         else
@@ -71,7 +71,7 @@
     private void GenerateAutoGraphic()
     {
         _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
-        _iconText = ISharedPlanet.GetCommunityShortCode(PlanetInfo);
+        _iconText = PlanetInfo.CommunityShortCode;
         _iconImageColor = PlanetInfo.PlanetId.GetHashCode();
 
         _iconTextStyle = $"font-size: {100f / (_iconText.Length + 1)}px;";

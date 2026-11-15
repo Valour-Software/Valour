@@ -386,8 +386,7 @@ public class CoreHub : Hub
             ? member.User?.Name ?? "Member"
             : member.Nickname;
 
-        var avatarUrl = Valour.Shared.Models.ISharedPlanetMember.GetAvatar(
-            member, Valour.Shared.Models.AvatarFormat.Webp64);
+        var avatarUrl = member.GetAvatar(Valour.Shared.Models.AvatarFormat.Webp64);
 
         var snapshot = await _villagePresenceService.JoinMapAsync(
             planetId,

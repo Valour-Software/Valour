@@ -67,7 +67,7 @@
                     @foreach (var emoji in Planet.Emojis.OrderBy(x => x.Name))
                     {
                         <div class="emoji-card">
-                            <img class="emoji-preview" src="@ISharedPlanetEmoji.GetCdnUrl(emoji)" alt="@($":{emoji.Name}:")" />
+                            <img class="emoji-preview" src="@emoji.GetCdnUrl()" alt="@($":{emoji.Name}:")" />
                             <div class="emoji-meta">
                                 <span class="emoji-name" title="@($":{emoji.Name}:")">:@emoji.Name:</span>
                                 <button class="v-btn danger emoji-delete-btn"

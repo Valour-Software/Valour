@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Valour.Client.Components.Utility;
 using Valour.Client.Device;
 using Valour.Client.Modals;
@@ -26,12 +27,12 @@ public record ExternalSignInOutcome(string Result, string Ticket, string Message
 /// </summary>
 public class ExternalSignInService
 {
-    private static readonly Dictionary<string, (string Name, string Icon)> Providers = new()
+    private static readonly FrozenDictionary<string, (string Name, string Icon)> Providers = new Dictionary<string, (string Name, string Icon)>()
     {
         [ExternalAuthProviders.Google] = ("Google", "bi-google"),
         [ExternalAuthProviders.Discord] = ("Discord", "bi-discord"),
         [ExternalAuthProviders.Apple] = ("Apple", "bi-apple"),
-    };
+    }.ToFrozenDictionary();
 
     private readonly AuthService _authService;
     private readonly IExternalAuthLauncher _launcher;

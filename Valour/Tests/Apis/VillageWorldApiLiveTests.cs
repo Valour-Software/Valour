@@ -383,13 +383,13 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
         var callChannel = await _planet.FetchChannelAsync(acquired.Data.ChannelId);
         Assert.NotNull(callChannel);
         Assert.Equal(ChannelTypeEnum.PlanetVideo, callChannel.ChannelType);
-        Assert.True(ISharedChannel.IsVillageEphemeral(callChannel));
+        Assert.True(callChannel.IsVillageEphemeral);
         Assert.Equal(acquired.Data.ChatChannelId, callChannel.AssociatedChatChannelId);
 
         var chatChannel = await _planet.FetchChannelAsync(acquired.Data.ChatChannelId);
         Assert.NotNull(chatChannel);
         Assert.Equal(ChannelTypeEnum.PlanetChat, chatChannel.ChannelType);
-        Assert.True(ISharedChannel.IsVillageEphemeral(chatChannel));
+        Assert.True(chatChannel.IsVillageEphemeral);
 
         var released = await _fixture.Client.VillageService.ReleaseBuildingRoomAsync(_planet, building.Id);
         Assert.True(released.Success, released.Message);
@@ -426,7 +426,7 @@ public class VillageWorldApiLiveTests : IAsyncLifetime
         var callChannel = await _planet.FetchChannelAsync(first.Data.ChannelId);
         Assert.NotNull(callChannel);
         Assert.Equal(ChannelTypeEnum.PlanetVideo, callChannel.ChannelType);
-        Assert.True(ISharedChannel.IsVillageEphemeral(callChannel));
+        Assert.True(callChannel.IsVillageEphemeral);
         Assert.Equal(first.Data.ChatChannelId, callChannel.AssociatedChatChannelId);
 
         var released = await _fixture.Client.VillageService.ReleaseMapRoomAsync(_planet, outdoor.Id);

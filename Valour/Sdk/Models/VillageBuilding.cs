@@ -71,17 +71,6 @@ public class VillageBuilding : ClientPlanetModel<VillageBuilding, long>, IShared
     private VillageBuilding() : base() { }
     public VillageBuilding(ValourClient client) : base(client) { }
 
-    public override VillageBuilding AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        var planet = GetPlanet(false);
-        if (planet is null)
-            return this;
-
-        return planet.VillageBuildings.Put(this, flags);
-    }
-
-    public override VillageBuilding RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.VillageBuildings.Remove(this, skipEvents);
-    }
+    // Not cached until its planet is loaded
+    protected override ModelStore<VillageBuilding, long> CacheStore => GetPlanet(false)?.VillageBuildings;
 }

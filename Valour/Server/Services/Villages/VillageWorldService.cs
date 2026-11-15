@@ -190,7 +190,7 @@ public class VillageWorldService
                     X = outdoor.SpawnX,
                     Y = outdoor.SpawnY,
                     IsLocalPlayer = true,
-                    AvatarUrl = ISharedPlanetMember.GetAvatar(member, AvatarFormat.Webp64),
+                    AvatarUrl = member.GetAvatar(AvatarFormat.Webp64),
                     AccentColor = "#2d73d5",
                 },
             },

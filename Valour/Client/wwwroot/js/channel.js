@@ -1,24 +1,12 @@
-async function hljsHighlight(el){
-    const prior = el.parentElement.querySelector('.hljs-clone');
-    if (prior) {
-        el.parentElement.removeChild(prior);
-    }
+// Returns highlighted markup for a code block. highlight.js escapes the code
+// text, so the result is safe to render as markup.
+async function hljsHighlightHtml(code, language) {
+    await ensureChannelHighlightScript();
 
-    const clone = el.cloneNode(true);
-    clone.classList.add('hljs-clone');
-    clone.style.display = 'inherit';
+    if (language && hljs.getLanguage(language))
+        return hljs.highlight(code, { language, ignoreIllegals: true }).value;
 
-    // Preserves padding for inline code blocks
-    // and avoids false positive syntax highlighting
-    if ((el.parentElement instanceof HTMLPreElement)) {
-        await ensureChannelHighlightScript();
-        hljs.highlightElement(clone);
-    } else {
-        clone.classList.add('hljs');
-    }
-
-    el.parentElement.insertBefore(clone, el.nextSibling);
-    el.style.display = 'none';
+    return hljs.highlightAuto(code).value;
 }
 
 let channelHighlightScriptPromise = null;
