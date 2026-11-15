@@ -211,14 +211,6 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
         return "#808080";
     }
 
-    public override User AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Client.Cache.Users.Put(this, flags);
-    }
-
-    public override User RemoveFromCache(bool skipEvents = false)
-    {
-        return Client.Cache.Users.Remove(this, skipEvents);
-    }
+    protected override ModelStore<User, long> CacheStore => Client.Cache.Users;
 }
 

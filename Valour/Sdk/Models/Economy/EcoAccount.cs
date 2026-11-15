@@ -69,13 +69,6 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
     private EcoAccount() : base() {}
     public EcoAccount(ValourClient client) : base(client) { }
 
-    public override EcoAccount AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Client.Cache.EcoAccounts.Put(this, flags, CacheScope);
-    }
-
-    public override EcoAccount RemoveFromCache(bool skipEvents = false)
-    {
-        return Client.Cache.EcoAccounts.Remove(this, CacheScope, skipEvents);
-    }
+    protected override ModelStore<EcoAccount, long> CacheStore => Client.Cache.EcoAccounts;
+    protected override string CacheStoreScope => CacheScope;
 }

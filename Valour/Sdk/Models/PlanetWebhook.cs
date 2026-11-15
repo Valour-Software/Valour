@@ -71,17 +71,6 @@ public class PlanetWebhook : ClientPlanetModel<PlanetWebhook, long>, ISharedPlan
         return result;
     }
 
-    public override PlanetWebhook AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        var planet = GetPlanet(false);
-        if (planet is null)
-            return this;
-
-        return Planet.Webhooks.Put(this, flags);
-    }
-
-    public override PlanetWebhook RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.Webhooks.Remove(this, skipEvents);
-    }
+    // Not cached until its planet is loaded
+    protected override ModelStore<PlanetWebhook, long> CacheStore => GetPlanet(false)?.Webhooks;
 }

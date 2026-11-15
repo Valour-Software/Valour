@@ -141,13 +141,5 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
         return response.Data;
     }
 
-    public override Theme AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Client.Cache.Themes.Put(this, flags);
-    }
-
-    public override Theme RemoveFromCache(bool skipEvents = false)
-    {
-        return Client.Cache.Themes.Remove(this, skipEvents);
-    }
+    protected override ModelStore<Theme, long> CacheStore => Client.Cache.Themes;
 }

@@ -27,11 +27,4 @@ public class AutomodAction : ClientPlanetModel<AutomodAction, Guid>, ISharedAuto
     public AutomodAction(ValourClient client) : base(client) { }
 
     protected override long? GetPlanetId() => PlanetId;
-
-    public override AutomodAction AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override AutomodAction RemoveFromCache(bool skipEvents = false) => this;
 }

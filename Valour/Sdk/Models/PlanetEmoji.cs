@@ -24,13 +24,5 @@ public class PlanetEmoji : ClientPlanetModel<PlanetEmoji, long>, ISharedPlanetEm
     private PlanetEmoji() : base() {}
     public PlanetEmoji(ValourClient client) : base(client) {}
 
-    public override PlanetEmoji AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Planet.Emojis.Put(this, flags);
-    }
-
-    public override PlanetEmoji RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.Emojis.Remove(this, skipEvents);
-    }
+    protected override ModelStore<PlanetEmoji, long> CacheStore => Planet.Emojis;
 }

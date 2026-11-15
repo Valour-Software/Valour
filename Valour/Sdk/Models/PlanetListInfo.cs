@@ -98,16 +98,6 @@ public class PlanetListInfo : ClientModel<PlanetListInfo, long>, ISharedPlanetLi
     /// </summary>
     public List<PlanetTag> Tags { get; set; } = new();
 
-    public override PlanetListInfo AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-    
-    public override PlanetListInfo RemoveFromCache(bool skipEvents = false)
-    {
-        return this;
-    }
-
     public static PlanetListInfo FromPlanet(ISharedPlanet planet)
     {
         return new PlanetListInfo

@@ -40,13 +40,5 @@ public class ThreadComment : ClientPlanetModel<ThreadComment, long>, ISharedThre
     {
     }
 
-    public override ThreadComment AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return Planet.ThreadComments.Put(this, flags);
-    }
-
-    public override ThreadComment RemoveFromCache(bool skipEvents = false)
-    {
-        return Planet.ThreadComments.Remove(this, skipEvents);
-    }
+    protected override ModelStore<ThreadComment, long> CacheStore => Planet.ThreadComments;
 }

@@ -16,14 +16,4 @@ public class UserBlock : ClientModel<UserBlock, long>, ISharedUserBlock
     [JsonConstructor]
     private UserBlock() : base() { }
     public UserBlock(ValourClient client) : base(client) { }
-
-    public override UserBlock AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override UserBlock RemoveFromCache(bool skipEvents = false)
-    {
-        return null;
-    }
 }
