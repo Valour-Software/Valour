@@ -58,8 +58,14 @@ OUTPUT_DIR=output
 rm -rf "$PUBLISH_DIR" "$OUTPUT_DIR"
 
 # Cloudflare Pages can kill MSBuild child nodes during the WASM pipeline on larger apps.
-# Keep publish single-process for stability. AOT can be toggled separately if needed.
-PAGES_WASM_AOT="${VALOUR_PAGES_WASM_AOT-false}"
+# Keep publish single-process for stability.
+#
+# The client is compiled ahead of time. That makes the framework download larger
+# (about 13 MB compressed instead of 5.5 MB) and the build several minutes longer,
+# and in return the app starts about a quarter faster and channel switches take
+# about half the time. Set VALOUR_PAGES_WASM_AOT=false to publish the interpreted
+# build instead, for example if the Pages build runs out of time or memory.
+PAGES_WASM_AOT="${VALOUR_PAGES_WASM_AOT-true}"
 PUBLISH_PROPS="-m:1"
 if [ "$PAGES_WASM_AOT" = "true" ]; then
   PUBLISH_PROPS="$PUBLISH_PROPS -p:RunAOTCompilation=true"

@@ -162,9 +162,15 @@ so the website and public pages can use it too.
 The generator builds a gas field from layered noise with fine filaments, dust lanes,
 and small-scale clumping, and colors it in OKLCH with low saturation. Stars of
 different color temperatures and film grain are added at full resolution. The gas
-field is computed in a Web Worker at reduced resolution, so it does not block the
-interface. If workers are unavailable, it is computed on the main thread in slices
-of a few milliseconds.
+field is computed in a Web Worker at reduced resolution, and the worker also adds
+the stars and grain when the browser lets a worker draw to a canvas of its own, so
+the page only draws the finished image. Otherwise the page adds the stars and grain
+itself. If workers are unavailable, the gas field is computed on the main thread in
+slices of a few milliseconds.
+
+A sky is rendered at the layout size of its canvas. A CSS transform that scales the
+canvas, such as the slow zoom of the loading scene, stretches the finished image and
+does not start another render.
 
 Skies are deterministic. The `Seed` parameter (a planet's world seed for planet skies)
 decides the shape, and the palette decides the colors. Finished skies are cached per

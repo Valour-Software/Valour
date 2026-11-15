@@ -99,6 +99,31 @@ public partial class E2eeService
     private static (long PlanetId, long ChannelId) ChannelKey(long channelId, long? planetId) => (planetId ?? 0, channelId);
 
     /// <summary>
+    /// Starts loading a channel's keys without waiting for them. Callers that
+    /// are about to request message history use this so the two requests
+    /// overlap instead of the keys being requested once the history arrives.
+    /// </summary>
+    public void PreloadKeyRing(Channel channel)
+    {
+        if (channel is null || !channel.IsEncrypted || !CanDecrypt)
+            return;
+
+        _ = PreloadKeyRingAsync(channel);
+    }
+
+    private async Task PreloadKeyRingAsync(Channel channel)
+    {
+        try
+        {
+            await GetKeyRingAsync(channel);
+        }
+        catch (Exception)
+        {
+            // Decryption loads the keys again and reports any failure itself.
+        }
+    }
+
+    /// <summary>
     /// Returns the keys this device holds for a channel, fetching and
     /// verifying them when needed.
     /// </summary>
