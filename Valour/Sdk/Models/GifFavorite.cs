@@ -20,7 +20,4 @@ public class GifFavorite : ClientModel<GifFavorite, long>, ISharedGifFavorite
     [JsonConstructor]
     private GifFavorite() : base() { }
     public GifFavorite(ValourClient client) : base(client) { }
-
-    public override GifFavorite AddToCache(ModelInsertFlags flags = ModelInsertFlags.None) => this;
-    public override GifFavorite RemoveFromCache(bool skipEvents) => this;
 }

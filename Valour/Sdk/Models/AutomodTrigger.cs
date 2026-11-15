@@ -22,11 +22,4 @@ public class AutomodTrigger : ClientPlanetModel<AutomodTrigger, Guid>, ISharedAu
     public AutomodTrigger(ValourClient client) : base(client) { }
 
     protected override long? GetPlanetId() => PlanetId;
-
-    public override AutomodTrigger AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override AutomodTrigger RemoveFromCache(bool skipEvents = false) => this;
 }

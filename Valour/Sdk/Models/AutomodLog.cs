@@ -20,12 +20,5 @@ public class AutomodLog : ClientPlanetModel<AutomodLog, Guid>, ISharedAutomodLog
     public AutomodLog(ValourClient client) : base(client) { }
 
     protected override long? GetPlanetId() => PlanetId;
-
-    public override AutomodLog AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override AutomodLog RemoveFromCache(bool skipEvents = false) => this;
 }
 

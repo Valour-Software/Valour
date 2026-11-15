@@ -67,14 +67,4 @@ public class Notification : ClientModel<Notification, Guid>, ISharedNotification
     [JsonConstructor]
     private Notification() : base() {}
     public Notification(ValourClient client) : base(client) { }
-
-    public override Notification AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override Notification RemoveFromCache(bool skipEvents = false)
-    {
-        return this;
-    }
 }

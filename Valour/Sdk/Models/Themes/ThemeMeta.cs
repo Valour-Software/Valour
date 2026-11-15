@@ -20,14 +20,4 @@ public class ThemeMeta : ClientModel<ThemeMeta, long>, ISharedThemeMeta
     public int Downvotes { get; set; }
     public bool? MySentiment { get; set; }
     public long? MyVoteId { get; set; }
-
-    public override ThemeMeta AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-    
-    public override ThemeMeta RemoveFromCache(bool skipEvents = false)
-    {
-        return this;
-    }
 }

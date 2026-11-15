@@ -25,11 +25,4 @@ public class ModerationAuditLog : ClientPlanetModel<ModerationAuditLog, long>, I
     public ModerationAuditLog(ValourClient client) : base(client) { }
 
     protected override long? GetPlanetId() => PlanetId;
-
-    public override ModerationAuditLog AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
-    {
-        return this;
-    }
-
-    public override ModerationAuditLog RemoveFromCache(bool skipEvents = false) => this;
 }
