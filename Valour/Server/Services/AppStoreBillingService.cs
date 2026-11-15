@@ -464,7 +464,9 @@ public class AppStoreBillingService
     /// <summary>
     /// Calls the App Store Server API. Purchases made by App Review and
     /// TestFlight testers live in the sandbox, so a purchase the production
-    /// environment doesn't know is looked up there.
+    /// environment doesn't know is looked up there. The production
+    /// environment also answers 401 for an app that has never been released,
+    /// even with a token the sandbox accepts, so that falls through too.
     /// </summary>
     private async Task<T> GetAsync<T>(string path) where T : class
     {
@@ -479,6 +481,12 @@ public class AppStoreBillingService
 
             if (response.StatusCode == HttpStatusCode.NotFound)
                 continue;
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized && baseUrl == ProductionUrl)
+            {
+                _logger.LogInformation("App Store production API refused the token for {Path}; trying the sandbox", path);
+                continue;
+            }
 
             if (!response.IsSuccessStatusCode)
             {
