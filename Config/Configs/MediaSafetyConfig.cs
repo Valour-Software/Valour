@@ -18,4 +18,10 @@ public class MediaSafetyConfig
     public string PhotoDnaSubscriptionKey { get; set; } = string.Empty;
     public string PhotoDnaHeaderName { get; set; } = "Ocp-Apim-Subscription-Key";
     public int TimeoutSeconds { get; set; } = 10;
+
+    /// <summary>
+    /// Where to email an alert when an upload matches known child sexual abuse
+    /// material. Leave empty to rely on the staff report queue alone.
+    /// </summary>
+    public string AlertEmail { get; set; } = string.Empty;
 }
