@@ -81,7 +81,7 @@ RUN --mount=type=secret,id=sixlabors_license_key,env=SixLaborsLicenseKey,require
 RUN mkdir -p /staging/media
 
 # Start with a smaller runtime image for the final image
-FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.3-resolute-chiseled-extra AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-resolute-chiseled-extra AS final
 
 # Set the working directory to the app's output directory
 WORKDIR /app
