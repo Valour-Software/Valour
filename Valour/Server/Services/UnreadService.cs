@@ -106,7 +106,8 @@ public class UnreadService
         SELECT @channel_id, @user_id, @last_viewed_time, @planet_id, @member_id
         WHERE EXISTS (SELECT 1 FROM users WHERE id = @user_id FOR KEY SHARE)
           AND EXISTS (SELECT 1 FROM channels WHERE id = @channel_id FOR KEY SHARE)
-          AND (@planet_id IS NULL OR EXISTS (SELECT 1 FROM planets WHERE id = @planet_id FOR KEY SHARE))
+          AND (@planet_id IS NULL OR EXISTS (
+              SELECT 1 FROM planets WHERE id = @planet_id AND NOT locked_for_migration FOR KEY SHARE))
           AND (@member_id IS NULL OR EXISTS (SELECT 1 FROM planet_members WHERE id = @member_id FOR KEY SHARE))
         ON CONFLICT (user_id, channel_id) DO UPDATE
         SET
@@ -114,11 +115,16 @@ public class UnreadService
             member_id = EXCLUDED.member_id,
         """;
 
+    // RETURNING hands back the stored row, so the caller does not read it again.
+    private const string ReturnStoredStateSql = " RETURNING *";
+
     private const string MoveReadStateForwardSql = ReadStateUpsertSql +
-        " last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time)";
+        " last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time)" +
+        ReturnStoredStateSql;
 
     private const string SetReadStateSql = ReadStateUpsertSql +
-        " last_viewed_time = EXCLUDED.last_viewed_time";
+        " last_viewed_time = EXCLUDED.last_viewed_time" +
+        ReturnStoredStateSql;
 
     private async Task<TaskResult<UserChannelState>> UpsertReadState(
         long channelId,
@@ -128,59 +134,54 @@ public class UnreadService
         DateTime? updateTime,
         bool onlyMoveForward)
     {
-        var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
-        if (!migrationGuard.Success)
-            return TaskResult<UserChannelState>.FromFailure(migrationGuard.Message);
-
         var effectiveUpdateTime = DateTime.SpecifyKind(updateTime ?? DateTime.UtcNow, DateTimeKind.Utc);
 
         // Atomic upsert, so concurrent requests for the same (user_id, channel_id) row
         // cannot race. The user, channel, planet, or membership can be deleted after the
         // request was authorized, for example while the user's account is being deleted.
-        // The row is only written when all of them still exist. FOR KEY SHARE waits for a
-        // concurrent delete to finish and skips the row if it committed, so the insert
-        // never reaches a foreign key violation.
+        // The row is only written when all of them still exist and the planet is not
+        // locked for migration. FOR KEY SHARE waits for a concurrent delete to finish and
+        // skips the row if it committed, so the insert never reaches a foreign key violation.
         var sql = onlyMoveForward ? MoveReadStateForwardSql : SetReadStateSql;
 
-        int written;
+        Valour.Database.UserChannelState channelState;
         try
         {
-            written = await _db.Database.ExecuteSqlRawAsync(sql,
-                new NpgsqlParameter<long>("channel_id", channelId),
-                new NpgsqlParameter<long>("user_id", userId),
-                new NpgsqlParameter<DateTime>("last_viewed_time", effectiveUpdateTime),
-                new NpgsqlParameter("planet_id", NpgsqlDbType.Bigint) { Value = (object)planetId ?? DBNull.Value },
-                new NpgsqlParameter("member_id", NpgsqlDbType.Bigint) { Value = (object)memberId ?? DBNull.Value });
+            // The statement is not composable, so it is run as written and the
+            // returned row is read on the client.
+            var written = await _db.UserChannelStates
+                .FromSqlRaw(sql,
+                    new NpgsqlParameter<long>("channel_id", channelId),
+                    new NpgsqlParameter<long>("user_id", userId),
+                    new NpgsqlParameter<DateTime>("last_viewed_time", effectiveUpdateTime),
+                    new NpgsqlParameter("planet_id", NpgsqlDbType.Bigint) { Value = (object)planetId ?? DBNull.Value },
+                    new NpgsqlParameter("member_id", NpgsqlDbType.Bigint) { Value = (object)memberId ?? DBNull.Value })
+                .AsNoTracking()
+                .ToListAsync();
+
+            channelState = written.FirstOrDefault();
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation &&
                                            ex.TableName == "user_channel_states")
         {
-            written = 0;
+            channelState = null;
         }
 
-        if (written == 0)
+        if (channelState is null)
+        {
+            // Nothing was written. Only now is it worth a query to tell a
+            // migration lock apart from a deleted row.
+            var migrationGuard = await MigrationLock.GuardAsync(_db, planetId);
+            if (!migrationGuard.Success)
+                return TaskResult<UserChannelState>.FromFailure(migrationGuard.Message);
+
             return TaskResult<UserChannelState>.FromFailure("The user, channel, or membership no longer exists.");
+        }
 
         // Viewing a channel clears any coalesced activity notification for it
         // and resets its activity cooldown (not on explicit mark-unread)
         if (onlyMoveForward)
             await _channelActivityService.HandleChannelViewedAsync(userId, channelId);
-
-        var channelState = await _db.UserChannelStates.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.UserId == userId && x.ChannelId == channelId);
-
-        if (channelState is null)
-        {
-            _logger.LogWarning("Failed to load user_channel_state after upsert for user {UserId} channel {ChannelId}", userId, channelId);
-            return TaskResult<UserChannelState>.FromData(new UserChannelState
-            {
-                UserId = userId,
-                ChannelId = channelId,
-                PlanetId = planetId,
-                PlanetMemberId = memberId,
-                LastViewedTime = effectiveUpdateTime
-            });
-        }
 
         return TaskResult<UserChannelState>.FromData(channelState.ToModel());
     }
