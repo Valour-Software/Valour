@@ -410,6 +410,7 @@ dotnet/
 dotnet-install.sh
 
 /Valour/Server/appsettings.json
+/Valour/Server/appsettings.Local.json
 /Valour/Config/appsettings.helper.json
 
 # Build-generated CSS bundle

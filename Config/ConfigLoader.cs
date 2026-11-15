@@ -11,12 +11,22 @@ public static class ConfigLoader
     }
     
     /// <summary>
-    /// Loads the json configs for services
+    /// Loads the json configs for services. Later sources override earlier
+    /// ones: appsettings.json, then the file for the current environment
+    /// (appsettings.Development.json points a development run at the local
+    /// services in docker-compose.dev.yml), then appsettings.Local.json for
+    /// one developer's own settings, then environment variables.
     /// </summary>
     public static void LoadConfigs()
     {
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                          ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+                          ?? "Production";
+
         var config = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true)
+            .AddJsonFile("appsettings.Local.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
