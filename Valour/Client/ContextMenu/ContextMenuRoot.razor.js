@@ -78,6 +78,12 @@ export function reposition(){
     // Submenus open leftmost to their parent button with no built-in bound,
     // so on narrow screens or where the .mobile layout is not applied
     // they can render partially or fully off-screen. (ContextSubMenu.razor.css; #1622)
+    //
+    // The mobile layout shows a submenu as a fixed sheet on the bottom edge
+    // instead. A transform on its wrapper would become that sheet's containing
+    // block and carry it off screen, so the wrapper is left alone there.
+    const isSheet = currentMenu.closest('.mobile') !== null;
+
     for (let i = 0; i < submenus.length; i++){
         const submenu = submenus[i];
 
@@ -85,6 +91,10 @@ export function reposition(){
         // (e.g. on window resize) compute from the untransformed layout
         // position instead of compounding on top of the last correction.
         submenu.style.transform = '';
+
+        if (isSheet)
+            continue;
+
         const boundingBox = submenu.getBoundingClientRect();
 
         const { translateX, translateY } = computeSubmenuTranslate(boundingBox, windowWidth, windowHeight);
