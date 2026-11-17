@@ -1,7 +1,7 @@
 @inherits WindowContentComponent<PlanetEventsWindowData>
-@implements IAsyncDisposable
 @inject ValourClient Client
-@inject IJSRuntime JsRuntime
+@using Valour.Client.Utility.Downloads
+@inject IDownloadService Downloads
 
 <div class="events-window inner-window">
     @if (_planet is null)
@@ -292,21 +292,18 @@
         }
     }
 
-    private IJSObjectReference _jsModule;
-
     private async Task AddToCalendarAsync(PlanetEventData planetEvent)
     {
-        _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>(
-            "import",
-            "./_content/Valour.Client/Components/Windows/PlanetInfo/EventsWindowComponent.razor.js");
-
         var fileName = new string(planetEvent.Title
             .Where(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-')
             .ToArray()).Trim();
         if (string.IsNullOrEmpty(fileName))
             fileName = "event";
 
-        await _jsModule.InvokeVoidAsync("downloadIcs", fileName + ".ics", BuildIcs(planetEvent));
+        await Downloads.SaveWithToastAsync(
+            fileName + ".ics",
+            "text/calendar;charset=utf-8",
+            System.Text.Encoding.UTF8.GetBytes(BuildIcs(planetEvent)));
     }
 
     private string BuildIcs(PlanetEventData planetEvent)
@@ -344,19 +341,6 @@
         return sb.ToString();
     }
 
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        if (_jsModule is not null)
-        {
-            try
-            {
-                await _jsModule.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-            }
-        }
-    }
 
     private async Task ToggleGoingAsync(PlanetEventData planetEvent)
     {

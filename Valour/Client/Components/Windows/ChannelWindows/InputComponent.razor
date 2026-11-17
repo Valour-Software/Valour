@@ -1,4 +1,4 @@
-@inject IJSRuntime JsRuntime
+﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @inject ValourClient Client
 @inject Valour.Client.Storage.IAppStorage BrowserStorage
@@ -28,6 +28,12 @@
 
     <div class="upload-menu" style="@UploadMenuStyle" @onclick:stopPropagation="true">
         <div class="content klipy">
+            @if (_isUploadMenuOpen)
+            {
+                <div class="storage-row">
+                    <StorageMeter Compact="true" />
+                </div>
+            }
             <button type="button" class="button" @ref="_uploadMenuFileButton">
                 <img class="menu-icon" src="_content/Valour.Client/media/Paperclip-Icon.svg" alt="" />
                 <span>Upload</span>

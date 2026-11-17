@@ -17,6 +17,9 @@ public class CdnBucketService
     /// <summary>The upload result when the same file is already quarantined.</summary>
     public const string UnavailableMessage = "This upload is not available.";
 
+    /// <summary>The error code of an upload refused because the account's storage is full.</summary>
+    public const int StorageFullErrorCode = 413;
+
     private static readonly ConcurrentDictionary<string, Task<TaskResult>> PublicUploadsInFlight = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, Task<TaskResult>> PrivateUploadsInFlight = new(StringComparer.Ordinal);
 
@@ -114,7 +117,8 @@ public class CdnBucketService
         string mime,
         ContentCategory category,
         ValourDb db,
-        MediaSafetyHashMatchResult safetyHashMatch = null)
+        MediaSafetyHashMatchResult safetyHashMatch = null,
+        long? storageQuotaBytes = null)
     {
         // The name and type are served back to browsers later, so an empty
         // name or a malformed type is replaced before it is stored.
@@ -142,6 +146,16 @@ public class CdnBucketService
             }
 
             return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
+        }
+
+        // A file the user already has costs nothing more, so this only applies
+        // to a new one. It is a soft limit: uploads that arrive at the same
+        // moment can pass it together.
+        if (storageQuotaBytes is { } quota)
+        {
+            var used = await UserStorageService.GetUsedBytesAsync(db, userId);
+            if (used + data.Length > quota)
+                return new TaskResult(false, "Your attachment storage is full.", errorCode: StorageFullErrorCode);
         }
 
         // We need a bucket record no matter what at this point

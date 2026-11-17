@@ -58,6 +58,9 @@ public static class Program
         // Provider sign-in uses the system browser, not the app's web view.
         builder.Services.AddScoped<IExternalAuthLauncher>(_ => new LoopbackExternalAuthLauncher(SystemBrowser.OpenAsync));
 
+        // The Linux web view ignores download links, so the app saves files itself.
+        builder.Services.AddSingleton<Valour.Client.Utility.Downloads.IDownloadService, DesktopDownloadService>();
+
         builder.RootComponents.Add<ValourApp>("app");
 
         var app = builder.Build();

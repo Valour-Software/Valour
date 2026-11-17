@@ -1,8 +1,14 @@
+@using Valour.Client.Components.Menus.Modals.Attachments
 @using Valour.Shared.Cdn
 @using Valour.Shared.Queries
 @inject ValourClient Client
 
 <div class="attachments-panel">
+    <div class="storage-card">
+        <StorageMeter Info="@_storage" />
+        <VButton Variant="secondary" Icon="trash3" OnClick="@OpenCleanup">Cleanup</VButton>
+    </div>
+
     <div class="attachments-toolbar">
         <VSearchBox Placeholder="Search filenames, MIME types, or hashes..."
                     Value="@_search"
@@ -106,14 +112,35 @@
     private string _search = string.Empty;
     private string _sortField = "createdAt";
 
+    private UserStorageInfo _storage;
+
     protected override async Task OnInitializedAsync()
     {
-        await QueryAsync(reset: true);
+        await Task.WhenAll(QueryAsync(reset: true), LoadStorageAsync());
+    }
+
+    private async Task LoadStorageAsync()
+    {
+        var result = await Client.AttachmentService.GetStorageAsync();
+        if (result.Success)
+            _storage = result.Data;
     }
 
     private async Task RefreshAsync()
     {
-        await QueryAsync(reset: true);
+        await Task.WhenAll(QueryAsync(reset: true), LoadStorageAsync());
+    }
+
+    private void OpenCleanup()
+    {
+        ModalRoot.OpenModal<AttachmentCleanupModal>(new AttachmentCleanupModal.ModalParams
+        {
+            OnDeleted = async () =>
+            {
+                await RefreshAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        });
     }
 
     private async Task LoadMoreAsync()
@@ -223,6 +250,7 @@
         {
             _attachments.RemoveAll(x => x.Id == attachment.Id);
             _totalCount = Math.Max(0, _totalCount - 1);
+            await LoadStorageAsync();
         }
     }
 

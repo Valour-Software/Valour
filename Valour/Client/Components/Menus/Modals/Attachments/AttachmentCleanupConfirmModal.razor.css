@@ -1,0 +1,26 @@
+.confirm-error {
+    margin: 0;
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--radius-md);
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+.confirm-status {
+    margin: 0;
+}
+
+.confirm-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
+}
+
+.confirm-fill {
+    height: 100%;
+    background-color: var(--color-danger);
+    transition: width 0.3s ease;
+}

@@ -1,0 +1,62 @@
+@inherits Modal<StorageFullModal.ModalParams>
+@inject ValourClient Client
+
+<BasicModalLayout Title="Out of attachment space" Icon="hdd-fill" MaxWidth="520px" Role="dialog">
+    <MainArea>
+        @if (Data.Info.RequestedBytes > 0 && !Data.Info.IsFull)
+        {
+            <p>
+                This file is <strong class="numeric">@UserStorageInfo.FormatBytes(Data.Info.RequestedBytes)</strong>, but you only have
+                <strong class="numeric">@UserStorageInfo.FormatBytes(Data.Info.AvailableBytes)</strong> left.
+            </p>
+        }
+        else
+        {
+            <p>You have used all of your attachment storage, so new files cannot be uploaded.</p>
+        }
+
+        <StorageMeter Info="@Data.Info" />
+
+        <p class="helper-text">
+            Your existing attachments are untouched. Delete files you no longer need@(CanUpgrade ? ", or upgrade for more space" : "").
+        </p>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="@Close">Close</button>
+            <button class="v-btn @(CanUpgrade ? "" : "primary")" @onclick="OpenAttachments">Manage Attachments</button>
+            @if (CanUpgrade)
+            {
+                <button class="v-btn primary" @onclick="OpenSubscriptions">@(IsSubscribed ? "Upgrade plan" : "Subscribe to Stargazer")</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public UserStorageInfo Info { get; init; }
+    }
+
+    private bool IsSubscribed => !string.IsNullOrEmpty(Data.Info.SubscriptionType);
+
+    // The largest plan has nowhere further to go.
+    private bool CanUpgrade => Data.Info.SubscriptionType != UserSubscriptionTypes.StargazerPro.Name;
+
+    private void OpenAttachments() => OpenSettings("Attachments");
+
+    private void OpenSubscriptions() => OpenSettings("Subscriptions");
+
+    private void OpenSettings(string item)
+    {
+        var root = ModalRoot;
+        Close();
+        root.OpenModal<EditUserComponent>(new EditUserComponent.ModalParams
+        {
+            User = Client.Me,
+            StartCategory = "General Settings",
+            StartItem = item
+        });
+    }
+}

@@ -1,0 +1,490 @@
+@using Valour.Shared.Cdn
+@using Valour.Client.Utility.Downloads
+@inherits Modal<AttachmentCleanupModal.ModalParams>
+@inject ValourClient Client
+@inject IDownloadService Downloads
+@implements IDisposable
+
+<BasicModalLayout Title="Clean up attachments" Icon="trash3-fill" MaxWidth="520px" Role="dialog">
+    <MainArea>
+        <div class="cleanup-modal">
+            <div class="cleanup-progress">
+                <span class="@GetStepClass(0)">Files</span>
+                <span class="@GetStepClass(1)">Filters</span>
+                <span class="@GetStepClass(2)">Review</span>
+            </div>
+
+            @switch (_page)
+            {
+                case 0:
+                    <section class="cleanup-step">
+                        <h3>Which files?</h3>
+                        <p class="helper-text">
+                            Message text stays, and removed files show as "Attachment not found".
+                        </p>
+
+                        <div class="cleanup-group" role="radiogroup" aria-label="Which files">
+                            @foreach (var option in _scopeOptions)
+                            {
+                                <label class="switch-radio">
+                                    <input type="radio" name="cleanup-scope" checked="@(_scope == option.Value)" @onchange="@(() => SetScope(option.Value))" />
+                                    <span class="radio round"></span>
+                                    @option.Label
+                                </label>
+                            }
+                        </div>
+
+                        @if (_scope == AttachmentCleanupScope.Selected)
+                        {
+                            @if (_places is null)
+                            {
+                                <div class="helper-text">Loading...</div>
+                            }
+                            else if (_places.Count == 0)
+                            {
+                                <div class="helper-text">No files are in a planet or DM.</div>
+                            }
+                            else
+                            {
+                                <div class="cleanup-places-header">
+                                    <VSearchBox Size="sm" Placeholder="Search planets..." Value="@_placeSearch" ValueChanged="@OnPlaceSearchChanged" />
+                                    <VButton Variant="ghost" Size="sm" OnClick="@SelectVisiblePlaces">Select all</VButton>
+                                    <VButton Variant="ghost" Size="sm" OnClick="@ClearPlaces">Clear</VButton>
+                                </div>
+
+                                <div class="cleanup-places">
+                                    @foreach (var place in VisiblePlaces)
+                                    {
+                                        <div class="cleanup-switch-row" @key="@(place.PlanetId ?? 0)">
+                                            @if (place.PlanetId is null)
+                                            {
+                                                <span class="place-dm-icon"><i class="bi bi-chat-dots-fill" aria-hidden="true"></i></span>
+                                            }
+                                            else if (PlanetFor(place) is { } planet)
+                                            {
+                                                <PlanetIcon Planet="@planet" Size="28" />
+                                            }
+                                            else
+                                            {
+                                                <span class="place-dm-icon"><i class="bi bi-globe2" aria-hidden="true"></i></span>
+                                            }
+                                            <span class="switch-row-text">
+                                                <span class="place-name">@PlaceName(place)</span>
+                                                <span class="place-size numeric">@place.Count @(place.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(place.TotalBytes)</span>
+                                            </span>
+                                            <label class="switch">
+                                                <input type="checkbox" aria-label="@PlaceName(place)" checked="@IsPlaceSelected(place)" @onchange="@(e => TogglePlace(place, (bool)e.Value!))" />
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    }
+                                    @if (!VisiblePlaces.Any())
+                                    {
+                                        <div class="helper-text">No planets match your search.</div>
+                                    }
+                                </div>
+
+                                <div class="helper-text numeric">@SelectedPlaceCount of @_places.Count selected</div>
+                            }
+                        }
+                    </section>
+                    break;
+                case 1:
+                    <section class="cleanup-step">
+                        <h3>Narrow it down</h3>
+
+                        <div class="cleanup-group">
+                            <span class="cleanup-label">Types <span class="cleanup-muted">(none selected means every type)</span></span>
+                            <div class="cleanup-types">
+                                @foreach (var type in _typeOptions)
+                                {
+                                    <div class="cleanup-switch-row">
+                                        <span class="switch-row-text">@type.Label</span>
+                                        <label class="switch">
+                                            <input type="checkbox" aria-label="@type.Label" checked="@_types.Contains(type.Value)" @onchange="@(e => ToggleType(type.Value, (bool)e.Value!))" />
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="cleanup-row">
+                            <div class="form-group">
+                                <label for="cleanup-age">Older than</label>
+                                <select id="cleanup-age" class="form-select" value="@_ageDays" @onchange="OnAgeChanged">
+                                    <option value="0">Any age</option>
+                                    <option value="30">1 month</option>
+                                    <option value="90">3 months</option>
+                                    <option value="180">6 months</option>
+                                    <option value="365">1 year</option>
+                                    <option value="730">2 years</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cleanup-size">Larger than</label>
+                                <select id="cleanup-size" class="form-select" value="@(_minSizeBytes / (1024 * 1024))" @onchange="OnSizeChanged">
+                                    <option value="0">Any size</option>
+                                    <option value="1">1 MB</option>
+                                    <option value="10">10 MB</option>
+                                    <option value="50">50 MB</option>
+                                    <option value="100">100 MB</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        @PreviewBox
+                    </section>
+                    break;
+                case 2:
+                    <section class="cleanup-step">
+                        <h3>Review</h3>
+
+                        <dl class="cleanup-summary">
+                            <div><dt>Files</dt><dd>@ScopeSummary</dd></div>
+                            <div><dt>Types</dt><dd>@TypesSummary</dd></div>
+                            <div><dt>Older than</dt><dd>@AgeSummary</dd></div>
+                            <div><dt>Larger than</dt><dd>@SizeSummary</dd></div>
+                        </dl>
+
+                        @PreviewBox
+
+                        <p class="helper-text">
+                            Download an archive first if you want a copy. Deleting asks you to confirm and can back the files up before removing them.
+                        </p>
+                    </section>
+                    break;
+            }
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (_page == 0)
+            {
+                <button class="v-btn" @onclick="@Close">Cancel</button>
+                <button class="v-btn primary" disabled="@(!CanContinueFromFiles)" @onclick="Next">Next</button>
+            }
+            else if (_page == 1)
+            {
+                <button class="v-btn" @onclick="Back">Back</button>
+                <button class="v-btn primary" @onclick="Next">Next</button>
+            }
+            else
+            {
+                <button class="v-btn" @onclick="Back">Back</button>
+                <button class="v-btn" disabled="@(!HasFiles || _downloading)" @onclick="DownloadArchiveAsync">
+                    @(_downloading ? "Downloading..." : "Download archive")
+                </button>
+                <button class="v-btn danger" disabled="@(!HasFiles)" @onclick="OpenConfirm">Delete files...</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        /// <summary>
+        /// Runs after files were deleted so the page behind can reload.
+        /// </summary>
+        public Func<Task> OnDeleted { get; init; }
+    }
+
+    private static readonly (AttachmentCleanupScope Value, string Label)[] _scopeOptions =
+    [
+        (AttachmentCleanupScope.All, "All of my files"),
+        (AttachmentCleanupScope.Selected, "Files in certain planets or DMs"),
+        (AttachmentCleanupScope.Unattached, "Files not used in any message"),
+    ];
+
+    private static readonly (ContentCategory Value, string Label)[] _typeOptions =
+    [
+        (ContentCategory.Image, "Images"),
+        (ContentCategory.Video, "Videos"),
+        (ContentCategory.Audio, "Audio"),
+        (ContentCategory.File, "Other files"),
+    ];
+
+    // Files uploaded after the modal opened are never part of a cleanup.
+    private readonly DateTime _asOf = DateTime.UtcNow;
+
+    private AttachmentCleanupScope _scope = AttachmentCleanupScope.All;
+    private readonly HashSet<long> _selectedPlaceIds = new();
+    private bool _includeDms;
+    private readonly HashSet<ContentCategory> _types = new();
+    private int _ageDays;
+    private long _minSizeBytes;
+
+    private List<AttachmentPlaceUsage> _places;
+    private string _placeSearch = string.Empty;
+    private AttachmentCleanupPreview _preview;
+    private bool _previewFailed;
+    private bool _downloading;
+
+    private CancellationTokenSource _previewCts;
+
+    private int _page;
+
+    private bool HasFiles => _preview is { Count: > 0 };
+
+    private string GetStepClass(int step) => step == _page ? "active" : step < _page ? "done" : "";
+
+    private void Next() => _page = Math.Min(_page + 1, 2);
+
+    private void Back() => _page = Math.Max(_page - 1, 0);
+
+    /// <summary>
+    /// Choosing "certain planets or DMs" needs at least one of them before moving on.
+    /// </summary>
+    private bool CanContinueFromFiles =>
+        _scope != AttachmentCleanupScope.Selected || SelectedPlaceCount > 0;
+
+    private string ScopeSummary => _scope switch
+    {
+        AttachmentCleanupScope.All => "All of my files",
+        AttachmentCleanupScope.Unattached => "Files not used in any message",
+        _ => SelectedPlaceCount == 1 ? "1 planet or DM" : $"{SelectedPlaceCount} planets or DMs",
+    };
+
+    private string TypesSummary => _types.Count == 0
+        ? "Every type"
+        : string.Join(", ", _typeOptions.Where(t => _types.Contains(t.Value)).Select(t => t.Label));
+
+    private string AgeSummary => _ageDays switch
+    {
+        0 => "Any age",
+        30 => "1 month",
+        90 => "3 months",
+        180 => "6 months",
+        365 => "1 year",
+        730 => "2 years",
+        _ => $"{_ageDays} days",
+    };
+
+    private string SizeSummary => _minSizeBytes > 0
+        ? UserStorageInfo.FormatBytes(_minSizeBytes)
+        : "Any size";
+
+    private RenderFragment PreviewBox => __builder =>
+    {
+        <div class="cleanup-preview" aria-live="polite">
+            @if (_previewFailed)
+            {
+                <span>Could not count the matching files.</span>
+            }
+            else if (_preview is null)
+            {
+                <span>Counting...</span>
+            }
+            else if (_preview.Count == 0)
+            {
+                <span>No files match.</span>
+            }
+            else
+            {
+                <strong class="numeric">@_preview.Count @(_preview.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(_preview.TotalBytes)</strong>
+                @if (_preview.Oldest is not null && _preview.Newest is not null)
+                {
+                    <span class="numeric">@_preview.Oldest.Value.ToLocalTime().ToString("MMM d, yyyy") to @_preview.Newest.Value.ToLocalTime().ToString("MMM d, yyyy")</span>
+                }
+            }
+        </div>
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshPreviewAsync();
+    }
+
+    public void Dispose()
+    {
+        _previewCts?.Cancel();
+        _previewCts?.Dispose();
+    }
+
+    private AttachmentCleanupCriteria BuildCriteria() => new()
+    {
+        AsOf = _asOf,
+        CreatedBefore = _ageDays > 0 ? _asOf.AddDays(-_ageDays) : null,
+        Scope = _scope,
+        PlanetIds = _scope == AttachmentCleanupScope.Selected ? _selectedPlaceIds.ToList() : [],
+        IncludeDirectMessages = _scope == AttachmentCleanupScope.Selected && _includeDms,
+        Categories = _types.ToList(),
+        MinSizeBytes = _minSizeBytes > 0 ? _minSizeBytes : null,
+    };
+
+    private async Task SetScope(AttachmentCleanupScope scope)
+    {
+        _scope = scope;
+
+        if (scope == AttachmentCleanupScope.Selected && _places is null)
+        {
+            var result = await Client.AttachmentService.GetCleanupPlacesAsync();
+            _places = result.Success ? result.Data.Places : [];
+        }
+
+        await RefreshPreviewAsync();
+    }
+
+    /// <summary>
+    /// The places matching the search, largest first so the files worth cleaning
+    /// are at the top. Direct messages are a single entry.
+    /// </summary>
+    private IEnumerable<AttachmentPlaceUsage> VisiblePlaces =>
+        (_places ?? [])
+            .Where(p => string.IsNullOrWhiteSpace(_placeSearch) ||
+                        PlaceName(p).Contains(_placeSearch.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(p => p.TotalBytes);
+
+    private int SelectedPlaceCount => _selectedPlaceIds.Count + (_includeDms ? 1 : 0);
+
+    private Planet PlanetFor(AttachmentPlaceUsage place) =>
+        place.PlanetId is { } id ? Client.PlanetService.JoinedPlanets.FirstOrDefault(p => p.Id == id) : null;
+
+    private void OnPlaceSearchChanged(string search)
+    {
+        _placeSearch = search ?? string.Empty;
+    }
+
+    private async Task SelectVisiblePlaces()
+    {
+        foreach (var place in VisiblePlaces)
+        {
+            if (place.PlanetId is { } id)
+                _selectedPlaceIds.Add(id);
+            else
+                _includeDms = true;
+        }
+
+        await RefreshPreviewAsync();
+    }
+
+    private async Task ClearPlaces()
+    {
+        _selectedPlaceIds.Clear();
+        _includeDms = false;
+        await RefreshPreviewAsync();
+    }
+
+    private bool IsPlaceSelected(AttachmentPlaceUsage place) =>
+        place.PlanetId is null ? _includeDms : _selectedPlaceIds.Contains(place.PlanetId.Value);
+
+    private async Task TogglePlace(AttachmentPlaceUsage place, bool selected)
+    {
+        if (place.PlanetId is null)
+            _includeDms = selected;
+        else if (selected)
+            _selectedPlaceIds.Add(place.PlanetId.Value);
+        else
+            _selectedPlaceIds.Remove(place.PlanetId.Value);
+
+        await RefreshPreviewAsync();
+    }
+
+    private string PlaceName(AttachmentPlaceUsage place)
+    {
+        if (place.PlanetId is null)
+            return "Direct messages";
+
+        var planet = Client.PlanetService.JoinedPlanets.FirstOrDefault(p => p.Id == place.PlanetId.Value);
+        return planet?.Name ?? "A planet you are no longer in";
+    }
+
+    private async Task OnAgeChanged(ChangeEventArgs e)
+    {
+        _ageDays = int.TryParse(e.Value?.ToString(), out var days) ? days : 0;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task OnSizeChanged(ChangeEventArgs e)
+    {
+        _minSizeBytes = int.TryParse(e.Value?.ToString(), out var mb) ? mb * 1024L * 1024L : 0;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task ToggleType(ContentCategory type, bool selected)
+    {
+        if (selected)
+            _types.Add(type);
+        else
+            _types.Remove(type);
+
+        await RefreshPreviewAsync();
+    }
+
+    private async Task RefreshPreviewAsync()
+    {
+        // Only the latest set of criteria gets to update the count.
+        _previewCts?.Cancel();
+        _previewCts = new CancellationTokenSource();
+        var token = _previewCts.Token;
+
+        _preview = null;
+        _previewFailed = false;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(200, token);
+            var result = await Client.AttachmentService.PreviewCleanupAsync(BuildCriteria());
+            if (token.IsCancellationRequested)
+                return;
+
+            _previewFailed = !result.Success;
+            _preview = result.Success ? result.Data : null;
+            StateHasChanged();
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    private async Task DownloadArchiveAsync()
+    {
+        _downloading = true;
+        StateHasChanged();
+
+        try
+        {
+            var ticket = await Client.AttachmentService.StartCleanupArchiveAsync(BuildCriteria());
+            if (!ticket.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Could not start the archive", ticket.Message, ToastProgressState.Failure));
+                return;
+            }
+
+            // A browser starts the download and returns at once. An app saves the whole
+            // archive to the device first, and this waits for that.
+            await Downloads.DownloadWithToastAsync(new DownloadRequest(
+                Client.AttachmentService.GetCleanupArchiveUrl(ticket.Data),
+                AttachmentArchiveName(),
+                "application/zip"));
+        }
+        finally
+        {
+            _downloading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenConfirm()
+    {
+        var root = ModalRoot;
+        var criteria = BuildCriteria();
+        var preview = _preview;
+        var onDeleted = Data.OnDeleted;
+
+        root.OpenModal<AttachmentCleanupConfirmModal>(new AttachmentCleanupConfirmModal.ModalParams
+        {
+            Criteria = criteria,
+            Preview = preview,
+            OnDeleted = async () =>
+            {
+                if (onDeleted is not null)
+                    await onDeleted.Invoke();
+            }
+        });
+    }
+
+    private static string AttachmentArchiveName() => $"valour-attachments-{DateTime.UtcNow:yyyy-MM-dd}.zip";
+}

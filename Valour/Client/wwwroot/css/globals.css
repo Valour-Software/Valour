@@ -1024,10 +1024,28 @@ input:focus-visible + .radio {
 }
 
 .switch-radio {
+    position: relative;
+    display: block;
     width: max-content;
-    line-height: 20pt;
     margin-left: 30px;
+    padding: 0.2rem 0;
+    line-height: 22px;
     cursor: pointer;
+}
+
+.switch-radio input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The radio sits in the margin to the left of its label, as a circle. */
+.switch-radio .radio {
+    top: 50%;
+    bottom: auto;
+    height: 22px;
+    margin-top: -11px;
 }
 
 input:checked + .radio:before {

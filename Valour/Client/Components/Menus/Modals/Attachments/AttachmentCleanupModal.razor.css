@@ -1,0 +1,198 @@
+.cleanup-modal {
+    box-sizing: border-box;
+    width: 480px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: min(64vh, 42rem);
+    overflow-y: auto;
+    padding-right: 0.15rem;
+}
+
+.cleanup-progress {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.45rem;
+}
+
+.cleanup-progress span {
+    padding: 0.5rem 0.6rem;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-none);
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+
+.cleanup-progress span.active {
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
+    border-color: var(--line-strong);
+}
+
+.cleanup-progress span.done {
+    color: var(--color-success);
+    background-color: var(--color-success-soft);
+    border-color: var(--color-success-border);
+}
+
+.cleanup-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.cleanup-step h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+}
+
+.cleanup-summary {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0.25rem var(--space-4);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+}
+
+.cleanup-summary > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.45rem 0;
+}
+
+.cleanup-summary > div + div {
+    border-top: 1px solid var(--line);
+}
+
+.cleanup-summary dt {
+    color: var(--text-tertiary);
+}
+
+.cleanup-summary dd {
+    margin: 0;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.cleanup-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.cleanup-label {
+    margin-bottom: 0.2rem;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-label);
+}
+
+.cleanup-muted {
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: var(--font-weight-normal);
+}
+
+.cleanup-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 0.2rem;
+}
+
+.switch-row-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.cleanup-types {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+}
+
+.cleanup-places-header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.cleanup-places-header ::deep .v-search {
+    flex: 1;
+    min-width: 0;
+}
+
+.cleanup-places {
+    display: flex;
+    flex-direction: column;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+}
+
+.place-dm-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+    color: var(--text-secondary);
+}
+
+.place-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.place-size {
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+}
+
+.cleanup-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+}
+
+.cleanup-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.cleanup-preview strong {
+    color: var(--text-primary);
+}
