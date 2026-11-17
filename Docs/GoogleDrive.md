@@ -19,7 +19,16 @@ for Google sign-in. Two things are needed in the Google Cloud project:
 
 The redirect address is the one Google sign-in already uses,
 `/api/auth/external/google/callback`. Google requires apps that handle Google user data to
-describe that use in their privacy policy, including Google's limited use statement.
+describe that use in their privacy policy, including Google's limited use statement. The
+"Google Drive Storage (Optional)" section of the privacy policy (`PRIVACY` in the
+repository root) does this, and it must stay accurate when the feature changes.
+
+The consent screen must be published ("In production"). While an app is in testing, Google
+expires refresh tokens after seven days, which would disconnect every Drive each week.
+
+The feature is on by default (`Enabled` below), so a server with a Google client offers
+it as soon as it runs this code. Set `GoogleDrive:Enabled` to `false` to stage the release
+before the Google Cloud setup is done.
 
 The `GoogleDrive` section of the server settings tunes the feature:
 
@@ -179,6 +188,9 @@ one copies it.
 
 Deleting an attachment or running Cleanup removes the Valour copy and the record. It does
 not delete the file in the person's Drive, which is theirs. A Drive copy is also a backup.
+
+Deleting the account removes the connection and folder records and, once the deletion
+succeeds, revokes the grant with Google. Files in the person's Drive are left alone.
 
 Disconnecting revokes the grant with Google and removes the connection and folder records.
 Files that still have a Valour copy become ordinary files again. Files that live only in

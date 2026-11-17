@@ -180,6 +180,35 @@ public class UserDriveService
     }
 
     /// <summary>
+    /// The account's saved Drive refresh token in the clear, or null when there
+    /// is none or it can't be read. Account deletion reads it before the
+    /// connection record is removed, so the grant can be revoked afterwards.
+    /// </summary>
+    public async Task<string> ReadRefreshTokenAsync(long userId)
+    {
+        var encrypted = await _db.UserDriveConnections.AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .Select(x => x.RefreshTokenEncrypted)
+            .FirstOrDefaultAsync();
+
+        if (encrypted is null)
+            return null;
+
+        try
+        {
+            return _protector.Unprotect(encrypted);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "A stored Drive token could not be read");
+            return null;
+        }
+    }
+
+    /// <summary>Tells Google to end a Drive grant. Failures are logged and ignored.</summary>
+    public Task RevokeGrantAsync(string refreshToken) => _api.RevokeAsync(refreshToken);
+
+    /// <summary>
     /// Files copied into another Drive can't be reached with this one. Those
     /// still on Valour are copied again. Those only in the old Drive are lost.
     /// </summary>

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Valour.Database;
 using Valour.Database.Context;
 using Valour.Server.Cdn.Storage;
+using Valour.Server.Mapping;
 using Valour.Server.Services;
 using Valour.Server.Services.GoogleDrive;
 using Valour.Shared.Cdn;
@@ -389,6 +390,38 @@ public class GoogleDriveStorageTests
         {
             await h.CleanUpAsync();
         }
+    }
+
+    [Fact]
+    public async Task DeletingAnAccountRemovesItsDriveConnection()
+    {
+        var details = await _fixture.RegisterUser();
+
+        using var scope = _fixture.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        var dbUser = await db.Users.FirstAsync(x => x.Name == details.Username);
+
+        // The saved token is unreadable on purpose, so nothing is sent to Google.
+        db.UserDriveConnections.Add(new UserDriveConnection
+        {
+            UserId = dbUser.Id,
+            GoogleAccountId = "delete-" + Guid.NewGuid().ToString("N"),
+            Email = "person@example.com",
+            RefreshTokenEncrypted = "not-a-protected-value",
+            Status = DriveConnectionStatus.Active,
+            ConnectedAt = DateTime.UtcNow,
+        });
+        db.UserDriveFolders.Add(new UserDriveFolder { UserId = dbUser.Id, Key = "root", DriveFolderId = "folder-1", Name = "Valour" });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var users = scope.ServiceProvider.GetRequiredService<UserService>();
+        var result = await users.HardDelete(dbUser.ToModel());
+        Assert.True(result.Success, result.Message);
+
+        db.ChangeTracker.Clear();
+        Assert.False(await db.UserDriveConnections.AnyAsync(x => x.UserId == dbUser.Id));
+        Assert.False(await db.UserDriveFolders.AnyAsync(x => x.UserId == dbUser.Id));
     }
 
     [Fact]
