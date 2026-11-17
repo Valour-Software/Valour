@@ -48,7 +48,7 @@
 
     private int Percent => _info is null ? 0 : (int)Math.Round(_info.UsedFraction * 100);
 
-    private string StateClass => _info is null ? "" : _info.IsFull ? "full" : _info.UsedFraction >= 0.8 ? "warn" : "";
+    private string StateClass => _info is null ? "" : _info.UsedFraction >= UserStorageInfo.CriticalFraction ? "full" : _info.UsedFraction >= UserStorageInfo.WarningFraction ? "warn" : "";
 
     protected override async Task OnInitializedAsync()
     {

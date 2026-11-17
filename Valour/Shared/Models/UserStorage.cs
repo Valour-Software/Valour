@@ -29,6 +29,12 @@ public class UserStorageInfo
 
     public bool IsFull => UsedBytes >= QuotaBytes;
 
+    /// <summary>Usage at which the storage meters turn amber.</summary>
+    public const double WarningFraction = 0.8;
+
+    /// <summary>Usage at which the storage meters turn red.</summary>
+    public const double CriticalFraction = 0.95;
+
     /// <summary>
     /// Formats a size the way the storage screens show it, for example 1.5 GB.
     /// </summary>

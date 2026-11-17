@@ -52,7 +52,8 @@ that into the out-of-space dialog. `GET api/attachments/storage` returns the sam
 - The out-of-space dialog offers Manage Attachments and, below the largest plan, a link to
   Subscriptions.
 
-The meter turns amber at 80 percent and red when full.
+The meter turns amber at 80 percent and red at 95 percent (`UserStorageInfo.WarningFraction` and
+`CriticalFraction`).
 
 ## Cleanup
 

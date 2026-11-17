@@ -1,81 +1,27 @@
-.cleanup-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    min-width: 0;
-}
-
-.cleanup-label {
-    color: var(--text-primary);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-}
-
 .cleanup-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-}
-
-.cleanup-radio,
-.cleanup-check {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    cursor: pointer;
-}
-
-.cleanup-types {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
 }
 
 .cleanup-places {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    max-height: 180px;
-    margin-top: 0.25rem;
-    padding: 0.6rem 0.75rem;
+    gap: var(--space-2);
+    max-height: 200px;
     overflow-y: auto;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
-    background-color: var(--surface-canvas);
-}
-
-.place-name {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.place-size,
-.cleanup-muted {
-    color: var(--text-tertiary);
-    font-size: var(--font-size-xs);
 }
 
 .cleanup-preview {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    padding: 0.75rem 1rem;
-    border: 1px dashed var(--line-strong);
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-lg);
-    color: var(--text-tertiary);
-    font-size: var(--font-size-sm);
-}
-
-.cleanup-preview.has-files {
-    border-style: solid;
-    border-color: var(--color-danger-border, var(--line-strong));
-    background-color: var(--color-danger-soft);
     color: var(--text-secondary);
+    font-size: var(--font-size-sm);
 }
 
 .cleanup-preview strong {

@@ -30,17 +30,20 @@
                 Wherever they were used, they will show as "Attachment not found". Your message text is kept.
             </p>
 
-            <label class="confirm-backup">
-                <input type="checkbox" @bind="_backup" />
-                <span>
-                    <strong>Download a backup first</strong>
-                    <span class="confirm-hint">
-                        @(_backup
-                            ? "A zip of these files downloads before anything is deleted."
-                            : "Nothing is saved. These files cannot be recovered.")
-                    </span>
-                </span>
-            </label>
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Download a backup first</span>
+                    <label class="switch">
+                        <input type="checkbox" aria-label="Download a backup first" @bind="_backup" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <p class="toggle-description">
+                    @(_backup
+                        ? "A zip of these files downloads before anything is deleted."
+                        : "Nothing is saved. These files cannot be recovered.")
+                </p>
+            </div>
 
             @if (_error is not null)
             {
