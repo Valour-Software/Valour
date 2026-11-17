@@ -27,6 +27,32 @@ public enum DriveSyncState
 
     /// <summary>Copying keeps failing. The Valour copy is kept.</summary>
     Failed = 4,
+
+    /// <summary>
+    /// The owner chose to keep the file on Valour. It is not copied to Drive
+    /// automatically and its Valour copy does not expire. It may still have an
+    /// older copy in Drive from before it was moved back.
+    /// </summary>
+    Pinned = 5,
+}
+
+/// <summary>Where an attachment lives, as shown on its row in Attachments settings.</summary>
+public enum AttachmentStorageLocation
+{
+    /// <summary>Only on Valour.</summary>
+    Valour = 0,
+
+    /// <summary>Waiting to be sent to Drive, or being sent.</summary>
+    SendingToDrive = 1,
+
+    /// <summary>In Drive, with a copy still on Valour that will expire.</summary>
+    DriveWithValourCopy = 2,
+
+    /// <summary>Only in Drive. Valour reads it from there when it is opened.</summary>
+    DriveOnly = 3,
+
+    /// <summary>Sending to Drive failed.</summary>
+    DriveFailed = 4,
 }
 
 /// <summary>
@@ -38,6 +64,12 @@ public class DriveConnectionInfo
     public bool Available { get; set; }
 
     public bool Connected { get; set; }
+
+    /// <summary>
+    /// Where new uploads go. True sends them to Drive. False keeps them on Valour,
+    /// where they count toward the storage allowance.
+    /// </summary>
+    public bool NewUploadsToDrive { get; set; }
 
     /// <summary>The Google account the Drive belongs to.</summary>
     public string Email { get; set; }
@@ -84,6 +116,12 @@ public class DriveConnectRequest
 
     /// <summary>The verifier whose hash started the flow.</summary>
     public string Verifier { get; set; }
+}
+
+/// <summary>Chooses where new uploads go while Drive is connected.</summary>
+public class DriveDefaultRequest
+{
+    public bool NewUploadsToDrive { get; set; }
 }
 
 public class DriveQueueResult

@@ -32,7 +32,7 @@
                     <span>Uploads go to your own Drive and stop using Valour space.</span>
                 </div>
                 <button class="v-btn" disabled="@_connecting" @onclick="ConnectDriveAsync">
-                    <i class="bi bi-google" aria-hidden="true"></i> Connect
+                    <i class="bi bi-google" aria-hidden="true"></i> @(Data.Info.DriveConnected ? "Use Drive" : "Connect")
                 </button>
             </div>
         }
@@ -60,7 +60,9 @@
     // The largest plan has nowhere further to go.
     private bool CanUpgrade => Data.Info.SubscriptionType != UserSubscriptionTypes.StargazerPro.Name;
 
-    private bool CanConnectDrive => Data.Info.DriveAvailable && !Data.Info.DriveConnected;
+    // Drive is offered when it isn't connected, and when it is but new uploads
+    // were set to stay on Valour.
+    private bool CanConnectDrive => Data.Info.DriveAvailable && !Data.Info.DriveIsDefault;
 
     private bool _connecting;
 
@@ -73,6 +75,22 @@
 
         try
         {
+            // Already connected, so only the setting needs to change.
+            if (Data.Info.DriveConnected)
+            {
+                var switched = await Client.AttachmentService.SetNewUploadsToDriveAsync(true);
+                if (!switched.Success)
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Could not change the setting", switched.Message, ToastProgressState.Failure));
+                    return;
+                }
+
+                ToastContainer.Instance.AddToast(new ToastData("New uploads go to Google Drive",
+                    "Try the upload again.", ToastProgressState.Success));
+                Close();
+                return;
+            }
+
             var outcome = await DriveConnector.ConnectAsync();
             if (outcome.Cancelled)
                 return;

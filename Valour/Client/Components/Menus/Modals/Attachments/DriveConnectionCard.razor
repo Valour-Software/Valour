@@ -57,6 +57,27 @@
                 <p class="drive-warning">@_info.LastError</p>
             }
 
+            @if (!NeedsReconnect)
+            {
+                <div class="drive-default" role="radiogroup" aria-label="Where new uploads go">
+                    <span class="drive-label">New uploads go to</span>
+                    <label class="switch-radio">
+                        <input type="radio" name="drive-default" checked="@_info.NewUploadsToDrive" disabled="@_busy"
+                               @onchange="@(() => SetDefaultAsync(true))" />
+                        <span class="radio round"></span>
+                        Google Drive
+                        <span class="drive-hint">Not counted against your storage</span>
+                    </label>
+                    <label class="switch-radio">
+                        <input type="radio" name="drive-default" checked="@(!_info.NewUploadsToDrive)" disabled="@_busy"
+                               @onchange="@(() => SetDefaultAsync(false))" />
+                        <span class="radio round"></span>
+                        Valour storage
+                        <span class="drive-hint">Counts against your storage</span>
+                    </label>
+                </div>
+            }
+
             <dl class="drive-stats">
                 <div>
                     <dt>In Drive</dt>
@@ -91,7 +112,7 @@
                 <div class="drive-action">
                     <span>
                         <span class="numeric">@_info.UnsyncedCount</span> older @(_info.UnsyncedCount == 1 ? "file" : "files")
-                        (<span class="numeric">@UserStorageInfo.FormatBytes(_info.UnsyncedBytes)</span>) are not in Drive yet.
+                        (<span class="numeric">@UserStorageInfo.FormatBytes(_info.UnsyncedBytes)</span>) @(_info.UnsyncedCount == 1 ? "is" : "are") not in Drive yet.
                     </span>
                     <VButton Variant="ghost" Size="sm" Disabled="@_busy" OnClick="@CopyExistingAsync">Copy to Drive</VButton>
                 </div>
@@ -163,6 +184,37 @@
 
             _info = outcome.Info;
             ToastContainer.Instance.AddToast(new ToastData("Google Drive connected", "New uploads will be copied to your Drive.", ToastProgressState.Success));
+            await OnChanged.InvokeAsync();
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>Reloads the numbers, after a file was moved from elsewhere on the page.</summary>
+    public async Task RefreshAsync()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SetDefaultAsync(bool toDrive)
+    {
+        _busy = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Client.AttachmentService.SetNewUploadsToDriveAsync(toDrive);
+            if (!result.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Could not change the setting", result.Message, ToastProgressState.Failure));
+                return;
+            }
+
+            _info = result.Data;
             await OnChanged.InvokeAsync();
         }
         finally

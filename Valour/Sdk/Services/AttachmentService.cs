@@ -102,7 +102,7 @@ public class AttachmentService : ServiceBase
             if (!storage.Success)
                 return tierLimit;
 
-            _driveConnected = storage.Data.DriveConnected;
+            _driveConnected = storage.Data.DriveIsDefault;
             _driveCheckedAt = DateTime.UtcNow;
         }
 
@@ -111,6 +111,30 @@ public class AttachmentService : ServiceBase
 
     /// <summary>Forgets what was learned about Drive, after it was connected or disconnected.</summary>
     public void ForgetUploadLimit() => _driveConnected = null;
+
+    /// <summary>Chooses whether new uploads go to Drive or stay on Valour.</summary>
+    public async Task<TaskResult<DriveConnectionInfo>> SetNewUploadsToDriveAsync(bool toDrive)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<DriveConnectionInfo>(
+            "api/attachments/drive/default",
+            new DriveDefaultRequest { NewUploadsToDrive = toDrive });
+        ForgetUploadLimit();
+        return result;
+    }
+
+    /// <summary>Sends one file to Drive and removes its copy on Valour.</summary>
+    public async Task<TaskResult<UserAttachmentInfo>> SendToDriveAsync(ContentCategory category, string hash)
+    {
+        return await _client.PrimaryNode.PostAsyncWithResponse<UserAttachmentInfo>(
+            $"api/attachments/{category}/{Uri.EscapeDataString(hash)}/to-drive");
+    }
+
+    /// <summary>Makes Valour the home of one file that is in Drive.</summary>
+    public async Task<TaskResult<UserAttachmentInfo>> MoveToValourAsync(ContentCategory category, string hash)
+    {
+        return await _client.PrimaryNode.PostAsyncWithResponse<UserAttachmentInfo>(
+            $"api/attachments/{category}/{Uri.EscapeDataString(hash)}/to-valour");
+    }
 
     /// <summary>Queues the files uploaded before Drive was connected.</summary>
     public async Task<TaskResult<DriveQueueResult>> CopyExistingToDriveAsync()

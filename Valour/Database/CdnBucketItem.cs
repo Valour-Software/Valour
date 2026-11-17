@@ -43,6 +43,12 @@ public class CdnBucketItem
     public string DriveError { get; set; }
 
     /// <summary>
+    /// Set when the owner asked to send this file to Drive. Valour's copy is then
+    /// removed as soon as the Drive copy exists, instead of after the retention days.
+    /// </summary>
+    public bool DriveReleaseOnSync { get; set; }
+
+    /// <summary>
     /// When the copy on Valour's storage may be removed. Set once the Drive
     /// copy exists. Null means the Valour copy is kept.
     /// </summary>
@@ -147,6 +153,11 @@ public class CdnBucketItem
 
             e.Property(x => x.DriveError)
                 .HasColumnName("drive_error");
+
+            e.Property(x => x.DriveReleaseOnSync)
+                .HasColumnName("drive_release_on_sync")
+                .HasDefaultValue(false)
+                .IsRequired();
 
             e.Property(x => x.StorageExpiresAt)
                 .HasColumnName("storage_expires_at");

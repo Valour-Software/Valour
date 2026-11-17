@@ -24,7 +24,8 @@ theme assets, and files kept on a planet's own storage are not counted.
 
 Usage is the sum of `SizeBytes` over the account's `cdn_bucket_items` rows whose copy is
 still on Valour's storage. Files that now live only in the person's Google Drive are not
-counted, and an account with a working Drive connection is not limited at all. See
+counted, and an account with a working Drive connection that is the default for new uploads
+is not limited at all. See
 [Google Drive storage](GoogleDrive.md). When two people
 upload the same file, the bytes are stored once, but each person's row counts for that
 person. Uploading a file the account already has costs nothing.

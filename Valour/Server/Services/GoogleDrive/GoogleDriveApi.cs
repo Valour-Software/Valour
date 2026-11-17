@@ -84,7 +84,7 @@ public class GoogleDriveApi : IGoogleDriveApi
         return created.Id;
     }
 
-    public async Task<bool> FolderExistsAsync(string accessToken, string folderId, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsAsync(string accessToken, string folderId, CancellationToken cancellationToken = default)
     {
         using var response = await SendAsync(() => Authorized(HttpMethod.Get,
             $"{FilesUrl}/{Uri.EscapeDataString(folderId)}?fields=id,trashed", accessToken), cancellationToken);

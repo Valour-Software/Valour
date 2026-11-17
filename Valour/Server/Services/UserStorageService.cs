@@ -74,7 +74,7 @@ public class UserStorageService
     public static async Task<long> GetMaxUploadBytesAsync(ValourDb db, long userId)
     {
         var limit = UserSubscriptionTypes.GetMaxUploadBytes(await GetSubscriptionTypeAsync(db, userId));
-        return await UserDriveService.HasActiveConnectionAsync(db, userId)
+        return await UserDriveService.IsDriveDefaultAsync(db, userId)
             ? Math.Max(limit, GoogleDriveLimits.ConnectedMaxUploadBytes)
             : limit;
     }
@@ -85,7 +85,7 @@ public class UserStorageService
     /// copy expires.
     /// </summary>
     public static async Task<long> GetQuotaBytesAsync(ValourDb db, long userId) =>
-        await UserDriveService.HasActiveConnectionAsync(db, userId)
+        await UserDriveService.IsDriveDefaultAsync(db, userId)
             ? long.MaxValue
             : UserSubscriptionTypes.GetStorageQuotaBytes(await GetSubscriptionTypeAsync(db, userId));
 
@@ -103,6 +103,7 @@ public class UserStorageService
             MaxUploadBytes = await GetMaxUploadBytesAsync(db, userId),
             SubscriptionType = subscription,
             DriveConnected = driveConnected,
+            DriveIsDefault = await UserDriveService.IsDriveDefaultAsync(db, userId),
             DriveAvailable = UserDriveService.IsAvailable,
         };
     }

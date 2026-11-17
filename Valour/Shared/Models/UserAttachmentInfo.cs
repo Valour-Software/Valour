@@ -16,4 +16,13 @@ public class UserAttachmentInfo
     public string SignedUrl { get; set; }
     public MediaSafetyHashMatchState SafetyHashMatchState { get; set; }
     public DateTime? SafetyHashMatchedAt { get; set; }
+
+    /// <summary>Where the file lives. Only differs from Valour when Google Drive is in use.</summary>
+    public AttachmentStorageLocation StorageLocation { get; set; }
+
+    /// <summary>When Valour's copy of a file that is also in Drive is removed.</summary>
+    public DateTime? StorageExpiresAt { get; set; }
+
+    /// <summary>A short reason sending to Drive failed.</summary>
+    public string DriveError { get; set; }
 }

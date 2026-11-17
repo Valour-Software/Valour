@@ -23,6 +23,13 @@ public class UserStorageInfo
     /// </summary>
     public bool DriveConnected { get; set; }
 
+    /// <summary>
+    /// True when new uploads go to Drive. Only then are uploads not refused for
+    /// lack of space. Someone with Drive connected can choose to keep new uploads
+    /// on Valour instead.
+    /// </summary>
+    public bool DriveIsDefault { get; set; }
+
     /// <summary>True when this server can connect Google Drive at all.</summary>
     public bool DriveAvailable { get; set; }
 

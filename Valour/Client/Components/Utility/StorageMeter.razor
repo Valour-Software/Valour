@@ -17,9 +17,9 @@
         @if (!Compact)
         {
             <div class="meter-foot">
-                @if (_info.DriveConnected)
+                @if (_info.DriveIsDefault)
                 {
-                    <span>Google Drive is connected, so uploads are never turned away.</span>
+                    <span>New uploads go to Google Drive, so they are never turned away.</span>
                 }
                 else if (_info.IsFull)
                 {
@@ -53,7 +53,7 @@
     private int Percent => _info is null ? 0 : (int)Math.Round(_info.UsedFraction * 100);
 
     // A Drive account is never refused for space, so running high isn't a warning.
-    private string StateClass => _info is null || _info.DriveConnected ? "" : _info.UsedFraction >= UserStorageInfo.CriticalFraction ? "full" : _info.UsedFraction >= UserStorageInfo.WarningFraction ? "warn" : "";
+    private string StateClass => _info is null || _info.DriveIsDefault ? "" : _info.UsedFraction >= UserStorageInfo.CriticalFraction ? "full" : _info.UsedFraction >= UserStorageInfo.WarningFraction ? "warn" : "";
 
     protected override async Task OnInitializedAsync()
     {

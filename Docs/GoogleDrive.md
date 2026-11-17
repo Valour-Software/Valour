@@ -68,8 +68,9 @@ Valour already put in it. A different account starts fresh.
 Uploads do not change. `CdnBucketService.Upload` stores the file on Valour's storage after
 the usual safety scan. `DriveSyncWorker` then does the rest in the background:
 
-1. **Pick files.** Files uploaded after the connection was made, and files a person queued
-   by hand, wait for the grace period and then get copied.
+1. **Pick files.** Files uploaded since the connection's `AutoSyncFrom` time, and files a
+   person queued by hand, wait for the grace period and then get copied. Choosing Valour
+   storage as the default clears `AutoSyncFrom`, so new uploads are left alone.
 2. **Choose a folder.** `DriveSyncService.ResolvePlacementAsync` files a file by where it
    was first used:
    `Valour/Planets/<planet name>/<yyyy-MM>/`,
@@ -103,9 +104,39 @@ If the file cannot be read back, because the connection is gone, the person dele
 file in Drive, or the Drive copy was changed, the content route answers 404 and readers
 see the same "Attachment not found" tile as any deleted file.
 
+## Choosing where new uploads go
+
+While Drive is connected, Settings, under Attachments, lets the person choose where new
+uploads go: Google Drive, or Valour storage. Google Drive is the default when connecting.
+The choice is `UserDriveConnection.AutoSyncFrom`: a time means uploads from then on go to
+Drive, and null means they stay on Valour. Switching back to Drive only covers files
+uploaded after the switch, so files kept on Valour in between are not swept up.
+`POST api/attachments/drive/default` changes it.
+
+With Valour storage chosen, the account has its plan's allowance and file limit again, and
+new files count toward the allowance. Drive stays connected, and files can still be moved by
+hand.
+
+## Moving a file by hand
+
+Each row in Attachments settings shows where its file lives (`AttachmentStorageLocation`)
+and one button that moves it the other way:
+
+- **Send to Drive** for a file on Valour. `DriveSyncService.SendToDriveAsync` queues the file
+  with `DriveReleaseOnSync` set, so the worker copies it and Valour's copy expires at once
+  instead of after the retention days. A file that is already in Drive with a cached Valour
+  copy loses that copy at the next pass. A file that was moved back earlier and still has its
+  Drive copy reuses it instead of uploading again.
+- **Move to Valour** for a file in Drive. `DriveSyncService.MoveToValourAsync` reads a
+  Drive-only file back, after checking that the plan's allowance has room for it (answering
+  413 otherwise), and marks it `Pinned`. A pinned file is never copied or expired
+  automatically, and its older Drive copy is left alone.
+
+Both routes check that the file belongs to the signed-in user and is not quarantined.
+
 ## Quota and limits
 
-While Drive works, the account is not turned away for lack of space.
+While Drive is the default for new uploads, the account is not turned away for lack of space.
 `UserStorageService.GetQuotaBytesAsync` returns no limit, and the per-file limit is at
 least 100 MB (`GoogleDriveLimits.ConnectedMaxUploadBytes`), or the plan's limit when that
 is higher. Usage counts only files that still have a copy on Valour, so files that live
@@ -113,7 +144,7 @@ only in Drive are free. The meter still shows the plan's allowance, which is wha
 account returns to if Drive is disconnected.
 
 Clients ask `AttachmentService.GetMaxUploadBytesAsync` for the file limit, which remembers
-whether Drive is connected for a few minutes.
+whether Drive is the default for a few minutes.
 
 ## When something goes wrong
 
@@ -154,18 +185,24 @@ All routes are under `api/attachments/drive` and need a signed-in user.
 | `GET api/attachments/drive` | `DriveConnectionInfo`: connection, counts, and the last error. |
 | `POST api/attachments/drive/connect` | Finish connecting with a ticket and verifier. |
 | `DELETE api/attachments/drive` | Disconnect. |
+| `POST api/attachments/drive/default` | Choose whether new uploads go to Drive or stay on Valour. |
+| `POST api/attachments/{category}/{hash}/to-drive` | Send one file to Drive and remove its Valour copy. |
+| `POST api/attachments/{category}/{hash}/to-valour` | Make Valour the home of one file in Drive. |
 | `POST api/attachments/drive/copy-existing` | Queue files uploaded before Drive was connected. |
 | `POST api/attachments/drive/retry` | Try failed files again. |
 
-`GET api/attachments/storage` also reports `DriveConnected` and `DriveAvailable`.
+`GET api/attachments/storage` also reports `DriveConnected`, `DriveIsDefault`, and
+`DriveAvailable`.
 
 ## Data
 
 - `user_drive_connections`: one row per connected account, with the encrypted refresh
-  token and a `Status` of `Active` or `NeedsReconnect`.
+  token, a `Status` of `Active` or `NeedsReconnect`, and `AutoSyncFrom`.
 - `user_drive_folders`: the Drive folder IDs Valour made, keyed by what they hold.
 - `cdn_bucket_items`: `DriveState`, `DriveFileId`, `DriveSyncedAt`, `DriveAttempts`,
-  `DriveNextAttemptAt`, `DriveError`, `StorageExpiresAt`, and `StoragePurgedAt`.
+  `DriveNextAttemptAt`, `DriveError`, `DriveReleaseOnSync`, `StorageExpiresAt`, and
+`StoragePurgedAt`. `DriveState` is `None`, `Pending`, `Syncing`, `Synced`, `Failed`, or
+`Pinned`.
 
 ## Testing
 

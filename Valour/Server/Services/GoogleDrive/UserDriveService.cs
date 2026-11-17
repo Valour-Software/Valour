@@ -46,6 +46,14 @@ public class UserDriveService
         db.UserDriveConnections.AsNoTracking()
             .AnyAsync(x => x.UserId == userId && x.Status == DriveConnectionStatus.Active);
 
+    /// <summary>
+    /// True when the account has a working Drive and new uploads go to it. Only
+    /// then is the storage allowance lifted and the file limit raised.
+    /// </summary>
+    public static Task<bool> IsDriveDefaultAsync(ValourDb db, long userId) =>
+        db.UserDriveConnections.AsNoTracking()
+            .AnyAsync(x => x.UserId == userId && x.Status == DriveConnectionStatus.Active && x.AutoSyncFrom != null);
+
     public Task<Valour.Database.UserDriveConnection> GetConnectionAsync(long userId) =>
         _db.UserDriveConnections.FirstOrDefaultAsync(x => x.UserId == userId);
 
@@ -79,7 +87,13 @@ public class UserDriveService
 
         if (connection is null)
         {
-            connection = new Valour.Database.UserDriveConnection { UserId = userId, ConnectedAt = DateTime.UtcNow };
+            connection = new Valour.Database.UserDriveConnection
+            {
+                UserId = userId,
+                ConnectedAt = DateTime.UtcNow,
+                // New uploads go to Drive until the person says otherwise.
+                AutoSyncFrom = DateTime.UtcNow,
+            };
             _db.UserDriveConnections.Add(connection);
         }
         else if (!sameAccount)
@@ -87,6 +101,7 @@ public class UserDriveService
             // Another Drive has none of the files or folders Valour made in the old one.
             await ForgetDriveContentsAsync(userId);
             connection.ConnectedAt = DateTime.UtcNow;
+            connection.AutoSyncFrom = DateTime.UtcNow;
         }
         else if (connection.Status == DriveConnectionStatus.NeedsReconnect)
         {
@@ -108,6 +123,25 @@ public class UserDriveService
 
         await _db.SaveChangesAsync();
         _cache.Remove(TokenCacheKey(userId));
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>Chooses whether new uploads go to Drive or stay on Valour.</summary>
+    public async Task<TaskResult> SetNewUploadsToDriveAsync(long userId, bool toDrive)
+    {
+        var connection = await GetConnectionAsync(userId);
+        if (connection is null)
+            return TaskResult.FromFailure("Google Drive is not connected.");
+
+        // Only files uploaded after the switch are affected, so turning it back on
+        // does not sweep up the files that were kept on Valour in between.
+        var enabled = connection.AutoSyncFrom is not null;
+        if (toDrive && !enabled)
+            connection.AutoSyncFrom = DateTime.UtcNow;
+        else if (!toDrive)
+            connection.AutoSyncFrom = null;
+
+        await _db.SaveChangesAsync();
         return TaskResult.SuccessResult;
     }
 
@@ -239,15 +273,16 @@ public class UserDriveService
             return info;
 
         info.Connected = true;
+        info.NewUploadsToDrive = connection.AutoSyncFrom is not null;
         info.Email = connection.Email;
         info.Status = connection.Status;
         info.LastSyncAt = connection.LastSyncAt;
         info.LastError = connection.LastError;
 
-        var connectedAt = connection.ConnectedAt;
+        var autoSyncFrom = connection.AutoSyncFrom ?? DateTime.MaxValue;
         var rows = await _db.CdnBucketItems.AsNoTracking()
             .Where(x => x.UserId == userId && x.SafetyQuarantinedAt == null)
-            .GroupBy(x => new { x.DriveState, Purged = x.StoragePurgedAt != null, IsNew = x.CreatedAt >= connectedAt })
+            .GroupBy(x => new { x.DriveState, Purged = x.StoragePurgedAt != null, IsNew = x.CreatedAt >= autoSyncFrom })
             .Select(g => new { g.Key.DriveState, g.Key.Purged, g.Key.IsNew, Count = g.Count(), Bytes = g.Sum(x => (long)x.SizeBytes) })
             .ToListAsync();
 
@@ -270,6 +305,9 @@ public class UserDriveService
                     break;
                 case DriveSyncState.Failed:
                     info.FailedCount += row.Count;
+                    break;
+                case DriveSyncState.Pinned:
+                    // The person chose to keep these on Valour.
                     break;
                 default:
                     // New uploads are picked up by the worker on its own.

@@ -3,6 +3,9 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Caching.Memory;
 using Valour.Config.Configs;
 using Valour.Server.Cdn.Storage;
+using Valour.Server.Mapping;
+using Valour.Shared;
+using Valour.Shared.Cdn;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services.GoogleDrive;
@@ -100,7 +103,7 @@ public class DriveSyncService
                   i.DriveFileId == null &&
                   (i.DriveNextAttemptAt == null || i.DriveNextAttemptAt <= now) &&
                   ((i.DriveState == DriveSyncState.Pending) ||
-                   (i.DriveState == DriveSyncState.None && i.CreatedAt >= c.ConnectedAt && i.CreatedAt <= graceCutoff))
+                   (i.DriveState == DriveSyncState.None && c.AutoSyncFrom != null && i.CreatedAt >= c.AutoSyncFrom && i.CreatedAt <= graceCutoff))
             orderby i.CreatedAt
             select new Candidate(i.Id, i.UserId))
             .Take(Config.SyncBatchSize)
@@ -189,7 +192,9 @@ public class DriveSyncService
             item.DriveAttempts = 0;
             item.DriveNextAttemptAt = null;
             item.DriveError = null;
-            item.StorageExpiresAt = DateTime.UtcNow.AddDays(Config.RetentionDays);
+            // A file the person sent to Drive by hand loses its Valour copy right away.
+            item.StorageExpiresAt = item.DriveReleaseOnSync ? DateTime.UtcNow : DateTime.UtcNow.AddDays(Config.RetentionDays);
+            item.DriveReleaseOnSync = false;
             await _db.SaveChangesAsync(cancellationToken);
 
             await _db.UserDriveConnections
@@ -420,7 +425,7 @@ public class DriveSyncService
         if (_cache.TryGetValue(FolderCheckKey(userId, folder.Key), out _))
             return true;
 
-        if (!await _api.FolderExistsAsync(token, folder.DriveFolderId, cancellationToken))
+        if (!await _api.ExistsAsync(token, folder.DriveFolderId, cancellationToken))
             return false;
 
         _cache.Set(FolderCheckKey(userId, folder.Key), true, FolderCheckLifetime);
@@ -487,7 +492,7 @@ public class DriveSyncService
             if (folder is null)
                 return;
 
-            if (!await _api.FolderExistsAsync(token, folder.DriveFolderId, cancellationToken))
+            if (!await _api.ExistsAsync(token, folder.DriveFolderId, cancellationToken))
             {
                 await ForgetFoldersAsync(userId, key);
                 return;
@@ -558,6 +563,122 @@ public class DriveSyncService
         }
 
         return purged;
+    }
+
+    // Moving one file by hand //
+
+    private Task<Valour.Database.CdnBucketItem> FindOwnedItemAsync(long userId, ContentCategory category, string hash) =>
+        _db.CdnBucketItems.FirstOrDefaultAsync(x => x.Id == $"{category}/{userId}/{hash}");
+
+    /// <summary>
+    /// Sends a file to Drive and removes Valour's copy. A file on Valour is queued
+    /// and its Valour copy goes as soon as the Drive copy exists. A file that is in
+    /// Drive with a cached copy on Valour loses that copy at the next pass.
+    /// </summary>
+    public async Task<TaskResult<UserAttachmentInfo>> SendToDriveAsync(long userId, ContentCategory category, string hash)
+    {
+        var item = await FindOwnedItemAsync(userId, category, hash);
+        if (item is null)
+            return TaskResult<UserAttachmentInfo>.FromFailure("Attachment not found.", 404);
+
+        if (item.SafetyQuarantinedAt is not null)
+            return TaskResult<UserAttachmentInfo>.FromFailure("This attachment cannot be moved.");
+
+        if (!await UserDriveService.HasActiveConnectionAsync(_db, userId))
+            return TaskResult<UserAttachmentInfo>.FromFailure("Connect Google Drive first.");
+
+        switch (item.DriveState)
+        {
+            case DriveSyncState.Pending or DriveSyncState.Syncing:
+                // Already on its way. It no longer waits out the retention days.
+                item.DriveReleaseOnSync = true;
+                break;
+
+            case DriveSyncState.Synced when item.StoragePurgedAt is not null:
+                break;
+
+            case DriveSyncState.Synced:
+                item.StorageExpiresAt = DateTime.UtcNow;
+                break;
+
+            default:
+                // On Valour only, a failed copy, or a file that was moved back to Valour.
+                if (item.DriveFileId is not null)
+                {
+                    // A file moved back earlier may still be in Drive. Reuse that copy
+                    // when it is still there instead of uploading it again.
+                    try
+                    {
+                        var token = await _drives.GetAccessTokenAsync(userId);
+                        if (await _api.ExistsAsync(token, item.DriveFileId))
+                        {
+                            item.DriveState = DriveSyncState.Synced;
+                            item.DriveSyncedAt = DateTime.UtcNow;
+                            item.DriveAttempts = 0;
+                            item.DriveError = null;
+                            item.StorageExpiresAt = DateTime.UtcNow;
+                            break;
+                        }
+                    }
+                    catch (DriveApiException e)
+                    {
+                        return TaskResult<UserAttachmentInfo>.FromFailure(e.Kind == DriveErrorKind.AccessRevoked
+                            ? "Reconnect Google Drive first."
+                            : "Valour could not reach Google Drive. Try again in a moment.");
+                    }
+
+                    item.DriveFileId = null;
+                }
+
+                item.DriveState = DriveSyncState.Pending;
+                item.DriveAttempts = 0;
+                item.DriveNextAttemptAt = null;
+                item.DriveError = null;
+                item.DriveReleaseOnSync = true;
+                break;
+        }
+
+        await _db.SaveChangesAsync();
+        return TaskResult<UserAttachmentInfo>.FromData(item.ToInfo());
+    }
+
+    /// <summary>
+    /// Makes Valour the home of a file that lives in Drive. A file that was only in
+    /// Drive is read back first, and needs room in the account's allowance. The
+    /// copy in Drive is left alone.
+    /// </summary>
+    public async Task<TaskResult<UserAttachmentInfo>> MoveToValourAsync(long userId, ContentCategory category, string hash)
+    {
+        var item = await FindOwnedItemAsync(userId, category, hash);
+        if (item is null)
+            return TaskResult<UserAttachmentInfo>.FromFailure("Attachment not found.", 404);
+
+        if (item.SafetyQuarantinedAt is not null)
+            return TaskResult<UserAttachmentInfo>.FromFailure("This attachment cannot be moved.");
+
+        if (item.DriveState is DriveSyncState.Pending or DriveSyncState.Syncing)
+            return TaskResult<UserAttachmentInfo>.FromFailure("This file is still being sent to Google Drive.");
+
+        if (item.DriveState != DriveSyncState.Synced || item.DriveFileId is null)
+            return TaskResult<UserAttachmentInfo>.FromFailure("This file is already on Valour.");
+
+        if (item.StoragePurgedAt is not null)
+        {
+            // Files on Valour count toward the plan's allowance, whatever new uploads do.
+            var plan = UserSubscriptionTypes.GetStorageQuotaBytes(await UserStorageService.GetSubscriptionTypeAsync(_db, userId));
+            var used = await UserStorageService.GetUsedBytesAsync(_db, userId);
+            if (used + item.SizeBytes > plan)
+                return TaskResult<UserAttachmentInfo>.FromFailure("There is not enough room on Valour for this file. Free up space or upgrade first.", 413);
+
+            if (!await RestoreAsync(item))
+                return TaskResult<UserAttachmentInfo>.FromFailure("Valour could not read this file from Google Drive. Check that Drive is connected and try again.");
+        }
+
+        item.DriveState = DriveSyncState.Pinned;
+        item.StorageExpiresAt = null;
+        item.DriveReleaseOnSync = false;
+        await _db.SaveChangesAsync();
+        return TaskResult<UserAttachmentInfo>.FromData(item.ToInfo());
     }
 
     // Reading a file back from Drive //

@@ -268,6 +268,12 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("drive_next_attempt_at");
 
+                    b.Property<bool>("DriveReleaseOnSync")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("drive_release_on_sync");
+
                     b.Property<int>("DriveState")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -4759,6 +4765,10 @@ namespace Valour.Database.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
+
+                    b.Property<DateTime?>("AutoSyncFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("auto_sync_from");
 
                     b.Property<DateTime>("ConnectedAt")
                         .HasColumnType("timestamp with time zone")

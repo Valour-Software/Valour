@@ -24,6 +24,12 @@ public class UserDriveConnection
 
     public DateTime ConnectedAt { get; set; }
 
+    /// <summary>
+    /// Files uploaded from this moment on are sent to Drive automatically. Null
+    /// means new uploads stay on Valour, which the person chose in settings.
+    /// </summary>
+    public DateTime? AutoSyncFrom { get; set; }
+
     public DateTime? LastSyncAt { get; set; }
 
     /// <summary>A short, safe reason the last copy or refresh failed.</summary>
@@ -43,6 +49,7 @@ public class UserDriveConnection
             e.Property(x => x.RefreshTokenEncrypted).HasColumnName("refresh_token_encrypted").IsRequired();
             e.Property(x => x.Status).HasColumnName("status").IsRequired();
             e.Property(x => x.ConnectedAt).HasColumnName("connected_at").IsRequired();
+            e.Property(x => x.AutoSyncFrom).HasColumnName("auto_sync_from");
             e.Property(x => x.LastSyncAt).HasColumnName("last_sync_at");
             e.Property(x => x.LastError).HasColumnName("last_error");
         });

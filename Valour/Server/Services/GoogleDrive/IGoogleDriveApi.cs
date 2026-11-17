@@ -70,8 +70,8 @@ public interface IGoogleDriveApi
     /// <summary>Creates a folder and returns its ID. A null parent is the top of My Drive.</summary>
     Task<string> CreateFolderAsync(string accessToken, string name, string parentId, CancellationToken cancellationToken = default);
 
-    /// <summary>Whether the folder still exists and is not in the trash.</summary>
-    Task<bool> FolderExistsAsync(string accessToken, string folderId, CancellationToken cancellationToken = default);
+    /// <summary>Whether a file or folder still exists and is not in the trash.</summary>
+    Task<bool> ExistsAsync(string accessToken, string folderId, CancellationToken cancellationToken = default);
 
     Task RenameAsync(string accessToken, string fileId, string name, CancellationToken cancellationToken = default);
 

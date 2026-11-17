@@ -47,8 +47,8 @@ public sealed class FakeGoogleDriveApi : IGoogleDriveApi
         return Task.FromResult(id);
     }
 
-    public Task<bool> FolderExistsAsync(string accessToken, string folderId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Folders.TryGetValue(folderId, out var folder) && !folder.Trashed);
+    public Task<bool> ExistsAsync(string accessToken, string folderId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Files.ContainsKey(folderId) || (Folders.TryGetValue(folderId, out var folder) && !folder.Trashed));
 
     public Task RenameAsync(string accessToken, string fileId, string name, CancellationToken cancellationToken = default)
     {
@@ -159,6 +159,7 @@ public class GoogleDriveStorageTests
                 RefreshTokenEncrypted = Protector.Protect("refresh-" + account),
                 Status = DriveConnectionStatus.Active,
                 ConnectedAt = DateTime.UtcNow.AddHours(-2),
+                AutoSyncFrom = DateTime.UtcNow.AddHours(-2),
             });
             await Db.SaveChangesAsync();
         }
@@ -383,6 +384,186 @@ public class GoogleDriveStorageTests
 
             // With no connection it can't be read back.
             Assert.False(await h.Sync.RestoreAsync(driveOnly));
+        }
+        finally
+        {
+            await h.CleanUpAsync();
+        }
+    }
+
+    [Fact]
+    public async Task KeepingNewUploadsOnValourStopsAutomaticCopyingAndRestoresTheLimits()
+    {
+        using var h = new Harness(_fixture);
+        await h.ConnectAsync();
+
+        try
+        {
+            Assert.True((await h.Drives.SetNewUploadsToDriveAsync(h.UserId, false)).Success);
+
+            var (id, _) = await UploadTextAsync("drive-valour-default.txt", 2000);
+            await h.AgeAsync(id);
+            Assert.Equal(0, await h.Sync.SyncBatchAsync());
+            Assert.Equal(DriveSyncState.None, (await h.ItemAsync(id)).DriveState);
+
+            // Drive is connected but is no longer the default, so plan limits apply again.
+            Assert.False(await UserDriveService.IsDriveDefaultAsync(h.Db, h.UserId));
+            Assert.Equal(UserSubscriptionTypes.DefaultMaxUploadBytes, await UserStorageService.GetMaxUploadBytesAsync(h.Db, h.UserId));
+            Assert.Equal(UserSubscriptionTypes.DefaultStorageQuotaBytes, await UserStorageService.GetQuotaBytesAsync(h.Db, h.UserId));
+            var info = await UserStorageService.GetInfoAsync(h.Db, h.UserId);
+            Assert.True(info.DriveConnected);
+            Assert.False(info.DriveIsDefault);
+
+            // Switching back only affects files uploaded from then on.
+            Assert.True((await h.Drives.SetNewUploadsToDriveAsync(h.UserId, true)).Success);
+            Assert.Equal(0, await h.Sync.SyncBatchAsync());
+            Assert.Equal(DriveSyncState.None, (await h.ItemAsync(id)).DriveState);
+
+            var (later, _) = await UploadTextAsync("drive-after-switch.txt", 2000);
+            await h.AgeAsync(later);
+            await h.Db.UserDriveConnections.Where(x => x.UserId == h.UserId)
+                .ExecuteUpdateAsync(x => x.SetProperty(c => c.AutoSyncFrom, DateTime.UtcNow.AddMinutes(-40)));
+            await h.Db.CdnBucketItems.Where(x => x.Id == id)
+                .ExecuteUpdateAsync(x => x.SetProperty(i => i.CreatedAt, DateTime.UtcNow.AddMinutes(-50)));
+            Assert.True(await h.Sync.SyncBatchAsync() >= 1);
+            Assert.Equal(DriveSyncState.Synced, (await h.ItemAsync(later)).DriveState);
+            Assert.Equal(DriveSyncState.None, (await h.ItemAsync(id)).DriveState);
+        }
+        finally
+        {
+            await h.CleanUpAsync();
+        }
+    }
+
+    [Fact]
+    public async Task AFileCanBeSentToDriveAndMovedBackAndForth()
+    {
+        using var h = new Harness(_fixture);
+        await h.ConnectAsync();
+
+        try
+        {
+            await h.Drives.SetNewUploadsToDriveAsync(h.UserId, false);
+            var (id, bytes) = await UploadTextAsync("drive-roundtrip.txt", 2500);
+            var parts = id.Split('/');
+            var category = Enum.Parse<ContentCategory>(parts[0]);
+            var hash = parts[2];
+
+            // Valour to Drive: queued, copied, and Valour's copy goes right away.
+            var queued = await h.Sync.SendToDriveAsync(h.UserId, category, hash);
+            Assert.True(queued.Success, queued.Message);
+            Assert.Equal(AttachmentStorageLocation.SendingToDrive, queued.Data.StorageLocation);
+
+            await h.Sync.RunPassAsync();
+            var sent = await h.ItemAsync(id);
+            Assert.Equal(DriveSyncState.Synced, sent.DriveState);
+            Assert.NotNull(sent.StoragePurgedAt);
+            Assert.Null(await h.Storage.Private.GetAsync(sent.Hash));
+            Assert.Single(h.Drive.Files);
+
+            // Drive to Valour: read back, kept, and never expired or copied again.
+            var back = await h.Sync.MoveToValourAsync(h.UserId, category, hash);
+            Assert.True(back.Success, back.Message);
+            Assert.Equal(AttachmentStorageLocation.Valour, back.Data.StorageLocation);
+
+            var pinned = await h.ItemAsync(id);
+            Assert.Equal(DriveSyncState.Pinned, pinned.DriveState);
+            Assert.Null(pinned.StoragePurgedAt);
+            Assert.Null(pinned.StorageExpiresAt);
+            await using (var download = await h.Storage.Private.GetAsync(pinned.Hash))
+            {
+                Assert.NotNull(download);
+                using var read = new MemoryStream();
+                await download!.Stream.CopyToAsync(read);
+                Assert.Equal(bytes, read.ToArray());
+            }
+
+            await h.Sync.RunPassAsync();
+            Assert.Equal(DriveSyncState.Pinned, (await h.ItemAsync(id)).DriveState);
+
+            // Valour to Drive again reuses the copy that is still in Drive.
+            var again = await h.Sync.SendToDriveAsync(h.UserId, category, hash);
+            Assert.True(again.Success, again.Message);
+            Assert.Equal(AttachmentStorageLocation.DriveWithValourCopy, again.Data.StorageLocation);
+            await h.Sync.RunPassAsync();
+            h.Db.ChangeTracker.Clear();
+            Assert.Equal(AttachmentStorageLocation.DriveOnly, (await h.Sync.SendToDriveAsync(h.UserId, category, hash)).Data.StorageLocation);
+            Assert.Single(h.Drive.Files);
+
+            // A file that is not in Drive can't be moved back.
+            var (plain, _) = await UploadTextAsync("drive-plain.txt", 1500);
+            var plainParts = plain.Split('/');
+            var refused = await h.Sync.MoveToValourAsync(h.UserId, Enum.Parse<ContentCategory>(plainParts[0]), plainParts[2]);
+            Assert.False(refused.Success);
+        }
+        finally
+        {
+            await h.CleanUpAsync();
+        }
+    }
+
+    [Fact]
+    public async Task MovingBackToValourNeedsRoomInThePlansAllowance()
+    {
+        using var h = new Harness(_fixture);
+        await h.ConnectAsync();
+
+        try
+        {
+            var (id, _) = await UploadTextAsync("drive-no-room.txt", 2000);
+            var parts = id.Split('/');
+            var category = Enum.Parse<ContentCategory>(parts[0]);
+
+            await h.Sync.SendToDriveAsync(h.UserId, category, parts[2]);
+            await h.Sync.RunPassAsync();
+            Assert.NotNull((await h.ItemAsync(id)).StoragePurgedAt);
+
+            var fillerId = $"File/{h.UserId}/drive-filler-{Guid.NewGuid():N}";
+            h.Db.CdnBucketItems.Add(new CdnBucketItem
+            {
+                Id = fillerId,
+                Hash = fillerId.Split('/')[^1],
+                UserId = h.UserId,
+                MimeType = "application/octet-stream",
+                FileName = "drive-filler.bin",
+                Category = ContentCategory.File,
+                SizeBytes = int.MaxValue,
+                CreatedAt = DateTime.UtcNow,
+                Sha256Hash = new string('0', 64),
+            });
+            h.Db.CdnBucketItems.Add(new CdnBucketItem
+            {
+                Id = fillerId + "-b",
+                Hash = fillerId.Split('/')[^1] + "-b",
+                UserId = h.UserId,
+                MimeType = "application/octet-stream",
+                FileName = "drive-filler.bin",
+                Category = ContentCategory.File,
+                SizeBytes = int.MaxValue,
+                CreatedAt = DateTime.UtcNow,
+                Sha256Hash = new string('0', 64),
+            });
+            await h.Db.SaveChangesAsync();
+            h.Db.ChangeTracker.Clear();
+            // Two 2 GiB records fit a 5 GiB plan, so a third fills it.
+            h.Db.CdnBucketItems.Add(new CdnBucketItem
+            {
+                Id = fillerId + "-c",
+                Hash = fillerId.Split('/')[^1] + "-c",
+                UserId = h.UserId,
+                MimeType = "application/octet-stream",
+                FileName = "drive-filler.bin",
+                Category = ContentCategory.File,
+                SizeBytes = int.MaxValue,
+                CreatedAt = DateTime.UtcNow,
+                Sha256Hash = new string('0', 64),
+            });
+            await h.Db.SaveChangesAsync();
+
+            var refused = await h.Sync.MoveToValourAsync(h.UserId, category, parts[2]);
+            Assert.False(refused.Success);
+            Assert.Equal(413, refused.Code);
+            Assert.NotNull((await h.ItemAsync(id)).StoragePurgedAt);
         }
         finally
         {

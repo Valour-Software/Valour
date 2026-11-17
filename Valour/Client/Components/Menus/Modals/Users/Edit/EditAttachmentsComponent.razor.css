@@ -185,3 +185,24 @@
     border-radius: var(--radius-lg);
     background-color: var(--surface-raised);
 }
+
+.location-chip {
+    padding: 0.05rem 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+}
+
+.location-chip.drive {
+    color: var(--text-secondary);
+    background-color: var(--surface-hover);
+}
+
+.location-chip.pending {
+    color: var(--text-tertiary);
+}
+
+.location-chip.failed {
+    color: var(--color-warning, var(--text-primary));
+    border-color: var(--color-warning-border, var(--line-strong));
+}

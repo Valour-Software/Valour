@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Services.GoogleDrive;
+using Valour.Shared;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
 using Valour.Shared.Queries;
@@ -101,6 +102,63 @@ public class AttachmentApi
         var token = await tokenService.GetCurrentTokenAsync();
         var result = await driveService.DisconnectAsync(token.UserId);
         return result.Success ? ValourResult.Ok() : ValourResult.BadRequest(result.Message);
+    }
+
+    /// <summary>Chooses whether new uploads go to Drive or stay on Valour.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/drive/default")]
+    [UserRequired]
+    public static async Task<IResult> SetDriveDefaultAsync(
+        [FromBody] DriveDefaultRequest? request,
+        TokenService tokenService,
+        UserDriveService driveService)
+    {
+        if (request is null)
+            return ValourResult.BadRequest("Include the setting.");
+
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await driveService.SetNewUploadsToDriveAsync(token.UserId, request.NewUploadsToDrive);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json(await driveService.GetInfoAsync(token.UserId));
+    }
+
+    /// <summary>Sends one file to Drive and removes its copy on Valour.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/{category}/{hash}/to-drive")]
+    [UserRequired]
+    public static async Task<IResult> SendToDriveAsync(
+        ContentCategory category,
+        string hash,
+        TokenService tokenService,
+        DriveSyncService driveSync)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await driveSync.SendToDriveAsync(token.UserId, category, hash);
+        return ToMoveResult(result);
+    }
+
+    /// <summary>Makes Valour the home of one file that is in Drive.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/{category}/{hash}/to-valour")]
+    [UserRequired]
+    public static async Task<IResult> MoveToValourAsync(
+        ContentCategory category,
+        string hash,
+        TokenService tokenService,
+        DriveSyncService driveSync)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await driveSync.MoveToValourAsync(token.UserId, category, hash);
+        return ToMoveResult(result);
+    }
+
+    private static IResult ToMoveResult(TaskResult<UserAttachmentInfo> result)
+    {
+        if (result.Success)
+            return Results.Json(result.Data);
+
+        return result.Code == 404
+            ? ValourResult.NotFound(result.Message)
+            : ValourResult.BadRequest(result.Message);
     }
 
     /// <summary>Queues the files uploaded before Drive was connected.</summary>

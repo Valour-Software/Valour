@@ -21,7 +21,19 @@ public static class UserAttachmentInfoMapper
             CreatedAt = item.CreatedAt,
             Url = $"{ValourHosts.ContentCdnBaseUrl}/content/{item.Id}",
             SafetyHashMatchState = item.SafetyHashMatchState,
-            SafetyHashMatchedAt = item.SafetyHashMatchedAt
+            SafetyHashMatchedAt = item.SafetyHashMatchedAt,
+            StorageLocation = GetLocation(item),
+            StorageExpiresAt = item.StoragePurgedAt is null ? item.StorageExpiresAt : null,
+            DriveError = item.DriveState == DriveSyncState.Failed ? item.DriveError : null,
         };
     }
+
+    private static AttachmentStorageLocation GetLocation(Valour.Database.CdnBucketItem item) => item.DriveState switch
+    {
+        DriveSyncState.Pending or DriveSyncState.Syncing => AttachmentStorageLocation.SendingToDrive,
+        DriveSyncState.Failed => AttachmentStorageLocation.DriveFailed,
+        DriveSyncState.Synced when item.StoragePurgedAt is not null => AttachmentStorageLocation.DriveOnly,
+        DriveSyncState.Synced => AttachmentStorageLocation.DriveWithValourCopy,
+        _ => AttachmentStorageLocation.Valour,
+    };
 }
