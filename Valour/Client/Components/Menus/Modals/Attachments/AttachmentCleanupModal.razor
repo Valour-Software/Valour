@@ -11,13 +11,16 @@
             Choose which of your uploaded files to remove. Message text stays, and the files show as "Attachment not found".
         </p>
 
-        <div class="form-group">
-            <label for="cleanup-scope">Which files</label>
-            <select id="cleanup-scope" class="form-select" @onchange="OnScopeChanged">
-                <option value="All" selected="@(_scope == AttachmentCleanupScope.All)">All of my files</option>
-                <option value="Selected" selected="@(_scope == AttachmentCleanupScope.Selected)">Files in certain planets or DMs</option>
-                <option value="Unattached" selected="@(_scope == AttachmentCleanupScope.Unattached)">Files not used in any message</option>
-            </select>
+        <div class="cleanup-group" role="radiogroup" aria-label="Which files">
+            <span class="cleanup-label">Which files</span>
+            @foreach (var option in _scopeOptions)
+            {
+                <label class="switch-radio">
+                    <input type="radio" name="cleanup-scope" checked="@(_scope == option.Value)" @onchange="@(() => SetScope(option.Value))" />
+                    <span class="radio round"></span>
+                    @option.Label
+                </label>
+            }
         </div>
 
         @if (_scope == AttachmentCleanupScope.Selected)
@@ -35,32 +38,38 @@
                 {
                     @foreach (var place in _places)
                     {
-                        <div class="toggle-item">
-                            <div class="toggle-header">
-                                <span class="toggle-title">@PlaceName(place)</span>
-                                <label class="switch">
-                                    <input type="checkbox" aria-label="@PlaceName(place)" checked="@IsPlaceSelected(place)" @onchange="@(e => TogglePlace(place, (bool)e.Value!))" />
-                                    <span class="slider round"></span>
-                                </label>
-                            </div>
-                            <p class="toggle-description numeric">@place.Count @(place.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(place.TotalBytes)</p>
+                        <div class="cleanup-switch-row">
+                            <span class="switch-row-text">
+                                <span class="place-name">@PlaceName(place)</span>
+                                <span class="place-size numeric">@place.Count @(place.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(place.TotalBytes)</span>
+                            </span>
+                            <label class="switch">
+                                <input type="checkbox" aria-label="@PlaceName(place)" checked="@IsPlaceSelected(place)" @onchange="@(e => TogglePlace(place, (bool)e.Value!))" />
+                                <span class="slider round"></span>
+                            </label>
                         </div>
                     }
                 }
             </div>
         }
 
-        <div class="cleanup-row">
-            <div class="form-group">
-                <label for="cleanup-type">Type</label>
-                <select id="cleanup-type" class="form-select" @onchange="OnTypeChanged">
-                    <option value="">Any type</option>
-                    <option value="Image">Images</option>
-                    <option value="Video">Videos</option>
-                    <option value="Audio">Audio</option>
-                    <option value="File">Other files</option>
-                </select>
+        <div class="cleanup-group">
+            <span class="cleanup-label">Types <span class="cleanup-muted">(none selected means every type)</span></span>
+            <div class="cleanup-types">
+                @foreach (var type in _typeOptions)
+                {
+                    <div class="cleanup-switch-row">
+                        <span class="switch-row-text">@type.Label</span>
+                        <label class="switch">
+                            <input type="checkbox" aria-label="@type.Label" checked="@_types.Contains(type.Value)" @onchange="@(e => ToggleType(type.Value, (bool)e.Value!))" />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                }
             </div>
+        </div>
+
+        <div class="cleanup-row">
             <div class="form-group">
                 <label for="cleanup-age">Older than</label>
                 <select id="cleanup-age" class="form-select" @onchange="OnAgeChanged">
@@ -127,13 +136,28 @@
         public Func<Task> OnDeleted { get; init; }
     }
 
+    private static readonly (AttachmentCleanupScope Value, string Label)[] _scopeOptions =
+    [
+        (AttachmentCleanupScope.All, "All of my files"),
+        (AttachmentCleanupScope.Selected, "Files in certain planets or DMs"),
+        (AttachmentCleanupScope.Unattached, "Files not used in any message"),
+    ];
+
+    private static readonly (ContentCategory Value, string Label)[] _typeOptions =
+    [
+        (ContentCategory.Image, "Images"),
+        (ContentCategory.Video, "Videos"),
+        (ContentCategory.Audio, "Audio"),
+        (ContentCategory.File, "Other files"),
+    ];
+
     // Files uploaded after the modal opened are never part of a cleanup.
     private readonly DateTime _asOf = DateTime.UtcNow;
 
     private AttachmentCleanupScope _scope = AttachmentCleanupScope.All;
     private readonly HashSet<long> _selectedPlaceIds = new();
     private bool _includeDms;
-    private ContentCategory? _type;
+    private readonly HashSet<ContentCategory> _types = new();
     private int _ageDays;
     private long _minSizeBytes;
 
@@ -164,15 +188,15 @@
         Scope = _scope,
         PlanetIds = _scope == AttachmentCleanupScope.Selected ? _selectedPlaceIds.ToList() : [],
         IncludeDirectMessages = _scope == AttachmentCleanupScope.Selected && _includeDms,
-        Categories = _type is { } type ? [type] : [],
+        Categories = _types.ToList(),
         MinSizeBytes = _minSizeBytes > 0 ? _minSizeBytes : null,
     };
 
-    private async Task OnScopeChanged(ChangeEventArgs e)
+    private async Task SetScope(AttachmentCleanupScope scope)
     {
-        _scope = Enum.TryParse<AttachmentCleanupScope>(e.Value?.ToString(), out var scope) ? scope : AttachmentCleanupScope.All;
+        _scope = scope;
 
-        if (_scope == AttachmentCleanupScope.Selected && _places is null)
+        if (scope == AttachmentCleanupScope.Selected && _places is null)
         {
             var result = await Client.AttachmentService.GetCleanupPlacesAsync();
             _places = result.Success ? result.Data.Places : [];
@@ -217,9 +241,13 @@
         await RefreshPreviewAsync();
     }
 
-    private async Task OnTypeChanged(ChangeEventArgs e)
+    private async Task ToggleType(ContentCategory type, bool selected)
     {
-        _type = Enum.TryParse<ContentCategory>(e.Value?.ToString(), out var type) ? type : null;
+        if (selected)
+            _types.Add(type);
+        else
+            _types.Remove(type);
+
         await RefreshPreviewAsync();
     }
 
