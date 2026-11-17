@@ -25,20 +25,38 @@
 
         @if (_scope == AttachmentCleanupScope.Selected)
         {
-            <div class="cleanup-places">
-                @if (_places is null)
-                {
-                    <div class="helper-text">Loading...</div>
-                }
-                else if (_places.Count == 0)
-                {
-                    <div class="helper-text">No files are in a planet or DM.</div>
-                }
-                else
-                {
-                    @foreach (var place in _places)
+            @if (_places is null)
+            {
+                <div class="helper-text">Loading...</div>
+            }
+            else if (_places.Count == 0)
+            {
+                <div class="helper-text">No files are in a planet or DM.</div>
+            }
+            else
+            {
+                <div class="cleanup-places-header">
+                    <VSearchBox Size="sm" Placeholder="Search planets..." Value="@_placeSearch" ValueChanged="@OnPlaceSearchChanged" />
+                    <VButton Variant="ghost" Size="sm" OnClick="@SelectVisiblePlaces">Select all</VButton>
+                    <VButton Variant="ghost" Size="sm" OnClick="@ClearPlaces">Clear</VButton>
+                </div>
+
+                <div class="cleanup-places">
+                    @foreach (var place in VisiblePlaces)
                     {
-                        <div class="cleanup-switch-row">
+                        <div class="cleanup-switch-row" @key="@(place.PlanetId ?? 0)">
+                            @if (place.PlanetId is null)
+                            {
+                                <span class="place-dm-icon"><i class="bi bi-chat-dots-fill" aria-hidden="true"></i></span>
+                            }
+                            else if (PlanetFor(place) is { } planet)
+                            {
+                                <PlanetIcon Planet="@planet" Size="28" />
+                            }
+                            else
+                            {
+                                <span class="place-dm-icon"><i class="bi bi-globe2" aria-hidden="true"></i></span>
+                            }
                             <span class="switch-row-text">
                                 <span class="place-name">@PlaceName(place)</span>
                                 <span class="place-size numeric">@place.Count @(place.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(place.TotalBytes)</span>
@@ -49,8 +67,14 @@
                             </label>
                         </div>
                     }
-                }
-            </div>
+                    @if (!VisiblePlaces.Any())
+                    {
+                        <div class="helper-text">No planets match your search.</div>
+                    }
+                </div>
+
+                <div class="helper-text numeric">@SelectedPlaceCount of @_places.Count selected</div>
+            }
         }
 
         <div class="cleanup-group">
@@ -162,6 +186,7 @@
     private long _minSizeBytes;
 
     private List<AttachmentPlaceUsage> _places;
+    private string _placeSearch = string.Empty;
     private AttachmentCleanupPreview _preview;
     private bool _previewFailed;
     private bool _downloading;
@@ -202,6 +227,46 @@
             _places = result.Success ? result.Data.Places : [];
         }
 
+        await RefreshPreviewAsync();
+    }
+
+    /// <summary>
+    /// The places matching the search, largest first so the files worth cleaning
+    /// are at the top. Direct messages are a single entry.
+    /// </summary>
+    private IEnumerable<AttachmentPlaceUsage> VisiblePlaces =>
+        (_places ?? [])
+            .Where(p => string.IsNullOrWhiteSpace(_placeSearch) ||
+                        PlaceName(p).Contains(_placeSearch.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(p => p.TotalBytes);
+
+    private int SelectedPlaceCount => _selectedPlaceIds.Count + (_includeDms ? 1 : 0);
+
+    private Planet PlanetFor(AttachmentPlaceUsage place) =>
+        place.PlanetId is { } id ? Client.PlanetService.JoinedPlanets.FirstOrDefault(p => p.Id == id) : null;
+
+    private void OnPlaceSearchChanged(string search)
+    {
+        _placeSearch = search ?? string.Empty;
+    }
+
+    private async Task SelectVisiblePlaces()
+    {
+        foreach (var place in VisiblePlaces)
+        {
+            if (place.PlanetId is { } id)
+                _selectedPlaceIds.Add(id);
+            else
+                _includeDms = true;
+        }
+
+        await RefreshPreviewAsync();
+    }
+
+    private async Task ClearPlaces()
+    {
+        _selectedPlaceIds.Clear();
+        _includeDms = false;
         await RefreshPreviewAsync();
     }
 
