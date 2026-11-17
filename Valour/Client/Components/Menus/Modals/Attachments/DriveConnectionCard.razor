@@ -39,7 +39,7 @@
         {
             <ul class="drive-points">
                 <li>Valour only sees files it creates in a Valour folder. It cannot open the rest of your Drive.</li>
-                <li>Uploads go to Drive, and Valour's copy is removed after @_info.RetentionDays days. Everyone in the chat can still open them.</li>
+                <li>Uploads go to your Drive. Everyone in the chat can still open them.</li>
                 <li>Uploads stop counting against your storage, and the file limit rises to @UserStorageInfo.FormatBytes(_info.MinUploadBytes) or your plan's, whichever is higher.</li>
                 <li>Signing in with Google never turns this on. Only this button does.</li>
             </ul>
@@ -88,13 +88,6 @@
                     <div>
                         <dt>Waiting to copy</dt>
                         <dd class="numeric">@_info.PendingCount @(_info.PendingCount == 1 ? "file" : "files")</dd>
-                    </div>
-                }
-                @if (_info.DriveOnlyCount > 0)
-                {
-                    <div>
-                        <dt>Only in Drive</dt>
-                        <dd class="numeric">@_info.DriveOnlyCount @(_info.DriveOnlyCount == 1 ? "file" : "files")</dd>
                     </div>
                 }
             </dl>
@@ -226,9 +219,9 @@
 
     private void ConfirmDisconnect()
     {
-        var driveOnly = _info.DriveOnlyCount;
-        var description = driveOnly > 0
-            ? $"{driveOnly} {(driveOnly == 1 ? "file is" : "files are")} only in your Drive now. They will show as \"Attachment not found\" in Valour until you connect the same Google account again. Nothing is deleted from your Drive."
+        var inDrive = _info.SyncedCount;
+        var description = inDrive > 0
+            ? "Files kept in your Drive may show as \"Attachment not found\" in Valour until you connect the same Google account again. Nothing is deleted from your Drive."
             : "Your files stay where they are, and new uploads go back to using your Valour storage. Nothing is deleted from your Drive.";
 
         ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams

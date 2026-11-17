@@ -45,14 +45,11 @@ public enum AttachmentStorageLocation
     /// <summary>Waiting to be sent to Drive, or being sent.</summary>
     SendingToDrive = 1,
 
-    /// <summary>In Drive, with a copy still on Valour that will expire.</summary>
-    DriveWithValourCopy = 2,
-
-    /// <summary>Only in Drive. Valour reads it from there when it is opened.</summary>
-    DriveOnly = 3,
+    /// <summary>In Drive. Valour serves it to the chat from there as needed.</summary>
+    InDrive = 2,
 
     /// <summary>Sending to Drive failed.</summary>
-    DriveFailed = 4,
+    DriveFailed = 3,
 }
 
 /// <summary>
@@ -91,19 +88,9 @@ public class DriveConnectionInfo
     /// <summary>Files that could not be copied after several tries.</summary>
     public int FailedCount { get; set; }
 
-    /// <summary>Files that are now only in Drive. Valour's own copy has expired.</summary>
-    public int DriveOnlyCount { get; set; }
-    public long DriveOnlyBytes { get; set; }
-
     /// <summary>Older files that were uploaded before Drive was connected.</summary>
     public int UnsyncedCount { get; set; }
     public long UnsyncedBytes { get; set; }
-
-    /// <summary>
-    /// Days a file stays on Valour after it is copied to Drive. After that
-    /// it is served from Drive.
-    /// </summary>
-    public int RetentionDays { get; set; }
 
     /// <summary>The per-file upload limit while Drive is connected, at least.</summary>
     public long MinUploadBytes { get; set; }

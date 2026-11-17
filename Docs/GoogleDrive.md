@@ -2,8 +2,10 @@
 
 A person can let Valour keep their attachments in their own Google Drive. Drive becomes
 the place a file lives. Valour keeps its own copy for a while so files open quickly, then
-removes it. This guide explains how the connection works, how files move, what happens
-when something goes wrong, and how to turn the feature on for a server.
+removes it. That copy is internal: the screens show a file as being in Google Drive and never
+mention the cached copy or when it expires. This guide explains how the connection works,
+how files move, what happens when something goes wrong, and how to turn the feature on for
+a server.
 
 ## Turning it on for a server
 
@@ -34,6 +36,20 @@ The `GoogleDrive` section of the server settings tunes the feature:
 `GoogleDriveConfig` is in `Config/Configs/GoogleDriveConfig.cs`. Servers without a Google
 client simply do not offer the feature: `DriveConnectionInfo.Available` is false and the
 screens hide it.
+
+### Community nodes
+
+Google Drive is not shared across servers. The refresh tokens are stored in the connecting
+server's own database, encrypted with that server's keys, and the Google client secret never
+leaves the server's configuration. Valour's Google credentials are therefore never given to a
+community node. A node operator who wants the feature creates their own Google Cloud project,
+sets `ExternalAuth:Google` on the node, and members of that node connect their Drive to the
+node. A node with no Google client does not offer it.
+
+The Attachments settings in the app talk to the hub, so they manage the files stored on the
+hub. Files uploaded to a community node are limited by that node's own settings (see
+[Attachment storage](AttachmentStorage.md#servers-that-set-their-own-limits)). Files on a
+planet with its own storage are never copied to Drive.
 
 ## Connecting
 
@@ -113,8 +129,8 @@ Drive, and null means they stay on Valour. Switching back to Drive only covers f
 uploaded after the switch, so files kept on Valour in between are not swept up.
 `POST api/attachments/drive/default` changes it.
 
-With Valour storage chosen, the account has its plan's allowance and file limit again, and
-new files count toward the allowance. Drive stays connected, and files can still be moved by
+With Valour storage chosen, the account has its allowance and file limit again (the plan's, or
+the operator's when the server sets its own), and new files count toward the allowance. Drive stays connected, and files can still be moved by
 hand.
 
 ## Moving a file by hand
@@ -167,7 +183,7 @@ not delete the file in the person's Drive, which is theirs. A Drive copy is also
 Disconnecting revokes the grant with Google and removes the connection and folder records.
 Files that still have a Valour copy become ordinary files again. Files that live only in
 Drive keep their Drive record, so connecting the same Google account again makes them open
-again. Until then they show as not found, and the disconnect dialog warns about how many.
+again. Until then they show as not found, and the disconnect dialog warns about it when files are in Drive.
 
 ## Safety
 

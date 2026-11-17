@@ -392,6 +392,50 @@ public class GoogleDriveStorageTests
     }
 
     [Fact]
+    public async Task AnOperatorCanSetOwnLimitsForEveryAccount()
+    {
+        var config = Valour.Config.Configs.CdnConfig.Current!;
+        var (quota, maxUpload) = (config.UserStorageQuotaBytes, config.MaxUploadBytes);
+
+        using var h = new Harness(_fixture);
+        try
+        {
+            config.UserStorageQuotaBytes = 3L * 1024 * 1024 * 1024;
+            config.MaxUploadBytes = 40L * 1024 * 1024;
+
+            Assert.Equal(config.UserStorageQuotaBytes, await UserStorageService.GetQuotaBytesAsync(h.Db, h.UserId));
+            Assert.Equal(40L * 1024 * 1024, await UserStorageService.GetMaxUploadBytesAsync(h.Db, h.UserId));
+            Assert.Equal(40L * 1024 * 1024, UserStorageService.DefaultMaxUploadBytes);
+
+            var info = await UserStorageService.GetInfoAsync(h.Db, h.UserId);
+            Assert.Equal(config.UserStorageQuotaBytes, info.QuotaBytes);
+            Assert.False(info.PlansAvailable);
+            Assert.False(info.Unlimited);
+
+            // Zero removes the storage limit, and the meter has nothing to fill.
+            config.UserStorageQuotaBytes = 0;
+            info = await UserStorageService.GetInfoAsync(h.Db, h.UserId);
+            Assert.True(info.Unlimited);
+            Assert.False(info.IsFull);
+            Assert.Equal(0, info.UsedFraction);
+            Assert.Equal(long.MaxValue, await UserStorageService.GetQuotaBytesAsync(h.Db, h.UserId));
+
+            // A connected Drive does not raise a limit the operator chose.
+            await h.ConnectAsync();
+            Assert.Equal(40L * 1024 * 1024, await UserStorageService.GetMaxUploadBytesAsync(h.Db, h.UserId));
+        }
+        finally
+        {
+            config.UserStorageQuotaBytes = quota;
+            config.MaxUploadBytes = maxUpload;
+            await h.CleanUpAsync();
+        }
+
+        // With nothing set, the plans apply again.
+        Assert.True((await UserStorageService.GetInfoAsync(h.Db, h.UserId)).PlansAvailable);
+    }
+
+    [Fact]
     public async Task KeepingNewUploadsOnValourStopsAutomaticCopyingAndRestoresTheLimits()
     {
         using var h = new Harness(_fixture);
@@ -484,10 +528,10 @@ public class GoogleDriveStorageTests
             // Valour to Drive again reuses the copy that is still in Drive.
             var again = await h.Sync.SendToDriveAsync(h.UserId, category, hash);
             Assert.True(again.Success, again.Message);
-            Assert.Equal(AttachmentStorageLocation.DriveWithValourCopy, again.Data.StorageLocation);
+            Assert.Equal(AttachmentStorageLocation.InDrive, again.Data.StorageLocation);
             await h.Sync.RunPassAsync();
             h.Db.ChangeTracker.Clear();
-            Assert.Equal(AttachmentStorageLocation.DriveOnly, (await h.Sync.SendToDriveAsync(h.UserId, category, hash)).Data.StorageLocation);
+            Assert.Equal(AttachmentStorageLocation.InDrive, (await h.Sync.SendToDriveAsync(h.UserId, category, hash)).Data.StorageLocation);
             Assert.Single(h.Drive.Files);
 
             // A file that is not in Drive can't be moved back.

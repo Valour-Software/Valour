@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
+using Valour.Config.Configs;
 using Valour.Server.Cdn.Storage;
 using Valour.Server.Services.GoogleDrive;
 using Valour.Shared;
@@ -73,11 +74,43 @@ public class UserStorageService
     /// </summary>
     public static async Task<long> GetMaxUploadBytesAsync(ValourDb db, long userId)
     {
+        // An operator's own limit is final, so Drive does not raise it.
+        if (OperatorMaxUploadBytes is { } fixedLimit)
+            return fixedLimit;
+
         var limit = UserSubscriptionTypes.GetMaxUploadBytes(await GetSubscriptionTypeAsync(db, userId));
         return await UserDriveService.IsDriveDefaultAsync(db, userId)
             ? Math.Max(limit, GoogleDriveLimits.ConnectedMaxUploadBytes)
             : limit;
     }
+
+    /// <summary>
+    /// The per-file limit the server's operator set for everyone, or null when
+    /// the Stargazer plan limits apply.
+    /// </summary>
+    public static long? OperatorMaxUploadBytes =>
+        CdnConfig.Current?.MaxUploadBytes is > 0 and var limit ? limit : null;
+
+    /// <summary>
+    /// The storage allowance the server's operator set for everyone: a byte
+    /// count, <see cref="long.MaxValue"/> for no limit, or null when the
+    /// Stargazer plan allowances apply.
+    /// </summary>
+    public static long? OperatorQuotaBytes =>
+        CdnConfig.Current?.UserStorageQuotaBytes is { } quota
+            ? quota > 0 ? quota : long.MaxValue
+            : null;
+
+    /// <summary>
+    /// The allowance for files kept on Valour, ignoring Google Drive: the
+    /// operator's setting when there is one, otherwise the account's plan.
+    /// </summary>
+    public static async Task<long> GetValourQuotaBytesAsync(ValourDb db, long userId) =>
+        OperatorQuotaBytes ?? UserSubscriptionTypes.GetStorageQuotaBytes(await GetSubscriptionTypeAsync(db, userId));
+
+    /// <summary>The per-file limit for an account with no subscription.</summary>
+    public static long DefaultMaxUploadBytes =>
+        OperatorMaxUploadBytes ?? UserSubscriptionTypes.GetMaxUploadBytes(null);
 
     /// <summary>
     /// The account's storage allowance in bytes. Accounts with a working Google
@@ -87,7 +120,7 @@ public class UserStorageService
     public static async Task<long> GetQuotaBytesAsync(ValourDb db, long userId) =>
         await UserDriveService.IsDriveDefaultAsync(db, userId)
             ? long.MaxValue
-            : UserSubscriptionTypes.GetStorageQuotaBytes(await GetSubscriptionTypeAsync(db, userId));
+            : await GetValourQuotaBytesAsync(db, userId);
 
     public static async Task<UserStorageInfo> GetInfoAsync(ValourDb db, long userId)
     {
@@ -99,7 +132,8 @@ public class UserStorageService
             UsedBytes = await GetUsedBytesAsync(db, userId),
             // The meter still shows the plan's allowance, which is what a Drive
             // account falls back to if it disconnects.
-            QuotaBytes = UserSubscriptionTypes.GetStorageQuotaBytes(subscription),
+            QuotaBytes = OperatorQuotaBytes ?? UserSubscriptionTypes.GetStorageQuotaBytes(subscription),
+            PlansAvailable = OperatorQuotaBytes is null && OperatorMaxUploadBytes is null,
             MaxUploadBytes = await GetMaxUploadBytesAsync(db, userId),
             SubscriptionType = subscription,
             DriveConnected = driveConnected,

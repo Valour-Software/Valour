@@ -11,8 +11,22 @@ public class UserStorageInfo
     public const string StorageFullCode = "storage_full";
 
     public long UsedBytes { get; set; }
+
+    /// <summary>
+    /// The storage allowance in bytes. It is <see cref="long.MaxValue"/> when
+    /// this server does not limit storage, which <see cref="Unlimited"/> reports.
+    /// </summary>
     public long QuotaBytes { get; set; }
     public long MaxUploadBytes { get; set; }
+
+    /// <summary>True when this server puts no limit on how much an account stores.</summary>
+    public bool Unlimited => QuotaBytes == long.MaxValue;
+
+    /// <summary>
+    /// True when more space can be bought here through a Stargazer plan. A server
+    /// whose operator sets its own limits has no plans to offer.
+    /// </summary>
+    public bool PlansAvailable { get; set; }
 
     /// <summary>The name of the active Stargazer tier, or null on the free plan.</summary>
     public string SubscriptionType { get; set; }
@@ -39,11 +53,11 @@ public class UserStorageInfo
     /// <summary>The size of the upload that was refused, when there was one.</summary>
     public long RequestedBytes { get; set; }
 
-    public long AvailableBytes => Math.Max(0, QuotaBytes - UsedBytes);
+    public long AvailableBytes => Unlimited ? long.MaxValue : Math.Max(0, QuotaBytes - UsedBytes);
 
-    public double UsedFraction => QuotaBytes <= 0 ? 1 : Math.Min(1, (double)UsedBytes / QuotaBytes);
+    public double UsedFraction => Unlimited ? 0 : QuotaBytes <= 0 ? 1 : Math.Min(1, (double)UsedBytes / QuotaBytes);
 
-    public bool IsFull => UsedBytes >= QuotaBytes;
+    public bool IsFull => !Unlimited && UsedBytes >= QuotaBytes;
 
     /// <summary>Usage at which the storage meters turn amber.</summary>
     public const double WarningFraction = 0.8;

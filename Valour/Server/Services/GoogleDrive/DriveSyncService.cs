@@ -665,7 +665,7 @@ public class DriveSyncService
         if (item.StoragePurgedAt is not null)
         {
             // Files on Valour count toward the plan's allowance, whatever new uploads do.
-            var plan = UserSubscriptionTypes.GetStorageQuotaBytes(await UserStorageService.GetSubscriptionTypeAsync(_db, userId));
+            var plan = await UserStorageService.GetValourQuotaBytesAsync(_db, userId);
             var used = await UserStorageService.GetUsedBytesAsync(_db, userId);
             if (used + item.SizeBytes > plan)
                 return TaskResult<UserAttachmentInfo>.FromFailure("There is not enough room on Valour for this file. Free up space or upgrade first.", 413);

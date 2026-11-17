@@ -264,7 +264,6 @@ public class UserDriveService
         var info = new DriveConnectionInfo
         {
             Available = IsAvailable,
-            RetentionDays = GoogleDriveConfig.Current.RetentionDays,
             MinUploadBytes = GoogleDriveLimits.ConnectedMaxUploadBytes,
         };
 
@@ -293,11 +292,6 @@ public class UserDriveService
                 case DriveSyncState.Synced:
                     info.SyncedCount += row.Count;
                     info.SyncedBytes += row.Bytes;
-                    if (row.Purged)
-                    {
-                        info.DriveOnlyCount += row.Count;
-                        info.DriveOnlyBytes += row.Bytes;
-                    }
                     break;
                 case DriveSyncState.Pending:
                 case DriveSyncState.Syncing:

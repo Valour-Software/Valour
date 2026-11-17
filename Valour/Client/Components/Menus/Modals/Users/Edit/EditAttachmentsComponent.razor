@@ -204,10 +204,7 @@
     private static string GetLocationText(UserAttachmentInfo attachment) => attachment.StorageLocation switch
     {
         AttachmentStorageLocation.SendingToDrive => "Sending to Google Drive...",
-        AttachmentStorageLocation.DriveWithValourCopy when attachment.StorageExpiresAt is { } expires =>
-            $"In Google Drive. Valour copy until {expires.ToLocalTime():MMM d}",
-        AttachmentStorageLocation.DriveWithValourCopy => "In Google Drive",
-        AttachmentStorageLocation.DriveOnly => "Only in Google Drive",
+        AttachmentStorageLocation.InDrive => "In Google Drive",
         AttachmentStorageLocation.DriveFailed => attachment.DriveError ?? "Could not send to Google Drive",
         _ => "On Valour",
     };
@@ -218,14 +215,14 @@
     private static MoveAction GetMoveAction(UserAttachmentInfo attachment) => attachment.StorageLocation switch
     {
         AttachmentStorageLocation.SendingToDrive => new MoveAction("Sending...", "Waiting for the copy to finish", true),
-        AttachmentStorageLocation.DriveWithValourCopy or AttachmentStorageLocation.DriveOnly =>
+        AttachmentStorageLocation.InDrive =>
             new MoveAction("Move to Valour", "Keep this file on Valour storage", false),
         _ => new MoveAction("Send to Drive", "Copy this file to Google Drive and remove it from Valour", false),
     };
 
     private async Task MoveAsync(UserAttachmentInfo attachment)
     {
-        var toValour = attachment.StorageLocation is AttachmentStorageLocation.DriveWithValourCopy or AttachmentStorageLocation.DriveOnly;
+        var toValour = attachment.StorageLocation == AttachmentStorageLocation.InDrive;
 
         _movingIds.Add(attachment.Id);
         StateHasChanged();

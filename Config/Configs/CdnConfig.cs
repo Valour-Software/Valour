@@ -47,6 +47,21 @@ public class CdnConfig
     public bool AllowInsecurePlanetStorage { get; set; }
 
     /// <summary>
+    /// How many bytes of uploaded attachments each account on this server may
+    /// keep. When unset, the Stargazer plan allowances apply. A positive value
+    /// replaces them for every account, and 0 removes the limit. Servers that
+    /// run their own community node use this to set what their members get.
+    /// </summary>
+    public long? UserStorageQuotaBytes { get; set; }
+
+    /// <summary>
+    /// The largest single file an account may upload to this server. When
+    /// unset, the Stargazer plan limits apply. A positive value replaces them
+    /// for every account.
+    /// </summary>
+    public long? MaxUploadBytes { get; set; }
+
+    /// <summary>
     /// Bucket for private content (message/file uploads), s3 mode only.
     /// </summary>
     public string PrivateBucket { get; set; } = "valourmps";

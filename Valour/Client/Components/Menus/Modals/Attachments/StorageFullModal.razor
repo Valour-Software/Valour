@@ -57,8 +57,9 @@
 
     private bool IsSubscribed => !string.IsNullOrEmpty(Data.Info.SubscriptionType);
 
-    // The largest plan has nowhere further to go.
-    private bool CanUpgrade => Data.Info.SubscriptionType != UserSubscriptionTypes.StargazerPro.Name;
+    // The largest plan has nowhere further to go, and a server that sets its own
+    // limits has no plans to sell.
+    private bool CanUpgrade => Data.Info.PlansAvailable && Data.Info.SubscriptionType != UserSubscriptionTypes.StargazerPro.Name;
 
     // Drive is offered when it isn't connected, and when it is but new uploads
     // were set to stay on Valour.

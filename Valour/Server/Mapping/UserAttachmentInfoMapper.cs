@@ -23,7 +23,6 @@ public static class UserAttachmentInfoMapper
             SafetyHashMatchState = item.SafetyHashMatchState,
             SafetyHashMatchedAt = item.SafetyHashMatchedAt,
             StorageLocation = GetLocation(item),
-            StorageExpiresAt = item.StoragePurgedAt is null ? item.StorageExpiresAt : null,
             DriveError = item.DriveState == DriveSyncState.Failed ? item.DriveError : null,
         };
     }
@@ -32,8 +31,7 @@ public static class UserAttachmentInfoMapper
     {
         DriveSyncState.Pending or DriveSyncState.Syncing => AttachmentStorageLocation.SendingToDrive,
         DriveSyncState.Failed => AttachmentStorageLocation.DriveFailed,
-        DriveSyncState.Synced when item.StoragePurgedAt is not null => AttachmentStorageLocation.DriveOnly,
-        DriveSyncState.Synced => AttachmentStorageLocation.DriveWithValourCopy,
+        DriveSyncState.Synced => AttachmentStorageLocation.InDrive,
         _ => AttachmentStorageLocation.Valour,
     };
 }
