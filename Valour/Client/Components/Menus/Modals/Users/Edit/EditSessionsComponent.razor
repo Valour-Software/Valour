@@ -205,7 +205,7 @@
                     <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="Valour" class="app-icon" />
                     <span class="app-name">Valour Web Client</span>
                 }
-                else if (_appInfoCache.TryGetValue(token.AppId, out var appInfo))
+                else if (token.AppId is not null && _appInfoCache.TryGetValue(token.AppId, out var appInfo) && appInfo is not null)
                 {
                     <img src="@appInfo.ImageUrl" alt="@appInfo.Name" class="app-icon" />
                     <span class="app-name">@appInfo.Name</span>
@@ -316,8 +316,11 @@
             {
                 try
                 {
+                    // The lookup returns nothing when the app was deleted. Its
+                    // sessions still exist, so they are listed with a generic name.
                     var appInfo = await Client.OauthService.FetchAppPublicDataAsync(appId);
-                    _appInfoCache[token.AppId] = appInfo;
+                    if (appInfo is not null)
+                        _appInfoCache[token.AppId] = appInfo;
                 }
                 catch
                 {
