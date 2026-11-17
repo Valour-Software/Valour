@@ -29,6 +29,13 @@
         <Icon><i class="bi bi-pen-fill"></i></Icon>
     </ContextMenuItem>
 }
+else if (_canViewReports)
+{
+    <ContextMenuItem OnClickAsync='@OnClickEdit'>
+        <Label>Reports</Label>
+        <Icon><i class="bi bi-flag-fill"></i></Icon>
+    </ContextMenuItem>
+}
 @if (_activityAlertsLoaded)
 {
     if (_activityAlerts == ChannelActivityAlerts.Off)
@@ -76,6 +83,7 @@
     public ModalRoot ModalRoot { get; set; }
 
     private static bool _canEdit;
+    private static bool _canViewReports;
     
     private bool _activityAlertsLoaded;
     private ChannelActivityAlerts _activityAlerts;
@@ -83,6 +91,7 @@
     protected override async Task OnInitializedAsync()
     {
         _canEdit = Data.Planet.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false;
+        _canViewReports = Data.Planet.MyMember?.HasPermission(PlanetPermissions.ViewReports) ?? false;
         StateHasChanged();
 
         _activityAlerts = await Data.Planet.FetchActivityAlertsAsync();

@@ -363,3 +363,9 @@
         transform: rotate(360deg);
     }
 }
+
+.upload-menu .storage-row {
+    padding: 8px 10px 10px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+}

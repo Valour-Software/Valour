@@ -12,7 +12,8 @@
             { "Data", modal.Data }
         };
         
-        <div class="fade-wrap">
+        @* Keyed so a modal opened as another closes gets its own fade, not the closing one's. *@
+        <div class="fade-wrap" @key="@modal.Id">
             <Fade @ref="@modal.FadeRef" OnFadeOut="@(() => { RemoveModal(modal.Id); return Task.CompletedTask; })">
                 @if (modal.Background)
                 {

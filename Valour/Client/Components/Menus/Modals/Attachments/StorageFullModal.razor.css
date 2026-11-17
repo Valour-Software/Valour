@@ -1,0 +1,28 @@
+.drive-callout {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-raised);
+}
+
+.drive-callout > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.1rem;
+}
+
+.drive-callout strong {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.drive-callout span {
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}

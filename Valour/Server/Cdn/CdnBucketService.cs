@@ -17,6 +17,9 @@ public class CdnBucketService
     /// <summary>The upload result when the same file is already quarantined.</summary>
     public const string UnavailableMessage = "This upload is not available.";
 
+    /// <summary>The error code of an upload refused because the account's storage is full.</summary>
+    public const int StorageFullErrorCode = 413;
+
     private static readonly ConcurrentDictionary<string, Task<TaskResult>> PublicUploadsInFlight = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, Task<TaskResult>> PrivateUploadsInFlight = new(StringComparer.Ordinal);
 
@@ -114,7 +117,8 @@ public class CdnBucketService
         string mime,
         ContentCategory category,
         ValourDb db,
-        MediaSafetyHashMatchResult safetyHashMatch = null)
+        MediaSafetyHashMatchResult safetyHashMatch = null,
+        long? storageQuotaBytes = null)
     {
         // The name and type are served back to browsers later, so an empty
         // name or a malformed type is replaced before it is stored.
@@ -141,7 +145,36 @@ public class CdnBucketService
                 return new TaskResult(false, UnavailableMessage);
             }
 
+            // The owner's Google Drive holds this file and Valour's copy has
+            // expired. They are uploading it again, so put the bytes back.
+            if (existingUserItem.StoragePurgedAt is not null)
+            {
+                data.Position = 0;
+                var restored = await UploadPrivateObjectDedupedAsync(data, hash, mime);
+                if (!restored.Success)
+                    return restored;
+
+                var expires = existingUserItem.DriveFileId is null
+                    ? (DateTime?)null
+                    : DateTime.UtcNow.AddDays(GoogleDriveConfig.Current.RetentionDays);
+                await db.CdnBucketItems
+                    .Where(x => x.Id == id)
+                    .ExecuteUpdateAsync(x => x
+                        .SetProperty(i => i.StoragePurgedAt, (DateTime?)null)
+                        .SetProperty(i => i.StorageExpiresAt, expires));
+            }
+
             return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
+        }
+
+        // A file the user already has costs nothing more, so this only applies
+        // to a new one. It is a soft limit: uploads that arrive at the same
+        // moment can pass it together.
+        if (storageQuotaBytes is { } quota)
+        {
+            var used = await UserStorageService.GetUsedBytesAsync(db, userId);
+            if (used + data.Length > quota)
+                return new TaskResult(false, "Your attachment storage is full.", errorCode: StorageFullErrorCode);
         }
 
         // We need a bucket record no matter what at this point
@@ -163,7 +196,10 @@ public class CdnBucketService
 
         // Now we check if anyone else has already posted this file.
         // If so, we can just create a new path to the file
-        var existingHashItem = await db.CdnBucketItems.AsNoTracking().FirstOrDefaultAsync(x => x.Hash == hash);
+        // A record whose Valour copy expired no longer has the bytes here, so the
+        // file is uploaded again.
+        var existingHashItem = await db.CdnBucketItems.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Hash == hash && (x.StoragePurgedAt == null || x.SafetyQuarantinedAt != null));
         if (existingHashItem is not null)
         {
             if (existingHashItem.SafetyQuarantinedAt is not null)

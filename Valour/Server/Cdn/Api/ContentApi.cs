@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Valour.Server.Cdn.Storage;
+using Valour.Server.Services.GoogleDrive;
 using Valour.Shared.Cdn;
 
 namespace Valour.Server.Cdn.Api;
@@ -62,6 +63,11 @@ public class ContentApi : Controller
         if (!storage.Private.SupportsSignedUrls)
             return $"{ValourHosts.ContentCdnBaseUrl}/content/{bucketItem.Id}";
 
+        // A file that now lives in Drive has no signed address until it is read
+        // back, which the content route does.
+        if (bucketItem.StoragePurgedAt is not null)
+            return $"{ValourHosts.ContentCdnBaseUrl}/content/{bucketItem.Id}";
+
         var cacheKey = $"signed:{bucketItem.Id}:{bucketItem.MimeType}:{bucketItem.FileName}";
 
         if (cache.Cache.TryGetValue(cacheKey, out string cachedUrl))
@@ -85,7 +91,7 @@ public class ContentApi : Controller
     }
 
     private static async Task<IResult> GetRoute(HttpContext ctx, CdnMemoryCache cache, ValourDb db, CdnStorageProvider storage,
-         ContentCategory category, string hash, ulong userId)
+         DriveSyncService drive, ContentCategory category, string hash, ulong userId)
     {
         if (string.IsNullOrWhiteSpace(hash))
             return Results.BadRequest("Include id.");
@@ -100,6 +106,11 @@ public class ContentApi : Controller
             return Results.NotFound();
 
         if (IsUnavailable(bucketItemRecord))
+            return Results.NotFound();
+
+        // The owner's Google Drive holds this file now. Reading it back puts a
+        // copy on Valour's storage again, so it is served like any other file.
+        if (bucketItemRecord.StoragePurgedAt is not null && !await drive.RestoreAsync(bucketItemRecord))
             return Results.NotFound();
 
         // Stored names and types are uploader-controlled; only non-scriptable

@@ -1,0 +1,71 @@
+.storage-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.meter-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: var(--font-size-sm);
+}
+
+.meter-title {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.meter-numbers,
+.meter-foot,
+.meter-loading {
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}
+
+.meter-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
+}
+
+.meter-fill {
+    height: 100%;
+    min-width: 2px;
+    border-radius: 999px;
+    background-color: var(--color-primary);
+    transition: width 0.3s ease;
+}
+
+.storage-meter.warn .meter-fill {
+    background-color: var(--color-warning);
+}
+
+.storage-meter.warn .meter-numbers {
+    color: var(--color-warning);
+}
+
+.storage-meter.full .meter-fill {
+    background-color: var(--color-danger);
+}
+
+.storage-meter.full .meter-numbers,
+.storage-meter.full .meter-foot {
+    color: var(--color-danger);
+}
+
+.storage-meter.compact {
+    gap: 0.3rem;
+}
+
+.storage-meter.compact .meter-track {
+    height: 6px;
+}
+
+.storage-meter.compact .meter-head {
+    font-size: var(--font-size-xs);
+}

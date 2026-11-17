@@ -188,14 +188,33 @@ public partial class UploadApi
     /// <summary>
     /// Returns the max upload size in bytes for the given user based on their subscription tier.
     /// </summary>
-    private static async Task<long> GetUserMaxUploadBytes(ValourDb db, long userId)
-    {
-        var subType = await db.UserSubscriptions
-            .Where(x => x.UserId == userId && x.Active)
-            .Select(x => x.Type)
-            .FirstOrDefaultAsync();
+    private static Task<long> GetUserMaxUploadBytes(ValourDb db, long userId) =>
+        UserStorageService.GetMaxUploadBytesAsync(db, userId);
 
-        return UserSubscriptionTypes.GetMaxUploadBytes(subType);
+    /// <summary>
+    /// The refusal for a file over the account's size limit. The upgrade hint only
+    /// appears where plans can raise the limit.
+    /// </summary>
+    private static string UploadLimitMessage(long maxBytes) =>
+        $"File exceeds your upload limit of {maxBytes / (1024 * 1024)}MB." +
+        (UserStorageService.OperatorMaxUploadBytes is null ? " Upgrade your subscription for larger uploads!" : "");
+
+    /// <summary>
+    /// The account's attachment storage allowance in bytes.
+    /// </summary>
+    private static Task<long> GetUserStorageQuotaBytes(ValourDb db, long userId) =>
+        UserStorageService.GetQuotaBytesAsync(db, userId);
+
+    /// <summary>
+    /// The answer to an upload that does not fit in the account's storage. It
+    /// carries the numbers the app needs to explain why and offer a way out.
+    /// </summary>
+    private static async Task<IResult> StorageFullResultAsync(ValourDb db, long userId, long requestedBytes)
+    {
+        var info = await UserStorageService.GetInfoAsync(db, userId);
+        info.Code = UserStorageInfo.StorageFullCode;
+        info.RequestedBytes = requestedBytes;
+        return Results.Json(info, statusCode: StatusCodes.Status413PayloadTooLarge);
     }
 
     public static void HandleExif(Image image)
@@ -237,10 +256,16 @@ public partial class UploadApi
 
         var maxBytes = await GetUserMaxUploadBytes(db, authToken.UserId);
         if (file.Length > maxBytes)
-            return ValourResult.Forbid($"File exceeds your upload limit of {maxBytes / (1024 * 1024)}MB. Upgrade your subscription for larger uploads!");
+            return ValourResult.Forbid(UploadLimitMessage(maxBytes));
 
         if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
+
+        // Refuse before doing any work when there is no room at all. Whether a
+        // given image fits is only known once it has been processed.
+        var storageQuota = await GetUserStorageQuotaBytes(db, authToken.UserId);
+        if (await UserStorageService.GetUsedBytesAsync(db, authToken.UserId) >= storageQuota)
+            return await StorageFullResultAsync(db, authToken.UserId, file.Length);
 
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
@@ -263,7 +288,8 @@ public partial class UploadApi
             imageData.Value.mime,
             ContentCategory.Image,
             db,
-            safetyHashMatch);
+            safetyHashMatch,
+            storageQuota);
 
         if (bucketResult.Success)
         {
@@ -271,6 +297,9 @@ public partial class UploadApi
         }
         else
         {
+            if (bucketResult.Code == CdnBucketService.StorageFullErrorCode)
+                return await StorageFullResultAsync(db, authToken.UserId, ms.Length);
+
             return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
         }
     }
@@ -445,7 +474,8 @@ public partial class UploadApi
                 ModerationActionType.EditIdentity,
                 actorUserId: selfMember.UserId,
                 targetUserId: targetMember.UserId,
-                targetMemberId: targetMember.Id);
+                targetMemberId: targetMember.Id,
+                details: "Changed the planet avatar.");
         }
 
         return Results.Json(result.Data);
@@ -1249,7 +1279,7 @@ public partial class UploadApi
 
         var maxBytes = await GetUserMaxUploadBytes(db, authToken.UserId);
         if (file.Length > maxBytes)
-            return ValourResult.Forbid($"File exceeds your upload limit of {maxBytes / (1024 * 1024)}MB. Upgrade your subscription for larger uploads!");
+            return ValourResult.Forbid(UploadLimitMessage(maxBytes));
 
         // The multipart name and type are client-controlled: an empty name
         // (filename*=UTF-8'') or an invented type must not reach storage as-is.
@@ -1279,6 +1309,10 @@ public partial class UploadApi
             return Results.BadRequest("HTML, SVG, and XML files are not allowed");
         }
 
+        var fileStorageQuota = await GetUserStorageQuotaBytes(db, authToken.UserId);
+        if (await UserStorageService.GetUsedBytesAsync(db, authToken.UserId) >= fileStorageQuota)
+            return await StorageFullResultAsync(db, authToken.UserId, file.Length);
+
         using MemoryStream ms = new();
         await file.CopyToAsync(ms);
 
@@ -1305,7 +1339,7 @@ public partial class UploadApi
         }
 
         ms.Position = 0;
-        var bucketResult = await bucketService.Upload(ms, fileName, ext, authToken.UserId, contentType, ContentCategory.File, db, safetyHashMatch);
+        var bucketResult = await bucketService.Upload(ms, fileName, ext, authToken.UserId, contentType, ContentCategory.File, db, safetyHashMatch, fileStorageQuota);
 
         if (bucketResult.Success)
         {
@@ -1313,6 +1347,9 @@ public partial class UploadApi
         }
         else
         {
+            if (bucketResult.Code == CdnBucketService.StorageFullErrorCode)
+                return await StorageFullResultAsync(db, authToken.UserId, ms.Length);
+
             return ValourResult.Problem("There was an issue uploading your file. Try a different format or size.");
         }
     }

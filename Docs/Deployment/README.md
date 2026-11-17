@@ -19,7 +19,8 @@ docker compose up -d
 The bundle uses `ghcr.io/valour-software/valour:main-latest`. PostgreSQL data lives
 in `pgdata`, media in `media`, and Caddy certificates/configuration in its named
 volumes. Redis runs as a separate service. The first-run bootstrap creates a staff
-account only when one does not already exist.
+account only when one does not already exist. A community node skips it, because
+its accounts come from the hub it is registered with.
 
 Caddy obtains and renews HTTPS certificates, proxies WebSockets, and permits
 request bodies up to 250 MB. All configured application hosts collapse to the

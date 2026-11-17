@@ -1,0 +1,285 @@
+@using Valour.Client.Toast
+@using Valour.Client.Utility
+@inject ValourClient Client
+@inject GoogleDriveConnector Connector
+@implements IDisposable
+
+@if (_info is { Available: true })
+{
+    <div class="drive-card @(NeedsReconnect ? "attention" : "")">
+        <div class="drive-head">
+            <span class="drive-icon" aria-hidden="true"><i class="bi bi-cloud-arrow-up-fill"></i></span>
+            <div class="drive-title">
+                <strong>Google Drive</strong>
+                @if (!_info.Connected)
+                {
+                    <span class="drive-sub">Keep your uploads in your own Drive instead of using up Valour space.</span>
+                }
+                else
+                {
+                    <span class="drive-sub">Connected to @_info.Email</span>
+                }
+            </div>
+
+            @if (!_info.Connected)
+            {
+                <VButton Variant="primary" Icon="google" Disabled="@_busy" OnClick="@ConnectAsync">Connect</VButton>
+            }
+            else if (NeedsReconnect)
+            {
+                <VButton Variant="primary" Icon="google" Disabled="@_busy" OnClick="@ConnectAsync">Reconnect</VButton>
+            }
+            else
+            {
+                <VButton Variant="ghost" Disabled="@_busy" OnClick="@ConfirmDisconnect">Disconnect</VButton>
+            }
+        </div>
+
+        @if (!_info.Connected)
+        {
+            <ul class="drive-points">
+                <li>Valour only sees files it creates in a Valour folder. It cannot open the rest of your Drive.</li>
+                <li>Uploads go to your Drive. Everyone in the chat can still open them.</li>
+                <li>Uploads stop counting against your storage, and the file limit rises to @UserStorageInfo.FormatBytes(_info.MinUploadBytes) or your plan's, whichever is higher.</li>
+                <li>Signing in with Google never turns this on. Only this button does.</li>
+            </ul>
+        }
+        else
+        {
+            @if (NeedsReconnect)
+            {
+                <p class="drive-warning">
+                    Google no longer lets Valour use this Drive, so new files are staying on Valour. Reconnect to keep copying them.
+                </p>
+            }
+            else if (!string.IsNullOrEmpty(_info.LastError))
+            {
+                <p class="drive-warning">@_info.LastError</p>
+            }
+
+            @if (!NeedsReconnect)
+            {
+                <div class="drive-default" role="radiogroup" aria-label="Where new uploads go">
+                    <span class="drive-label">New uploads go to</span>
+                    <label class="switch-radio">
+                        <input type="radio" name="drive-default" checked="@_info.NewUploadsToDrive" disabled="@_busy"
+                               @onchange="@(() => SetDefaultAsync(true))" />
+                        <span class="radio round"></span>
+                        Google Drive
+                        <span class="drive-hint">Not counted against your storage</span>
+                    </label>
+                    <label class="switch-radio">
+                        <input type="radio" name="drive-default" checked="@(!_info.NewUploadsToDrive)" disabled="@_busy"
+                               @onchange="@(() => SetDefaultAsync(false))" />
+                        <span class="radio round"></span>
+                        Valour storage
+                        <span class="drive-hint">Counts against your storage</span>
+                    </label>
+                </div>
+            }
+
+            <dl class="drive-stats">
+                <div>
+                    <dt>In Drive</dt>
+                    <dd class="numeric">@_info.SyncedCount @(_info.SyncedCount == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(_info.SyncedBytes)</dd>
+                </div>
+                @if (_info.PendingCount > 0)
+                {
+                    <div>
+                        <dt>Waiting to copy</dt>
+                        <dd class="numeric">@_info.PendingCount @(_info.PendingCount == 1 ? "file" : "files")</dd>
+                    </div>
+                }
+            </dl>
+
+            @if (_info.FailedCount > 0)
+            {
+                <div class="drive-action">
+                    <span>@_info.FailedCount @(_info.FailedCount == 1 ? "file" : "files") could not be copied.</span>
+                    <VButton Variant="ghost" Size="sm" Disabled="@_busy" OnClick="@RetryAsync">Try again</VButton>
+                </div>
+            }
+
+            @if (_info.UnsyncedCount > 0 && !NeedsReconnect)
+            {
+                <div class="drive-action">
+                    <span>
+                        <span class="numeric">@_info.UnsyncedCount</span> older @(_info.UnsyncedCount == 1 ? "file" : "files")
+                        (<span class="numeric">@UserStorageInfo.FormatBytes(_info.UnsyncedBytes)</span>) @(_info.UnsyncedCount == 1 ? "is" : "are") not in Drive yet.
+                    </span>
+                    <VButton Variant="ghost" Size="sm" Disabled="@_busy" OnClick="@CopyExistingAsync">Copy to Drive</VButton>
+                </div>
+            }
+
+            <p class="helper-text">
+                Files are filed in a Valour folder by planet or conversation. Deleting an attachment in Valour does not delete its copy in your Drive.
+            </p>
+        }
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    /// <summary>Runs after Drive is connected or disconnected, so the page can reload its storage numbers.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private DriveConnectionInfo _info;
+    private bool _busy;
+    private Timer _poll;
+
+    private bool NeedsReconnect => _info is { Connected: true, Status: DriveConnectionStatus.NeedsReconnect };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+
+        // Files copy in the background, so keep the numbers current while files wait.
+        _poll = new Timer(async _ =>
+        {
+            if (_info is { Connected: true, PendingCount: > 0 } && !_busy)
+            {
+                await LoadAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    public void Dispose() => _poll?.Dispose();
+
+    private async Task LoadAsync()
+    {
+        var result = await Client.AttachmentService.GetDriveAsync();
+        if (result.Success)
+            _info = result.Data;
+    }
+
+    // Call this from the click handler without awaiting anything first, so the
+    // web popup is allowed to open.
+    private async Task ConnectAsync()
+    {
+        _busy = true;
+        StateHasChanged();
+
+        try
+        {
+            var outcome = await Connector.ConnectAsync();
+            if (outcome.Cancelled)
+                return;
+
+            if (!outcome.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Could not connect Google Drive", outcome.Error, ToastProgressState.Failure));
+                return;
+            }
+
+            _info = outcome.Info;
+            ToastContainer.Instance.AddToast(new ToastData("Google Drive connected", "New uploads will be copied to your Drive.", ToastProgressState.Success));
+            await OnChanged.InvokeAsync();
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>Reloads the numbers, after a file was moved from elsewhere on the page.</summary>
+    public async Task RefreshAsync()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SetDefaultAsync(bool toDrive)
+    {
+        _busy = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Client.AttachmentService.SetNewUploadsToDriveAsync(toDrive);
+            if (!result.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Could not change the setting", result.Message, ToastProgressState.Failure));
+                return;
+            }
+
+            _info = result.Data;
+            await OnChanged.InvokeAsync();
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ConfirmDisconnect()
+    {
+        var inDrive = _info.SyncedCount;
+        var description = inDrive > 0
+            ? "Files kept in your Drive may show as \"Attachment not found\" in Valour until you connect the same Google account again. Nothing is deleted from your Drive."
+            : "Your files stay where they are, and new uploads go back to using your Valour storage. Nothing is deleted from your Drive.";
+
+        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams
+        {
+            Title = "Disconnect Google Drive?",
+            Description = description,
+            ConfirmText = "Disconnect",
+            CancelText = "Keep connected",
+            ConfirmEvent = DisconnectAsync,
+        });
+    }
+
+    private async Task DisconnectAsync()
+    {
+        var result = await Client.AttachmentService.DisconnectDriveAsync();
+        if (!result.Success)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Could not disconnect", result.Message, ToastProgressState.Failure));
+            return;
+        }
+
+        await LoadAsync();
+        await OnChanged.InvokeAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CopyExistingAsync()
+    {
+        await QueueAsync(() => Client.AttachmentService.CopyExistingToDriveAsync(), "queued to copy");
+    }
+
+    private async Task RetryAsync()
+    {
+        await QueueAsync(() => Client.AttachmentService.RetryDriveAsync(), "queued to try again");
+    }
+
+    private async Task QueueAsync(Func<Task<TaskResult<DriveQueueResult>>> action, string what)
+    {
+        _busy = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await action();
+            if (!result.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Something went wrong", result.Message, ToastProgressState.Failure));
+                return;
+            }
+
+            ToastContainer.Instance.AddToast(new ToastData("Google Drive",
+                $"{result.Data.Queued} {(result.Data.Queued == 1 ? "file" : "files")} {what}.", ToastProgressState.Success));
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+}

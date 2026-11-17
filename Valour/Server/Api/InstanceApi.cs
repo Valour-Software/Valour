@@ -57,7 +57,7 @@ public class InstanceApi
                 FederationHub = FederationHubService.HubEnabled,
                 FederationNode = FederationNodeService.NodeEnabled,
             },
-            DefaultMaxUploadBytes = UserSubscriptionTypes.GetMaxUploadBytes(null),
+            DefaultMaxUploadBytes = UserStorageService.DefaultMaxUploadBytes,
             PlatformBanner = await platformBannerService.GetAsync(),
         };
 

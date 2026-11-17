@@ -41,6 +41,11 @@ public class UserSubscriptionType
     /// Maximum upload size in bytes for this subscription tier
     /// </summary>
     public long MaxUploadBytes { get; set; }
+
+    /// <summary>
+    /// How much Valour-hosted attachment storage this tier includes, in bytes.
+    /// </summary>
+    public long StorageQuotaBytes { get; set; }
 }
 
 public static class UserSubscriptionTypes
@@ -49,6 +54,11 @@ public static class UserSubscriptionTypes
     /// Default upload limit for users without a subscription (10 MB)
     /// </summary>
     public const long DefaultMaxUploadBytes = 10 * 1024 * 1024;
+
+    /// <summary>
+    /// Attachment storage for users without a subscription (5 GB)
+    /// </summary>
+    public const long DefaultStorageQuotaBytes = 5L * 1024 * 1024 * 1024;
 
     public static readonly UserSubscriptionType Stargazer = new()
     {
@@ -60,6 +70,7 @@ public static class UserSubscriptionTypes
         StripePriceCents = 499,
         VcReward = 50,
         MaxUploadBytes = 50 * 1024 * 1024, // 50 MB
+        StorageQuotaBytes = 50L * 1024 * 1024 * 1024, // 50 GB
     };
 
     public static readonly UserSubscriptionType StargazerPlus = new()
@@ -72,6 +83,7 @@ public static class UserSubscriptionTypes
         StripePriceCents = 999,
         VcReward = 100,
         MaxUploadBytes = 100 * 1024 * 1024, // 100 MB
+        StorageQuotaBytes = 100L * 1024 * 1024 * 1024, // 100 GB
     };
 
     public static readonly UserSubscriptionType StargazerPro = new()
@@ -84,6 +96,7 @@ public static class UserSubscriptionTypes
         StripePriceCents = 1499,
         VcReward = 150,
         MaxUploadBytes = 250 * 1024 * 1024, // 250 MB
+        StorageQuotaBytes = 200L * 1024 * 1024 * 1024, // 200 GB
     };
 
     public static Dictionary<string, UserSubscriptionType> TypeMap = new Dictionary<string, UserSubscriptionType>()
@@ -114,6 +127,17 @@ public static class UserSubscriptionTypes
         if (typeName is not null && TypeMap.TryGetValue(typeName, out var type))
             return type.MaxUploadBytes;
         return DefaultMaxUploadBytes;
+    }
+
+    /// <summary>
+    /// Returns the attachment storage included with the given tier in bytes.
+    /// Returns DefaultStorageQuotaBytes if the type is null or unknown.
+    /// </summary>
+    public static long GetStorageQuotaBytes(string typeName)
+    {
+        if (typeName is not null && TypeMap.TryGetValue(typeName, out var type))
+            return type.StorageQuotaBytes;
+        return DefaultStorageQuotaBytes;
     }
 }
 

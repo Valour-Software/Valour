@@ -111,6 +111,10 @@ public class UserAttachmentService
         if (item is null)
             return TaskResult.FromFailure("Attachment not found.", 404);
 
+        // Files held for safety review are preserved, not deleted by their owner.
+        if (item.SafetyQuarantinedAt is not null)
+            return TaskResult.FromFailure("This attachment cannot be deleted.");
+
         var affectedMessageIds = new List<long>();
         var affectedThreadIds = new List<long>();
         await using var transaction = await _db.Database.BeginTransactionAsync();

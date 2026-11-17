@@ -1,0 +1,257 @@
+@inherits Modal<AttachmentCleanupConfirmModal.ModalParams>
+@using Valour.Client.Utility.Downloads
+@inject ValourClient Client
+@inject IDownloadService Downloads
+
+<BasicModalLayout Title="@(_finished ? "Cleanup finished" : "Delete these files?")" Icon="exclamation-triangle-fill" MaxWidth="460px" Role="dialog">
+    <MainArea>
+        @if (_finished)
+        {
+            <p>
+                Deleted <strong class="numeric">@_deleted @(_deleted == 1 ? "file" : "files")</strong>,
+                freeing <strong class="numeric">@UserStorageInfo.FormatBytes(_freedBytes)</strong>.
+            </p>
+        }
+        else if (_working)
+        {
+            <p class="confirm-status" aria-live="polite">@_status</p>
+            @if (_total > 0 && _phase == Phase.Deleting)
+            {
+                <div class="confirm-track"><div class="confirm-fill" style="width: @(Math.Min(100, _deleted * 100 / _total))%"></div></div>
+            }
+            <p class="helper-text">Keep this window open until it finishes.</p>
+        }
+        else
+        {
+            <p>
+                This permanently deletes
+                <strong class="numeric">@Data.Preview.Count @(Data.Preview.Count == 1 ? "file" : "files")</strong>
+                (<span class="numeric">@UserStorageInfo.FormatBytes(Data.Preview.TotalBytes)</span>).
+                Wherever they were used, they will show as "Attachment not found". Your message text is kept.
+            </p>
+
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Download a backup first</span>
+                    <label class="switch">
+                        <input type="checkbox" aria-label="Download a backup first" @bind="_backup" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <p class="toggle-description">
+                    @(_backup
+                        ? "A zip of these files downloads before anything is deleted."
+                        : "Nothing is saved. These files cannot be recovered.")
+                </p>
+            </div>
+
+            @if (_error is not null)
+            {
+                <p class="confirm-error" role="alert">@_error</p>
+            }
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (_finished)
+            {
+                <button class="v-btn primary" @onclick="@Close">Done</button>
+            }
+            else
+            {
+                <button class="v-btn" disabled="@_working" @onclick="@Close">Cancel</button>
+                <button class="v-btn danger" disabled="@_working" @onclick="RunAsync">
+                    @(_backup ? "Download backup and delete" : "Delete files")
+                </button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public AttachmentCleanupCriteria Criteria { get; init; }
+        public AttachmentCleanupPreview Preview { get; init; }
+
+        /// <summary>
+        /// Runs when the cleanup removed at least one file.
+        /// </summary>
+        public Func<Task> OnDeleted { get; init; }
+    }
+
+    private enum Phase { Backup, Deleting }
+
+    private bool _backup = true;
+    private bool _working;
+    private bool _finished;
+    private string _status;
+    private string _error;
+    private Phase _phase;
+    private int _deleted;
+    private int _total;
+    private long _freedBytes;
+
+    private async Task RunAsync()
+    {
+        if (_working)
+            return;
+
+        _working = true;
+        _error = null;
+        _deleted = 0;
+        _freedBytes = 0;
+        _total = Data.Preview.Count;
+        StateHasChanged();
+
+        try
+        {
+            string archiveId = null;
+
+            if (_backup)
+            {
+                _phase = Phase.Backup;
+                archiveId = await MakeBackupAsync();
+                if (archiveId is null)
+                    return;
+            }
+
+            _phase = Phase.Deleting;
+            _status = "Deleting files...";
+            StateHasChanged();
+
+            while (true)
+            {
+                var batch = await Client.AttachmentService.DeleteCleanupBatchAsync(new AttachmentCleanupDeleteRequest
+                {
+                    Criteria = Data.Criteria,
+                    ArchiveId = archiveId,
+                    SkipBackup = !_backup,
+                });
+
+                if (!batch.Success)
+                {
+                    _error = batch.Message;
+                    break;
+                }
+
+                _deleted += batch.Data.Deleted;
+                _freedBytes += batch.Data.FreedBytes;
+                _status = $"Deleting files... {_deleted} of {Math.Max(_total, _deleted)}";
+                StateHasChanged();
+
+                // A batch that removes nothing would otherwise spin forever.
+                if (batch.Data.Remaining <= 0 || batch.Data.Deleted == 0)
+                    break;
+            }
+
+            if (_deleted > 0)
+            {
+                _finished = _error is null;
+                if (Data.OnDeleted is not null)
+                    await Data.OnDeleted.Invoke();
+            }
+            else if (_error is null)
+            {
+                _finished = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = "Something went wrong: " + ex.Message;
+        }
+        finally
+        {
+            _working = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Builds the archive, hands it to the browser, and waits for the last
+    /// byte. Returns the archive id once it is complete, or null after
+    /// showing why it could not be.
+    /// </summary>
+    private async Task<string> MakeBackupAsync()
+    {
+        _status = "Preparing your backup...";
+        StateHasChanged();
+
+        var ticket = await Client.AttachmentService.StartCleanupArchiveAsync(Data.Criteria);
+        if (!ticket.Success)
+        {
+            _error = "Could not start the backup. " + ticket.Message + " Nothing was deleted.";
+            return null;
+        }
+
+        _status = "Downloading your backup. Nothing is deleted until it finishes...";
+        StateHasChanged();
+
+        // A browser starts the download and returns at once, so the archive's
+        // status on the server says when it finished. An app saves the whole
+        // file first. Either way nothing is deleted before the server agrees.
+        var progress = new Progress<DownloadProgress>(p =>
+        {
+            _status = p.TotalBytes is { } total
+                ? $"Downloading your backup... {UserStorageInfo.FormatBytes(p.BytesReceived)} of {UserStorageInfo.FormatBytes(total)}. Nothing is deleted until it finishes."
+                : $"Downloading your backup... {UserStorageInfo.FormatBytes(p.BytesReceived)}. Nothing is deleted until it finishes.";
+            InvokeAsync(StateHasChanged);
+        });
+
+        var download = await Downloads.DownloadAsync(new DownloadRequest(
+            Client.AttachmentService.GetCleanupArchiveUrl(ticket.Data),
+            $"valour-attachments-{DateTime.UtcNow:yyyy-MM-dd}.zip",
+            "application/zip"), progress);
+
+        if (!download.Success)
+        {
+            _error = "The backup could not be saved. " + download.Message + " Nothing was deleted.";
+            return null;
+        }
+
+        var started = DateTime.UtcNow;
+        var pollFailures = 0;
+
+        while (true)
+        {
+            await Task.Delay(1000);
+
+            var status = await Client.AttachmentService.GetCleanupArchiveStatusAsync(ticket.Data.Id);
+            if (!status.Success)
+            {
+                // A brief network drop should not abandon a long download.
+                if (++pollFailures >= 10)
+                {
+                    _error = "Lost track of the backup. Nothing was deleted.";
+                    return null;
+                }
+                continue;
+            }
+
+            pollFailures = 0;
+
+            switch (status.Data.State)
+            {
+                case AttachmentArchiveState.Completed:
+                    if (status.Data.SkippedCount > 0)
+                    {
+                        _error = $"{status.Data.SkippedCount} files could not be added to the backup, so nothing was deleted. Try again, or turn off the backup.";
+                        return null;
+                    }
+                    return ticket.Data.Id;
+
+                case AttachmentArchiveState.Failed:
+                case AttachmentArchiveState.Expired:
+                    _error = "The backup did not finish, so nothing was deleted. Check your downloads and try again.";
+                    return null;
+            }
+
+            // The browser may have refused or cancelled the download.
+            if (status.Data.State == AttachmentArchiveState.Pending && DateTime.UtcNow - started > TimeSpan.FromMinutes(2))
+            {
+                _error = "The download never started, so nothing was deleted. Allow downloads for this site and try again.";
+                return null;
+            }
+        }
+    }
+}

@@ -105,6 +105,14 @@ public class StartupService
             string.IsNullOrWhiteSpace(config?.AdminPassword))
             return;
 
+        // Accounts on a community node come from its hub, and registering one
+        // locally fails because the node has no Victor to befriend.
+        if (FederationNodeService.NodeEnabled)
+        {
+            _logger.LogInformation("Skipping bootstrap admin on community node");
+            return;
+        }
+
         if (await _db.Users.AnyAsync(x => x.ValourStaff))
         {
             _logger.LogInformation("Staff account already exists; skipping bootstrap admin");

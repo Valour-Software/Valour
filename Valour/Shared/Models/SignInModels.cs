@@ -21,6 +21,12 @@ public enum ExternalAuthIntent
 
     /// <summary>Confirm the signed-in user's identity before a sensitive change.</summary>
     Reauth = 2,
+
+    /// <summary>
+    /// Let Valour copy the signed-in user's attachments to their Google Drive.
+    /// This is a separate consent from signing in, and only Google supports it.
+    /// </summary>
+    ConnectDrive = 3,
 }
 
 /// <summary>
@@ -101,6 +107,12 @@ public static class ExternalAuthResults
     /// session that started the flow to get a proof.
     /// </summary>
     public const string Reauth = "reauth";
+
+    /// <summary>
+    /// Google Drive access was granted. Redeem the ticket at
+    /// api/attachments/drive/connect from the session that started the flow.
+    /// </summary>
+    public const string DriveConnected = "drive";
 
     public const string Error = "error";
 }

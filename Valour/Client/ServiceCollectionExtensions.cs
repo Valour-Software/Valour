@@ -34,6 +34,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ContextMenuService>();
         services.AddSingleton<INativeWindowService, NoopNativeWindowService>();
         services.AddSingleton<IShareService, BrowserShareService>();
+        // Native shells replace this with a host that saves files itself.
+        services.AddSingleton<Valour.Client.Utility.Downloads.IDownloadService, Valour.Client.Utility.Downloads.BrowserDownloadService>();
         services.AddSingleton<RecentChatService>();
         services.AddSingleton<AppBannerService>();
         services.AddScoped<RealtimeKitHostService>();
@@ -43,6 +45,7 @@ public static class ServiceCollectionExtensions
         // Native shells replace the web launcher with the system browser.
         services.AddScoped<IExternalAuthLauncher, WebExternalAuthLauncher>();
         services.AddScoped<ExternalSignInService>();
+        services.AddScoped<GoogleDriveConnector>();
         services.AddSingleton<EncryptedInviteRedeemer>();
 
         // new services

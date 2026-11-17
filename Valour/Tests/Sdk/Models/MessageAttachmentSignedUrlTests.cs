@@ -31,6 +31,23 @@ public class MessageAttachmentSignedUrlTests
     }
 
     [Fact]
+    public async Task PlanetHostedMedia_LoadsFromThePlanetsOwnStorage()
+    {
+        var attachment = new MessageAttachment(MessageAttachmentType.Image)
+        {
+            Location = "https://files.planet.example/content/123/abc.png",
+            PlanetHosted = true,
+        };
+
+        // A null client proves no signing request is attempted.
+        Assert.Equal("https://files.planet.example/content/123/abc.png",
+            await attachment.GetSignedUrl(null!, null!));
+
+        attachment.Location = "javascript:alert(1)";
+        Assert.Null(await attachment.GetSignedUrl(null!, null!));
+    }
+
+    [Fact]
     public async Task CommunityNodeMedia_LoadsFromTheNodesCdn()
     {
         var node = CreateCommunityNode("community.example");

@@ -13,6 +13,8 @@ export function init(dotnet, messageWrapperEl) {
         lastReportedBottomState: true,
         suppressPagingUntil: 0,
         resizeObserver: null,
+        contentObserver: null,
+        childObserver: null,
         savedAnchorId: null,
         savedAnchorOffset: 0,
         saveAnchorTimer: 0,
@@ -231,12 +233,40 @@ export function init(dotnet, messageWrapperEl) {
                     this.messageWrapperEl.scrollTop = this.messageWrapperEl.scrollHeight;
             });
             this.resizeObserver.observe(this.messageWrapperEl);
+            // Keep the chat pinned to the bottom when its content changes
+            // height after it was laid out: an image finishing loading, a
+            // message being decrypted, an embed expanding. Browser scroll
+            // anchoring differs between engines, so this does not rely on it.
+            const holder = this.messageWrapperEl;
+            this.contentObserver = new ResizeObserver(() => {
+                if (this.stickToBottom && !this.frozen && holder.clientHeight > 0)
+                    holder.scrollTop = holder.scrollHeight;
+            });
+            for (let i = 0; i < holder.children.length; i++)
+                this.contentObserver.observe(holder.children[i]);
+            this.childObserver = new MutationObserver(records => {
+                for (const record of records) {
+                    record.addedNodes.forEach(node => {
+                        if (node instanceof Element)
+                            this.contentObserver?.observe(node);
+                    });
+                    record.removedNodes.forEach(node => {
+                        if (node instanceof Element)
+                            this.contentObserver?.unobserve(node);
+                    });
+                }
+            });
+            this.childObserver.observe(holder, { childList: true });
         },
         cleanup() {
             window.clearTimeout(this.saveAnchorTimer);
             this.messageWrapperEl.removeEventListener('scroll', this.handleChatWindowScroll);
             this.resizeObserver?.disconnect();
             this.resizeObserver = null;
+            this.contentObserver?.disconnect();
+            this.contentObserver = null;
+            this.childObserver?.disconnect();
+            this.childObserver = null;
         }
     };
     messageWrapperEl['context'] = channel;

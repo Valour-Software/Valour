@@ -1,4 +1,6 @@
 ﻿@inherits AttachmentComponent
+@using Valour.Client.Utility.Downloads
+@inject IDownloadService Downloads
 
 @if (_missing)
 {
@@ -14,7 +16,8 @@
 }
 else
 {
-    <a class="file-card nohide" href="@_location" target="_blank" rel="noopener noreferrer" download="@Attachment.FileName" title="Download @Attachment.FileName">
+    <a class="file-card nohide" href="@_location" target="_blank" rel="noopener noreferrer" download="@Attachment.FileName" title="Download @Attachment.FileName"
+       @onclick="OnClickAsync" @onclick:preventDefault="@AppSavesFile">
         <div class="file-tile">
             <i class="bi @_icon"></i>
         </div>
@@ -57,6 +60,19 @@ else
 
         _icon = GetIcon(Attachment.MimeType);
         _typeLabel = GetTypeLabel();
+    }
+
+    // A browser saves the link itself. An app saves the file itself, because some of
+    // their web views ignore download links. A preview of a file still being
+    // uploaded is a local blob that only the web view can read.
+    private bool AppSavesFile => !Downloads.UsesBrowserDownloads && !Attachment.IsLocalPreview;
+
+    private async Task OnClickAsync()
+    {
+        if (!AppSavesFile)
+            return;
+
+        await Downloads.DownloadWithToastAsync(new DownloadRequest(_location, Attachment.FileName, Attachment.MimeType));
     }
 
     private string GetTypeLabel()
