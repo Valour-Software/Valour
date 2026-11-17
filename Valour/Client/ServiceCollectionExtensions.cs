@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
         // Native shells replace the web launcher with the system browser.
         services.AddScoped<IExternalAuthLauncher, WebExternalAuthLauncher>();
         services.AddScoped<ExternalSignInService>();
+        services.AddScoped<GoogleDriveConnector>();
         services.AddSingleton<EncryptedInviteRedeemer>();
 
         // new services

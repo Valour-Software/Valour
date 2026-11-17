@@ -25,6 +25,42 @@ public class CdnBucketItem
     public string SafetyDetails { get; set; }
     public DateTime? SafetyQuarantinedAt { get; set; }
 
+    /// <summary>Where the file is in its copy to the owner's Google Drive.</summary>
+    public DriveSyncState DriveState { get; set; }
+
+    /// <summary>The file's ID in the owner's Drive, once copied.</summary>
+    public string DriveFileId { get; set; }
+
+    public DateTime? DriveSyncedAt { get; set; }
+
+    /// <summary>Copy attempts so far, for backing off after a failure.</summary>
+    public int DriveAttempts { get; set; }
+
+    /// <summary>The earliest time the next copy attempt may run.</summary>
+    public DateTime? DriveNextAttemptAt { get; set; }
+
+    /// <summary>A short, safe reason the last attempt failed.</summary>
+    public string DriveError { get; set; }
+
+    /// <summary>
+    /// Set when the owner asked to send this file to Drive. Valour's copy is then
+    /// removed as soon as the Drive copy exists, instead of after the retention days.
+    /// </summary>
+    public bool DriveReleaseOnSync { get; set; }
+
+    /// <summary>
+    /// When the copy on Valour's storage may be removed. Set once the Drive
+    /// copy exists. Null means the Valour copy is kept.
+    /// </summary>
+    public DateTime? StorageExpiresAt { get; set; }
+
+    /// <summary>
+    /// When the copy on Valour's storage was removed. The file is then read
+    /// from the owner's Drive. Files in this state do not count toward the
+    /// account's storage quota.
+    /// </summary>
+    public DateTime? StoragePurgedAt { get; set; }
+
     /// <summary>
     /// The url for the bucket item
     /// </summary>
@@ -95,6 +131,45 @@ public class CdnBucketItem
 
             e.Property(x => x.SafetyQuarantinedAt)
                 .HasColumnName("safety_quarantined_at");
+
+            e.Property(x => x.DriveState)
+                .HasColumnName("drive_state")
+                .HasDefaultValue(DriveSyncState.None)
+                .IsRequired();
+
+            e.Property(x => x.DriveFileId)
+                .HasColumnName("drive_file_id");
+
+            e.Property(x => x.DriveSyncedAt)
+                .HasColumnName("drive_synced_at");
+
+            e.Property(x => x.DriveAttempts)
+                .HasColumnName("drive_attempts")
+                .HasDefaultValue(0)
+                .IsRequired();
+
+            e.Property(x => x.DriveNextAttemptAt)
+                .HasColumnName("drive_next_attempt_at");
+
+            e.Property(x => x.DriveError)
+                .HasColumnName("drive_error");
+
+            e.Property(x => x.DriveReleaseOnSync)
+                .HasColumnName("drive_release_on_sync")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            e.Property(x => x.StorageExpiresAt)
+                .HasColumnName("storage_expires_at");
+
+            e.Property(x => x.StoragePurgedAt)
+                .HasColumnName("storage_purged_at");
+
+            // The workers only look at files that are waiting or due to expire.
+            e.HasIndex(x => x.DriveState)
+                .HasFilter("drive_state IN (1, 2, 4)");
+            e.HasIndex(x => x.StorageExpiresAt)
+                .HasFilter("storage_expires_at IS NOT NULL AND storage_purged_at IS NULL");
 
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.Hash);

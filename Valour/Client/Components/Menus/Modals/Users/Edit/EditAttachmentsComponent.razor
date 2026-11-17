@@ -2,12 +2,15 @@
 @using Valour.Shared.Cdn
 @using Valour.Shared.Queries
 @inject ValourClient Client
+@implements IDisposable
 
 <div class="attachments-panel">
     <div class="storage-card">
         <StorageMeter Info="@_storage" />
         <VButton Variant="secondary" Icon="trash3" OnClick="@OpenCleanup">Cleanup</VButton>
     </div>
+
+    <DriveConnectionCard @ref="_driveCard" OnChanged="@OnDriveChangedAsync" />
 
     <div class="attachments-toolbar">
         <VSearchBox Placeholder="Search filenames, MIME types, or hashes..."
@@ -73,10 +76,23 @@
                             <span>@attachment.MimeType</span>
                             <span class="numeric">@FormatBytes(attachment.SizeBytes)</span>
                             <span class="numeric">@attachment.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                            @if (ShowLocation(attachment))
+                            {
+                                <span class="location-chip @GetLocationClass(attachment)">@GetLocationText(attachment)</span>
+                            }
                         </div>
                         <div class="attachment-hash">@attachment.Hash</div>
                     </div>
                     <div class="attachment-actions">
+                        @if (_driveActive && GetMoveAction(attachment) is { } move)
+                        {
+                            <button class="v-btn secondary"
+                                    disabled="@(_movingIds.Contains(attachment.Id) || move.Disabled)"
+                                    title="@move.Title"
+                                    @onclick="() => MoveAsync(attachment)">
+                                @move.Label
+                            </button>
+                        }
                         <a class="v-btn secondary" href="@GetAttachmentUrl(attachment)" target="_blank" rel="noopener noreferrer">
                             Open
                         </a>
@@ -114,9 +130,131 @@
 
     private UserStorageInfo _storage;
 
+    private DriveConnectionCard _driveCard;
+    private bool _driveActive;
+    private readonly HashSet<string> _movingIds = new();
+    private Timer _poll;
+
     protected override async Task OnInitializedAsync()
     {
-        await Task.WhenAll(QueryAsync(reset: true), LoadStorageAsync());
+        await Task.WhenAll(QueryAsync(reset: true), LoadStorageAsync(), LoadDriveAsync());
+
+        // Files sent to Drive move in the background, so keep their rows current.
+        _poll = new Timer(async _ =>
+        {
+            if (_loading || !_attachments.Any(x => x.StorageLocation == AttachmentStorageLocation.SendingToDrive))
+                return;
+
+            await RefreshLoadedAsync();
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(6), TimeSpan.FromSeconds(6));
+    }
+
+    public void Dispose() => _poll?.Dispose();
+
+    private async Task LoadDriveAsync()
+    {
+        var result = await Client.AttachmentService.GetDriveAsync();
+        _driveActive = result.Success && result.Data is { Connected: true, Status: DriveConnectionStatus.Active };
+    }
+
+    private async Task OnDriveChangedAsync()
+    {
+        await Task.WhenAll(LoadStorageAsync(), LoadDriveAsync());
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Reloads the rows already on screen without losing the person's place.</summary>
+    private async Task RefreshLoadedAsync()
+    {
+        var result = await Client.AttachmentService.QueryAsync(new QueryRequest
+        {
+            Skip = 0,
+            Take = Math.Max(PageSize, _attachments.Count),
+            Options = new QueryOptions
+            {
+                Filters = new Dictionary<string, string> { ["search"] = _search },
+                Sort = new QuerySort { Field = _sortField, Descending = true }
+            }
+        });
+
+        if (result.Success)
+        {
+            _totalCount = result.Data.TotalCount;
+            _attachments = result.Data.Items;
+        }
+
+        await Task.WhenAll(LoadStorageAsync(), _driveCard?.RefreshAsync() ?? Task.CompletedTask);
+    }
+
+    // Moving files between Valour and Google Drive //
+
+    private record MoveAction(string Label, string Title, bool Disabled);
+
+    private static bool ShowLocation(UserAttachmentInfo attachment) =>
+        attachment.StorageLocation != AttachmentStorageLocation.Valour;
+
+    private static string GetLocationClass(UserAttachmentInfo attachment) => attachment.StorageLocation switch
+    {
+        AttachmentStorageLocation.DriveFailed => "failed",
+        AttachmentStorageLocation.SendingToDrive => "pending",
+        _ => "drive",
+    };
+
+    private static string GetLocationText(UserAttachmentInfo attachment) => attachment.StorageLocation switch
+    {
+        AttachmentStorageLocation.SendingToDrive => "Sending to Google Drive...",
+        AttachmentStorageLocation.InDrive => "In Google Drive",
+        AttachmentStorageLocation.DriveFailed => attachment.DriveError ?? "Could not send to Google Drive",
+        _ => "On Valour",
+    };
+
+    /// <summary>
+    /// The one move a row offers: from Valour to Drive, or from Drive back to Valour.
+    /// </summary>
+    private static MoveAction GetMoveAction(UserAttachmentInfo attachment) => attachment.StorageLocation switch
+    {
+        AttachmentStorageLocation.SendingToDrive => new MoveAction("Sending...", "Waiting for the copy to finish", true),
+        AttachmentStorageLocation.InDrive =>
+            new MoveAction("Move to Valour", "Keep this file on Valour storage", false),
+        _ => new MoveAction("Send to Drive", "Copy this file to Google Drive and remove it from Valour", false),
+    };
+
+    private async Task MoveAsync(UserAttachmentInfo attachment)
+    {
+        var toValour = attachment.StorageLocation == AttachmentStorageLocation.InDrive;
+
+        _movingIds.Add(attachment.Id);
+        StateHasChanged();
+
+        try
+        {
+            var result = toValour
+                ? await Client.AttachmentService.MoveToValourAsync(attachment.Category, attachment.Hash)
+                : await Client.AttachmentService.SendToDriveAsync(attachment.Category, attachment.Hash);
+
+            if (!result.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData(
+                    toValour ? "Could not move to Valour" : "Could not send to Google Drive",
+                    result.Message, ToastProgressState.Failure));
+                return;
+            }
+
+            // Keep the row's address, which carries the signed link.
+            var updated = result.Data;
+            updated.SignedUrl = attachment.SignedUrl;
+            var index = _attachments.FindIndex(x => x.Id == attachment.Id);
+            if (index >= 0)
+                _attachments[index] = updated;
+
+            await Task.WhenAll(LoadStorageAsync(), _driveCard?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        finally
+        {
+            _movingIds.Remove(attachment.Id);
+            StateHasChanged();
+        }
     }
 
     private async Task LoadStorageAsync()

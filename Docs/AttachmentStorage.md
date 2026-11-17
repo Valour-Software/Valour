@@ -20,9 +20,36 @@ The values live in `UserSubscriptionType.StorageQuotaBytes` in
 returns the default for an account with no active plan.
 
 Only files attached to messages and threads count. Profile pictures, planet icons, emoji,
-theme assets, and files kept on a planet's own storage are not counted.
+theme assets, and files kept on a planet's own storage are not counted. Planets with their
+own storage send uploads straight to the planet's bucket, so those uploads never reach the
+upload routes, create no `cdn_bucket_items` row, and are not checked against any allowance
+or copied to Google Drive.
 
-Usage is the sum of `SizeBytes` over the account's `cdn_bucket_items` rows. When two people
+### Servers that set their own limits
+
+The table above is Valour's own plan system. A server run by someone else, such as a
+community node, stores its members' files itself and can set its own limits in the `CDN`
+section of its settings:
+
+| Setting | Meaning |
+| --- | --- |
+| `UserStorageQuotaBytes` | Bytes each account may keep. Unset uses the plan table. A positive value replaces it for every account, and `0` removes the limit. |
+| `MaxUploadBytes` | Largest single file. Unset uses the plan limits. A positive value replaces them for every account. |
+
+An operator's value is final: plans are not offered, `UserStorageInfo.PlansAvailable` is
+false, the dialogs drop their upgrade links, and a connected Google Drive does not raise the
+file limit. With no limit the meter shows only the amount used (`UserStorageInfo.Unlimited`).
+`UserStorageService.OperatorQuotaBytes` and `OperatorMaxUploadBytes` read the settings, and
+the instance manifest's `DefaultMaxUploadBytes` reports the file limit that applies to
+accounts with no plan.
+
+The limits are per server. A node counts and limits only the files stored on that node.
+
+Usage is the sum of `SizeBytes` over the account's `cdn_bucket_items` rows whose copy is
+still on Valour's storage. Files that now live only in the person's Google Drive are not
+counted, and an account with a working Drive connection that is the default for new uploads
+is not limited at all. See
+[Google Drive storage](GoogleDrive.md). When two people
 upload the same file, the bytes are stored once, but each person's row counts for that
 person. Uploading a file the account already has costs nothing.
 
@@ -49,8 +76,9 @@ that into the out-of-space dialog. `GET api/attachments/storage` returns the sam
 
 - The attach menu in the composer shows a compact meter.
 - Settings, then Attachments, shows the meter next to the Cleanup button.
-- The out-of-space dialog offers Manage Attachments and, below the largest plan, a link to
-  Subscriptions.
+- The out-of-space dialog offers Manage Attachments, connecting Google Drive when the server
+  supports it, and, where plans are available and the account is below the largest one, a
+  link to Subscriptions.
 
 The meter turns amber at 80 percent and red at 95 percent (`UserStorageInfo.WarningFraction` and
 `CriticalFraction`).

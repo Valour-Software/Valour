@@ -104,6 +104,10 @@ take over an existing Valour account. Discord accounts can suggest a username,
 and both providers can supply the new account's avatar, which goes through the
 same upload checks as any avatar.
 
+Signing in with Google asks only for `openid email profile`. The Drive permission used by
+attachment storage is a separate consent that is requested only when someone turns that
+feature on. See [Google Drive storage](GoogleDrive.md).
+
 ### Apple
 
 `AppleAuthProvider` differs from the other providers in a few ways:

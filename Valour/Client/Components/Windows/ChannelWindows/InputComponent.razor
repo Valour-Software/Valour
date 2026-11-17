@@ -748,7 +748,7 @@
                 return;
             }
 
-            var maxBytes = UserSubscriptionTypes.GetMaxUploadBytes(Client.Me.SubscriptionType);
+            var maxBytes = await Client.AttachmentService.GetMaxUploadBytesAsync();
             var maxSize = (int)Math.Min(maxBytes, int.MaxValue);
 
             var attachmentType = MessageAttachmentType.File;
@@ -798,8 +798,8 @@
                     var data = 
                     new InfoModalComponent.ModalParams(
                         $"File too large!",
-                        Client.Me.SubscriptionType is null
-                            ? "The max upload size is 10MB. To raise this limit, consider subscribing!"
+                        maxBytes <= UserSubscriptionTypes.DefaultMaxUploadBytes
+                            ? "The max upload size is 10MB. To raise this limit, consider subscribing or connecting Google Drive in Attachments settings!"
                             : $"Your max upload size is {maxBytes / (1024 * 1024)}MB.",
                         "Okay",
                         null

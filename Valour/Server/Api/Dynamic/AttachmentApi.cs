@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Valour.Server.Services.GoogleDrive;
+using Valour.Shared;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
 using Valour.Shared.Queries;
@@ -49,6 +51,136 @@ public class AttachmentApi
     {
         var token = await tokenService.GetCurrentTokenAsync();
         return Results.Json(await UserStorageService.GetInfoAsync(db, token.UserId));
+    }
+
+    // Google Drive //
+
+    [ValourRoute(HttpVerbs.Get, "api/attachments/drive")]
+    [UserRequired]
+    public static async Task<IResult> GetDriveAsync(
+        TokenService tokenService,
+        UserDriveService driveService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        return Results.Json(await driveService.GetInfoAsync(token.UserId));
+    }
+
+    /// <summary>
+    /// Finishes connecting Google Drive. The ticket and verifier come from the
+    /// Google consent page, started with the ConnectDrive intent, and only the
+    /// session that started that flow can redeem them.
+    /// </summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/drive/connect")]
+    [UserRequired]
+    public static async Task<IResult> ConnectDriveAsync(
+        [FromBody] DriveConnectRequest? request,
+        TokenService tokenService,
+        ExternalAuthService externalAuth,
+        UserDriveService driveService)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Ticket) || string.IsNullOrWhiteSpace(request.Verifier))
+            return ValourResult.BadRequest("Include the ticket and verifier.");
+
+        var token = await tokenService.GetCurrentTokenAsync();
+        var grant = await externalAuth.TakeGrantAsync(request.Ticket, request.Verifier, ExternalAuthIntent.ConnectDrive, token.UserId);
+        if (grant is null)
+            return ValourResult.BadRequest("This link has expired. Try again.");
+
+        var result = await driveService.ConnectAsync(token.UserId, grant.ProviderUserId, grant.Label, grant.RefreshToken);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json(await driveService.GetInfoAsync(token.UserId));
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/attachments/drive")]
+    [UserRequired]
+    public static async Task<IResult> DisconnectDriveAsync(
+        TokenService tokenService,
+        UserDriveService driveService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await driveService.DisconnectAsync(token.UserId);
+        return result.Success ? ValourResult.Ok() : ValourResult.BadRequest(result.Message);
+    }
+
+    /// <summary>Chooses whether new uploads go to Drive or stay on Valour.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/drive/default")]
+    [UserRequired]
+    public static async Task<IResult> SetDriveDefaultAsync(
+        [FromBody] DriveDefaultRequest? request,
+        TokenService tokenService,
+        UserDriveService driveService)
+    {
+        if (request is null)
+            return ValourResult.BadRequest("Include the setting.");
+
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await driveService.SetNewUploadsToDriveAsync(token.UserId, request.NewUploadsToDrive);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json(await driveService.GetInfoAsync(token.UserId));
+    }
+
+    /// <summary>Sends one file to Drive and removes its copy on Valour.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/{category}/{hash}/to-drive")]
+    [UserRequired]
+    public static async Task<IResult> SendToDriveAsync(
+        ContentCategory category,
+        string hash,
+        TokenService tokenService,
+        DriveSyncService driveSync)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await driveSync.SendToDriveAsync(token.UserId, category, hash);
+        return ToMoveResult(result);
+    }
+
+    /// <summary>Makes Valour the home of one file that is in Drive.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/{category}/{hash}/to-valour")]
+    [UserRequired]
+    public static async Task<IResult> MoveToValourAsync(
+        ContentCategory category,
+        string hash,
+        TokenService tokenService,
+        DriveSyncService driveSync)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await driveSync.MoveToValourAsync(token.UserId, category, hash);
+        return ToMoveResult(result);
+    }
+
+    private static IResult ToMoveResult(TaskResult<UserAttachmentInfo> result)
+    {
+        if (result.Success)
+            return Results.Json(result.Data);
+
+        return result.Code == 404
+            ? ValourResult.NotFound(result.Message)
+            : ValourResult.BadRequest(result.Message);
+    }
+
+    /// <summary>Queues the files uploaded before Drive was connected.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/drive/copy-existing")]
+    [UserRequired]
+    public static async Task<IResult> CopyExistingToDriveAsync(
+        TokenService tokenService,
+        UserDriveService driveService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        return Results.Json(new DriveQueueResult { Queued = await driveService.QueueExistingFilesAsync(token.UserId) });
+    }
+
+    /// <summary>Tries again the files whose copy to Drive failed.</summary>
+    [ValourRoute(HttpVerbs.Post, "api/attachments/drive/retry")]
+    [UserRequired]
+    public static async Task<IResult> RetryDriveAsync(
+        TokenService tokenService,
+        UserDriveService driveService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        return Results.Json(new DriveQueueResult { Queued = await driveService.RetryFailedAsync(token.UserId) });
     }
 
     [ValourRoute(HttpVerbs.Get, "api/attachments/cleanup/places")]

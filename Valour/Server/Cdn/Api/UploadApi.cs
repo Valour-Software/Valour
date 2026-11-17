@@ -188,21 +188,22 @@ public partial class UploadApi
     /// <summary>
     /// Returns the max upload size in bytes for the given user based on their subscription tier.
     /// </summary>
-    private static async Task<long> GetUserMaxUploadBytes(ValourDb db, long userId)
-    {
-        var subType = await db.UserSubscriptions
-            .Where(x => x.UserId == userId && x.Active)
-            .Select(x => x.Type)
-            .FirstOrDefaultAsync();
+    private static Task<long> GetUserMaxUploadBytes(ValourDb db, long userId) =>
+        UserStorageService.GetMaxUploadBytesAsync(db, userId);
 
-        return UserSubscriptionTypes.GetMaxUploadBytes(subType);
-    }
+    /// <summary>
+    /// The refusal for a file over the account's size limit. The upgrade hint only
+    /// appears where plans can raise the limit.
+    /// </summary>
+    private static string UploadLimitMessage(long maxBytes) =>
+        $"File exceeds your upload limit of {maxBytes / (1024 * 1024)}MB." +
+        (UserStorageService.OperatorMaxUploadBytes is null ? " Upgrade your subscription for larger uploads!" : "");
 
     /// <summary>
     /// The account's attachment storage allowance in bytes.
     /// </summary>
-    private static async Task<long> GetUserStorageQuotaBytes(ValourDb db, long userId) =>
-        UserSubscriptionTypes.GetStorageQuotaBytes(await UserStorageService.GetSubscriptionTypeAsync(db, userId));
+    private static Task<long> GetUserStorageQuotaBytes(ValourDb db, long userId) =>
+        UserStorageService.GetQuotaBytesAsync(db, userId);
 
     /// <summary>
     /// The answer to an upload that does not fit in the account's storage. It
@@ -255,7 +256,7 @@ public partial class UploadApi
 
         var maxBytes = await GetUserMaxUploadBytes(db, authToken.UserId);
         if (file.Length > maxBytes)
-            return ValourResult.Forbid($"File exceeds your upload limit of {maxBytes / (1024 * 1024)}MB. Upgrade your subscription for larger uploads!");
+            return ValourResult.Forbid(UploadLimitMessage(maxBytes));
 
         if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
@@ -1278,7 +1279,7 @@ public partial class UploadApi
 
         var maxBytes = await GetUserMaxUploadBytes(db, authToken.UserId);
         if (file.Length > maxBytes)
-            return ValourResult.Forbid($"File exceeds your upload limit of {maxBytes / (1024 * 1024)}MB. Upgrade your subscription for larger uploads!");
+            return ValourResult.Forbid(UploadLimitMessage(maxBytes));
 
         // The multipart name and type are client-controlled: an empty name
         // (filename*=UTF-8'') or an invented type must not reach storage as-is.

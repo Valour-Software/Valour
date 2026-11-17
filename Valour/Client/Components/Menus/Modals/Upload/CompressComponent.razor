@@ -19,13 +19,13 @@
             @if (Client.Me.SubscriptionType is not null)
             {
                 <p>
-                    Your image is over the @(UserSubscriptionTypes.GetMaxUploadBytes(Client.Me.SubscriptionType) / (1024 * 1024))MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable.
+                    Your image is over the @(_maxBytes / (1024 * 1024))MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable.
                 </p>
             }
             else
             {
                 <p>
-                    Your image is over the 10MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable. You can also subscribe to increase your upload limit!
+                    Your image is over the @(_maxBytes / (1024 * 1024))MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable. You can also subscribe to increase your upload limit!
                 </p>
             }
         }
@@ -51,6 +51,14 @@
 
     private ITaskResult _result;
 
+    // The plan's limit, or more when Google Drive is connected.
+    private long _maxBytes = UserSubscriptionTypes.DefaultMaxUploadBytes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _maxBytes = await Client.AttachmentService.GetMaxUploadBytesAsync();
+    }
+
     private bool _loading;
 
     private async Task OnClickCompressAsync()
@@ -58,7 +66,7 @@
         _loading = true;
         StateHasChanged();
         
-        var maxBytes = UserSubscriptionTypes.GetMaxUploadBytes(Client.Me.SubscriptionType);
+        var maxBytes = await Client.AttachmentService.GetMaxUploadBytesAsync();
         var maxSize = (int)Math.Min(maxBytes, int.MaxValue);
         
         Client.Logger.Log("[Compressor]", "Attempting to compress image...", "cyan");

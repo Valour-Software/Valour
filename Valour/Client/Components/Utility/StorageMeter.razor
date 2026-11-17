@@ -9,17 +9,31 @@
     {
         <div class="meter-head">
             <span class="meter-title">Storage</span>
-            <span class="meter-numbers numeric">@UserStorageInfo.FormatBytes(_info.UsedBytes) of @UserStorageInfo.FormatBytes(_info.QuotaBytes)</span>
+            @if (_info.Unlimited)
+            {
+                <span class="meter-numbers numeric">@UserStorageInfo.FormatBytes(_info.UsedBytes) used</span>
+            }
+            else
+            {
+                <span class="meter-numbers numeric">@UserStorageInfo.FormatBytes(_info.UsedBytes) of @UserStorageInfo.FormatBytes(_info.QuotaBytes)</span>
+            }
         </div>
-        <div class="meter-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Percent">
-            <div class="meter-fill" style="width: @Percent%"></div>
-        </div>
-        @if (!Compact)
+        @if (!_info.Unlimited)
+        {
+            <div class="meter-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Percent">
+                <div class="meter-fill" style="width: @Percent%"></div>
+            </div>
+        }
+        @if (!Compact && !_info.Unlimited)
         {
             <div class="meter-foot">
-                @if (_info.IsFull)
+                @if (_info.DriveIsDefault)
                 {
-                    <span>Full. Free up space or upgrade to add more attachments.</span>
+                    <span>New uploads go to Google Drive, so they are never turned away.</span>
+                }
+                else if (_info.IsFull)
+                {
+                    <span>@(_info.PlansAvailable ? "Full. Free up space or upgrade to add more attachments." : "Full. Free up space to add more attachments.")</span>
                 }
                 else
                 {
@@ -48,7 +62,8 @@
 
     private int Percent => _info is null ? 0 : (int)Math.Round(_info.UsedFraction * 100);
 
-    private string StateClass => _info is null ? "" : _info.UsedFraction >= UserStorageInfo.CriticalFraction ? "full" : _info.UsedFraction >= UserStorageInfo.WarningFraction ? "warn" : "";
+    // A Drive account is never refused for space, so running high isn't a warning.
+    private string StateClass => _info is null || _info.DriveIsDefault ? "" : _info.UsedFraction >= UserStorageInfo.CriticalFraction ? "full" : _info.UsedFraction >= UserStorageInfo.WarningFraction ? "warn" : "";
 
     protected override async Task OnInitializedAsync()
     {

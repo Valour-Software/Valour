@@ -1,7 +1,7 @@
 Privacy Policy
 ==============
 
-Last updated: September 26, 2026
+Last updated: November 17, 2026
 
 This Privacy Policy explains what data Valour collects, why we collect it,
 who receives it, and how you can control or delete it. We aim to collect
@@ -84,6 +84,51 @@ people who can access it are able to see it:
   * Planet names, channel names, roles, and other planet settings
   * Link previews: when a message contains a link, our servers fetch the
     page to build a preview
+
+Google Drive Storage (Optional)
+-------------------------------
+
+Valour can keep your attachments in your own Google Drive. This is off
+unless you turn it on yourself in Settings, under Attachments. Signing in
+with Google does not turn it on and does not give us any access to Drive.
+
+When you connect Drive, Google asks you to approve one permission, which
+lets Valour see and manage only the files and folders that Valour itself
+creates in your Drive (the "drive.file" permission). Valour cannot see or
+open any other file in your Drive.
+
+If you connect Drive, we store:
+
+  * Your Google account ID and email address, to show which account is
+    connected and to recognize it if you reconnect
+  * A token from Google that lets Valour keep using your Drive without
+    asking you each time, stored encrypted on our servers
+  * The IDs of the folders and files Valour creates in your Drive
+
+Valour then copies the files you upload (images, videos, documents and
+other attachments) into a "Valour" folder in your Drive. Folders inside it
+are named after the planets and conversations the files were sent to, so
+folder names can include planet names. Valour reads those files back from
+your Drive so the people in the conversation can open them. Because
+attachments are not end-to-end encrypted, Valour can read them in the same
+way as files stored on our own servers, and uploads are checked by our
+child-safety media scan before they are copied to Drive. We keep our own
+copy of a file for about 30 days after it reaches Drive so it opens
+quickly, then remove it.
+
+We use the information we receive from Google only to provide this storage
+feature. We do not use it for advertising, we do not sell it, and we do not
+transfer it to anyone except as needed to provide the feature, to follow
+the law, or to protect the service. Valour's use and transfer to any other
+app of information received from Google APIs will adhere to the Google API
+Services User Data Policy, including the Limited Use requirements.
+
+You can disconnect Drive at any time in Settings, under Attachments.
+Disconnecting deletes the stored token and asks Google to end the access.
+You can also remove Valour's access from your Google account permissions
+page at https://myaccount.google.com/permissions. Disconnecting never
+deletes anything from your Drive. Files that exist only in your Drive stop
+opening in Valour until you connect the same Google account again.
 
 Voice and Video Calls
 ---------------------
@@ -210,6 +255,12 @@ These services receive limited data to provide specific functionality:
     Privacy policies: https://policies.google.com/privacy and
     https://discord.com/privacy
 
+  * Google Drive: only if you connect it in Settings. Your uploaded files
+    and the names of the folders that hold them are sent to your own Drive,
+    and Valour reads them back from there. See Google Drive Storage
+    (Optional) above.
+    Privacy policy: https://policies.google.com/privacy
+
   * Klipy: powers GIF search. When you search for GIFs, your device sends
     your search text directly to Klipy, which can see your IP address. Your
     GIF favorites are stored on our servers, not shared with Klipy.
@@ -298,6 +349,9 @@ exceptions:
   * Our hosting provider keeps automatic database backups for disaster
     recovery. Backups expire on a rolling schedule, and deleted data is
     removed from them when they expire.
+  * If you connect Google Drive, our own copy of a file is removed about
+    30 days after the file reaches your Drive. The stored Drive token is
+    kept until you disconnect or delete your account.
   * Our servers keep operational logs for troubleshooting and security.
     These logs can include user IDs and the email addresses we send mail to.
 
@@ -307,6 +361,9 @@ delete:
 
   * Your account details, credentials, linked Google and Discord accounts,
     fingerprint sign-in keys, sessions, profile and preferences
+  * Your Google Drive connection, if you made one: the stored token is
+    deleted and Google is told to end the access. Files in your own Drive
+    are not touched.
   * All your messages, their attachments, and your direct message
     conversations
   * Files you uploaded
@@ -385,7 +442,7 @@ The table below fulfills our disclosure obligations under Cal. Civ. Code
 | Identifiers | Email, username, IP address | You / automatic | Account operation, security | Azure (hosting), SendGrid (email), Cloudflare (calls) |
 | Customer records (Cal. Civ. 1798.80e) | Email, hashed password | You | Authentication | Azure (hosting) |
 | Internet activity | Device type, online status, last active time, days active | Automatic | Online status, service delivery, active user counts | None |
-| Sensory data | User-uploaded images, video, audio; live call audio and video (not recorded) | You | Message delivery, content sharing, calls | Cloudflare (storage, calls) |
+| Sensory data | User-uploaded images, video, audio; live call audio and video (not recorded) | You | Message delivery, content sharing, calls | Cloudflare (storage, calls), Google Drive (only if you connect it) |
 | Commercial info | Subscription status | You / Stripe | Payment processing | Stripe |
 | Age / DOB | Date of birth | You | COPPA age verification | None |
 

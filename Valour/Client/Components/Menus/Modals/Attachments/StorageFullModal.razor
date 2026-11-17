@@ -1,5 +1,8 @@
+@using Valour.Client.Toast
+@using Valour.Client.Utility
 @inherits Modal<StorageFullModal.ModalParams>
 @inject ValourClient Client
+@inject GoogleDriveConnector DriveConnector
 
 <BasicModalLayout Title="Out of attachment space" Icon="hdd-fill" MaxWidth="520px" Role="dialog">
     <MainArea>
@@ -20,6 +23,19 @@
         <p class="helper-text">
             Your existing attachments are untouched. Delete files you no longer need@(CanUpgrade ? ", or upgrade for more space" : "").
         </p>
+
+        @if (CanConnectDrive)
+        {
+            <div class="drive-callout">
+                <div>
+                    <strong>Or keep your files in Google Drive</strong>
+                    <span>Uploads go to your own Drive and stop using Valour space.</span>
+                </div>
+                <button class="v-btn" disabled="@_connecting" @onclick="ConnectDriveAsync">
+                    <i class="bi bi-google" aria-hidden="true"></i> @(Data.Info.DriveConnected ? "Use Drive" : "Connect")
+                </button>
+            </div>
+        }
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
@@ -41,8 +57,61 @@
 
     private bool IsSubscribed => !string.IsNullOrEmpty(Data.Info.SubscriptionType);
 
-    // The largest plan has nowhere further to go.
-    private bool CanUpgrade => Data.Info.SubscriptionType != UserSubscriptionTypes.StargazerPro.Name;
+    // The largest plan has nowhere further to go, and a server that sets its own
+    // limits has no plans to sell.
+    private bool CanUpgrade => Data.Info.PlansAvailable && Data.Info.SubscriptionType != UserSubscriptionTypes.StargazerPro.Name;
+
+    // Drive is offered when it isn't connected, and when it is but new uploads
+    // were set to stay on Valour.
+    private bool CanConnectDrive => Data.Info.DriveAvailable && !Data.Info.DriveIsDefault;
+
+    private bool _connecting;
+
+    // Call this from the click handler without awaiting anything first, so the
+    // web popup is allowed to open.
+    private async Task ConnectDriveAsync()
+    {
+        _connecting = true;
+        StateHasChanged();
+
+        try
+        {
+            // Already connected, so only the setting needs to change.
+            if (Data.Info.DriveConnected)
+            {
+                var switched = await Client.AttachmentService.SetNewUploadsToDriveAsync(true);
+                if (!switched.Success)
+                {
+                    ToastContainer.Instance.AddToast(new ToastData("Could not change the setting", switched.Message, ToastProgressState.Failure));
+                    return;
+                }
+
+                ToastContainer.Instance.AddToast(new ToastData("New uploads go to Google Drive",
+                    "Try the upload again.", ToastProgressState.Success));
+                Close();
+                return;
+            }
+
+            var outcome = await DriveConnector.ConnectAsync();
+            if (outcome.Cancelled)
+                return;
+
+            if (!outcome.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Could not connect Google Drive", outcome.Error, ToastProgressState.Failure));
+                return;
+            }
+
+            ToastContainer.Instance.AddToast(new ToastData("Google Drive connected",
+                "Your uploads now go to your Drive. Try the upload again.", ToastProgressState.Success));
+            Close();
+        }
+        finally
+        {
+            _connecting = false;
+            StateHasChanged();
+        }
+    }
 
     private void OpenAttachments() => OpenSettings("Attachments");
 

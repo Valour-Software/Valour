@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.WebUtilities;
 using Valour.Config.Configs;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services.ExternalAuth;
 
@@ -53,17 +54,24 @@ public abstract class ExternalAuthProvider
 
     public bool IsConfigured => Config?.IsConfigured == true;
 
-    public string BuildAuthorizationUrl(string redirectUri, string state)
+    /// <summary>The permissions to ask for when the flow has this intent.</summary>
+    protected virtual string GetScope(ExternalAuthIntent intent) => Scope;
+
+    /// <summary>The extra authorization page parameters when the flow has this intent.</summary>
+    protected virtual IEnumerable<KeyValuePair<string, string>> GetExtraAuthorizeParameters(ExternalAuthIntent intent) =>
+        ExtraAuthorizeParameters;
+
+    public string BuildAuthorizationUrl(string redirectUri, string state, ExternalAuthIntent intent = ExternalAuthIntent.Login)
     {
         var parameters = new Dictionary<string, string>
         {
             ["client_id"] = Config!.ClientId!,
             ["redirect_uri"] = redirectUri,
             ["response_type"] = "code",
-            ["scope"] = Scope,
+            ["scope"] = GetScope(intent),
             ["state"] = state,
         };
-        foreach (var (key, value) in ExtraAuthorizeParameters)
+        foreach (var (key, value) in GetExtraAuthorizeParameters(intent))
             parameters[key] = value;
 
         return QueryHelpers.AddQueryString(AuthorizeUrl, parameters);

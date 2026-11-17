@@ -81,6 +81,7 @@ public class UserService
     private User _currentUser;
 
     private readonly Valour.Server.Services.ExternalAuth.AppleAuthProvider _apple;
+    private readonly Valour.Server.Services.GoogleDrive.UserDriveService _drives;
 
     public UserService(
         ValourDb db,
@@ -91,9 +92,11 @@ public class UserService
         IConnectionMultiplexer redis,
         IHttpContextAccessor httpContextAccessor,
         CdnBucketService bucketService,
-        Valour.Server.Services.ExternalAuth.AppleAuthProvider apple)
+        Valour.Server.Services.ExternalAuth.AppleAuthProvider apple,
+        Valour.Server.Services.GoogleDrive.UserDriveService drives)
     {
         _apple = apple;
+        _drives = drives;
         _db = db;
         _bucketService = bucketService;
         _httpContextAccessor = httpContextAccessor;
@@ -1478,13 +1481,21 @@ public class UserService
             .Where(x => x.UserId == user.Id && x.CredentialType == CredentialType.APPLE)
             .ToListAsync();
 
+        // The same goes for a connected Google Drive: its saved token is deleted
+        // with the account, and Google is told to end the grant once that succeeds.
+        var driveToken = await _drives.ReadRefreshTokenAsync(user.Id);
+
         for (var attempt = 1; ; attempt++)
         {
             var (result, deadlocked) = await DeleteAccountDataAsync(user, canRetry: attempt < MaxAccountDeletionAttempts);
             if (!deadlocked)
             {
                 if (result.Success)
+                {
                     await _apple.RevokeCredentialsAsync(appleCredentials);
+                    if (driveToken is not null)
+                        await _drives.RevokeGrantAsync(driveToken);
+                }
                 return result;
             }
 
@@ -1785,6 +1796,11 @@ public class UserService
             await _db.CdnBucketItems.IgnoreQueryFilters()
                 .Where(x => x.UserId == user.Id && x.SafetyQuarantinedAt == null)
                 .ExecuteDeleteAsync();
+
+            // The Drive connection holds an encrypted token for the person's Google
+            // account, so it goes with the account. Files in their Drive stay theirs.
+            await _db.UserDriveConnections.Where(x => x.UserId == user.Id).ExecuteDeleteAsync();
+            await _db.UserDriveFolders.Where(x => x.UserId == user.Id).ExecuteDeleteAsync();
 
             await DeleteCommunityContentAsync(dbUser.Id, planetMemberIds);
 

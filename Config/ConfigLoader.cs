@@ -47,6 +47,7 @@ public static class ConfigLoader
         config.GetSection("Federation").Get<FederationConfig>();
         config.GetSection("E2ee").Get<E2eeConfig>();
         config.GetSection("ExternalAuth").Get<ExternalAuthConfig>();
+        config.GetSection("GoogleDrive").Get<GoogleDriveConfig>();
 
         // Override with Kubernetes node details
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");

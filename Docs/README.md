@@ -20,6 +20,7 @@ use placeholder values; use private local settings when running a server or test
 - [Sign-in methods](SignInMethods.md)
 - [Payments and subscriptions](Payments.md)
 - [Attachment storage](AttachmentStorage.md)
+- [Google Drive storage](GoogleDrive.md)
 - [Downloads](Downloads.md)
 - [Media safety scanning](MediaSafety.md)
 - [API routing and authorization](../Valour/Docs/API_ROUTES.md)
