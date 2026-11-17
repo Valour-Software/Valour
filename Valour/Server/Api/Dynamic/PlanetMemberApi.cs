@@ -138,6 +138,7 @@ public class PlanetMemberApi
         }
 
         // Prevent mass-assignment by only allowing nickname updates via this endpoint.
+        var previousNickname = targetMember.Nickname;
         targetMember.Nickname = member.Nickname;
 
         var result = await service.UpdateAsync(targetMember);
@@ -156,10 +157,20 @@ public class PlanetMemberApi
                 ModerationActionType.EditIdentity,
                 actorUserId: selfMember.UserId,
                 targetUserId: targetMember.UserId,
-                targetMemberId: targetMember.Id);
+                targetMemberId: targetMember.Id,
+                details: DescribeNicknameChange(previousNickname, result.Data.Nickname));
         }
         
         return Results.Json(result.Data);
+    }
+
+    /// <summary>
+    /// Describes a nickname change for the moderation audit log.
+    /// </summary>
+    private static string DescribeNicknameChange(string? previous, string? current)
+    {
+        static string Quote(string? name) => string.IsNullOrWhiteSpace(name) ? "none" : $"\"{name}\"";
+        return $"Nickname changed from {Quote(previous)} to {Quote(current)}.";
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/members/{id}/avatar")]
@@ -198,7 +209,8 @@ public class PlanetMemberApi
                 ModerationActionType.EditIdentity,
                 actorUserId: selfMember.UserId,
                 targetUserId: targetMember.UserId,
-                targetMemberId: targetMember.Id);
+                targetMemberId: targetMember.Id,
+                details: "Removed the planet avatar.");
         }
 
         return Results.Json(result.Data);

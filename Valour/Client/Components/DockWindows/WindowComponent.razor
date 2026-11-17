@@ -575,17 +575,24 @@
     
     public async Task OnWindowMouseUp(MouseEventArgs e)
     {
-        if (IsFloating)
-        {
-            // On floating windows we check if the element has been resized when the mouse is released
-            var dims = await GetDimensions();
-            WindowTab.FloatingProps.Width = dims.Width;
-            WindowTab.FloatingProps.Height = dims.Height;
-            
-            Console.WriteLine("Updated floating window size to " + dims.Width + "x" + dims.Height);
-            
-            _ = Dock.SaveFloaters();
-        }
+        // A tab that was just closed has no layout either, so it also counts
+        // as floating, but it has nothing to measure. This happens when the
+        // mouse is released on the close button.
+        if (!IsFloating || WindowTab.FloatingProps is null)
+            return;
+
+        // On floating windows we check if the element has been resized when the mouse is released
+        var dims = await GetDimensions();
+
+        // The window can close while it is being measured.
+        var props = WindowTab?.FloatingProps;
+        if (props is null)
+            return;
+
+        props.Width = dims.Width;
+        props.Height = dims.Height;
+
+        _ = Dock.SaveFloaters();
     }
     
     public async Task<ElementDimensions> GetDimensions()

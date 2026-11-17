@@ -27,12 +27,12 @@
         <div asp-validation-summary="All" class="text-danger"></div>
         <div class="form-group">
             <label>Email</label>
-            <input type="email" autocomplete="email" class="form-control" @bind-value="@_email" @onkeyup="@OnEmailKey"/>
+            <input type="email" autocomplete="email" class="form-control" disabled="@_showMultiFactorAuth" @bind-value="@_email" @onkeyup="@OnEmailKey"/>
             <span id="email-span" class="text-danger">@_emailSpan</span>
         </div>
         <div class="form-group">
             <label>Password</label>
-            <PasswordInput @ref="@PasswordInput" id="password-input" autocomplete="current-password" @bind-Value="@_password" OnKeyUp="@OnPasswordKey"/>
+            <PasswordInput @ref="@PasswordInput" id="password-input" autocomplete="current-password" disabled="@_showMultiFactorAuth" @bind-Value="@_password" OnKeyUp="@OnPasswordKey"/>
             <span id="password-span" class="text-danger">@_passwordSpan</span>
             @if (_loginDisabled)
             {
@@ -79,7 +79,7 @@
     {
         <div class="multi-factor-auth">
             <h3>Two-factor authentication</h3>
-            <input class="form-control" type="text" @bind-value="@_multiFactorCode" @onkeyup="@OnMfaKey" />
+            <input @ref="@_multiFactorInput" class="form-control" type="text" inputmode="numeric" autocomplete="one-time-code" @bind-value="@_multiFactorCode" @onkeyup="@OnMfaKey" />
             @if (!string.IsNullOrWhiteSpace(_multiFactorSpan))
             {
                 <span class="text-danger mt-4">@_multiFactorSpan</span>
@@ -109,6 +109,20 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Put the cursor in the code field when it appears, so the code is not
+        // typed into the password field that had focus.
+        if (_showMultiFactorAuth && !_multiFactorFocused)
+        {
+            _multiFactorFocused = true;
+            try
+            {
+                await _multiFactorInput.FocusAsync();
+            }
+            catch (Exception e) when (e is JSException or InvalidOperationException)
+            {
+            }
+        }
+
         if (!firstRender)
             return;
 
@@ -129,6 +143,8 @@
     }
 
     private bool _showMultiFactorAuth = false;
+    private ElementReference _multiFactorInput;
+    private bool _multiFactorFocused;
     private string _multiFactorCode;
     private string _multiFactorSpan;
 

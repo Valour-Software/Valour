@@ -221,10 +221,12 @@ public class PlanetApi
     /// <summary>
     /// Makes a planet public or private and sets whether new members can read
     /// earlier messages. Only the owner can do this, because changing privacy
-    /// needs a membership log entry the owner's device signs.
+    /// needs a membership log entry the owner's device signs. The session needs
+    /// PlanetManagement rather than FullControl, because a community node never
+    /// grants FullControl to the sessions it creates for hub accounts.
     /// </summary>
     [ValourRoute(HttpVerbs.Put, "api/planets/{id}/privacy")]
-    [UserRequired(UserPermissionsEnum.FullControl)]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetPrivacyRouteAsync(
         long id,
         [FromBody] SetPlanetPrivacyRequest? request,

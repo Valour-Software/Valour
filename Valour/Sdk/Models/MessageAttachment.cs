@@ -206,6 +206,14 @@ public class MessageAttachment : ISharedMessageAttachment
         }
         
         var uri = new Uri(location);
+
+        if (PlanetHosted)
+        {
+            // The file is in the planet's own storage, which Valour's CDN
+            // cannot sign for. The server only accepts a planet-hosted
+            // location under the planet's registered public address.
+            return uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp ? uri.AbsoluteUri : null;
+        }
         
         // Strip the protocol and host from the location
         // This is because the CDN will return a signed URL that is relative to the base URL of the client

@@ -318,7 +318,10 @@
 
     private void DeterminePermissions()
     {
-        _canEdit = Planet.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false;
+        // Members who can only review reports still need the settings button,
+        // which then opens with the Reports page alone.
+        _canEdit = (Planet.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false) ||
+                   (Planet.MyMember?.HasPermission(PlanetPermissions.ViewReports) ?? false);
     }
 
     private void DetermineUnreadAndNotifications()

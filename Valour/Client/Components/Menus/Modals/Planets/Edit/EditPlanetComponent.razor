@@ -227,6 +227,17 @@
             categories[0].Items.RemoveAll(x => x.Name == "Self-Hosting");
         }
 
+        // A member who can review reports but not manage the planet sees the
+        // Reports page only.
+        var member = Data.Planet.MyMember;
+        if (member is not null &&
+            !member.HasPermission(PlanetPermissions.Manage) &&
+            member.HasPermission(PlanetPermissions.ViewReports))
+        {
+            categories[0].Items.RemoveAll(x => x.Name != "Reports");
+            return categories;
+        }
+
         if (Data.Planet.OwnerId == Client.Me?.Id)
         {
             categories[0].Items.Insert(categories[0].Items.Count - 1, new MainMenu.MenuItem

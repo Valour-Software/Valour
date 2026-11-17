@@ -445,7 +445,8 @@ public partial class UploadApi
                 ModerationActionType.EditIdentity,
                 actorUserId: selfMember.UserId,
                 targetUserId: targetMember.UserId,
-                targetMemberId: targetMember.Id);
+                targetMemberId: targetMember.Id,
+                details: "Changed the planet avatar.");
         }
 
         return Results.Json(result.Data);
