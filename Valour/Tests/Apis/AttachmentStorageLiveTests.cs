@@ -216,6 +216,103 @@ public class AttachmentStorageLiveTests
         Assert.Equal(0, after.Data.Count);
     }
 
+    [Fact]
+    public async Task ArchiveHoldsOnlyTheFilesTheFiltersSelect()
+    {
+        var attachments = _fixture.Client.AttachmentService;
+        var marker = Guid.NewGuid().ToString("N")[..8];
+
+        await UploadTextAsync($"filter-{marker}-small.txt", 1000);
+        await UploadTextAsync($"filter-{marker}-big-1.txt", 7000);
+        await UploadTextAsync($"filter-{marker}-big-2.txt", 7000);
+
+        var criteria = new AttachmentCleanupCriteria
+        {
+            AsOf = DateTime.UtcNow.AddMinutes(1),
+            Scope = AttachmentCleanupScope.All,
+            Categories = [ContentCategory.File],
+            MinSizeBytes = 5000,
+        };
+
+        var preview = await attachments.PreviewCleanupAsync(criteria);
+        var ticket = await attachments.StartCleanupArchiveAsync(criteria);
+        Assert.True(ticket.Success, ticket.Message);
+        Assert.Equal(preview.Data.Count, ticket.Data.Count);
+
+        using var anonymous = _fixture.Factory.CreateClient();
+        var download = await anonymous.GetAsync(ticket.Data.DownloadPath);
+        var zipBytes = await download.Content.ReadAsByteArrayAsync();
+        using var zip = new ZipArchive(new MemoryStream(zipBytes), ZipArchiveMode.Read);
+
+        var files = zip.Entries.Where(e => e.FullName != "manifest.json").ToList();
+        Assert.Equal(preview.Data.Count, files.Count);
+        Assert.DoesNotContain(files, e => e.FullName.Contains("small"));
+        Assert.Contains(files, e => e.FullName.Contains("big-1"));
+    }
+
+    [Fact]
+    public async Task ArchiveNeverIncludesAnotherAccountsFiles()
+    {
+        var attachments = _fixture.Client.AttachmentService;
+        var marker = Guid.NewGuid().ToString("N")[..8];
+        await UploadTextAsync($"mine-{marker}.txt", 6000);
+
+        // Another account's file that matches every filter the archive uses.
+        string foreignId;
+        long foreignOwner;
+        using (var scope = _fixture.Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            foreignOwner = await db.Users.Where(x => x.Id != _fixture.Client.Me.Id).Select(x => x.Id).FirstAsync();
+            foreignId = $"File/{foreignOwner}/foreign-{marker}";
+            db.CdnBucketItems.Add(new CdnBucketItem
+            {
+                Id = foreignId,
+                Hash = $"foreign-{marker}",
+                UserId = foreignOwner,
+                MimeType = "text/plain",
+                FileName = $"theirs-{marker}.txt",
+                Category = ContentCategory.File,
+                SizeBytes = 6000,
+                CreatedAt = DateTime.UtcNow,
+                Sha256Hash = new string('1', 64),
+            });
+            await db.SaveChangesAsync();
+        }
+
+        try
+        {
+            var criteria = new AttachmentCleanupCriteria
+            {
+                AsOf = DateTime.UtcNow.AddMinutes(1),
+                Scope = AttachmentCleanupScope.All,
+                Categories = [ContentCategory.File],
+            };
+
+            var ticket = await attachments.StartCleanupArchiveAsync(criteria);
+            Assert.True(ticket.Success, ticket.Message);
+
+            using var anonymous = _fixture.Factory.CreateClient();
+            var zipBytes = await (await anonymous.GetAsync(ticket.Data.DownloadPath)).Content.ReadAsByteArrayAsync();
+            using var zip = new ZipArchive(new MemoryStream(zipBytes), ZipArchiveMode.Read);
+
+            using var manifest = new StreamReader(zip.GetEntry("manifest.json")!.Open());
+            var manifestText = await manifest.ReadToEndAsync();
+            Assert.Contains($"mine-{marker}.txt", manifestText);
+            Assert.DoesNotContain($"theirs-{marker}", manifestText);
+
+            // The same holds for what a cleanup would delete.
+            var preview = await attachments.PreviewCleanupAsync(criteria);
+            Assert.Equal(ticket.Data.Count, preview.Data.Count);
+        }
+        finally
+        {
+            using var scope = _fixture.Factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            await db.CdnBucketItems.Where(x => x.Id == foreignId).ExecuteDeleteAsync();
+        }
+    }
+
     private sealed class FolderDownloadService(string folder, HttpClient http) : StreamedDownloadService(http)
     {
         protected override Task<DownloadDestination> OpenDestinationAsync(
