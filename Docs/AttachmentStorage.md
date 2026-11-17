@@ -60,6 +60,8 @@ The meter turns amber at 80 percent and red at 95 percent (`UserStorageInfo.Warn
 Cleanup removes many attachments at once. `UserStorageService` implements it, and
 `AttachmentApi` exposes it under `api/attachments/cleanup`.
 
+The Cleanup window in the client has three steps: which files (scope, and a searchable list of planets and direct messages), filters (type, age, size, with a live count), and a review with the archive and delete actions.
+
 ### Choosing files
 
 `AttachmentCleanupCriteria` selects files by scope (all files, files in chosen planets and

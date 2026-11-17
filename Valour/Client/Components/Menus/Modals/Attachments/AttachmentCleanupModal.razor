@@ -5,148 +5,178 @@
 @inject IDownloadService Downloads
 @implements IDisposable
 
-<BasicModalLayout Title="Clean up attachments" Icon="trash3-fill" MaxWidth="500px" Role="dialog">
+<BasicModalLayout Title="Clean up attachments" Icon="trash3-fill" MaxWidth="520px" Role="dialog">
     <MainArea>
-        <p class="helper-text">
-            Choose which of your uploaded files to remove. Message text stays, and the files show as "Attachment not found".
-        </p>
+        <div class="cleanup-modal">
+            <div class="cleanup-progress">
+                <span class="@GetStepClass(0)">Files</span>
+                <span class="@GetStepClass(1)">Filters</span>
+                <span class="@GetStepClass(2)">Review</span>
+            </div>
 
-        <div class="cleanup-group" role="radiogroup" aria-label="Which files">
-            <span class="cleanup-label">Which files</span>
-            @foreach (var option in _scopeOptions)
+            @switch (_page)
             {
-                <label class="switch-radio">
-                    <input type="radio" name="cleanup-scope" checked="@(_scope == option.Value)" @onchange="@(() => SetScope(option.Value))" />
-                    <span class="radio round"></span>
-                    @option.Label
-                </label>
-            }
-        </div>
+                case 0:
+                    <section class="cleanup-step">
+                        <h3>Which files?</h3>
+                        <p class="helper-text">
+                            Message text stays, and removed files show as "Attachment not found".
+                        </p>
 
-        @if (_scope == AttachmentCleanupScope.Selected)
-        {
-            @if (_places is null)
-            {
-                <div class="helper-text">Loading...</div>
-            }
-            else if (_places.Count == 0)
-            {
-                <div class="helper-text">No files are in a planet or DM.</div>
-            }
-            else
-            {
-                <div class="cleanup-places-header">
-                    <VSearchBox Size="sm" Placeholder="Search planets..." Value="@_placeSearch" ValueChanged="@OnPlaceSearchChanged" />
-                    <VButton Variant="ghost" Size="sm" OnClick="@SelectVisiblePlaces">Select all</VButton>
-                    <VButton Variant="ghost" Size="sm" OnClick="@ClearPlaces">Clear</VButton>
-                </div>
-
-                <div class="cleanup-places">
-                    @foreach (var place in VisiblePlaces)
-                    {
-                        <div class="cleanup-switch-row" @key="@(place.PlanetId ?? 0)">
-                            @if (place.PlanetId is null)
+                        <div class="cleanup-group" role="radiogroup" aria-label="Which files">
+                            @foreach (var option in _scopeOptions)
                             {
-                                <span class="place-dm-icon"><i class="bi bi-chat-dots-fill" aria-hidden="true"></i></span>
+                                <label class="switch-radio">
+                                    <input type="radio" name="cleanup-scope" checked="@(_scope == option.Value)" @onchange="@(() => SetScope(option.Value))" />
+                                    <span class="radio round"></span>
+                                    @option.Label
+                                </label>
                             }
-                            else if (PlanetFor(place) is { } planet)
+                        </div>
+
+                        @if (_scope == AttachmentCleanupScope.Selected)
+                        {
+                            @if (_places is null)
                             {
-                                <PlanetIcon Planet="@planet" Size="28" />
+                                <div class="helper-text">Loading...</div>
+                            }
+                            else if (_places.Count == 0)
+                            {
+                                <div class="helper-text">No files are in a planet or DM.</div>
                             }
                             else
                             {
-                                <span class="place-dm-icon"><i class="bi bi-globe2" aria-hidden="true"></i></span>
+                                <div class="cleanup-places-header">
+                                    <VSearchBox Size="sm" Placeholder="Search planets..." Value="@_placeSearch" ValueChanged="@OnPlaceSearchChanged" />
+                                    <VButton Variant="ghost" Size="sm" OnClick="@SelectVisiblePlaces">Select all</VButton>
+                                    <VButton Variant="ghost" Size="sm" OnClick="@ClearPlaces">Clear</VButton>
+                                </div>
+
+                                <div class="cleanup-places">
+                                    @foreach (var place in VisiblePlaces)
+                                    {
+                                        <div class="cleanup-switch-row" @key="@(place.PlanetId ?? 0)">
+                                            @if (place.PlanetId is null)
+                                            {
+                                                <span class="place-dm-icon"><i class="bi bi-chat-dots-fill" aria-hidden="true"></i></span>
+                                            }
+                                            else if (PlanetFor(place) is { } planet)
+                                            {
+                                                <PlanetIcon Planet="@planet" Size="28" />
+                                            }
+                                            else
+                                            {
+                                                <span class="place-dm-icon"><i class="bi bi-globe2" aria-hidden="true"></i></span>
+                                            }
+                                            <span class="switch-row-text">
+                                                <span class="place-name">@PlaceName(place)</span>
+                                                <span class="place-size numeric">@place.Count @(place.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(place.TotalBytes)</span>
+                                            </span>
+                                            <label class="switch">
+                                                <input type="checkbox" aria-label="@PlaceName(place)" checked="@IsPlaceSelected(place)" @onchange="@(e => TogglePlace(place, (bool)e.Value!))" />
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    }
+                                    @if (!VisiblePlaces.Any())
+                                    {
+                                        <div class="helper-text">No planets match your search.</div>
+                                    }
+                                </div>
+
+                                <div class="helper-text numeric">@SelectedPlaceCount of @_places.Count selected</div>
                             }
-                            <span class="switch-row-text">
-                                <span class="place-name">@PlaceName(place)</span>
-                                <span class="place-size numeric">@place.Count @(place.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(place.TotalBytes)</span>
-                            </span>
-                            <label class="switch">
-                                <input type="checkbox" aria-label="@PlaceName(place)" checked="@IsPlaceSelected(place)" @onchange="@(e => TogglePlace(place, (bool)e.Value!))" />
-                                <span class="slider round"></span>
-                            </label>
+                        }
+                    </section>
+                    break;
+                case 1:
+                    <section class="cleanup-step">
+                        <h3>Narrow it down</h3>
+
+                        <div class="cleanup-group">
+                            <span class="cleanup-label">Types <span class="cleanup-muted">(none selected means every type)</span></span>
+                            <div class="cleanup-types">
+                                @foreach (var type in _typeOptions)
+                                {
+                                    <div class="cleanup-switch-row">
+                                        <span class="switch-row-text">@type.Label</span>
+                                        <label class="switch">
+                                            <input type="checkbox" aria-label="@type.Label" checked="@_types.Contains(type.Value)" @onchange="@(e => ToggleType(type.Value, (bool)e.Value!))" />
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                }
+                            </div>
                         </div>
-                    }
-                    @if (!VisiblePlaces.Any())
-                    {
-                        <div class="helper-text">No planets match your search.</div>
-                    }
-                </div>
 
-                <div class="helper-text numeric">@SelectedPlaceCount of @_places.Count selected</div>
-            }
-        }
+                        <div class="cleanup-row">
+                            <div class="form-group">
+                                <label for="cleanup-age">Older than</label>
+                                <select id="cleanup-age" class="form-select" value="@_ageDays" @onchange="OnAgeChanged">
+                                    <option value="0">Any age</option>
+                                    <option value="30">1 month</option>
+                                    <option value="90">3 months</option>
+                                    <option value="180">6 months</option>
+                                    <option value="365">1 year</option>
+                                    <option value="730">2 years</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cleanup-size">Larger than</label>
+                                <select id="cleanup-size" class="form-select" value="@(_minSizeBytes / (1024 * 1024))" @onchange="OnSizeChanged">
+                                    <option value="0">Any size</option>
+                                    <option value="1">1 MB</option>
+                                    <option value="10">10 MB</option>
+                                    <option value="50">50 MB</option>
+                                    <option value="100">100 MB</option>
+                                </select>
+                            </div>
+                        </div>
 
-        <div class="cleanup-group">
-            <span class="cleanup-label">Types <span class="cleanup-muted">(none selected means every type)</span></span>
-            <div class="cleanup-types">
-                @foreach (var type in _typeOptions)
-                {
-                    <div class="cleanup-switch-row">
-                        <span class="switch-row-text">@type.Label</span>
-                        <label class="switch">
-                            <input type="checkbox" aria-label="@type.Label" checked="@_types.Contains(type.Value)" @onchange="@(e => ToggleType(type.Value, (bool)e.Value!))" />
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                }
-            </div>
-        </div>
+                        @PreviewBox
+                    </section>
+                    break;
+                case 2:
+                    <section class="cleanup-step">
+                        <h3>Review</h3>
 
-        <div class="cleanup-row">
-            <div class="form-group">
-                <label for="cleanup-age">Older than</label>
-                <select id="cleanup-age" class="form-select" @onchange="OnAgeChanged">
-                    <option value="0">Any age</option>
-                    <option value="30">1 month</option>
-                    <option value="90">3 months</option>
-                    <option value="180">6 months</option>
-                    <option value="365">1 year</option>
-                    <option value="730">2 years</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="cleanup-size">Larger than</label>
-                <select id="cleanup-size" class="form-select" @onchange="OnSizeChanged">
-                    <option value="0">Any size</option>
-                    <option value="1">1 MB</option>
-                    <option value="10">10 MB</option>
-                    <option value="50">50 MB</option>
-                    <option value="100">100 MB</option>
-                </select>
-            </div>
-        </div>
+                        <dl class="cleanup-summary">
+                            <div><dt>Files</dt><dd>@ScopeSummary</dd></div>
+                            <div><dt>Types</dt><dd>@TypesSummary</dd></div>
+                            <div><dt>Older than</dt><dd>@AgeSummary</dd></div>
+                            <div><dt>Larger than</dt><dd>@SizeSummary</dd></div>
+                        </dl>
 
-        <div class="cleanup-preview" aria-live="polite">
-            @if (_previewFailed)
-            {
-                <span>Could not count the matching files.</span>
-            }
-            else if (_preview is null)
-            {
-                <span>Counting...</span>
-            }
-            else if (_preview.Count == 0)
-            {
-                <span>No files match.</span>
-            }
-            else
-            {
-                <strong class="numeric">@_preview.Count @(_preview.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(_preview.TotalBytes)</strong>
-                @if (_preview.Oldest is not null && _preview.Newest is not null)
-                {
-                    <span class="numeric">@_preview.Oldest.Value.ToLocalTime().ToString("MMM d, yyyy") to @_preview.Newest.Value.ToLocalTime().ToString("MMM d, yyyy")</span>
-                }
+                        @PreviewBox
+
+                        <p class="helper-text">
+                            Download an archive first if you want a copy. Deleting asks you to confirm and can back the files up before removing them.
+                        </p>
+                    </section>
+                    break;
             }
         </div>
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
-            <button class="v-btn" @onclick="@Close">Close</button>
-            <button class="v-btn" disabled="@(!HasFiles || _downloading)" @onclick="DownloadArchiveAsync">
-                @(_downloading ? "Downloading..." : "Download archive")
-            </button>
-            <button class="v-btn danger" disabled="@(!HasFiles)" @onclick="OpenConfirm">Delete files...</button>
+            @if (_page == 0)
+            {
+                <button class="v-btn" @onclick="@Close">Cancel</button>
+                <button class="v-btn primary" disabled="@(!CanContinueFromFiles)" @onclick="Next">Next</button>
+            }
+            else if (_page == 1)
+            {
+                <button class="v-btn" @onclick="Back">Back</button>
+                <button class="v-btn primary" @onclick="Next">Next</button>
+            }
+            else
+            {
+                <button class="v-btn" @onclick="Back">Back</button>
+                <button class="v-btn" disabled="@(!HasFiles || _downloading)" @onclick="DownloadArchiveAsync">
+                    @(_downloading ? "Downloading..." : "Download archive")
+                </button>
+                <button class="v-btn danger" disabled="@(!HasFiles)" @onclick="OpenConfirm">Delete files...</button>
+            }
         </div>
     </ButtonArea>
 </BasicModalLayout>
@@ -193,7 +223,73 @@
 
     private CancellationTokenSource _previewCts;
 
+    private int _page;
+
     private bool HasFiles => _preview is { Count: > 0 };
+
+    private string GetStepClass(int step) => step == _page ? "active" : step < _page ? "done" : "";
+
+    private void Next() => _page = Math.Min(_page + 1, 2);
+
+    private void Back() => _page = Math.Max(_page - 1, 0);
+
+    /// <summary>
+    /// Choosing "certain planets or DMs" needs at least one of them before moving on.
+    /// </summary>
+    private bool CanContinueFromFiles =>
+        _scope != AttachmentCleanupScope.Selected || SelectedPlaceCount > 0;
+
+    private string ScopeSummary => _scope switch
+    {
+        AttachmentCleanupScope.All => "All of my files",
+        AttachmentCleanupScope.Unattached => "Files not used in any message",
+        _ => SelectedPlaceCount == 1 ? "1 planet or DM" : $"{SelectedPlaceCount} planets or DMs",
+    };
+
+    private string TypesSummary => _types.Count == 0
+        ? "Every type"
+        : string.Join(", ", _typeOptions.Where(t => _types.Contains(t.Value)).Select(t => t.Label));
+
+    private string AgeSummary => _ageDays switch
+    {
+        0 => "Any age",
+        30 => "1 month",
+        90 => "3 months",
+        180 => "6 months",
+        365 => "1 year",
+        730 => "2 years",
+        _ => $"{_ageDays} days",
+    };
+
+    private string SizeSummary => _minSizeBytes > 0
+        ? UserStorageInfo.FormatBytes(_minSizeBytes)
+        : "Any size";
+
+    private RenderFragment PreviewBox => __builder =>
+    {
+        <div class="cleanup-preview" aria-live="polite">
+            @if (_previewFailed)
+            {
+                <span>Could not count the matching files.</span>
+            }
+            else if (_preview is null)
+            {
+                <span>Counting...</span>
+            }
+            else if (_preview.Count == 0)
+            {
+                <span>No files match.</span>
+            }
+            else
+            {
+                <strong class="numeric">@_preview.Count @(_preview.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(_preview.TotalBytes)</strong>
+                @if (_preview.Oldest is not null && _preview.Newest is not null)
+                {
+                    <span class="numeric">@_preview.Oldest.Value.ToLocalTime().ToString("MMM d, yyyy") to @_preview.Newest.Value.ToLocalTime().ToString("MMM d, yyyy")</span>
+                }
+            }
+        </div>
+    };
 
     protected override async Task OnInitializedAsync()
     {
