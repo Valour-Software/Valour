@@ -1,6 +1,8 @@
 @using Valour.Shared.Cdn
+@using Valour.Client.Utility.Downloads
 @inherits Modal<AttachmentCleanupModal.ModalParams>
 @inject ValourClient Client
+@inject IDownloadService Downloads
 @implements IDisposable
 
 <BasicModalLayout Title="Clean up attachments" Icon="trash3-fill" MaxWidth="560px" Role="dialog">
@@ -115,7 +117,7 @@
         <div class="basic-modal-buttons">
             <button class="v-btn" @onclick="@Close">Close</button>
             <button class="v-btn" disabled="@(!HasFiles || _downloading)" @onclick="DownloadArchiveAsync">
-                @(_downloading ? "Preparing..." : "Download archive")
+                @(_downloading ? "Downloading..." : "Download archive")
             </button>
             <button class="v-btn danger" disabled="@(!HasFiles)" @onclick="OpenConfirm">Delete files...</button>
         </div>
@@ -155,7 +157,6 @@
     private bool _downloading;
 
     private CancellationTokenSource _previewCts;
-    private IJSObjectReference _jsModule;
 
     private bool HasFiles => _preview is { Count: > 0 };
 
@@ -281,14 +282,12 @@
                 return;
             }
 
-            _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Valour.Client/Components/Menus/Modals/Attachments/AttachmentCleanupConfirmModal.razor.js");
-            await _jsModule.InvokeVoidAsync("startDownload", Client.AttachmentService.GetCleanupArchiveUrl(ticket.Data));
-
-            ToastContainer.Instance.AddToast(new ToastData(
-                "Archive download started",
-                $"{ticket.Data.Count} files, {UserStorageInfo.FormatBytes(ticket.Data.TotalBytes)}",
-                ToastProgressState.Success));
+            // A browser starts the download and returns at once. An app saves the whole
+            // archive to the device first, and this waits for that.
+            await Downloads.DownloadWithToastAsync(new DownloadRequest(
+                Client.AttachmentService.GetCleanupArchiveUrl(ticket.Data),
+                AttachmentArchiveName(),
+                "application/zip"));
         }
         finally
         {
@@ -316,6 +315,5 @@
         });
     }
 
-    [Inject]
-    private IJSRuntime JsRuntime { get; set; }
+    private static string AttachmentArchiveName() => $"valour-attachments-{DateTime.UtcNow:yyyy-MM-dd}.zip";
 }

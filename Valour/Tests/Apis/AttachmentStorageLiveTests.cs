@@ -3,6 +3,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Valour.Client.Utility.Downloads;
 using Valour.Database;
 using Valour.Database.Context;
 using Valour.Shared.Cdn;
@@ -213,5 +214,64 @@ public class AttachmentStorageLiveTests
 
         var after = await attachments.PreviewCleanupAsync(criteria);
         Assert.Equal(0, after.Data.Count);
+    }
+
+    private sealed class FolderDownloadService(string folder, HttpClient http) : StreamedDownloadService(http)
+    {
+        protected override Task<DownloadDestination> OpenDestinationAsync(
+            string fileName, string mimeType, CancellationToken cancellationToken) =>
+            Task.FromResult<DownloadDestination>(new FolderDownloadDestination(folder, fileName));
+    }
+
+    [Fact]
+    public async Task AppDownloadSavesTheArchiveAndTheServerSeesItFinish()
+    {
+        var attachments = _fixture.Client.AttachmentService;
+        var marker = Guid.NewGuid().ToString("N")[..8];
+        await UploadTextAsync($"native-{marker}-1.txt", 5000);
+        await UploadTextAsync($"native-{marker}-2.txt", 5000);
+
+        var criteria = new AttachmentCleanupCriteria
+        {
+            AsOf = DateTime.UtcNow.AddMinutes(1),
+            Scope = AttachmentCleanupScope.All,
+            Categories = [ContentCategory.File],
+        };
+        var ticket = await attachments.StartCleanupArchiveAsync(criteria);
+        Assert.True(ticket.Success, ticket.Message);
+
+        var folder = Path.Combine(Path.GetTempPath(), "valour-archive-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            // Native hosts download with their own HTTP client, like this one.
+            using var http = _fixture.Factory.CreateClient();
+            var downloads = new FolderDownloadService(folder, http);
+            Assert.False(downloads.UsesBrowserDownloads);
+
+            var result = await downloads.DownloadAsync(new DownloadRequest(
+                new Uri(http.BaseAddress!, ticket.Data.DownloadPath).ToString(), "valour-attachments.zip", "application/zip"));
+
+            Assert.True(result.Success, result.Message);
+            using (var zip = ZipFile.OpenRead(result.Location!))
+            {
+                Assert.Contains(zip.Entries, e => e.FullName == "manifest.json");
+                Assert.True(zip.Entries.Count(e => e.FullName != "manifest.json") >= 2);
+            }
+
+            // The app finishing the download is what lets the delete step proceed.
+            var status = await attachments.GetCleanupArchiveStatusAsync(ticket.Data.Id);
+            Assert.Equal(AttachmentArchiveState.Completed, status.Data.State);
+        }
+        finally
+        {
+            if (Directory.Exists(folder))
+                Directory.Delete(folder, true);
+        }
+
+        // Leave the account as it was found.
+        while ((await attachments.DeleteCleanupBatchAsync(new AttachmentCleanupDeleteRequest
+               { Criteria = criteria, ArchiveId = ticket.Data.Id })).Data is { Remaining: > 0, Deleted: > 0 })
+        {
+        }
     }
 }

@@ -1,6 +1,7 @@
 @inherits Modal<AttachmentCleanupConfirmModal.ModalParams>
+@using Valour.Client.Utility.Downloads
 @inject ValourClient Client
-@inject IJSRuntime JsRuntime
+@inject IDownloadService Downloads
 
 <BasicModalLayout Title="@(_finished ? "Cleanup finished" : "Delete these files?")" Icon="exclamation-triangle-fill" MaxWidth="460px" Role="dialog">
     <MainArea>
@@ -180,12 +181,30 @@
             return null;
         }
 
-        var module = await JsRuntime.InvokeAsync<IJSObjectReference>(
-            "import", "./_content/Valour.Client/Components/Menus/Modals/Attachments/AttachmentCleanupConfirmModal.razor.js");
-        await module.InvokeVoidAsync("startDownload", Client.AttachmentService.GetCleanupArchiveUrl(ticket.Data));
-
         _status = "Downloading your backup. Nothing is deleted until it finishes...";
         StateHasChanged();
+
+        // A browser starts the download and returns at once, so the archive's
+        // status on the server says when it finished. An app saves the whole
+        // file first. Either way nothing is deleted before the server agrees.
+        var progress = new Progress<DownloadProgress>(p =>
+        {
+            _status = p.TotalBytes is { } total
+                ? $"Downloading your backup... {UserStorageInfo.FormatBytes(p.BytesReceived)} of {UserStorageInfo.FormatBytes(total)}. Nothing is deleted until it finishes."
+                : $"Downloading your backup... {UserStorageInfo.FormatBytes(p.BytesReceived)}. Nothing is deleted until it finishes.";
+            InvokeAsync(StateHasChanged);
+        });
+
+        var download = await Downloads.DownloadAsync(new DownloadRequest(
+            Client.AttachmentService.GetCleanupArchiveUrl(ticket.Data),
+            $"valour-attachments-{DateTime.UtcNow:yyyy-MM-dd}.zip",
+            "application/zip"), progress);
+
+        if (!download.Success)
+        {
+            _error = "The backup could not be saved. " + download.Message + " Nothing was deleted.";
+            return null;
+        }
 
         var started = DateTime.UtcNow;
         var pollFailures = 0;
@@ -227,7 +246,7 @@
             // The browser may have refused or cancelled the download.
             if (status.Data.State == AttachmentArchiveState.Pending && DateTime.UtcNow - started > TimeSpan.FromMinutes(2))
             {
-                _error = "Your browser never started the download, so nothing was deleted. Allow downloads for this site and try again.";
+                _error = "The download never started, so nothing was deleted. Allow downloads for this site and try again.";
                 return null;
             }
         }

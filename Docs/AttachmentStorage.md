@@ -87,7 +87,8 @@ deleted, because they must be preserved.
 
 Deletion requires the id of a `Completed` archive built from the same criteria, unless the
 request sets `SkipBackup`. Without one the server answers 409. The client therefore starts
-the download, waits for `Completed`, and only then deletes. If any file was skipped, it
+the download through `IDownloadService` (see [Downloads](Downloads.md)), waits for `Completed`,
+and only then deletes. If any file was skipped, it
 stops and deletes nothing.
 
 Deleting a file leaves the message text in place. Wherever the file was used, readers see

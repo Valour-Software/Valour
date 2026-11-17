@@ -137,6 +137,14 @@ public static class MauiProgram
 
         // Override the browser share service with the native OS share sheet
         builder.Services.AddSingleton<Valour.Client.Utility.IShareService, MauiShareService>();
+#if ANDROID
+        // Android's WebView ignores download links, so the app saves files itself.
+        builder.Services.AddSingleton<Valour.Client.Utility.Downloads.IDownloadService, AndroidDownloadService>();
+#elif WINDOWS
+        builder.Services.AddSingleton<Valour.Client.Utility.Downloads.IDownloadService, WindowsDownloadService>();
+#endif
+        // iOS and Mac keep the browser service: AppleWebViewNavigationDelegate turns
+        // its download links into the system Save panel.
 #if WINDOWS
         builder.Services.AddSingleton<WindowsToastService>();
 #endif
