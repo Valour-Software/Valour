@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Valour.Server.Cdn.Storage;
+using Valour.Server.Services.GoogleDrive;
 using Valour.Shared;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
@@ -24,6 +25,7 @@ public class UserStorageService
     private readonly ValourDb _db;
     private readonly UserAttachmentService _attachments;
     private readonly CdnStorageProvider _storage;
+    private readonly DriveSyncService _drive;
     private readonly IMemoryCache _cache;
     private readonly ILogger<UserStorageService> _logger;
 
@@ -31,12 +33,14 @@ public class UserStorageService
         ValourDb db,
         UserAttachmentService attachments,
         CdnStorageProvider storage,
+        DriveSyncService drive,
         IMemoryCache cache,
         ILogger<UserStorageService> logger)
     {
         _db = db;
         _attachments = attachments;
         _storage = storage;
+        _drive = drive;
         _cache = cache;
         _logger = logger;
     }
@@ -52,22 +56,54 @@ public class UserStorageService
             .Select(x => x.Type)
             .FirstOrDefaultAsync();
 
+    /// <summary>
+    /// Bytes on Valour's storage. A file whose Valour copy has expired lives in
+    /// the owner's Google Drive and is not counted.
+    /// </summary>
     public static async Task<long> GetUsedBytesAsync(ValourDb db, long userId) =>
         await db.CdnBucketItems
             .AsNoTracking()
-            .Where(x => x.UserId == userId)
+            .Where(x => x.UserId == userId && x.StoragePurgedAt == null)
             .SumAsync(x => (long)x.SizeBytes);
+
+    /// <summary>
+    /// The largest single file the account may upload. A connected Google Drive
+    /// raises it to at least <see cref="GoogleDriveLimits.ConnectedMaxUploadBytes"/>,
+    /// and a higher subscription limit still wins.
+    /// </summary>
+    public static async Task<long> GetMaxUploadBytesAsync(ValourDb db, long userId)
+    {
+        var limit = UserSubscriptionTypes.GetMaxUploadBytes(await GetSubscriptionTypeAsync(db, userId));
+        return await UserDriveService.HasActiveConnectionAsync(db, userId)
+            ? Math.Max(limit, GoogleDriveLimits.ConnectedMaxUploadBytes)
+            : limit;
+    }
+
+    /// <summary>
+    /// The account's storage allowance in bytes. Accounts with a working Google
+    /// Drive are not limited, because their files move to Drive and Valour's
+    /// copy expires.
+    /// </summary>
+    public static async Task<long> GetQuotaBytesAsync(ValourDb db, long userId) =>
+        await UserDriveService.HasActiveConnectionAsync(db, userId)
+            ? long.MaxValue
+            : UserSubscriptionTypes.GetStorageQuotaBytes(await GetSubscriptionTypeAsync(db, userId));
 
     public static async Task<UserStorageInfo> GetInfoAsync(ValourDb db, long userId)
     {
         var subscription = await GetSubscriptionTypeAsync(db, userId);
+        var driveConnected = await UserDriveService.HasActiveConnectionAsync(db, userId);
 
         return new UserStorageInfo
         {
             UsedBytes = await GetUsedBytesAsync(db, userId),
+            // The meter still shows the plan's allowance, which is what a Drive
+            // account falls back to if it disconnects.
             QuotaBytes = UserSubscriptionTypes.GetStorageQuotaBytes(subscription),
-            MaxUploadBytes = UserSubscriptionTypes.GetMaxUploadBytes(subscription),
+            MaxUploadBytes = await GetMaxUploadBytesAsync(db, userId),
             SubscriptionType = subscription,
+            DriveConnected = driveConnected,
+            DriveAvailable = UserDriveService.IsAvailable,
         };
     }
 
@@ -336,6 +372,13 @@ public class UserStorageService
     private async Task<bool> TryWriteEntryAsync(
         ZipArchive zip, string entryName, Valour.Database.CdnBucketItem item, CancellationToken cancellationToken)
     {
+        // A file whose Valour copy has expired is read back from the owner's Drive.
+        if (item.StoragePurgedAt is not null && !await _drive.RestoreAsync(item))
+        {
+            _logger.LogWarning("Attachment {ItemId} could not be read from Google Drive for the backup archive", item.Id);
+            return false;
+        }
+
         // Storage reports both a missing file and a failed read as nothing, so
         // try a few times before treating the file as gone.
         for (var attempt = 0; attempt < 3; attempt++)

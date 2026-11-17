@@ -53,6 +53,77 @@ public class AttachmentService : ServiceBase
             cacheDurationMs: null);
     }
 
+    // Google Drive //
+
+    /// <summary>The account's Google Drive connection and how files are moving into it.</summary>
+    public async Task<TaskResult<DriveConnectionInfo>> GetDriveAsync()
+    {
+        return await _client.PrimaryNode.GetJsonAsync<DriveConnectionInfo>(
+            "api/attachments/drive",
+            cacheDurationMs: null);
+    }
+
+    /// <summary>
+    /// Finishes connecting Google Drive with the ticket and verifier from the
+    /// Google consent page.
+    /// </summary>
+    public async Task<TaskResult<DriveConnectionInfo>> ConnectDriveAsync(string ticket, string verifier)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<DriveConnectionInfo>(
+            "api/attachments/drive/connect",
+            new DriveConnectRequest { Ticket = ticket, Verifier = verifier });
+        ForgetUploadLimit();
+        return result;
+    }
+
+    /// <summary>Disconnects Google Drive. Files already moved to it stay there.</summary>
+    public async Task<TaskResult> DisconnectDriveAsync()
+    {
+        var result = await _client.PrimaryNode.DeleteAsync("api/attachments/drive");
+        ForgetUploadLimit();
+        return result;
+    }
+
+    private bool? _driveConnected;
+    private DateTime _driveCheckedAt;
+
+    /// <summary>
+    /// The largest file the account can upload. A connected Google Drive raises
+    /// the plan's limit to at least <see cref="GoogleDriveLimits.ConnectedMaxUploadBytes"/>.
+    /// Whether Drive is connected is remembered for a few minutes.
+    /// </summary>
+    public async Task<long> GetMaxUploadBytesAsync()
+    {
+        var tierLimit = UserSubscriptionTypes.GetMaxUploadBytes(_client.Me?.SubscriptionType);
+
+        if (_driveConnected is null || DateTime.UtcNow - _driveCheckedAt > TimeSpan.FromMinutes(5))
+        {
+            var storage = await GetStorageAsync();
+            if (!storage.Success)
+                return tierLimit;
+
+            _driveConnected = storage.Data.DriveConnected;
+            _driveCheckedAt = DateTime.UtcNow;
+        }
+
+        return _driveConnected == true ? Math.Max(tierLimit, GoogleDriveLimits.ConnectedMaxUploadBytes) : tierLimit;
+    }
+
+    /// <summary>Forgets what was learned about Drive, after it was connected or disconnected.</summary>
+    public void ForgetUploadLimit() => _driveConnected = null;
+
+    /// <summary>Queues the files uploaded before Drive was connected.</summary>
+    public async Task<TaskResult<DriveQueueResult>> CopyExistingToDriveAsync()
+    {
+        return await _client.PrimaryNode.PostAsyncWithResponse<DriveQueueResult>("api/attachments/drive/copy-existing");
+    }
+
+    /// <summary>Tries again the files whose copy to Drive failed.</summary>
+    public async Task<TaskResult<DriveQueueResult>> RetryDriveAsync()
+    {
+        return await _client.PrimaryNode.PostAsyncWithResponse<DriveQueueResult>("api/attachments/drive/retry");
+    }
+
     /// <summary>
     /// The planets and direct messages the account's attachments live in.
     /// </summary>

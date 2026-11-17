@@ -19,7 +19,7 @@ namespace Valour.Database.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -250,6 +250,34 @@ namespace Valour.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<int>("DriveAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("drive_attempts");
+
+                    b.Property<string>("DriveError")
+                        .HasColumnType("text")
+                        .HasColumnName("drive_error");
+
+                    b.Property<string>("DriveFileId")
+                        .HasColumnType("text")
+                        .HasColumnName("drive_file_id");
+
+                    b.Property<DateTime?>("DriveNextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("drive_next_attempt_at");
+
+                    b.Property<int>("DriveState")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("drive_state");
+
+                    b.Property<DateTime?>("DriveSyncedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("drive_synced_at");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasColumnType("text")
@@ -297,17 +325,31 @@ namespace Valour.Database.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("size_bytes");
 
+                    b.Property<DateTime?>("StorageExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("storage_expires_at");
+
+                    b.Property<DateTime?>("StoragePurgedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("storage_purged_at");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DriveState")
+                        .HasFilter("drive_state IN (1, 2, 4)");
+
                     b.HasIndex("Hash");
 
                     b.HasIndex("SafetyHashMatchState");
 
                     b.HasIndex("Sha256Hash");
+
+                    b.HasIndex("StorageExpiresAt")
+                        .HasFilter("storage_expires_at IS NOT NULL AND storage_purged_at IS NULL");
 
                     b.HasIndex("UserId");
 
@@ -4710,6 +4752,73 @@ namespace Valour.Database.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("user_channel_states", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.UserDriveConnection", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime>("ConnectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("connected_at");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("GoogleAccountId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("google_account_id");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_sync_at");
+
+                    b.Property<string>("RefreshTokenEncrypted")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("refresh_token_encrypted");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("user_drive_connections", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.UserDriveFolder", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("DriveFolderId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("drive_folder_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("UserId", "Key");
+
+                    b.ToTable("user_drive_folders", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.UserFriend", b =>

@@ -22,7 +22,10 @@ returns the default for an account with no active plan.
 Only files attached to messages and threads count. Profile pictures, planet icons, emoji,
 theme assets, and files kept on a planet's own storage are not counted.
 
-Usage is the sum of `SizeBytes` over the account's `cdn_bucket_items` rows. When two people
+Usage is the sum of `SizeBytes` over the account's `cdn_bucket_items` rows whose copy is
+still on Valour's storage. Files that now live only in the person's Google Drive are not
+counted, and an account with a working Drive connection is not limited at all. See
+[Google Drive storage](GoogleDrive.md). When two people
 upload the same file, the bytes are stored once, but each person's row counts for that
 person. Uploading a file the account already has costs nothing.
 
@@ -49,8 +52,8 @@ that into the out-of-space dialog. `GET api/attachments/storage` returns the sam
 
 - The attach menu in the composer shows a compact meter.
 - Settings, then Attachments, shows the meter next to the Cleanup button.
-- The out-of-space dialog offers Manage Attachments and, below the largest plan, a link to
-  Subscriptions.
+- The out-of-space dialog offers Manage Attachments, connecting Google Drive when the server
+  supports it, and, below the largest plan, a link to Subscriptions.
 
 The meter turns amber at 80 percent and red at 95 percent (`UserStorageInfo.WarningFraction` and
 `CriticalFraction`).

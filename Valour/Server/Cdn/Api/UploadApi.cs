@@ -188,21 +188,14 @@ public partial class UploadApi
     /// <summary>
     /// Returns the max upload size in bytes for the given user based on their subscription tier.
     /// </summary>
-    private static async Task<long> GetUserMaxUploadBytes(ValourDb db, long userId)
-    {
-        var subType = await db.UserSubscriptions
-            .Where(x => x.UserId == userId && x.Active)
-            .Select(x => x.Type)
-            .FirstOrDefaultAsync();
-
-        return UserSubscriptionTypes.GetMaxUploadBytes(subType);
-    }
+    private static Task<long> GetUserMaxUploadBytes(ValourDb db, long userId) =>
+        UserStorageService.GetMaxUploadBytesAsync(db, userId);
 
     /// <summary>
     /// The account's attachment storage allowance in bytes.
     /// </summary>
-    private static async Task<long> GetUserStorageQuotaBytes(ValourDb db, long userId) =>
-        UserSubscriptionTypes.GetStorageQuotaBytes(await UserStorageService.GetSubscriptionTypeAsync(db, userId));
+    private static Task<long> GetUserStorageQuotaBytes(ValourDb db, long userId) =>
+        UserStorageService.GetQuotaBytesAsync(db, userId);
 
     /// <summary>
     /// The answer to an upload that does not fit in the account's storage. It

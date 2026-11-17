@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Server.Services.ExternalAuth;
+using Valour.Config.Configs;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -153,6 +154,10 @@ public class ExternalAuthService
         if (request.Intent != ExternalAuthIntent.Login && userId is null)
             return TaskResult<BeginResult>.FromFailure("Sign in first.");
 
+        if (request.Intent == ExternalAuthIntent.ConnectDrive &&
+            (provider is not IDriveConnectProvider || !GoogleDriveConfig.Current.Enabled))
+            return TaskResult<BeginResult>.FromFailure("Google Drive is not available on this server.");
+
         if (request.Intent == ExternalAuthIntent.Link)
         {
             // Linking adds a lasting way into the account, so a stolen session
@@ -183,7 +188,7 @@ public class ExternalAuthService
 
         return TaskResult<BeginResult>.FromData(new BeginResult(new ExternalAuthBeginResponse
         {
-            AuthorizationUrl = provider.BuildAuthorizationUrl(redirectUri, stateId),
+            AuthorizationUrl = provider.BuildAuthorizationUrl(redirectUri, stateId, request.Intent),
             FlowId = stateId,
         }, browserSecret));
     }
@@ -234,6 +239,10 @@ public class ExternalAuthService
 
         if (!string.IsNullOrEmpty(error) || string.IsNullOrEmpty(code))
             return await DeliverAsync(state, stateId, ExternalAuthResults.Error, message: "Sign-in was cancelled.");
+
+        // Connecting Drive is not a sign-in. It has its own permissions and token.
+        if (state.Intent == ExternalAuthIntent.ConnectDrive)
+            return await FinishDriveConnectAsync(stateId, state, provider, code);
 
         ExternalIdentity identity;
         try
@@ -315,6 +324,35 @@ public class ExternalAuthService
 
         return await DeliverAsync(state, stateId, ExternalAuthResults.Linked,
             ticket: await CreateGrantAsync(state, provider, identity));
+    }
+
+    private async Task<IResult> FinishDriveConnectAsync(string stateId, FlowState state, ExternalAuthProvider provider, string code)
+    {
+        DriveGrant grant = null;
+        if (provider is IDriveConnectProvider driveProvider)
+        {
+            try
+            {
+                grant = await driveProvider.ExchangeDriveCodeAsync(code, state.RedirectUri);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "{Provider} Drive connection failed while reading the account", provider.DisplayName);
+            }
+        }
+
+        if (grant is null)
+            return await DeliverAsync(state, stateId, ExternalAuthResults.Error,
+                message: "Valour needs permission to create files in your Google Drive. Try again and leave that box ticked.");
+
+        // The refresh token waits here for the client that started the flow, which
+        // redeems it with its verifier and session (see Grant).
+        var ticket = await _tickets.CreateAsync(GrantKind,
+            new Grant(ExternalAuthIntent.ConnectDrive, state.UserId!.Value, provider.CredentialType, grant.AccountId, grant.Email,
+                state.VerifierHash, grant.RefreshToken),
+            StateLifetime);
+
+        return await DeliverAsync(state, stateId, ExternalAuthResults.DriveConnected, ticket: ticket);
     }
 
     private Task<string> CreateGrantAsync(FlowState state, ExternalAuthProvider provider, ExternalIdentity identity) =>

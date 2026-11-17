@@ -9,6 +9,8 @@
         <VButton Variant="secondary" Icon="trash3" OnClick="@OpenCleanup">Cleanup</VButton>
     </div>
 
+    <DriveConnectionCard OnChanged="@LoadStorageAsync" />
+
     <div class="attachments-toolbar">
         <VSearchBox Placeholder="Search filenames, MIME types, or hashes..."
                     Value="@_search"

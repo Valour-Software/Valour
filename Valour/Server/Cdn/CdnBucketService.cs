@@ -145,6 +145,25 @@ public class CdnBucketService
                 return new TaskResult(false, UnavailableMessage);
             }
 
+            // The owner's Google Drive holds this file and Valour's copy has
+            // expired. They are uploading it again, so put the bytes back.
+            if (existingUserItem.StoragePurgedAt is not null)
+            {
+                data.Position = 0;
+                var restored = await UploadPrivateObjectDedupedAsync(data, hash, mime);
+                if (!restored.Success)
+                    return restored;
+
+                var expires = existingUserItem.DriveFileId is null
+                    ? (DateTime?)null
+                    : DateTime.UtcNow.AddDays(GoogleDriveConfig.Current.RetentionDays);
+                await db.CdnBucketItems
+                    .Where(x => x.Id == id)
+                    .ExecuteUpdateAsync(x => x
+                        .SetProperty(i => i.StoragePurgedAt, (DateTime?)null)
+                        .SetProperty(i => i.StorageExpiresAt, expires));
+            }
+
             return new TaskResult(true, $"{ValourHosts.ContentCdnBaseUrl}/content/{id}");
         }
 
@@ -177,7 +196,10 @@ public class CdnBucketService
 
         // Now we check if anyone else has already posted this file.
         // If so, we can just create a new path to the file
-        var existingHashItem = await db.CdnBucketItems.AsNoTracking().FirstOrDefaultAsync(x => x.Hash == hash);
+        // A record whose Valour copy expired no longer has the bytes here, so the
+        // file is uploaded again.
+        var existingHashItem = await db.CdnBucketItems.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Hash == hash && (x.StoragePurgedAt == null || x.SafetyQuarantinedAt != null));
         if (existingHashItem is not null)
         {
             if (existingHashItem.SafetyQuarantinedAt is not null)

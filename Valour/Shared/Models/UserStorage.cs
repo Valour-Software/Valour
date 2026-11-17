@@ -17,6 +17,15 @@ public class UserStorageInfo
     /// <summary>The name of the active Stargazer tier, or null on the free plan.</summary>
     public string SubscriptionType { get; set; }
 
+    /// <summary>
+    /// True when the account has a working Google Drive connection. Files then
+    /// move to Drive and uploads are not refused for lack of space.
+    /// </summary>
+    public bool DriveConnected { get; set; }
+
+    /// <summary>True when this server can connect Google Drive at all.</summary>
+    public bool DriveAvailable { get; set; }
+
     /// <summary>Set to <see cref="StorageFullCode"/> on a refused upload.</summary>
     public string Code { get; set; }
 

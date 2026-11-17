@@ -26,6 +26,7 @@ using Valour.Server.Hubs;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Valour.Server.Services.ExternalAuth;
+using Valour.Server.Services.GoogleDrive;
 namespace Valour.Server;
 
 public partial class Program
@@ -752,6 +753,17 @@ public partial class Program
         services.AddScoped<ExternalAuthProvider, GoogleAuthProvider>();
         services.AddScoped<ExternalAuthProvider, DiscordAuthProvider>();
         services.AddScoped<AppleAuthProvider>();
+        // Copies attachments to people's own Google Drives (see Docs/GoogleDrive.md).
+        services.AddScoped<IGoogleDriveApi, GoogleDriveApi>();
+        services.AddScoped<UserDriveService>();
+        services.AddScoped<DriveSyncService>();
+        services.AddHostedService<DriveSyncWorker>();
+        // Uploads to Drive can take a while for large files.
+        services.AddHttpClient(GoogleDriveApi.HttpClientName, client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Valour/1.0");
+            client.Timeout = TimeSpan.FromMinutes(30);
+        });
         services.AddScoped<ExternalAuthProvider>(sp => sp.GetRequiredService<AppleAuthProvider>());
         services.AddScoped<SubscriptionService>();
         services.AddScoped<GooglePlayBillingService>();
