@@ -1,3 +1,4 @@
+@using Valour.Client.Components.Menus.Modals.Attachments
 @inherits Modal<FileUploadComponent.ModalParams>
 @inject IJSRuntime JsRuntime
 @inject UploadService UploadSvc
@@ -222,6 +223,15 @@
             }
             else
             {
+                if (TryReadStorageFull(result.Error, out var storage))
+                {
+                    // Show the real reason and a way out instead of a raw error.
+                    var root = ModalRoot;
+                    Close();
+                    root.OpenModal<StorageFullModal>(new StorageFullModal.ModalParams { Info = storage });
+                    return;
+                }
+
                 _uploadError = result.Error ?? "Unknown error";
             }
 
@@ -234,6 +244,32 @@
             await Data.OnConfirm.Invoke();
             Close();
         }
+    }
+
+    /// <summary>
+    /// The upload client reports failures as "status: body". A full account is
+    /// a 413 whose body is the storage details.
+    /// </summary>
+    private static bool TryReadStorageFull(string error, out UserStorageInfo info)
+    {
+        info = null;
+
+        const string prefix = "413:";
+        if (error is null || !error.StartsWith(prefix, StringComparison.Ordinal))
+            return false;
+
+        try
+        {
+            info = System.Text.Json.JsonSerializer.Deserialize<UserStorageInfo>(
+                error[prefix.Length..].Trim(),
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
+
+        return info is { Code: UserStorageInfo.StorageFullCode };
     }
 
     public void Dispose()

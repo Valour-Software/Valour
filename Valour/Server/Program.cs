@@ -713,6 +713,7 @@ public partial class Program
                 allowPrivate: federationInsecure,
                 acceptAnyCertificate: federationInsecure));
         services.AddScoped<UserAttachmentService>();
+        services.AddScoped<UserStorageService>();
         services.AddScoped<MediaSafetyService>();
         services.AddScoped<MediaSafetyIncidentService>();
         services.AddScoped<PlanetInviteService>();

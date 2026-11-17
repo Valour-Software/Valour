@@ -198,6 +198,24 @@ public partial class UploadApi
         return UserSubscriptionTypes.GetMaxUploadBytes(subType);
     }
 
+    /// <summary>
+    /// The account's attachment storage allowance in bytes.
+    /// </summary>
+    private static async Task<long> GetUserStorageQuotaBytes(ValourDb db, long userId) =>
+        UserSubscriptionTypes.GetStorageQuotaBytes(await UserStorageService.GetSubscriptionTypeAsync(db, userId));
+
+    /// <summary>
+    /// The answer to an upload that does not fit in the account's storage. It
+    /// carries the numbers the app needs to explain why and offer a way out.
+    /// </summary>
+    private static async Task<IResult> StorageFullResultAsync(ValourDb db, long userId, long requestedBytes)
+    {
+        var info = await UserStorageService.GetInfoAsync(db, userId);
+        info.Code = UserStorageInfo.StorageFullCode;
+        info.RequestedBytes = requestedBytes;
+        return Results.Json(info, statusCode: StatusCodes.Status413PayloadTooLarge);
+    }
+
     public static void HandleExif(Image image)
     {
         // Remove unneeded exif data
@@ -242,6 +260,12 @@ public partial class UploadApi
         if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
 
+        // Refuse before doing any work when there is no room at all. Whether a
+        // given image fits is only known once it has been processed.
+        var storageQuota = await GetUserStorageQuotaBytes(db, authToken.UserId);
+        if (await UserStorageService.GetUsedBytesAsync(db, authToken.UserId) >= storageQuota)
+            return await StorageFullResultAsync(db, authToken.UserId, file.Length);
+
         var oversized = await RejectIfOversizedAsync(file);
         if (oversized is not null) return oversized;
 
@@ -263,7 +287,8 @@ public partial class UploadApi
             imageData.Value.mime,
             ContentCategory.Image,
             db,
-            safetyHashMatch);
+            safetyHashMatch,
+            storageQuota);
 
         if (bucketResult.Success)
         {
@@ -271,6 +296,9 @@ public partial class UploadApi
         }
         else
         {
+            if (bucketResult.Code == CdnBucketService.StorageFullErrorCode)
+                return await StorageFullResultAsync(db, authToken.UserId, ms.Length);
+
             return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
         }
     }
@@ -1279,6 +1307,10 @@ public partial class UploadApi
             return Results.BadRequest("HTML, SVG, and XML files are not allowed");
         }
 
+        var fileStorageQuota = await GetUserStorageQuotaBytes(db, authToken.UserId);
+        if (await UserStorageService.GetUsedBytesAsync(db, authToken.UserId) >= fileStorageQuota)
+            return await StorageFullResultAsync(db, authToken.UserId, file.Length);
+
         using MemoryStream ms = new();
         await file.CopyToAsync(ms);
 
@@ -1305,7 +1337,7 @@ public partial class UploadApi
         }
 
         ms.Position = 0;
-        var bucketResult = await bucketService.Upload(ms, fileName, ext, authToken.UserId, contentType, ContentCategory.File, db, safetyHashMatch);
+        var bucketResult = await bucketService.Upload(ms, fileName, ext, authToken.UserId, contentType, ContentCategory.File, db, safetyHashMatch, fileStorageQuota);
 
         if (bucketResult.Success)
         {
@@ -1313,6 +1345,9 @@ public partial class UploadApi
         }
         else
         {
+            if (bucketResult.Code == CdnBucketService.StorageFullErrorCode)
+                return await StorageFullResultAsync(db, authToken.UserId, ms.Length);
+
             return ValourResult.Problem("There was an issue uploading your file. Try a different format or size.");
         }
     }

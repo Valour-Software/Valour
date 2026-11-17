@@ -1,0 +1,321 @@
+@using Valour.Shared.Cdn
+@inherits Modal<AttachmentCleanupModal.ModalParams>
+@inject ValourClient Client
+@implements IDisposable
+
+<BasicModalLayout Title="Clean up attachments" Icon="trash3-fill" MaxWidth="560px" Role="dialog">
+    <MainArea>
+        <p class="helper-text">
+            Choose which of your uploaded files to remove. Message text stays, and the files show as "Attachment not found".
+        </p>
+
+        <div class="cleanup-section">
+            <div class="cleanup-label">Which files</div>
+            <label class="cleanup-radio">
+                <input type="radio" name="cleanup-scope" checked="@(_scope == AttachmentCleanupScope.All)" @onchange="@(() => SetScope(AttachmentCleanupScope.All))" />
+                <span>All of my files</span>
+            </label>
+            <label class="cleanup-radio">
+                <input type="radio" name="cleanup-scope" checked="@(_scope == AttachmentCleanupScope.Selected)" @onchange="@(() => SetScope(AttachmentCleanupScope.Selected))" />
+                <span>Only files in certain planets or DMs</span>
+            </label>
+            <label class="cleanup-radio">
+                <input type="radio" name="cleanup-scope" checked="@(_scope == AttachmentCleanupScope.Unattached)" @onchange="@(() => SetScope(AttachmentCleanupScope.Unattached))" />
+                <span>Only files not used in any message</span>
+            </label>
+
+            @if (_scope == AttachmentCleanupScope.Selected)
+            {
+                <div class="cleanup-places">
+                    @if (_places is null)
+                    {
+                        <div class="cleanup-muted">Loading...</div>
+                    }
+                    else if (_places.Count == 0)
+                    {
+                        <div class="cleanup-muted">No files are in a planet or DM.</div>
+                    }
+                    else
+                    {
+                        @foreach (var place in _places)
+                        {
+                            <label class="cleanup-check">
+                                <input type="checkbox" checked="@IsPlaceSelected(place)" @onchange="@(e => TogglePlace(place, (bool)e.Value!))" />
+                                <span class="place-name">@PlaceName(place)</span>
+                                <span class="place-size numeric">@place.Count @(place.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(place.TotalBytes)</span>
+                            </label>
+                        }
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="cleanup-row">
+            <div class="cleanup-section">
+                <label class="cleanup-label" for="cleanup-age">Older than</label>
+                <select id="cleanup-age" class="form-select" @onchange="OnAgeChanged">
+                    <option value="0">Any age</option>
+                    <option value="30">1 month</option>
+                    <option value="90">3 months</option>
+                    <option value="180">6 months</option>
+                    <option value="365">1 year</option>
+                    <option value="730">2 years</option>
+                </select>
+            </div>
+            <div class="cleanup-section">
+                <label class="cleanup-label" for="cleanup-size">Larger than</label>
+                <select id="cleanup-size" class="form-select" @onchange="OnSizeChanged">
+                    <option value="0">Any size</option>
+                    <option value="1">1 MB</option>
+                    <option value="10">10 MB</option>
+                    <option value="50">50 MB</option>
+                    <option value="100">100 MB</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="cleanup-section">
+            <div class="cleanup-label">Types</div>
+            <div class="cleanup-types">
+                @foreach (var type in _typeOptions)
+                {
+                    <label class="cleanup-check">
+                        <input type="checkbox" checked="@_types.Contains(type.Value)" @onchange="@(e => ToggleType(type.Value, (bool)e.Value!))" />
+                        <span>@type.Label</span>
+                    </label>
+                }
+            </div>
+            <div class="cleanup-muted">Leave all unchecked to include every type.</div>
+        </div>
+
+        <div class="cleanup-preview @(_preview is { Count: > 0 } ? "has-files" : "")" aria-live="polite">
+            @if (_previewFailed)
+            {
+                <span>Could not count the matching files.</span>
+            }
+            else if (_preview is null)
+            {
+                <span>Counting...</span>
+            }
+            else if (_preview.Count == 0)
+            {
+                <span>No files match.</span>
+            }
+            else
+            {
+                <strong class="numeric">@_preview.Count @(_preview.Count == 1 ? "file" : "files"), @UserStorageInfo.FormatBytes(_preview.TotalBytes)</strong>
+                @if (_preview.Oldest is not null && _preview.Newest is not null)
+                {
+                    <span class="numeric">@_preview.Oldest.Value.ToLocalTime().ToString("MMM d, yyyy") to @_preview.Newest.Value.ToLocalTime().ToString("MMM d, yyyy")</span>
+                }
+            }
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="@Close">Close</button>
+            <button class="v-btn" disabled="@(!HasFiles || _downloading)" @onclick="DownloadArchiveAsync">
+                @(_downloading ? "Preparing..." : "Download archive")
+            </button>
+            <button class="v-btn danger" disabled="@(!HasFiles)" @onclick="OpenConfirm">Delete files...</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        /// <summary>
+        /// Runs after files were deleted so the page behind can reload.
+        /// </summary>
+        public Func<Task> OnDeleted { get; init; }
+    }
+
+    private static readonly (ContentCategory Value, string Label)[] _typeOptions =
+    [
+        (ContentCategory.Image, "Images"),
+        (ContentCategory.Video, "Videos"),
+        (ContentCategory.Audio, "Audio"),
+        (ContentCategory.File, "Other files"),
+    ];
+
+    // Files uploaded after the modal opened are never part of a cleanup.
+    private readonly DateTime _asOf = DateTime.UtcNow;
+
+    private AttachmentCleanupScope _scope = AttachmentCleanupScope.All;
+    private readonly HashSet<long> _selectedPlaceIds = new();
+    private bool _includeDms;
+    private readonly HashSet<ContentCategory> _types = new();
+    private int _ageDays;
+    private long _minSizeBytes;
+
+    private List<AttachmentPlaceUsage> _places;
+    private AttachmentCleanupPreview _preview;
+    private bool _previewFailed;
+    private bool _downloading;
+
+    private CancellationTokenSource _previewCts;
+    private IJSObjectReference _jsModule;
+
+    private bool HasFiles => _preview is { Count: > 0 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshPreviewAsync();
+    }
+
+    public void Dispose()
+    {
+        _previewCts?.Cancel();
+        _previewCts?.Dispose();
+    }
+
+    private AttachmentCleanupCriteria BuildCriteria() => new()
+    {
+        AsOf = _asOf,
+        CreatedBefore = _ageDays > 0 ? _asOf.AddDays(-_ageDays) : null,
+        Scope = _scope,
+        PlanetIds = _scope == AttachmentCleanupScope.Selected ? _selectedPlaceIds.ToList() : [],
+        IncludeDirectMessages = _scope == AttachmentCleanupScope.Selected && _includeDms,
+        Categories = _types.ToList(),
+        MinSizeBytes = _minSizeBytes > 0 ? _minSizeBytes : null,
+    };
+
+    private async Task SetScope(AttachmentCleanupScope scope)
+    {
+        _scope = scope;
+
+        if (scope == AttachmentCleanupScope.Selected && _places is null)
+        {
+            var result = await Client.AttachmentService.GetCleanupPlacesAsync();
+            _places = result.Success ? result.Data.Places : [];
+        }
+
+        await RefreshPreviewAsync();
+    }
+
+    private bool IsPlaceSelected(AttachmentPlaceUsage place) =>
+        place.PlanetId is null ? _includeDms : _selectedPlaceIds.Contains(place.PlanetId.Value);
+
+    private async Task TogglePlace(AttachmentPlaceUsage place, bool selected)
+    {
+        if (place.PlanetId is null)
+            _includeDms = selected;
+        else if (selected)
+            _selectedPlaceIds.Add(place.PlanetId.Value);
+        else
+            _selectedPlaceIds.Remove(place.PlanetId.Value);
+
+        await RefreshPreviewAsync();
+    }
+
+    private string PlaceName(AttachmentPlaceUsage place)
+    {
+        if (place.PlanetId is null)
+            return "Direct messages";
+
+        var planet = Client.PlanetService.JoinedPlanets.FirstOrDefault(p => p.Id == place.PlanetId.Value);
+        return planet?.Name ?? "A planet you are no longer in";
+    }
+
+    private async Task OnAgeChanged(ChangeEventArgs e)
+    {
+        _ageDays = int.TryParse(e.Value?.ToString(), out var days) ? days : 0;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task OnSizeChanged(ChangeEventArgs e)
+    {
+        _minSizeBytes = int.TryParse(e.Value?.ToString(), out var mb) ? mb * 1024L * 1024L : 0;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task ToggleType(ContentCategory type, bool selected)
+    {
+        if (selected)
+            _types.Add(type);
+        else
+            _types.Remove(type);
+
+        await RefreshPreviewAsync();
+    }
+
+    private async Task RefreshPreviewAsync()
+    {
+        // Only the latest set of criteria gets to update the count.
+        _previewCts?.Cancel();
+        _previewCts = new CancellationTokenSource();
+        var token = _previewCts.Token;
+
+        _preview = null;
+        _previewFailed = false;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(200, token);
+            var result = await Client.AttachmentService.PreviewCleanupAsync(BuildCriteria());
+            if (token.IsCancellationRequested)
+                return;
+
+            _previewFailed = !result.Success;
+            _preview = result.Success ? result.Data : null;
+            StateHasChanged();
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    private async Task DownloadArchiveAsync()
+    {
+        _downloading = true;
+        StateHasChanged();
+
+        try
+        {
+            var ticket = await Client.AttachmentService.StartCleanupArchiveAsync(BuildCriteria());
+            if (!ticket.Success)
+            {
+                ToastContainer.Instance.AddToast(new ToastData("Could not start the archive", ticket.Message, ToastProgressState.Failure));
+                return;
+            }
+
+            _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Valour.Client/Components/Menus/Modals/Attachments/AttachmentCleanupConfirmModal.razor.js");
+            await _jsModule.InvokeVoidAsync("startDownload", Client.AttachmentService.GetCleanupArchiveUrl(ticket.Data));
+
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Archive download started",
+                $"{ticket.Data.Count} files, {UserStorageInfo.FormatBytes(ticket.Data.TotalBytes)}",
+                ToastProgressState.Success));
+        }
+        finally
+        {
+            _downloading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenConfirm()
+    {
+        var root = ModalRoot;
+        var criteria = BuildCriteria();
+        var preview = _preview;
+        var onDeleted = Data.OnDeleted;
+
+        root.OpenModal<AttachmentCleanupConfirmModal>(new AttachmentCleanupConfirmModal.ModalParams
+        {
+            Criteria = criteria,
+            Preview = preview,
+            OnDeleted = async () =>
+            {
+                if (onDeleted is not null)
+                    await onDeleted.Invoke();
+            }
+        });
+    }
+
+    [Inject]
+    private IJSRuntime JsRuntime { get; set; }
+}

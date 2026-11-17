@@ -1,0 +1,47 @@
+.confirm-backup {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-raised);
+    cursor: pointer;
+}
+
+.confirm-backup input {
+    margin-top: 0.2rem;
+}
+
+.confirm-hint {
+    display: block;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}
+
+.confirm-error {
+    margin: 0;
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--radius-md);
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+.confirm-status {
+    margin: 0;
+}
+
+.confirm-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background-color: var(--surface-canvas);
+    border: 1px solid var(--line);
+}
+
+.confirm-fill {
+    height: 100%;
+    background-color: var(--color-danger);
+    transition: width 0.3s ease;
+}
