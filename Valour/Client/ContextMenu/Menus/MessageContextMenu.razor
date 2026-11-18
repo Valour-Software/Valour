@@ -182,7 +182,8 @@
     private async Task OnOpenPicker(MouseEventArgs e)
     {
         await CloseAsync();
-        Data.WindowComponent?.OpenReactionPicker(Data.Message, e.ClientX, e.ClientY);
+        if (Data.WindowComponent is not null)
+            await Data.WindowComponent.OpenReactionPickerAsync(Data.Message, e.ClientX, e.ClientY);
     }
 
     private async Task OnClickReply()
