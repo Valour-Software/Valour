@@ -35,7 +35,7 @@
             <ChatHeaderComponent Channel="@Channel" ChatComponent="@this" />
         }
         <div class="chat-member-wrapper @(HideMemberList ? "member-list-hidden" : string.Empty)">
-            <div class="chat-scroll-region">
+            <div class="chat-scroll-region" @ref="_scrollRegion">
                 <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
                     <!-- Pushes messages to bottom -->
                     <div class="pusher"></div>
@@ -99,6 +99,9 @@
     private bool _trimBottomAfterScale;
     private bool _trimTopAfterNextRender;
     private DateTime _suppressBottomPagingUntil = DateTime.MinValue;
+    private ElementReference _scrollRegion;
+    private const double ReactionPickerWidth = 352;
+    private const double ReactionPickerHeight = 435;
     
     private bool _loading = true;
     private bool _disposed;
@@ -279,13 +282,17 @@
 
     /// <summary>
     /// Opens the emoji reaction picker for the given message, positioned near the given client coordinates.
+    /// The picker opens above and to the left of that point, and moves as needed to stay inside the chat area.
     /// </summary>
-    public void OpenReactionPicker(Message message, double clientX, double clientY)
+    public async Task OpenReactionPickerAsync(Message message, double clientX, double clientY)
     {
         _currentlyReactingMessage = message;
 
-        _reactionSelectorLeft = (BrowserUtils.WindowDimensions.Width - clientX) + "px";
-        _reactionSelectorTop = Math.Min(BrowserUtils.WindowDimensions.Height - clientY, 350) + "px";
+        var area = await BrowserUtils.GetElementBoundingRectAsync(_scrollRegion);
+        var right = Math.Clamp(area.Right - clientX, 0, Math.Max(0, area.Width - ReactionPickerWidth));
+        var bottom = Math.Clamp(area.Bottom - clientY, 0, Math.Max(0, area.Height - ReactionPickerHeight));
+        _reactionSelectorLeft = right + "px";
+        _reactionSelectorTop = bottom + "px";
 
         // Re-render JUST the emoji selector
         _reactionSelectorRenderWrapper?.ReRender();
