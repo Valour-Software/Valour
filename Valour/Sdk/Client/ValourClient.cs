@@ -89,9 +89,11 @@ public class ValourClient
     private HttpClient _httpClient;
 
     /// <summary>
-    /// True if the client is logged in
+    /// True if the client is logged in. A native app keeps this client alive
+    /// when its page reloads after signing out, with <see cref="Me"/> still
+    /// set, so a session token is required as well.
     /// </summary>
-    public bool IsLoggedIn => Me != null;
+    public bool IsLoggedIn => Me is not null && AuthService?.Token is not null;
 
     /// <summary>
     /// The primary node this client is connected to
