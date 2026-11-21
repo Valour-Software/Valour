@@ -75,6 +75,13 @@ chat,community,encrypted,messaging,group chat,voice,forum,wiki,threads,friends,g
 >
 > Valour is free to use. The optional Stargazer subscription adds perks such
 > as larger uploads and helps fund the platform.
+>
+> Terms of Use: https://valour.gg/terms/
+> Privacy Policy: https://valour.gg/privacy/
+
+Apple requires an app that sells auto-renewable subscriptions to link its
+terms of use from the product page. The two lines at the end of the
+description do that, so keep them in every listing language.
 
 **What's New** (for the first release):
 
